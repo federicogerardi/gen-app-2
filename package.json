@@ -1,0 +1,43 @@
+{
+  "name": "gen-app-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "db:migrate:minimal": "tsx db/scripts/run-sql-dir.ts db/migrations",
+    "db:seed:minimal": "tsx db/scripts/run-sql-dir.ts db/seeds",
+    "db:seed:redis:minimal": "tsx db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/lib/tests/*.test.ts",
+    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict",
+    "smoke:idempotency": "tsx src/lib/adapters/postgres-redis.smoke.ts",
+    "smoke:conflict": "tsx src/lib/adapters/postgres-redis.conflict.smoke.ts",
+    "backend:go": "npm run db:migrate:minimal && npm run db:seed:minimal && npm run typecheck && npm run test && npm run test:smoke"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/federicogerardi/gen-app-2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/federicogerardi/gen-app-2/issues"
+  },
+  "homepage": "https://github.com/federicogerardi/gen-app-2#readme",
+  "dependencies": {
+    "ioredis": "^5.8.2",
+    "pg": "^8.16.3",
+    "typescript": "^6.0.3",
+    "xstate": "^5.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/pg": "^8.15.6",
+    "tsx": "^4.20.6"
+  }
+}

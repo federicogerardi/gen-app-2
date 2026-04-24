@@ -12,6 +12,7 @@ Indice compatto del blueprint atomizzato.
 - [xstate-actor-contracts-and-topology-spec.md](./xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md)
 - [testing-go-no-go-and-risk-spec.md](./xstate-system-as-is/testing-go-no-go-and-risk-spec.md)
 - [documentation-go-no-go-checklist-spec.md](./xstate-system-as-is/documentation-go-no-go-checklist-spec.md)
+- [backend-go-checklist-spec.md](./xstate-system-as-is/backend-go-checklist-spec.md)
 
 ## Machine Specs
 

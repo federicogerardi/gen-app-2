@@ -1,4 +1,4 @@
-import type { ArtifactType, OutputFormat, ToolWorkflow } from '@/lib/types/artifact';
+import type { ArtifactType, OutputFormat, ToolWorkflow } from './artifact';
 
 export type IsoTimestamp = string;
 
@@ -126,6 +126,13 @@ export type PersistenceBatchInput = RequestRegistrySelector & {
   artifactType: RegistryBackedArtifactType;
   workflowType: RegistryBackedWorkflowType;
   contentBuffer: string;
+  userId?: string;
+  projectId?: string;
+  model?: string;
+  inputJson?: Record<string, unknown>;
+  inputTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
 };
 
 export type ToolWorkflowInput = RequestRegistrySelector & {

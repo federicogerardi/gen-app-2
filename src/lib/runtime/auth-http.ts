@@ -828,6 +828,7 @@ export const createAuthHttpRuntime = (
       response: ServerResponse,
     ): Promise<HandleAuthHttpRequestResult> {
       const path = normalizePath(request.url);
+      try {
 
       if (path === '/auth/login') {
         await handleLogin(request, response);
@@ -893,6 +894,14 @@ export const createAuthHttpRuntime = (
       }
 
       return { handled: false };
+      } catch (err) {
+        console.error(`[auth-http] unhandled error for ${request.method} ${request.url}:`, err);
+        if (!response.writableEnded && !response.destroyed) {
+          writeError(response, 500, 'internal', 'Internal server error');
+        }
+
+        return { handled: true };
+      }
     },
   };
 };

@@ -3,8 +3,26 @@ import assert from 'node:assert/strict';
 import { createActor, fromPromise, waitFor } from 'xstate';
 
 import { createInMemoryGenerationAdapters } from '../adapters';
-import { generationSystemMachine, persistenceBatchMachine } from '../machines';
+import {
+  generationSystemMachine,
+  persistenceBatchMachine,
+  toolWorkflowMachine,
+} from '../machines';
 import { runBackendGenerationSession } from '../runtime/backend-session';
+
+const createCountingToolWorkflowMachine = (counter: { count: number }) =>
+  toolWorkflowMachine.provide({
+    guards: {
+      allRequiredStepsCompleted: ({ context }) => {
+        counter.count += 1;
+        return context.stepStates.every((step) =>
+          step.status === 'done'
+            || step.status === 'skipped'
+            || context.input.steps.find((candidate) => candidate.key === step.key)?.optional,
+        );
+      },
+    },
+  });
 
 const waitForTerminalState = async (
   actor: ReturnType<typeof createActor<typeof generationSystemMachine>>,
@@ -216,6 +234,95 @@ test('generation root completes replay path on idempotency replay', async () => 
   assert.equal(result.status, 'completed');
   assert.equal(result.artifactId, 'artifact-replay-001');
   assert.equal(result.content, 'cached replay content');
+});
+
+test('generation root does not invoke tool workflow when idempotency replays', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  adapters.idempotency.checkAndClaim = async () => ({
+    status: 'replay',
+    artifactId: 'artifact-replay-tool-001',
+    content: 'cached replay content',
+  });
+
+  const toolWorkflowCounter = { count: 0 };
+  const machine = generationSystemMachine.provide({
+    actors: {
+      invokeToolWorkflow: createCountingToolWorkflowMachine(toolWorkflowCounter),
+    },
+  });
+
+  const actor = createActor(machine, { input: { adapters } });
+  actor.start();
+  actor.send({
+    type: 'REQUEST_RECEIVED',
+    requestId: 'req-root-tool-replay-001',
+    projectId: 'seed-project-001',
+    toolKey: 'landing_page',
+    artifactType: 'content',
+    model: 'gpt-5.3-codex',
+    input: { prompt: 'tool run', outputFormat: 'plain' },
+    workflowType: 'landing_page',
+    idempotencyKey: 'idem-root-tool-replay-001',
+    registrySnapshotRef: 'snapshot:root-tool-replay' as never,
+  });
+  actor.send({ type: 'AUTH_OK', userId: 'seed-user-001' });
+  actor.send({
+    type: 'VALIDATION_OK',
+    workflowType: 'landing_page',
+    registryVersion: null as never,
+    registrySnapshotRef: 'snapshot:root-tool-replay' as never,
+  });
+
+  try {
+    const snapshot = await waitFor(actor, (s) => String(s.value) === 'completed');
+    assert.equal(String(snapshot.value), 'completed');
+    assert.equal(snapshot.context.artifactId, 'artifact-replay-tool-001');
+    assert.equal(snapshot.context.contentBuffer, 'cached replay content');
+    assert.equal(toolWorkflowCounter.count, 0);
+  } finally {
+    actor.stop();
+  }
+});
+
+test('generation root does not invoke tool workflow when usage is rejected', async () => {
+  const adapters = createInMemoryGenerationAdapters(0);
+  const toolWorkflowCounter = { count: 0 };
+  const machine = generationSystemMachine.provide({
+    actors: {
+      invokeToolWorkflow: createCountingToolWorkflowMachine(toolWorkflowCounter),
+    },
+  });
+
+  const actor = createActor(machine, { input: { adapters } });
+  actor.start();
+  actor.send({
+    type: 'REQUEST_RECEIVED',
+    requestId: 'req-root-tool-usage-rejected-001',
+    projectId: 'seed-project-001',
+    toolKey: 'landing_page',
+    artifactType: 'content',
+    model: 'gpt-5.3-codex',
+    input: { prompt: 'tool run', outputFormat: 'plain' },
+    workflowType: 'landing_page',
+    idempotencyKey: 'idem-root-tool-usage-rejected-001',
+    registrySnapshotRef: 'snapshot:root-tool-usage-rejected' as never,
+  });
+  actor.send({ type: 'AUTH_OK', userId: 'seed-user-001' });
+  actor.send({
+    type: 'VALIDATION_OK',
+    workflowType: 'landing_page',
+    registryVersion: null as never,
+    registrySnapshotRef: 'snapshot:root-tool-usage-rejected' as never,
+  });
+
+  try {
+    const snapshot = await waitFor(actor, (s) => String(s.value) === 'failed');
+    assert.equal(String(snapshot.value), 'failed');
+    assert.equal(snapshot.context.failureReason, 'quota_exhausted');
+    assert.equal(toolWorkflowCounter.count, 0);
+  } finally {
+    actor.stop();
+  }
 });
 
 test('generation root fails on idempotency conflict branch', async () => {

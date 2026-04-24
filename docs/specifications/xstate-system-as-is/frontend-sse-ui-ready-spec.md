@@ -1,6 +1,6 @@
 # Frontend SSE UI Ready-to-Build Mini Spec
 
-Versione: 1.0
+Versione: 1.1
 Data: 2026-04-24
 Scope: implementazione frontend consumatrice del runtime SSE as-is
 
@@ -66,9 +66,12 @@ Eventi esterni ammessi:
 ## 2.3 Invarianti Contrattuali
 
 - `start` precede sempre i `chunk`.
+- `start.requestId` deve coincidere con la request attiva aperta dalla UI.
+- tutti i `chunk` validi devono riferirsi allo stesso `artifactId` annunciato da `start`.
 - `chunk.sequence` e monotonicamente crescente per singolo stream.
-- `terminal` e unico e chiude semanticamente lo stream.
+- `terminal` e unico e chiude semanticamente lo stream; se include `artifactId`, deve coincidere con quello attivo.
 - dopo `terminal` ogni frame successivo va ignorato lato UI.
+- mismatch di `requestId` o `artifactId`, oppure ordine frame invalido, devono produrre `protocol_error` fail-closed.
 
 ## 2.4 Tipi TypeScript Frontend
 
@@ -107,12 +110,13 @@ Il route handler non deve contenere logica di stato UI: la source of truth e la 
 
 ## 3.2 Architettura Proposta
 
-Un actor principale `frontendStreamMachine` con 6 stati:
+Un actor principale `frontendStreamMachine` con topologia as-is:
 
 - `idle`
-- `connecting`
-- `streaming`
-- `reconnecting`
+- `active` (compound)
+  - `connecting`
+  - `streaming`
+  - `reconnecting`
 - `completed`
 - `failed`
 
@@ -136,32 +140,39 @@ type FrontendStreamContext = {
   artifactId: string | null;
   content: string;
   lastSequence: number;
-  status: 'idle' | 'connecting' | 'streaming' | 'completed' | 'failed' | 'reconnecting';
   errorCode: string | null;
   errorMessage: string | null;
   reconnectAttempts: number;
   maxReconnectAttempts: number;
-  reconnectDelayMs: number;
+  reconnectBaseDelayMs: number;
+  reconnectMaxDelayMs: number;
+  hasTerminal: boolean;
+  lastRequest: GenerationRequest | null;
+  apiBaseUrl: string;
 };
 ```
 
 ## 3.5 Transizioni Normative
 
-- `idle` + `REQUEST_START` -> `connecting`
-- `connecting` + `SSE_START` -> `streaming`
-- `streaming` + `SSE_CHUNK` -> `streaming` (append, update sequence)
-- `streaming` + `SSE_TERMINAL(status=completed)` -> `completed`
-- `streaming` + `SSE_TERMINAL(status=failed)` -> `failed`
-- `connecting|streaming` + `STREAM_ERROR` -> `reconnecting` (se retryabile)
-- `reconnecting` + `RECONNECT_TIMEOUT` -> `connecting` (nuovo tentativo)
+- `idle` + `REQUEST_START` -> `active.connecting`
+- `active.connecting` + `SSE_START(requestId coerente)` -> `active.streaming`
+- `active.streaming` + `SSE_CHUNK(sequence monotona + artifact coerente)` -> `active.streaming` (append, update sequence)
+- `active` + `SSE_TERMINAL(status=completed, artifact coerente)` -> `completed`
+- `active` + `SSE_TERMINAL(status=failed, artifact coerente)` -> `failed`
+- `active.connecting|active.streaming` + `STREAM_ERROR` -> `active.reconnecting` (se retryabile)
+- `active.reconnecting` + delay di reconnect -> `active.connecting` (nuovo tentativo)
 - `reconnecting` + tentativi esauriti -> `failed`
 - `completed|failed` + `RESET` -> `idle`
+- `active` + frame protocollo invalido -> `failed` con `errorCode='protocol_error'`
 
 ## 3.6 Guardie e Azioni Raccomandate
 
 Guardie:
 
+- `isExpectedStartEvent`: `event.requestId === context.requestId`
 - `isMonotonicSequence`: `event.sequence > context.lastSequence`
+- `isChunkForActiveArtifact`: sequence monotona e `event.artifactId === context.artifactId`
+- `isTerminalForActiveArtifact`: `event.artifactId == null || event.artifactId === context.artifactId`
 - `canReconnect`: `context.reconnectAttempts < context.maxReconnectAttempts`
 - `isRetryableTransportError`: timeout/disconnect/network reset
 
@@ -171,8 +182,8 @@ Azioni:
 - `appendChunk`
 - `setTerminalSuccess`
 - `setTerminalFailure`
+- `setProtocolError`
 - `incrementReconnectAttempts`
-- `scheduleReconnectDelay`
 - `resetStreamContext`
 
 Vincolo XState v5:
@@ -186,7 +197,7 @@ Vincolo XState v5:
 
 - `transport_pre_start`: errore prima di `SSE_START`
 - `transport_mid_stream`: errore dopo almeno un `chunk`
-- `protocol_error`: frame non valido o sequence non monotona
+- `protocol_error`: frame non valido, `requestId` mismatch, `artifactId` mismatch o sequence non monotona
 - `terminal_failed`: `SSE_TERMINAL` con `status=failed`
 
 ## 4.2 Politica Reconnect
@@ -228,6 +239,8 @@ Una feature frontend e pronta quando:
 - reconnect policy implementata con limiti e jitter
 - test coprono:
   - ordine eventi
+  - coerenza `requestId` su `start`
+  - coerenza `artifactId` su `chunk` e `terminal`
   - monotonicita sequence
   - terminal success/failure
   - reconnect con tentativi esauriti

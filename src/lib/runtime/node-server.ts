@@ -221,6 +221,16 @@ export const createNodeRuntimeRequestHandler = (
   const csrfTrustedOrigins = options.csrf?.trustedOrigins ?? options.cors?.allowedOrigins ?? [];
 
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
+    const path = normalizePath(request.url);
+    const method = request.method ?? 'UNKNOWN';
+    const origin = getHeaderValue(request.headers.origin as string | string[] | undefined) ?? '(no origin)';
+    console.log(`[req] ${method} ${path} origin=${origin}`);
+
+    response.on('finish', () => {
+      console.log(`[res] ${method} ${path} → ${response.statusCode}`);
+    });
+
+    try {
     if (options.cors) {
       applyCorsHeaders(request, response, options.cors);
     }
@@ -230,8 +240,6 @@ export const createNodeRuntimeRequestHandler = (
       response.end('');
       return;
     }
-
-    const path = normalizePath(request.url);
     if (
       csrfEnabled
       && csrfTrustedOrigins.length > 0
@@ -298,6 +306,12 @@ export const createNodeRuntimeRequestHandler = (
       if (!response.writableEnded && !response.destroyed) {
         response.statusCode = 500;
         response.end();
+      }
+    }
+    } catch (unhandled) {
+      console.error(`[err] ${method} ${path}`, unhandled);
+      if (!response.writableEnded && !response.destroyed) {
+        writeJson(response, 500, { ok: false, error: { code: 'internal_error', message: 'Unexpected server error' } });
       }
     }
   };

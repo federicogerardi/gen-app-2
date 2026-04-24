@@ -6,13 +6,13 @@ Stati (as-is implementazione):
 
 - `idle`
 - `gateway` — gestisce AUTH_OK/AUTH_FAIL/VALIDATION_OK/VALIDATION_FAIL inline
+- `preGenerationGuards` (compound):
+  - `idempotency` — invoca `idempotencyCoordinatorMachine`
+  - `usage` — invoca `usageMachine`
 - `routing` — stato always che determina il flow (extraction/tool/generic) o va in failed
 - `extractionFlow` — invoca `extractionChainMachine`
 - `toolGenerationFlow` — invoca `toolWorkflowMachine`
-- `genericGenerationFlow` — transizione immediata a `usageAndIdempotency`
-- `usageAndIdempotency` (compound):
-  - `idempotency` — invoca `idempotencyCoordinatorMachine`
-  - `usage` — invoca `usageMachine`
+- `genericGenerationFlow` — transizione immediata a `streaming`
 - `streaming` — invoca `streamTransportMachine`
 - `persistingSuccess` — invoca `persistenceBatchMachine` sul path success
 - `persistingFailure` — invoca `persistenceBatchMachine` sul path failure
@@ -27,20 +27,20 @@ Transizioni principali:
 - idle --REQUEST_RECEIVED (senza registrySelector)--> failed (`missing_registry_selector`)
 - gateway --AUTH_OK--> gateway (`setUserId`)
 - gateway --AUTH_FAIL--> failed (`unauthorized`)
-- gateway --VALIDATION_OK--> routing
+- gateway --VALIDATION_OK--> preGenerationGuards
 - gateway --VALIDATION_FAIL--> failed
+- preGenerationGuards.idempotency --IDEMPOTENCY_REPLAY_READY--> completed
+- preGenerationGuards.idempotency --IDEMPOTENCY_CONFLICT--> persistingFailure
+- preGenerationGuards.idempotency --claimed--> preGenerationGuards.usage
+- preGenerationGuards.usage --USAGE_REJECTED--> persistingFailure
+- preGenerationGuards.usage --USAGE_GRANTED--> routing
 - routing [always] --routeIsExtraction--> extractionFlow
 - routing [always] --routeIsTool--> toolGenerationFlow
 - routing [always] --routeIsGeneric--> genericGenerationFlow
 - routing [always] --hasAmbiguousRouting--> failed (`ambiguous_routing`)
-- extractionFlow --onDone--> usageAndIdempotency
-- toolGenerationFlow --onDone--> usageAndIdempotency
-- genericGenerationFlow [always]--> usageAndIdempotency
-- usageAndIdempotency.idempotency --IDEMPOTENCY_REPLAY_READY--> completed
-- usageAndIdempotency.idempotency --IDEMPOTENCY_CONFLICT--> persistingFailure
-- usageAndIdempotency.idempotency --claimed--> usage
-- usageAndIdempotency.usage --USAGE_GRANTED--> streaming
-- usageAndIdempotency.usage --USAGE_REJECTED--> persistingFailure
+- extractionFlow --onDone--> streaming
+- toolGenerationFlow --onDone--> streaming
+- genericGenerationFlow [always]--> streaming
 - streaming --STREAM_TERMINATED_SUCCESS--> persistingSuccess
 - streaming --STREAM_TERMINATED_FAILURE--> persistingFailure
 - persistingSuccess --onDone--> finalizeIdempotencySuccess
@@ -51,6 +51,11 @@ Transizioni principali:
 - failed --RESET--> idle
 
 Nota: `requestGatewayMachine` esiste come macchina standalone ma NON è invocata come actor da `generationSystemMachine`. La logica gateway è gestita inline nello stato `gateway`.
+
+Invariante as-is introdotto dal fix:
+
+- nessun actor con side effect di workflow (`toolWorkflowMachine`, `extractionChainMachine`) puo essere invocato prima che `preGenerationGuards` abbia risolto replay/conflict/quota.
+- `IDEMPOTENCY_REPLAY_READY` e `USAGE_REJECTED` sono gate fail-closed: chiudono il flusso prima del routing verso flow actor.
 
 ## 14. Blueprint di Implementazione XState v5 (Consigliato)
 
@@ -188,24 +193,24 @@ Le tabelle seguenti sono normative per progettazione avanzata e test model-based
 | `idle` | `REQUEST_RECEIVED` | nessun registry selector | `failed` | `setMissingRegistrySelectorFailure` |
 | `gateway` | `AUTH_OK` | - | `gateway` | `setUserId` |
 | `gateway` | `AUTH_FAIL` | - | `failed` | `setFailureReason='unauthorized'` |
-| `gateway` | `VALIDATION_OK` | - | `routing` | `setValidationData` (aggiorna `routeType`) |
+| `gateway` | `VALIDATION_OK` | - | `preGenerationGuards` | `setValidationData` (aggiorna `routeType`) |
 | `gateway` | `VALIDATION_FAIL` | - | `failed` | `setFailureReason=event.reason` |
+| `preGenerationGuards.idempotency` | invoke done | `idempotencyOutputIsReplay` | `completed` | `cacheReplayPayload` |
+| `preGenerationGuards.idempotency` | invoke done | `idempotencyOutputIsConflict` | `persistingFailure` | `setFailureFromInvokeOutput` |
+| `preGenerationGuards.idempotency` | invoke done | claimed | `preGenerationGuards.usage` | - |
+| `preGenerationGuards.idempotency` | invoke error | - | `persistingFailure` | `setIdempotencyConflictFailure` |
+| `preGenerationGuards.usage` | invoke done | `usageOutputIsRejected` | `persistingFailure` | `setFailureFromInvokeOutput` |
+| `preGenerationGuards.usage` | invoke done | granted | `routing` | - |
+| `preGenerationGuards.usage` | invoke error | - | `persistingFailure` | `setUsageFailedFailure` |
 | `routing` | always | `routeIsExtraction` | `extractionFlow` | - |
 | `routing` | always | `routeIsTool` | `toolGenerationFlow` | - |
 | `routing` | always | `routeIsGeneric` | `genericGenerationFlow` | - |
 | `routing` | always | `hasAmbiguousRouting` | `failed` | `setAmbiguousRoutingFailure` |
-| `extractionFlow` | invoke `extractionChainMachine` done | - | `usageAndIdempotency` | - |
+| `extractionFlow` | invoke `extractionChainMachine` done | - | `streaming` | - |
 | `extractionFlow` | invoke error | - | `persistingFailure` | `setExtractionFailedFailure` |
-| `toolGenerationFlow` | invoke `toolWorkflowMachine` done | - | `usageAndIdempotency` | `cacheToolArtifactFromOutput` |
+| `toolGenerationFlow` | invoke `toolWorkflowMachine` done | - | `streaming` | `cacheToolArtifactFromOutput` |
 | `toolGenerationFlow` | invoke error | - | `persistingFailure` | `setWorkflowFailedFailure` |
-| `genericGenerationFlow` | always | - | `usageAndIdempotency` | - |
-| `usageAndIdempotency.idempotency` | invoke done | `idempotencyOutputIsReplay` | `completed` | `cacheReplayPayload` |
-| `usageAndIdempotency.idempotency` | invoke done | `idempotencyOutputIsConflict` | `persistingFailure` | `setFailureFromInvokeOutput` |
-| `usageAndIdempotency.idempotency` | invoke done | claimed | `usageAndIdempotency.usage` | - |
-| `usageAndIdempotency.idempotency` | invoke error | - | `persistingFailure` | `setIdempotencyConflictFailure` |
-| `usageAndIdempotency.usage` | invoke done | `usageOutputIsRejected` | `persistingFailure` | `setFailureFromInvokeOutput` |
-| `usageAndIdempotency.usage` | invoke done | granted | `streaming` | - |
-| `usageAndIdempotency.usage` | invoke error | - | `persistingFailure` | `setUsageFailedFailure` |
+| `genericGenerationFlow` | always | - | `streaming` | - |
 | `streaming` | invoke `streamTransportMachine` done | `streamOutputIsFailure` | `persistingFailure` | `setFailureFromInvokeOutput` |
 | `streaming` | invoke done | success | `persistingSuccess` | - |
 | `streaming` | invoke error | - | `persistingFailure` | `setStreamFailureFailure` |
@@ -217,7 +222,7 @@ Le tabelle seguenti sono normative per progettazione avanzata e test model-based
 | `completed` | `RESET` | - | `idle` (`reenter: true`) | `resetVolatileContext` |
 | `failed` | `RESET` | - | `idle` (`reenter: true`) | `resetVolatileContext` |
 
-Nota priorita eventi in `usageAndIdempotency` (deterministica):
+Nota priorita eventi in `preGenerationGuards` (deterministica e fail-closed):
 
 1. `IDEMPOTENCY_REPLAY_READY`
 2. `IDEMPOTENCY_CONFLICT`

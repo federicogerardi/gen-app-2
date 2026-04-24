@@ -1,0 +1,133 @@
+:root {
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  color: #1f2937;
+  background: radial-gradient(circle at 20% 20%, #fde68a 0%, #fff7ed 45%, #f1f5f9 100%);
+  line-height: 1.4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffffd9;
+  box-shadow: 0 8px 24px #0f172a14;
+  padding: 16px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(120deg, #0f766e, #0369a1);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.stream-panel pre {
+  min-height: 220px;
+  max-height: 420px;
+  overflow: auto;
+  background: #0b1020;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.status-line,
+.meta-line {
+  margin: 4px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.error-box,
+.error-message {
+  color: #7f1d1d;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.oauth-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+@media (min-width: 920px) {
+  .layout-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}

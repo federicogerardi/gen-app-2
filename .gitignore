@@ -33,3 +33,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.swp
+
+# Frontend env locali
+frontend/.env.local
+frontend/.env.*.local

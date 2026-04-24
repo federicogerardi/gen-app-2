@@ -3,6 +3,7 @@
 ## 15.1 Transition Coverage
 
 - Tutte le transizioni root lifecycle (happy + fail).
+- Gate `idempotency -> usage` verificati prima di qualunque invoke `toolWorkflowMachine` o `extractionChainMachine`.
 - Tutte le uscite terminali streaming (`complete`, `error`, `timeout`, `disconnect`).
 - Tutti i path extraction (`accept`, `soft-accept`, `escalate`, `exhausted`).
 
@@ -11,12 +12,16 @@
 - Ogni guardia con caso true/false.
 - Ownership mismatch, model unavailable, quota exceeded.
 - Idempotency completed vs conflict.
+- `SSE_START.requestId` coerente vs incoerente.
+- `SSE_CHUNK.artifactId` coerente vs incoerente.
 
 ## 15.3 Contract Coverage
 
 - Error object shape stabile.
 - SSE event shape stabile per tutti i tipi evento.
 - Ordine evento (`start` precede `chunk`, terminal event unico).
+- Nessun replay o quota reject deve invocare actor di workflow lato backend.
+- Mismatch `requestId`/`artifactId` lato frontend deve produrre `protocol_error`.
 
 ## 15.4 Persistence Coverage
 
@@ -66,6 +71,7 @@ Mitigazioni:
 2. Implementare idempotency forte per endpoint extraction (e opzionalmente tool-step).
 3. Aggiungere test model-based e replay test su stream interrotti.
 4. Bloccare regressioni con snapshot strutturali delle macchine XState.
+5. Mantenere test di regressione specifici per gate pre-generation e per mismatch protocollo SSE.
 
 ## 17.1 Rischi Residui Auth (Mini-Sezione)
 

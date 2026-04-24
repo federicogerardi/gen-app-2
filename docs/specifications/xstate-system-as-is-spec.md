@@ -1,9 +1,17 @@
 # XState System As-Is Blueprint Index
 
-Versione: 2.3
+Versione: 2.4
 Data: 2026-04-24
 
 Indice compatto del blueprint atomizzato.
+
+Nota aggiornamento 2.4 (allineamento as-is post-fix orchestration + SSE):
+
+- `generationSystemMachine` as-is: gate `idempotency -> usage` eseguiti prima del routing verso flow con side effect (`toolGenerationFlow` / `extractionFlow`)
+- `generationSystemMachine` as-is: replay e usage reject chiudono il flusso senza invocare workflow actor
+- contratto SSE frontend as-is: `requestId` di `start` deve combaciare con la request attiva
+- contratto SSE frontend as-is: `chunk` e `terminal` devono riferirsi all`artifactId` dello stream attivo o produrre `protocol_error`
+- test di regressione as-is: coperti replay/rate-limit pre-workflow e mismatch `artifactId` lato frontend
 
 Nota aggiornamento 2.3 (as-is runtime LLM + auth + OAuth):
 

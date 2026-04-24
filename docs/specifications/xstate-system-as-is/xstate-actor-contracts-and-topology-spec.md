@@ -88,6 +88,10 @@ Invarianti SSE:
 - `start` obbligatorio per stream validi.
 - `terminal` unico per stream.
 - `sequence` su `chunk` monotonicamente crescente.
+- `start.requestId` deve coincidere con la request osservata dal client actor.
+- `chunk.artifactId` deve coincidere con l`artifactId` annunciato in `start`.
+- `terminal.artifactId`, se presente, deve coincidere con l`artifactId` attivo.
+- violazioni di correlazione request/artifact devono essere trattate come `protocol_error`.
 
 ## 14.3 Topologia Actor Consigliata
 
@@ -119,6 +123,7 @@ Regole di comunicazione:
 - il root invia eventi semantici, non dettagli SQL.
 - gli actor figli rispondono con eventi di dominio (`STREAM_TERMINATED_SUCCESS`, `PERSISTENCE_FLUSH_COMMITTED`, `IDEMPOTENCY_REPLAY_READY`).
 - la UI o il route handler osservano il root actor; non devono coordinare manualmente gli attori interni.
+- il root deve risolvere `idempotency` e `usage` prima di invocare actor di workflow con side effect.
 
 Nota auth/OAuth as-is:
 
@@ -227,6 +232,7 @@ Per evitare i colli di bottiglia emersi nell'analisi di scalabilita, ogni macchi
 | `requestGatewayMachine` | gate iniziali e routing | nessuna write progressiva di stream |
 | `usageMachine` | claim quota e rate-limit | nessuna gestione token provider |
 | `idempotencyCoordinatorMachine` | replay/conflict/claim | nessun parsing output modello |
+| `generationSystemMachine` | orchestration root e ordering dei gate pre-generation | nessuna validazione protocollo SSE client-side |
 | `streamTransportMachine` | trasporto token, timeout, disconnect | nessuna persistenza SQL |
 | `persistenceBatchMachine` | flush e finalizzazione artifact | nessuna chiamata provider |
 | `toolWorkflowMachine` | dipendenze step, resume, regenerate | nessun controllo auth/ownership |

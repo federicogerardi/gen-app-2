@@ -513,7 +513,7 @@ export const generationSystemMachine = setup({
           },
         },
         VALIDATION_OK: {
-          target: 'routing',
+          target: 'preGenerationGuards',
           actions: {
             type: 'setValidationData',
             params: ({ event, context }) => ({
@@ -544,100 +544,7 @@ export const generationSystemMachine = setup({
         },
       },
     },
-    routing: {
-      always: [
-        {
-          guard: 'routeIsExtraction',
-          target: 'extractionFlow',
-        },
-        {
-          guard: 'routeIsTool',
-          target: 'toolGenerationFlow',
-        },
-        {
-          guard: 'routeIsGeneric',
-          target: 'genericGenerationFlow',
-        },
-        {
-          guard: 'hasAmbiguousRouting',
-          target: 'failed',
-          actions: 'setAmbiguousRoutingFailure',
-        },
-      ],
-    },
-    extractionFlow: {
-      entry: ['ensureArtifactId'],
-      invoke: {
-        id: 'extractionActor',
-        src: 'invokeExtraction',
-        input: ({ context }) => ({
-          requestId: context.requestId,
-          artifactId: context.artifactId ?? context.artifactIdFactory(),
-          workflowType: context.workflowType ?? 'extraction',
-          attemptPlan: [
-            { attemptIndex: 0, model: context.model, responseMode: 'text' },
-          ],
-          bootstrap: {
-            autoAccept: true,
-          },
-          ...getRegistrySelector(context),
-        }),
-        onDone: {
-          target: 'usageAndIdempotency',
-        },
-        onError: {
-          target: 'persistingFailure',
-          actions: 'setExtractionFailedFailure',
-        },
-      },
-    },
-    toolGenerationFlow: {
-      entry: ['ensureArtifactId'],
-      invoke: {
-        id: 'toolActor',
-        src: 'invokeToolWorkflow',
-        input: ({ context }) => ({
-          requestId: context.requestId,
-          toolKey: context.toolKey ?? 'workflow',
-          workflowType: context.workflowType ?? 'generic',
-          runMode: 'new',
-          steps: [{ key: context.toolKey ?? 'workflow_step', dependencies: [] }],
-          dependencyGraph: {},
-          bootstrap: {
-            stepKey: context.toolKey ?? 'workflow_step',
-            output: context.syntheticResponse,
-            artifactId: context.artifactId ?? context.artifactIdFactory(),
-          },
-          ...getRegistrySelector(context),
-        }),
-        onDone: [
-          {
-            guard: 'toolOutputIsCompleted',
-            target: 'usageAndIdempotency',
-            actions: {
-              type: 'cacheToolArtifactFromOutput',
-              params: ({ event }) => {
-                const output = getToolDoneOutput(event);
-                return {
-                  artifactId: output?.type === 'WORKFLOW_STEP_COMPLETED' ? output.artifactId : null,
-                };
-              },
-            },
-          },
-          {
-            target: 'usageAndIdempotency',
-          },
-        ],
-        onError: {
-          target: 'persistingFailure',
-          actions: 'setWorkflowFailedFailure',
-        },
-      },
-    },
-    genericGenerationFlow: {
-      always: 'usageAndIdempotency',
-    },
-    usageAndIdempotency: {
+    preGenerationGuards: {
       initial: 'idempotency',
       states: {
         idempotency: {
@@ -704,7 +611,7 @@ export const generationSystemMachine = setup({
                 },
               },
               {
-                target: '#generationSystemMachine.streaming',
+                target: '#generationSystemMachine.routing',
               },
             ],
             onError: {
@@ -714,6 +621,99 @@ export const generationSystemMachine = setup({
           },
         },
       },
+    },
+    routing: {
+      always: [
+        {
+          guard: 'routeIsExtraction',
+          target: 'extractionFlow',
+        },
+        {
+          guard: 'routeIsTool',
+          target: 'toolGenerationFlow',
+        },
+        {
+          guard: 'routeIsGeneric',
+          target: 'genericGenerationFlow',
+        },
+        {
+          guard: 'hasAmbiguousRouting',
+          target: 'failed',
+          actions: 'setAmbiguousRoutingFailure',
+        },
+      ],
+    },
+    extractionFlow: {
+      entry: ['ensureArtifactId'],
+      invoke: {
+        id: 'extractionActor',
+        src: 'invokeExtraction',
+        input: ({ context }) => ({
+          requestId: context.requestId,
+          artifactId: context.artifactId ?? context.artifactIdFactory(),
+          workflowType: context.workflowType ?? 'extraction',
+          attemptPlan: [
+            { attemptIndex: 0, model: context.model, responseMode: 'text' },
+          ],
+          bootstrap: {
+            autoAccept: true,
+          },
+          ...getRegistrySelector(context),
+        }),
+        onDone: {
+          target: 'streaming',
+        },
+        onError: {
+          target: 'persistingFailure',
+          actions: 'setExtractionFailedFailure',
+        },
+      },
+    },
+    toolGenerationFlow: {
+      entry: ['ensureArtifactId'],
+      invoke: {
+        id: 'toolActor',
+        src: 'invokeToolWorkflow',
+        input: ({ context }) => ({
+          requestId: context.requestId,
+          toolKey: context.toolKey ?? 'workflow',
+          workflowType: context.workflowType ?? 'generic',
+          runMode: 'new',
+          steps: [{ key: context.toolKey ?? 'workflow_step', dependencies: [] }],
+          dependencyGraph: {},
+          bootstrap: {
+            stepKey: context.toolKey ?? 'workflow_step',
+            output: context.syntheticResponse,
+            artifactId: context.artifactId ?? context.artifactIdFactory(),
+          },
+          ...getRegistrySelector(context),
+        }),
+        onDone: [
+          {
+            guard: 'toolOutputIsCompleted',
+            target: 'streaming',
+            actions: {
+              type: 'cacheToolArtifactFromOutput',
+              params: ({ event }) => {
+                const output = getToolDoneOutput(event);
+                return {
+                  artifactId: output?.type === 'WORKFLOW_STEP_COMPLETED' ? output.artifactId : null,
+                };
+              },
+            },
+          },
+          {
+            target: 'streaming',
+          },
+        ],
+        onError: {
+          target: 'persistingFailure',
+          actions: 'setWorkflowFailedFailure',
+        },
+      },
+    },
+    genericGenerationFlow: {
+      always: 'streaming',
     },
     streaming: {
       entry: ['ensureArtifactId'],

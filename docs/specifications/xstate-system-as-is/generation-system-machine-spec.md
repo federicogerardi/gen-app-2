@@ -2,40 +2,55 @@
 
 ## 6.1 Root Machine (Server Request Lifecycle)
 
-Stati:
+Stati (as-is implementazione):
 
-- idle
-- auth
-- validate
-- preflight
-- streaming
-- persist
-- completed
-- failed
-
-`preflight` (compound):
-
-- model_check
-- usage_check
-- ownership_check
+- `idle`
+- `gateway` — gestisce AUTH_OK/AUTH_FAIL/VALIDATION_OK/VALIDATION_FAIL inline
+- `routing` — stato always che determina il flow (extraction/tool/generic) o va in failed
+- `extractionFlow` — invoca `extractionChainMachine`
+- `toolGenerationFlow` — invoca `toolWorkflowMachine`
+- `genericGenerationFlow` — transizione immediata a `usageAndIdempotency`
+- `usageAndIdempotency` (compound):
+  - `idempotency` — invoca `idempotencyCoordinatorMachine`
+  - `usage` — invoca `usageMachine`
+- `streaming` — invoca `streamTransportMachine`
+- `persistingSuccess` — invoca `persistenceBatchMachine` sul path success
+- `persistingFailure` — invoca `persistenceBatchMachine` sul path failure
+- `finalizeIdempotencySuccess` — invoca `markCompletedIdempotency`
+- `finalizeIdempotencyFailure` — invoca `markFailedIdempotency`
+- `completed`
+- `failed`
 
 Transizioni principali:
 
-- idle --REQUEST_RECEIVED--> auth
-- auth --AUTH_OK--> validate
-- auth --AUTH_FAIL--> failed
-- validate --VALIDATION_OK--> preflight.model_check
-- validate --VALIDATION_FAIL--> failed
-- preflight.model_check --MODEL_AVAILABLE--> preflight.usage_check
-- preflight.model_check --MODEL_UNAVAILABLE--> failed
-- preflight.usage_check --USAGE_OK--> preflight.ownership_check
-- preflight.usage_check --RATE_LIMITED|QUOTA_EXHAUSTED--> failed
-- preflight.ownership_check --OWNERSHIP_OK--> streaming
-- preflight.ownership_check --OWNERSHIP_FAIL--> failed
-- streaming --STREAM_COMPLETE--> persist
-- streaming --STREAM_ERROR|STREAM_TIMEOUT|CLIENT_DISCONNECT--> failed (o persist parziale dove consentito)
-- persist --PERSIST_SUCCESS--> completed
-- persist --PERSIST_FAILURE--> failed
+- idle --REQUEST_RECEIVED (con registrySelector)--> gateway
+- idle --REQUEST_RECEIVED (senza registrySelector)--> failed (`missing_registry_selector`)
+- gateway --AUTH_OK--> gateway (`setUserId`)
+- gateway --AUTH_FAIL--> failed (`unauthorized`)
+- gateway --VALIDATION_OK--> routing
+- gateway --VALIDATION_FAIL--> failed
+- routing [always] --routeIsExtraction--> extractionFlow
+- routing [always] --routeIsTool--> toolGenerationFlow
+- routing [always] --routeIsGeneric--> genericGenerationFlow
+- routing [always] --hasAmbiguousRouting--> failed (`ambiguous_routing`)
+- extractionFlow --onDone--> usageAndIdempotency
+- toolGenerationFlow --onDone--> usageAndIdempotency
+- genericGenerationFlow [always]--> usageAndIdempotency
+- usageAndIdempotency.idempotency --IDEMPOTENCY_REPLAY_READY--> completed
+- usageAndIdempotency.idempotency --IDEMPOTENCY_CONFLICT--> persistingFailure
+- usageAndIdempotency.idempotency --claimed--> usage
+- usageAndIdempotency.usage --USAGE_GRANTED--> streaming
+- usageAndIdempotency.usage --USAGE_REJECTED--> persistingFailure
+- streaming --STREAM_TERMINATED_SUCCESS--> persistingSuccess
+- streaming --STREAM_TERMINATED_FAILURE--> persistingFailure
+- persistingSuccess --onDone--> finalizeIdempotencySuccess
+- persistingFailure --onDone--> finalizeIdempotencyFailure
+- finalizeIdempotencySuccess --onDone--> completed
+- finalizeIdempotencyFailure --onDone--> failed
+- completed --RESET--> idle
+- failed --RESET--> idle
+
+Nota: `requestGatewayMachine` esiste come macchina standalone ma NON è invocata come actor da `generationSystemMachine`. La logica gateway è gestita inline nello stato `gateway`.
 
 ## 14. Blueprint di Implementazione XState v5 (Consigliato)
 
@@ -167,25 +182,40 @@ Le tabelle seguenti sono normative per progettazione avanzata e test model-based
 
 ### 14.8.1 generationSystemMachine
 
-| Current state | Event | Guard / Precondizione | Target state | Actions principali |
+| Current state | Event / Trigger | Guard / Precondizione | Target state | Actions principali |
 |---|---|---|---|---|
-| `idle` | `REQUEST_RECEIVED` | request valida, selector registry presente (almeno uno tra `registryVersion` e `registrySnapshotRef`) | `gateway` | `cache request meta`, `reset content/failure`, `set registry selector` |
-| `gateway` | `AUTH_OK` | - | `gateway` | `set userId` |
-| `gateway` | `VALIDATION_OK` | routing non ambiguo (14.1.1) | `usageAndIdempotency` | `set workflowType`, `set registry selector` |
-| `gateway` | `AUTH_FAIL` | - | `failed` | `set failureReason='unauthorized'` |
-| `gateway` | `VALIDATION_FAIL` | - | `failed` | `set failureReason=event.reason` |
-| `usageAndIdempotency` | `IDEMPOTENCY_REPLAY_READY` | priorita massima su eventi concorrenti | `completed` | `set artifactId`, `set contentBuffer=event.metadata.content` |
-| `usageAndIdempotency` | `IDEMPOTENCY_CONFLICT` | se replay non disponibile | `failed` | `set failureReason='idempotency_conflict'` |
-| `usageAndIdempotency` | `USAGE_REJECTED` | se nessun replay/conflict gia consumato | `failed` | `set failureReason=event.reason` |
-| `usageAndIdempotency` | `USAGE_GRANTED` | se nessun replay/conflict gia consumato | `streaming` | `open stream path` |
-| `streaming` | `STREAM_SESSION_STARTED` | - | `streaming` | `set artifactId` |
-| `streaming` | `STREAM_CHUNK_RECEIVED` | terminal non raggiunto | `streaming` | `append contentBuffer += event.metadata.chunk` |
-| `streaming` | `STREAM_TERMINATED_SUCCESS` | - | `persisting` | `request finalize success` |
-| `streaming` | `STREAM_TERMINATED_FAILURE` | - | `failed` | `set failureReason=event.reason` |
-| `persisting` | `PERSISTENCE_FINALIZE_SUCCEEDED` | - | `completed` | `set terminal=completed` |
-| `persisting` | `PERSISTENCE_FINALIZE_FAILED` | - | `failed` | `set failureReason=event.reason` |
-| `completed` | `RESET` | - | `idle` (`reenter: true`) | `clear context volatile` |
-| `failed` | `RESET` | - | `idle` (`reenter: true`) | `clear context volatile` |
+| `idle` | `REQUEST_RECEIVED` | `registryVersion` o `registrySnapshotRef` presenti | `gateway` | `cacheRequestMeta` (calcola `routeType`), `reset content/failure` |
+| `idle` | `REQUEST_RECEIVED` | nessun registry selector | `failed` | `setMissingRegistrySelectorFailure` |
+| `gateway` | `AUTH_OK` | - | `gateway` | `setUserId` |
+| `gateway` | `AUTH_FAIL` | - | `failed` | `setFailureReason='unauthorized'` |
+| `gateway` | `VALIDATION_OK` | - | `routing` | `setValidationData` (aggiorna `routeType`) |
+| `gateway` | `VALIDATION_FAIL` | - | `failed` | `setFailureReason=event.reason` |
+| `routing` | always | `routeIsExtraction` | `extractionFlow` | - |
+| `routing` | always | `routeIsTool` | `toolGenerationFlow` | - |
+| `routing` | always | `routeIsGeneric` | `genericGenerationFlow` | - |
+| `routing` | always | `hasAmbiguousRouting` | `failed` | `setAmbiguousRoutingFailure` |
+| `extractionFlow` | invoke `extractionChainMachine` done | - | `usageAndIdempotency` | - |
+| `extractionFlow` | invoke error | - | `persistingFailure` | `setExtractionFailedFailure` |
+| `toolGenerationFlow` | invoke `toolWorkflowMachine` done | - | `usageAndIdempotency` | `cacheToolArtifactFromOutput` |
+| `toolGenerationFlow` | invoke error | - | `persistingFailure` | `setWorkflowFailedFailure` |
+| `genericGenerationFlow` | always | - | `usageAndIdempotency` | - |
+| `usageAndIdempotency.idempotency` | invoke done | `idempotencyOutputIsReplay` | `completed` | `cacheReplayPayload` |
+| `usageAndIdempotency.idempotency` | invoke done | `idempotencyOutputIsConflict` | `persistingFailure` | `setFailureFromInvokeOutput` |
+| `usageAndIdempotency.idempotency` | invoke done | claimed | `usageAndIdempotency.usage` | - |
+| `usageAndIdempotency.idempotency` | invoke error | - | `persistingFailure` | `setIdempotencyConflictFailure` |
+| `usageAndIdempotency.usage` | invoke done | `usageOutputIsRejected` | `persistingFailure` | `setFailureFromInvokeOutput` |
+| `usageAndIdempotency.usage` | invoke done | granted | `streaming` | - |
+| `usageAndIdempotency.usage` | invoke error | - | `persistingFailure` | `setUsageFailedFailure` |
+| `streaming` | invoke `streamTransportMachine` done | `streamOutputIsFailure` | `persistingFailure` | `setFailureFromInvokeOutput` |
+| `streaming` | invoke done | success | `persistingSuccess` | - |
+| `streaming` | invoke error | - | `persistingFailure` | `setStreamFailureFailure` |
+| `persistingSuccess` | invoke `persistenceBatchMachine` done | - | `finalizeIdempotencySuccess` | - |
+| `persistingSuccess` | invoke error | - | `persistingFailure` | `setPersistenceFinalizeFailedFailure` |
+| `persistingFailure` | invoke done/error | - | `finalizeIdempotencyFailure` | - |
+| `finalizeIdempotencySuccess` | invoke done/error | - | `completed` | - |
+| `finalizeIdempotencyFailure` | invoke done/error | - | `failed` | - |
+| `completed` | `RESET` | - | `idle` (`reenter: true`) | `resetVolatileContext` |
+| `failed` | `RESET` | - | `idle` (`reenter: true`) | `resetVolatileContext` |
 
 Nota priorita eventi in `usageAndIdempotency` (deterministica):
 

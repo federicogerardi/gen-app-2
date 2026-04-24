@@ -1,24 +1,24 @@
 ## 6.2 Streaming Machine (Server)
 
-Stati:
+Stati (as-is implementazione — nomi camelCase):
 
-- artifact_initializing
-- stream_open
-- streaming_tokens
-- progress_flushing
-- normalizing_output
-- terminal_emit_complete
-- terminal_emit_error
-- closed
+- `initializing` — apre la sessione provider via invoke `openStreamSession`
+- `streamOpen` — sessione aperta; controlla guard bootstrap (autoComplete/failureReason)
+- `streamingTokens` — riceve chunk, heartbeat, timeout, disconnect
+- `closedSuccess` (final) — emette `STREAM_TERMINATED_SUCCESS`
+- `closedFailure` (final) — emette `STREAM_TERMINATED_FAILURE`
+
+Stati descritti nella spec originale ma NON presenti nell'implementazione:
+`progress_flushing`, `normalizing_output`, `terminal_emit_complete`, `terminal_emit_error`, `closed`.
+Queste responsabilità sono delegate a `persistenceBatchMachine`.
 
 Regole:
 
-- Emettere sempre `start` prima del primo `token`.
-- Emettere `progress` periodico con stime tokens/costo.
-- Effettuare flush periodico contenuto su storage durante stream.
-- Su complete: normalizzare output, persist finale, emettere evento complete terminale.
-- Su errore non recuperabile: emettere error terminale.
-- Su client disconnect: interrompere provider e marcare failure coerente.
+- Su `initializing` onDone: transizione a `streamOpen`, caching `sessionId`.
+- `streamOpen` ha guard `always`: se `bootstrap.failureReason` -> `closedFailure`; se `bootstrap.autoComplete` -> `closedSuccess`.
+- Su complete: terminazione diretta in `closedSuccess`.
+- Su errore non recuperabile: terminazione in `closedFailure`.
+- Su client disconnect: impostare `reason='client_disconnect'` e andare in `closedFailure`.
 
 5. `streamTransportMachine`
 - actor dedicato esclusivamente a provider session, emissione token SSE, timeout, disconnect e terminal event.
@@ -32,21 +32,29 @@ Regole:
   - `model`
   - `workflowType`
   - `outputFormat`
-- output eventi:
-  - `STREAM_SESSION_STARTED { requestId, sourceActor, timestamp, artifactId }`
-  - `STREAM_CHUNK_RECEIVED { requestId, sourceActor, timestamp, artifactId, metadata: { chunk, sequence } }`
-  - `STREAM_HEARTBEAT_DUE { requestId, sourceActor, timestamp, artifactId, metadata: { estimatedTokens, costEstimate } }`
-  - `STREAM_TERMINATED_SUCCESS { requestId, sourceActor, timestamp, artifactId }`
-  - `STREAM_TERMINATED_FAILURE { requestId, sourceActor, timestamp, artifactId, reason }`
+- output eventi (output XState della macchina — solo stati final):
+  - `STREAM_TERMINATED_SUCCESS { requestId, sourceActor, timestamp, artifactId }` — emesso da stato `closedSuccess`
+  - `STREAM_TERMINATED_FAILURE { requestId, sourceActor, timestamp, artifactId, reason }` — emesso da stato `closedFailure`
+
+Nota: `STREAM_SESSION_STARTED`, `STREAM_CHUNK_RECEIVED`, `STREAM_HEARTBEAT_DUE` NON sono output XState della macchina ma factory function esportate (`createStreamSessionStartedEvent`, etc.) da usare esternamente.
 
 ### 14.8.4 streamTransportMachine (child critico)
 
 | Current state | Event / Trigger | Guard / Precondizione | Target state | Output evento |
 |---|---|---|---|---|
-| `initializing` | stream boot | provider session aperta | `stream_open` | `STREAM_SESSION_STARTED` |
-| `stream_open` | first token | terminal open | `streaming_tokens` | `STREAM_CHUNK_RECEIVED` |
-| `streaming_tokens` | token chunk | terminal open | `streaming_tokens` | `STREAM_CHUNK_RECEIVED` |
-| `streaming_tokens` | heartbeat timer | ogni finestra progress definita | `streaming_tokens` | `STREAM_HEARTBEAT_DUE` |
-| `streaming_tokens` | provider complete | - | `closed_success` | `STREAM_TERMINATED_SUCCESS` |
-| `stream_open|streaming_tokens` | timeout/disconnect/provider error | - | `closed_failure` | `STREAM_TERMINATED_FAILURE { reason }` |
+| `initializing` | invoke `openStreamSession` done | - | `streamOpen` | `cacheSessionId` |
+| `initializing` | invoke error | - | `closedFailure` | `setSessionOpenFailureReason` |
+| `initializing` | `STREAM_READY` | - | `streamOpen` | - |
+| `initializing` | `STREAM_FAIL` | - | `closedFailure` | `setFailureReason` |
+| `streamOpen` | always | `bootstrap.failureReason` | `closedFailure` | `setBootstrapFailureReason` |
+| `streamOpen` | always | `bootstrap.autoComplete` | `closedSuccess` | - |
+| `streamOpen` | `STREAM_CHUNK` | - | `streamingTokens` | `incrementSequence`, `cacheChunk` |
+| `streamOpen` | `STREAM_COMPLETE` | - | `closedSuccess` | - |
+| `streamOpen` | `STREAM_FAIL/TIMEOUT/CLIENT_DISCONNECT` | - | `closedFailure` | `setFailureReason` |
+| `streamingTokens` | `STREAM_CHUNK` | - | `streamingTokens` (reenter) | `incrementSequence`, `cacheChunk` |
+| `streamingTokens` | `STREAM_HEARTBEAT` | - | `streamingTokens` (reenter) | - |
+| `streamingTokens` | `STREAM_COMPLETE` | - | `closedSuccess` | - |
+| `streamingTokens` | `STREAM_FAIL/TIMEOUT/CLIENT_DISCONNECT` | - | `closedFailure` | `setFailureReason` |
+| `closedSuccess` | final | - | - | `STREAM_TERMINATED_SUCCESS` |
+| `closedFailure` | final | - | - | `STREAM_TERMINATED_FAILURE { reason }` |
 

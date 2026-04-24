@@ -1,30 +1,25 @@
 ## 6.4 Extraction Chain Machine (Server)
 
-Stati:
+Stati (as-is implementazione — nomi camelCase):
 
-- preflight
-- rollout_gate
-- idempotency_check
-- attempt_preflight
-- attempt_running
-- attempt_evaluate
-- attempt_accept
-- attempt_replay_or_finalize
-- attempt_escalate
-- chain_exhausted
-- failed_hard
-- completed
+- `preflight` — always: verifica `hasAvailableAttempt`, altrimenti `chainExhausted`
+- `attemptPreflight` — always: guard `shouldAutoAccept` -> `attemptAccept`; `hasAvailableAttempt` -> `attemptRunning`; altrimenti `chainExhausted`
+- `attemptRunning` — attende eventi `ATTEMPT_ACCEPTED`, `ATTEMPT_REJECTED`, `ATTEMPT_HARD_FAIL`
+- `attemptAccept` (final) — emette `EXTRACTION_ATTEMPT_ACCEPTED`
+- `attemptEscalate` — always: `canEscalateAttempt` -> `attemptPreflight` (incrementa indice); altrimenti `chainExhausted`
+- `chainExhausted` (final) — emette `EXTRACTION_CHAIN_EXHAUSTED`
+- `failedHard` (final) — emette `EXTRACTION_ATTEMPT_REJECTED`
+
+Stati descritti nella spec originale ma NON presenti nell'implementazione:
+`rollout_gate`, `idempotency_check`, `attempt_evaluate`, `attempt_replay_or_finalize`, `completed`.
 
 Comportamento chiave:
 
-- Rollout gate puo bloccare con `SERVICE_UNAVAILABLE`.
-- Idempotency:
-- Se artifact completed esistente: replay stream immediato.
-- Se artifact non terminale: conflict.
-- Attempt plan multi-modello: saltare modelli non disponibili.
-- Valutazione attempt su 3 assi: parse, schema, consistency.
-- Possibile soft-accept in modalita text/timebox.
-- Escalation finche policy consente; poi chain exhausted.
+- Attempt plan definito in input come array `attemptPlan`; `currentAttemptIndex` segue il progresso.
+- `shouldAutoAccept`: se `bootstrap.autoAccept === true`, accetta direttamente senza passare per `attemptRunning`.
+- Escalation finché `canEscalateAttempt`; poi `chainExhausted`.
+- Hard fail: va direttamente in `failedHard` senza escalation.
+- Reset globale tramite evento `RESET` (root-level `on`, `reenter: true`).
 
 8. `extractionChainMachine`
 - actor specializzato per selection plan, attempt loop, evaluate, soft-accept, escalation e exhausted.
@@ -46,9 +41,15 @@ Comportamento chiave:
 
 | Current state | Event / Trigger | Guard / Precondizione | Target state | Output evento |
 |---|---|---|---|---|
-| `attempt_preflight` | attempt selected | model disponibile | `attempt_running` | - |
-| `attempt_running` | eval accept | parse/schema/consistency policy ok | `attempt_accept` | `EXTRACTION_ATTEMPT_ACCEPTED` |
-| `attempt_running` | eval reject + escalate | retry policy consente escalation | `attempt_escalate` | `EXTRACTION_ATTEMPT_REJECTED` |
-| `attempt_escalate` | next attempt available | max attempts non superato | `attempt_preflight` | - |
-| `attempt_running|attempt_escalate` | no more attempts | chain exhausted | `chain_exhausted` | `EXTRACTION_CHAIN_EXHAUSTED` |
+| `preflight` | always | `hasAvailableAttempt` | `attemptPreflight` | - |
+| `preflight` | always | nessun attempt | `chainExhausted` | `EXTRACTION_CHAIN_EXHAUSTED` |
+| `attemptPreflight` | always | `shouldAutoAccept` | `attemptAccept` | `EXTRACTION_ATTEMPT_ACCEPTED` |
+| `attemptPreflight` | always | `hasAvailableAttempt` | `attemptRunning` | - |
+| `attemptPreflight` | always | nessun attempt | `chainExhausted` | `EXTRACTION_CHAIN_EXHAUSTED` |
+| `attemptRunning` | `ATTEMPT_ACCEPTED` | - | `attemptAccept` | `EXTRACTION_ATTEMPT_ACCEPTED` |
+| `attemptRunning` | `ATTEMPT_REJECTED` | - | `attemptEscalate` | `setFailureReason` |
+| `attemptRunning` | `ATTEMPT_HARD_FAIL` | - | `failedHard` | `EXTRACTION_ATTEMPT_REJECTED` |
+| `attemptEscalate` | always | `canEscalateAttempt` | `attemptPreflight` | `incrementAttemptIndex` |
+| `attemptEscalate` | always | no more attempts | `chainExhausted` | `EXTRACTION_CHAIN_EXHAUSTED` |
+| root | `RESET` | - | `.preflight` (`reenter: true`) | `resetAttemptState` |
 

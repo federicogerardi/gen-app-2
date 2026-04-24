@@ -51,3 +51,7 @@ Nota aggiornamento 2.3 (as-is runtime LLM + auth + OAuth):
 - [xstate-v5-skeleton-spec.md](./xstate-system-as-is/xstate-v5-skeleton-spec.md)
 - [artifact-types-contract-spec.md](./xstate-system-as-is/artifact-types-contract-spec.md)
 - [xstate-shared-types-contract-spec.md](./xstate-system-as-is/xstate-shared-types-contract-spec.md)
+
+## Historical Closures
+
+- [xstate-review-closure-2026-04-24.md](../archive/xstate-review-closure-2026-04-24.md)

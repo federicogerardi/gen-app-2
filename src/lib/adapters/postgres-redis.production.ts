@@ -1,5 +1,21 @@
 import type Redis from 'ioredis';
 import type { Pool, PoolClient, QueryResult } from 'pg';
+import { randomUUID } from 'node:crypto';
+
+import {
+  mapArtifactRowToDetail,
+  mapArtifactRowToSummary,
+  type ArtifactDetail,
+  type ArtifactListFilters,
+  type ArtifactSummary,
+} from '../types/artifacts';
+import {
+  mapProjectRowToDetail,
+  mapProjectRowToSummary,
+  type CreateProjectInput,
+  type ProjectDetail,
+  type ProjectSummary,
+} from '../types/projects';
 
 import type {
   IdempotencyCoordinatorInput,
@@ -23,8 +39,10 @@ import type {
   UsageDecision,
 } from './generation.adapters';
 import type {
+  ArtifactQueryRepository,
   PostgresArtifactRepository as PostgresArtifactRepositoryPort,
   PostgresRedisAdapterDependencies,
+  ProjectQueryRepository,
   ProductionAdapterRuntime,
   RedisIdempotencyRepository,
   RedisQuotaRepository,
@@ -75,6 +93,32 @@ type PersistenceRepositoryOptions = {
   artifactsSchema?: string;
   quotaHistoryTableName?: string;
   quotaHistorySchema?: string;
+  projectsTableName?: string;
+  projectsSchema?: string;
+};
+
+type ProjectRow = {
+  id: string;
+  user_id: string;
+  name: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
+};
+
+type ArtifactRow = {
+  id: string;
+  request_id: string;
+  user_id: string | null;
+  project_id: string | null;
+  type: string;
+  status: string;
+  model: string;
+  workflow_type: string | null;
+  input_json: Record<string, unknown> | null;
+  content: string;
+  failure_reason: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
 };
 
 export type PostgresRedisProductionClients = {
@@ -640,6 +684,161 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         ]);
       }
     });
+  }
+}
+
+export class PostgresProjectQueryRepository implements ProjectQueryRepository {
+  private readonly projectsTableName: string;
+
+  constructor(
+    private readonly pg: Pool,
+    options: PersistenceRepositoryOptions = {},
+  ) {
+    this.projectsTableName = buildQualifiedTableName(
+      options.projectsSchema,
+      options.projectsTableName ?? 'projects',
+    );
+  }
+
+  async listProjectsByUser(userId: string): Promise<ProjectSummary[]> {
+    const query = `
+      SELECT id, user_id, name, created_at, updated_at
+      FROM ${this.projectsTableName}
+      WHERE user_id = $1
+      ORDER BY updated_at DESC, id DESC
+    `;
+
+    const result: QueryResult<ProjectRow> = await this.pg.query(query, [userId]);
+    return result.rows.map(mapProjectRowToSummary);
+  }
+
+  async getProjectByIdForUser(userId: string, projectId: string): Promise<ProjectDetail | null> {
+    const query = `
+      SELECT id, user_id, name, created_at, updated_at
+      FROM ${this.projectsTableName}
+      WHERE user_id = $1 AND id = $2
+      LIMIT 1
+    `;
+
+    const result: QueryResult<ProjectRow> = await this.pg.query(query, [userId, projectId]);
+    const row = result.rows[0];
+    return row ? mapProjectRowToDetail(row) : null;
+  }
+
+  async createProjectForUser(userId: string, input: CreateProjectInput): Promise<ProjectDetail> {
+    const query = `
+      INSERT INTO ${this.projectsTableName}
+        (id, user_id, name, created_at, updated_at)
+      VALUES
+        ($1, $2, $3, NOW(), NOW())
+      RETURNING id, user_id, name, created_at, updated_at
+    `;
+
+    const projectId = `proj_${randomUUID()}`;
+    const result: QueryResult<ProjectRow> = await this.pg.query(query, [
+      projectId,
+      userId,
+      input.name,
+    ]);
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Failed to create project row');
+    }
+
+    return mapProjectRowToDetail(row);
+  }
+}
+
+export class PostgresArtifactQueryRepository implements ArtifactQueryRepository {
+  private readonly artifactsTableName: string;
+
+  constructor(
+    private readonly pg: Pool,
+    options: PersistenceRepositoryOptions = {},
+  ) {
+    this.artifactsTableName = buildQualifiedTableName(
+      options.artifactsSchema,
+      options.artifactsTableName ?? 'artifacts',
+    );
+  }
+
+  async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
+    const where: string[] = ['user_id = $1'];
+    const params: unknown[] = [userId];
+
+    if (filters.type) {
+      params.push(filters.type);
+      where.push(`type = $${params.length}`);
+    }
+
+    if (filters.status) {
+      params.push(filters.status);
+      where.push(`status = $${params.length}`);
+    }
+
+    if (filters.projectId) {
+      params.push(filters.projectId);
+      where.push(`project_id = $${params.length}`);
+    }
+
+    if (filters.from) {
+      params.push(filters.from);
+      where.push(`updated_at >= $${params.length}::timestamptz`);
+    }
+
+    if (filters.to) {
+      params.push(filters.to);
+      where.push(`updated_at <= $${params.length}::timestamptz`);
+    }
+
+    const query = `
+      SELECT
+        id,
+        request_id,
+        user_id,
+        project_id,
+        type,
+        status,
+        model,
+        workflow_type,
+        input_json,
+        content,
+        failure_reason,
+        created_at,
+        updated_at
+      FROM ${this.artifactsTableName}
+      WHERE ${where.join(' AND ')}
+      ORDER BY updated_at DESC, id DESC
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);
+    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+  }
+
+  async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
+    const query = `
+      SELECT
+        id,
+        request_id,
+        user_id,
+        project_id,
+        type,
+        status,
+        model,
+        workflow_type,
+        input_json,
+        content,
+        failure_reason,
+        created_at,
+        updated_at
+      FROM ${this.artifactsTableName}
+      WHERE user_id = $1 AND id = $2
+      LIMIT 1
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, artifactId]);
+    const row = result.rows[0];
+    return row ? mapArtifactRowToDetail(row) : null;
   }
 }
 

@@ -1,13 +1,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import type { AuthRepositoryBundle } from '../adapters';
+import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../adapters';
 import type {
   AuthSessionPrincipal,
   AuthUserRole,
   AuthUserStatus,
   UpdateAuthUserInput,
 } from '../types/auth';
+import type { ArtifactListFilters } from '../types/artifacts';
+import type { ArtifactStatus, ArtifactType } from '../types/artifact';
+import { isArtifactStatus, isArtifactType } from '../types/artifact';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -49,6 +52,7 @@ export type AuthHttpResponseBody = AuthHttpSuccessBody | AuthHttpErrorBody;
 
 export type AuthHttpRuntimeOptions = {
   repositories: AuthRepositoryBundle;
+  queryRepositories?: UserQueryRepositoryBundle;
   sessionCookies?: SessionCookieRuntime;
   passwordHashing?: PasswordHashRuntime;
   googleOAuth?: GoogleOAuthRuntime | null;
@@ -84,6 +88,11 @@ type AdminUpdateUserRequestBody = {
   monthlyQuota?: unknown;
   monthlyUsed?: unknown;
   password?: unknown;
+};
+
+type CreateProjectRequestBody = {
+  name?: unknown;
+  description?: unknown;
 };
 
 const AUTH_USER_ROLE_SET = new Set<AuthUserRole>(['admin', 'member']);
@@ -275,6 +284,7 @@ export const createAuthHttpRuntime = (
   handleRequest(request: IncomingMessage, response: ServerResponse): Promise<HandleAuthHttpRequestResult>;
 } => {
   const repositories = options.repositories;
+  const queryRepositories = options.queryRepositories;
   const now = options.now ?? (() => new Date());
   const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
   const googleOAuthStateTtlMs = options.googleOAuthStateTtlMs ?? 10 * 60 * 1000;
@@ -554,6 +564,231 @@ export const createAuthHttpRuntime = (
     }
 
     return principal;
+  };
+
+  const requireSessionPrincipal = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<AuthSessionPrincipal | null> => {
+    const principal = await readPrincipalFromCookie(request);
+    if (!principal) {
+      sessionCookies.clearSessionCookie(response);
+      writeError(response, 401, 'unauthorized', 'No active session');
+      return null;
+    }
+
+    return principal;
+  };
+
+  const requireQueryRepositories = (response: ServerResponse): UserQueryRepositoryBundle | null => {
+    if (!queryRepositories) {
+      writeError(response, 503, 'service_unavailable', 'Query repositories are not configured');
+      return null;
+    }
+
+    return queryRepositories;
+  };
+
+  const handleProjectsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for projects list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const projects = await queries.projects.listProjectsByUser(principal.user.id);
+    await repositories.sessions.touchSession(principal.session.id, now());
+
+    writeSuccess(response, 200, { projects });
+  };
+
+  const handleProjectsCreate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for create project');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    let body: CreateProjectRequestBody;
+    try {
+      body = await parseJsonBody<CreateProjectRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    if (!name) {
+      writeError(response, 400, 'bad_request', 'Project name is required');
+      return;
+    }
+
+    const description = typeof body.description === 'string' ? body.description.trim() : undefined;
+    const project = await queries.projects.createProjectForUser(principal.user.id, {
+      name,
+      ...(description ? { description } : {}),
+    });
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 201, { project });
+  };
+
+  const handleProjectById = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    projectId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for project detail');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const project = await queries.projects.getProjectByIdForUser(principal.user.id, projectId);
+    if (!project) {
+      writeError(response, 404, 'not_found', 'Project not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { project });
+  };
+
+  const handleArtifactsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for artifacts list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const url = parseRequestUrl(request);
+    const typeRaw = url.searchParams.get('type');
+    const statusRaw = url.searchParams.get('status');
+    const projectIdRaw = url.searchParams.get('projectId');
+    const fromRaw = url.searchParams.get('from');
+    const toRaw = url.searchParams.get('to');
+
+    if (typeRaw && !isArtifactType(typeRaw)) {
+      writeError(response, 400, 'bad_request', 'Invalid type filter');
+      return;
+    }
+
+    if (statusRaw && !isArtifactStatus(statusRaw)) {
+      writeError(response, 400, 'bad_request', 'Invalid status filter');
+      return;
+    }
+
+    if (projectIdRaw !== null && projectIdRaw.trim().length === 0) {
+      writeError(response, 400, 'bad_request', 'Invalid projectId filter');
+      return;
+    }
+
+    if (fromRaw && Number.isNaN(Date.parse(fromRaw))) {
+      writeError(response, 400, 'bad_request', 'Invalid from filter');
+      return;
+    }
+
+    if (toRaw && Number.isNaN(Date.parse(toRaw))) {
+      writeError(response, 400, 'bad_request', 'Invalid to filter');
+      return;
+    }
+
+    const filters: ArtifactListFilters = {};
+    if (typeRaw) {
+      filters.type = typeRaw as ArtifactType;
+    }
+    if (statusRaw) {
+      filters.status = statusRaw as ArtifactStatus;
+    }
+    if (projectIdRaw) {
+      filters.projectId = projectIdRaw;
+    }
+    if (fromRaw) {
+      filters.from = fromRaw;
+    }
+    if (toRaw) {
+      filters.to = toRaw;
+    }
+
+    const artifacts = await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { artifacts });
+  };
+
+  const handleArtifactById = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    artifactId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for artifact detail');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+    if (!artifact) {
+      writeError(response, 404, 'not_found', 'Artifact not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { artifact });
   };
 
   const handleAdminListUsers = async (
@@ -890,6 +1125,38 @@ export const createAuthHttpRuntime = (
         }
 
         writeError(response, 405, 'method_not_allowed', 'Method not allowed for /admin/users/:id');
+        return { handled: true };
+      }
+
+      if (path === '/api/projects') {
+        if (request.method === 'GET') {
+          await handleProjectsList(request, response);
+          return { handled: true };
+        }
+
+        if (request.method === 'POST') {
+          await handleProjectsCreate(request, response);
+          return { handled: true };
+        }
+
+        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/projects');
+        return { handled: true };
+      }
+
+      const projectMatch = path.match(/^\/api\/projects\/([^/]+)$/);
+      if (projectMatch) {
+        await handleProjectById(request, response, decodeURIComponent(projectMatch[1] ?? ''));
+        return { handled: true };
+      }
+
+      if (path === '/api/artifacts') {
+        await handleArtifactsList(request, response);
+        return { handled: true };
+      }
+
+      const artifactMatch = path.match(/^\/api\/artifacts\/([^/]+)$/);
+      if (artifactMatch) {
+        await handleArtifactById(request, response, decodeURIComponent(artifactMatch[1] ?? ''));
         return { handled: true };
       }
 

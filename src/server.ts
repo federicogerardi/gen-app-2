@@ -3,6 +3,8 @@ import { Pool } from 'pg';
 
 import {
   createAuthProductionRepositories,
+  PostgresArtifactQueryRepository,
+  PostgresProjectQueryRepository,
   createPostgresRedisProductionGenerationAdapters,
 } from './lib/adapters';
 import {
@@ -84,6 +86,10 @@ const run = async (): Promise<void> => {
   const authRepositories = createAuthProductionRepositories({ pg });
   const authRuntime = createAuthHttpRuntime({
     repositories: authRepositories,
+    queryRepositories: {
+      projects: new PostgresProjectQueryRepository(pg),
+      artifacts: new PostgresArtifactQueryRepository(pg),
+    },
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
   });

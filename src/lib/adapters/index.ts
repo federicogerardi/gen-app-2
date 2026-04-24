@@ -41,7 +41,9 @@ export { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters
 export {
   createPostgresRedisProductionDependencies,
   createPostgresRedisProductionGenerationAdapters,
+  PostgresArtifactQueryRepository,
   PostgresRedisIdempotencyRepository,
+  PostgresProjectQueryRepository,
   PostgresRedisStreamSessionRepository,
   PostgresRedisUsageRepository,
   PostgresArtifactRepository as PostgresArtifactRepositoryLive,
@@ -57,7 +59,9 @@ export {
 export {
   createPostgresRedisStubDependencies,
   createPostgresRedisStubGenerationAdapters,
+  ArtifactQueryRepositoryStub,
   PostgresArtifactRepositoryStub,
+  ProjectQueryRepositoryStub,
   RedisIdempotencyRepositoryStub,
   RedisQuotaRepositoryStub,
   RedisStreamSessionRepositoryStub,
@@ -65,8 +69,10 @@ export {
 } from './postgres-redis.stub';
 
 export type {
+  ArtifactQueryRepository,
   PostgresArtifactRepository,
   PostgresRedisAdapterDependencies,
+  ProjectQueryRepository,
   ProductionAdapterRuntime,
   RedisIdempotencyRepository,
   RedisQuotaRepository,
@@ -79,7 +85,20 @@ export type {
   AuthSessionRepository,
   AuthUserRepository,
   OAuthStateRepository,
+  UserQueryRepositoryBundle,
 } from './auth.interfaces';
+
+export type {
+  ArtifactDetail,
+  ArtifactListFilters,
+  ArtifactSummary,
+} from '../types/artifacts';
+
+export type {
+  CreateProjectInput,
+  ProjectDetail,
+  ProjectSummary,
+} from '../types/projects';
 
 export type {
   AuthMethod,

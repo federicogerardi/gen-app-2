@@ -1,10 +1,10 @@
-# Review To Go
+# XState Review Closure Snapshot
 
 Versione: 1.0  
 Data: 2026-04-24  
 Stato: Completed
 
-Documento di chiusura della review XState v5, derivato dai finding emersi sull implementazione as-is e allineato al piano di risoluzione in [plan/upgrade-xstate-go-gap-1.md](plan/upgrade-xstate-go-gap-1.md) e alla checklist PR-ready in [plan/process-xstate-review-pr-checklist-1.md](plan/process-xstate-review-pr-checklist-1.md).
+Documento di chiusura della review XState v5, derivato dai finding emersi sull implementazione as-is e allineato al piano di risoluzione in [plan/upgrade-xstate-go-gap-1.md](../../plan/upgrade-xstate-go-gap-1.md) e alla checklist PR-ready in [plan/process-xstate-review-pr-checklist-1.md](../../plan/process-xstate-review-pr-checklist-1.md).
 
 ## Obiettivo
 
@@ -37,11 +37,11 @@ Problema:
 
 Scope file:
 
-- [src/lib/machines/generation-system.machine.ts](src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/extraction-chain.machine.ts](src/lib/machines/extraction-chain.machine.ts)
-- [src/lib/machines/tool-workflow.machine.ts](src/lib/machines/tool-workflow.machine.ts)
-- [src/lib/machines/stream-transport.machine.ts](src/lib/machines/stream-transport.machine.ts)
-- [src/lib/tests/generation-system.runtime.test.ts](src/lib/tests/generation-system.runtime.test.ts)
+- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
+- [src/lib/machines/extraction-chain.machine.ts](../../src/lib/machines/extraction-chain.machine.ts)
+- [src/lib/machines/tool-workflow.machine.ts](../../src/lib/machines/tool-workflow.machine.ts)
+- [src/lib/machines/stream-transport.machine.ts](../../src/lib/machines/stream-transport.machine.ts)
+- [src/lib/tests/generation-system.runtime.test.ts](../../src/lib/tests/generation-system.runtime.test.ts)
 
 Closure checklist:
 
@@ -77,10 +77,10 @@ Problema:
 
 Scope file:
 
-- [src/lib/machines/generation-system.machine.ts](src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/request-gateway.machine.ts](src/lib/machines/request-gateway.machine.ts)
-- [src/lib/machines/idempotency-coordinator.machine.ts](src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](src/lib/machines/usage.machine.ts)
+- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
+- [src/lib/machines/request-gateway.machine.ts](../../src/lib/machines/request-gateway.machine.ts)
+- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
+- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
 
 Closure checklist:
 
@@ -117,10 +117,10 @@ Problema:
 
 Scope file:
 
-- [src/lib/machines/generation-system.machine.ts](src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/idempotency-coordinator.machine.ts](src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](src/lib/machines/usage.machine.ts)
-- [src/lib/machines/request-gateway.machine.ts](src/lib/machines/request-gateway.machine.ts)
+- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
+- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
+- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
+- [src/lib/machines/request-gateway.machine.ts](../../src/lib/machines/request-gateway.machine.ts)
 
 Closure checklist:
 
@@ -155,12 +155,12 @@ Problema:
 
 Scope file:
 
-- [src/lib/machines/idempotency-coordinator.machine.ts](src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](src/lib/machines/usage.machine.ts)
-- [src/lib/tests/idempotency.machine.test.ts](src/lib/tests/idempotency.machine.test.ts)
-- [src/lib/tests/usage.machine.test.ts](src/lib/tests/usage.machine.test.ts)
-- [src/lib/tests/stream-transport.machine.test.ts](src/lib/tests/stream-transport.machine.test.ts)
-- [src/lib/tests/persistence-batch.machine.test.ts](src/lib/tests/persistence-batch.machine.test.ts)
+- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
+- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
+- [src/lib/tests/idempotency.machine.test.ts](../../src/lib/tests/idempotency.machine.test.ts)
+- [src/lib/tests/usage.machine.test.ts](../../src/lib/tests/usage.machine.test.ts)
+- [src/lib/tests/stream-transport.machine.test.ts](../../src/lib/tests/stream-transport.machine.test.ts)
+- [src/lib/tests/persistence-batch.machine.test.ts](../../src/lib/tests/persistence-batch.machine.test.ts)
 
 Closure checklist:
 
@@ -217,8 +217,8 @@ Gate rerun note 2026-04-24:
 
 Riferimenti di esecuzione:
 
-- Piano sprint: [plan/upgrade-xstate-go-gap-1.md](plan/upgrade-xstate-go-gap-1.md)
-- Checklist PR-ready: [plan/process-xstate-review-pr-checklist-1.md](plan/process-xstate-review-pr-checklist-1.md)
+- Piano sprint: [plan/upgrade-xstate-go-gap-1.md](../../plan/upgrade-xstate-go-gap-1.md)
+- Checklist PR-ready: [plan/process-xstate-review-pr-checklist-1.md](../../plan/process-xstate-review-pr-checklist-1.md)
 
 Mapping operativo:
 
@@ -229,10 +229,12 @@ Mapping operativo:
 
 ## Chiusura
 
-Quando tutti i finding sono `Closed` e il gate finale e verde, questo documento deve essere aggiornato cosi:
+Documento archiviato come snapshot storico della chiusura review al 2026-04-24.
+
+Stato della snapshot:
 
 - `Stato: Completed`
-- tabella `Stato di Chiusura` tutta su `Closed`
-- eventuale aggiunta dei riferimenti a commit o PR che hanno chiuso ogni finding
+- tabella `Stato di Chiusura` interamente su `Closed`
+- gate finale con rerun completato in ambiente configurato
 
-Fino a quel momento questo documento resta la sorgente operativa per verificare la distanza residua tra stato as-is e stato GO.
+Questo file non e una checklist operativa in corso, ma un riferimento di chiusura consolidata.

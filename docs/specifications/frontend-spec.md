@@ -224,3 +224,65 @@ Esecuzione: `npm --prefix frontend run test`
 | Password | `password123` |
 | Ruolo | `admin` |
 | Stato | `active` |
+
+---
+
+## Backend capability matrix
+
+Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite `BackendCapabilities` (`frontend/src/app/runtime/backend-capabilities.ts`). Quando una capability non è disponibile, il modulo usa un adapter con fallback deterministico ai dati locali.
+
+| Capability | Flag env (`VITE_CAP_*`) | Endpoint backend | Fallback locale |
+|---|---|---|---|
+| `projects` | `VITE_CAP_PROJECTS` | `GET /api/projects`, `GET /api/projects/:id`, `POST /api/projects` | Lista vuota (nessun mock) |
+| `models` | `VITE_CAP_MODELS` | `GET /api/models` | Array vuoto |
+| `artifacts` | `VITE_CAP_ARTIFACTS` | `GET /api/artifacts`, `GET /api/artifacts/:id` | Store locale `GenerationArtifact[]` da `GenerationWorkspaceProvider` |
+| `toolsUpload` | `VITE_CAP_TOOLS_UPLOAD` | `POST /api/tools/upload` | Disabilitato (UI nascosta) |
+| `adminModels` | `VITE_CAP_ADMIN_MODELS` | `GET /api/admin/models` | Banner "Backend endpoint pending" |
+
+### Comportamento fallback per modulo
+
+| Modulo | Comportamento senza capability |
+|---|---|
+| Projects list/detail | Mostra lista vuota; nessuna chiamata HTTP |
+| Artifacts archive | Filtra artifacts da store XState locale; nessuna chiamata HTTP |
+| Artifact detail | Cerca per `artifactId` tra artifacts locali; restituisce null se non trovato |
+| Admin models | Mostra pagina con banner warning; dati modelli non disponibili |
+| Admin users | Chiama sempre `/admin/users` (endpoint as-is disponibile); nessun fallback |
+| Tool upload | Pulsante upload non visualizzato |
+
+### Route endpoint as-is confermati
+
+| Endpoint | Descrizione |
+|---|---|
+| `POST /auth/login` | Login con email/password |
+| `POST /auth/logout` | Logout sessione |
+| `GET /auth/session` | Lettura sessione corrente |
+| `GET /auth/google/start` | OAuth Google start |
+| `POST /generation/stream` | Stream SSE generazione (`start/chunk/terminal`) |
+| `GET /admin/users` | Lista utenti admin |
+| `GET /admin/users/:id` | Dettaglio utente admin |
+
+### Stato implementazione cutover (2026-04-25)
+
+- Backend `/api/projects*` e `/api/artifacts*` è implementato nel runtime HTTP con protezione sessione e filtro user-scoped.
+- Frontend `projects-client` e `artifacts-client` è stato allineato a:
+  - branch live quando capability è `true`
+  - fallback deterministico quando capability è `false`
+- Provider sessione espone ora le capability runtime ai consumer pagina.
+- Proxy dev Vite inoltra anche `/api/*` verso backend locale.
+
+Validazioni registrate in questo ciclo:
+
+- gate frontend `npm --prefix frontend run typecheck` e `npm --prefix frontend run test` verdi
+- gate backend `npm run backend:go` verde (include smoke `smoke:queries`)
+- E2E HTTP locale autenticato verificato su:
+  - `POST /auth/login`
+  - `GET /api/projects`
+  - `POST /api/projects`
+  - `GET /api/artifacts?status=completed`
+
+Decisione fallback consolidata:
+
+- `projects-client` usa fallback vuoto quando capability projects è disattivata (`empty-fallback-when-capability-disabled`), evitando dati mock in UI.
+- Con capability attive (`VITE_CAP_PROJECTS=true`, `VITE_CAP_ARTIFACTS=true`) il ramo live è il path primario.
+- Confermata funzionalita frontend projects in capability-live: list e create operative via backend.

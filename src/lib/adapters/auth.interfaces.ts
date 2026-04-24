@@ -1,4 +1,8 @@
 import type { ProductionAdapterRuntime } from './postgres-redis.interfaces';
+import type {
+  ArtifactQueryRepository,
+  ProjectQueryRepository,
+} from './postgres-redis.interfaces';
 
 import type {
   AuthSessionPrincipal,
@@ -45,6 +49,11 @@ export interface AuthRepositoryBundle {
   users: AuthUserRepository;
   sessions: AuthSessionRepository;
   oauthState: OAuthStateRepository;
+}
+
+export interface UserQueryRepositoryBundle {
+  projects: ProjectQueryRepository;
+  artifacts: ArtifactQueryRepository;
 }
 
 export type AuthProductionOptions = {

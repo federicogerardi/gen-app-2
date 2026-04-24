@@ -14,8 +14,21 @@ import type {
 import { createSyntheticLlmStreamAdapter } from './generation.adapters';
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import type {
+  ArtifactDetail,
+  ArtifactListFilters,
+  ArtifactSummary,
+} from '../types/artifacts';
+import type {
+  CreateProjectInput,
+  ProjectDetail,
+  ProjectSummary,
+} from '../types/projects';
+
+import type {
+  ArtifactQueryRepository,
   PostgresArtifactRepository,
   PostgresRedisAdapterDependencies,
+  ProjectQueryRepository,
   ProductionAdapterRuntime,
   RedisIdempotencyRepository,
   RedisQuotaRepository,
@@ -44,6 +57,31 @@ const toIsoNow = (runtime?: ProductionAdapterRuntime): string =>
 
 const createRandomId = (runtime?: ProductionAdapterRuntime): string => {
   return runtime?.randomId?.() ?? Math.random().toString(36).slice(2, 12);
+};
+
+type StubProjectRecord = {
+  id: string;
+  userId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type StubArtifactQueryRecord = {
+  artifactId: string;
+  requestId: string;
+  userId: string;
+  projectId: string;
+  artifactType: ArtifactSummary['artifactType'];
+  status: ArtifactSummary['status'];
+  model: string;
+  workflowType: string | null;
+  input: Record<string, unknown>;
+  content: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
@@ -160,6 +198,138 @@ export class PostgresArtifactRepositoryStub implements PostgresArtifactRepositor
       content: current?.content ?? input.contentBuffer,
       updatedAt: `${toIsoNow(this.runtime)}#${reason}`,
     });
+  }
+}
+
+export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
+  private readonly projects = new Map<string, StubProjectRecord>();
+
+  constructor(private readonly runtime?: ProductionAdapterRuntime) {}
+
+  async listProjectsByUser(userId: string): Promise<ProjectSummary[]> {
+    return [...this.projects.values()]
+      .filter((project) => project.userId === userId)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        updatedAt: project.updatedAt,
+      }));
+  }
+
+  async getProjectByIdForUser(userId: string, projectId: string): Promise<ProjectDetail | null> {
+    const project = this.projects.get(projectId);
+    if (!project || project.userId !== userId) {
+      return null;
+    }
+
+    return {
+      id: project.id,
+      userId: project.userId,
+      name: project.name,
+      description: project.description,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    };
+  }
+
+  async createProjectForUser(userId: string, input: CreateProjectInput): Promise<ProjectDetail> {
+    const timestamp = toIsoNow(this.runtime);
+    const id = `proj_${createRandomId(this.runtime)}`;
+    const record: StubProjectRecord = {
+      id,
+      userId,
+      name: input.name,
+      description: input.description ?? '',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    this.projects.set(id, record);
+
+    return {
+      id,
+      userId,
+      name: record.name,
+      description: record.description,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+}
+
+export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
+  private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
+
+  async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
+    return [...this.artifacts.values()]
+      .filter((artifact) => {
+        if (artifact.userId !== userId) {
+          return false;
+        }
+
+        if (filters.type && artifact.artifactType !== filters.type) {
+          return false;
+        }
+
+        if (filters.status && artifact.status !== filters.status) {
+          return false;
+        }
+
+        if (filters.projectId && artifact.projectId !== filters.projectId) {
+          return false;
+        }
+
+        if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+          return false;
+        }
+
+        if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((artifact) => ({
+        artifactId: artifact.artifactId,
+        requestId: artifact.requestId,
+        projectId: artifact.projectId,
+        artifactType: artifact.artifactType,
+        status: artifact.status,
+        model: artifact.model,
+        workflowType: artifact.workflowType,
+        createdAt: artifact.createdAt,
+        updatedAt: artifact.updatedAt,
+      }));
+  }
+
+  async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact || artifact.userId !== userId) {
+      return null;
+    }
+
+    return {
+      artifactId: artifact.artifactId,
+      requestId: artifact.requestId,
+      userId: artifact.userId,
+      projectId: artifact.projectId,
+      artifactType: artifact.artifactType,
+      status: artifact.status,
+      model: artifact.model,
+      workflowType: artifact.workflowType,
+      input: artifact.input,
+      content: artifact.content,
+      failureReason: artifact.failureReason,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt,
+    };
+  }
+
+  seed(records: StubArtifactQueryRecord[]): void {
+    records.forEach((record) => this.artifacts.set(record.artifactId, record));
   }
 }
 

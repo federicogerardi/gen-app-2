@@ -1,4 +1,8 @@
 import type { FrontendStreamStatus } from '../machines/frontend-stream.machine';
+import type {
+  CanonicalToolUiState,
+  PrimaryActionPolicy,
+} from './tool-ux-state';
 
 type GenerationStreamPanelProps = {
   status: FrontendStreamStatus;
@@ -13,6 +17,8 @@ type GenerationStreamPanelProps = {
   onReset: () => void;
   canRetry: boolean;
   canCancel: boolean;
+  canonicalState: CanonicalToolUiState;
+  primaryActionPolicy: PrimaryActionPolicy;
 };
 
 export const GenerationStreamPanel = ({
@@ -28,6 +34,8 @@ export const GenerationStreamPanel = ({
   onReset,
   canRetry,
   canCancel,
+  canonicalState,
+  primaryActionPolicy,
 }: GenerationStreamPanelProps) => {
   return (
     <section className="panel stream-panel">
@@ -35,6 +43,8 @@ export const GenerationStreamPanel = ({
       <p className="status-line">
         Stato: <strong>{status}</strong>
       </p>
+      <p className="meta-line">uiState: {canonicalState}</p>
+      <p className="meta-line">primaryAction: {primaryActionPolicy}</p>
       <p className="meta-line">requestId: {requestId ?? '-'}</p>
       <p className="meta-line">artifactId: {artifactId ?? '-'}</p>
       <p className="meta-line">reconnect attempts: {reconnectAttempts}</p>

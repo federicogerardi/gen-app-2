@@ -14,10 +14,19 @@ export default defineConfig({
         target: process.env.BACKEND_URL ?? 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/admin/users': {
+        target: process.env.BACKEND_URL ?? 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: process.env.BACKEND_URL ?? 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['src/test/setup.ts'],
   },
 });

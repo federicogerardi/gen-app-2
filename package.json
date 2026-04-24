@@ -12,11 +12,13 @@
     "db:seed:redis:minimal": "tsx db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/lib/tests/*.test.ts",
-    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict",
+    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict && npm run smoke:queries",
     "smoke:idempotency": "tsx src/lib/adapters/postgres-redis.smoke.ts",
     "smoke:conflict": "tsx src/lib/adapters/postgres-redis.conflict.smoke.ts",
+    "smoke:queries": "tsx src/lib/adapters/postgres-redis.query.smoke.ts",
     "backend:go": "npm run db:migrate:minimal && npm run db:seed:minimal && npm run typecheck && npm run test && npm run test:smoke",
-    "start:server": "tsx src/server.ts"
+    "start:server": "tsx src/server.ts",
+    "frontend:sprint:gate": "npm --prefix frontend run typecheck && npm --prefix frontend run test && npm run backend:go"
   },
   "repository": {
     "type": "git",

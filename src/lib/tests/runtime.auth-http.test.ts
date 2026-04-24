@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { createAuthStubRepositories } from '../adapters';
+import {
+  ArtifactQueryRepositoryStub,
+  createAuthStubRepositories,
+  ProjectQueryRepositoryStub,
+} from '../adapters';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,
@@ -505,4 +509,184 @@ test('auth HTTP runtime supports Google OAuth start/callback login flow', async 
   assert.equal(sessionData.authenticated, true);
   assert.equal(sessionData.session.authMethod, 'google');
   assert.equal(sessionData.user.email, 'google.user@example.com');
+});
+
+test('auth HTTP runtime supports /api/projects endpoints for authenticated user', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-test-001',
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
+  });
+
+  await repositories.users.createUser({
+    id: 'user-projects-001',
+    email: 'projects@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Projects-Pass-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: new ArtifactQueryRepositoryStub(),
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-projects-001' },
+  });
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'projects@example.com', password: 'Projects-Pass-1' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const createRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/projects',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({ name: 'Project API' }),
+  });
+  const createResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    createRequest as unknown as IncomingMessage,
+    createResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(createResponse.statusCode, 201);
+  const createdProject = (createResponse.jsonBody().data as {
+    project: { id: string; name: string };
+  }).project;
+  assert.equal(createdProject.name, 'Project API');
+
+  const listRequest = new MockIncomingMessage({
+    method: 'GET',
+    url: '/api/projects',
+    headers: { cookie: cookieHeader },
+  });
+  const listResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    listRequest as unknown as IncomingMessage,
+    listResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(listResponse.statusCode, 200);
+  const projects = (listResponse.jsonBody().data as { projects: Array<{ id: string }> }).projects;
+  assert.equal(projects.length, 1);
+
+  const byIdRequest = new MockIncomingMessage({
+    method: 'GET',
+    url: `/api/projects/${createdProject.id}`,
+    headers: { cookie: cookieHeader },
+  });
+  const byIdResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    byIdRequest as unknown as IncomingMessage,
+    byIdResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(byIdResponse.statusCode, 200);
+});
+
+test('auth HTTP runtime returns 401/404/400 for projects and artifacts constraints', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-test-002',
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-projects-002',
+    email: 'constraints@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Constraints-Pass-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-projects-002' },
+  });
+
+  const unauthorizedResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({ method: 'GET', url: '/api/projects' }) as unknown as IncomingMessage,
+    unauthorizedResponse as unknown as ServerResponse,
+  );
+  assert.equal(unauthorizedResponse.statusCode, 401);
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'constraints@example.com', password: 'Constraints-Pass-1' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const missingProjectResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/projects/not-found',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    missingProjectResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingProjectResponse.statusCode, 404);
+
+  const invalidArtifactsFilterResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts?status=invalid_status',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    invalidArtifactsFilterResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidArtifactsFilterResponse.statusCode, 400);
+
+  const missingArtifactResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts/not-found',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    missingArtifactResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingArtifactResponse.statusCode, 404);
 });

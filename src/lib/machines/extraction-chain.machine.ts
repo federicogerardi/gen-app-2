@@ -43,6 +43,10 @@ export const extractionChainMachine = setup({
     setFailureReason: assign({
       lastFailureReason: ({ event }) => ('reason' in event ? event.reason : 'attempt_failed'),
     }),
+    resetAttemptState: assign({
+      currentAttemptIndex: 0,
+      lastFailureReason: null,
+    }),
   },
 }).createMachine({
   id: 'extractionChainMachine',
@@ -143,10 +147,7 @@ export const extractionChainMachine = setup({
     RESET: {
       target: '.preflight',
       reenter: true,
-      actions: assign({
-        currentAttemptIndex: 0,
-        lastFailureReason: null,
-      }),
+      actions: 'resetAttemptState',
     },
   },
 });

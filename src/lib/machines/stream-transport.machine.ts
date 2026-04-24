@@ -68,8 +68,7 @@ export const streamTransportMachine = setup({
       },
     }),
     cacheSessionId: assign({
-      sessionId: ({ event }) =>
-        (event as unknown as { output: { sessionId: string } }).output.sessionId,
+      sessionId: (_, params: { sessionId: string }) => params.sessionId,
     }),
     setSessionOpenFailureReason: assign({
       failureReason: 'stream_session_open_failed',
@@ -96,7 +95,12 @@ export const streamTransportMachine = setup({
         input: ({ context }) => context.input as StreamTransportMachineInput,
         onDone: {
           target: 'streamOpen',
-          actions: 'cacheSessionId',
+          actions: {
+            type: 'cacheSessionId',
+            params: ({ event }) => ({
+              sessionId: (event as unknown as { output: { sessionId: string } }).output.sessionId,
+            }),
+          },
         },
         onError: {
           target: 'closedFailure',

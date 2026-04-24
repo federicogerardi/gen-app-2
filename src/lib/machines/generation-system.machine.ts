@@ -94,6 +94,21 @@ type CacheReplayPayloadParams = {
 const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
   (event as { output: IdempotencyDoneOutput }).output;
 
+const getUsageDoneOutput = (event: unknown): UsageDoneOutput | undefined =>
+  (event as { output?: UsageDoneOutput }).output;
+
+const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
+  (event as { output?: StreamDoneOutput }).output;
+
+const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
+  (event as { output?: ExtractionDoneOutput }).output;
+
+const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
+  (event as { output?: ToolDoneOutput }).output;
+
+const getInvokeFailureReason = (event: unknown): string =>
+  (event as { output?: { reason?: string } }).output?.reason ?? 'generation_failed';
+
 const getReplayPayloadParams = (event: unknown): CacheReplayPayloadParams => {
   const output = getIdempotencyDoneOutput(event);
   if (output.type !== 'IDEMPOTENCY_REPLAY_READY') {
@@ -280,25 +295,15 @@ export const generationSystemMachine = setup({
       });
     }),
     setFailureFromInvokeOutput: assign({
-      failureReason: ({ event }) => {
-        const output = (event as { output?: { reason?: string } }).output;
-        return output?.reason ?? 'generation_failed';
-      },
+      failureReason: (_, params: { reason: string }) => params.reason,
     }),
     cacheToolArtifactFromOutput: assign({
-      artifactId: ({ event, context }) => {
-        const output = (event as { output?: ToolDoneOutput }).output;
-        if (output?.type === 'WORKFLOW_STEP_COMPLETED') {
-          return output.artifactId;
-        }
-        return context.artifactId;
-      },
+      artifactId: ({ context }, params: { artifactId: string | null }) =>
+        params.artifactId ?? context.artifactId,
     }),
     appendStreamChunk: assign({
-      contentBuffer: ({ event, context }) =>
-        event.type === 'STREAM_CHUNK_RECEIVED'
-          ? `${context.contentBuffer}${event.metadata.chunk}`
-          : context.contentBuffer,
+      contentBuffer: ({ context }, params: { chunk: string }) =>
+        `${context.contentBuffer}${params.chunk}`,
     }),
     resetVolatileContext: assign({
       requestId: '',
@@ -330,17 +335,17 @@ export const generationSystemMachine = setup({
     routeIsTool: ({ context }) => context.routeType === 'tool',
     routeIsGeneric: ({ context }) => context.routeType === 'generic',
     idempotencyOutputIsReplay: ({ event }) =>
-      ((event as { output?: IdempotencyDoneOutput }).output?.type ?? '') === 'IDEMPOTENCY_REPLAY_READY',
+      (getIdempotencyDoneOutput(event).type ?? '') === 'IDEMPOTENCY_REPLAY_READY',
     idempotencyOutputIsConflict: ({ event }) =>
-      ((event as { output?: IdempotencyDoneOutput }).output?.type ?? '') === 'IDEMPOTENCY_CONFLICT',
+      (getIdempotencyDoneOutput(event).type ?? '') === 'IDEMPOTENCY_CONFLICT',
     usageOutputIsRejected: ({ event }) =>
-      ((event as { output?: UsageDoneOutput }).output?.type ?? '') === 'USAGE_REJECTED',
+      getUsageDoneOutput(event)?.type === 'USAGE_REJECTED',
     streamOutputIsFailure: ({ event }) =>
-      ((event as { output?: StreamDoneOutput }).output?.type ?? '') === 'STREAM_TERMINATED_FAILURE',
+      getStreamDoneOutput(event)?.type === 'STREAM_TERMINATED_FAILURE',
     extractionOutputIsAccepted: ({ event }) =>
-      ((event as { output?: ExtractionDoneOutput }).output?.type ?? '') === 'EXTRACTION_ATTEMPT_ACCEPTED',
+      getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
     toolOutputIsCompleted: ({ event }) =>
-      ((event as { output?: ToolDoneOutput }).output?.type ?? '') === 'WORKFLOW_STEP_COMPLETED',
+      getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
   },
   actors: {
     invokeIdempotency: idempotencyCoordinatorMachine,
@@ -560,7 +565,15 @@ export const generationSystemMachine = setup({
           {
             guard: 'toolOutputIsCompleted',
             target: 'usageAndIdempotency',
-            actions: 'cacheToolArtifactFromOutput',
+            actions: {
+              type: 'cacheToolArtifactFromOutput',
+              params: ({ event }) => {
+                const output = getToolDoneOutput(event);
+                return {
+                  artifactId: output?.type === 'WORKFLOW_STEP_COMPLETED' ? output.artifactId : null,
+                };
+              },
+            },
           },
           {
             target: 'usageAndIdempotency',
@@ -604,7 +617,10 @@ export const generationSystemMachine = setup({
               {
                 guard: 'idempotencyOutputIsConflict',
                 target: '#generationSystemMachine.persistingFailure',
-                actions: 'setFailureFromInvokeOutput',
+                actions: {
+                  type: 'setFailureFromInvokeOutput',
+                  params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+                },
               },
               {
                 target: 'usage',
@@ -633,7 +649,10 @@ export const generationSystemMachine = setup({
               {
                 guard: 'usageOutputIsRejected',
                 target: '#generationSystemMachine.persistingFailure',
-                actions: 'setFailureFromInvokeOutput',
+                actions: {
+                  type: 'setFailureFromInvokeOutput',
+                  params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+                },
               },
               {
                 target: '#generationSystemMachine.streaming',
@@ -674,7 +693,10 @@ export const generationSystemMachine = setup({
           {
             guard: 'streamOutputIsFailure',
             target: 'persistingFailure',
-            actions: 'setFailureFromInvokeOutput',
+            actions: {
+              type: 'setFailureFromInvokeOutput',
+              params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+            },
           },
           {
             target: 'persistingSuccess',

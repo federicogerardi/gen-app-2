@@ -28,6 +28,9 @@
 ## 7.3 Side Effects (Actors)
 
 - authActor
+- googleOAuthStartActor
+- googleOAuthCallbackActor
+- oauthStateStoreActor
 - validationActor
 - modelRegistryActor
 - usageGuardsActor
@@ -117,6 +120,12 @@ Regole di comunicazione:
 - gli actor figli rispondono con eventi di dominio (`STREAM_TERMINATED_SUCCESS`, `PERSISTENCE_FLUSH_COMMITTED`, `IDEMPOTENCY_REPLAY_READY`).
 - la UI o il route handler osservano il root actor; non devono coordinare manualmente gli attori interni.
 
+Nota auth/OAuth as-is:
+
+- il runtime auth resta separato dalla generation orchestration;
+- il flow OAuth Google e gestito da endpoint auth dedicati (`/auth/google/start`, `/auth/google/callback`);
+- state token e PKCE sono responsabilita del layer auth (`oauthStateRepository` + runtime OAuth), non del root generation actor.
+
 ## 14.4 Contratti Evento Tra Actor
 
 Eventi interni consigliati per la nuova implementazione:
@@ -140,6 +149,10 @@ Eventi interni consigliati per la nuova implementazione:
 - `EXTRACTION_ATTEMPT_ACCEPTED`
 - `EXTRACTION_ATTEMPT_REJECTED`
 - `EXTRACTION_CHAIN_EXHAUSTED`
+- `OAUTH_STATE_CREATED`
+- `OAUTH_STATE_CONSUMED`
+- `OAUTH_LOGIN_SUCCEEDED`
+- `OAUTH_LOGIN_FAILED`
 
 Regola di modellazione:
 

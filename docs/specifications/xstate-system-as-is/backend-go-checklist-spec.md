@@ -1,6 +1,6 @@
 # Backend GO Checklist
 
-Versione: 1.1
+Versione: 1.3
 Data: 2026-04-24
 Scope: readiness backend prima di integrazione frontend con DB reale
 
@@ -28,6 +28,9 @@ Motivi principali:
 - il wiring runtime e il contract backend sono implementati;
 - l'integrazione LLM as-is usa OpenRouter con fallback sintetico controllato;
 - la surface runtime espone stream live via AsyncIterable e adapter Node SSE;
+- la surface runtime auth minima login/logout/session e implementata;
+- la surface runtime auth include OAuth Google start/callback con state token + PKCE;
+- e disponibile un adapter server Node unificato con dispatch auth + generation SSE;
 - la persistenza reale copre accounting (`quota_history`, token, costi);
 - i test machine/root sono disponibili e verdi;
 - smoke test reali su Neon + Upstash eseguiti con esito verde;
@@ -52,6 +55,9 @@ Motivi principali:
 | BE-013 | Smoke test reale | smoke test su pg + ioredis eseguibile end-to-end | Eseguiti con esito verde su infrastruttura reale (`claimed -> completed -> replay`, `lock -> conflict`) | GO |
 | BE-014 | Test matrix minima | test su transizioni, guardie, replay/conflict, finalize success/failure | Suite test machine + root happy/failure disponibile e green | GO |
 | BE-015 | Package scripts | comandi `migrate`, `seed`, `test/smoke` disponibili | Script bootstrap DB portabili via `pg`; pipeline `backend:go` validata verde | GO |
+| BE-016 | Auth runtime surface | esiste surface auth runtime minima con sessione cookie + login/logout/session | `createAuthHttpRuntime(...)` + contratti runtime auth (`auth-contract`) + test runtime auth verdi | GO |
+| BE-017 | Unified Node server adapter | esiste adapter server unico che instrada auth e generation SSE nello stesso handler | `createNodeRuntimeRequestHandler(...)` + `createNodeRuntimeServer(...)` + test dispatch verdi | GO |
+| BE-018 | Google OAuth runtime | esiste flow OAuth Google reale in surface auth con state/PKCE e callback | `createGoogleOAuthRuntime(...)` + `/auth/google/start` + `/auth/google/callback` + test runtime OAuth verdi | GO |
 
 ## 4. Criteri di Chiusura Minimi
 
@@ -72,6 +78,9 @@ Il backend puo passare a `GO` solo se tutte le condizioni seguenti sono vere.
 - [x] il request contract usa i tipi canonici condivisi
 - [x] gli errori restituiscono shape stabile
 - [x] lo stream espone ordine eventi coerente (`start -> chunk* -> terminal`)
+- [x] la surface auth minima (`/auth/login`, `/auth/logout`, `/auth/session`) e disponibile nel runtime
+- [x] la surface OAuth Google (`/auth/google/start`, `/auth/google/callback`) e disponibile nel runtime
+- [x] esiste un adapter Node unificato per dispatch auth + generation SSE
 
 ### 4.3 Persistenza e Coerenza
 

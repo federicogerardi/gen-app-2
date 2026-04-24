@@ -124,10 +124,57 @@ Surface runtime attuale per stream:
 - `handleGenerationRequestAsNodeSse(...)`: pipe diretto su `ServerResponse` con chiusura automatica
 - `applySseHeaders(...)`, `pipeSseStreamToNodeResponse(...)`: adapter HTTP SSE riusabile
 
+Surface runtime attuale per auth:
+
+- `createAuthHttpRuntime(...)`: handler HTTP auth (`/auth/login`, `/auth/logout`, `/auth/session`, `/auth/google/start`, `/auth/google/callback`)
+- `createDefaultSessionCookieRuntime(...)`: gestione issue/read/clear cookie sessione
+- `createDefaultPasswordHashRuntime(...)`: hashing/verifica password + hash token sessione
+- `createDefaultAuthIdGenerator(...)`: generazione id sessione runtime
+- `createGoogleOAuthRuntime(...)`: runtime OAuth Google (authorization URL + code exchange + userinfo)
+- `createGoogleOAuthRuntimeFromEnv(...)`: wiring runtime OAuth Google da env
+
+Surface runtime attuale per server unificato:
+
+- `createNodeRuntimeRequestHandler(...)`: dispatch automatico prima su auth, poi su generation SSE
+- `createNodeRuntimeServer(...)`: `createServer(...)` pronto all'uso con routing integrato auth+generation
+
+Contratto route generation nel dispatcher unificato:
+
+- path default: `POST /generation/stream`
+- body: `BackendGenerationRequest` JSON
+- output: SSE `start/chunk/terminal` su `ServerResponse`
+
+Contratto route auth nel dispatcher unificato:
+
+- path auth supportati:
+  - `POST /auth/login`
+  - `POST /auth/logout`
+  - `GET /auth/session`
+  - `GET /auth/google/start`
+  - `GET /auth/google/callback?state=...&code=...`
+- output: JSON `ok/data` oppure `ok/error` coerente con runtime auth
+
+Contratto OAuth Google as-is:
+
+- `GET /auth/google/start`
+  - persiste state token monouso via `oauth_state_tokens`
+  - genera `code_verifier` PKCE
+  - risponde con redirect 302 verso authorization endpoint Google
+- `GET /auth/google/callback`
+  - valida e consuma `state`
+  - esegue code exchange e userinfo retrieval
+  - risolve utente applicativo (subject link o link by email su utente gia esistente)
+  - crea sessione locale `authMethod='google'` e imposta cookie
+  - redirect 302 verso path di successo configurato runtime
+
 Nota operativa:
 
 - Il provider LLM as-is e OpenRouter tramite `OPENROUTER_API_KEY`.
 - In assenza di chiave, il runtime mantiene fallback sintetico per compatibilita test/offline.
+- Per OAuth Google reale sono richieste variabili env:
+  - `GOOGLE_CLIENT_ID`
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_REDIRECT_URI`
 
 ## 10. Regole di Persistenza e Consistenza
 

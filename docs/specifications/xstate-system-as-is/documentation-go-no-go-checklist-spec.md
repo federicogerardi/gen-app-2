@@ -35,15 +35,17 @@ Ogni regola ha un criterio Go/No-Go e una verifica CLI eseguibile in CI.
 | DOC-008 | Le regole XState v5 obbligatorie sono esplicitate nella spec topology | `rg -n "setup\(\)\.createMachine\(\)|createActor\(\)|reenter: true|always|getNextSnapshot|evitare side effect dentro .*assign" docs/specifications/xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md` | Match per tutte le direttive | Direttive mancanti |
 | DOC-009 | La checklist di equivalenza funzionale e presente | `rg -n "Checklist di Equivalenza Funzionale|Go/No-Go" docs/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md` | Match presente | Nessun match |
 | DOC-010 | L'indice blueprint referenzia la checklist automatizzabile | `rg -n "documentation-go-no-go-checklist-spec.md" docs/specifications/xstate-system-as-is-spec.md` | Match presente | Nessun match |
+| DOC-011 | La surface runtime auth e documentata e implementata nel runtime export | `rg -n "createAuthHttpRuntime|createDefaultSessionCookieRuntime|createDefaultPasswordHashRuntime" docs/specifications/xstate-system-as-is/api-persistence-and-runtime-contracts-spec.md src/lib/runtime/index.ts` | Tutti i token trovati | Almeno un token assente |
+| DOC-012 | Il dispatcher Node unificato auth+generation e documentato e implementato | `rg -n "createNodeRuntimeRequestHandler|createNodeRuntimeServer|/generation/stream" docs/specifications/xstate-system-as-is/api-persistence-and-runtime-contracts-spec.md src/lib/runtime/index.ts src/lib/runtime/node-server.ts` | Tutti i token trovati | Almeno un token assente |
 
 ## 4. Gate Complessivo
 
-Il gate documentale e `GO` solo se tutte le regole DOC-001..DOC-010 sono `GO`.
+Il gate documentale e `GO` solo se tutte le regole DOC-001..DOC-012 sono `GO`.
 
 Formula:
 
 $$
-GO_{globale} = \bigwedge_{i=1}^{10} GO_{DOC-i}
+GO_{globale} = \bigwedge_{i=1}^{12} GO_{DOC-i}
 $$
 
 Se almeno una regola e `NO-GO`, la pipeline deve fallire.
@@ -87,6 +89,11 @@ check_present "STREAM_SESSION_STARTED|STREAM_CHUNK_RECEIVED|STREAM_TERMINATED_SU
 check_present "setup\\(\\)\\.createMachine\\(\\)|createActor\\(\\)|reenter: true|always|getNextSnapshot|evitare side effect dentro .*assign" "docs/specifications/xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md"
 check_present "Checklist di Equivalenza Funzionale|Go/No-Go" "docs/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md"
 check_present "documentation-go-no-go-checklist-spec.md" "docs/specifications/xstate-system-as-is-spec.md"
+check_present "createAuthHttpRuntime|createDefaultSessionCookieRuntime|createDefaultPasswordHashRuntime" "docs/specifications/xstate-system-as-is/api-persistence-and-runtime-contracts-spec.md"
+check_present "createAuthHttpRuntime|createDefaultSessionCookieRuntime|createDefaultPasswordHashRuntime" "src/lib/runtime/index.ts"
+check_present "createNodeRuntimeRequestHandler|createNodeRuntimeServer|/generation/stream" "docs/specifications/xstate-system-as-is/api-persistence-and-runtime-contracts-spec.md"
+check_present "createNodeRuntimeRequestHandler|createNodeRuntimeServer" "src/lib/runtime/index.ts"
+check_present "createNodeRuntimeRequestHandler|createNodeRuntimeServer|/generation/stream" "src/lib/runtime/node-server.ts"
 
 if [[ "$fail" -ne 0 ]]; then
   echo "\nEsito finale: NO-GO"

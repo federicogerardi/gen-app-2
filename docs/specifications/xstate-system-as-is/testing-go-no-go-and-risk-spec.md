@@ -67,3 +67,18 @@ Mitigazioni:
 3. Aggiungere test model-based e replay test su stream interrotti.
 4. Bloccare regressioni con snapshot strutturali delle macchine XState.
 
+## 17.1 Rischi Residui Auth (Mini-Sezione)
+
+Rischi:
+
+- Cookie policy non uniforme tra ambienti (dev/stage/prod): attributi `Secure`, `HttpOnly`, `SameSite`, `Path` non coerenti possono causare sessioni non valide o piu esposte.
+- Rotazione sessione incompleta: mancata revoca in logout/reset password/disable user o assenza di policy di refresh/renew aumenta rischio di session fixation o token stantii.
+- Hardening hashing non sufficiente: parametri deboli, algoritmo non versionato o assenza di rehash progressivo possono degradare la resilienza contro brute-force/offline cracking.
+
+Mitigazioni:
+
+1. Definire baseline cookie policy per ambiente e validarla con test automatici (`Set-Cookie` include sempre `HttpOnly`, `SameSite`, `Path`; `Secure` obbligatorio in produzione).
+2. Imporre rotazione/revoca server-side su eventi critici (logout, reset password, disable user, sospetto account takeover) e testare il path `session prima valida -> revocata -> unauthorized`.
+3. Versionare `password_algo` e introdurre strategia di rehash al login quando la policy cambia (es. aumento cost factor), mantenendo audit dei cambi password.
+4. Aggiungere test dedicati auth runtime su: cookie clear, session expiry, token hash mismatch, e fallback sicuro su errori del layer auth.
+

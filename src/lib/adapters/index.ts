@@ -20,6 +20,22 @@ export {
   createOpenRouterLlmStreamAdapterFromEnv,
 } from './openrouter.adapter';
 
+export {
+  createAuthProductionRepositories,
+  PostgresAuthSessionRepository,
+  PostgresAuthUserRepository,
+  PostgresOAuthStateRepository,
+  type AuthProductionClients,
+} from './auth.production';
+
+export {
+  createAuthStubRepositories,
+  AuthSessionRepositoryStub,
+  AuthUserRepositoryStub,
+  OAuthStateRepositoryStub,
+  type AuthStubOptions,
+} from './auth.stub';
+
 export { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 
 export {
@@ -56,3 +72,31 @@ export type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
+
+export type {
+  AuthProductionOptions,
+  AuthRepositoryBundle,
+  AuthSessionRepository,
+  AuthUserRepository,
+  OAuthStateRepository,
+} from './auth.interfaces';
+
+export type {
+  AuthMethod,
+  AuthSessionPrincipal,
+  AuthSessionRecord,
+  AuthUserListFilters,
+  AuthUserRecord,
+  AuthUserRole,
+  AuthUserStatus,
+  CreateAuthSessionInput,
+  CreateAuthUserInput,
+  CreateOAuthStateTokenInput,
+  LinkOAuthAccountInput,
+  OAuthAccountRecord,
+  OAuthProvider,
+  OAuthStateTokenRecord,
+  RevokeAuthSessionsInput,
+  SetAuthUserPasswordInput,
+  UpdateAuthUserInput,
+} from '../types/auth';

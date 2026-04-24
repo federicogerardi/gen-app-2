@@ -10,6 +10,7 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 - [Frontend as-is](./specifications/frontend-spec.md)
 - [GUI scope as-is](./specifications/gui-scope-as-is-spec.md)
 - [XState system as-is blueprint index](./specifications/xstate-system-as-is-spec.md)
+- [Tool prompts mockup pack](./specifications/tool-prompts/mockups/tool-prompts-mockup-overview-spec.md)
 
 Pacchetto atomizzato XState:
 
@@ -19,6 +20,12 @@ Pacchetto atomizzato XState:
 
 - [Frontend sprint go/no-go checklist](./review/frontend-sprint-go-checklist.md)
 - [Frontend sprint regression policy](./review/frontend-sprint-regression-policy.md)
+- [Tools generation go closure 2026-04-25](./review/tools-generation-go-closure-2026-04-25.md)
+
+## Frontend Resources
+
+- [Streaming Generator Debug Guide](../frontend/DEBUG-STREAMING.md) - Debugging infrastructure per multi-step LLM generation streaming (XState v5, structured logging, MSW handlers, 17 test scenarios)
+- [Tool Form Architecture](../frontend/TOOL-FORM-ARCHITECTURE.md) - Centralized, scalable form architecture for multi-step tools (eliminates ~600 LOC duplication, scales to N tools)
 
 ## Archivio
 

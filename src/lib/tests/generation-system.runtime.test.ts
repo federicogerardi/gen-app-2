@@ -146,9 +146,16 @@ test('generation root extraction flow completes from invoke input bootstrap', as
       requestId: 'req-root-extraction-001',
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
-      artifactType: 'content',
+      artifactType: 'extraction',
       model: 'gpt-5.3-codex',
-      input: { prompt: 'extract this' },
+      briefingId: 'briefing-root-001',
+      extractionArtifactId: 'artifact-extraction-root-001',
+      stepDependencyArtifactIds: ['artifact-dep-root-001'],
+      input: {
+        prompt: 'extract this',
+        briefingText: 'Business B2B con offerta audit e call strategica.',
+        tone: 'analitico',
+      },
       workflowType: 'extraction',
       idempotencyKey: 'idem-root-extraction-001',
       registrySnapshotRef: 'snapshot:root-extraction',
@@ -158,7 +165,55 @@ test('generation root extraction flow completes from invoke input bootstrap', as
 
   assert.equal(result.status, 'completed');
   assert.ok(result.artifactId);
-  assert.match(result.content, /extract this/);
+  const payload = JSON.parse(result.content) as Record<string, unknown>;
+  assert.equal(payload.schemaVersion, 'extraction.v1');
+  assert.equal(payload.briefingId, 'briefing-root-001');
+  assert.equal(payload.extractionArtifactId, 'artifact-extraction-root-001');
+  assert.deepEqual(payload.stepDependencyArtifactIds, ['artifact-dep-root-001']);
+});
+
+test('generation root extraction flow persists as extraction artifact with structured input_json', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let persistedArtifactType: string | null = null;
+  let persistedWorkflowType: string | null = null;
+  let persistedInputJson: Record<string, unknown> | null = null;
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedArtifactType = input.artifactType;
+    persistedWorkflowType = input.workflowType;
+    persistedInputJson = (input.inputJson ?? null) as Record<string, unknown> | null;
+    await originalFinalizeSuccess(input);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-extraction-persistence-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      briefingId: 'briefing-persistence-001',
+      input: {
+        prompt: 'extract this',
+        briefingText: 'Target PMI, promessa: audit in 7 giorni.',
+      },
+      workflowType: 'extraction',
+      idempotencyKey: 'idem-root-extraction-persistence-001',
+      registrySnapshotRef: 'snapshot:root-extraction-persistence',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'completed');
+  assert.equal(persistedArtifactType, 'extraction');
+  assert.equal(persistedWorkflowType, 'extraction');
+  assert.ok(persistedInputJson);
+
+  const extraction = (persistedInputJson as { extraction?: Record<string, unknown> }).extraction;
+  assert.ok(extraction);
+  assert.equal(extraction?.briefingId, 'briefing-persistence-001');
+  assert.equal(typeof extraction?.payload, 'object');
 });
 
 test('generation root tool flow completes from invoke input bootstrap', async () => {
@@ -445,4 +500,158 @@ test('generation root reaches terminal state on persistence finalize failure bra
   } finally {
     actor.stop();
   }
+});
+
+test('generation root executes Funnel step chain with dependency metadata and final artifact role', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const persistedInputsByRequestId = new Map<string, Record<string, unknown>>();
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedInputsByRequestId.set(input.requestId, (input.inputJson ?? {}) as Record<string, unknown>);
+    await originalFinalizeSuccess(input);
+  };
+
+  const optin = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-funnel-optin-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel-pages',
+      briefingId: 'briefing-funnel-001',
+      extractionArtifactId: 'artifact-extraction-funnel-001',
+      input: { step: 'optin', intent: 'new' },
+      idempotencyKey: 'idem-root-funnel-optin-001',
+      registrySnapshotRef: 'snapshot:root-funnel',
+    },
+    adapters,
+  );
+
+  const quiz = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-funnel-quiz-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel-pages',
+      briefingId: 'briefing-funnel-001',
+      extractionArtifactId: 'artifact-extraction-funnel-001',
+      stepDependencyArtifactIds: [optin.artifactId ?? ''],
+      input: { step: 'quiz', intent: 'new' },
+      idempotencyKey: 'idem-root-funnel-quiz-001',
+      registrySnapshotRef: 'snapshot:root-funnel',
+    },
+    adapters,
+  );
+
+  const vsl = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-funnel-vsl-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel-pages',
+      briefingId: 'briefing-funnel-001',
+      extractionArtifactId: 'artifact-extraction-funnel-001',
+      stepDependencyArtifactIds: [optin.artifactId ?? '', quiz.artifactId ?? ''],
+      input: { step: 'vsl', intent: 'new' },
+      idempotencyKey: 'idem-root-funnel-vsl-001',
+      registrySnapshotRef: 'snapshot:root-funnel',
+    },
+    adapters,
+  );
+
+  assert.equal(optin.status, 'completed');
+  assert.equal(quiz.status, 'completed');
+  assert.equal(vsl.status, 'completed');
+
+  const optinInputJson = persistedInputsByRequestId.get('req-root-funnel-optin-001') ?? {};
+  const quizInputJson = persistedInputsByRequestId.get('req-root-funnel-quiz-001') ?? {};
+  const vslInputJson = persistedInputsByRequestId.get('req-root-funnel-vsl-001') ?? {};
+
+  const optinWorkflow = (optinInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+  const quizWorkflow = (quizInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+  const vslWorkflow = (vslInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+
+  assert.equal(optinWorkflow.stepKey, 'optin');
+  assert.equal(optinWorkflow.artifactRole, 'step');
+  assert.equal(quizWorkflow.stepKey, 'quiz');
+  assert.equal(vslWorkflow.stepKey, 'vsl');
+  assert.equal(vslWorkflow.artifactRole, 'final');
+
+  assert.deepEqual(quizWorkflow.dependsOnSteps, ['optin']);
+  assert.deepEqual(quizWorkflow.dependencyArtifactIds, [optin.artifactId]);
+  assert.deepEqual(vslWorkflow.dependsOnSteps, ['optin', 'quiz']);
+  assert.deepEqual(vslWorkflow.dependencyArtifactIds, [optin.artifactId, quiz.artifactId]);
+});
+
+test('generation root executes Nextland step chain with dependency metadata and final artifact role', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const persistedInputsByRequestId = new Map<string, Record<string, unknown>>();
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedInputsByRequestId.set(input.requestId, (input.inputJson ?? {}) as Record<string, unknown>);
+    await originalFinalizeSuccess(input);
+  };
+
+  const landing = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-nextland-landing-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'nextland',
+      workflowType: 'nextland',
+      briefingId: 'briefing-nextland-001',
+      extractionArtifactId: 'artifact-extraction-nextland-001',
+      input: { step: 'landing', intent: 'new' },
+      idempotencyKey: 'idem-root-nextland-landing-001',
+      registrySnapshotRef: 'snapshot:root-nextland',
+    },
+    adapters,
+  );
+
+  const thankYou = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-nextland-thank-you-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'nextland',
+      workflowType: 'nextland',
+      briefingId: 'briefing-nextland-001',
+      extractionArtifactId: 'artifact-extraction-nextland-001',
+      stepDependencyArtifactIds: [landing.artifactId ?? ''],
+      input: { step: 'thank_you', intent: 'new' },
+      idempotencyKey: 'idem-root-nextland-thank-you-001',
+      registrySnapshotRef: 'snapshot:root-nextland',
+    },
+    adapters,
+  );
+
+  assert.equal(landing.status, 'completed');
+  assert.equal(thankYou.status, 'completed');
+
+  const landingInputJson = persistedInputsByRequestId.get('req-root-nextland-landing-001') ?? {};
+  const thankYouInputJson = persistedInputsByRequestId.get('req-root-nextland-thank-you-001') ?? {};
+
+  const landingWorkflow = (landingInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+  const thankYouWorkflow = (thankYouInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+
+  assert.equal(landingWorkflow.stepKey, 'landing');
+  assert.equal(landingWorkflow.artifactRole, 'step');
+  assert.equal(thankYouWorkflow.stepKey, 'thank_you');
+  assert.equal(thankYouWorkflow.artifactRole, 'final');
+  assert.deepEqual(thankYouWorkflow.dependsOnSteps, ['landing']);
+  assert.deepEqual(thankYouWorkflow.dependencyArtifactIds, [landing.artifactId]);
 });

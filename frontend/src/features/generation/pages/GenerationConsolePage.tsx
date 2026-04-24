@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GenerationForm } from '../ui/GenerationForm';
 import { GenerationStreamPanel } from '../ui/GenerationStreamPanel';
 import { ArtifactHistoryPanel } from '../ui/ArtifactHistoryPanel';
@@ -11,10 +11,14 @@ import {
 } from '../ui/tool-ux-state';
 import { useGenerationWorkspace } from '../runtime/GenerationWorkspaceProvider';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
 
 export const GenerationConsolePage = () => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
   const [toolSetupState, setToolSetupState] = useState<{
     phase: ToolPhase;
@@ -42,6 +46,49 @@ export const GenerationConsolePage = () => {
   });
   const primaryActionPolicy = derivePrimaryActionPolicy(canonicalState);
 
+  useEffect(() => {
+    if (!auth.session || !auth.capabilities.projects) {
+      setProjects([]);
+      setProjectsLoading(false);
+      setProjectsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setProjectsLoading(true);
+
+    void (async () => {
+      try {
+        const nextProjects = await listProjects({
+          apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        setProjects(nextProjects);
+        setProjectsError(null);
+      } catch (loadError) {
+        if (cancelled) {
+          return;
+        }
+
+        setProjects([]);
+        setProjectsError(loadError instanceof Error ? loadError.message : 'Unable to load projects');
+      } finally {
+        if (!cancelled) {
+          setProjectsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
+
   if (!auth.session) {
     return null;
   }
@@ -51,9 +98,15 @@ export const GenerationConsolePage = () => {
       <section className="layout-grid">
         <GenerationForm
           userId={auth.session.user.id}
+          toolsUploadEnabled={auth.capabilities.toolsUpload}
+          projectOptions={projects.map((project) => ({ id: project.id, name: project.name }))}
+          projectsLoading={projectsLoading}
+          projectsError={projectsError}
           disabled={generation.isStreamActive}
           checkpoints={generation.checkpoints}
           prefillProjectId={generation.focusedProjectId}
+          onExtractionContextChange={generation.upsertExtractionContext}
+          getExtractionContext={generation.getExtractionContext}
           onSetupStateChange={setToolSetupState}
           onStart={generation.start}
         />

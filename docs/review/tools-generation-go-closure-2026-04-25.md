@@ -1,0 +1,75 @@
+# Tools Generation GO Closure - 2026-04-25
+
+Data: 2026-04-25
+Stato: GO (condizionato a monitoraggio warning SSL smoke)
+Scope: upload brief, extraction persistita, generation workflow Funnel/Nextland, completion e fallback
+
+## 1. Executive Outcome
+
+La pipeline tools e stata validata end-to-end su backend e frontend:
+
+- Upload brief autenticato (`POST /api/tools/briefs`) operativo con ownership check.
+- Extraction persistita come artifact dedicato (`type=extraction`) con payload strutturato.
+- Workflow tool step-based completato per Funnel (`optin -> quiz -> vsl`) e Nextland (`landing -> thank_you`).
+- Frontend integrato su stati reali `uploading/extracting/review/generating/done/failed`.
+
+Decisione: GO operativo per rilascio controllato con kill-switch attivi.
+
+## 2. Evidence Suite (TASK-019 rerun)
+
+| Comando | Exit | Evidenza |
+|---|---|---|
+| `npm test` | `0` | `49 passed, 0 failed` |
+| `set -a && . ./.env.local && set +a && npm run test:smoke` | `0` | `Smoke OK: claimed -> completed -> replay`, `lock present -> conflict`, `queries scoped/filtered` |
+| `npm --prefix frontend run test` | `0` | `81 passed, 0 failed` |
+| `npm --prefix frontend run typecheck` | `0` | `tsc --noEmit` senza errori |
+
+Nota: nei comandi smoke compare warning di compatibilita futura su `pg-connection-string`/`sslmode`.
+
+## 3. Runbook Operativo GO
+
+### 3.1 Preflight
+
+1. Caricare env locale per smoke/backend gate: `set -a && . ./.env.local && set +a`.
+2. Verificare capability frontend:
+   - `VITE_CAP_PROJECTS=true`
+   - `VITE_CAP_ARTIFACTS=true`
+   - `VITE_CAP_TOOLS_UPLOAD=true`
+3. Verificare sessione autenticata e ownership progetto.
+
+### 3.2 Smoke funzionale minimo
+
+1. Login (`POST /auth/login`) con utente seed.
+2. Upload brief (`POST /api/tools/briefs`) su progetto owner.
+3. Avvio generation tool con `extractionArtifactId` valido.
+4. Verifica artifact step/finale su archivio.
+
+### 3.3 Osservabilita minima
+
+Monitorare su finestra post-rilascio:
+
+- Tasso errori upload (`4xx` validazione e `5xx` runtime).
+- Tasso `protocol_error` lato frontend per mismatch SSE.
+- Percentuale workflow completati per tool (`funnel-pages`, `nextland`).
+- Tempo mediano da upload a completion.
+
+## 4. Known Issues E Mitigazioni
+
+- Warning SSL `pg-connection-string` in smoke: non blocca GO ma richiede hardening configurazione connessione DB prima del cutover finale.
+- Endpoint models/admin-models non disponibili in backend as-is: fallback frontend rimane attivo e previsto.
+
+## 5. No-Go Triggers Immediati
+
+Bloccare rilascio o attivare rollback se si verifica almeno uno dei seguenti:
+
+- Fallimento anche di un solo comando della suite bloccante.
+- Aumento anomalo errori `protocol_error` SSE dopo deploy.
+- Errori `403` su utenti owner validi (regressione ownership).
+- Artifact extraction non persistiti o non recuperabili da API artifact.
+
+## 6. Link Correlati
+
+- `docs/review/frontend-sprint-go-checklist.md`
+- `docs/review/frontend-sprint-regression-policy.md`
+- `docs/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md`
+- `plan/feature-frontend-generation-tools-go-1.md`

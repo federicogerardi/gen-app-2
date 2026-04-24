@@ -88,3 +88,43 @@ Mitigazioni:
 3. Versionare `password_algo` e introdurre strategia di rehash al login quando la policy cambia (es. aumento cost factor), mantenendo audit dei cambi password.
 4. Aggiungere test dedicati auth runtime su: cookie clear, session expiry, token hash mismatch, e fallback sicuro su errori del layer auth.
 
+## 18. Casi Regressione Fase GO Tools Upload/Extraction
+
+Questa sezione formalizza i casi minimi bloccanti aggiunti in Phase 4 per coprire la pipeline canonica `upload -> extraction -> review -> generation` e il protocollo SSE.
+
+### 18.1 Upload Brief (Runtime Auth HTTP)
+
+| Caso | Input | Esito atteso | Classificazione |
+|---|---|---|---|
+| Upload `.txt` valido | Sessione owner, file <= limite size, MIME coerente | `201` con `{ briefingId, fileName, mimeType, size }` | GO |
+| Upload `.md` valido | Sessione owner, estensione supportata | `201` con payload metadata completo | GO |
+| Upload `.docx` valido | Sessione owner, MIME ammesso | `201` e briefing tracciabile | GO |
+| Upload formato non supportato | Estensione/MIME non in allowlist | `400` deterministico (`code` stabile) | GO |
+| Upload su progetto non owner | Sessione valida ma ownership mismatch | `403` senza side effect persistenti | GO |
+| Upload senza sessione | Nessun cookie sessione valido | `401` | GO |
+
+### 18.2 Extraction Persistita E Contratto Artifact
+
+| Caso | Precondizione | Esito atteso | Classificazione |
+|---|---|---|---|
+| Extraction success path | `briefingId` valido, prompt extraction disponibile | Artifact persistito con `type='extraction'` e `input_json` strutturato | GO |
+| Extraction senza contesto valido | Resume/checkpoint senza extraction context | Richiesta nuovo brief (fail-safe) | GO |
+| Replay idempotente extraction/tool-step | Stessa correlation key | Nessuna riesecuzione side effect, ritorno replay artifact | GO |
+
+### 18.3 Mismatch Protocollo SSE (Contract Safety)
+
+| Caso | Trigger | Esito atteso | Classificazione |
+|---|---|---|---|
+| `SSE_START.requestId` incoerente | Stream event non allineato alla request corrente | Frontend produce `protocol_error` e interrompe la pipeline locale | GO |
+| `SSE_CHUNK.artifactId` incoerente | Chunk associato a artifact differente | Frontend produce `protocol_error` e marca richiesta failed | GO |
+| Ordine eventi invalido | `chunk` prima di `start` o piu terminal event | Reiezione evento + fallback errore protocollo | GO |
+
+### 18.4 Evidenza Esecuzione Locale (2026-04-25)
+
+- `npm test`: pass (`49 passed, 0 failed`)
+- `npm run test:smoke`: pass (`idempotency`, `conflict`, `queries`)
+- `npm --prefix frontend run test`: pass (`81 passed, 0 failed`)
+- `npm --prefix frontend run typecheck`: pass (zero errori)
+
+Nota: warning SSL `pg-connection-string` osservato nei smoke test, non bloccante per GO corrente ma da normalizzare nel cutover finale.
+

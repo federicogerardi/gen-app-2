@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type {
   ArtifactType,
   GenerationRequest,
   OutputFormat,
 } from '../contracts/backend-stream';
+import {
+  runExtraction,
+  uploadBrief,
+} from '../../tools/runtime/tools-client';
 import type {
   ExtractionLifecycle,
   ToolIntent,
@@ -15,13 +19,23 @@ import {
   sortCheckpointsForResume,
   type ToolCheckpoint,
 } from './tool-checkpoints';
+import type { ToolExtractionContext } from '../runtime/GenerationWorkspaceProvider';
 
 type GenerationFormProps = {
   userId: string;
+  toolsUploadEnabled: boolean;
+  projectOptions: Array<{
+    id: string;
+    name: string;
+  }>;
+  projectsLoading: boolean;
+  projectsError: string | null;
   onStart: (request: GenerationRequest) => void;
   disabled: boolean;
   checkpoints: ToolCheckpoint[];
   prefillProjectId: string | null;
+  onExtractionContextChange: (context: ToolExtractionContext) => void;
+  getExtractionContext: (projectId: string) => ToolExtractionContext | null;
   onSetupStateChange: (state: {
     phase: ToolPhase;
     intent: ToolIntent;
@@ -49,10 +63,16 @@ const hasAllowedBriefingExtension = (name: string): boolean => {
 
 export const GenerationForm = ({
   userId,
+  toolsUploadEnabled,
+  projectOptions,
+  projectsLoading,
+  projectsError,
   onStart,
   disabled,
   checkpoints,
   prefillProjectId,
+  onExtractionContextChange,
+  getExtractionContext,
   onSetupStateChange,
 }: GenerationFormProps) => {
   const [projectId, setProjectId] = useState('');
@@ -71,13 +91,15 @@ export const GenerationForm = ({
   const [selectedCheckpointArtifactId, setSelectedCheckpointArtifactId] = useState('');
   const [phase, setPhase] = useState<ToolPhase>('idle');
   const [extractionLifecycle, setExtractionLifecycle] = useState<ExtractionLifecycle>('idle');
+  const [briefingFile, setBriefingFile] = useState<File | null>(null);
   const [briefingFileName, setBriefingFileName] = useState<string | null>(null);
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const [registrySnapshotRef, setRegistrySnapshotRef] = useState('snapshot:default');
-  const processTimerRef = useRef<number | null>(null);
+
+  const extractionContext = getExtractionContext(projectId.trim());
 
   const hasProject = projectId.trim().length > 0;
-  const hasBriefing = briefingFileName !== null;
+  const hasBriefing = briefingFileName !== null || extractionContext !== null;
   const hasSourceArtifact = sourceArtifactId.trim().length > 0;
   const checkpointsForProject = sortCheckpointsForResume(
     checkpoints.filter((checkpoint) => checkpoint.projectId === projectId.trim()),
@@ -119,12 +141,14 @@ export const GenerationForm = ({
   }, [prefillProjectId]);
 
   useEffect(() => {
-    return () => {
-      if (processTimerRef.current !== null) {
-        window.clearTimeout(processTimerRef.current);
-      }
-    };
-  }, []);
+    if (!extractionContext || briefingFileName) {
+      return;
+    }
+
+    setExtractionLifecycle('completed_partial');
+    setPhase('review');
+    setBriefingError(null);
+  }, [briefingFileName, extractionContext]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
@@ -140,7 +164,14 @@ export const GenerationForm = ({
         tone,
         notes,
         intent,
-        briefingFileName,
+        briefingFileName: briefingFileName ?? null,
+        briefingId: extractionContext?.briefingId ?? null,
+        extractionArtifactId: extractionContext?.extractionArtifactId ?? null,
+        stepDependencyArtifactIds: [
+          ...(extractionContext?.extractionArtifactId ? [extractionContext.extractionArtifactId] : []),
+          ...(hasSourceArtifact ? [sourceArtifactId.trim()] : []),
+        ],
+        extractionPayload: extractionContext?.extractionPayload ?? null,
         sourceArtifactId: hasSourceArtifact ? sourceArtifactId.trim() : null,
         checkpointArtifactId: selectedCheckpoint?.artifactId ?? null,
       },
@@ -160,6 +191,7 @@ export const GenerationForm = ({
 
   const onBriefingFileSelected = (file: File | null): void => {
     if (!file) {
+      setBriefingFile(null);
       setBriefingFileName(null);
       setBriefingError(null);
       setExtractionLifecycle('idle');
@@ -168,6 +200,7 @@ export const GenerationForm = ({
     }
 
     if (!hasAllowedBriefingExtension(file.name)) {
+      setBriefingFile(null);
       setBriefingFileName(null);
       setBriefingError('Formato briefing non supportato. Usa .docx, .txt o .md');
       setExtractionLifecycle('failed_hard');
@@ -175,29 +208,76 @@ export const GenerationForm = ({
       return;
     }
 
+    setBriefingFile(file);
     setBriefingFileName(file.name);
     setBriefingError(null);
     setExtractionLifecycle('idle');
     setPhase('idle');
   };
 
-  const processBriefing = (): void => {
-    if (!hasProject || !hasBriefing || disabled) {
+  const processBriefing = async (): Promise<void> => {
+    if (!hasProject || !briefingFile || disabled || !toolsUploadEnabled) {
+      if (!toolsUploadEnabled) {
+        setBriefingError('Capability toolsUpload disabilitata: upload/extraction non disponibili.');
+      }
       return;
     }
 
-    if (processTimerRef.current !== null) {
-      window.clearTimeout(processTimerRef.current);
-    }
-
-    setPhase('extracting');
+    setPhase('uploading');
     setExtractionLifecycle('in_progress');
+    setBriefingError(null);
 
-    processTimerRef.current = window.setTimeout(() => {
+    try {
+      const uploaded = await uploadBrief(
+        {
+          projectId: projectId.trim(),
+          toolKey,
+          file: briefingFile,
+        },
+        {
+          capabilities: { toolsUpload: toolsUploadEnabled },
+        },
+      );
+
+      setPhase('extracting');
+
+      const extraction = await runExtraction(
+        {
+          userId,
+          projectId: projectId.trim(),
+          model,
+          toolKey,
+          prompt,
+          tone,
+          notes,
+          briefingId: uploaded.briefingId,
+          briefingText: uploaded.normalizedText,
+          registrySnapshotRef,
+          ...(idempotencyKey.trim() ? { idempotencyKey: idempotencyKey.trim() } : {}),
+        },
+        {
+          capabilities: { toolsUpload: toolsUploadEnabled },
+        },
+      );
+
+      onExtractionContextChange({
+        projectId: projectId.trim(),
+        briefingId: uploaded.briefingId,
+        extractionArtifactId: extraction.artifactId,
+        extractionPayload: extraction.payload,
+        normalizedText: uploaded.normalizedText,
+        parsedFormat: uploaded.parsedFormat,
+        updatedAt: new Date().toISOString(),
+      });
+
+      setBriefingFileName(uploaded.fileName);
       setPhase('review');
       setExtractionLifecycle('completed_full');
-      processTimerRef.current = null;
-    }, 300);
+    } catch (error) {
+      setPhase('idle');
+      setExtractionLifecycle('failed_hard');
+      setBriefingError(error instanceof Error ? error.message : 'Errore durante upload/extraction');
+    }
   };
 
   const hasGenerationPrerequisites =
@@ -303,13 +383,23 @@ export const GenerationForm = ({
 
       <label>
         Project ID
-        <input
+        <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
-          placeholder="project-..."
+          disabled={projectsLoading || projectOptions.length === 0}
           required
-        />
+        >
+          <option value="">Seleziona progetto</option>
+          {projectOptions.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name} ({project.id})
+            </option>
+          ))}
+        </select>
       </label>
+
+      {projectsLoading ? <p className="meta-line">Caricamento progetti...</p> : null}
+      {projectsError ? <p className="error-message">{projectsError}</p> : null}
 
       <label>
         Briefing file (.docx, .txt, .md)
@@ -323,8 +413,16 @@ export const GenerationForm = ({
 
       <button
         type="button"
-        onClick={processBriefing}
-        disabled={!hasProject || !hasBriefing || disabled || extractionLifecycle === 'in_progress'}
+        onClick={() => {
+          void processBriefing();
+        }}
+        disabled={
+          !hasProject
+          || !briefingFile
+          || disabled
+          || extractionLifecycle === 'in_progress'
+          || !toolsUploadEnabled
+        }
       >
         Processa briefing
       </button>
@@ -332,6 +430,7 @@ export const GenerationForm = ({
       <p className="meta-line">phase: {phase}</p>
       <p className="meta-line">extraction: {extractionLifecycle}</p>
       <p className="meta-line">briefing: {briefingFileName ?? '-'}</p>
+      {!toolsUploadEnabled ? <p className="meta-line">toolsUpload capability: disabled</p> : null}
       {briefingError ? <p className="error-message">{briefingError}</p> : null}
 
       <label>

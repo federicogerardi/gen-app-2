@@ -1,7 +1,6 @@
 import { assign, enqueueActions, fromPromise, setup } from 'xstate';
 
 import type { GenerationAdapters } from '../adapters/generation.adapters';
-import { extractionChainMachine } from './extraction-chain.machine';
 import { idempotencyCoordinatorMachine } from './idempotency-coordinator.machine';
 import { persistenceBatchMachine } from './persistence-batch.machine';
 import { streamTransportMachine } from './stream-transport.machine';
@@ -13,6 +12,7 @@ import type {
   GenerationSystemEvent,
   RequestReceivedEvent,
   RegistryBackedWorkflowType,
+  WorkflowStepDescriptor,
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
 
@@ -67,7 +67,12 @@ type StreamDoneOutput =
     };
 
 type ExtractionDoneOutput =
-  | { type: 'EXTRACTION_ATTEMPT_ACCEPTED' }
+  | {
+      type: 'EXTRACTION_ATTEMPT_ACCEPTED';
+      artifactId: string;
+      content: string;
+      structuredPayload: Record<string, unknown>;
+    }
   | { type: 'EXTRACTION_ATTEMPT_REJECTED'; reason: string }
   | { type: 'EXTRACTION_CHAIN_EXHAUSTED'; reason: string };
 
@@ -110,6 +115,11 @@ type CacheStreamResultParams = {
   costUsd: number;
 };
 
+type CacheExtractionResultParams = {
+  content: string;
+  structuredPayload: Record<string, unknown>;
+};
+
 const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
   (event as { output: IdempotencyDoneOutput }).output;
 
@@ -132,6 +142,21 @@ const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
 
 const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
   (event as { output?: ExtractionDoneOutput }).output;
+
+const getExtractionResultParams = (event: unknown): CacheExtractionResultParams => {
+  const output = getExtractionDoneOutput(event);
+  if (!output || output.type !== 'EXTRACTION_ATTEMPT_ACCEPTED') {
+    return {
+      content: '',
+      structuredPayload: {},
+    };
+  }
+
+  return {
+    content: output.content,
+    structuredPayload: output.structuredPayload,
+  };
+};
 
 const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
   (event as { output?: ToolDoneOutput }).output;
@@ -174,6 +199,168 @@ const defaultResponseBuilder = (request: RequestReceivedEvent): string => {
   return `Generated output for request ${request.requestId}`;
 };
 
+const toOptionalString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.values(value)
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  return [];
+};
+
+const toStringRecord = (value: unknown): Record<string, string> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.entries(value).reduce<Record<string, string>>((acc, [key, entry]) => {
+    if (typeof entry !== 'string') {
+      return acc;
+    }
+
+    const normalized = entry.trim();
+    if (!normalized) {
+      return acc;
+    }
+
+    acc[key] = normalized;
+    return acc;
+  }, {});
+};
+
+const countWords = (value: string): number => {
+  return value.split(/\s+/).filter((token) => token.length > 0).length;
+};
+
+const buildExtractionStructuredPayload = (
+  context: GenerationMachineContext,
+): Record<string, unknown> => {
+  const briefingId = toOptionalString(context.requestInput.briefingId);
+  const extractionArtifactId =
+    toOptionalString(context.requestInput.extractionArtifactId) ?? context.artifactId;
+  const stepDependencyArtifactIds = [
+    ...new Set(toStringArray(context.requestInput.stepDependencyArtifactIds)),
+  ];
+  const briefText =
+    toOptionalString(context.requestInput.briefingText)
+    ?? toOptionalString(context.requestInput.normalizedText)
+    ?? toOptionalString(context.requestInput.prompt)
+    ?? '';
+  const summary = briefText
+    ? briefText.split(/\s+/).slice(0, 60).join(' ')
+    : null;
+
+  const fields: Record<string, string | null> = {
+    briefing_summary: summary,
+    primary_tone: toOptionalString(context.requestInput.tone),
+    target_tool: context.toolKey,
+  };
+
+  const missingFields = Object.entries(fields)
+    .filter(([, value]) => value === null)
+    .map(([key]) => key);
+
+  return {
+    schemaVersion: 'extraction.v1',
+    requestId: context.requestId,
+    projectId: context.projectId,
+    toolKey: context.toolKey,
+    artifactId: context.artifactId,
+    briefingId,
+    extractionArtifactId,
+    stepDependencyArtifactIds,
+    fields,
+    missingFields,
+    meta: {
+      charCount: briefText.length,
+      wordCount: countWords(briefText),
+      generatedAt: context.runtimeNow().toISOString(),
+    },
+  };
+};
+
+const parseExtractionContent = (content: string): Record<string, unknown> => {
+  if (!content) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(content) as unknown;
+    if (parsed && typeof parsed === 'object') {
+      return parsed as Record<string, unknown>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+};
+
+const toPersistenceArtifactType = (
+  context: GenerationMachineContext,
+): GenerationMachineContext['artifactType'] => {
+  if (context.routeType === 'extraction') {
+    return 'extraction';
+  }
+
+  return context.artifactType;
+};
+
+const toPersistenceWorkflowType = (
+  context: GenerationMachineContext,
+): RegistryBackedWorkflowType => {
+  if (context.routeType === 'extraction') {
+    return 'extraction';
+  }
+
+  return context.workflowType;
+};
+
+const toPersistenceInputJson = (
+  context: GenerationMachineContext,
+): Record<string, unknown> => {
+  if (context.routeType !== 'extraction') {
+    const toolWorkflow = buildToolWorkflowPersistenceMetadata(context);
+    if (!toolWorkflow) {
+      return context.requestInput;
+    }
+
+    return {
+      ...context.requestInput,
+      toolWorkflow,
+    };
+  }
+
+  const extractionPayload = parseExtractionContent(context.contentBuffer);
+  return {
+    ...context.requestInput,
+    extraction: {
+      briefingId: toOptionalString(context.requestInput.briefingId),
+      extractionArtifactId:
+        toOptionalString(context.requestInput.extractionArtifactId) ?? context.artifactId,
+      stepDependencyArtifactIds: toStringArray(context.requestInput.stepDependencyArtifactIds),
+      payload: extractionPayload,
+    },
+  };
+};
+
 const getRegistrySelector = (context: GenerationMachineContext) => {
   const registrySnapshotRef =
     (context.registrySnapshotRef ?? `snapshot:${context.requestId}`) as never;
@@ -196,6 +383,150 @@ const normalizeValue = (value: string | null | undefined): string | null => {
   }
   const normalized = value.trim().toLowerCase();
   return normalized.length > 0 ? normalized : null;
+};
+
+type ToolWorkflowPlan = {
+  toolKey: string;
+  steps: WorkflowStepDescriptor[];
+  dependencyGraph: Record<string, string[]>;
+};
+
+const TOOL_WORKFLOW_REGISTRY: Record<string, ToolWorkflowPlan> = {
+  'funnel-pages': {
+    toolKey: 'funnel-pages',
+    steps: [
+      { key: 'optin', dependencies: [] },
+      { key: 'quiz', dependencies: ['optin'] },
+      { key: 'vsl', dependencies: ['optin', 'quiz'] },
+    ],
+    dependencyGraph: {
+      optin: [],
+      quiz: ['optin'],
+      vsl: ['optin', 'quiz'],
+    },
+  },
+  nextland: {
+    toolKey: 'nextland',
+    steps: [
+      { key: 'landing', dependencies: [] },
+      { key: 'thank_you', dependencies: ['landing'] },
+    ],
+    dependencyGraph: {
+      landing: [],
+      thank_you: ['landing'],
+    },
+  },
+};
+
+const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {
+  const normalized = normalizeValue(value);
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
+    return 'funnel-pages';
+  }
+
+  return normalized;
+};
+
+const normalizeStepKey = (value: unknown): string | null => {
+  const normalized = normalizeValue(toOptionalString(value));
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'thank-you' || normalized === 'thankyou') {
+    return 'thank_you';
+  }
+
+  return normalized;
+};
+
+const resolveToolWorkflowPlan = (context: GenerationMachineContext): ToolWorkflowPlan | null => {
+  const normalizedToolKey = normalizeToolWorkflowKey(context.toolKey);
+  const normalizedWorkflowType = normalizeToolWorkflowKey(context.workflowType);
+  const key = normalizedToolKey ?? normalizedWorkflowType;
+  if (!key) {
+    return null;
+  }
+
+  return TOOL_WORKFLOW_REGISTRY[key] ?? null;
+};
+
+const resolveWorkflowRunMode = (context: GenerationMachineContext): 'new' | 'resume' | 'regenerate' => {
+  const intent = normalizeValue(toOptionalString(context.requestInput.intent));
+  if (intent === 'resume' || intent === 'regenerate') {
+    return intent;
+  }
+
+  return 'new';
+};
+
+const resolveRequestScopedStepDescriptor = (
+  context: GenerationMachineContext,
+  plan: ToolWorkflowPlan | null,
+): WorkflowStepDescriptor => {
+  const requestedStep = normalizeStepKey(context.requestInput.step);
+  if (plan && requestedStep) {
+    const found = plan.steps.find((candidate) => candidate.key === requestedStep);
+    if (found) {
+      return found;
+    }
+  }
+
+  if (plan) {
+    return plan.steps[0] ?? { key: context.toolKey ?? 'workflow_step', dependencies: [] };
+  }
+
+  return {
+    key: requestedStep ?? context.toolKey ?? 'workflow_step',
+    dependencies: [],
+  };
+};
+
+const isFinalStepForPlan = (plan: ToolWorkflowPlan | null, stepKey: string): boolean => {
+  if (!plan || plan.steps.length === 0) {
+    return true;
+  }
+
+  const last = plan.steps[plan.steps.length - 1];
+  return last?.key === stepKey;
+};
+
+const buildToolWorkflowPersistenceMetadata = (
+  context: GenerationMachineContext,
+): Record<string, unknown> | null => {
+  if (context.routeType !== 'tool') {
+    return null;
+  }
+
+  const plan = resolveToolWorkflowPlan(context);
+  const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+  const dependsOnSteps = plan?.dependencyGraph[stepDescriptor.key] ?? stepDescriptor.dependencies;
+  const dependencyArtifactIds = toStringArray(context.requestInput.stepDependencyArtifactIds);
+  const dependencyArtifactIdsByStep = toStringRecord(context.requestInput.stepDependencyArtifactIdsByStep);
+
+  if (Object.keys(dependencyArtifactIdsByStep).length === 0 && dependencyArtifactIds.length > 0) {
+    dependsOnSteps.forEach((dependencyStepKey, index) => {
+      const artifactId = dependencyArtifactIds[index];
+      if (artifactId) {
+        dependencyArtifactIdsByStep[dependencyStepKey] = artifactId;
+      }
+    });
+  }
+
+  return {
+    toolKey: plan?.toolKey ?? context.toolKey,
+    workflowType: context.workflowType,
+    runMode: resolveWorkflowRunMode(context),
+    artifactRole: isFinalStepForPlan(plan, stepDescriptor.key) ? 'final' : 'step',
+    stepKey: stepDescriptor.key,
+    dependsOnSteps,
+    dependencyArtifactIds,
+    dependencyArtifactIdsByStep,
+  };
 };
 
 const getRouteType = (
@@ -318,6 +649,19 @@ export const generationSystemMachine = setup({
       costUsd: ({ context }, params: CacheStreamResultParams) =>
         params.costUsd > 0 ? params.costUsd : context.costUsd,
     }),
+    cacheExtractionResult: assign({
+      contentBuffer: (_, params: CacheExtractionResultParams) => params.content,
+      requestInput: ({ context }, params: CacheExtractionResultParams) => ({
+        ...context.requestInput,
+        extractionPayload: params.structuredPayload,
+      }),
+      inputTokens: ({ context }) =>
+        Math.max(context.inputTokens, Math.max(1, Math.ceil(JSON.stringify(context.requestInput).length / 4))),
+      outputTokens: (_, params: CacheExtractionResultParams) =>
+        Math.max(1, Math.ceil(params.content.length / 4)),
+      costUsd: ({ context }) =>
+        context.costUsd > 0 ? context.costUsd : 0,
+    }),
     drivePersistenceFinalizeSuccess: enqueueActions(({ enqueue, context }) => {
       enqueue.sendTo('persistenceActor', {
         type: 'STREAM_TERMINATED_SUCCESS',
@@ -398,7 +742,15 @@ export const generationSystemMachine = setup({
     invokeUsage: usageMachine,
     invokeStream: streamTransportMachine,
     invokePersistence: persistenceBatchMachine,
-    invokeExtraction: extractionChainMachine,
+    invokeExtraction: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
+      const payload = buildExtractionStructuredPayload(input.context);
+      return {
+        type: 'EXTRACTION_ATTEMPT_ACCEPTED' as const,
+        artifactId: input.context.artifactId ?? input.context.artifactIdFactory(),
+        content: JSON.stringify(payload, null, 2),
+        structuredPayload: payload,
+      };
+    }),
     invokeToolWorkflow: toolWorkflowMachine,
     markCompletedIdempotency: fromPromise(
       async ({ input }: { input: { context: GenerationMachineContext } }) => {
@@ -648,21 +1000,24 @@ export const generationSystemMachine = setup({
       invoke: {
         id: 'extractionActor',
         src: 'invokeExtraction',
-        input: ({ context }) => ({
-          requestId: context.requestId,
-          artifactId: context.artifactId ?? context.artifactIdFactory(),
-          workflowType: context.workflowType ?? 'extraction',
-          attemptPlan: [
-            { attemptIndex: 0, model: context.model, responseMode: 'text' },
-          ],
-          bootstrap: {
-            autoAccept: true,
+        input: ({ context }) => ({ context }),
+        onDone: [
+          {
+            guard: 'extractionOutputIsAccepted',
+            target: 'persistingSuccess',
+            actions: {
+              type: 'cacheExtractionResult',
+              params: ({ event }) => getExtractionResultParams(event),
+            },
           },
-          ...getRegistrySelector(context),
-        }),
-        onDone: {
-          target: 'streaming',
-        },
+          {
+            target: 'persistingFailure',
+            actions: {
+              type: 'setFailureFromInvokeOutput',
+              params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+            },
+          },
+        ],
         onError: {
           target: 'persistingFailure',
           actions: 'setExtractionFailedFailure',
@@ -674,20 +1029,27 @@ export const generationSystemMachine = setup({
       invoke: {
         id: 'toolActor',
         src: 'invokeToolWorkflow',
-        input: ({ context }) => ({
-          requestId: context.requestId,
-          toolKey: context.toolKey ?? 'workflow',
-          workflowType: context.workflowType ?? 'generic',
-          runMode: 'new',
-          steps: [{ key: context.toolKey ?? 'workflow_step', dependencies: [] }],
-          dependencyGraph: {},
-          bootstrap: {
-            stepKey: context.toolKey ?? 'workflow_step',
-            output: context.syntheticResponse,
-            artifactId: context.artifactId ?? context.artifactIdFactory(),
-          },
-          ...getRegistrySelector(context),
-        }),
+        input: ({ context }) => {
+          const plan = resolveToolWorkflowPlan(context);
+          const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+
+          return {
+            requestId: context.requestId,
+            toolKey: plan?.toolKey ?? context.toolKey ?? 'workflow',
+            workflowType: context.workflowType ?? 'generic',
+            runMode: resolveWorkflowRunMode(context),
+            steps: [stepDescriptor],
+            dependencyGraph: {
+              [stepDescriptor.key]: plan?.dependencyGraph[stepDescriptor.key] ?? stepDescriptor.dependencies,
+            },
+            bootstrap: {
+              stepKey: stepDescriptor.key,
+              output: context.syntheticResponse,
+              artifactId: context.artifactId ?? context.artifactIdFactory(),
+            },
+            ...getRegistrySelector(context),
+          };
+        },
         onDone: [
           {
             guard: 'toolOutputIsCompleted',
@@ -773,13 +1135,13 @@ export const generationSystemMachine = setup({
         input: ({ context }) => ({
           requestId: context.requestId,
           artifactId: context.artifactId ?? context.artifactIdFactory(),
-          artifactType: context.artifactType,
-          workflowType: context.workflowType,
+          artifactType: toPersistenceArtifactType(context),
+          workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
-          inputJson: context.requestInput,
+          inputJson: toPersistenceInputJson(context),
           inputTokens: Math.max(
             context.inputTokens,
             Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),
@@ -812,13 +1174,13 @@ export const generationSystemMachine = setup({
         input: ({ context }) => ({
           requestId: context.requestId,
           artifactId: context.artifactId ?? context.artifactIdFactory(),
-          artifactType: context.artifactType,
-          workflowType: context.workflowType,
+          artifactType: toPersistenceArtifactType(context),
+          workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
-          inputJson: context.requestInput,
+          inputJson: toPersistenceInputJson(context),
           inputTokens: Math.max(
             context.inputTokens,
             Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),

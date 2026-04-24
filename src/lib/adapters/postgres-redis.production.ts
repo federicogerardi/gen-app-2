@@ -121,6 +121,54 @@ type ArtifactRow = {
   updated_at: Date | string;
 };
 
+const normalizeToolWorkflowInputJson = (
+  inputJson: Record<string, unknown> | undefined,
+  workflowType: string | null,
+): Record<string, unknown> => {
+  const base = inputJson ?? {};
+  const normalizedWorkflowType = (workflowType ?? '').trim().toLowerCase();
+  if (normalizedWorkflowType !== 'funnel-pages' && normalizedWorkflowType !== 'nextland') {
+    return base;
+  }
+
+  const inputStep = typeof base.step === 'string' ? base.step.trim() : '';
+  const toolWorkflow =
+    base.toolWorkflow && typeof base.toolWorkflow === 'object' && !Array.isArray(base.toolWorkflow)
+      ? { ...(base.toolWorkflow as Record<string, unknown>) }
+      : {};
+
+  const dependencyArtifactIds = Array.isArray(base.stepDependencyArtifactIds)
+    ? base.stepDependencyArtifactIds.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    : [];
+
+  const currentStep = typeof toolWorkflow.stepKey === 'string' && toolWorkflow.stepKey.trim().length > 0
+    ? toolWorkflow.stepKey
+    : inputStep || null;
+
+  const artifactRole = (() => {
+    if (toolWorkflow.artifactRole === 'step' || toolWorkflow.artifactRole === 'final') {
+      return toolWorkflow.artifactRole;
+    }
+
+    if (normalizedWorkflowType === 'funnel-pages') {
+      return currentStep === 'vsl' ? 'final' : 'step';
+    }
+
+    return currentStep === 'thank_you' ? 'final' : 'step';
+  })();
+
+  return {
+    ...base,
+    toolWorkflow: {
+      ...toolWorkflow,
+      workflowType: toolWorkflow.workflowType ?? normalizedWorkflowType,
+      stepKey: currentStep,
+      artifactRole,
+      dependencyArtifactIds,
+    },
+  };
+};
+
 export type PostgresRedisProductionClients = {
   pg: Pool;
   redis: Redis;
@@ -483,7 +531,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
       input.artifactType,
       input.workflowType,
       input.model ?? 'unknown',
-      JSON.stringify(input.inputJson ?? {}),
+      JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
       input.contentBuffer,
       input.inputTokens ?? 0,
       input.outputTokens ?? 0,
@@ -546,7 +594,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         input.artifactType,
         input.workflowType,
         input.model ?? 'unknown',
-        JSON.stringify(input.inputJson ?? {}),
+        JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
         input.contentBuffer,
         input.inputTokens ?? 0,
         input.outputTokens ?? 0,
@@ -640,7 +688,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         input.artifactType,
         input.workflowType,
         input.model ?? 'unknown',
-        JSON.stringify(input.inputJson ?? {}),
+        JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
         input.contentBuffer,
         input.inputTokens ?? 0,
         input.outputTokens ?? 0,

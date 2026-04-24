@@ -4,6 +4,7 @@ import type {
   ValidationOkEvent,
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
+import { resolveToolPrompt } from './tool-prompts';
 
 export type BackendGenerationRequest = {
   requestId: string;
@@ -18,6 +19,29 @@ export type BackendGenerationRequest = {
   outputFormat?: OutputFormat;
   registryVersion?: string;
   registrySnapshotRef?: string;
+  briefingId?: string | null;
+  extractionArtifactId?: string | null;
+  stepDependencyArtifactIds?: string[] | null;
+};
+
+const toOptionalId = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const toDependencyArtifactIds = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 };
 
 const toOutputFormat = (value: OutputFormat | undefined): OutputFormat => {
@@ -31,9 +55,44 @@ const toOutputFormat = (value: OutputFormat | undefined): OutputFormat => {
 export const buildRequestReceivedEvent = (
   request: BackendGenerationRequest,
 ): RequestReceivedEvent => {
+  const resolvedPrompt = resolveToolPrompt({
+    toolKey: request.toolKey ?? null,
+    workflowType: request.workflowType ?? null,
+    artifactType: String(request.artifactType),
+    stepKey: request.input.step,
+  });
+
+  const fallbackPrompt =
+    typeof request.input.prompt === 'string' && request.input.prompt.trim().length > 0
+      ? request.input.prompt
+      : resolvedPrompt?.prompt;
+
+  const briefingId =
+    toOptionalId(request.briefingId)
+    ?? toOptionalId(request.input.briefingId);
+  const extractionArtifactId =
+    toOptionalId(request.extractionArtifactId)
+    ?? toOptionalId(request.input.extractionArtifactId);
+  const stepDependencyArtifactIds =
+    toDependencyArtifactIds(request.stepDependencyArtifactIds)
+    .concat(toDependencyArtifactIds(request.input.stepDependencyArtifactIds));
+  const dedupedDependencyArtifactIds = [...new Set(stepDependencyArtifactIds)];
+
   const enrichedInput = {
     ...request.input,
     outputFormat: toOutputFormat(request.outputFormat),
+    ...(briefingId ? { briefingId } : {}),
+    ...(extractionArtifactId ? { extractionArtifactId } : {}),
+    ...(dedupedDependencyArtifactIds.length > 0
+      ? { stepDependencyArtifactIds: dedupedDependencyArtifactIds }
+      : {}),
+    ...(fallbackPrompt ? { prompt: fallbackPrompt } : {}),
+    ...(resolvedPrompt
+      ? {
+        resolvedPromptTemplate: resolvedPrompt.prompt,
+        resolvedPromptSource: resolvedPrompt.filePath,
+      }
+      : {}),
   };
 
   const common = {

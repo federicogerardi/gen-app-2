@@ -690,3 +690,255 @@ test('auth HTTP runtime returns 401/404/400 for projects and artifacts constrain
   );
   assert.equal(missingArtifactResponse.statusCode, 404);
 });
+
+test('auth HTTP runtime supports /api/tools/briefs upload with parser for markdown files', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-brief-001',
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+  });
+
+  await repositories.users.createUser({
+    id: 'user-brief-001',
+    email: 'briefs@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Brief-Pass-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: new ArtifactQueryRepositoryStub(),
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-brief-001' },
+  });
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'briefs@example.com', password: 'Brief-Pass-1' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const createProjectRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/projects',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({ name: 'Brief Project' }),
+  });
+  const createProjectResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    createProjectRequest as unknown as IncomingMessage,
+    createProjectResponse as unknown as ServerResponse,
+  );
+
+  const projectId = ((createProjectResponse.jsonBody().data as { project: { id: string } }).project.id);
+  const markdown = '# Brief\n\nTarget: PMI B2B\n\nOfferta: Audit.';
+
+  const uploadRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/tools/briefs',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({
+      projectId,
+      toolKey: 'funnel-pages',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      contentBase64: Buffer.from(markdown, 'utf8').toString('base64'),
+    }),
+  });
+  const uploadResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    uploadRequest as unknown as IncomingMessage,
+    uploadResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(uploadResponse.statusCode, 201);
+  const payload = uploadResponse.jsonBody();
+  assert.equal(payload.ok, true);
+
+  const briefing = (payload.data as {
+    briefing: {
+      briefingId: string;
+      fileName: string;
+      parsedFormat: string;
+      normalizedText: string;
+    };
+  }).briefing;
+
+  assert.match(briefing.briefingId, /^brief_/);
+  assert.equal(briefing.fileName, 'brief.md');
+  assert.equal(briefing.parsedFormat, 'md');
+  assert.match(briefing.normalizedText, /Target: PMI B2B/);
+});
+
+test('auth HTTP runtime rejects /api/tools/briefs when format is not supported', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-brief-002',
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+  });
+
+  await repositories.users.createUser({
+    id: 'user-brief-002',
+    email: 'briefs-invalid@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Brief-Pass-2'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: new ArtifactQueryRepositoryStub(),
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-brief-002' },
+  });
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'briefs-invalid@example.com', password: 'Brief-Pass-2' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const createProjectRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/projects',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({ name: 'Invalid Brief Project' }),
+  });
+  const createProjectResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    createProjectRequest as unknown as IncomingMessage,
+    createProjectResponse as unknown as ServerResponse,
+  );
+
+  const projectId = ((createProjectResponse.jsonBody().data as { project: { id: string } }).project.id);
+
+  const uploadRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/tools/briefs',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({
+      projectId,
+      fileName: 'brief.pdf',
+      mimeType: 'application/pdf',
+      contentBase64: Buffer.from('fake-pdf', 'utf8').toString('base64'),
+    }),
+  });
+  const uploadResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    uploadRequest as unknown as IncomingMessage,
+    uploadResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(uploadResponse.statusCode, 400);
+  const body = uploadResponse.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('auth HTTP runtime enforces project ownership for /api/tools/briefs', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-brief-003',
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+  });
+
+  await repositories.users.createUser({
+    id: 'user-brief-003',
+    email: 'briefs-owner@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Brief-Pass-3'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: new ArtifactQueryRepositoryStub(),
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-25T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-brief-003' },
+  });
+
+  const foreignProject = await projectQueries.createProjectForUser('another-user', {
+    name: 'Foreign Project',
+  });
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'briefs-owner@example.com', password: 'Brief-Pass-3' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const uploadRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/tools/briefs',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({
+      projectId: foreignProject.id,
+      fileName: 'brief.txt',
+      mimeType: 'text/plain',
+      contentBase64: Buffer.from('brief text', 'utf8').toString('base64'),
+    }),
+  });
+  const uploadResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    uploadRequest as unknown as IncomingMessage,
+    uploadResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(uploadResponse.statusCode, 403);
+  const body = uploadResponse.jsonBody();
+  assert.equal(body.ok, false);
+});

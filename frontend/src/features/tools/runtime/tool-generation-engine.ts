@@ -12,6 +12,10 @@ export const createStepRequest = (
   step: ToolStep,
   dependencies: Record<string, string>,
 ): GenerationRequest => {
+  const dependencyEntries = Object.entries(dependencies).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
+  );
+
   return {
     ...baseRequest,
     requestId: `${baseRequest.requestId}:${step}`,
@@ -19,8 +23,10 @@ export const createStepRequest = (
     workflowType: tool,
     input: {
       ...baseRequest.input,
+      intent: baseRequest.input.intent ?? 'new',
       step,
-      stepDependencyArtifactIds: dependencies,
+      stepDependencyArtifactIds: dependencyEntries.map(([, artifactId]) => artifactId),
+      stepDependencyArtifactIdsByStep: Object.fromEntries(dependencyEntries),
     },
   };
 };

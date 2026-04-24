@@ -38,6 +38,23 @@ npm run frontend:sprint:gate
 
 Risultato ultima esecuzione: **74/74 tests passed** — 2026-04-24
 
+## TASK-019 - Full Suite Execution (2026-04-25)
+
+Comandi richiesti dal gate completo eseguiti in locale sul repository root.
+
+| Comando | Esito | Evidenza sintetica |
+|---|---|---|
+| `npm test` | ✅ `0` | Node test runner: **49 passed, 0 failed** |
+| `npm run test:smoke` | ✅ `0` | `Smoke OK: claimed -> completed -> replay`, `Smoke OK: lock present -> conflict`, `Smoke OK: query repositories projects/artifacts are scoped and filtered correctly` |
+| `npm --prefix frontend run test` | ✅ `0` | Vitest frontend: **81 passed, 0 failed** |
+| `npm --prefix frontend run typecheck` | ✅ `0` | `tsc -p tsconfig.json --noEmit` completato senza errori |
+
+Esito gate TASK-019: **GO** (suite completa verde).
+
+Conferma rerun 2026-04-25: riesecuzione completa effettuata con stessi esiti (`49/49` backend, smoke OK, `81/81` frontend, typecheck zero errori).
+
+Nota operativa: durante gli smoke test appare un warning SSL di `pg-connection-string` su semantica futura di `sslmode`; non blocca la suite ma va pianificata una normalizzazione connessione (`sslmode=verify-full` oppure `uselibpqcompat=true&sslmode=require`) prima del cutover finale.
+
 ---
 
 ## Note
@@ -57,6 +74,7 @@ Env frontend per attivare percorso live:
 ```bash
 VITE_CAP_PROJECTS=true
 VITE_CAP_ARTIFACTS=true
+VITE_CAP_TOOLS_UPLOAD=true
 ```
 
 Evidenza API E2E locale (cookie sessione attivo):
@@ -67,6 +85,7 @@ Evidenza API E2E locale (cookie sessione attivo):
 | 2 | `GET /api/projects` | ✅ `200` |
 | 3 | `POST /api/projects` | ✅ `201` |
 | 4 | `GET /api/artifacts?status=completed` | ✅ `200` |
+| 5 | `POST /api/tools/briefs` | ✅ `201` |
 
 Decisione fallback projects:
 

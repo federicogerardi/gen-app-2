@@ -10,6 +10,9 @@ export type ApiPaths = {
   generation: {
     stream: string;
   };
+  tools: {
+    briefs: string | null;
+  };
   projects: {
     list: string | null;
     byId: (id: string) => string | null;
@@ -34,6 +37,9 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   },
   generation: {
     stream: '/generation/stream',
+  },
+  tools: {
+    briefs: capabilities.toolsUpload ? '/api/tools/briefs' : null,
   },
   projects: {
     list: capabilities.projects ? '/api/projects' : null,

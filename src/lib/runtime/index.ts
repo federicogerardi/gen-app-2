@@ -136,3 +136,14 @@ export {
   type AuthHttpRequestHandler,
   type NodeRuntimeServerOptions,
 } from './node-server';
+export {
+  BriefParseError,
+  parseBriefInput,
+  type ParseBriefInput,
+  type ParseBriefOutput,
+  type SupportedBriefFormat,
+} from './brief-parser';
+export {
+  resolveToolPrompt,
+  type ResolvedToolPrompt,
+} from './tool-prompts';

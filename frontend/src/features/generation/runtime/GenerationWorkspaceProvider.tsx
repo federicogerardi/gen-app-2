@@ -13,6 +13,16 @@ import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 
+export type ToolExtractionContext = {
+  projectId: string;
+  briefingId: string;
+  extractionArtifactId: string;
+  extractionPayload: Record<string, unknown>;
+  normalizedText: string;
+  parsedFormat: 'txt' | 'md' | 'docx';
+  updatedAt: string;
+};
+
 const readInputString = (request: GenerationRequest, key: string): string | null => {
   const value = request.input[key];
   if (typeof value !== 'string') {
@@ -56,7 +66,10 @@ type GenerationWorkspaceValue = {
   checkpoints: ToolCheckpoint[];
   artifacts: GenerationArtifact[];
   focusedProjectId: string | null;
+  extractionByProject: Record<string, ToolExtractionContext>;
   setFocusedProjectId: (projectId: string | null) => void;
+  upsertExtractionContext: (context: ToolExtractionContext) => void;
+  getExtractionContext: (projectId: string) => ToolExtractionContext | null;
   start: (request: GenerationRequest) => void;
   retry: () => void;
   cancel: () => void;
@@ -71,6 +84,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   const [checkpoints, setCheckpoints] = useState<ToolCheckpoint[]>([]);
   const [artifacts, setArtifacts] = useState<GenerationArtifact[]>([]);
   const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
+  const [extractionByProject, setExtractionByProject] = useState<Record<string, ToolExtractionContext>>({});
 
   const [snapshot, send] = useMachine(frontendStreamMachine, {
     input: {
@@ -182,6 +196,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
 
     send({ type: 'RESET' });
     setFocusedProjectId(null);
+    setExtractionByProject({});
   }, [auth.session, send]);
 
   const value = useMemo<GenerationWorkspaceValue>(() => {
@@ -192,7 +207,22 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       checkpoints,
       artifacts,
       focusedProjectId,
+      extractionByProject,
       setFocusedProjectId,
+      upsertExtractionContext: (context) => {
+        setExtractionByProject((prev) => ({
+          ...prev,
+          [context.projectId]: context,
+        }));
+      },
+      getExtractionContext: (projectId) => {
+        const normalized = projectId.trim();
+        if (!normalized) {
+          return null;
+        }
+
+        return extractionByProject[normalized] ?? null;
+      },
       start: (request) => send({ type: 'REQUEST_START', request }),
       retry: () => send({ type: 'RETRY' }),
       cancel: () => send({ type: 'CANCEL' }),
@@ -202,7 +232,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
         send({ type: 'REQUEST_START', request: nextRequest });
       },
     };
-  }, [artifacts, checkpoints, focusedProjectId, send, snapshot, streamStatus]);
+  }, [artifacts, checkpoints, extractionByProject, focusedProjectId, send, snapshot, streamStatus]);
 
   return (
     <GenerationWorkspaceContext value={value}>

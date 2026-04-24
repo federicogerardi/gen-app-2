@@ -11,6 +11,7 @@ import type {
 import type { ArtifactListFilters } from '../types/artifacts';
 import type { ArtifactStatus, ArtifactType } from '../types/artifact';
 import { isArtifactStatus, isArtifactType } from '../types/artifact';
+import { BriefParseError, parseBriefInput } from './brief-parser';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -23,7 +24,8 @@ import {
 } from './auth-contract';
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-const MAX_BODY_SIZE_BYTES = 64 * 1024;
+const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
+const MAX_BRIEF_UPLOAD_BYTES = 2 * 1024 * 1024;
 
 type AuthHttpErrorCode =
   | 'bad_request'
@@ -93,6 +95,14 @@ type AdminUpdateUserRequestBody = {
 type CreateProjectRequestBody = {
   name?: unknown;
   description?: unknown;
+};
+
+type CreateToolBriefRequestBody = {
+  projectId?: unknown;
+  toolKey?: unknown;
+  fileName?: unknown;
+  mimeType?: unknown;
+  contentBase64?: unknown;
 };
 
 const AUTH_USER_ROLE_SET = new Set<AuthUserRole>(['admin', 'member']);
@@ -228,6 +238,15 @@ const getClientIp = (request: IncomingMessage): string | null => {
   }
 
   return request.socket.remoteAddress ?? null;
+};
+
+const normalizeMimeType = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
 };
 
 const sessionToResponseData = (principal: AuthSessionPrincipal): Record<string, unknown> => {
@@ -761,6 +780,104 @@ export const createAuthHttpRuntime = (
     writeSuccess(response, 200, { artifacts });
   };
 
+  const handleToolsBriefUpload = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for tools brief upload');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    let body: CreateToolBriefRequestBody;
+    try {
+      body = await parseJsonBody<CreateToolBriefRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
+    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
+    const mimeType = normalizeMimeType(body.mimeType);
+    const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
+
+    if (!projectId || !fileName || !contentBase64) {
+      writeError(response, 400, 'bad_request', 'projectId, fileName and contentBase64 are required');
+      return;
+    }
+
+    const project = await queries.projects.getProjectByIdForUser(principal.user.id, projectId);
+    if (!project) {
+      writeError(response, 403, 'forbidden', 'Project ownership check failed');
+      return;
+    }
+
+    let fileBuffer: Buffer;
+    try {
+      fileBuffer = Buffer.from(contentBase64, 'base64');
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid base64 payload');
+      return;
+    }
+
+    if (fileBuffer.length === 0) {
+      writeError(response, 400, 'bad_request', 'Uploaded brief is empty');
+      return;
+    }
+
+    if (fileBuffer.length > MAX_BRIEF_UPLOAD_BYTES) {
+      writeError(response, 400, 'bad_request', 'Uploaded brief is too large');
+      return;
+    }
+
+    let parsedBrief;
+    try {
+      parsedBrief = await parseBriefInput({
+        fileName,
+        mimeType,
+        content: fileBuffer,
+      });
+    } catch (error) {
+      if (error instanceof BriefParseError) {
+        writeError(response, 400, 'bad_request', error.message);
+        return;
+      }
+
+      writeError(response, 400, 'bad_request', 'Unable to parse brief content');
+      return;
+    }
+
+    const briefingId = `brief_${randomUUID()}`;
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 201, {
+      briefing: {
+        briefingId,
+        projectId,
+        toolKey: toolKey || null,
+        fileName,
+        mimeType,
+        size: fileBuffer.length,
+        parsedFormat: parsedBrief.format,
+        normalizedText: parsedBrief.normalizedText,
+        charCount: parsedBrief.charCount,
+        wordCount: parsedBrief.wordCount,
+      },
+    });
+  };
+
   const handleArtifactById = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1151,6 +1268,11 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/artifacts') {
         await handleArtifactsList(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/tools/briefs') {
+        await handleToolsBriefUpload(request, response);
         return { handled: true };
       }
 

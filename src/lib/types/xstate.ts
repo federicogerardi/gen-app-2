@@ -102,6 +102,9 @@ export type UsageActorInput = RequestRegistrySelector & {
   userId: string;
   artifactType: RegistryBackedArtifactType;
   workflowType: RegistryBackedWorkflowType;
+  runtime?: {
+    now?: () => Date;
+  };
 };
 
 export type IdempotencyCoordinatorInput = RequestRegistrySelector & {
@@ -110,6 +113,9 @@ export type IdempotencyCoordinatorInput = RequestRegistrySelector & {
   projectId: string;
   workflowType: RegistryBackedWorkflowType;
   idempotencyKey: string;
+  runtime?: {
+    now?: () => Date;
+  };
 };
 
 export type StreamTransportInput = RequestRegistrySelector & {
@@ -118,6 +124,14 @@ export type StreamTransportInput = RequestRegistrySelector & {
   model: string;
   workflowType: RegistryBackedWorkflowType;
   outputFormat: OutputFormat;
+  bootstrap?: {
+    autoComplete?: boolean;
+    initialChunk?: string;
+    failureReason?: string;
+  };
+  runtime?: {
+    now?: () => Date;
+  };
 };
 
 export type PersistenceBatchInput = RequestRegistrySelector & {
@@ -142,6 +156,11 @@ export type ToolWorkflowInput = RequestRegistrySelector & {
   runMode: WorkflowRunMode;
   steps: WorkflowStepDescriptor[];
   dependencyGraph: Record<string, string[]>;
+  bootstrap?: {
+    stepKey: string;
+    output: string;
+    artifactId: string;
+  };
 };
 
 export type ExtractionChainInput = RequestRegistrySelector & {
@@ -149,6 +168,9 @@ export type ExtractionChainInput = RequestRegistrySelector & {
   artifactId: string;
   workflowType: Exclude<RegistryBackedWorkflowType, null>;
   attemptPlan: ExtractionAttemptPlanEntry[];
+  bootstrap?: {
+    autoAccept?: boolean;
+  };
 };
 
 export type RequestReceivedEvent = RequestRegistrySelector & {

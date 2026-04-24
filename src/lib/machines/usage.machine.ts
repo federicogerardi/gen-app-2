@@ -24,7 +24,11 @@ type ClaimUsageResult = {
   reason?: string;
 };
 
-const nowIso = (): string => new Date().toISOString();
+const getClaimUsageResult = (event: unknown): ClaimUsageResult =>
+  (event as { output: ClaimUsageResult }).output;
+
+const getNow = (input: UsageMachineInput): Date =>
+  (input.runtime?.now ?? (() => new Date()))();
 
 export const usageMachine = setup({
   types: {
@@ -40,18 +44,20 @@ export const usageMachine = setup({
     }),
   },
   guards: {
-    isGranted: ({ event }) =>
-      (event as unknown as { output: ClaimUsageResult }).output.granted,
+    isGranted: (_, params: { granted: boolean }) => params.granted,
   },
   actions: {
     setRejectionReason: assign({
-      rejectionReason: ({ event }) =>
-        (event as unknown as { output: ClaimUsageResult }).output.reason ?? 'rate_limited',
+      rejectionReason: (_, params: { reason: string }) => params.reason,
+    }),
+    setRateLimitedRejectionReason: assign({
+      rejectionReason: 'rate_limited',
     }),
   },
 }).createMachine({
   id: 'usageMachine',
   initial: 'checking',
+  output: ({ event }) => (event as { output: UsageActorEvent }).output,
   context: ({ input }) => ({
     input,
     rejectionReason: null,
@@ -63,17 +69,25 @@ export const usageMachine = setup({
         input: ({ context }) => context.input as UsageMachineInput,
         onDone: [
           {
-            guard: 'isGranted',
+            guard: {
+              type: 'isGranted',
+              params: ({ event }) => ({ granted: getClaimUsageResult(event).granted }),
+            },
             target: 'granted',
           },
           {
             target: 'rejected',
-            actions: 'setRejectionReason',
+            actions: {
+              type: 'setRejectionReason',
+              params: ({ event }) => ({
+                reason: getClaimUsageResult(event).reason ?? 'rate_limited',
+              }),
+            },
           },
         ],
         onError: {
           target: 'rejected',
-          actions: assign({ rejectionReason: 'rate_limited' }),
+          actions: 'setRateLimitedRejectionReason',
         },
       },
       on: {
@@ -90,7 +104,7 @@ export const usageMachine = setup({
           type: 'USAGE_GRANTED',
           requestId: context.input.requestId,
           sourceActor: 'usageMachine',
-          timestamp: nowIso(),
+          timestamp: getNow(context.input).toISOString(),
         };
         return event;
       },
@@ -102,7 +116,7 @@ export const usageMachine = setup({
           type: 'USAGE_REJECTED',
           requestId: context.input.requestId,
           sourceActor: 'usageMachine',
-          timestamp: nowIso(),
+          timestamp: getNow(context.input).toISOString(),
           reason: context.rejectionReason ?? 'rate_limited',
         };
         return event;

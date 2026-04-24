@@ -77,6 +77,7 @@ export const persistenceBatchMachine = setup({
         event.type === 'STREAM_TERMINATED_FAILURE' ? event.reason : 'persistence_finalize_failed',
     }),
     setFlushFailureReason: assign({ failureReason: 'persistence_flush_failed' }),
+    setFinalizeFailureReason: assign({ failureReason: 'persistence_finalize_failed' }),
     cacheSequence: assign({
       lastSequence: ({ event, context }) =>
         event.type === 'STREAM_CHUNK_RECEIVED' ? event.metadata.sequence : context.lastSequence,
@@ -85,6 +86,7 @@ export const persistenceBatchMachine = setup({
 }).createMachine({
   id: 'persistenceBatchMachine',
   initial: 'idle',
+  output: ({ event }) => (event as { output: PersistenceBatchEvent }).output,
   context: ({ input }) => ({
     input,
     flushRetries: 0,
@@ -148,7 +150,7 @@ export const persistenceBatchMachine = setup({
         },
         onError: {
           target: 'finalizingFailure',
-          actions: assign({ failureReason: 'persistence_finalize_failed' }),
+          actions: 'setFinalizeFailureReason',
         },
       },
     },

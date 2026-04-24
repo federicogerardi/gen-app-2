@@ -71,14 +71,21 @@ export const streamTransportMachine = setup({
       sessionId: ({ event }) =>
         (event as unknown as { output: { sessionId: string } }).output.sessionId,
     }),
+    setSessionOpenFailureReason: assign({
+      failureReason: 'stream_session_open_failed',
+    }),
+    setBootstrapFailureReason: assign({
+      failureReason: ({ context }) => context.input.bootstrap?.failureReason ?? 'stream_failure',
+    }),
   },
 }).createMachine({
   id: 'streamTransportMachine',
   initial: 'initializing',
+  output: ({ event }) => (event as { output: StreamTransportEvent }).output,
   context: ({ input }) => ({
     input,
     sequence: 0,
-    lastChunk: '',
+    lastChunk: input.bootstrap?.initialChunk ?? '',
     failureReason: null,
     sessionId: null,
   }),
@@ -93,7 +100,7 @@ export const streamTransportMachine = setup({
         },
         onError: {
           target: 'closedFailure',
-          actions: assign({ failureReason: 'stream_session_open_failed' }),
+          actions: 'setSessionOpenFailureReason',
         },
       },
       on: {
@@ -105,6 +112,17 @@ export const streamTransportMachine = setup({
       },
     },
     streamOpen: {
+      always: [
+        {
+          guard: ({ context }) => Boolean(context.input.bootstrap?.failureReason),
+          target: 'closedFailure',
+          actions: 'setBootstrapFailureReason',
+        },
+        {
+          guard: ({ context }) => context.input.bootstrap?.autoComplete === true,
+          target: 'closedSuccess',
+        },
+      ],
       on: {
         STREAM_CHUNK: {
           target: 'streamingTokens',
@@ -157,7 +175,7 @@ export const streamTransportMachine = setup({
         type: 'STREAM_TERMINATED_SUCCESS',
         requestId: context.input.requestId,
         sourceActor: 'streamTransportMachine',
-        timestamp: nowIso(),
+        timestamp: (context.input.runtime?.now ?? (() => new Date()))().toISOString(),
         artifactId: context.input.artifactId,
       }),
     },
@@ -167,7 +185,7 @@ export const streamTransportMachine = setup({
         type: 'STREAM_TERMINATED_FAILURE',
         requestId: context.input.requestId,
         sourceActor: 'streamTransportMachine',
-        timestamp: nowIso(),
+        timestamp: (context.input.runtime?.now ?? (() => new Date()))().toISOString(),
         artifactId: context.input.artifactId,
         reason: context.failureReason ?? 'stream_failure',
       }),

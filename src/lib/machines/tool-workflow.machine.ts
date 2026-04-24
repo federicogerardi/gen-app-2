@@ -31,7 +31,10 @@ const nowIso = (): string => new Date().toISOString();
 const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] =>
   input.steps.map((step) => ({
     key: step.key,
-    status: 'idle',
+    status:
+      input.bootstrap?.stepKey === step.key
+        ? 'done'
+        : 'idle',
     retryCount: 0,
     errorMessage: null,
   }));
@@ -133,8 +136,8 @@ export const toolWorkflowMachine = setup({
       input,
       stepStates,
       activeStepIndex: Math.max(findFirstNonTerminalStepIndex(stepStates), 0),
-      currentArtifactId: '',
-      lastUnlockedStep: null,
+      currentArtifactId: input.bootstrap?.artifactId ?? '',
+      lastUnlockedStep: input.bootstrap?.stepKey ?? null,
     };
   },
   states: {

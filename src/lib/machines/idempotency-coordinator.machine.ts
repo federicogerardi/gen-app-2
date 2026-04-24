@@ -27,7 +27,16 @@ type IdempotencyResult =
   | { status: 'replay'; artifactId: string; content: string }
   | { status: 'conflict'; reason: string };
 
-const nowIso = (): string => new Date().toISOString();
+type ReplayPayloadParams = {
+  artifactId: string;
+  content: string;
+};
+
+const getIdempotencyResult = (event: unknown): IdempotencyResult =>
+  (event as { output: IdempotencyResult }).output;
+
+const getNow = (input: IdempotencyMachineInput): Date =>
+  (input.runtime?.now ?? (() => new Date()))();
 
 export const idempotencyCoordinatorMachine = setup({
   types: {
@@ -43,32 +52,25 @@ export const idempotencyCoordinatorMachine = setup({
     }),
   },
   guards: {
-    isReplay: ({ event }) =>
-      (event as unknown as { output: IdempotencyResult }).output.status === 'replay',
-    isConflict: ({ event }) =>
-      (event as unknown as { output: IdempotencyResult }).output.status === 'conflict',
+    isReplay: (_,{ status }: { status: IdempotencyResult['status'] }) => status === 'replay',
+    isConflict: (_,{ status }: { status: IdempotencyResult['status'] }) => status === 'conflict',
   },
   actions: {
     cacheReplayPayload: assign({
-      replayArtifactId: ({ event }) => {
-        const output = (event as unknown as { output: IdempotencyResult }).output;
-        return output.status === 'replay' ? output.artifactId : null;
-      },
-      replayContent: ({ event }) => {
-        const output = (event as unknown as { output: IdempotencyResult }).output;
-        return output.status === 'replay' ? output.content : '';
-      },
+      replayArtifactId: (_, params: ReplayPayloadParams) => params.artifactId,
+      replayContent: (_, params: ReplayPayloadParams) => params.content,
     }),
     cacheConflictReason: assign({
-      conflictReason: ({ event }) => {
-        const output = (event as unknown as { output: IdempotencyResult }).output;
-        return output.status === 'conflict' ? output.reason : 'idempotency_conflict';
-      },
+      conflictReason: (_, params: { reason: string }) => params.reason,
+    }),
+    setIdempotencyConflictReason: assign({
+      conflictReason: 'idempotency_conflict',
     }),
   },
 }).createMachine({
   id: 'idempotencyCoordinatorMachine',
   initial: 'checking',
+  output: ({ event }) => (event as { output: IdempotencyCoordinatorEvent }).output,
   context: ({ input }) => ({
     input,
     replayArtifactId: null,
@@ -82,14 +84,44 @@ export const idempotencyCoordinatorMachine = setup({
         input: ({ context }) => context.input as IdempotencyMachineInput,
         onDone: [
           {
-            guard: 'isReplay',
+            guard: {
+              type: 'isReplay',
+              params: ({ event }) => ({ status: getIdempotencyResult(event).status }),
+            },
             target: 'replayReady',
-            actions: 'cacheReplayPayload',
+            actions: {
+              type: 'cacheReplayPayload',
+              params: ({ event }) => {
+                const output = getIdempotencyResult(event);
+                if (output.status !== 'replay') {
+                  return {
+                    artifactId: '',
+                    content: '',
+                  };
+                }
+
+                return {
+                  artifactId: output.artifactId,
+                  content: output.content,
+                };
+              },
+            },
           },
           {
-            guard: 'isConflict',
+            guard: {
+              type: 'isConflict',
+              params: ({ event }) => ({ status: getIdempotencyResult(event).status }),
+            },
             target: 'conflict',
-            actions: 'cacheConflictReason',
+            actions: {
+              type: 'cacheConflictReason',
+              params: ({ event }) => {
+                const output = getIdempotencyResult(event);
+                return {
+                  reason: output.status === 'conflict' ? output.reason : 'idempotency_conflict',
+                };
+              },
+            },
           },
           {
             target: 'claimed',
@@ -97,7 +129,7 @@ export const idempotencyCoordinatorMachine = setup({
         ],
         onError: {
           target: 'conflict',
-          actions: assign({ conflictReason: 'idempotency_conflict' }),
+          actions: 'setIdempotencyConflictReason',
         },
       },
       on: {
@@ -114,7 +146,7 @@ export const idempotencyCoordinatorMachine = setup({
           type: 'IDEMPOTENCY_CLAIMED',
           requestId: context.input.requestId,
           sourceActor: 'idempotencyCoordinatorMachine',
-          timestamp: nowIso(),
+          timestamp: getNow(context.input).toISOString(),
         };
         return event;
       },
@@ -126,7 +158,7 @@ export const idempotencyCoordinatorMachine = setup({
           type: 'IDEMPOTENCY_REPLAY_READY',
           requestId: context.input.requestId,
           sourceActor: 'idempotencyCoordinatorMachine',
-          timestamp: nowIso(),
+          timestamp: getNow(context.input).toISOString(),
           artifactId: context.replayArtifactId ?? context.input.idempotencyKey,
           metadata: {
             content: context.replayContent,
@@ -142,7 +174,7 @@ export const idempotencyCoordinatorMachine = setup({
           type: 'IDEMPOTENCY_CONFLICT',
           requestId: context.input.requestId,
           sourceActor: 'idempotencyCoordinatorMachine',
-          timestamp: nowIso(),
+          timestamp: getNow(context.input).toISOString(),
           reason: context.conflictReason ?? 'idempotency_conflict',
         };
         return event;

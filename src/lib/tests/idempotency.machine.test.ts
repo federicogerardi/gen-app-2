@@ -1,9 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createActor, waitFor } from 'xstate';
+import { createActor, toPromise, waitFor } from 'xstate';
 
 import { createInMemoryGenerationAdapters } from '../adapters';
 import { idempotencyCoordinatorMachine } from '../machines';
+import type {
+  IdempotencyClaimedEvent,
+  IdempotencyConflictEvent,
+  IdempotencyReplayReadyEvent,
+} from '../types/xstate';
+
+const FIXED_NOW_ISO = '2026-04-24T10:00:00.000Z';
+const fixedNow = () => new Date(FIXED_NOW_ISO);
 
 test('idempotencyCoordinatorMachine returns claimed on first claim', async () => {
   const adapters = createInMemoryGenerationAdapters();
@@ -15,6 +23,9 @@ test('idempotencyCoordinatorMachine returns claimed on first claim', async () =>
       workflowType: null,
       idempotencyKey: 'idem-claimed-001',
       registrySnapshotRef: 'snapshot:seed' as never,
+      runtime: {
+        now: fixedNow,
+      },
       adapters: {
         idempotency: adapters.idempotency,
       },
@@ -22,8 +33,15 @@ test('idempotencyCoordinatorMachine returns claimed on first claim', async () =>
   });
 
   actor.start();
-  const snapshot = await waitFor(actor, (s) => s.matches('claimed'));
-  assert.equal(snapshot.value, 'claimed');
+  const outputPromise = toPromise(actor) as Promise<IdempotencyClaimedEvent>;
+  await waitFor(actor, (s) => s.matches('claimed'));
+  const finalSnapshot = actor.getSnapshot();
+  assert.equal(finalSnapshot.value, 'claimed');
+  const output = await outputPromise;
+  assert.equal(output.type, 'IDEMPOTENCY_CLAIMED');
+  assert.equal(output.requestId, 'req-idem-claimed');
+  assert.equal(output.sourceActor, 'idempotencyCoordinatorMachine');
+  assert.equal(output.timestamp, FIXED_NOW_ISO);
   actor.stop();
 });
 
@@ -36,6 +54,9 @@ test('idempotencyCoordinatorMachine returns replay after completed record', asyn
     workflowType: null,
     idempotencyKey: 'idem-replay-001',
     registrySnapshotRef: 'snapshot:seed' as never,
+    runtime: {
+      now: fixedNow,
+    },
   };
 
   await adapters.idempotency.checkAndClaim(input);
@@ -51,8 +72,17 @@ test('idempotencyCoordinatorMachine returns replay after completed record', asyn
   });
 
   actor.start();
-  const snapshot = await waitFor(actor, (s) => s.matches('replayReady'));
-  assert.equal(snapshot.value, 'replayReady');
+  const outputPromise = toPromise(actor) as Promise<IdempotencyReplayReadyEvent>;
+  await waitFor(actor, (s) => s.matches('replayReady'));
+  const finalSnapshot = actor.getSnapshot();
+  assert.equal(finalSnapshot.value, 'replayReady');
+  const output = await outputPromise;
+  assert.equal(output.type, 'IDEMPOTENCY_REPLAY_READY');
+  assert.equal(output.requestId, 'req-idem-replay');
+  assert.equal(output.sourceActor, 'idempotencyCoordinatorMachine');
+  assert.equal(output.timestamp, FIXED_NOW_ISO);
+  assert.equal(output.artifactId, 'artifact-replay-001');
+  assert.equal(output.metadata.content, 'cached-content');
   actor.stop();
 });
 
@@ -65,6 +95,9 @@ test('idempotencyCoordinatorMachine returns conflict when already claimed', asyn
     workflowType: null,
     idempotencyKey: 'idem-conflict-001',
     registrySnapshotRef: 'snapshot:seed' as never,
+    runtime: {
+      now: fixedNow,
+    },
   };
 
   await adapters.idempotency.checkAndClaim(input);
@@ -79,7 +112,15 @@ test('idempotencyCoordinatorMachine returns conflict when already claimed', asyn
   });
 
   actor.start();
-  const snapshot = await waitFor(actor, (s) => s.matches('conflict'));
-  assert.equal(snapshot.value, 'conflict');
+  const outputPromise = toPromise(actor) as Promise<IdempotencyConflictEvent>;
+  await waitFor(actor, (s) => s.matches('conflict'));
+  const finalSnapshot = actor.getSnapshot();
+  assert.equal(finalSnapshot.value, 'conflict');
+  const output = await outputPromise;
+  assert.equal(output.type, 'IDEMPOTENCY_CONFLICT');
+  assert.equal(output.requestId, 'req-idem-conflict');
+  assert.equal(output.sourceActor, 'idempotencyCoordinatorMachine');
+  assert.equal(output.timestamp, FIXED_NOW_ISO);
+  assert.equal(output.reason, 'idempotency_conflict');
   actor.stop();
 });

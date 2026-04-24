@@ -1,0 +1,10 @@
+✔ generation root happy path completes (12.378461ms)
+✔ generation root failure path fails on usage rejection (1.097747ms)
+✔ generation root extraction flow completes from invoke input bootstrap (2.867218ms)
+✔ generation root tool flow completes from invoke input bootstrap (3.115798ms)
+✔ generation root fails when registry selector is missing (0.433079ms)
+✔ generation root completes replay path on idempotency replay (1.020391ms)
+✖ generation root fails on idempotency conflict branch (4.007184ms)
+✖ generation root fails on usage rejected branch (2.093182ms)
+✖ generation root fails on stream failure branch (2.408649ms)
+EXIT_CODE=124

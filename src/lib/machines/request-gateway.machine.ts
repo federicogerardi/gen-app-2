@@ -22,6 +22,12 @@ type GatewayMachineInput = {
   requestId?: string;
 };
 
+type RequestMetaParams = {
+  requestId: string;
+  projectId: string;
+  workflowType: string | null;
+};
+
 type GatewayMachineEvent =
   | RequestReceivedEvent
   | AuthOkEvent
@@ -44,40 +50,19 @@ export const requestGatewayMachine = setup({
   },
   actions: {
     cacheRequestMeta: assign({
-      requestId: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.requestId : context.requestId,
-      projectId: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.projectId : context.projectId,
-      workflowType: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.workflowType ?? null : context.workflowType,
+      requestId: (_, params: RequestMetaParams) => params.requestId,
+      projectId: (_, params: RequestMetaParams) => params.projectId,
+      workflowType: (_, params: RequestMetaParams) => params.workflowType,
       failureReason: null,
     }),
     setUserId: assign({
-      userId: ({ event, context }) => (event.type === 'AUTH_OK' ? event.userId : context.userId),
+      userId: (_, params: { userId: string }) => params.userId,
     }),
     setWorkflowType: assign({
-      workflowType: ({ event, context }) =>
-        event.type === 'VALIDATION_OK' ? event.workflowType ?? null : context.workflowType,
+      workflowType: (_, params: { workflowType: string | null }) => params.workflowType,
     }),
     setFailureReason: assign({
-      failureReason: ({ event }) => {
-        if (event.type === 'VALIDATION_FAIL') {
-          return event.reason;
-        }
-        if (event.type === 'AUTH_FAIL') {
-          return 'unauthorized';
-        }
-        if (event.type === 'MODEL_UNAVAILABLE') {
-          return 'model_unavailable';
-        }
-        if (event.type === 'USAGE_REJECTED') {
-          return event.reason;
-        }
-        if (event.type === 'OWNERSHIP_FAIL') {
-          return 'ownership_mismatch';
-        }
-        return 'gateway_failed';
-      },
+      failureReason: (_, params: { reason: string }) => params.reason,
     }),
     resetVolatileContext: assign({
       requestId: '',
@@ -102,7 +87,14 @@ export const requestGatewayMachine = setup({
       on: {
         REQUEST_RECEIVED: {
           target: 'auth',
-          actions: 'cacheRequestMeta',
+          actions: {
+            type: 'cacheRequestMeta',
+            params: ({ event }) => ({
+              requestId: event.requestId,
+              projectId: event.projectId,
+              workflowType: event.workflowType ?? null,
+            }),
+          },
         },
       },
     },
@@ -110,11 +102,17 @@ export const requestGatewayMachine = setup({
       on: {
         AUTH_OK: {
           target: 'validate',
-          actions: 'setUserId',
+          actions: {
+            type: 'setUserId',
+            params: ({ event }) => ({ userId: event.userId }),
+          },
         },
         AUTH_FAIL: {
           target: 'failed',
-          actions: 'setFailureReason',
+          actions: {
+            type: 'setFailureReason',
+            params: { reason: 'unauthorized' },
+          },
         },
       },
     },
@@ -122,11 +120,17 @@ export const requestGatewayMachine = setup({
       on: {
         VALIDATION_OK: {
           target: 'preflight.modelCheck',
-          actions: 'setWorkflowType',
+          actions: {
+            type: 'setWorkflowType',
+            params: ({ event }) => ({ workflowType: event.workflowType ?? null }),
+          },
         },
         VALIDATION_FAIL: {
           target: 'failed',
-          actions: 'setFailureReason',
+          actions: {
+            type: 'setFailureReason',
+            params: ({ event }) => ({ reason: event.reason }),
+          },
         },
       },
     },
@@ -138,7 +142,10 @@ export const requestGatewayMachine = setup({
             MODEL_AVAILABLE: 'usageCheck',
             MODEL_UNAVAILABLE: {
               target: '#requestGatewayMachine.failed',
-              actions: 'setFailureReason',
+              actions: {
+                type: 'setFailureReason',
+                params: { reason: 'model_unavailable' },
+              },
             },
           },
         },
@@ -147,7 +154,10 @@ export const requestGatewayMachine = setup({
             USAGE_GRANTED: 'ownershipCheck',
             USAGE_REJECTED: {
               target: '#requestGatewayMachine.failed',
-              actions: 'setFailureReason',
+              actions: {
+                type: 'setFailureReason',
+                params: ({ event }) => ({ reason: event.reason }),
+              },
             },
           },
         },
@@ -156,7 +166,10 @@ export const requestGatewayMachine = setup({
             OWNERSHIP_OK: '#requestGatewayMachine.ready',
             OWNERSHIP_FAIL: {
               target: '#requestGatewayMachine.failed',
-              actions: 'setFailureReason',
+              actions: {
+                type: 'setFailureReason',
+                params: { reason: 'ownership_mismatch' },
+              },
             },
           },
         },

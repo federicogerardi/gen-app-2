@@ -34,6 +34,7 @@ export const extractionChainMachine = setup({
   guards: {
     hasAvailableAttempt: ({ context }) => context.currentAttemptIndex < context.input.attemptPlan.length,
     canEscalateAttempt: ({ context }) => context.currentAttemptIndex + 1 < context.input.attemptPlan.length,
+    shouldAutoAccept: ({ context }) => context.input.bootstrap?.autoAccept === true,
   },
   actions: {
     incrementAttemptIndex: assign({
@@ -65,6 +66,10 @@ export const extractionChainMachine = setup({
     },
     attemptPreflight: {
       always: [
+        {
+          guard: 'shouldAutoAccept',
+          target: 'attemptAccept',
+        },
         {
           guard: 'hasAvailableAttempt',
           target: 'attemptRunning',

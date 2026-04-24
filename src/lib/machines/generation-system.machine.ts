@@ -63,6 +63,52 @@ type ToolDoneOutput =
   | { type: 'WORKFLOW_STEP_UNLOCKED' }
   | { type: 'WORKFLOW_STEP_COMPLETED'; artifactId: string };
 
+type CacheRequestMetaParams = {
+  requestId: string;
+  projectId: string;
+  toolKey: string | null;
+  artifactType: string;
+  workflowType: RegistryBackedWorkflowType;
+  model: string;
+  input: Record<string, unknown>;
+  idempotencyKey: string | null;
+  outputFormat: OutputFormat;
+  registryVersion: string | null;
+  registrySnapshotRef: string | null;
+  routeType: RouteType;
+  syntheticResponse: string;
+};
+
+type SetValidationDataParams = {
+  workflowType: RegistryBackedWorkflowType;
+  registryVersion: string | null;
+  registrySnapshotRef: string | null;
+  routeType: RouteType;
+};
+
+type CacheReplayPayloadParams = {
+  artifactId: string;
+  content: string;
+};
+
+const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
+  (event as { output: IdempotencyDoneOutput }).output;
+
+const getReplayPayloadParams = (event: unknown): CacheReplayPayloadParams => {
+  const output = getIdempotencyDoneOutput(event);
+  if (output.type !== 'IDEMPOTENCY_REPLAY_READY') {
+    return {
+      artifactId: '',
+      content: '',
+    };
+  }
+
+  return {
+    artifactId: output.artifactId,
+    content: output.metadata.content,
+  };
+};
+
 const defaultArtifactIdFactory = (): string =>
   `artifact-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -143,90 +189,62 @@ export const generationSystemMachine = setup({
   },
   actions: {
     cacheRequestMeta: assign({
-      requestId: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.requestId : context.requestId,
-      projectId: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.projectId : context.projectId,
-      toolKey: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.toolKey : context.toolKey,
-      artifactType: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.artifactType : context.artifactType,
-      workflowType: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.workflowType ?? null : context.workflowType,
-      model: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.model : context.model,
-      requestInput: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.input : context.requestInput,
-      idempotencyKey: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.idempotencyKey ?? null : context.idempotencyKey,
-      outputFormat: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED'
-          ? normalizeOutputFormat(event.input?.outputFormat)
-          : context.outputFormat,
-      registryVersion: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.registryVersion ?? null : context.registryVersion,
-      registrySnapshotRef: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? event.registrySnapshotRef ?? null : context.registrySnapshotRef,
-      routeType: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED'
-          ? getRouteType(event.toolKey, event.workflowType ?? null, String(event.artifactType))
-          : context.routeType,
+      requestId: (_, params: CacheRequestMetaParams) => params.requestId,
+      projectId: (_, params: CacheRequestMetaParams) => params.projectId,
+      toolKey: (_, params: CacheRequestMetaParams) => params.toolKey,
+      artifactType: (_, params: CacheRequestMetaParams) => params.artifactType,
+      workflowType: (_, params: CacheRequestMetaParams) => params.workflowType,
+      model: (_, params: CacheRequestMetaParams) => params.model,
+      requestInput: (_, params: CacheRequestMetaParams) => params.input,
+      idempotencyKey: (_, params: CacheRequestMetaParams) => params.idempotencyKey,
+      outputFormat: (_, params: CacheRequestMetaParams) => params.outputFormat,
+      registryVersion: (_, params: CacheRequestMetaParams) => params.registryVersion,
+      registrySnapshotRef: (_, params: CacheRequestMetaParams) => params.registrySnapshotRef,
+      routeType: (_, params: CacheRequestMetaParams) => params.routeType,
       failureReason: null,
-      syntheticResponse: ({ event, context }) =>
-        event.type === 'REQUEST_RECEIVED' ? context.responseBuilder(event) : context.syntheticResponse,
+      syntheticResponse: (_, params: CacheRequestMetaParams) => params.syntheticResponse,
       contentBuffer: '',
       artifactId: null,
     }),
     setUserId: assign({
-      userId: ({ event, context }) => (event.type === 'AUTH_OK' ? event.userId : context.userId),
+      userId: (_, params: { userId: string }) => params.userId,
     }),
     setValidationData: assign({
-      workflowType: ({ event, context }) =>
-        event.type === 'VALIDATION_OK' ? event.workflowType : context.workflowType,
-      registryVersion: ({ event, context }) =>
-        event.type === 'VALIDATION_OK' ? event.registryVersion : context.registryVersion,
-      registrySnapshotRef: ({ event, context }) =>
-        event.type === 'VALIDATION_OK' ? event.registrySnapshotRef : context.registrySnapshotRef,
-      routeType: ({ event, context }) =>
-        event.type === 'VALIDATION_OK'
-          ? getRouteType(
-            context.toolKey,
-            event.workflowType,
-            String(context.artifactType),
-          )
-          : context.routeType,
+      workflowType: (_, params: SetValidationDataParams) => params.workflowType,
+      registryVersion: (_, params: SetValidationDataParams) => params.registryVersion,
+      registrySnapshotRef: (_, params: SetValidationDataParams) => params.registrySnapshotRef,
+      routeType: (_, params: SetValidationDataParams) => params.routeType,
     }),
     setFailureReason: assign({
-      failureReason: ({ event }) => {
-        if (event.type === 'AUTH_FAIL') {
-          return 'unauthorized';
-        }
-        if (event.type === 'VALIDATION_FAIL') {
-          return event.reason;
-        }
-        if (event.type === 'USAGE_REJECTED') {
-          return event.reason;
-        }
-        if (event.type === 'IDEMPOTENCY_CONFLICT') {
-          return 'idempotency_conflict';
-        }
-        if (event.type === 'STREAM_TERMINATED_FAILURE') {
-          return event.reason;
-        }
-        if (event.type === 'PERSISTENCE_FINALIZE_FAILED') {
-          return event.reason;
-        }
-        return 'generation_failed';
-      },
+      failureReason: (_, params: { reason: string }) => params.reason,
     }),
     setAmbiguousRoutingFailure: assign({
       failureReason: 'ambiguous_routing',
     }),
+    setMissingRegistrySelectorFailure: assign({
+      failureReason: 'missing_registry_selector',
+    }),
+    setExtractionFailedFailure: assign({
+      failureReason: 'extraction_failed',
+    }),
+    setWorkflowFailedFailure: assign({
+      failureReason: 'workflow_failed',
+    }),
+    setIdempotencyConflictFailure: assign({
+      failureReason: 'idempotency_conflict',
+    }),
+    setUsageFailedFailure: assign({
+      failureReason: 'usage_failed',
+    }),
+    setStreamFailureFailure: assign({
+      failureReason: 'stream_failure',
+    }),
+    setPersistenceFinalizeFailedFailure: assign({
+      failureReason: 'persistence_finalize_failed',
+    }),
     cacheReplayPayload: assign({
-      artifactId: ({ event, context }) =>
-        event.type === 'IDEMPOTENCY_REPLAY_READY' ? event.artifactId : context.artifactId,
-      contentBuffer: ({ event, context }) =>
-        event.type === 'IDEMPOTENCY_REPLAY_READY' ? event.metadata.content : context.contentBuffer,
+      artifactId: (_, params: CacheReplayPayloadParams) => params.artifactId,
+      contentBuffer: (_, params: CacheReplayPayloadParams) => params.content,
     }),
     cacheArtifactId: assign({
       artifactId: ({ event, context }) => {
@@ -241,30 +259,6 @@ export const generationSystemMachine = setup({
     }),
     cacheSyntheticChunk: assign({
       contentBuffer: ({ context }) => context.syntheticResponse,
-    }),
-    driveExtractionAttempt: enqueueActions(({ enqueue }) => {
-      enqueue.sendTo('extractionActor', { type: 'ATTEMPT_ACCEPTED' });
-    }),
-    driveToolWorkflow: enqueueActions(({ enqueue, context }) => {
-      const stepKey = context.toolKey ?? 'workflow_step';
-      const artifactId = context.artifactId ?? context.artifactIdFactory();
-
-      enqueue.sendTo('toolActor', { type: 'STEP_START', stepKey });
-      enqueue.sendTo('toolActor', {
-        type: 'STEP_SUCCESS',
-        stepKey,
-        output: context.syntheticResponse,
-        artifactId,
-      });
-      enqueue.sendTo('toolActor', { type: 'WORKFLOW_COMPLETE' });
-    }),
-    driveSyntheticStream: enqueueActions(({ enqueue, context }) => {
-      enqueue.sendTo('streamActor', { type: 'STREAM_READY' });
-      enqueue.sendTo('streamActor', {
-        type: 'STREAM_CHUNK',
-        chunk: context.syntheticResponse,
-      });
-      enqueue.sendTo('streamActor', { type: 'STREAM_COMPLETE' });
     }),
     drivePersistenceFinalizeSuccess: enqueueActions(({ enqueue, context }) => {
       enqueue.sendTo('persistenceActor', {
@@ -426,11 +420,32 @@ export const generationSystemMachine = setup({
           {
             guard: 'hasRegistrySelector',
             target: 'gateway',
-            actions: 'cacheRequestMeta',
+            actions: {
+              type: 'cacheRequestMeta',
+              params: ({ event, context }) => ({
+                requestId: event.requestId,
+                projectId: event.projectId,
+                toolKey: event.toolKey,
+                artifactType: event.artifactType,
+                workflowType: event.workflowType ?? null,
+                model: event.model,
+                input: event.input,
+                idempotencyKey: event.idempotencyKey ?? null,
+                outputFormat: normalizeOutputFormat(event.input?.outputFormat),
+                registryVersion: event.registryVersion ?? null,
+                registrySnapshotRef: event.registrySnapshotRef ?? null,
+                routeType: getRouteType(
+                  event.toolKey,
+                  event.workflowType ?? null,
+                  String(event.artifactType),
+                ),
+                syntheticResponse: context.responseBuilder(event),
+              }),
+            },
           },
           {
             target: 'failed',
-            actions: assign({ failureReason: 'missing_registry_selector' }),
+            actions: 'setMissingRegistrySelectorFailure',
           },
         ],
       },
@@ -438,19 +453,40 @@ export const generationSystemMachine = setup({
     gateway: {
       on: {
         AUTH_OK: {
-          actions: 'setUserId',
+          actions: {
+            type: 'setUserId',
+            params: ({ event }) => ({ userId: event.userId }),
+          },
         },
         VALIDATION_OK: {
           target: 'routing',
-          actions: 'setValidationData',
+          actions: {
+            type: 'setValidationData',
+            params: ({ event, context }) => ({
+              workflowType: event.workflowType,
+              registryVersion: event.registryVersion,
+              registrySnapshotRef: event.registrySnapshotRef,
+              routeType: getRouteType(
+                context.toolKey,
+                event.workflowType,
+                String(context.artifactType),
+              ),
+            }),
+          },
         },
         AUTH_FAIL: {
           target: 'failed',
-          actions: 'setFailureReason',
+          actions: {
+            type: 'setFailureReason',
+            params: { reason: 'unauthorized' },
+          },
         },
         VALIDATION_FAIL: {
           target: 'failed',
-          actions: 'setFailureReason',
+          actions: {
+            type: 'setFailureReason',
+            params: ({ event }) => ({ reason: event.reason }),
+          },
         },
       },
     },
@@ -476,7 +512,7 @@ export const generationSystemMachine = setup({
       ],
     },
     extractionFlow: {
-      entry: ['ensureArtifactId', 'driveExtractionAttempt'],
+      entry: ['ensureArtifactId'],
       invoke: {
         id: 'extractionActor',
         src: 'invokeExtraction',
@@ -487,26 +523,22 @@ export const generationSystemMachine = setup({
           attemptPlan: [
             { attemptIndex: 0, model: context.model, responseMode: 'text' },
           ],
+          bootstrap: {
+            autoAccept: true,
+          },
           ...getRegistrySelector(context),
         }),
-        onDone: [
-          {
-            guard: 'extractionOutputIsAccepted',
-            target: 'usageAndIdempotency',
-          },
-          {
-            target: 'persistingFailure',
-            actions: 'setFailureFromInvokeOutput',
-          },
-        ],
+        onDone: {
+          target: 'usageAndIdempotency',
+        },
         onError: {
           target: 'persistingFailure',
-          actions: assign({ failureReason: 'extraction_failed' }),
+          actions: 'setExtractionFailedFailure',
         },
       },
     },
     toolGenerationFlow: {
-      entry: ['ensureArtifactId', 'driveToolWorkflow'],
+      entry: ['ensureArtifactId'],
       invoke: {
         id: 'toolActor',
         src: 'invokeToolWorkflow',
@@ -517,6 +549,11 @@ export const generationSystemMachine = setup({
           runMode: 'new',
           steps: [{ key: context.toolKey ?? 'workflow_step', dependencies: [] }],
           dependencyGraph: {},
+          bootstrap: {
+            stepKey: context.toolKey ?? 'workflow_step',
+            output: context.syntheticResponse,
+            artifactId: context.artifactId ?? context.artifactIdFactory(),
+          },
           ...getRegistrySelector(context),
         }),
         onDone: [
@@ -531,7 +568,7 @@ export const generationSystemMachine = setup({
         ],
         onError: {
           target: 'persistingFailure',
-          actions: assign({ failureReason: 'workflow_failed' }),
+          actions: 'setWorkflowFailedFailure',
         },
       },
     },
@@ -559,7 +596,10 @@ export const generationSystemMachine = setup({
               {
                 guard: 'idempotencyOutputIsReplay',
                 target: '#generationSystemMachine.completed',
-                actions: 'cacheReplayPayload',
+                actions: {
+                  type: 'cacheReplayPayload',
+                  params: ({ event }) => getReplayPayloadParams(event),
+                },
               },
               {
                 guard: 'idempotencyOutputIsConflict',
@@ -572,7 +612,7 @@ export const generationSystemMachine = setup({
             ],
             onError: {
               target: '#generationSystemMachine.persistingFailure',
-              actions: assign({ failureReason: 'idempotency_conflict' }),
+              actions: 'setIdempotencyConflictFailure',
             },
           },
         },
@@ -601,14 +641,14 @@ export const generationSystemMachine = setup({
             ],
             onError: {
               target: '#generationSystemMachine.persistingFailure',
-              actions: assign({ failureReason: 'usage_failed' }),
+              actions: 'setUsageFailedFailure',
             },
           },
         },
       },
     },
     streaming: {
-      entry: ['ensureArtifactId', 'cacheSyntheticChunk', 'driveSyntheticStream'],
+      entry: ['ensureArtifactId', 'cacheSyntheticChunk'],
       invoke: {
         id: 'streamActor',
         src: 'invokeStream',
@@ -618,6 +658,13 @@ export const generationSystemMachine = setup({
           model: context.model,
           workflowType: context.workflowType,
           outputFormat: context.outputFormat,
+          bootstrap: {
+            autoComplete: true,
+            initialChunk: context.syntheticResponse,
+          },
+          runtime: {
+            now: context.runtimeNow,
+          },
           ...getRegistrySelector(context),
           adapters: {
             stream: context.adapters.stream,
@@ -635,7 +682,7 @@ export const generationSystemMachine = setup({
         ],
         onError: {
           target: 'persistingFailure',
-          actions: assign({ failureReason: 'stream_failure' }),
+          actions: 'setStreamFailureFailure',
         },
       },
     },
@@ -665,7 +712,7 @@ export const generationSystemMachine = setup({
         onDone: 'finalizeIdempotencySuccess',
         onError: {
           target: 'persistingFailure',
-          actions: assign({ failureReason: 'persistence_finalize_failed' }),
+          actions: 'setPersistenceFinalizeFailedFailure',
         },
       },
     },

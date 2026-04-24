@@ -25,8 +25,14 @@ Per i flow generic, `workflowType` puo essere `null`; per ogni tool registrato, 
 
 Esito:
 
-- 200 SSE stream (start/token/progress/complete o error)
+- 200 SSE stream (start/chunk/terminal)
 - 4xx/5xx con error object canonico
+
+Contratto SSE as-is (runtime attuale):
+
+- evento `start` con `requestId`, `artifactId`
+- eventi `chunk` incrementali con `artifactId`, `chunk`, `sequence`
+- evento terminale `terminal` con `artifactId`, `status` (`completed|failed`), `reason`
 
 ## 9.2 Funnel Generate
 
@@ -96,7 +102,7 @@ Invarianti pipeline:
 - Ogni output di generation deve essere salvato con `artifact_type` e `workflow_type` coerenti col registry.
 - Nessun save terminale senza `workflow_type` valorizzato per tool-specific flows.
 - `workflow_type` puo essere `null` solo per flow generic non associati a un tool registrato.
-- Gli eventi SSE `start/complete/error` devono includere `workflowType` coerente con registry.
+- Gli eventi SSE esterni `start/chunk/terminal` devono restare coerenti con il contesto request-level del registry.
 - In multi-step generation, ogni step completato deve tracciare `artifact_id` per resume/regenerate.
 
 Esempio mapping minimo:
@@ -107,6 +113,21 @@ Esempio mapping minimo:
 | nextland | nextland | content | yes | 2 |
 | extraction | extraction | extraction | n/a | 1 |
 | my_new_tool | my_new_tool | strategy_report (esempio) | yes/no | variabile |
+
+## 9.6 Runtime Helper As-Is (Node)
+
+Surface runtime attuale per stream:
+
+- `runBackendGenerationSession(...)`: orchestration root + raccolta eventi stream incrementali
+- `handleGenerationRequest(...)`: ritorna payload SSE aggregato finale
+- `handleGenerationRequestAsSseStream(...)`: ritorna `AsyncIterable<string>` di frame SSE live
+- `handleGenerationRequestAsNodeSse(...)`: pipe diretto su `ServerResponse` con chiusura automatica
+- `applySseHeaders(...)`, `pipeSseStreamToNodeResponse(...)`: adapter HTTP SSE riusabile
+
+Nota operativa:
+
+- Il provider LLM as-is e OpenRouter tramite `OPENROUTER_API_KEY`.
+- In assenza di chiave, il runtime mantiene fallback sintetico per compatibilita test/offline.
 
 ## 10. Regole di Persistenza e Consistenza
 
@@ -231,8 +252,9 @@ Questa sezione riporta le soglie operative attese per equivalenza funzionale.
 
 Streaming generic/tool:
 
-- evento `progress` emesso ogni 20 token.
-- flush progress su storage ogni 50 token.
+- eventi SSE esterni limitati a `start/chunk/terminal`.
+- progress/heartbeat e usage restano segnali interni al transport actor.
+- flush progress su storage ogni 10 chunk (`sequence % 10 === 0`).
 - timeout stream tool funnel/nextland: 270000 ms.
 - su timeout provider, path partial-success consentito solo con contenuto utile.
 - soglia minima contenuto utile per partial-success generic stream: 120 caratteri trimmed.

@@ -17,6 +17,9 @@ export const createPostgresRedisGenerationAdapters = (
     stream: {
       openSession: (input) => dependencies.stream.openSession(input),
     },
+    llm: {
+      streamText: (input) => dependencies.llm.streamText(input),
+    },
     persistence: {
       flushProgress: (input, sequence) => dependencies.persistence.flushProgress(input, sequence),
       finalizeSuccess: (input) => dependencies.persistence.finalizeSuccess(input),

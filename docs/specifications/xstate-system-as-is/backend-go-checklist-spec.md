@@ -26,6 +26,8 @@ Esito corrente: `GO`
 Motivi principali:
 
 - il wiring runtime e il contract backend sono implementati;
+- l'integrazione LLM as-is usa OpenRouter con fallback sintetico controllato;
+- la surface runtime espone stream live via AsyncIterable e adapter Node SSE;
 - la persistenza reale copre accounting (`quota_history`, token, costi);
 - i test machine/root sono disponibili e verdi;
 - smoke test reali su Neon + Upstash eseguiti con esito verde;
@@ -38,13 +40,13 @@ Motivi principali:
 | BE-001 | Root orchestration | `generationSystemMachine` invoca/spawna `usage`, `idempotency`, `stream`, `persistence`, `workflow`, `extraction` dove richiesto | Root runtime attivo con invoke actor v5 e routing runtime | GO |
 | BE-002 | Gateway runtime | `requestGatewayMachine` applica auth/validation/model/ownership con dipendenze reali o adapter concreti | Gateway runtime presente nella surface backend, ownership/model preflight ancora minimale | QUASI-GO |
 | BE-003 | Usage/idempotency | quota e idempotency sono eseguibili con Postgres/Redis reale, lock contestuale corretto e replay coerente | Adapter pg/redis reali, lock helper condiviso e smoke scripts presenti | GO |
-| BE-004 | Stream transport | esiste path reale per stream session, terminal events, timeout/disconnect osservabili | Stream actor runtime + serializzazione SSE `start/chunk/terminal` | GO |
+| BE-004 | Stream transport | esiste path reale per stream session, terminal events, timeout/disconnect osservabili | Stream actor runtime + invoke LLM adapter (OpenRouter as-is) + serializzazione SSE `start/chunk/terminal` | GO |
 | BE-005 | Persistence lifecycle | artifact `generating/completed/failed` coerente, finalize in transazione, replay compatibile | finalize success/failure in transazione con update artifact coerente | GO |
 | BE-006 | Accounting | persistenza di token, costi e `quota_history` coerente con outcome | Persistenza model/input/tokens/cost + scrittura `quota_history` su success/error/rate_limited | GO |
 | BE-007 | Tool workflow | dipendenze step-based, retry, resume/regenerate integrati nel flow root | Branch tool collegato nel flow root runtime | GO |
 | BE-008 | Extraction chain | accept/escalation/exhausted integrati nel flow root con policy testabili | Branch extraction collegato nel flow root runtime | GO |
-| BE-009 | API/backend surface | esiste entrypoint backend reale con request contract stabile | Surface runtime `handleGenerationRequest(...)` + backend session | GO |
-| BE-010 | SSE/error contract | esistono payload SSE e shape errori stabili e verificati | `stream-contract` + `error-contract` implementati e usati in session runtime | GO |
+| BE-009 | API/backend surface | esiste entrypoint backend reale con request contract stabile | Surface runtime `handleGenerationRequest(...)`, `handleGenerationRequestAsSseStream(...)`, `handleGenerationRequestAsNodeSse(...)` | GO |
+| BE-010 | SSE/error contract | esistono payload SSE e shape errori stabili e verificati | `stream-contract` + `error-contract` + adapter `http-sse` implementati e usati in session runtime | GO |
 | BE-011 | DB readiness | migration + seed minimi applicabili su DB reale | Presente | GO |
 | BE-012 | Redis readiness | seed/example Redis per test idempotency disponibile | Presente | GO |
 | BE-013 | Smoke test reale | smoke test su pg + ioredis eseguibile end-to-end | Eseguiti con esito verde su infrastruttura reale (`claimed -> completed -> replay`, `lock -> conflict`) | GO |
@@ -126,7 +128,8 @@ Comandi minimi:
 
 1. `export DATABASE_URL=...`
 2. `export UPSTASH_REDIS_URL=...`
-3. `npm run backend:go`
+3. `export OPENROUTER_API_KEY=...` (consigliato per stream LLM reale)
+4. `npm run backend:go`
 
 Esito atteso:
 

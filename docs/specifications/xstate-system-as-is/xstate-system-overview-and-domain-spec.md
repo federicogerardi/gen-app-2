@@ -25,7 +25,7 @@ Capacita incluse:
 - Rate limit + quota enforcement (numero generazioni).
 - Persistenza artifact con lifecycle completo.
 - Cost accounting e quota history.
-- Contratto SSE strutturato con eventi start/token/progress/complete/error.
+- Contratto SSE strutturato con eventi esterni start/chunk/terminal.
 
 Fuori ambito (non necessario per equivalenza funzionale):
 

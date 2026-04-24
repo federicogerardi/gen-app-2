@@ -32,7 +32,7 @@
 - modelRegistryActor
 - usageGuardsActor
 - ownershipActor
-- providerStreamActor
+- llmStreamAdapterActor (OpenRouter as-is; fallback sintetico in assenza chiave)
 - artifactCreateActor
 - artifactProgressFlushActor
 - artifactFinalizeSuccessActor
@@ -46,7 +46,7 @@
 Ogni evento SSE deve essere in formato:
 
 ```text
-data: {json}\n\n
+event: <name>\ndata: {json}\n\n
 ```
 
 Tipi evento ammessi:
@@ -55,68 +55,36 @@ Tipi evento ammessi:
 
 ```json
 {
-  "type": "start",
+  "requestId": "string",
+  "artifactId": "string"
+}
+```
+
+`chunk`
+
+```json
+{
   "artifactId": "string",
-  "workflowType": "string|null",
-  "format": "plain|markdown|json"
+  "chunk": "string",
+  "sequence": 1
 }
 ```
 
-`token`
+`terminal`
 
 ```json
 {
-  "type": "token",
-  "token": "string",
-  "sequence": 1,
-  "workflowType": "...",
-  "format": "..."
-}
-```
-
-`progress`
-
-```json
-{
-  "type": "progress",
-  "workflowType": "...",
-  "format": "...",
-  "estimatedTokens": { "input": 123, "output": 456 },
-  "costEstimate": 0.0123
-}
-```
-
-`complete`
-
-```json
-{
-  "type": "complete",
-  "artifactId": "string",
-  "content": "string",
-  "workflowType": "...",
-  "format": "plain|markdown|json",
-  "tokens": { "input": 123, "output": 456 },
-  "cost": 0.0123
-}
-```
-
-`error`
-
-```json
-{
-  "type": "error",
-  "code": "INTERNAL_ERROR|...",
-  "message": "string",
-  "workflowType": "...",
-  "format": "..."
+  "artifactId": "string|null",
+  "status": "completed|failed",
+  "reason": "string|null"
 }
 ```
 
 Invarianti SSE:
 
 - `start` obbligatorio per stream validi.
-- `complete` e `error` mutuamente esclusivi come terminal event.
-- `sequence` su token monotonicamente crescente.
+- `terminal` unico per stream.
+- `sequence` su `chunk` monotonicamente crescente.
 
 ## 14.3 Topologia Actor Consigliata
 

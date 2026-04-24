@@ -87,6 +87,12 @@ export interface StreamHeartbeatMetadata {
   costEstimate: number;
 }
 
+export interface StreamUsageMetrics {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
 export interface IdempotencyReplayMetadata {
   content: string;
 }
@@ -266,6 +272,8 @@ export type StreamTerminatedSuccessEvent = GenerationActorEventEnvelope<
   'streamTransportMachine'
 > & {
   artifactId: string;
+  content?: string;
+  metrics?: StreamUsageMetrics;
 };
 
 export type StreamTerminatedFailureEvent = GenerationActorEventEnvelope<
@@ -274,6 +282,8 @@ export type StreamTerminatedFailureEvent = GenerationActorEventEnvelope<
 > & {
   artifactId: string;
   reason: string;
+  content?: string;
+  metrics?: StreamUsageMetrics;
 };
 
 export type PersistenceFlushCommittedEvent = GenerationActorEventEnvelope<

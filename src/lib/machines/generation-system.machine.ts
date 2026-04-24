@@ -35,6 +35,9 @@ type GenerationMachineContext = GenerationSystemContext & {
   idempotencyKey: string | null;
   outputFormat: OutputFormat;
   syntheticResponse: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
   routeType: RouteType;
   runtimeNow: () => Date;
   artifactIdFactory: () => string;
@@ -51,8 +54,17 @@ type UsageDoneOutput =
   | { type: 'USAGE_REJECTED'; reason: string };
 
 type StreamDoneOutput =
-  | { type: 'STREAM_TERMINATED_SUCCESS' }
-  | { type: 'STREAM_TERMINATED_FAILURE'; reason: string };
+  | {
+      type: 'STREAM_TERMINATED_SUCCESS';
+      content?: string;
+      metrics?: { inputTokens: number; outputTokens: number; costUsd: number };
+    }
+  | {
+      type: 'STREAM_TERMINATED_FAILURE';
+      reason: string;
+      content?: string;
+      metrics?: { inputTokens: number; outputTokens: number; costUsd: number };
+    };
 
 type ExtractionDoneOutput =
   | { type: 'EXTRACTION_ATTEMPT_ACCEPTED' }
@@ -91,6 +103,13 @@ type CacheReplayPayloadParams = {
   content: string;
 };
 
+type CacheStreamResultParams = {
+  content: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+};
+
 const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
   (event as { output: IdempotencyDoneOutput }).output;
 
@@ -99,6 +118,17 @@ const getUsageDoneOutput = (event: unknown): UsageDoneOutput | undefined =>
 
 const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
   (event as { output?: StreamDoneOutput }).output;
+
+const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
+  const output = getStreamDoneOutput(event);
+
+  return {
+    content: output?.content ?? '',
+    inputTokens: output?.metrics?.inputTokens ?? 0,
+    outputTokens: output?.metrics?.outputTokens ?? 0,
+    costUsd: output?.metrics?.costUsd ?? 0,
+  };
+};
 
 const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
   (event as { output?: ExtractionDoneOutput }).output;
@@ -218,6 +248,9 @@ export const generationSystemMachine = setup({
       routeType: (_, params: CacheRequestMetaParams) => params.routeType,
       failureReason: null,
       syntheticResponse: (_, params: CacheRequestMetaParams) => params.syntheticResponse,
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
       contentBuffer: '',
       artifactId: null,
     }),
@@ -275,6 +308,16 @@ export const generationSystemMachine = setup({
     cacheSyntheticChunk: assign({
       contentBuffer: ({ context }) => context.syntheticResponse,
     }),
+    cacheStreamResult: assign({
+      contentBuffer: ({ context }, params: CacheStreamResultParams) =>
+        params.content.length > 0 ? params.content : context.contentBuffer,
+      inputTokens: ({ context }, params: CacheStreamResultParams) =>
+        params.inputTokens > 0 ? params.inputTokens : context.inputTokens,
+      outputTokens: ({ context }, params: CacheStreamResultParams) =>
+        params.outputTokens > 0 ? params.outputTokens : context.outputTokens,
+      costUsd: ({ context }, params: CacheStreamResultParams) =>
+        params.costUsd > 0 ? params.costUsd : context.costUsd,
+    }),
     drivePersistenceFinalizeSuccess: enqueueActions(({ enqueue, context }) => {
       enqueue.sendTo('persistenceActor', {
         type: 'STREAM_TERMINATED_SUCCESS',
@@ -322,6 +365,9 @@ export const generationSystemMachine = setup({
       contentBuffer: '',
       failureReason: null,
       syntheticResponse: '',
+      inputTokens: 0,
+      outputTokens: 0,
+      costUsd: 0,
       routeType: null,
     }),
   },
@@ -411,6 +457,9 @@ export const generationSystemMachine = setup({
     contentBuffer: '',
     failureReason: null,
     syntheticResponse: '',
+    inputTokens: 0,
+    outputTokens: 0,
+    costUsd: 0,
     routeType: null,
     adapters: input.adapters,
     runtimeNow: input.runtime?.now ?? (() => new Date()),
@@ -667,7 +716,7 @@ export const generationSystemMachine = setup({
       },
     },
     streaming: {
-      entry: ['ensureArtifactId', 'cacheSyntheticChunk'],
+      entry: ['ensureArtifactId'],
       invoke: {
         id: 'streamActor',
         src: 'invokeStream',
@@ -675,31 +724,39 @@ export const generationSystemMachine = setup({
           requestId: context.requestId,
           artifactId: context.artifactId ?? context.artifactIdFactory(),
           model: context.model,
+          requestInput: context.requestInput,
           workflowType: context.workflowType,
           outputFormat: context.outputFormat,
-          bootstrap: {
-            autoComplete: true,
-            initialChunk: context.syntheticResponse,
-          },
           runtime: {
             now: context.runtimeNow,
           },
           ...getRegistrySelector(context),
           adapters: {
             stream: context.adapters.stream,
+            llm: context.adapters.llm,
           },
         }),
         onDone: [
           {
             guard: 'streamOutputIsFailure',
             target: 'persistingFailure',
-            actions: {
-              type: 'setFailureFromInvokeOutput',
-              params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
-            },
+            actions: [
+              {
+                type: 'cacheStreamResult',
+                params: ({ event }) => getStreamResultParams(event),
+              },
+              {
+                type: 'setFailureFromInvokeOutput',
+                params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+              },
+            ],
           },
           {
             target: 'persistingSuccess',
+            actions: {
+              type: 'cacheStreamResult',
+              params: ({ event }) => getStreamResultParams(event),
+            },
           },
         ],
         onError: {
@@ -723,9 +780,18 @@ export const generationSystemMachine = setup({
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
           inputJson: context.requestInput,
-          inputTokens: Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),
-          outputTokens: Math.max(0, Math.ceil(context.contentBuffer.length / 4)),
-          costUsd: Number((Math.max(1, context.contentBuffer.length) * 0.000001).toFixed(6)),
+          inputTokens: Math.max(
+            context.inputTokens,
+            Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),
+          ),
+          outputTokens: Math.max(
+            context.outputTokens,
+            Math.max(0, Math.ceil(context.contentBuffer.length / 4)),
+          ),
+          costUsd:
+            context.costUsd > 0
+              ? context.costUsd
+              : Number((Math.max(1, context.contentBuffer.length) * 0.000001).toFixed(6)),
           ...getRegistrySelector(context),
           adapters: {
             persistence: context.adapters.persistence,
@@ -753,9 +819,18 @@ export const generationSystemMachine = setup({
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
           inputJson: context.requestInput,
-          inputTokens: Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),
-          outputTokens: Math.max(0, Math.ceil(context.contentBuffer.length / 4)),
-          costUsd: Number((Math.max(1, context.contentBuffer.length) * 0.000001).toFixed(6)),
+          inputTokens: Math.max(
+            context.inputTokens,
+            Math.max(0, Math.ceil(JSON.stringify(context.requestInput).length / 4)),
+          ),
+          outputTokens: Math.max(
+            context.outputTokens,
+            Math.max(0, Math.ceil(context.contentBuffer.length / 4)),
+          ),
+          costUsd:
+            context.costUsd > 0
+              ? context.costUsd
+              : Number((Math.max(1, context.contentBuffer.length) * 0.000001).toFixed(6)),
           ...getRegistrySelector(context),
           adapters: {
             persistence: context.adapters.persistence,

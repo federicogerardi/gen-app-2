@@ -5,7 +5,11 @@ import type {
   UsageActorInput,
 } from '../types/xstate';
 
-import type { IdempotencyDecision, UsageDecision } from './generation.adapters';
+import type {
+  IdempotencyDecision,
+  LlmStreamAdapter,
+  UsageDecision,
+} from './generation.adapters';
 
 export type ProductionAdapterRuntime = {
   now?: () => Date;
@@ -40,5 +44,6 @@ export interface PostgresRedisAdapterDependencies {
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;
   stream: RedisStreamSessionRepository;
+  llm: LlmStreamAdapter;
   persistence: PostgresArtifactRepository;
 }

@@ -1,4 +1,4 @@
-import { assign, fromPromise, setup } from 'xstate';
+import { assign, fromCallback, fromPromise, setup } from 'xstate';
 import type { GenerationAdapters } from '../adapters/generation.adapters';
 
 import type {
@@ -15,19 +15,24 @@ type StreamTransportMachineContext = {
   input: StreamTransportMachineInput;
   sequence: number;
   lastChunk: string;
+  generatedContent: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
   failureReason: string | null;
   sessionId: string | null;
 };
 
 type StreamTransportMachineInput = StreamTransportInput & {
-  adapters: Pick<GenerationAdapters, 'stream'>;
+  requestInput: Record<string, unknown>;
+  adapters: Pick<GenerationAdapters, 'stream' | 'llm'>;
 };
 
 type StreamTransportMachineEvent =
   | { type: 'STREAM_READY' }
   | { type: 'STREAM_CHUNK'; chunk: string }
   | { type: 'STREAM_HEARTBEAT'; estimatedInputTokens: number; estimatedOutputTokens: number; costEstimate: number }
-  | { type: 'STREAM_COMPLETE' }
+  | { type: 'STREAM_COMPLETE'; inputTokens?: number; outputTokens?: number; costUsd?: number }
   | { type: 'STREAM_FAIL'; reason: string }
   | { type: 'STREAM_TIMEOUT' }
   | { type: 'CLIENT_DISCONNECT' };
@@ -45,6 +50,61 @@ export const streamTransportMachine = setup({
     openStreamSession: fromPromise(async ({ input }: { input: StreamTransportMachineInput }) => {
       return input.adapters.stream.openSession(input);
     }),
+    streamLlmResponse: fromCallback(
+      ({ input, sendBack }: {
+        input: StreamTransportMachineInput;
+        sendBack: (event: StreamTransportMachineEvent) => void;
+      }) => {
+      const abortController = new AbortController();
+
+      void (async () => {
+        try {
+          for await (const event of input.adapters.llm.streamText({
+            requestId: input.requestId,
+            model: input.model,
+            outputFormat: input.outputFormat,
+            requestInput: input.requestInput,
+            signal: abortController.signal,
+          })) {
+            if (event.type === 'chunk') {
+              sendBack({ type: 'STREAM_CHUNK', chunk: event.chunk });
+              continue;
+            }
+
+            if (event.type === 'heartbeat') {
+              sendBack({
+                type: 'STREAM_HEARTBEAT',
+                estimatedInputTokens: event.estimatedInputTokens,
+                estimatedOutputTokens: event.estimatedOutputTokens,
+                costEstimate: event.costEstimate,
+              });
+              continue;
+            }
+
+            sendBack({
+              type: 'STREAM_COMPLETE',
+              ...(event.usage
+                ? {
+                    inputTokens: event.usage.inputTokens,
+                    outputTokens: event.usage.outputTokens,
+                    costUsd: event.usage.costUsd,
+                  }
+                : {}),
+            });
+          }
+        } catch (error) {
+          sendBack({
+            type: 'STREAM_FAIL',
+            reason: error instanceof Error ? error.message : 'llm_stream_failed',
+          });
+        }
+      })();
+
+      return () => {
+        abortController.abort();
+      };
+      },
+    ),
   },
   actions: {
     incrementSequence: assign({
@@ -52,6 +112,34 @@ export const streamTransportMachine = setup({
     }),
     cacheChunk: assign({
       lastChunk: ({ event }) => ('chunk' in event ? event.chunk : ''),
+    }),
+    appendGeneratedChunk: assign({
+      generatedContent: ({ context, event }) =>
+        event.type === 'STREAM_CHUNK' ? `${context.generatedContent}${event.chunk}` : context.generatedContent,
+      outputTokens: ({ context, event }) =>
+        event.type === 'STREAM_CHUNK'
+          ? Math.max(context.outputTokens, Math.ceil((context.generatedContent.length + event.chunk.length) / 4))
+          : context.outputTokens,
+    }),
+    cacheUsageMetrics: assign({
+      inputTokens: ({ context, event }) =>
+        event.type === 'STREAM_HEARTBEAT'
+          ? event.estimatedInputTokens
+          : event.type === 'STREAM_COMPLETE'
+            ? event.inputTokens ?? context.inputTokens
+            : context.inputTokens,
+      outputTokens: ({ context, event }) =>
+        event.type === 'STREAM_HEARTBEAT'
+          ? event.estimatedOutputTokens
+          : event.type === 'STREAM_COMPLETE'
+            ? event.outputTokens ?? context.outputTokens
+            : context.outputTokens,
+      costUsd: ({ context, event }) =>
+        event.type === 'STREAM_HEARTBEAT'
+          ? event.costEstimate
+          : event.type === 'STREAM_COMPLETE'
+            ? event.costUsd ?? context.costUsd
+            : context.costUsd,
     }),
     setFailureReason: assign({
       failureReason: ({ event }) => {
@@ -85,6 +173,10 @@ export const streamTransportMachine = setup({
     input,
     sequence: 0,
     lastChunk: input.bootstrap?.initialChunk ?? '',
+    generatedContent: input.bootstrap?.initialChunk ?? '',
+    inputTokens: 0,
+    outputTokens: 0,
+    costUsd: 0,
     failureReason: null,
     sessionId: null,
   }),
@@ -126,13 +218,19 @@ export const streamTransportMachine = setup({
           guard: ({ context }) => context.input.bootstrap?.autoComplete === true,
           target: 'closedSuccess',
         },
+        {
+          target: 'streamingTokens',
+        },
       ],
       on: {
         STREAM_CHUNK: {
           target: 'streamingTokens',
-          actions: ['incrementSequence', 'cacheChunk'],
+          actions: ['incrementSequence', 'cacheChunk', 'appendGeneratedChunk'],
         },
-        STREAM_COMPLETE: 'closedSuccess',
+        STREAM_COMPLETE: {
+          target: 'closedSuccess',
+          actions: 'cacheUsageMetrics',
+        },
         STREAM_FAIL: {
           target: 'closedFailure',
           actions: 'setFailureReason',
@@ -148,17 +246,21 @@ export const streamTransportMachine = setup({
       },
     },
     streamingTokens: {
+      invoke: {
+        src: 'streamLlmResponse',
+        input: ({ context }) => context.input,
+      },
       on: {
         STREAM_CHUNK: {
-          target: 'streamingTokens',
-          actions: ['incrementSequence', 'cacheChunk'],
-          reenter: true,
+          actions: ['incrementSequence', 'cacheChunk', 'appendGeneratedChunk'],
         },
         STREAM_HEARTBEAT: {
-          target: 'streamingTokens',
-          reenter: true,
+          actions: 'cacheUsageMetrics',
         },
-        STREAM_COMPLETE: 'closedSuccess',
+        STREAM_COMPLETE: {
+          target: 'closedSuccess',
+          actions: 'cacheUsageMetrics',
+        },
         STREAM_FAIL: {
           target: 'closedFailure',
           actions: 'setFailureReason',
@@ -181,6 +283,12 @@ export const streamTransportMachine = setup({
         sourceActor: 'streamTransportMachine',
         timestamp: (context.input.runtime?.now ?? (() => new Date()))().toISOString(),
         artifactId: context.input.artifactId,
+        content: context.generatedContent,
+        metrics: {
+          inputTokens: context.inputTokens,
+          outputTokens: context.outputTokens,
+          costUsd: context.costUsd,
+        },
       }),
     },
     closedFailure: {
@@ -192,6 +300,12 @@ export const streamTransportMachine = setup({
         timestamp: (context.input.runtime?.now ?? (() => new Date()))().toISOString(),
         artifactId: context.input.artifactId,
         reason: context.failureReason ?? 'stream_failure',
+        content: context.generatedContent,
+        metrics: {
+          inputTokens: context.inputTokens,
+          outputTokens: context.outputTokens,
+          costUsd: context.costUsd,
+        },
       }),
     },
   },

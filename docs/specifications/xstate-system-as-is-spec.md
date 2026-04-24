@@ -1,9 +1,15 @@
 # XState System As-Is Blueprint Index
 
-Versione: 2.0
+Versione: 2.1
 Data: 2026-04-24
 
 Indice compatto del blueprint atomizzato.
+
+Nota aggiornamento 2.1 (as-is runtime LLM):
+
+- provider LLM as-is: OpenRouter (con fallback sintetico per test/offline)
+- contratto SSE esterno as-is: `start/chunk/terminal`
+- runtime helper Node as-is: stream AsyncIterable + adapter HTTP SSE su ServerResponse
 
 ## Cross-Cutting
 

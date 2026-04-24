@@ -56,6 +56,45 @@ test('generation root happy path completes', async () => {
   assert.equal(result.streamEvents[result.streamEvents.length - 1]?.event, 'terminal');
 });
 
+test('backend session emits incremental chunk events while streaming', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  adapters.llm.streamText = async function* () {
+    yield { type: 'chunk', chunk: 'hello ' };
+    yield { type: 'chunk', chunk: 'world' };
+    yield {
+      type: 'completed',
+      usage: {
+        inputTokens: 2,
+        outputTokens: 3,
+        costUsd: 0.00001,
+      },
+    };
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-incremental-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      input: { prompt: 'incremental stream' },
+      workflowType: null,
+      idempotencyKey: 'idem-root-incremental-001',
+      registrySnapshotRef: 'snapshot:root-incremental',
+    },
+    adapters,
+  );
+
+  const chunkEvents = result.streamEvents.filter((event) => event.event === 'chunk');
+  assert.equal(chunkEvents.length, 2);
+  assert.equal(chunkEvents[0]?.data.sequence, 1);
+  assert.equal(chunkEvents[0]?.data.chunk, 'hello ');
+  assert.equal(chunkEvents[1]?.data.sequence, 2);
+  assert.equal(chunkEvents[1]?.data.chunk, 'world');
+  assert.equal(result.content, 'hello world');
+});
+
 test('generation root failure path fails on usage rejection', async () => {
   const adapters = createInMemoryGenerationAdapters();
   const actor = createActor(generationSystemMachine, { input: { adapters } });

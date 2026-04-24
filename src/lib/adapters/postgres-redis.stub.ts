@@ -7,9 +7,11 @@ import type {
 
 import type {
   IdempotencyDecision,
+  LlmStreamAdapter,
   PersistedArtifactStatus,
   UsageDecision,
 } from './generation.adapters';
+import { createSyntheticLlmStreamAdapter } from './generation.adapters';
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import type {
   PostgresArtifactRepository,
@@ -170,11 +172,13 @@ export const createPostgresRedisStubDependencies = (
   options: PostgresRedisStubOptions = {},
 ): PostgresRedisAdapterDependencies => {
   const { defaultQuotaLimit = 100, runtime } = options;
+  const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
 
   return {
     quota: new RedisQuotaRepositoryStub(defaultQuotaLimit),
     idempotency: new RedisIdempotencyRepositoryStub(),
     stream: new RedisStreamSessionRepositoryStub(runtime),
+    llm,
     persistence: new PostgresArtifactRepositoryStub(runtime),
   };
 };

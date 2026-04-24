@@ -10,6 +10,11 @@ import type {
 
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import {
+  createSyntheticLlmStreamAdapter,
+  type LlmStreamAdapter,
+} from './generation.adapters';
+import { createOpenRouterLlmStreamAdapterFromEnv } from './openrouter.adapter';
+import {
   buildIdempotencyRedisLockKey,
   DEFAULT_IDEMPOTENCY_REDIS_KEY_PREFIX,
 } from './postgres-redis.shared';
@@ -83,6 +88,9 @@ export type PostgresRedisProductionOptions = {
   idempotency?: IdempotencyRepositoryOptions;
   stream?: StreamRepositoryOptions;
   persistence?: PersistenceRepositoryOptions;
+  llm?: {
+    adapter?: LlmStreamAdapter;
+  };
 };
 
 type IdempotencyRow = {
@@ -639,6 +647,9 @@ export const createPostgresRedisProductionDependencies = (
   clients: PostgresRedisProductionClients,
   options: PostgresRedisProductionOptions = {},
 ): PostgresRedisAdapterDependencies => {
+  const llm =
+    options.llm?.adapter ?? createOpenRouterLlmStreamAdapterFromEnv() ?? createSyntheticLlmStreamAdapter();
+
   return {
     quota: new PostgresRedisUsageRepository(clients.pg, clients.redis, options.usage),
     idempotency: new PostgresRedisIdempotencyRepository(
@@ -651,6 +662,7 @@ export const createPostgresRedisProductionDependencies = (
       options.runtime,
       options.stream,
     ),
+    llm,
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
   };
 };

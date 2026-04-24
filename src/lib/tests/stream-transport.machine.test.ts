@@ -17,6 +17,7 @@ test('streamTransportMachine reaches success terminal', async () => {
       requestId: 'req-stream-ok',
       artifactId: 'artifact-stream-ok',
       model: 'gpt-5.3-codex',
+      requestInput: { prompt: 'hello' },
       workflowType: null,
       outputFormat: 'plain',
       registrySnapshotRef: 'snapshot:seed' as never,
@@ -25,6 +26,7 @@ test('streamTransportMachine reaches success terminal', async () => {
       },
       adapters: {
         stream: adapters.stream,
+        llm: adapters.llm,
       },
     },
   });
@@ -35,10 +37,6 @@ test('streamTransportMachine reaches success terminal', async () => {
 
   actor.start();
   const outputPromise = toPromise(actor) as Promise<StreamTerminatedSuccessEvent>;
-  await waitFor(actor, (s) => s.matches('streamOpen'));
-  actor.send({ type: 'STREAM_READY' });
-  actor.send({ type: 'STREAM_CHUNK', chunk: 'hello' });
-  actor.send({ type: 'STREAM_COMPLETE' });
 
   await waitFor(actor, (s) => s.matches('closedSuccess'));
   const finalSnapshot = actor.getSnapshot();
@@ -49,12 +47,11 @@ test('streamTransportMachine reaches success terminal', async () => {
   assert.equal(output.sourceActor, 'streamTransportMachine');
   assert.equal(output.timestamp, FIXED_NOW_ISO);
   assert.equal(output.artifactId, 'artifact-stream-ok');
+  assert.match(output.content ?? '', /Generated output for prompt: hello/);
 
-  const firstOpenIndex = visitedStates.indexOf('streamOpen');
   const firstStreamingIndex = visitedStates.indexOf('streamingTokens');
   const firstClosedIndex = visitedStates.indexOf('closedSuccess');
-  assert.ok(firstOpenIndex >= 0);
-  assert.ok(firstStreamingIndex > firstOpenIndex);
+  assert.ok(firstStreamingIndex >= 0);
   assert.ok(firstClosedIndex > firstStreamingIndex);
   assert.equal(visitedStates.filter((value) => value === 'closedSuccess').length, 1);
 
@@ -63,11 +60,16 @@ test('streamTransportMachine reaches success terminal', async () => {
 
 test('streamTransportMachine reaches failure terminal', async () => {
   const adapters = createInMemoryGenerationAdapters();
+  adapters.llm.streamText = async function* () {
+    throw new Error('forced');
+  };
+
   const actor = createActor(streamTransportMachine, {
     input: {
       requestId: 'req-stream-fail',
       artifactId: 'artifact-stream-fail',
       model: 'gpt-5.3-codex',
+      requestInput: { prompt: 'hello fail' },
       workflowType: null,
       outputFormat: 'plain',
       registrySnapshotRef: 'snapshot:seed' as never,
@@ -76,13 +78,13 @@ test('streamTransportMachine reaches failure terminal', async () => {
       },
       adapters: {
         stream: adapters.stream,
+        llm: adapters.llm,
       },
     },
   });
 
   actor.start();
   const outputPromise = toPromise(actor) as Promise<StreamTerminatedFailureEvent>;
-  actor.send({ type: 'STREAM_FAIL', reason: 'forced' });
 
   await waitFor(actor, (s) => s.matches('closedFailure'));
   const finalSnapshot = actor.getSnapshot();

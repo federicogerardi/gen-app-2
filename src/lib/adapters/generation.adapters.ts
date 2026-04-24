@@ -5,6 +5,30 @@ import type {
   UsageActorInput,
 } from '../types/xstate';
 
+export type LlmUsageMetrics = {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+};
+
+export type LlmStreamInput = {
+  requestId: string;
+  model: string;
+  outputFormat: StreamTransportInput['outputFormat'];
+  requestInput: Record<string, unknown>;
+  signal?: AbortSignal;
+};
+
+export type LlmStreamEvent =
+  | { type: 'chunk'; chunk: string }
+  | {
+      type: 'heartbeat';
+      estimatedInputTokens: number;
+      estimatedOutputTokens: number;
+      costEstimate: number;
+    }
+  | { type: 'completed'; usage?: LlmUsageMetrics };
+
 export type UsageDecision = {
   granted: boolean;
   reason?: string;
@@ -35,6 +59,10 @@ export interface StreamAdapter {
   openSession(input: StreamTransportInput): Promise<{ sessionId: string }>;
 }
 
+export interface LlmStreamAdapter {
+  streamText(input: LlmStreamInput): AsyncIterable<LlmStreamEvent>;
+}
+
 export interface PersistenceAdapter {
   flushProgress(input: PersistenceBatchInput, sequence: number): Promise<void>;
   finalizeSuccess(input: PersistenceBatchInput): Promise<void>;
@@ -45,6 +73,7 @@ export interface GenerationAdapters {
   usage: UsageAdapter;
   idempotency: IdempotencyAdapter;
   stream: StreamAdapter;
+  llm: LlmStreamAdapter;
   persistence: PersistenceAdapter;
 }
 
@@ -66,6 +95,33 @@ type ArtifactRecord = {
 };
 
 const nowIso = (): string => new Date().toISOString();
+
+const buildSyntheticResponse = (input: LlmStreamInput): string => {
+  const prompt = input.requestInput.prompt;
+  if (typeof prompt === 'string' && prompt.trim().length > 0) {
+    return `Generated output for prompt: ${prompt.trim()}`;
+  }
+
+  return `Generated output for request ${input.requestId}`;
+};
+
+export const createSyntheticLlmStreamAdapter = (): LlmStreamAdapter => ({
+  async *streamText(input) {
+    const content = buildSyntheticResponse(input);
+    if (content.length > 0) {
+      yield { type: 'chunk', chunk: content };
+    }
+
+    yield {
+      type: 'completed',
+      usage: {
+        inputTokens: Math.max(0, Math.ceil(JSON.stringify(input.requestInput).length / 4)),
+        outputTokens: Math.max(0, Math.ceil(content.length / 4)),
+        costUsd: Number((Math.max(1, content.length) * 0.000001).toFixed(6)),
+      },
+    };
+  },
+});
 
 export const createInMemoryGenerationAdapters = (
   quotaLimit = 100,
@@ -136,6 +192,8 @@ export const createInMemoryGenerationAdapters = (
     },
   };
 
+  const llm = createSyntheticLlmStreamAdapter();
+
   const persistence: PersistenceAdapter = {
     async flushProgress(input, _sequence) {
       const current = artifactStore.get(input.artifactId);
@@ -167,6 +225,7 @@ export const createInMemoryGenerationAdapters = (
     usage,
     idempotency,
     stream,
+    llm,
     persistence,
   };
 };

@@ -2,13 +2,23 @@ export {
   createInMemoryGenerationAdapters,
   type GenerationAdapters,
   type IdempotencyAdapter,
+  type LlmStreamAdapter,
+  type LlmStreamEvent,
+  type LlmStreamInput,
+  type LlmUsageMetrics,
   type PersistenceAdapter,
   type PersistedArtifactStatus,
   type StreamAdapter,
   type UsageDecision,
   type IdempotencyDecision,
   type UsageAdapter,
+  createSyntheticLlmStreamAdapter,
 } from './generation.adapters';
+
+export {
+  createOpenRouterLlmStreamAdapter,
+  createOpenRouterLlmStreamAdapterFromEnv,
+} from './openrouter.adapter';
 
 export { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 

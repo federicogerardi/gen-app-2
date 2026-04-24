@@ -16,7 +16,7 @@
 
 - Error object shape stabile.
 - SSE event shape stabile per tutti i tipi evento.
-- Ordine evento (`start` precede token, terminal event unico).
+- Ordine evento (`start` precede `chunk`, terminal event unico).
 
 ## 15.4 Persistence Coverage
 

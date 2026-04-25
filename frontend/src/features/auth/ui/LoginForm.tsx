@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { appCopy } from '../../../app/copy/system';
 import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type LoginFormProps = {
@@ -21,18 +22,20 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
       await onSubmit(email, password);
       setPassword('');
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Login failed');
+      setError(submissionError instanceof Error ? submissionError.message : appCopy.ui.fallbackErrors.loginFailed);
     } finally {
       setPending(false);
     }
   };
 
   return (
-    <Surface as="section" className="login-panel">
-      <h1>Accesso</h1>
+    <Surface as="section" className={uiPrimitives.loginPanel}>
+      <p className={uiPrimitives.metaLine}>{appCopy.editorial.auth.eyebrow}</p>
+      <h1>{appCopy.editorial.auth.headline}</h1>
+      <p>{appCopy.editorial.auth.body}</p>
       <form className={uiPrimitives.grid} onSubmit={handleSubmit}>
         <label>
-          Email
+          {appCopy.ui.labels.email}
           <input
             type="email"
             required
@@ -42,7 +45,7 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
         </label>
 
         <label>
-          Password
+          {appCopy.ui.labels.password}
           <input
             type="password"
             required
@@ -54,12 +57,12 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
         {error ? <p className={uiPrimitives.error}>{error}</p> : null}
 
         <Button type="submit" disabled={pending}>
-          {pending ? 'Accesso in corso...' : 'Login'}
+          {pending ? appCopy.editorial.auth.pendingAccess : appCopy.ui.actions.enterWorkspace}
         </Button>
       </form>
 
-      <a className="oauth-link" href={oauthStartUrl}>
-        Continua con Google
+      <a className={uiPrimitives.oauthLink} href={oauthStartUrl}>
+        {appCopy.ui.actions.continueWithGoogleWorkspace}
       </a>
     </Surface>
   );

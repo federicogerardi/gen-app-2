@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type AdminUser = {
   id: string;
@@ -22,7 +24,7 @@ export const AdminUsersPage = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`Unable to load admin users (HTTP ${response.status})`);
+          throw new Error(appCopy.ui.fallbackErrors.loadAdminUsersHttp(response.status));
         }
 
         const body = (await response.json()) as { users?: AdminUser[] } | AdminUser[];
@@ -30,24 +32,24 @@ export const AdminUsersPage = () => {
         setError(null);
       } catch (loadError) {
         setUsers([]);
-        setError(loadError instanceof Error ? loadError.message : 'Admin users load failed');
+        setError(loadError instanceof Error ? loadError.message : appCopy.ui.fallbackErrors.loadAdminUsers);
       }
     })();
   }, [auth.apiBaseUrl]);
 
   return (
-    <section className="panel page-stack">
-      <h2>Admin users</h2>
-      {error ? <p className="error-message">{error}</p> : null}
-      <ul className="list-clean">
+    <Surface as="section" className={uiPrimitives.stack}>
+      <h2>{appCopy.editorial.admin.usersTitle}</h2>
+      {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+      <ul className={uiPrimitives.listClean}>
         {users.map((user) => (
-          <li key={user.id} className="panel">
+          <Surface as="li" key={user.id}>
             <p><strong>{user.email}</strong></p>
-            <p className="meta-line">role: {user.role}</p>
-            <p className="meta-line">status: {user.status}</p>
-          </li>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.role, user.role)}</p>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, user.status)}</p>
+          </Surface>
         ))}
       </ul>
-    </section>
+    </Surface>
   );
 };

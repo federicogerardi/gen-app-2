@@ -1,4 +1,6 @@
 import type { FrontendStreamStatus } from '../machines/frontend-stream.machine';
+import { appCopy, formatMeta } from '../../../app/copy/system';
+import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 import type {
   CanonicalToolUiState,
   PrimaryActionPolicy,
@@ -38,37 +40,37 @@ export const GenerationStreamPanel = ({
   primaryActionPolicy,
 }: GenerationStreamPanelProps) => {
   return (
-    <section className="panel stream-panel">
-      <h2>Stream output</h2>
-      <p className="status-line">
-        Stato: <strong>{status}</strong>
+    <Surface as="section" className={cx(uiPrimitives.streamPanel, `is-${status}`)}>
+      <h2>{appCopy.editorial.generation.streamTitle}</h2>
+      <p className={uiPrimitives.statusLine}>
+        {appCopy.ui.meta.state}: <strong>{status}</strong>
       </p>
-      <p className="meta-line">uiState: {canonicalState}</p>
-      <p className="meta-line">primaryAction: {primaryActionPolicy}</p>
-      <p className="meta-line">requestId: {requestId ?? '-'}</p>
-      <p className="meta-line">artifactId: {artifactId ?? '-'}</p>
-      <p className="meta-line">reconnect attempts: {reconnectAttempts}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.uiState, canonicalState)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.primaryAction, primaryActionPolicy)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.requestId, requestId ?? '-')}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifactId, artifactId ?? '-')}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.reconnectAttempts, reconnectAttempts)}</p>
 
       {errorMessage ? (
-        <div className="error-box" role="alert">
+        <div className={uiPrimitives.error} role="alert">
           <p>Errore: {errorMessage}</p>
           {errorCode ? <p>Codice: {errorCode}</p> : null}
         </div>
       ) : null}
 
-      <pre aria-live="polite">{content.length > 0 ? content : 'Nessun chunk ricevuto'}</pre>
+      <pre aria-live="polite">{content.length > 0 ? content : appCopy.ui.states.noChunkReceived}</pre>
 
-      <div className="actions">
-        <button type="button" onClick={onRetry} disabled={!canRetry}>
-          Riprova
-        </button>
-        <button type="button" onClick={onCancel} disabled={!canCancel}>
-          Cancella
-        </button>
-        <button type="button" onClick={onReset}>
-          Reset
-        </button>
+      <div className={uiPrimitives.actions}>
+        <Button type="button" onClick={onRetry} disabled={!canRetry}>
+          {appCopy.ui.actions.retry}
+        </Button>
+        <Button type="button" onClick={onCancel} disabled={!canCancel}>
+          {appCopy.ui.actions.cancel}
+        </Button>
+        <Button type="button" onClick={onReset}>
+          {appCopy.ui.actions.reset}
+        </Button>
       </div>
-    </section>
+    </Surface>
   );
 };

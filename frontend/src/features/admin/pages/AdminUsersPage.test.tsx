@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { appCopy } from '../../../app/copy/system';
+import { useMswHandler } from '../../../test/mocks/server';
 import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
 
@@ -17,13 +20,11 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   }),
 }));
 
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
-
 beforeEach(() => {
   sessionBag.role = 'user';
-  mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, json: async () => [] } as Response);
+  useMswHandler(
+    http.get('/admin/users', () => HttpResponse.json([])),
+  );
 });
 
 describe('AdminGuard', () => {
@@ -81,11 +82,13 @@ describe('AdminUsersPage', () => {
         <AdminUsersPage />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('heading', { name: /admin users/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: appCopy.editorial.admin.usersTitle })).toBeInTheDocument();
   });
 
   it('shows error message on fetch failure', async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 403 } as Response);
+    useMswHandler(
+      http.get('/admin/users', () => new HttpResponse(null, { status: 403 })),
+    );
     const { findByText } = render(
       <MemoryRouter>
         <AdminUsersPage />
@@ -95,10 +98,11 @@ describe('AdminUsersPage', () => {
   });
 
   it('renders users returned by API', async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => [{ id: 'u1', email: 'alice@test.com', role: 'user', status: 'active' }],
-    } as Response);
+    useMswHandler(
+      http.get('/admin/users', () => HttpResponse.json([
+        { id: 'u1', email: 'alice@test.com', role: 'user', status: 'active' },
+      ])),
+    );
     const { findByText } = render(
       <MemoryRouter>
         <AdminUsersPage />

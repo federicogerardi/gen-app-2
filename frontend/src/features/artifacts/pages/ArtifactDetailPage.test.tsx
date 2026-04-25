@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { appCopy } from '../../../app/copy/system';
 import { ArtifactDetailPage } from './ArtifactDetailPage';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
@@ -45,17 +46,17 @@ const renderPage = (artifactId = 'art-1') =>
 describe('ArtifactDetailPage', () => {
   it('shows "Artifact non trovato" for missing artifact', () => {
     renderPage('missing');
-    expect(screen.getByText(/artifact non trovato/i)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.ui.states.noArtifactFound)).toBeInTheDocument();
   });
 
   it('renders artifact content when found', () => {
     renderPage('art-1');
     // May be async – check heading at minimum
-    expect(screen.getByRole('heading', { name: /artifact detail/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: appCopy.editorial.artifacts.detailTitle })).toBeInTheDocument();
   });
 
   it('renders back link to artifacts archive', () => {
     renderPage('art-1');
-    expect(screen.getByText(/torna all'archivio/i)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.ui.actions.openArchive)).toBeInTheDocument();
   });
 });

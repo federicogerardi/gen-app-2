@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -28,31 +29,31 @@ export const ProjectDetailPage = () => {
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
-        <h2>Project detail</h2>
-        <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>Torna alla lista</Link>
+        <h2>{appCopy.editorial.projects.detailTitle}</h2>
+        <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.backToList}</Link>
       </TopBar>
 
       {!project ? (
-        <p className="meta-line">Progetto non trovato.</p>
+        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectFound}</p>
       ) : (
         <>
           <h3>{project.name}</h3>
           <p>{project.description}</p>
-          <p className="meta-line">Updated: {new Date(project.updatedAt).toLocaleString()}</p>
+          <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(project.updatedAt).toLocaleString())}</p>
         </>
       )}
 
-      <h3>Artifacts contestuali</h3>
+      <h3>{appCopy.editorial.projects.contextualArtifacts}</h3>
       {projectArtifacts.length === 0 ? (
-        <p className="meta-line">Nessun artifact collegato al progetto.</p>
+        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectArtifacts}</p>
       ) : (
         <ul className={uiPrimitives.listClean}>
           {projectArtifacts.map((artifact) => (
             <Surface as="li" key={artifact.artifactId}>
               <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
-              <p className="meta-line">model: {artifact.model}</p>
-              <p className="meta-line">date: {new Date(artifact.updatedAt).toLocaleString()}</p>
-              <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>Apri artifact</Link>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.model, artifact.model)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.date, new Date(artifact.updatedAt).toLocaleString())}</p>
+              <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArtifact}</Link>
             </Surface>
           ))}
         </ul>

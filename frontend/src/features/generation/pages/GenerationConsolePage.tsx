@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appCopy } from '../../../app/copy/system';
 import { GenerationForm } from '../ui/GenerationForm';
 import { GenerationStreamPanel } from '../ui/GenerationStreamPanel';
 import { ArtifactHistoryPanel } from '../ui/ArtifactHistoryPanel';
@@ -11,6 +12,7 @@ import {
 } from '../ui/tool-ux-state';
 import { useGenerationWorkspace } from '../runtime/GenerationWorkspaceProvider';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { uiPrimitives } from '../../../app/ui/primitives';
 import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
 
 export const GenerationConsolePage = () => {
@@ -76,7 +78,7 @@ export const GenerationConsolePage = () => {
         }
 
         setProjects([]);
-        setProjectsError(loadError instanceof Error ? loadError.message : 'Unable to load projects');
+        setProjectsError(loadError instanceof Error ? loadError.message : appCopy.ui.fallbackErrors.loadProjects);
       } finally {
         if (!cancelled) {
           setProjectsLoading(false);
@@ -94,8 +96,8 @@ export const GenerationConsolePage = () => {
   }
 
   return (
-    <section className="page-stack">
-      <section className="layout-grid">
+    <section className={uiPrimitives.stack}>
+      <section className={uiPrimitives.generationCanvas}>
         <GenerationForm
           userId={auth.session.user.id}
           toolsUploadEnabled={auth.capabilities.toolsUpload}
@@ -127,14 +129,14 @@ export const GenerationConsolePage = () => {
           canonicalState={canonicalState}
           primaryActionPolicy={primaryActionPolicy}
         />
-      </section>
 
-      <ArtifactHistoryPanel
-        artifacts={generation.artifacts}
-        relaunchDisabled={generation.isStreamActive}
-        onOpenProject={(projectId) => generation.setFocusedProjectId(projectId)}
-        onRelaunch={generation.relaunch}
-      />
+        <ArtifactHistoryPanel
+          artifacts={generation.artifacts}
+          relaunchDisabled={generation.isStreamActive}
+          onOpenProject={(projectId) => generation.setFocusedProjectId(projectId)}
+          onRelaunch={generation.relaunch}
+        />
+      </section>
     </section>
   );
 };

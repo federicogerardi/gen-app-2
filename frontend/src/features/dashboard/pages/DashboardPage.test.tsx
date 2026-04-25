@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { appCopy } from '../../../app/copy/system';
 import { DashboardPage } from './DashboardPage';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
@@ -20,7 +21,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
 describe('DashboardPage', () => {
   it('renders dashboard heading', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: appCopy.editorial.dashboard.headline })).toBeInTheDocument();
   });
 
   it('renders shortcut links to tools', () => {
@@ -31,7 +32,7 @@ describe('DashboardPage', () => {
 
   it('shows empty state when no recent artifacts', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getByText(/nessun artifact/i)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.ui.states.noArtifactsAvailable)).toBeInTheDocument();
   });
 
   it('renders artifact links when artifacts present', () => {

@@ -1,22 +1,15 @@
-import { useState } from 'react';
-import { NavLink, Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
+import { appCopy } from '../copy/system';
 import { useAuthSession } from '../providers/AuthSessionProvider';
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', end: true },
-  { to: '/dashboard/projects', label: 'Projects', end: true },
-  { to: '/tools/funnel-pages', label: 'Funnel Pages', end: false },
-  { to: '/tools/nextland', label: 'Nextland', end: false },
-  { to: '/artifacts', label: 'Artifacts', end: false },
-  { to: '/admin', label: 'Admin', end: false },
-];
+import { MainNavigation } from './MainNavigation';
+import './MainNavigation.css';
+import { Button, Shell, Surface, uiPrimitives } from '../ui/primitives';
 
 export const AuthenticatedShell = () => {
-  const [menuOpen, setMenuOpen] = useState(false);
   const auth = useAuthSession();
 
   if (auth.loading) {
-    return <main className="app-shell"><p>Verifica sessione...</p></main>;
+    return <Shell as="main"><p>{appCopy.ui.session.verifying}</p></Shell>;
   }
 
   if (!auth.session) {
@@ -24,39 +17,47 @@ export const AuthenticatedShell = () => {
   }
 
   return (
-    <main className="app-shell app-shell-auth">
-      <header className="panel auth-shell-header">
+    <Shell as="main" className={uiPrimitives.shellAuth}>
+      <Surface as="header" className={uiPrimitives.authHeader}>
         <div>
-          <h1>Generation Console</h1>
+          <p className={uiPrimitives.metaLine}>{appCopy.editorial.header.eyebrow}</p>
+          <h1>{appCopy.editorial.header.headline}</h1>
           <p>{auth.session.user.email} ({auth.session.user.role})</p>
         </div>
 
-        <div className="auth-shell-actions">
-          <span className="runtime-badge">runtime: as-is</span>
-          <button type="button" className="menu-toggle" onClick={() => setMenuOpen((prev) => !prev)}>
-            Menu
-          </button>
-          <button type="button" onClick={() => void auth.logout()}>
-            Logout
-          </button>
+        <div className={uiPrimitives.authActions}>
+          <span className={uiPrimitives.runtimeBadge}>{appCopy.ui.badges.runtimeAsIs}</span>
+          <Button type="button" onClick={() => void auth.logout()}>
+            {appCopy.ui.actions.logout}
+          </Button>
         </div>
-      </header>
+      </Surface>
 
-      <nav className={`panel main-nav ${menuOpen ? 'is-open' : ''}`}>
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}
-            onClick={() => setMenuOpen(false)}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+      <section className={uiPrimitives.workbench}>
+        <MainNavigation />
 
-      <Outlet />
-    </main>
+        <section className={uiPrimitives.mainCanvas}>
+          <Outlet />
+        </section>
+
+        <Surface as="aside" className={uiPrimitives.contextRail}>
+          <h2>{appCopy.ui.actions.sections}</h2>
+          <ul className={uiPrimitives.contextList}>
+            <li>
+              <strong>{appCopy.ui.meta.state}</strong>
+              <span>{auth.session.user.role}</span>
+            </li>
+            <li>
+              <strong>{appCopy.ui.meta.requestId}</strong>
+              <span>{auth.session.user.email}</span>
+            </li>
+            <li>
+              <strong>{appCopy.ui.labels.project}</strong>
+              <span>{auth.capabilities.projects ? appCopy.ui.states.present : appCopy.ui.states.missing}</span>
+            </li>
+          </ul>
+        </Surface>
+      </section>
+    </Shell>
   );
 };

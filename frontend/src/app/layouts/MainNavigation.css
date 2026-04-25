@@ -1,0 +1,108 @@
+.ui-main-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  transition: min-width 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 180px;
+}
+
+.ui-main-nav.is-collapsed {
+  min-width: 70px;
+}
+
+.nav-toggle {
+  align-self: flex-end;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.nav-toggle:hover {
+  color: var(--text-primary);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.nav-items {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+  transition: color 120ms ease, background-color 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.ui-main-nav.is-collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+}
+
+.nav-icon {
+  flex-shrink: 0;
+  stroke-width: 1.5;
+}
+
+.nav-label {
+  font-family: var(--font-family-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-main-nav.is-collapsed .nav-label {
+  display: none;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: rgba(139, 92, 246, 0.16);
+  transform: translateX(2px);
+}
+
+.ui-main-nav.is-collapsed .nav-item:hover {
+  transform: none;
+}
+
+.nav-item.is-active {
+  color: #f8f5ff;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.62), rgba(139, 92, 246, 0.62));
+  border: 1px solid rgba(167, 139, 250, 0.5);
+}
+
+@media (max-width: 979px) {
+  .ui-main-nav {
+    display: none;
+  }
+
+  .ui-main-nav.is-open {
+    display: flex;
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-width: 200px;
+    border-radius: 0 12px 12px 0;
+    z-index: 100;
+    box-shadow: 4px 0 12px rgba(1, 8, 24, 0.3);
+  }
+}

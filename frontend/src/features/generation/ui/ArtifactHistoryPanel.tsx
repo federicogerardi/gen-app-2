@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ArtifactType } from '../contracts/backend-stream';
+import { appCopy, formatMeta } from '../../../app/copy/system';
+import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 import {
   filterArtifacts,
   type ArtifactFilters,
@@ -58,33 +60,30 @@ export const ArtifactHistoryPanel = ({
   };
 
   return (
-    <section className="panel artifact-history-panel">
-      <h2>Storico artefatti</h2>
+    <Surface as="section" className={uiPrimitives.artifactHistoryPanel}>
+      <h2>{appCopy.editorial.generation.historyTitle}</h2>
 
-      <div className="artifact-filters">
+      <div className={uiPrimitives.artifactFilters}>
         <label>
-          Tipo
+          {appCopy.ui.labels.type}
           <select value={filters.type} onChange={(event) => setTypeFilter(event.target.value)}>
-            <option value="all">all</option>
-            <option value="content">content</option>
-            <option value="seo">seo</option>
-            <option value="code">code</option>
-            <option value="extraction">extraction</option>
+            {appCopy.ui.options.artifactTypes.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
 
         <label>
-          Stato
+          {appCopy.ui.labels.status}
           <select value={filters.status} onChange={(event) => setStatusFilter(event.target.value)}>
-            <option value="all">all</option>
-            <option value="generating">generating</option>
-            <option value="completed">completed</option>
-            <option value="failed">failed</option>
+            {appCopy.ui.options.artifactStatuses.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
 
         <label>
-          Progetto
+          {appCopy.ui.labels.project}
           <select value={filters.projectId} onChange={(event) => setProjectFilter(event.target.value)}>
             <option value="all">all</option>
             {projectOptions.map((projectId) => (
@@ -94,27 +93,29 @@ export const ArtifactHistoryPanel = ({
         </label>
 
         <label>
-          Periodo
+          {appCopy.ui.labels.period}
           <select value={filters.period} onChange={(event) => setPeriodFilter(event.target.value)}>
-            <option value="all">all</option>
-            <option value="7d">7d</option>
-            <option value="30d">30d</option>
-            <option value="90d">90d</option>
+            {appCopy.ui.options.artifactPeriods.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
       </div>
 
-      <div className="artifact-grid">
-        <div className="artifact-list" role="list">
+      <div className={uiPrimitives.artifactGrid}>
+        <div className={uiPrimitives.artifactList} role="list">
           {filteredArtifacts.length === 0 ? (
-            <p className="meta-line">Nessun artifact disponibile con i filtri correnti.</p>
+            <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactsFiltered}</p>
           ) : null}
 
           {filteredArtifacts.map((artifact) => (
             <button
               key={artifact.artifactId}
               type="button"
-              className={`artifact-row ${selectedArtifactId === artifact.artifactId ? 'is-selected' : ''}`}
+              className={cx(
+                uiPrimitives.artifactRow,
+                selectedArtifactId === artifact.artifactId && uiPrimitives.artifactRowSelected,
+              )}
               onClick={() => setSelectedArtifactId(artifact.artifactId)}
             >
               <strong>{artifact.artifactType}</strong>
@@ -125,47 +126,47 @@ export const ArtifactHistoryPanel = ({
           ))}
         </div>
 
-        <div className="artifact-detail">
+        <div className={uiPrimitives.artifactDetail}>
           {!selectedArtifact ? (
-            <p className="meta-line">Seleziona un artifact per vedere il dettaglio.</p>
+            <p className={uiPrimitives.metaLine}>Seleziona un artifact per vedere il dettaglio.</p>
           ) : (
             <>
-              <h3>Dettaglio artifact</h3>
-              <p className="meta-line">artifactId: {selectedArtifact.artifactId}</p>
-              <p className="meta-line">projectId: {selectedArtifact.projectId}</p>
-              <p className="meta-line">stato: {selectedArtifact.status}</p>
-              <p className="meta-line">tipo: {selectedArtifact.artifactType}</p>
-              <p className="meta-line">model: {selectedArtifact.model}</p>
-              <p className="meta-line">updated: {new Date(selectedArtifact.updatedAt).toLocaleString()}</p>
+              <h3>{appCopy.editorial.generation.artifactDetailTitle}</h3>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifactId, selectedArtifact.artifactId)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.projectId, selectedArtifact.projectId)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.labels.status.toLowerCase(), selectedArtifact.status)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.labels.type.toLowerCase(), selectedArtifact.artifactType)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.model, selectedArtifact.model)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(selectedArtifact.updatedAt).toLocaleString())}</p>
 
-              <pre className="artifact-content">{selectedArtifact.content || 'Contenuto non disponibile.'}</pre>
+              <pre className={uiPrimitives.artifactContent}>{selectedArtifact.content || 'Contenuto non disponibile.'}</pre>
 
-              <div className="actions">
-                <button type="button" onClick={() => setSelectedArtifactId(null)}>
-                  Torna allo storico
-                </button>
-                <button type="button" onClick={() => onOpenProject(selectedArtifact.projectId)}>
-                  Apri progetto di contesto
-                </button>
-                <button
+              <div className={uiPrimitives.actions}>
+                <Button type="button" onClick={() => setSelectedArtifactId(null)}>
+                  {appCopy.ui.actions.historyBack}
+                </Button>
+                <Button type="button" onClick={() => onOpenProject(selectedArtifact.projectId)}>
+                  {appCopy.ui.actions.openContextProject}
+                </Button>
+                <Button
                   type="button"
                   onClick={() => onRelaunch(selectedArtifact, 'primary')}
                   disabled={relaunchDisabled}
                 >
-                  Relaunch primario
-                </button>
-                <button
+                  {appCopy.ui.actions.relaunchPrimary}
+                </Button>
+                <Button
                   type="button"
                   onClick={() => onRelaunch(selectedArtifact, 'secondary')}
                   disabled={relaunchDisabled}
                 >
-                  Relaunch secondario
-                </button>
+                  {appCopy.ui.actions.relaunchSecondary}
+                </Button>
               </div>
             </>
           )}
         </div>
       </div>
-    </section>
+    </Surface>
   );
 };

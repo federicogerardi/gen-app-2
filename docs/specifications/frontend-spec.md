@@ -1,8 +1,8 @@
 # Frontend — Specifica as-is
 
-**Data**: 2026-04-24  
+**Data**: 2026-04-25  
 **Radice sorgente**: `frontend/src/`  
-**Stack**: React 18 + TypeScript + XState v5 + Vite
+**Stack**: React 19.2 + TypeScript + XState v5 + Vite
 
 ---
 
@@ -14,6 +14,11 @@ frontend/
     main.tsx                          # Entry point React
     App.tsx                           # Shell applicativa e orchestrazione auth
     styles.css                        # Stili globali
+    app/
+      copy/
+        system.ts                     # Registry centralizzato copy UI + tono editoriale
+      ui/
+        primitives.tsx                # Primitive UI e vocabolario classi condivise
     features/
       auth/
         runtime/
@@ -33,6 +38,65 @@ frontend/
           GenerationForm.tsx          # Form di invio richiesta di generazione
           GenerationStreamPanel.tsx   # Pannello di visualizzazione output stream
 ```
+
+---
+
+## Centralizzazione UI e copy
+
+Lo stato as-is del frontend non usa piu silos locali per grafica e testi utente nelle pagine operative principali.
+
+### Layer grafico condiviso
+
+- `frontend/src/app/ui/primitives.tsx` e la fonte canonica delle primitive React riusabili (`Surface`, `Shell`, `TopBar`, `Button`) e dei token di classe (`uiPrimitives`).
+- `frontend/src/styles.css` implementa i token CSS globali e gli alias `.ui-*` che danno forma visiva alle primitive.
+- Le pagine non devono introdurre naming CSS ad hoc per pannelli, shell, navigation, card, meta line e action group se esiste gia un token nel registry UI.
+
+### Layer copy condiviso
+
+- `frontend/src/app/copy/system.ts` e la fonte canonica di tutto il testo utente centralizzato.
+- Il modulo separa due domini:
+  - `appCopy.ui`: microcopy operativo, label, CTA, stati, fallback error, option label, badge e navigation.
+  - `appCopy.editorial`: tono di prodotto, headline, body copy e framing editoriale delle pagine.
+- Il formatter `formatMeta()` centralizza il pattern `label: value` per metadati e stati di supporto.
+
+### Stato di adozione corrente
+
+- Shell pubblica/autenticata, dashboard, projects, artifacts, admin, generation e tool pages principali consumano il registry UI e il registry copy.
+- I test frontend toccati in questo ciclo importano anch'essi `appCopy` dove l'asserzione dipende dal testo utente, per evitare divergenze tra runtime e suite di test.
+
+---
+
+## Regole obbligatorie per interventi futuri
+
+### Interventi grafici
+
+1. Prima cercare una primitive o un token esistente in `frontend/src/app/ui/primitives.tsx`.
+2. Se il pattern esiste, riusarlo; non duplicare classi raw nel TSX.
+3. Se il pattern non esiste, aggiungere prima il token al registry UI e poi mappare lo stile in `frontend/src/styles.css`.
+4. Evitare classi locali orientate al contenuto come `new-card`, `special-panel`, `custom-header` se il comportamento e generalizzabile.
+
+### Interventi di copy
+
+1. Prima cercare il testo in `frontend/src/app/copy/system.ts`.
+2. Se il testo descrive una meccanica UI o uno stato di sistema, inserirlo in `appCopy.ui`.
+3. Se il testo definisce tono, posizionamento o narrativa di pagina, inserirlo in `appCopy.editorial`.
+4. Evitare stringhe utente hardcoded nei componenti, inclusi empty state, error fallback, CTA, intestazioni e option label ripetute.
+5. Quando il testo e costruito come metadato `chiave: valore`, usare `formatMeta()` invece di concatenazioni manuali.
+
+### Interventi su test e regressioni
+
+1. Se un test verifica testo utente, preferire `appCopy` come fonte dell'asserzione quando il testo e parte del contratto di prodotto.
+2. Se il test deve restare resilient al rewording, usare query per ruolo o comportamento invece di replicare stringhe hardcoded.
+3. Non introdurre fixture di copy parallele nei test se il testo esiste gia nel registry condiviso.
+
+### Criterio di accettazione per nuovi cambiamenti frontend
+
+Un intervento frontend e coerente con questa specifica solo se:
+
+- non introduce nuovi silos di stile o copy nel TSX;
+- aggiorna i registry condivisi prima dei consumer;
+- mantiene allineati runtime, test e documentazione;
+- valida almeno `npm --prefix frontend run build` dopo la modifica.
 
 ---
 
@@ -223,6 +287,11 @@ Frontend disponibile su `http://localhost:5173`.
 | `frontend-stream.machine.test.ts` | Unit (XState) | Transizioni stati, reconnect, cancel, sequenza chunk |
 
 Esecuzione: `npm --prefix frontend run test`
+
+Validazione minima per interventi che toccano UI o copy centralizzati:
+
+- `npm --prefix frontend run build`
+- `npm --prefix frontend run test` oppure una selezione mirata delle suite toccate
 
 ---
 

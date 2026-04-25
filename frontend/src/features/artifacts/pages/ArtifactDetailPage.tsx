@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -30,9 +31,9 @@ export const ArtifactDetailPage = () => {
   if (!artifact) {
     return (
       <Surface as="section" className={uiPrimitives.stack}>
-        <h2>Artifact detail</h2>
-        <p className="meta-line">Artifact non trovato.</p>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>Torna all'archivio</Link>
+        <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
+        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactFound}</p>
+        <Link to="/artifacts" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArchive}</Link>
       </Surface>
     );
   }
@@ -40,29 +41,29 @@ export const ArtifactDetailPage = () => {
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
-        <h2>Artifact detail</h2>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>Torna all'archivio</Link>
+        <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
+        <Link to="/artifacts" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArchive}</Link>
       </TopBar>
 
-      <p className="meta-line">artifactId: {artifact.artifactId}</p>
-      <p className="meta-line">projectId: {artifact.projectId}</p>
-      <p className="meta-line">status: {artifact.status}</p>
-      <p className="meta-line">type: {artifact.artifactType}</p>
-      <pre className="artifact-content">{artifact.content || 'Contenuto non disponibile.'}</pre>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifactId, artifact.artifactId)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.projectId, artifact.projectId)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, artifact.status)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.type, artifact.artifactType)}</p>
+      <pre className={uiPrimitives.artifactContent}>{artifact.content || 'Contenuto non disponibile.'}</pre>
 
       <div className={uiPrimitives.actions}>
         <Button type="button" onClick={() => generation.relaunch(artifact, 'primary')} disabled={relaunchDisabled}>
-          Relaunch primario
+          {appCopy.ui.actions.relaunchPrimary}
         </Button>
         <Button type="button" onClick={() => generation.relaunch(artifact, 'secondary')} disabled={relaunchDisabled}>
-          Relaunch secondario
+          {appCopy.ui.actions.relaunchSecondary}
         </Button>
         <Button type="button" disabled={!isDeleteEnabled}>
-          Delete (UI only)
+          {appCopy.ui.actions.deleteUiOnly}
         </Button>
       </div>
 
-      {!isDeleteEnabled ? <p className="meta-line">ARTIFACT_DELETE_ENABLED=false</p> : null}
+      {!isDeleteEnabled ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.artifactDeleteDisabled}</p> : null}
     </Surface>
   );
 };

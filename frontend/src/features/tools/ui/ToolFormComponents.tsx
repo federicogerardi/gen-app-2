@@ -6,6 +6,8 @@
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import type { ProjectSummary } from '../../projects/runtime/projects-client';
 import type { ToolFormConfig } from '../runtime/tool-form-architecture';
+import { appCopy, formatMeta } from '../../../app/copy/system';
+import { uiPrimitives } from '../../../app/ui/primitives';
 
 type ProjectSelectorProps = {
   projectId: string;
@@ -26,7 +28,7 @@ export const ProjectSelector = ({
 }: ProjectSelectorProps) => (
   <>
     <label>
-      Project ID
+      {appCopy.ui.labels.projectId}
       <select value={projectId} onChange={e => onChange(e.target.value)} disabled={disabled || loading}>
         <option value="">Select a project</option>
         {projects.map(p => (
@@ -36,8 +38,8 @@ export const ProjectSelector = ({
         ))}
       </select>
     </label>
-    {error ? <p className="error-message">{error}</p> : null}
-    {loading ? <p className="meta-line">Loading projects...</p> : null}
+    {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+    {loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
   </>
 );
 
@@ -58,7 +60,7 @@ export const BriefingUpload = ({
 }: BriefingUploadProps) => (
   <>
     <label>
-      Brief file (.docx, .txt, .md)
+      {appCopy.ui.labels.briefFile}
       <input
         type="file"
         accept=".docx,.txt,.md"
@@ -66,10 +68,10 @@ export const BriefingUpload = ({
         onChange={e => onFileSelected(e.target.files?.[0] ?? null)}
       />
     </label>
-    {status === 'uploading' ? <p className="meta-line">Uploading briefing...</p> : null}
-    {status === 'extracting' ? <p className="meta-line">Extracting information...</p> : null}
-    {fileName ? <p className="meta-line">Briefing: {fileName}</p> : null}
-    {error ? <p className="error-message">{error}</p> : null}
+    {status === 'uploading' ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.uploadingBriefing}</p> : null}
+    {status === 'extracting' ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.extractingInformation}</p> : null}
+    {fileName ? <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, fileName)}</p> : null}
+    {error ? <p className={uiPrimitives.error}>{error}</p> : null}
   </>
 );
 
@@ -94,12 +96,12 @@ export const GenerationInputs = ({
 }: GenerationInputsProps) => (
   <>
     <label>
-      Model
+      {appCopy.ui.labels.model}
       <input value={model} onChange={e => onModelChange(e.target.value)} disabled={disabled} />
     </label>
 
     <label>
-      Registry snapshot ref
+      {appCopy.ui.labels.registrySnapshotRef}
       <input
         value={registrySnapshotRef}
         onChange={e => onRegistryRefChange(e.target.value)}
@@ -108,7 +110,7 @@ export const GenerationInputs = ({
     </label>
 
     <label>
-      Prompt
+      {appCopy.ui.labels.prompt}
       <textarea value={prompt} onChange={e => onPromptChange(e.target.value)} rows={5} disabled={disabled} />
     </label>
   </>
@@ -132,9 +134,9 @@ export const StepSelector = ({
   disabled,
 }: StepSelectorProps) => (
   <fieldset disabled={disabled}>
-    <legend>Steps</legend>
+    <legend>{config.displayName} steps</legend>
     {config.steps.map(step => (
-      <label key={step} className="checkbox-row">
+      <label key={step} className={uiPrimitives.checkboxRow}>
         <input
           type="checkbox"
           checked={selectedSteps.has(step)}
@@ -142,9 +144,9 @@ export const StepSelector = ({
           disabled={!availableSteps.includes(step)}
         />
         {step}
-        {completedSteps.has(step) ? <span className="meta-line"> ✓ completed</span> : null}
+        {completedSteps.has(step) ? <span className={uiPrimitives.metaLine}> ✓ {appCopy.ui.states.completed}</span> : null}
         {!availableSteps.includes(step) && !completedSteps.has(step) ? (
-          <span className="meta-line"> (waiting for dependencies)</span>
+          <span className={uiPrimitives.metaLine}> (waiting for dependencies)</span>
         ) : null}
       </label>
     ))}
@@ -165,11 +167,11 @@ export const FormStatus = ({
   warnings,
 }: FormStatusProps) => (
   <div>
-    <p className="meta-line">phase: {phase}</p>
-    <p className="meta-line">extraction: {extractionLifecycle}</p>
-    <p className="meta-line">briefing: {briefingFileName ?? '-'}</p>
+    <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.phase, phase)}</p>
+    <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extraction, extractionLifecycle)}</p>
+    <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, briefingFileName ?? '-')}</p>
     {warnings.map((warning, i) => (
-      <p key={i} className="error-message">
+      <p key={i} className={uiPrimitives.error}>
         {warning}
       </p>
     ))}

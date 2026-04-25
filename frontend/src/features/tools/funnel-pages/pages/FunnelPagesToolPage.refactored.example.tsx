@@ -7,6 +7,7 @@
  */
 
 import { useGenerationWorkspace } from '../../../generation/runtime/GenerationWorkspaceProvider';
+import { Button, Surface, uiPrimitives } from '../../../../app/ui/primitives';
 import { ProjectSelector, BriefingUpload, GenerationInputs, StepSelector, FormStatus } from '../../ui/ToolFormComponents';
 import { useProjectsLoader, useBriefingUpload, useStepSelection, useToolFormInit } from '../../runtime/useToolForm';
 
@@ -47,7 +48,7 @@ export const FunnelPagesToolPageRefactored = () => {
   const disabled = generation.isStreamActive || briefing.status !== 'ready';
 
   return (
-    <form className="panel grid" onSubmit={handleSubmit}>
+    <Surface as="form" className={uiPrimitives.grid} onSubmit={handleSubmit}>
       <h2>{config.displayName} Tool</h2>
 
       {/* All form sections composed from reusable components */}
@@ -94,10 +95,10 @@ export const FunnelPagesToolPageRefactored = () => {
         warnings={Object.values(validation.errors)}
       />
 
-      <button type="submit" disabled={!validation.isValid || disabled}>
+      <Button type="submit" disabled={!validation.isValid || disabled}>
         Avvia generazione
-      </button>
-    </form>
+      </Button>
+    </Surface>
   );
 };
 

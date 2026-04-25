@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { appCopy, formatMeta } from '../../../app/copy/system';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 
 export const AdminActivityPage = () => {
@@ -11,20 +13,20 @@ export const AdminActivityPage = () => {
   }, [generation.checkpoints]);
 
   return (
-    <section className="panel page-stack">
-      <h2>Admin activity</h2>
-      <p className="meta-line">Feed locale derivato da checkpoint/artifacts (fallback).</p>
+    <Surface as="section" className={uiPrimitives.stack}>
+      <h2>{appCopy.editorial.admin.activityTitle}</h2>
+      <p className={uiPrimitives.metaLine}>{appCopy.editorial.admin.activityBody}</p>
 
-      <ul className="list-clean">
+      <ul className={uiPrimitives.listClean}>
         {feed.map((item) => (
-          <li key={item.artifactId} className="panel">
+          <Surface as="li" key={item.artifactId}>
             <p><strong>{item.projectId}</strong></p>
-            <p className="meta-line">artifact: {item.artifactId}</p>
-            <p className="meta-line">status: {item.status}</p>
-            <p className="meta-line">updated: {new Date(item.updatedAt).toLocaleString()}</p>
-          </li>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifact, item.artifactId)}</p>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, item.status)}</p>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(item.updatedAt).toLocaleString())}</p>
+          </Surface>
         ))}
       </ul>
-    </section>
+    </Surface>
   );
 };

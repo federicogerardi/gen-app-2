@@ -20,6 +20,8 @@ import {
   type ToolCheckpoint,
 } from './tool-checkpoints';
 import type { ToolExtractionContext } from '../runtime/GenerationWorkspaceProvider';
+import { appCopy, formatMeta } from '../../../app/copy/system';
+import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type GenerationFormProps = {
   userId: string;
@@ -78,8 +80,8 @@ export const GenerationForm = ({
   const [projectId, setProjectId] = useState('');
   const [artifactType, setArtifactType] = useState<ArtifactType>('content');
   const [model, setModel] = useState('openrouter/auto');
-  const [prompt, setPrompt] = useState('Scrivi una landing page sintetica in stile diretto.');
-  const [tone, setTone] = useState('diretto');
+  const [prompt, setPrompt] = useState<string>(appCopy.editorial.generation.defaultPrompt);
+  const [tone, setTone] = useState<string>(appCopy.editorial.generation.defaultTone);
   const [notes, setNotes] = useState('');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown');
   const [workflowType, setWorkflowType] = useState('meta_ads');
@@ -316,29 +318,29 @@ export const GenerationForm = ({
   };
 
   return (
-    <form className="panel grid" onSubmit={onSubmit}>
-      <h2>Tool setup comune</h2>
+    <Surface as="form" className={uiPrimitives.grid} onSubmit={onSubmit}>
+      <h2>{appCopy.editorial.generation.setupTitle}</h2>
 
       <label>
-        Intent
+        {appCopy.ui.labels.intent}
         <select value={intent} onChange={(e) => setIntent(e.target.value as ToolIntent)}>
-          <option value="new">new</option>
-          <option value="resume">resume</option>
-          <option value="regenerate">regenerate</option>
+          {appCopy.ui.options.intent.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </label>
 
-      <label className="checkbox-row">
+      <label className={uiPrimitives.checkboxRow}>
         <input
           type="checkbox"
           checked={hasCheckpoint}
           onChange={(e) => setHasCheckpoint(e.target.checked)}
         />
-        Checkpoint disponibile
+        {appCopy.ui.labels.checkpointAvailable}
       </label>
 
       <label>
-        Checkpoint recente (progetto)
+        {appCopy.ui.labels.recentCheckpoint}
         <select
           value={selectedCheckpointArtifactId}
           onChange={(e) => setSelectedCheckpointArtifactId(e.target.value)}
@@ -355,34 +357,32 @@ export const GenerationForm = ({
 
       {selectedCheckpoint ? (
         <div>
-          <p className="meta-line">checkpoint status: {selectedCheckpoint.status}</p>
-          <p className="meta-line">
-            extraction context: {selectedCheckpoint.extractionContextAvailable ? 'present' : 'missing'}
-          </p>
-          <div className="actions">
-            <button type="button" onClick={() => applyCheckpoint('resume')} disabled={disabled}>
-              Usa checkpoint per resume
-            </button>
-            <button type="button" onClick={() => applyCheckpoint('regenerate')} disabled={disabled}>
-              Usa checkpoint per regenerate
-            </button>
+          <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.checkpointStatus, selectedCheckpoint.status)}</p>
+          <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extractionContext, selectedCheckpoint.extractionContextAvailable ? appCopy.ui.states.present : appCopy.ui.states.missing)}</p>
+          <div className={uiPrimitives.actions}>
+            <Button type="button" onClick={() => applyCheckpoint('resume')} disabled={disabled}>
+              {appCopy.ui.actions.useCheckpointResume}
+            </Button>
+            <Button type="button" onClick={() => applyCheckpoint('regenerate')} disabled={disabled}>
+              {appCopy.ui.actions.useCheckpointRegenerate}
+            </Button>
           </div>
         </div>
       ) : null}
 
       {(intent === 'resume' || intent === 'regenerate') ? (
         <label>
-          Source artifact ID
+          {appCopy.ui.labels.sourceArtifactId}
           <input
             value={sourceArtifactId}
             onChange={(e) => setSourceArtifactId(e.target.value)}
-            placeholder="artifact-..."
+            placeholder={appCopy.ui.placeholders.sourceArtifactId}
           />
         </label>
       ) : null}
 
       <label>
-        Project ID
+        {appCopy.ui.labels.projectId}
         <select
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
@@ -398,11 +398,11 @@ export const GenerationForm = ({
         </select>
       </label>
 
-      {projectsLoading ? <p className="meta-line">Caricamento progetti...</p> : null}
-      {projectsError ? <p className="error-message">{projectsError}</p> : null}
+      {projectsLoading ? <p className={uiPrimitives.metaLine}>Caricamento progetti...</p> : null}
+      {projectsError ? <p className={uiPrimitives.error}>{projectsError}</p> : null}
 
       <label>
-        Briefing file (.docx, .txt, .md)
+        {appCopy.ui.labels.briefingFile}
         <input
           type="file"
           accept=".docx,.txt,.md"
@@ -411,7 +411,7 @@ export const GenerationForm = ({
         />
       </label>
 
-      <button
+      <Button
         type="button"
         onClick={() => {
           void processBriefing();
@@ -424,77 +424,76 @@ export const GenerationForm = ({
           || !toolsUploadEnabled
         }
       >
-        Processa briefing
-      </button>
+        {appCopy.ui.actions.processBriefing}
+      </Button>
 
-      <p className="meta-line">phase: {phase}</p>
-      <p className="meta-line">extraction: {extractionLifecycle}</p>
-      <p className="meta-line">briefing: {briefingFileName ?? '-'}</p>
-      {!toolsUploadEnabled ? <p className="meta-line">toolsUpload capability: disabled</p> : null}
-      {briefingError ? <p className="error-message">{briefingError}</p> : null}
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.phase, phase)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extraction, extractionLifecycle)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, briefingFileName ?? '-')}</p>
+      {!toolsUploadEnabled ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.toolsUploadDisabled}</p> : null}
+      {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
       <label>
-        Artifact type
+        {appCopy.ui.labels.artifactType}
         <select
           value={artifactType}
           onChange={(e) => setArtifactType(e.target.value as ArtifactType)}
         >
-          <option value="content">content</option>
-          <option value="seo">seo</option>
-          <option value="code">code</option>
-          <option value="extraction">extraction</option>
+          {appCopy.ui.options.artifactTypes.slice(1).map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </label>
 
       <label>
-        Model
+        {appCopy.ui.labels.model}
         <input value={model} onChange={(e) => setModel(e.target.value)} />
       </label>
 
       <label>
-        Tone (optional)
+        {appCopy.ui.labels.toneOptional}
         <input value={tone} onChange={(e) => setTone(e.target.value)} />
       </label>
 
       <label>
-        Notes (optional)
+        {appCopy.ui.labels.notesOptional}
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </label>
 
       <label>
-        Prompt
+        {appCopy.ui.labels.prompt}
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} required />
       </label>
 
       <label>
-        Output format
+        {appCopy.ui.labels.outputFormat}
         <select
           value={outputFormat}
           onChange={(e) => setOutputFormat(e.target.value as OutputFormat)}
         >
-          <option value="plain">plain</option>
-          <option value="json">json</option>
-          <option value="markdown">markdown</option>
+          {appCopy.ui.options.outputFormats.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </label>
 
       <label>
-        Workflow type
+        {appCopy.ui.labels.workflowType}
         <input value={workflowType} onChange={(e) => setWorkflowType(e.target.value)} />
       </label>
 
       <label>
-        Tool key
+        {appCopy.ui.labels.toolKey}
         <input value={toolKey} onChange={(e) => setToolKey(e.target.value)} />
       </label>
 
       <label>
-        Idempotency key
+        {appCopy.ui.labels.idempotencyKey}
         <input value={idempotencyKey} onChange={(e) => setIdempotencyKey(e.target.value)} />
       </label>
 
       <label>
-        Registry snapshot ref
+        {appCopy.ui.labels.registrySnapshotRef}
         <input
           value={registrySnapshotRef}
           onChange={(e) => setRegistrySnapshotRef(e.target.value)}
@@ -502,7 +501,7 @@ export const GenerationForm = ({
         />
       </label>
 
-      <button type="submit" disabled={!canStartGeneration}>Avvia generazione</button>
-    </form>
+      <button type="submit" disabled={!canStartGeneration}>{appCopy.ui.actions.startGeneration}</button>
+    </Surface>
   );
 };

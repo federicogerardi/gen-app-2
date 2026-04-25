@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { appCopy, formatMeta } from '../../../../app/copy/system';
 import { useAuthSession } from '../../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../../generation/contracts/backend-stream';
 import { createStepRequest, getStepDependencies, toolStepOrder } from '../../runtime/tool-generation-engine';
 import { runExtraction, uploadBrief } from '../../runtime/tools-client';
 import { listProjects, type ProjectSummary } from '../../../projects/runtime/projects-client';
+import { Button, Surface, uiPrimitives } from '../../../../app/ui/primitives';
 
 const hasAllowedBriefingExtension = (name: string): boolean => {
   const normalized = name.toLowerCase();
@@ -17,7 +19,7 @@ export const FunnelPagesToolPage = () => {
   const [projectId, setProjectId] = useState(generation.focusedProjectId ?? '');
   const [model, setModel] = useState('openrouter/auto');
   const [registrySnapshotRef, setRegistrySnapshotRef] = useState('snapshot:default');
-  const [prompt, setPrompt] = useState('Genera lo step Funnel richiesto con coerenza al brief estratto.');
+  const [prompt, setPrompt] = useState<string>(appCopy.editorial.tools.funnelPages.defaultPrompt);
   const [briefingFile, setBriefingFile] = useState<File | null>(null);
   const [briefingFileName, setBriefingFileName] = useState<string | null>(null);
   const [briefingError, setBriefingError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export const FunnelPagesToolPage = () => {
         }
 
         setProjects([]);
-        setProjectsError(loadError instanceof Error ? loadError.message : 'Unable to load projects');
+        setProjectsError(loadError instanceof Error ? loadError.message : appCopy.ui.fallbackErrors.loadProjects);
       } finally {
         if (!cancelled) {
           setProjectsLoading(false);
@@ -228,12 +230,12 @@ export const FunnelPagesToolPage = () => {
   };
 
   return (
-    <section className="panel page-stack">
-      <h2>Funnel Pages Tool</h2>
-      <p className="meta-line">Ordine step obbligatorio: optin -&gt; quiz -&gt; vsl</p>
+    <Surface as="section" className={uiPrimitives.stack}>
+      <h2>{appCopy.editorial.tools.funnelPages.title}</h2>
+      <p className={uiPrimitives.metaLine}>{appCopy.editorial.tools.funnelPages.orderRule}</p>
 
       <label>
-        Project ID
+        {appCopy.ui.labels.projectId}
         <select
           value={projectId}
           onChange={(event) => setProjectId(event.target.value)}
@@ -248,26 +250,26 @@ export const FunnelPagesToolPage = () => {
         </select>
       </label>
 
-      {projectsLoading ? <p className="meta-line">Caricamento progetti...</p> : null}
-      {projectsError ? <p className="error-message">{projectsError}</p> : null}
+      {projectsLoading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
+      {projectsError ? <p className={uiPrimitives.error}>{projectsError}</p> : null}
 
       <label>
-        Model
+        {appCopy.ui.labels.model}
         <input value={model} onChange={(event) => setModel(event.target.value)} />
       </label>
 
       <label>
-        Registry snapshot ref
+        {appCopy.ui.labels.registrySnapshotRef}
         <input value={registrySnapshotRef} onChange={(event) => setRegistrySnapshotRef(event.target.value)} />
       </label>
 
       <label>
-        Prompt fallback
+        {appCopy.ui.labels.promptFallback}
         <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={3} />
       </label>
 
       <label>
-        Brief file (.docx, .txt, .md)
+        {appCopy.ui.labels.briefFile}
         <input
           type="file"
           accept=".docx,.txt,.md"
@@ -276,42 +278,43 @@ export const FunnelPagesToolPage = () => {
         />
       </label>
 
-      <button
+      <Button
         type="button"
         onClick={() => {
           void processBriefing();
         }}
         disabled={!projectId.trim() || !briefingFile || generation.isStreamActive || !auth.capabilities.toolsUpload}
       >
-        Processa brief
-      </button>
+        {appCopy.ui.actions.processBrief}
+      </Button>
 
-      <p className="meta-line">brief status: {briefingStatus}</p>
-      <p className="meta-line">brief file: {briefingFileName ?? extractionContext?.briefingId ?? '-'}</p>
-      {!auth.capabilities.toolsUpload ? <p className="meta-line">toolsUpload capability: disabled</p> : null}
-      {briefingError ? <p className="error-message">{briefingError}</p> : null}
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefStatus, briefingStatus)}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefFile, briefingFileName ?? extractionContext?.briefingId ?? '-')}</p>
+      {!auth.capabilities.toolsUpload ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.toolsUploadDisabled}</p> : null}
+      {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
-      <ul className="list-clean">
+      <ul className={uiPrimitives.listClean}>
         {toolStepOrder['funnel-pages'].map((step) => (
-          <li key={step} className="panel">
-            <p><strong>{step}</strong> | {completedArtifactsByStep[step] ? 'completed' : 'pending'}</p>
-            <p className="meta-line">artifact: {completedArtifactsByStep[step] ?? '-'}</p>
-          </li>
+          <Surface as="li" key={step}>
+            <p><strong>{step}</strong> | {completedArtifactsByStep[step] ? appCopy.ui.states.completed : appCopy.ui.states.pending}</p>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifact, completedArtifactsByStep[step] ?? '-')}</p>
+          </Surface>
         ))}
       </ul>
 
-      <p className="meta-line">next step: {nextStep ?? '-'}</p>
-      <p className="meta-line">stream status: {generation.streamStatus}</p>
-      {auth.session ? null : <p className="error-message">Sessione non disponibile.</p>}
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.nextStep, nextStep ?? '-')}</p>
+      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.streamStatus, generation.streamStatus)}</p>
+      {auth.session ? null : <p className={uiPrimitives.error}>{appCopy.ui.session.unavailable}</p>}
+
       {projectId.trim() && !extractionContext
-        ? <p className="error-message">Extraction context mancante per il progetto selezionato. Carica e processa un brief.</p>
+        ? <p className={uiPrimitives.error}>{appCopy.ui.states.extractionContextMissing}</p>
         : null}
 
-      <div className="actions">
-        <button type="button" onClick={runNextStep} disabled={!canRun}>
-          Esegui prossimo step reale
-        </button>
+      <div className={uiPrimitives.actions}>
+        <Button type="button" onClick={runNextStep} disabled={!canRun}>
+          {appCopy.ui.actions.runNextStep}
+        </Button>
       </div>
-    </section>
+    </Surface>
   );
 };

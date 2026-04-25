@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -31,45 +32,42 @@ export const ArtifactsPage = () => {
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
-      <h2>Artifacts archive</h2>
+      <h2>{appCopy.editorial.artifacts.archiveTitle}</h2>
 
-      <div className="artifact-filters">
+      <div className={uiPrimitives.artifactFilters}>
         <label>
-          Tipo
+          {appCopy.ui.labels.type}
           <select
             value={filters.type}
             onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value as ArtifactQuery['type'] }))}
           >
-            <option value="all">all</option>
-            <option value="content">content</option>
-            <option value="seo">seo</option>
-            <option value="code">code</option>
-            <option value="extraction">extraction</option>
+            {appCopy.ui.options.artifactTypes.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
 
         <label>
-          Stato
+          {appCopy.ui.labels.status}
           <select
             value={filters.status}
             onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ArtifactQuery['status'] }))}
           >
-            <option value="all">all</option>
-            <option value="generating">generating</option>
-            <option value="completed">completed</option>
-            <option value="failed">failed</option>
+            {appCopy.ui.options.artifactStatuses.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </label>
 
         <label>
-          Progetto
+          {appCopy.ui.labels.project}
           <input
             value={filters.projectId === 'all' ? '' : filters.projectId}
             onChange={(event) => {
               const value = event.target.value.trim();
               setFilters((prev) => ({ ...prev, projectId: value.length > 0 ? value : 'all' }));
             }}
-            placeholder="project-id"
+            placeholder={appCopy.ui.placeholders.projectId}
           />
         </label>
       </div>
@@ -78,9 +76,9 @@ export const ArtifactsPage = () => {
         {items.map((artifact) => (
           <Surface as="li" key={artifact.artifactId}>
             <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
-            <p className="meta-line">project: {artifact.projectId}</p>
-            <p className="meta-line">updated: {new Date(artifact.updatedAt).toLocaleString()}</p>
-            <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>Apri dettaglio</Link>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.project, artifact.projectId)}</p>
+            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(artifact.updatedAt).toLocaleString())}</p>
+            <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openDetail}</Link>
           </Surface>
         ))}
       </ul>

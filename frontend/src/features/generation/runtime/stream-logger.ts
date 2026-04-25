@@ -23,17 +23,30 @@ export class StreamLogger {
       artifactId: string | null;
       sequence?: number;
       data?: Record<string, unknown>;
+      duration?: number;
     },
   ) {
-    this.logs.push({
+    const entry: StreamLogEntry = {
       timestamp: Date.now(),
       level,
       requestId: context.requestId,
       artifactId: context.artifactId,
       event,
-      sequence: context.sequence,
-      data: context.data,
-    });
+    };
+
+    if (typeof context.sequence === 'number') {
+      entry.sequence = context.sequence;
+    }
+
+    if (context.data !== undefined) {
+      entry.data = context.data;
+    }
+
+    if (typeof context.duration === 'number') {
+      entry.duration = context.duration;
+    }
+
+    this.logs.push(entry);
   }
 
   startTimer(key: string) {

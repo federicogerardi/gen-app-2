@@ -104,9 +104,30 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
     setStatus('uploading');
     setUploadError(null);
 
+    if (!auth.session) {
+      setStatus('idle');
+      setUploadError('Sessione non disponibile');
+      setFile(null);
+      setFileName(null);
+      return;
+    }
+
+    const normalizedProjectId = projectId.trim();
+    if (!normalizedProjectId) {
+      setStatus('idle');
+      setUploadError('Project ID mancante');
+      setFile(null);
+      setFileName(null);
+      return;
+    }
+
     try {
       // Upload file
-      const uploaded = await uploadBrief(selectedFile, {
+      const uploaded = await uploadBrief({
+        projectId: normalizedProjectId,
+        toolKey,
+        file: selectedFile,
+      }, {
         capabilities: { toolsUpload: auth.capabilities.toolsUpload ?? false },
         apiBaseUrl: auth.apiBaseUrl,
       });
@@ -117,9 +138,11 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
       // Run extraction
       const extraction = await runExtraction(
         {
+          userId: auth.session.user.id,
           toolKey,
-          projectId: projectId.trim(),
-          prompt: 'Extrai informasi dal brief',
+          projectId: normalizedProjectId,
+          model: 'openrouter/auto',
+          prompt: 'Estrai informazioni dal brief',
           briefingId: uploaded.briefingId,
           briefingText: uploaded.normalizedText,
           registrySnapshotRef: 'snapshot:default',
@@ -131,7 +154,7 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
       );
 
       generation.upsertExtractionContext({
-        projectId: projectId.trim(),
+        projectId: normalizedProjectId,
         briefingId: uploaded.briefingId,
         extractionArtifactId: extraction.artifactId,
         extractionPayload: extraction.payload,
@@ -164,7 +187,7 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
  */
 export const useStepSelection = (toolKey: SupportedTool, artifacts: any[]) => {
   const [selectedSteps, setSelectedSteps] = useState<Set<ToolStep>>(new Set());
-  const [stepArtifactIds, setStepArtifactIds] = useState<Record<ToolStep, string>>({});
+  const [stepArtifactIds, setStepArtifactIds] = useState<Partial<Record<ToolStep, string>>>({});
 
   const config = getToolFormConfig(toolKey);
 

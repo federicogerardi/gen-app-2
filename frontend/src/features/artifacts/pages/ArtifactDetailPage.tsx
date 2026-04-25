@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { getArtifactById } from '../runtime/artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
@@ -28,20 +29,20 @@ export const ArtifactDetailPage = () => {
 
   if (!artifact) {
     return (
-      <section className="panel page-stack">
+      <Surface as="section" className={uiPrimitives.stack}>
         <h2>Artifact detail</h2>
         <p className="meta-line">Artifact non trovato.</p>
-        <Link to="/artifacts" className="inline-link">Torna all'archivio</Link>
-      </section>
+        <Link to="/artifacts" className={uiPrimitives.inlineLink}>Torna all'archivio</Link>
+      </Surface>
     );
   }
 
   return (
-    <section className="panel page-stack">
-      <header className="top-bar">
+    <Surface as="section" className={uiPrimitives.stack}>
+      <TopBar>
         <h2>Artifact detail</h2>
-        <Link to="/artifacts" className="inline-link">Torna all'archivio</Link>
-      </header>
+        <Link to="/artifacts" className={uiPrimitives.inlineLink}>Torna all'archivio</Link>
+      </TopBar>
 
       <p className="meta-line">artifactId: {artifact.artifactId}</p>
       <p className="meta-line">projectId: {artifact.projectId}</p>
@@ -49,19 +50,19 @@ export const ArtifactDetailPage = () => {
       <p className="meta-line">type: {artifact.artifactType}</p>
       <pre className="artifact-content">{artifact.content || 'Contenuto non disponibile.'}</pre>
 
-      <div className="actions">
-        <button type="button" onClick={() => generation.relaunch(artifact, 'primary')} disabled={relaunchDisabled}>
+      <div className={uiPrimitives.actions}>
+        <Button type="button" onClick={() => generation.relaunch(artifact, 'primary')} disabled={relaunchDisabled}>
           Relaunch primario
-        </button>
-        <button type="button" onClick={() => generation.relaunch(artifact, 'secondary')} disabled={relaunchDisabled}>
+        </Button>
+        <Button type="button" onClick={() => generation.relaunch(artifact, 'secondary')} disabled={relaunchDisabled}>
           Relaunch secondario
-        </button>
-        <button type="button" disabled={!isDeleteEnabled}>
+        </Button>
+        <Button type="button" disabled={!isDeleteEnabled}>
           Delete (UI only)
-        </button>
+        </Button>
       </div>
 
       {!isDeleteEnabled ? <p className="meta-line">ARTIFACT_DELETE_ENABLED=false</p> : null}
-    </section>
+    </Surface>
   );
 };

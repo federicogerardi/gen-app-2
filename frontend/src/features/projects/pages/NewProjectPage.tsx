@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { createProject } from '../runtime/projects-client';
 
 export const NewProjectPage = () => {
@@ -29,13 +30,13 @@ export const NewProjectPage = () => {
   };
 
   return (
-    <section className="panel page-stack">
-      <header className="top-bar">
+    <Surface as="section" className={uiPrimitives.stack}>
+      <TopBar>
         <h2>Nuovo progetto</h2>
-        <Link to="/dashboard/projects" className="inline-link">Torna alla lista</Link>
-      </header>
+        <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>Torna alla lista</Link>
+      </TopBar>
 
-      <form className="grid" onSubmit={handleSubmit}>
+      <form className={uiPrimitives.grid} onSubmit={handleSubmit}>
         <label>
           Nome progetto
           <input value={name} onChange={(event) => setName(event.target.value)} required />
@@ -46,10 +47,10 @@ export const NewProjectPage = () => {
           <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} />
         </label>
 
-        {error ? <p className="error-message">{error}</p> : null}
+        {error ? <p className={uiPrimitives.error}>{error}</p> : null}
 
-        <button type="submit">Crea progetto</button>
+        <Button type="submit">Crea progetto</Button>
       </form>
-    </section>
+    </Surface>
   );
 };

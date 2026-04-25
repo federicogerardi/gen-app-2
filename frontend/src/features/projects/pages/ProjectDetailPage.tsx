@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { getProjectById, type ProjectSummary } from '../runtime/projects-client';
 
@@ -25,11 +26,11 @@ export const ProjectDetailPage = () => {
   }, [generation.artifacts, id]);
 
   return (
-    <section className="panel page-stack">
-      <header className="top-bar">
+    <Surface as="section" className={uiPrimitives.stack}>
+      <TopBar>
         <h2>Project detail</h2>
-        <Link to="/dashboard/projects" className="inline-link">Torna alla lista</Link>
-      </header>
+        <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>Torna alla lista</Link>
+      </TopBar>
 
       {!project ? (
         <p className="meta-line">Progetto non trovato.</p>
@@ -45,17 +46,17 @@ export const ProjectDetailPage = () => {
       {projectArtifacts.length === 0 ? (
         <p className="meta-line">Nessun artifact collegato al progetto.</p>
       ) : (
-        <ul className="list-clean">
+        <ul className={uiPrimitives.listClean}>
           {projectArtifacts.map((artifact) => (
-            <li key={artifact.artifactId} className="panel">
+            <Surface as="li" key={artifact.artifactId}>
               <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
               <p className="meta-line">model: {artifact.model}</p>
               <p className="meta-line">date: {new Date(artifact.updatedAt).toLocaleString()}</p>
-              <Link to={`/artifacts/${artifact.artifactId}`} className="inline-link">Apri artifact</Link>
-            </li>
+              <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>Apri artifact</Link>
+            </Surface>
           ))}
         </ul>
       )}
-    </section>
+    </Surface>
   );
 };

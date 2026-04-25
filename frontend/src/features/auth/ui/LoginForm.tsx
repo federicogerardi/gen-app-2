@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type LoginFormProps = {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -27,9 +28,9 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
   };
 
   return (
-    <section className="panel login-panel">
+    <Surface as="section" className="login-panel">
       <h1>Accesso</h1>
-      <form className="grid" onSubmit={handleSubmit}>
+      <form className={uiPrimitives.grid} onSubmit={handleSubmit}>
         <label>
           Email
           <input
@@ -50,16 +51,16 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
           />
         </label>
 
-        {error ? <p className="error-message">{error}</p> : null}
+        {error ? <p className={uiPrimitives.error}>{error}</p> : null}
 
-        <button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending}>
           {pending ? 'Accesso in corso...' : 'Login'}
-        </button>
+        </Button>
       </form>
 
       <a className="oauth-link" href={oauthStartUrl}>
         Continua con Google
       </a>
-    </section>
+    </Surface>
   );
 };

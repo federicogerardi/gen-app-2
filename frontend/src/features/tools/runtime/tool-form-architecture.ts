@@ -19,7 +19,7 @@ export type ToolFormConfig = {
   
   // Step workflow definition
   steps: readonly ToolStep[];
-  stepDependencies: Record<ToolStep, readonly ToolStep[]>;
+  stepDependencies: Partial<Record<ToolStep, readonly ToolStep[]>>;
   
   // Default form values
   defaults: {
@@ -72,7 +72,7 @@ export type ToolFormState = {
   briefingError: string | null;
   briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready';
   selectedSteps: Set<ToolStep>;
-  stepArtifactIds: Record<ToolStep, string>;
+  stepArtifactIds: Partial<Record<ToolStep, string>>;
 };
 
 /**
@@ -96,7 +96,7 @@ export type ToolFormSubmitData = {
   extractionArtifactId: string;
   extractionPayload: Record<string, unknown>;
   selectedSteps: ToolStep[];
-  stepArtifactIds: Record<ToolStep, string>;
+  stepArtifactIds: Partial<Record<ToolStep, string>>;
 };
 
 /**

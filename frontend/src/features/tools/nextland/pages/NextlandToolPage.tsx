@@ -214,7 +214,7 @@ export const NextlandToolPage = () => {
           const dependencyArtifact = generation.artifacts.find((artifact) => artifact.artifactId === artifactId);
           return [stepKey, dependencyArtifact?.content ?? ''];
         })
-        .filter((entry): entry is [string, string] => entry[1].trim().length > 0),
+        .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0),
     );
 
     const request = createStepRequest(

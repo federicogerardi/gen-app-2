@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { listArtifacts, type ArtifactQuery } from '../runtime/artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
@@ -29,7 +30,7 @@ export const ArtifactsPage = () => {
   }, [auth.apiBaseUrl, auth.capabilities, filters, generation.artifacts]);
 
   return (
-    <section className="panel page-stack">
+    <Surface as="section" className={uiPrimitives.stack}>
       <h2>Artifacts archive</h2>
 
       <div className="artifact-filters">
@@ -73,16 +74,16 @@ export const ArtifactsPage = () => {
         </label>
       </div>
 
-      <ul className="list-clean">
+      <ul className={uiPrimitives.listClean}>
         {items.map((artifact) => (
-          <li key={artifact.artifactId} className="panel">
+          <Surface as="li" key={artifact.artifactId}>
             <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
             <p className="meta-line">project: {artifact.projectId}</p>
             <p className="meta-line">updated: {new Date(artifact.updatedAt).toLocaleString()}</p>
-            <Link to={`/artifacts/${artifact.artifactId}`} className="inline-link">Apri dettaglio</Link>
-          </li>
+            <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>Apri dettaglio</Link>
+          </Surface>
         ))}
       </ul>
-    </section>
+    </Surface>
   );
 };

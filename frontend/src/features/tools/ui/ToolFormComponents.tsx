@@ -80,8 +80,6 @@ type GenerationInputsProps = {
   onModelChange: (model: string) => void;
   registrySnapshotRef: string;
   onRegistryRefChange: (ref: string) => void;
-  prompt: string;
-  onPromptChange: (prompt: string) => void;
   disabled: boolean;
 };
 
@@ -90,8 +88,6 @@ export const GenerationInputs = ({
   onModelChange,
   registrySnapshotRef,
   onRegistryRefChange,
-  prompt,
-  onPromptChange,
   disabled,
 }: GenerationInputsProps) => (
   <>
@@ -107,11 +103,6 @@ export const GenerationInputs = ({
         onChange={e => onRegistryRefChange(e.target.value)}
         disabled={disabled}
       />
-    </label>
-
-    <label>
-      {appCopy.ui.labels.prompt}
-      <textarea value={prompt} onChange={e => onPromptChange(e.target.value)} rows={5} disabled={disabled} />
     </label>
   </>
 );

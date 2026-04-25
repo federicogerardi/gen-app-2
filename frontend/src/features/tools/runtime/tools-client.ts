@@ -37,7 +37,6 @@ export type RunExtractionInput = {
   projectId: string;
   model: string;
   toolKey: string;
-  prompt: string;
   tone?: string;
   notes?: string;
   briefingId: string;
@@ -166,7 +165,6 @@ export const runExtraction = async (
     toolKey: 'extraction',
     workflowType: 'extraction',
     input: {
-      prompt: input.prompt,
       tone: input.tone ?? 'analitico',
       notes: input.notes ?? '',
       toolKey: input.toolKey,

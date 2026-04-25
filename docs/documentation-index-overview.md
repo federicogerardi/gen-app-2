@@ -8,6 +8,7 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 ## Specifiche attive
 
 - [Frontend as-is](./specifications/frontend-spec.md)
+- [Frontend Tool Pages Architecture (Unified)](./specifications/frontend-tool-pages-architecture-spec.md) - **NEW**: Architettura unificata per tool pages, eliminazione duplicazione, scaling pattern per nuovi tool
 - [GUI scope as-is](./specifications/gui-scope-as-is-spec.md)
 - [XState system as-is blueprint index](./specifications/xstate-system-as-is-spec.md)
 - [Tool prompts mockup pack](./specifications/tool-prompts/mockups/tool-prompts-mockup-overview-spec.md)
@@ -16,7 +17,7 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 Nota frontend attiva:
 
 - La specifica frontend include ora il contratto operativo per la centralizzazione di grafica e copy (`frontend/src/app/ui/primitives.tsx`, `frontend/src/styles.css`, `frontend/src/app/copy/system.ts`).
-
+- La nuova specifica [Frontend Tool Pages Architecture](./specifications/frontend-tool-pages-architecture-spec.md) documenta il pattern **unificato** per le pagine dei tool di generazione (FunnelPages, NextLand, futuri tool). Elimina ~95% duplicazione di codice e consente l'aggiunta di nuovi tool in ~30 minuti. Target state post-refactoring.
 Pacchetto atomizzato XState:
 
 - [Cartella specifiche atomizzate XState](./specifications/xstate-system-as-is/)
@@ -36,6 +37,7 @@ Pacchetto atomizzato XState:
 - [Streaming Generator Debug Guide](../frontend/DEBUG-STREAMING.md) - Debugging infrastructure per multi-step LLM generation streaming (XState v5, structured logging, MSW handlers, 17 test scenarios)
 - [Tool Form Architecture](../frontend/TOOL-FORM-ARCHITECTURE.md) - Centralized, scalable form architecture for multi-step tools (eliminates ~600 LOC duplication, scales to N tools)
 - [Frontend as-is](./specifications/frontend-spec.md) - Fonte canonica per registry UI, copy system centralizzato e regole di consistenza per interventi futuri
+- [Frontend Tool Pages Architecture (Unified)](./specifications/frontend-tool-pages-architecture-spec.md) - Target state post-refactoring: ToolPageTemplate, registry pattern, derivation logic, step-by-step per aggiungere nuovo tool
 
 ## Archivio
 

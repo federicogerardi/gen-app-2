@@ -16,6 +16,13 @@ import {
   validateToolForm,
   type ToolFormState,
 } from './tool-form-architecture';
+import {
+  deriveCanonicalToolUiState,
+  type CanonicalToolUiState,
+  type PrimaryActionPolicy,
+  type SecondaryActionFlags,
+  type ToolUiDerivationOutput,
+} from './tool-ux-state';
 
 /**
  * Hook: Load projects for the authenticated user
@@ -142,7 +149,6 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
           toolKey,
           projectId: normalizedProjectId,
           model: 'openrouter/auto',
-          prompt: 'Estrai informazioni dal brief',
           briefingId: uploaded.briefingId,
           briefingText: uploaded.normalizedText,
           registrySnapshotRef: 'snapshot:default',
@@ -234,7 +240,6 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     projectId: prefillProjectId ?? '',
     model: config.defaultModel,
     registrySnapshotRef: config.defaults.registrySnapshotRef,
-    prompt: config.defaultPrompt,
     briefingFile: null,
     briefingFileName: null,
     briefingError: null,
@@ -251,4 +256,69 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     config,
     validation,
   };
+};
+
+/**
+ * Hook: Get available steps based on completed steps
+ * Memoized to prevent unnecessary re-renders
+ * 
+ * @example
+ * ```ts
+ * const availableSteps = useAvailableSteps('funnel-pages', completedStepsSet);
+ * // Returns: ['optin', 'quiz'] if optin is completed, [] if all completed
+ * ```
+ */
+export const useAvailableSteps = (toolKey: SupportedTool, completedSteps: Set<ToolStep>): ToolStep[] => {
+  return useMemo(() => {
+    return getAvailableSteps(toolKey, completedSteps);
+  }, [toolKey, completedSteps]);
+};
+
+/**
+ * Hook: Derive canonical UI state for ToolPageTemplate
+ * Maps form state + runtime generation state to unified UI state
+ * 
+ * @example
+ * ```ts
+ * const uiState = useToolUiState('funnel-pages', {
+ *   formState: { projectId: 'p1', briefingStatus: 'ready', ... },
+ *   isGenerationStreamActive: false,
+ *   completedSteps: new Set(['optin']),
+ *   currentRunningStep: null,
+ *   hasCompletedPreviousGeneration: true,
+ *   lastCheckpointStep: 'optin',
+ *   nextAvailableStep: 'quiz',
+ *   generationError: null,
+ * });
+ * // Returns complete UI derivation output with canonical state, CTA policy, etc.
+ * ```
+ */
+export const useToolUiState = (
+  toolKey: SupportedTool,
+  runtimeInput: {
+    formState: ToolFormState;
+    isGenerationStreamActive: boolean;
+    completedSteps: Set<ToolStep>;
+    currentRunningStep: ToolStep | null;
+    hasCompletedPreviousGeneration: boolean;
+    lastCheckpointStep: ToolStep | null;
+    nextAvailableStep: ToolStep | null;
+    generationError: string | null;
+  },
+): ToolUiDerivationOutput => {
+  return useMemo(() => {
+    return deriveCanonicalToolUiState({
+      toolKey,
+      projectId: runtimeInput.formState.projectId,
+      briefingFile: runtimeInput.formState.briefingFile,
+      briefingStatus: runtimeInput.formState.briefingStatus,
+      isGenerationStreamActive: runtimeInput.isGenerationStreamActive,
+      completedSteps: runtimeInput.completedSteps,
+      currentRunningStep: runtimeInput.currentRunningStep,
+      hasCompletedPreviousGeneration: runtimeInput.hasCompletedPreviousGeneration,
+      lastCheckpointStep: runtimeInput.lastCheckpointStep,
+      nextAvailableStep: runtimeInput.nextAvailableStep,
+      generationError: runtimeInput.generationError,
+    });
+  }, [toolKey, runtimeInput]);
 };

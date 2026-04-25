@@ -26,6 +26,7 @@ export const FunnelPagesToolPageRefactored = () => {
     }
 
     // Build request with selected steps
+    // Note: prompt is resolved from backend tool-prompts registry, not from user input
     const request = {
       requestId: `req-${Date.now()}`,
       userId: 'user-id', // from auth
@@ -33,7 +34,6 @@ export const FunnelPagesToolPageRefactored = () => {
       artifactType: 'content' as const,
       model: formState.model,
       input: {
-        prompt: formState.prompt,
         step: Array.from(steps.selectedSteps)[0], // First selected step
         briefingId: briefing.extractionContext?.briefingId ?? null,
       },
@@ -74,8 +74,6 @@ export const FunnelPagesToolPageRefactored = () => {
         onModelChange={(model) => setFormState({ ...formState, model })}
         registrySnapshotRef={formState.registrySnapshotRef}
         onRegistryRefChange={(ref) => setFormState({ ...formState, registrySnapshotRef: ref })}
-        prompt={formState.prompt}
-        onPromptChange={(prompt) => setFormState({ ...formState, prompt })}
         disabled={disabled}
       />
 

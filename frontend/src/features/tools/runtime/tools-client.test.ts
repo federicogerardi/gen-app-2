@@ -88,7 +88,6 @@ describe('tools-client', () => {
       projectId: 'project-001',
       model: 'openrouter:auto',
       toolKey: 'funnel-pages',
-      prompt: 'extract',
       briefingId: 'brief-001',
       briefingText: 'brief text',
     });

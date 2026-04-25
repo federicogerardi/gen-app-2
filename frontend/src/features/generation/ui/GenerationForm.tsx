@@ -249,7 +249,6 @@ export const GenerationForm = ({
           projectId: projectId.trim(),
           model,
           toolKey,
-          prompt,
           tone,
           notes,
           briefingId: uploaded.briefingId,

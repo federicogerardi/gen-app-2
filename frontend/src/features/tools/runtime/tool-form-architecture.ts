@@ -66,7 +66,6 @@ export type ToolFormState = {
   projectId: string;
   model: string;
   registrySnapshotRef: string;
-  prompt: string;
   briefingFile: File | null;
   briefingFileName: string | null;
   briefingError: string | null;
@@ -90,7 +89,6 @@ export type ToolFormSubmitData = {
   projectId: string;
   model: string;
   registrySnapshotRef: string;
-  prompt: string;
   briefingId: string;
   briefingFileName: string;
   extractionArtifactId: string;
@@ -193,6 +191,74 @@ export const getAvailableSteps = (
 };
 
 /**
+ * Step card metadata: description and expected output format per step
+ * Used by ToolStepCard for rendering
+ */
+export type StepCardConfig = {
+  displayName: string;
+  description: string;
+  expectedOutputFormat: string; // e.g., "Landing page HTML", "Quiz structure"
+};
+
+/**
+ * Mapping of step metadata for UI rendering
+ * Extend this record when adding new tools
+ */
+export const stepCardConfigRegistry: Record<
+  SupportedTool,
+  Partial<Record<ToolStep, StepCardConfig>>
+> = {
+  'funnel-pages': {
+    optin: {
+      displayName: 'Opt-In Page',
+      description: 'Landing page to capture email addresses',
+      expectedOutputFormat: 'HTML page with form',
+    },
+    quiz: {
+      displayName: 'Quiz Page',
+      description: 'Interactive quiz to segment leads',
+      expectedOutputFormat: 'Multi-step quiz with logic',
+    },
+    vsl: {
+      displayName: 'Video Sales Letter',
+      description: 'Long-form video sales page',
+      expectedOutputFormat: 'HTML with VSL embed placeholder',
+    },
+  },
+  nextland: {
+    landing: {
+      displayName: 'Landing Page',
+      description: 'Marketing landing page',
+      expectedOutputFormat: 'Complete landing page HTML',
+    },
+    thank_you: {
+      displayName: 'Thank You Page',
+      description: 'Post-conversion thank you page',
+      expectedOutputFormat: 'HTML thank you page',
+    },
+  },
+};
+
+/**
+ * Get step card metadata for rendering
+ */
+export const mapToolStepToCardConfig = (
+  toolKey: SupportedTool,
+  step: ToolStep,
+): StepCardConfig => {
+  const stepConfig = stepCardConfigRegistry[toolKey]?.[step];
+  if (!stepConfig) {
+    // Fallback for unmapped steps
+    return {
+      displayName: step,
+      description: `Generate ${step}`,
+      expectedOutputFormat: 'Generated content',
+    };
+  }
+  return stepConfig;
+};
+
+/**
  * Validation rules for form submission
  */
 export const validateToolForm = (state: ToolFormState): ToolFormValidation => {
@@ -200,10 +266,6 @@ export const validateToolForm = (state: ToolFormState): ToolFormValidation => {
 
   if (!state.projectId.trim()) {
     errors.projectId = 'Project required';
-  }
-
-  if (!state.prompt.trim()) {
-    errors.prompt = 'Prompt required';
   }
 
   if (!state.briefingFileName) {

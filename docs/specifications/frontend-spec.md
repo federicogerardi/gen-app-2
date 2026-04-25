@@ -66,6 +66,52 @@ Lo stato as-is del frontend non usa piu silos locali per grafica e testi utente 
 
 ---
 
+## Tool Pages Architecture
+
+Le pagine dei tool di generazione (HotLeadFunnel, NextLand, e futuri tool) seguono un pattern **unificato e scalabile** per eliminare duplicazione di codice e ridurre l'effort per aggiungere nuovi tool.
+
+### Pattern di Unificazione
+
+Ogni tool page è costruita tramite:
+
+- **ToolFormRegistry**: Registry dichiarativa con configurazione tool-specifica (steps, labels, dipendenze).
+- **useToolForm**: Composite hook che centralizza tutta la logica di state management (form, upload, generazione).
+- **ToolPageTemplate**: Generic orchestration component che compone form, status feedback, step preview e azioni.
+- **Canonical UI State**: Derivation logic che mappa lo stato locale → 8 stati UI unificati (`draft-empty`, `processing-briefing`, `draft-ready`, `running`, `completed`, ecc.).
+- **Tool Page Wrappers** (FunnelPagesToolPage, NextlandToolPage): Minimalisti wrapper (~50 righe) che invocano `<ToolPageTemplate toolKey="..." />`.
+
+### Outcome
+
+| Metrica | Prima | Dopo |
+|---------|-------|------|
+| Duplicazione codice | ~95% | 0% |
+| LOC per tool page | ~350 | ~50 |
+| Aggiungere tool | 5-10 ore | ~30 min |
+| Stato UI | 12 useState per page | 1 hook centralized |
+
+### Aggiungerv Tool Nuovo
+
+Richiede solo:
+
+1. Aggiungere entry in `toolFormRegistry` (tool-form-architecture.ts)
+2. Creare pagina wrapper minimalista (~50 righe)
+3. Aggiungere route in app-router.tsx
+4. Aggiungere copy entries in appCopy (opzionale ma raccomandato)
+
+**Tempo totale: ~30 minuti** ✅
+
+### Specifica Completa
+
+Vedere [frontend-tool-pages-architecture-spec.md](./frontend-tool-pages-architecture-spec.md) per:
+- Architettura dettagliata e componenti
+- Registry pattern e configurazione
+- Derivation logic per canonical UI state
+- Type contracts e interfaces
+- Step-by-step per aggiungere nuovo tool
+- Migration path dalle tool page as-is al target unificato
+
+---
+
 ## Regole obbligatorie per interventi futuri
 
 ### Interventi grafici

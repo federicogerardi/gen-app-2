@@ -213,6 +213,41 @@ Ownership contrattuale dei campi:
 
 Regola: un actor non deve riscrivere campi owned da un altro actor se non tramite evento esplicito accettato dal root.
 
+## 14.4.4 ToolWorkflowMachine I/O (Schema Allineato)
+
+Tabella input canonica per `toolWorkflowMachine` (allineata a `tool-workflow-machine-spec.md`):
+
+| Campo input | Tipo | Obbligatorio | Note |
+|---|---|---|---|
+| `requestId` | `string` | si | Correlation id request/workflow |
+| `registryVersion \| registrySnapshotRef` | `string` | si (almeno uno) | Selector registry per-request |
+| `toolKey` | `string` | si | Esempi: `funnel-pages`, `nextland` |
+| `workflowType` | `string` | si | Coerente con `toolKey` nei flow tool-specific |
+| `steps` | `WorkflowStepDescriptor[]` | si | Step definiti da Tool Registry |
+| `dependencyGraph` | `Record<string, string[]>` | si | Dipendenze tra step |
+| `runMode` | `'new' \| 'resume' \| 'regenerate'` | si | Policy esecuzione step |
+| `bootstrap.stepKey` | `string` | no | Step gia completato in bootstrap |
+| `bootstrap.artifactId` | `string` | no | Artifact id di bootstrap/resume |
+| `briefingId` | `string` | no | Identificativo brief workflow |
+| `extractionArtifactId` | `string` | no | Artifact extraction di riferimento |
+| `extractionPayload` | `Record<string, unknown>` | no | Contesto extraction propagato |
+| `stepDependencyArtifactIds` | `string[]` | no | Lista artifact dipendenze |
+| `stepDependencyArtifactIdsByStep` | `Record<string, string>` | no | Mappa step -> artifact id |
+| `stepDependencyArtifactContentsByStep` | `Record<string, string>` | no | Mappa step -> contenuto artifact precedente |
+
+Tabella output canonica per `toolWorkflowMachine`:
+
+| Evento output | Payload minimo | Quando |
+|---|---|---|
+| `WORKFLOW_STEP_UNLOCKED` | `{ requestId, sourceActor, timestamp, stepKey }` | Step sbloccato senza artifact corrente valido |
+| `WORKFLOW_STEP_COMPLETED` | `{ requestId, sourceActor, timestamp, stepKey, artifactId }` | Step completato con artifact corrente valido |
+
+Invarianti di coerenza progressiva:
+
+- Step 1 deve ricevere contesto extraction (`briefingId`, `extractionArtifactId`, `extractionPayload`).
+- Step N deve ricevere anche il contesto step precedenti (`stepDependencyArtifactIdsByStep` e, quando disponibile, `stepDependencyArtifactContentsByStep`).
+- `artifactId` emesso da `WORKFLOW_STEP_COMPLETED` deve essere propagabile come dipendenza per gli step successivi.
+
 ## 14.5 Regole XState v5 da Applicare
 
 - usare `setup().createMachine()` come default per tutte le macchine significative.

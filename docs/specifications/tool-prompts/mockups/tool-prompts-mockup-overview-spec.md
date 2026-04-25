@@ -9,12 +9,12 @@ Questa cartella contiene mockup prompt per implementazione tecnica delle chiamat
 - generation step-based per Funnel Pages
 - generation step-based per Nextland
 
-I mockup extraction e Funnel Pages sono stati riallineati ai prompt guida marketing/copywriting:
+I mockup extraction e Funnel Pages sono stati riallineati ai prompt guida marketing/copywriting (ora nel layer runtime):
 
-- extraction: [../extraction/prompt_generation.md](../extraction/prompt_generation.md)
-- optin funnel: [../hl_funnel/prompt_optin_generator.md](../hl_funnel/prompt_optin_generator.md)
-- quiz funnel: [../hl_funnel/prompt_quiz_generator.md](../hl_funnel/prompt_quiz_generator.md)
-- vsl funnel: [../hl_funnel/prompt_vsl_generator.md](../hl_funnel/prompt_vsl_generator.md)
+- extraction: [../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md](../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md)
+- optin funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md)
+- quiz funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md)
+- vsl funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md)
 
 I mockup sono pensati come base di wiring backend/frontend e test integration.
 I prompt finali di produzione possono evolvere, ma questi file fissano:
@@ -44,8 +44,8 @@ I prompt finali di produzione possono evolvere, ma questi file fissano:
 
 ## Scope
 
-- Questi file non sostituiscono i prompt storici gia presenti in:
-  - `docs/specifications/tool-prompts/extraction/`
-  - `docs/specifications/tool-prompts/hl_funnel/`
-  - `docs/specifications/tool-prompts/nextland/`
+- Questi file non sostituiscono i prompt runtime operativi presenti in:
+  - `src/lib/runtime/tool-prompts/extraction/`
+  - `src/lib/runtime/tool-prompts/hl_funnel/`
+  - `src/lib/runtime/tool-prompts/nextland/`
 - Questi file rappresentano il pacchetto mockup per avvio implementazione GO.

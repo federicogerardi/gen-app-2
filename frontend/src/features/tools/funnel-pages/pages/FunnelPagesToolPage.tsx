@@ -15,7 +15,7 @@ export const FunnelPagesToolPage = () => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const [projectId, setProjectId] = useState(generation.focusedProjectId ?? '');
-  const [model, setModel] = useState('openrouter:auto');
+  const [model, setModel] = useState('openrouter/auto');
   const [registrySnapshotRef, setRegistrySnapshotRef] = useState('snapshot:default');
   const [prompt, setPrompt] = useState('Genera lo step Funnel richiesto con coerenza al brief estratto.');
   const [briefingFile, setBriefingFile] = useState<File | null>(null);
@@ -208,7 +208,22 @@ export const FunnelPagesToolPage = () => {
     };
 
     const dependencies = getStepDependencies('funnel-pages', completedArtifactsByStep, nextStep);
-    const request = createStepRequest(baseRequest, 'funnel-pages', nextStep, dependencies);
+    const dependencyArtifactContentsByStep = Object.fromEntries(
+      Object.entries(dependencies)
+        .map(([stepKey, artifactId]) => {
+          const dependencyArtifact = generation.artifacts.find((artifact) => artifact.artifactId === artifactId);
+          return [stepKey, dependencyArtifact?.content ?? ''];
+        })
+        .filter((entry): entry is [string, string] => entry[1].trim().length > 0),
+    );
+
+    const request = createStepRequest(
+      baseRequest,
+      'funnel-pages',
+      nextStep,
+      dependencies,
+      dependencyArtifactContentsByStep,
+    );
     generation.start(request);
   };
 

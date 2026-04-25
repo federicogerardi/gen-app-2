@@ -13,7 +13,7 @@ test('resolveToolPrompt loads funnel optin prompt from markdown files', () => {
   });
 
   assert.ok(resolved);
-  assert.match(resolved.filePath, /docs\/specifications\/tool-prompts\/hl_funnel\/prompt_optin_generator\.md$/);
+  assert.match(resolved.filePath, /src\/lib\/runtime\/tool-prompts\/hl_funnel\/prompt_optin_generator\.md$/);
   assert.match(resolved.prompt, /PROMPT OPTIN GENERATOR/);
 });
 
@@ -42,4 +42,22 @@ test('buildRequestReceivedEvent injects resolved prompt and source when prompt i
   assert.equal(input.briefingId, 'briefing-001');
   assert.equal(input.extractionArtifactId, 'artifact-extraction-001');
   assert.deepEqual(input.stepDependencyArtifactIds, ['artifact-step-001', 'artifact-step-002']);
+});
+
+test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-model-normalization-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'content',
+    model: 'openrouter:auto',
+    input: {
+      prompt: 'normalize me',
+    },
+    toolKey: null,
+    workflowType: null,
+    registrySnapshotRef: 'snapshot:model-normalization',
+  });
+
+  assert.equal(event.model, 'openrouter/auto');
 });

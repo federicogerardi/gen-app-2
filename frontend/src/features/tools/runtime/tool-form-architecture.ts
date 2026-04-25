@@ -15,7 +15,7 @@ export type ToolFormConfig = {
   
   // Tool-specific prompts
   defaultPrompt: string;
-  defaultModel: 'openrouter:auto' | string;
+  defaultModel: string;
   
   // Step workflow definition
   steps: readonly ToolStep[];
@@ -108,7 +108,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'funnel-pages',
     displayName: 'Funnel Pages',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
-    defaultModel: 'openrouter:auto',
+    defaultModel: 'openrouter/auto',
     steps: ['optin', 'quiz', 'vsl'] as const,
     stepDependencies: {
       optin: [],
@@ -123,7 +123,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'nextland',
     displayName: 'Nextland',
     defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
-    defaultModel: 'openrouter:auto',
+    defaultModel: 'openrouter/auto',
     steps: ['landing', 'thank_you'] as const,
     stepDependencies: {
       landing: [],

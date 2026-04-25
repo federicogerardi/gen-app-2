@@ -1004,7 +1004,7 @@ export const generationSystemMachine = setup({
         onDone: [
           {
             guard: 'extractionOutputIsAccepted',
-            target: 'persistingSuccess',
+            target: 'streaming',
             actions: {
               type: 'cacheExtractionResult',
               params: ({ event }) => getExtractionResultParams(event),

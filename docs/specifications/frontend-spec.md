@@ -174,6 +174,16 @@ I tipi di evento attesi dal backend:
 | Frame SSE malformato | `protocol_error` | no |
 | Terminal con `status: failed` | `terminal_failed` | no |
 
+### Convenzioni request tools/extraction (as-is)
+
+- `model` usa formato `provider/model` (es. `openrouter/auto`).
+- Se arriva un formato legacy con `:` (es. `openrouter:auto`), la normalizzazione avviene lato backend runtime.
+- Nel flusso tools step-by-step la request include:
+  - `extractionPayload` (output extraction)
+  - `stepDependencyArtifactIds` e `stepDependencyArtifactIdsByStep`
+  - `stepDependencyArtifactContentsByStep` quando disponibili i contenuti degli artifact precedenti
+- Obiettivo: ogni step riceve sia il contesto extraction sia il contesto progressivo dei passi precedenti.
+
 ---
 
 ## Configurazione sviluppo locale

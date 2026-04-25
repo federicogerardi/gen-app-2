@@ -52,6 +52,30 @@ const toOutputFormat = (value: OutputFormat | undefined): OutputFormat => {
   return 'plain';
 };
 
+const normalizeModelId = (value: string): string => {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  if (normalized === 'auto') {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}`;
+    }
+  }
+
+  return normalized;
+};
+
 export const buildRequestReceivedEvent = (
   request: BackendGenerationRequest,
 ): RequestReceivedEvent => {
@@ -101,7 +125,7 @@ export const buildRequestReceivedEvent = (
     projectId: request.projectId,
     toolKey: request.toolKey ?? null,
     artifactType: request.artifactType,
-    model: request.model,
+    model: normalizeModelId(request.model),
     input: enrichedInput,
     workflowType: request.workflowType ?? null,
   };

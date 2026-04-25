@@ -97,6 +97,13 @@ type ArtifactRecord = {
 const nowIso = (): string => new Date().toISOString();
 
 const buildSyntheticResponse = (input: LlmStreamInput): string => {
+  // For extraction requests, return the extraction payload as JSON
+  const extractionPayload = input.requestInput.extractionPayload;
+  if (extractionPayload && typeof extractionPayload === 'object') {
+    return JSON.stringify(extractionPayload, null, 2);
+  }
+
+  // For other requests, use the prompt
   const prompt = input.requestInput.prompt;
   if (typeof prompt === 'string' && prompt.trim().length > 0) {
     return `Generated output for prompt: ${prompt.trim()}`;
@@ -104,7 +111,6 @@ const buildSyntheticResponse = (input: LlmStreamInput): string => {
 
   return `Generated output for request ${input.requestId}`;
 };
-
 export const createSyntheticLlmStreamAdapter = (): LlmStreamAdapter => ({
   async *streamText(input) {
     const content = buildSyntheticResponse(input);

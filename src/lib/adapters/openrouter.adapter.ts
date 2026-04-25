@@ -27,6 +27,30 @@ type OpenRouterDelta = {
 
 const DEFAULT_OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
+const normalizeOpenRouterModelId = (model: string): string => {
+  const normalized = model.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  if (normalized === 'auto') {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}`;
+    }
+  }
+
+  return normalized;
+};
+
 const toContentChunk = (
   content: string | Array<{ type?: string; text?: string }> | undefined,
 ): string => {
@@ -55,6 +79,55 @@ const toUsageMetrics = (usage: OpenRouterDelta['usage'] | undefined): LlmUsageMe
   };
 };
 
+const toNonEmptyString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const buildContextBlock = (requestInput: Record<string, unknown>): string | null => {
+  const briefingText =
+    toNonEmptyString(requestInput.briefingText)
+    ?? toNonEmptyString(requestInput.normalizedText);
+
+  const extractionPayload = requestInput.extractionPayload;
+  const payloadJson =
+    extractionPayload && typeof extractionPayload === 'object'
+      ? JSON.stringify(extractionPayload, null, 2)
+      : null;
+
+  const dependencyOutputsByStepRaw = requestInput.stepDependencyArtifactContentsByStep;
+  const dependencyOutputsByStep =
+    dependencyOutputsByStepRaw && typeof dependencyOutputsByStepRaw === 'object' && !Array.isArray(dependencyOutputsByStepRaw)
+      ? Object.entries(dependencyOutputsByStepRaw)
+        .filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0)
+        .map(([stepKey, content]) => `### ${stepKey}\n${content}`)
+      : [];
+
+  const sections: string[] = [];
+
+  if (briefingText) {
+    sections.push(`## Briefing Source\n${briefingText}`);
+  }
+
+  if (payloadJson) {
+    sections.push(`## Extraction Payload\n${payloadJson}`);
+  }
+
+  if (dependencyOutputsByStep.length > 0) {
+    sections.push(`## Previous Step Outputs\n${dependencyOutputsByStep.join('\n\n')}`);
+  }
+
+  if (sections.length === 0) {
+    return null;
+  }
+
+  return sections.join('\n\n');
+};
+
 const buildMessages = (requestInput: Record<string, unknown>) => {
   const messages = requestInput.messages;
   if (Array.isArray(messages) && messages.length > 0) {
@@ -62,11 +135,19 @@ const buildMessages = (requestInput: Record<string, unknown>) => {
   }
 
   const prompt = requestInput.prompt;
-  if (typeof prompt === 'string' && prompt.trim().length > 0) {
-    return [{ role: 'user', content: prompt.trim() }];
+  const normalizedPrompt = typeof prompt === 'string' && prompt.trim().length > 0
+    ? prompt.trim()
+    : 'Generate a response for the current request.';
+
+  const contextBlock = buildContextBlock(requestInput);
+  if (contextBlock) {
+    return [{
+      role: 'user',
+      content: `${normalizedPrompt}\n\n---\n\nUse only the context below as source of truth.\n\n${contextBlock}`,
+    }];
   }
 
-  return [{ role: 'user', content: 'Generate a response for the current request.' }];
+  return [{ role: 'user', content: normalizedPrompt }];
 };
 
 async function* parseSseResponse(response: Response): AsyncIterable<LlmStreamEvent> {
@@ -142,7 +223,7 @@ export const createOpenRouterLlmStreamAdapter = (
         ...(options.appName ? { 'X-Title': options.appName } : {}),
       },
       body: JSON.stringify({
-        model: input.model,
+        model: normalizeOpenRouterModelId(input.model),
         stream: true,
         messages: buildMessages(input.requestInput),
       }),

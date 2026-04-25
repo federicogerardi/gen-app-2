@@ -73,3 +73,21 @@ Bloccare rilascio o attivare rollback se si verifica almeno uno dei seguenti:
 - `docs/review/frontend-sprint-regression-policy.md`
 - `docs/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md`
 - `plan/feature-frontend-generation-tools-go-1.md`
+
+## 7. Delta Post-GO (2026-04-25)
+
+Aggiornamenti runtime applicati dopo il GO iniziale:
+
+- Normalizzazione model id OpenRouter a formato `provider/model` (`openrouter:auto` -> `openrouter/auto`).
+- Iniezione esplicita del contesto brief nel payload messaggi LLM (`briefingText`/`normalizedText` + `extractionPayload`).
+- Iniezione del contesto progressivo step-by-step (`stepDependencyArtifactContentsByStep`) oltre agli artifact id.
+
+Impatto operativo:
+
+- Ridotto rischio di output extraction che richiede nuovamente il brief nonostante upload/extraction completati.
+- Migliorata coerenza semantica tra step successivi (quiz/vsl, thank_you) grazie al passaggio contenuti step precedenti.
+
+Evidenza di regressione post-fix:
+
+- suite backend: `53 passed, 0 failed`
+- suite frontend tools-client: `3 passed, 0 failed`

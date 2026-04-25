@@ -70,14 +70,42 @@ Eventi parametrizzati consigliati:
 - non incorpora logica tool-specific hardcoded oltre ai dati di registry.
 `toolWorkflowMachine`
 
-- input:
-  - `requestId`
-  - `registryVersion | registrySnapshotRef`
-  - `toolKey`
-  - `workflowType`
-  - `steps`
-  - `dependencyGraph`
-- output eventi:
-  - `WORKFLOW_STEP_UNLOCKED { requestId, sourceActor, timestamp, stepKey }`
-  - `WORKFLOW_STEP_COMPLETED { requestId, sourceActor, timestamp, stepKey, artifactId }`
+### Tabella Input As-Is (aggiornata)
+
+| Campo input | Tipo | Obbligatorio | Note operative |
+|---|---|---|---|
+| `requestId` | `string` | si | Correlation id workflow/request-level |
+| `registryVersion \| registrySnapshotRef` | `string` | si (almeno uno) | Selettore registry per-request |
+| `toolKey` | `string` | si | Esempi: `funnel-pages`, `nextland` |
+| `workflowType` | `string` | si | Allineato a `toolKey` nei flow tool-specific |
+| `steps` | `WorkflowStepDescriptor[]` | si | Topologia step derivata da Tool Registry |
+| `dependencyGraph` | `Record<string, string[]>` | si | Dipendenze step-by-step |
+| `runMode` | `'new' \| 'resume' \| 'regenerate'` | si | Determina resume/regenerate policy |
+| `bootstrap.stepKey` | `string` | no | Step di bootstrap pre-completato |
+| `bootstrap.artifactId` | `string` | no | Artifact id da cui riprendere |
+| `briefingId` | `string` | no | Id brief associato al workflow |
+| `extractionArtifactId` | `string` | no | Artifact extraction usato come base |
+| `extractionPayload` | `Record<string, unknown>` | no | Output extraction da propagare a ogni step |
+| `stepDependencyArtifactIds` | `string[]` | no | Lista ordinata artifact dipendenti |
+| `stepDependencyArtifactIdsByStep` | `Record<string, string>` | no | Mappa step -> artifact id dipendenza |
+| `stepDependencyArtifactContentsByStep` | `Record<string, string>` | no | Mappa step -> contenuto artifact precedente per contesto progressivo |
+
+Note di coerenza contesto progressivo:
+
+- Step 1 riceve contesto extraction (`briefingId`, `extractionArtifactId`, `extractionPayload`).
+- Step N riceve anche il contesto dei passi precedenti tramite:
+  - `stepDependencyArtifactIdsByStep`
+  - `stepDependencyArtifactContentsByStep` (quando disponibile).
+
+### Tabella Output As-Is (aggiornata)
+
+| Output | Tipo | Quando emesso | Significato |
+|---|---|---|---|
+| `WORKFLOW_STEP_UNLOCKED` | `{ requestId, sourceActor, timestamp, stepKey }` | completamento senza artifact corrente valido | Segnala step sbloccato per avanzamento workflow |
+| `WORKFLOW_STEP_COMPLETED` | `{ requestId, sourceActor, timestamp, stepKey, artifactId }` | completamento con artifact corrente valido | Segnala step completato con artifact persistibile |
+
+Invariante output:
+
+- `artifactId` in `WORKFLOW_STEP_COMPLETED` deve essere propagato come dipendenza per gli step successivi.
+- Nei flow multi-step il contesto request-level deve preservare extraction + dipendenze precedenti fino allo step finale.
 

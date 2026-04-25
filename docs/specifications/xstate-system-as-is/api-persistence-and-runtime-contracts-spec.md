@@ -44,6 +44,9 @@ Input logico:
 - projectId, model, tone, step(optin|quiz|vsl)
 - extractionContext/briefing
 - dipendenze step precedenti (optinOutput, quizOutput)
+- contesto progressivo opzionale step-by-step:
+  - `stepDependencyArtifactIdsByStep` (mappa step -> artifactId)
+  - `stepDependencyArtifactContentsByStep` (mappa step -> contenuto artifact precedente)
 
 Esito:
 
@@ -59,6 +62,9 @@ Input logico:
 - projectId, model, tone, step(landing|thank_you)
 - extractionContext/briefing
 - dipendenze step precedenti (landingOutput)
+- contesto progressivo opzionale step-by-step:
+  - `stepDependencyArtifactIdsByStep` (mappa step -> artifactId)
+  - `stepDependencyArtifactContentsByStep` (mappa step -> contenuto artifact precedente)
 
 Esito:
 
@@ -171,6 +177,14 @@ Nota operativa:
 
 - Il provider LLM as-is e OpenRouter tramite `OPENROUTER_API_KEY`.
 - In assenza di chiave, il runtime mantiene fallback sintetico per compatibilita test/offline.
+- Formato model id OpenRouter as-is: `provider/model`.
+  - Esempi validi: `openrouter/auto`, `openai/gpt-5.4-mini`, `google/gemini-3-flash-preview`.
+  - Formati legacy con `:` sono normalizzati lato runtime (es. `openrouter:auto` -> `openrouter/auto`).
+- Il payload inviato all'adapter LLM include, quando disponibili:
+  - `briefingText`/`normalizedText`
+  - `extractionPayload`
+  - `stepDependencyArtifactContentsByStep`
+  per garantire coerenza tra extraction e generazione step successivi.
 - Per OAuth Google reale sono richieste variabili env:
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`

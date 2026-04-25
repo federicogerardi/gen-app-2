@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 const fallbackModels = [
-  { key: 'openrouter:auto', status: 'enabled' },
+  { key: 'openrouter/auto', status: 'enabled' },
   { key: 'gpt-4.1-mini', status: 'enabled' },
   { key: 'claude-3.7-sonnet', status: 'disabled' },
 ];

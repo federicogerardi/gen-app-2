@@ -76,7 +76,7 @@ Questo piano definisce le attivita necessarie per portare i tool frontend di gen
 | **TASK-013** | Implementare orchestrazione step registry-driven in [src/lib/machines/tool-workflow.machine.ts](src/lib/machines/tool-workflow.machine.ts) usando `steps`, `dependencyGraph`, `runMode`. | x | 2026-04-25 |
 | **TASK-014** | Sostituire step sintetico in [src/lib/machines/generation-system.machine.ts](src/lib/machines/generation-system.machine.ts) con step reali Funnel/Nextland risolti da registry selector request-scoped. | x | 2026-04-25 |
 | **TASK-015** | Integrare helper [frontend/src/features/tools/runtime/tool-generation-engine.ts](frontend/src/features/tools/runtime/tool-generation-engine.ts) nelle pagine [frontend/src/features/tools/funnel-pages/pages/FunnelPagesToolPage.tsx](frontend/src/features/tools/funnel-pages/pages/FunnelPagesToolPage.tsx) e [frontend/src/features/tools/nextland/pages/NextlandToolPage.tsx](frontend/src/features/tools/nextland/pages/NextlandToolPage.tsx) per invio request step-based reali. | x | 2026-04-25 |
-| **TASK-016** | Implementare mapping prompt-per-step (forniti dal product owner) in nuovo modulo [src/lib/runtime/tool-prompts.ts](src/lib/runtime/tool-prompts.ts) con selezione per `toolKey` e `stepKey`. | x | 2026-04-25 |
+| **TASK-016** | Implementare mapping prompt-per-step (forniti dal product owner) in nuovo modulo [src/lib/runtime/tool-prompts/index.ts](src/lib/runtime/tool-prompts/index.ts) con selezione per `toolKey` e `stepKey`. | x | 2026-04-25 |
 | **TASK-017** | Aggiornare persistence/query per distinguere artifact step vs artifact finale (metadata in `input_json`) in [src/lib/adapters/postgres-redis.production.ts](src/lib/adapters/postgres-redis.production.ts). | x | 2026-04-25 |
 | **TASK-018** | Aggiungere test integrazione end-to-end tool in [src/lib/tests/generation-system.runtime.test.ts](src/lib/tests/generation-system.runtime.test.ts) con scenari Funnel completo e Nextland completo. | x | 2026-04-25 |
 
@@ -125,7 +125,7 @@ Motivo non scelto: rompe consistenza con gate backend (usage/idempotency/persist
 - **FILE-012**: [src/lib/machines/tool-workflow.machine.ts](src/lib/machines/tool-workflow.machine.ts) - step execution registry-driven.
 - **FILE-013**: [src/lib/adapters/postgres-redis.production.ts](src/lib/adapters/postgres-redis.production.ts) - persistenza metadata extraction/step.
 - **FILE-014**: [src/lib/runtime/brief-parser.ts](src/lib/runtime/brief-parser.ts) - nuovo parser testo brief.
-- **FILE-015**: [src/lib/runtime/tool-prompts.ts](src/lib/runtime/tool-prompts.ts) - nuovo mapping prompt per step.
+- **FILE-015**: [src/lib/runtime/tool-prompts/index.ts](src/lib/runtime/tool-prompts/index.ts) - nuovo mapping prompt per step.
 - **FILE-016**: [src/lib/tests/generation-system.runtime.test.ts](src/lib/tests/generation-system.runtime.test.ts) - test e2e orchestrazione.
 - **FILE-017**: [src/lib/tests/runtime.auth-http.test.ts](src/lib/tests/runtime.auth-http.test.ts) - test endpoint tool.
 - **FILE-018**: [docs/review/frontend-sprint-go-checklist.md](docs/review/frontend-sprint-go-checklist.md) - checklist GO finale.

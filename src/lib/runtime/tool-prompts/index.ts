@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const PROMPT_FILE_BY_KEY = {
-  extraction: 'docs/specifications/tool-prompts/extraction/prompt_generation.md',
-  'funnel-pages:optin': 'docs/specifications/tool-prompts/hl_funnel/prompt_optin_generator.md',
-  'funnel-pages:quiz': 'docs/specifications/tool-prompts/hl_funnel/prompt_quiz_generator.md',
-  'funnel-pages:vsl': 'docs/specifications/tool-prompts/hl_funnel/prompt_vsl_generator.md',
-  'nextland:landing': 'docs/specifications/tool-prompts/nextland/prompt_landing_generator.md',
-  'nextland:thank_you': 'docs/specifications/tool-prompts/nextland/prompt_thank_you_generator.md',
+  extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
+  'funnel-pages:optin': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md',
+  'funnel-pages:quiz': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md',
+  'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
+  'nextland:landing': 'src/lib/runtime/tool-prompts/nextland/prompt_landing_generator.md',
+  'nextland:thank_you': 'src/lib/runtime/tool-prompts/nextland/prompt_thank_you_generator.md',
 } as const;
 
 const promptCache = new Map<string, string>();

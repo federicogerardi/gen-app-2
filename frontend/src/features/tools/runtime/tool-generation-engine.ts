@@ -11,8 +11,12 @@ export const createStepRequest = (
   tool: SupportedTool,
   step: ToolStep,
   dependencies: Record<string, string>,
+  dependencyArtifactContentsByStep: Record<string, string> = {},
 ): GenerationRequest => {
   const dependencyEntries = Object.entries(dependencies).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
+  );
+  const dependencyContentEntries = Object.entries(dependencyArtifactContentsByStep).filter(
     (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
   );
 
@@ -27,6 +31,9 @@ export const createStepRequest = (
       step,
       stepDependencyArtifactIds: dependencyEntries.map(([, artifactId]) => artifactId),
       stepDependencyArtifactIdsByStep: Object.fromEntries(dependencyEntries),
+      ...(dependencyContentEntries.length > 0
+        ? { stepDependencyArtifactContentsByStep: Object.fromEntries(dependencyContentEntries) }
+        : {}),
     },
   };
 };

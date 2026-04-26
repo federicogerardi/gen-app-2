@@ -1,16 +1,5 @@
 /**
  * ToolPageTemplate: Unified orchestration template for all tool pages
- * 
- * Combines:
- * - Form state management via useToolForm hooks
- * - Generation state from GenerationWorkspace
- * - UI state derivation for canonical state + CTA policy
- * - Component composition: status card + step cards + action buttons
- * 
- * Usage in tool-specific pages:
- * ```tsx
- * export const MyToolPage = () => <ToolPageTemplate toolKey="my-tool" />
- * ```
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -19,9 +8,7 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
-import {
-  getToolFormConfig,
-} from '../runtime/tool-form-architecture';
+import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
 import {
   useProjectsLoader,
@@ -33,29 +20,70 @@ import {
 import { ToolStatusCard } from './ToolStatusCard';
 import { ToolStepCard } from './ToolStepCard';
 import { ToolActionButtons } from './ToolActionButtons';
+import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
+import {
+  buildExtractionContextFromArtifact,
+  buildLatestArtifactByStep,
+  collectCompletedRunSteps,
+  collectCompletedStepsByTool,
+} from '../../generation/runtime/step-hydration';
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
   sourceArtifactId?: string | null;
   intent?: 'new' | 'regenerate' | 'resume';
+  initialProjectId?: string | null;
+  relaunchTone?: string | null;
+  relaunchNotes?: string | null;
+  relaunchFromArtifactId?: string | null;
+  briefingId?: string | null;
+  briefingFileName?: string | null;
 }
+
+const readInputString = (artifact: GenerationArtifact | null, key: string): string | null => {
+  const value = artifact?.sourceRequest.input?.[key];
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const randomId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `req-${Date.now()}`;
+};
 
 export const ToolPageTemplate = ({
   toolKey,
   sourceArtifactId,
   intent = 'new',
+  initialProjectId,
+  relaunchTone,
+  relaunchNotes,
+  relaunchFromArtifactId,
+  briefingId,
+  briefingFileName,
 }: ToolPageTemplateProps) => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const toolConfig = getToolFormConfig(toolKey);
-  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
+  const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
+  const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
+  const initialPrefillDoneRef = useRef(false);
+  const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
 
   // 1. Initialize form state
-  const { formState, setFormState, validation } = useToolFormInit(
+  const { formState, setFormState } = useToolFormInit(
     toolKey,
-    generation.focusedProjectId ?? undefined,
+    generation.focusedProjectId ?? initialProjectId ?? undefined,
   );
 
   // 2. Load projects
@@ -64,89 +92,233 @@ export const ToolPageTemplate = ({
   // 3. Manage briefing upload
   const briefingUpload = useBriefingUpload(toolKey, formState.projectId);
 
-  // 4. Build completed steps set from artifacts
-  const completedSteps = useMemo(() => {
-    return new Set(
-      generation.artifacts
-        .filter(
-          a =>
-            a.projectId === formState.projectId.trim()
-            && a.status === 'completed'
-            && a.toolKey === toolKey,
-        )
-        .map(a => {
-          // Extract step from artifact sourceRequest
-          const step = (a.sourceRequest?.input as any)?.step;
-          return typeof step === 'string' ? (step as ToolStep) : null;
-        })
-        .filter((s): s is ToolStep => s !== null),
+  // 4. Apply one-shot prefill from query params
+  useEffect(() => {
+    if (initialPrefillDoneRef.current) {
+      return;
+    }
+
+    const nextProjectId = initialProjectId?.trim() ?? '';
+    if (!nextProjectId) {
+      initialPrefillDoneRef.current = true;
+      return;
+    }
+
+    setFormState((prev) => ({
+      ...prev,
+      projectId: nextProjectId,
+    }));
+    generation.setFocusedProjectId(nextProjectId);
+    initialPrefillDoneRef.current = true;
+  }, [generation, initialProjectId, setFormState]);
+
+  // 5. Load persisted artifacts for selected project (DB + fallback)
+  useEffect(() => {
+    const normalizedProjectId = formState.projectId.trim();
+    if (!normalizedProjectId) {
+      setPersistedArtifacts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const list = await listArtifacts(
+          {
+            type: 'all',
+            status: 'all',
+            projectId: normalizedProjectId,
+          },
+          {
+            apiBaseUrl: auth.apiBaseUrl,
+            capabilities: auth.capabilities,
+            localArtifacts: generation.artifacts,
+          },
+        );
+
+        if (!cancelled) {
+          setPersistedArtifacts(list);
+        }
+      } catch {
+        if (!cancelled) {
+          setPersistedArtifacts(generation.artifacts.filter((item) => item.projectId === normalizedProjectId));
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [auth.apiBaseUrl, auth.capabilities, formState.projectId, generation.artifacts]);
+
+  const allArtifacts = useMemo(() => {
+    const merged = [...generation.artifacts, ...persistedArtifacts];
+    const byId = new Map<string, GenerationArtifact>();
+
+    for (const artifact of merged) {
+      if (!byId.has(artifact.artifactId)) {
+        byId.set(artifact.artifactId, artifact);
+      }
+    }
+
+    return [...byId.values()];
+  }, [generation.artifacts, persistedArtifacts]);
+
+  // 6. Resolve source artifact for relaunch intent
+  useEffect(() => {
+    const normalizedSourceArtifactId = sourceArtifactId?.trim() ?? '';
+    if (!normalizedSourceArtifactId) {
+      setSourceArtifact(null);
+      return;
+    }
+
+    const localSource = allArtifacts.find((artifact) => artifact.artifactId === normalizedSourceArtifactId) ?? null;
+    if (localSource) {
+      setSourceArtifact(localSource);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const detail = await getArtifactById(normalizedSourceArtifactId, {
+          apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+          localArtifacts: allArtifacts,
+        });
+
+        if (!cancelled) {
+          setSourceArtifact(detail);
+        }
+      } catch {
+        if (!cancelled) {
+          setSourceArtifact(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allArtifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
+
+  // 7. Hydrate extraction context from source artifact when available
+  useEffect(() => {
+    if (!sourceArtifact) {
+      return;
+    }
+
+    const sourceContext = buildExtractionContextFromArtifact(sourceArtifact);
+    if (sourceContext) {
+      generation.upsertExtractionContext(sourceContext);
+    }
+  }, [generation, sourceArtifact]);
+
+  const normalizedProjectId = formState.projectId.trim();
+  const extractionContext = briefingUpload.extractionContext
+    ?? generation.getExtractionContext(normalizedProjectId)
+    ?? (sourceArtifact ? buildExtractionContextFromArtifact(sourceArtifact) : null);
+
+  const effectiveBriefingFileName = briefingUpload.fileName
+    ?? briefingFileName
+    ?? readInputString(sourceArtifact, 'briefingFileName');
+
+  const effectiveBriefingStatus = (
+    briefingUpload.status === 'ready' || extractionContext
+      ? 'ready'
+      : briefingUpload.status
+  );
+
+  const resolvedTone = relaunchTone ?? readInputString(sourceArtifact, 'tone') ?? '';
+  const resolvedNotes = relaunchNotes ?? readInputString(sourceArtifact, 'notes') ?? '';
+  const resolvedRelaunchSource = relaunchFromArtifactId
+    ?? sourceArtifactId
+    ?? sourceArtifact?.artifactId
+    ?? null;
+
+  // 8. Compute completed steps and artifacts mapping
+  const historicalCompletedSteps = useMemo(() => {
+    return collectCompletedStepsByTool(allArtifacts, toolKey, normalizedProjectId);
+  }, [allArtifacts, normalizedProjectId, toolKey]);
+
+  const runCompletedSteps = useMemo(() => {
+    if (!currentRunPrefixRef.current) {
+      return new Set<ToolStep>();
+    }
+
+    return collectCompletedRunSteps(
+      allArtifacts,
+      toolKey,
+      normalizedProjectId,
+      currentRunPrefixRef.current,
     );
-  }, [generation.artifacts, formState.projectId, toolKey]);
+  }, [allArtifacts, normalizedProjectId, toolKey]);
+
+  const completedStepsForFlow = intent === 'regenerate' ? runCompletedSteps : historicalCompletedSteps;
+
+  const latestArtifactByStep = useMemo(
+    () => buildLatestArtifactByStep(allArtifacts, toolKey, normalizedProjectId),
+    [allArtifacts, normalizedProjectId, toolKey],
+  );
 
   const completedArtifactsByStep = useMemo(() => {
-    return generation.artifacts
-      .filter(
-        artifact =>
-          artifact.projectId === formState.projectId.trim()
-          && artifact.status === 'completed'
-          && artifact.toolKey === toolKey,
-      )
-      .reduce<Partial<Record<ToolStep, string>>>((acc, artifact) => {
-        const step = artifact.sourceRequest?.input?.step;
-        if (typeof step === 'string') {
-          acc[step as ToolStep] = artifact.artifactId;
-        }
-        return acc;
-      }, {});
-  }, [generation.artifacts, formState.projectId, toolKey]);
+    return Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, entry) => {
+      const [step, artifact] = entry;
+      if (artifact?.artifactId) {
+        acc[step as ToolStep] = artifact.artifactId;
+      }
 
-  // 5. Get available steps
-  const nextAvailableStep = useAvailableSteps(toolKey, completedSteps)[0] ?? null;
+      return acc;
+    }, {});
+  }, [latestArtifactByStep]);
 
-  // 6. Derive UI state
+  const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
+
+  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
+  const lastCheckpointStep = useMemo(() => {
+    if (!isResumeIntent || historicalCompletedSteps.size === 0) {
+      return null;
+    }
+
+    const sorted = toolConfig.steps.filter((step) => historicalCompletedSteps.has(step));
+    return sorted.at(-1) ?? null;
+  }, [historicalCompletedSteps, isResumeIntent, toolConfig.steps]);
+
+  // 9. Derive UI state
   const uiState = useToolUiState(toolKey, {
     formState: {
       ...formState,
-      briefingStatus: briefingUpload.status,
-      briefingFileName: briefingUpload.fileName,
+      briefingStatus: effectiveBriefingStatus,
+      briefingFileName: effectiveBriefingFileName ?? null,
       briefingError: briefingUpload.error,
       briefingFile: briefingUpload.file,
     },
     isGenerationStreamActive: generation.isStreamActive,
-    completedSteps,
+    completedSteps: completedStepsForFlow,
     currentRunningStep: generation.isStreamActive
-      ? (generation.snapshot.context.lastRequest?.input as any)?.step ?? null
+      ? (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step as ToolStep ?? null
       : null,
-    hasCompletedPreviousGeneration: generation.artifacts.some(
-      a => a.toolKey === toolKey && a.status === 'completed',
-    ),
-    lastCheckpointStep: isResumeIntent
-      ? (completedSteps.size > 0 ? Array.from(completedSteps)[0] ?? null : null)
-      : null,
+    hasCompletedPreviousGeneration: historicalCompletedSteps.size > 0,
+    lastCheckpointStep,
     nextAvailableStep,
     generationError: generation.streamStatus === 'failed' ? 'Generation failed' : null,
   });
 
-  // 7. Build project and step lists
-  const currentProject = projects.find(p => p.id === formState.projectId);
-  const completedStepIds = Array.from(completedSteps);
+  // 10. Build project and step lists
+  const currentProject = projects.find((p) => p.id === formState.projectId);
 
-  // 8. Handle form submission
+  // 11. Handle generation start and chaining
   const startGenerationStep = (step: ToolStep): boolean => {
-    const normalizedProjectId = formState.projectId.trim();
-    const extractionContext =
-      briefingUpload.extractionContext ?? generation.getExtractionContext(normalizedProjectId);
-
-    if (
-      !auth.session
-      || !normalizedProjectId
-      || !extractionContext
-    ) {
+    if (!auth.session || !normalizedProjectId || !extractionContext) {
       return false;
     }
 
+    const runPrefix = currentRunPrefixRef.current ?? randomId();
+    currentRunPrefixRef.current = runPrefix;
+
     const baseRequest: GenerationRequest = {
-      requestId: crypto.randomUUID(),
+      requestId: runPrefix,
       userId: auth.session.user.id,
       projectId: normalizedProjectId,
       artifactType: 'content',
@@ -157,26 +329,25 @@ export const ToolPageTemplate = ({
       registrySnapshotRef: formState.registrySnapshotRef,
       input: {
         intent,
-        briefingId: extractionContext.briefingId,
+        tone: resolvedTone,
+        notes: resolvedNotes,
+        relaunchFromArtifactId: resolvedRelaunchSource,
+        sourceArtifactId: sourceArtifactId ?? null,
+        briefingId: extractionContext.briefingId || briefingId || readInputString(sourceArtifact, 'briefingId'),
+        briefingFileName: effectiveBriefingFileName ?? null,
         extractionArtifactId: extractionContext.extractionArtifactId,
         extractionPayload: extractionContext.extractionPayload,
       },
     };
 
     const dependencies = getStepDependencies(toolKey, completedArtifactsByStep, step);
-
     const dependencyArtifactContentsByStep = Object.fromEntries(
       Object.entries(dependencies)
-        .map(([stepKey, artifactId]) => {
-          const dependencyArtifact = generation.artifacts.find(
-            artifact => artifact.artifactId === artifactId,
-          );
+        .map(([stepKey, artifactId]): [string, string] => {
+          const dependencyArtifact = allArtifacts.find((artifact) => artifact.artifactId === artifactId);
           return [stepKey, dependencyArtifact?.content ?? ''];
         })
-        .filter(
-          (entry): entry is [string, string] =>
-            typeof entry[1] === 'string' && entry[1].trim().length > 0,
-        ),
+        .filter((entry) => entry[1].trim().length > 0),
     );
 
     const request = createStepRequest(
@@ -192,7 +363,7 @@ export const ToolPageTemplate = ({
     return true;
   };
 
-  const handleStartGeneration = (): void => {
+  const handlePrimaryAction = (): void => {
     if (!nextAvailableStep) {
       return;
     }
@@ -208,6 +379,7 @@ export const ToolPageTemplate = ({
 
     if (generation.streamStatus === 'failed') {
       setIsAutoChainEnabled(false);
+      currentRunPrefixRef.current = null;
       return;
     }
 
@@ -217,6 +389,7 @@ export const ToolPageTemplate = ({
 
     if (!nextAvailableStep) {
       setIsAutoChainEnabled(false);
+      currentRunPrefixRef.current = null;
       return;
     }
 
@@ -225,7 +398,7 @@ export const ToolPageTemplate = ({
       return;
     }
 
-    if (!completedSteps.has(lastRequestedStep)) {
+    if (!completedStepsForFlow.has(lastRequestedStep)) {
       return;
     }
 
@@ -235,10 +408,10 @@ export const ToolPageTemplate = ({
 
     void startGenerationStep(nextAvailableStep);
   }, [
-    isAutoChainEnabled,
-    generation.streamStatus,
+    completedStepsForFlow,
     generation.isStreamActive,
-    completedSteps,
+    generation.streamStatus,
+    isAutoChainEnabled,
     nextAvailableStep,
   ]);
 
@@ -252,18 +425,16 @@ export const ToolPageTemplate = ({
               <p className={uiPrimitives.metaLine}>{toolConfig.displayName} configuration and generation</p>
             </header>
 
-            {/* Form section */}
             <form className="ui-tool-form">
-              {/* Project selector */}
               <label>
                 <span>Project</span>
                 <select
                   value={formState.projectId}
-                  onChange={e => setFormState({ ...formState, projectId: e.target.value })}
+                  onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
                   disabled={projectsLoading || generation.isStreamActive}
                 >
                   <option value="">Select a project</option>
-                  {projects.map(p => (
+                  {projects.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
@@ -271,56 +442,52 @@ export const ToolPageTemplate = ({
                 </select>
               </label>
 
-              {projectsLoading && (
-                <p className={uiPrimitives.metaLine}>Loading projects...</p>
-              )}
+              {projectsLoading ? <p className={uiPrimitives.metaLine}>Loading projects...</p> : null}
 
-              {/* Model selector */}
               <label>
                 <span>Model</span>
                 <input
                   type="text"
                   value={formState.model}
-                  onChange={e => setFormState({ ...formState, model: e.target.value })}
+                  onChange={(e) => setFormState({ ...formState, model: e.target.value })}
                   placeholder="e.g., openrouter/auto"
                 />
               </label>
 
-              {/* Registry snapshot */}
               <label>
                 <span>Registry Snapshot</span>
                 <input
                   type="text"
                   value={formState.registrySnapshotRef}
-                  onChange={e => setFormState({ ...formState, registrySnapshotRef: e.target.value })}
+                  onChange={(e) => setFormState({ ...formState, registrySnapshotRef: e.target.value })}
                   placeholder="e.g., snapshot:default"
                 />
               </label>
 
-              {/* Briefing upload */}
               <label>
                 <span>Briefing File</span>
                 <input
                   type="file"
                   accept=".docx,.txt,.md"
                   disabled={!formState.projectId.trim() || generation.isStreamActive}
-                  onChange={e => void briefingUpload.handleFileSelected(e.target.files?.[0] ?? null)}
+                  onChange={(e) => {
+                    void briefingUpload.handleFileSelected(e.target.files?.[0] ?? null);
+                  }}
                 />
               </label>
 
-              {briefingUpload.error && (
-                <p className={uiPrimitives.error}>{briefingUpload.error}</p>
-              )}
+              {briefingUpload.error ? <p className={uiPrimitives.error}>{briefingUpload.error}</p> : null}
 
               <p className={uiPrimitives.metaLine}>
-                Briefing status: {briefingUpload.status}
-                {briefingUpload.fileName && ` - ${briefingUpload.fileName}`}
+                Briefing status: {effectiveBriefingStatus}
+                {effectiveBriefingFileName ? ` - ${effectiveBriefingFileName}` : ''}
               </p>
 
               <ToolActionButtons
                 primaryPolicy={uiState.primaryActionPolicy}
                 secondaryFlags={uiState.secondaryActions}
-                onPrimaryAction={handleStartGeneration}
+                onPrimaryAction={handlePrimaryAction}
+                onCancelGeneration={generation.cancel}
                 isLoading={generation.isStreamActive}
               />
             </form>
@@ -332,45 +499,30 @@ export const ToolPageTemplate = ({
               statusMessage={uiState.statusMessage}
               errorMessage={uiState.errorMessage}
               projectName={currentProject?.name ?? null}
-              briefingFileName={briefingUpload.fileName}
-              completedStepsCount={completedSteps.size}
+              briefingFileName={effectiveBriefingFileName ?? null}
+              completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
             />
 
-            {/* Step cards */}
-            {toolConfig.steps.length > 0 && (
+            {toolConfig.steps.length > 0 ? (
               <div className="ui-tool-steps-container">
                 <h3>Generation Steps</h3>
-                {toolConfig.steps.map(step => (
+                {toolConfig.steps.map((step) => (
                   <ToolStepCard
                     key={step}
                     toolKey={toolKey}
                     step={step}
-                    status={
-                      uiState.stepStatuses[step] ?? 'idle'
-                    }
-                    previewContent={
-                      generation.artifacts.find(
-                        a =>
-                          a.toolKey === toolKey
-                          && (a.sourceRequest?.input as any)?.step === step,
-                      )?.content ?? null
-                    }
-                    artifactId={
-                      generation.artifacts.find(
-                        a =>
-                          a.toolKey === toolKey
-                          && (a.sourceRequest?.input as any)?.step === step,
-                      )?.artifactId ?? null
-                    }
+                    status={uiState.stepStatuses[step] ?? 'idle'}
+                    previewContent={latestArtifactByStep[step]?.content ?? null}
+                    artifactId={latestArtifactByStep[step]?.artifactId ?? null}
                     isStreaming={
                       generation.isStreamActive
-                      && (generation.snapshot.context.lastRequest?.input as any)?.step === step
+                      && (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step === step
                     }
                   />
                 ))}
               </div>
-            )}
+            ) : null}
           </section>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { GenerationForm } from '../ui/GenerationForm';
 import { GenerationStreamPanel } from '../ui/GenerationStreamPanel';
@@ -14,8 +15,13 @@ import { useGenerationWorkspace } from '../runtime/GenerationWorkspaceProvider';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
+import {
+  buildToolEntryPathFromArtifact,
+  type GenerationArtifact,
+} from '../ui/artifact-history';
 
 export const GenerationConsolePage = () => {
+  const navigate = useNavigate();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -95,6 +101,18 @@ export const GenerationConsolePage = () => {
     return null;
   }
 
+  const handleArtifactIntentNavigation = (
+    artifact: GenerationArtifact,
+    intent: 'resume' | 'regenerate',
+  ): void => {
+    const targetPath = buildToolEntryPathFromArtifact(artifact, intent);
+    if (!targetPath) {
+      return;
+    }
+
+    navigate(targetPath);
+  };
+
   return (
     <section className={uiPrimitives.stack}>
       <section className={uiPrimitives.generationCanvas}>
@@ -134,7 +152,8 @@ export const GenerationConsolePage = () => {
           artifacts={generation.artifacts}
           relaunchDisabled={generation.isStreamActive}
           onOpenProject={(projectId) => generation.setFocusedProjectId(projectId)}
-          onRelaunch={generation.relaunch}
+          onResumeFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'resume')}
+          onRegenerateFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'regenerate')}
         />
       </section>
     </section>

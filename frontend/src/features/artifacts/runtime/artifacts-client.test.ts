@@ -28,6 +28,7 @@ const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationAr
     artifactType: 'content',
     model: 'gpt-4',
     input: {},
+    toolKey: null,
     workflowType: null,
   },
   ...overrides,
@@ -77,6 +78,51 @@ describe('artifacts-client – listArtifacts', () => {
     } as Response);
     const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
     expect(result).toEqual(api);
+  });
+
+  it('maps toolKey from backend payload or request input when available', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          artifacts: [
+            {
+              artifactId: 'a1',
+              requestId: 'r1',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              toolKey: 'funnel-pages',
+              workflowType: 'funnel-pages',
+              input: {},
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+            {
+              artifactId: 'a2',
+              requestId: 'r2',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              workflowType: 'nextland',
+              input: { toolKey: 'nextland' },
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    } as Response);
+
+    const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
+    expect(result[0]?.toolKey).toBe('funnel-pages');
+    expect(result[1]?.toolKey).toBe('nextland');
+    expect(result[1]?.sourceRequest.toolKey).toBe('nextland');
   });
 });
 

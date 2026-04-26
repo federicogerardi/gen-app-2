@@ -24,11 +24,25 @@ type BackendArtifact = {
   artifactType: GenerationArtifact['artifactType'];
   status: GenerationArtifact['status'];
   model: string;
+  toolKey?: string | null;
   workflowType: string | null;
   input?: Record<string, unknown>;
   content?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+const readToolKey = (artifact: BackendArtifact): string | null => {
+  if (typeof artifact.toolKey === 'string' && artifact.toolKey.trim().length > 0) {
+    return artifact.toolKey.trim();
+  }
+
+  const inputToolKey = artifact.input?.['toolKey'];
+  if (typeof inputToolKey === 'string' && inputToolKey.trim().length > 0) {
+    return inputToolKey.trim();
+  }
+
+  return null;
 };
 
 type ArtifactsResponse =
@@ -73,6 +87,8 @@ const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): Ge
 };
 
 const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
+  const toolKey = readToolKey(artifact);
+
   return {
     requestId: artifact.requestId,
     userId: '',
@@ -80,11 +96,14 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
     artifactType: artifact.artifactType,
     model: artifact.model,
     input: artifact.input ?? {},
+    toolKey,
     workflowType: artifact.workflowType,
   };
 };
 
 const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => {
+  const toolKey = readToolKey(artifact);
+
   return {
     artifactId: artifact.artifactId,
     requestId: artifact.requestId,
@@ -92,7 +111,7 @@ const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => 
     artifactType: artifact.artifactType,
     status: artifact.status,
     model: artifact.model,
-    toolKey: null,
+    toolKey,
     workflowType: artifact.workflowType,
     content: artifact.content ?? '',
     createdAt: artifact.createdAt,

@@ -36,6 +36,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
     isStreamActive: generationState.isStreamActive,
     artifacts: generationState.artifacts,
     focusedProjectId: 'project-001',
+    setFocusedProjectId: vi.fn(),
     getExtractionContext: () => ({
       projectId: 'project-001',
       briefingId: 'brief-001',
@@ -45,6 +46,8 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
       parsedFormat: 'md',
       updatedAt: new Date().toISOString(),
     }),
+    upsertExtractionContext: vi.fn(),
+    cancel: vi.fn(),
     start: startMock,
   }),
 }));

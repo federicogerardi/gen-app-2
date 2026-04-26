@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { getArtifactById } from '../runtime/artifacts-client';
-import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import {
+  buildToolEntryPathFromArtifact,
+  type GenerationArtifact,
+} from '../../generation/ui/artifact-history';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
 export const ArtifactDetailPage = () => {
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const [artifact, setArtifact] = useState<GenerationArtifact | null>(null);
@@ -26,7 +30,18 @@ export const ArtifactDetailPage = () => {
     })();
   }, [auth.apiBaseUrl, auth.capabilities, generation.artifacts, id]);
 
-  const relaunchDisabled = useMemo(() => generation.isStreamActive || !artifact, [artifact, generation.isStreamActive]);
+  const resumePath = useMemo(
+    () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'resume') : null),
+    [artifact],
+  );
+  const regeneratePath = useMemo(
+    () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'regenerate') : null),
+    [artifact],
+  );
+  const relaunchDisabled = useMemo(
+    () => generation.isStreamActive || !artifact || !resumePath || !regeneratePath,
+    [artifact, generation.isStreamActive, regeneratePath, resumePath],
+  );
 
   if (!artifact) {
     return (
@@ -52,10 +67,26 @@ export const ArtifactDetailPage = () => {
       <pre className={uiPrimitives.artifactContent}>{artifact.content || 'Contenuto non disponibile.'}</pre>
 
       <div className={uiPrimitives.actions}>
-        <Button type="button" onClick={() => generation.relaunch(artifact, 'primary')} disabled={relaunchDisabled}>
+        <Button
+          type="button"
+          onClick={() => {
+            if (resumePath) {
+              navigate(resumePath);
+            }
+          }}
+          disabled={relaunchDisabled}
+        >
           {appCopy.ui.actions.relaunchPrimary}
         </Button>
-        <Button type="button" onClick={() => generation.relaunch(artifact, 'secondary')} disabled={relaunchDisabled}>
+        <Button
+          type="button"
+          onClick={() => {
+            if (regeneratePath) {
+              navigate(regeneratePath);
+            }
+          }}
+          disabled={relaunchDisabled}
+        >
           {appCopy.ui.actions.relaunchSecondary}
         </Button>
         <Button type="button" disabled={!isDeleteEnabled}>

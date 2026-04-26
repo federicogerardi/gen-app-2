@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { GenerationRequest } from '../contracts/backend-stream';
 import {
+  buildArtifactEntryQuery,
   buildRelaunchRequest,
+  buildToolEntryPathFromArtifact,
   filterArtifacts,
   type ArtifactFilters,
   type GenerationArtifact,
@@ -68,5 +70,59 @@ describe('artifact history', () => {
     expect(relaunch.idempotencyKey).toBeUndefined();
     expect(relaunch.input['relaunchFromArtifactId']).toBe('art-relaunch');
     expect(relaunch.input['relaunchMode']).toBe('secondary');
+  });
+
+  it('builds tool entry query with required and optional relaunch fields', () => {
+    const sourceArtifact = artifact({
+      artifactId: 'art-route',
+      projectId: 'project-42',
+      sourceRequest: {
+        ...request,
+        input: {
+          prompt: 'seed',
+          tone: 'friendly',
+          notes: 'keep CTA concise',
+          briefingId: 'brief-42',
+          briefingFileName: 'brief.md',
+        },
+      },
+    });
+
+    const query = new URLSearchParams(buildArtifactEntryQuery(sourceArtifact, 'resume'));
+
+    expect(query.get('intent')).toBe('resume');
+    expect(query.get('projectId')).toBe('project-42');
+    expect(query.get('sourceArtifactId')).toBe('art-route');
+    expect(query.get('relaunchFromArtifactId')).toBe('art-route');
+    expect(query.get('tone')).toBe('friendly');
+    expect(query.get('notes')).toBe('keep CTA concise');
+    expect(query.get('briefingId')).toBe('brief-42');
+    expect(query.get('briefingFileName')).toBe('brief.md');
+  });
+
+  it('builds tool entry path only for supported tool routes', () => {
+    const supported = artifact({
+      artifactId: 'art-supported',
+      toolKey: 'funnel-pages',
+      sourceRequest: {
+        ...request,
+        toolKey: 'funnel-pages',
+      },
+    });
+
+    const unsupported = artifact({
+      artifactId: 'art-unsupported',
+      toolKey: 'meta_ads',
+      workflowType: 'meta_ads',
+      sourceRequest: {
+        ...request,
+        toolKey: 'meta_ads',
+        workflowType: 'meta_ads',
+      },
+    });
+
+    const supportedPath = buildToolEntryPathFromArtifact(supported, 'regenerate');
+    expect(supportedPath?.startsWith('/tools/funnel-pages?')).toBe(true);
+    expect(buildToolEntryPathFromArtifact(unsupported, 'resume')).toBeNull();
   });
 });

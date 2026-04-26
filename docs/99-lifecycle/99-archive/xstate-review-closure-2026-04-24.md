@@ -4,7 +4,7 @@ Versione: 1.0
 Data: 2026-04-24  
 Stato: Completed
 
-Documento di chiusura della review XState v5, derivato dai finding emersi sull implementazione as-is e allineato al piano di risoluzione in [plan/upgrade-xstate-go-gap-1.md](../../../plan/upgrade-xstate-go-gap-1.md) e alla checklist PR-ready in [plan/process-xstate-review-pr-checklist-1.md](../../../plan/process-xstate-review-pr-checklist-1.md).
+Documento di chiusura della review XState v5, derivato dai finding emersi sull implementazione as-is e allineato al piano di risoluzione in [upgrade-xstate-go-gap-1-snapshot-2026-04-24.md](./planning/upgrade-xstate-go-gap-1-snapshot-2026-04-24.md) e alla checklist PR-ready in [process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md](./planning/process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md).
 
 ## Obiettivo
 

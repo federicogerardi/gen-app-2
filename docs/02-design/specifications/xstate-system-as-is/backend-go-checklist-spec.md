@@ -17,7 +17,7 @@ Il sistema e `GO` solo se:
 
 Piano esecutivo associato:
 
-- `plan/architecture-backend-go-1.md`
+- `docs/99-lifecycle/99-archive/planning/architecture-backend-go-1-snapshot-2026-04-24.md`
 
 ## 2. Stato Attuale Sintetico
 

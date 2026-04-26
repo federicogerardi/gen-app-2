@@ -69,10 +69,10 @@ Bloccare rilascio o attivare rollback se si verifica almeno uno dei seguenti:
 
 ## 6. Link Correlati
 
-- `docs/review/frontend-sprint-go-checklist.md`
-- `docs/review/frontend-sprint-regression-policy.md`
+- `docs/99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-go-checklist-snapshot-2026-04-24.md`
+- `docs/99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-regression-policy-snapshot-2026-04-24.md`
 - `docs/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md`
-- `plan/feature-frontend-generation-tools-go-1.md`
+- `docs/99-lifecycle/99-archive/planning/feature-frontend-generation-tools-go-1-snapshot-2026-04-25.md`
 
 ## 7. Delta Post-GO (2026-04-25)
 
@@ -113,4 +113,4 @@ Evidenze di regressione post-fix:
 
 Riferimento operativo:
 
-- `docs/review/frontend-sprint-go-checklist.md` sezione "Regressione Chiusa - Tool Step Chain (2026-04-26)".
+- `docs/99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-go-checklist-snapshot-2026-04-24.md` (snapshot pre-publish di riferimento).

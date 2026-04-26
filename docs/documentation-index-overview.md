@@ -1,9 +1,20 @@
+---
+status: approved
+version: 2.0
+last-reviewed: 2026-04-26
+next-review-date: 2026-07-26
+owner: Documentation Archivist
+---
+
 # Documentation Index Overview
 
 Data: 2026-04-26
 Stato: Active
+Version: 2.0
 
 Indice operativo della documentazione as-is, organizzato per area e stato del documento.
+
+**Status**: Post-publish. Documentazione pre-publish archiviata in `docs/99-lifecycle/99-archive/`. Questa documentazione riflette lo stato operativo attuale (as-is) del progetto.
 
 ## Specifiche attive (02-design/specifications/)
 
@@ -27,17 +38,9 @@ Pacchetto atomizzato XState:
 
 ## Review attive (07-governance/review/)
 
-- [Frontend sprint go/no-go checklist](./07-governance/review/frontend-sprint-go-checklist.md)
-- [Frontend sprint regression policy](./07-governance/review/frontend-sprint-regression-policy.md)
-- [Tools generation go closure 2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md)
+- [Tools generation go closure 2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md) - Evidenza finale di GO: upload brief, extraction persistita, generation workflow Funnel/Nextland, completion e fallback operativi.
 
-Nota review attiva (regressione chiusa):
-
-- Regressione chaining step tools chiusa: step-by-step frontend ripristinato (step 1 -> step 2 auto-chain) con evidenze in [frontend-sprint-go-checklist.md](./07-governance/review/frontend-sprint-go-checklist.md) e [tools-generation-go-closure-2026-04-25.md](./07-governance/review/tools-generation-go-closure-2026-04-25.md).
-
-## Code Review attive (07-governance/code-review/)
-
-- [Backend auth surface review 2026-04-25](./07-governance/code-review/2026-04-25-backend-auth-review.md) - Alta priorita di implementazione: autenticare lato backend la generation route e derivare l'identita utente dalla sessione.
+Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-archive/governance-pre-publish/` (pre-publish validation phases).
 
 ## Frontend Resources
 
@@ -47,21 +50,36 @@ Nota review attiva (regressione chiusa):
 - [Frontend as-is](./02-design/specifications/frontend-spec.md) - Fonte canonica per registry UI, copy system centralizzato e regole di consistenza per interventi futuri
 - [Frontend Tool Pages Architecture (Unified)](./02-design/specifications/frontend-tool-pages-architecture-spec.md) - Target state post-refactoring: ToolPageTemplate, registry pattern, derivation logic, step-by-step per aggiungere nuovo tool
 
-## Archivio (99-lifecycle/99-archive/)
+## Archivio Storico (99-lifecycle/99-archive/)
 
+### Snapshot Precedenti
 - [XState system as-is monolith spec](./99-lifecycle/99-archive/xstate-system-as-is-monolith-spec.md)
 - [XState review closure snapshot 2026-04-24](./99-lifecycle/99-archive/xstate-review-closure-2026-04-24.md)
 - [Frontend design artifact canvas snapshot 2026-04-26](./99-lifecycle/99-archive/frontend-design-artifact-canvas-snapshot-2026-04-26.md)
 
-## Piani correlati (fuori docs)
+### Planning Pre-Publish (planning/)
+Tutti i piani di lavoro pre-publish sono archiviati in `docs/99-lifecycle/99-archive/planning/`:
+- `architecture-backend-go-1-snapshot-2026-04-24.md` (backend GO implementation)
+- `feature-frontend-generation-tools-go-1-snapshot-2026-04-25.md` (frontend tool generation GO)
+- `feature-frontend-ux-sprints-1-snapshot-2026-04-24.md` (frontend UX flow completion)
+- `upgrade-xstate-go-gap-1-snapshot-2026-04-24.md` (XState v5 upgrade)
+- `feature-projects-artifacts-backend-frontend-gap-1-snapshot-2026-04-25.md` (projects/artifacts integration)
+- `frontend-development-plan-on-existing-backend-1-snapshot-2026-04-24.md` (frontend development)
+- `process-projects-artifacts-ticket-breakdown-1-snapshot-2026-04-25.md` (ticket breakdown)
+- `process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md` (XState review process)
+- `tool-unification-scalability-1-snapshot-2026-04-25.md` (tool unification)
 
-- [Upgrade XState go gap](../plan/upgrade-xstate-go-gap-1.md)
-- [Process XState review PR checklist](../plan/process-xstate-review-pr-checklist-1.md)
-- [Feature frontend UX sprints](../plan/feature-frontend-ux-sprints-1.md)
+### Governance Pre-Publish (governance-pre-publish/)
+Sprint validation e code review pre-publish archiviati in `docs/99-lifecycle/99-archive/governance-pre-publish/`:
+- `frontend-sprint-go-checklist-snapshot-2026-04-24.md` (sprint validation)
+- `frontend-sprint-regression-policy-snapshot-2026-04-24.md` (sprint regression policy)
+- `backend-auth-surface-review-snapshot-2026-04-25.md` (auth review, issue resolved)
 
 ## Note di governance applicate
 
-- I documenti attivi restano in review/specifications; i documenti conclusi o superseded vanno in archive.
+- I documenti attivi restano in specifications e review; i documenti conclusi o pre-publish vanno in archive.
 - I file markdown usano naming lowercase kebab-case con topic e tipo documento.
 - In caso di rename o spostamento, gli indici e i link devono essere aggiornati nello stesso passaggio.
-- Per cambiamenti frontend che toccano stile o visual design, la documentazione canonica da aggiornare e `docs/specifications/frontend-design-system-ui-kit-guide.md`.
+- Per cambiamenti frontend che toccano stile o visual design, la documentazione canonica da aggiornare è `docs/specifications/frontend-design-system-ui-kit-guide.md`.
+- Tutti i file archiviati mantengono frontmatter con status=archived e data-archived per tracciabilità storica.
+- `backend-auth-surface-review-snapshot-2026-04-25.md` (auth review, issue resolve

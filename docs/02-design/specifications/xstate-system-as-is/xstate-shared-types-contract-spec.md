@@ -2,7 +2,7 @@
 
 Sorgente canonica implementativa:
 
-- [src/lib/types/xstate.ts](../../src/lib/types/xstate.ts)
+- [src/lib/types/xstate.ts](../../../../src/lib/types/xstate.ts)
 
 Alias e selector per-request (obbligatori):
 

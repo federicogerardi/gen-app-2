@@ -54,4 +54,4 @@ Nota aggiornamento 2.3 (as-is runtime LLM + auth + OAuth):
 
 ## Historical Closures
 
-- [xstate-review-closure-2026-04-24.md](../archive/xstate-review-closure-2026-04-24.md)
+- [xstate-review-closure-2026-04-24.md](../../99-lifecycle/99-archive/xstate-review-closure-2026-04-24.md)

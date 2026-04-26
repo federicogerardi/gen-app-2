@@ -2,7 +2,7 @@
 
 Sorgente canonica implementativa:
 
-- [src/lib/types/artifact.ts](../../src/lib/types/artifact.ts)
+- [src/lib/types/artifact.ts](../../../../src/lib/types/artifact.ts)
 
 Tipi normativi minimi da preservare:
 

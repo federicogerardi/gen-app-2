@@ -11,10 +11,10 @@ Questa cartella contiene mockup prompt per implementazione tecnica delle chiamat
 
 I mockup extraction e Funnel Pages sono stati riallineati ai prompt guida marketing/copywriting (ora nel layer runtime):
 
-- extraction: [../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md](../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md)
-- optin funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md)
-- quiz funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md)
-- vsl funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md](../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md)
+- extraction: [../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md](../../../../../src/lib/runtime/tool-prompts/extraction/prompt_generation.md)
+- optin funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md](../../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md)
+- quiz funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md](../../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md)
+- vsl funnel: [../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md](../../../../../src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md)
 
 I mockup sono pensati come base di wiring backend/frontend e test integration.
 I prompt finali di produzione possono evolvere, ma questi file fissano:

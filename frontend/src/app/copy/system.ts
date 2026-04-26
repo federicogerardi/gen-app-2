@@ -23,7 +23,6 @@ export const appCopy = {
       admin: 'Admin',
     },
     actions: {
-      sections: 'Sezioni',
       logout: 'Esci',
       continueWithGoogleWorkspace: 'Continua con Google Workspace',
       enterWorkspace: 'Entra nel workspace',

@@ -14,8 +14,6 @@ export const uiPrimitives = {
   shellAuth: 'ui-shell-auth',
   workbench: 'ui-workbench',
   mainCanvas: 'ui-main-canvas',
-  contextRail: 'ui-context-rail',
-  contextList: 'ui-context-list',
   surface: 'ui-surface',
   stack: 'ui-stack',
   topBar: 'ui-top-bar',

@@ -185,6 +185,10 @@ export const getAvailableSteps = (
 ): ToolStep[] => {
   const config = getToolFormConfig(toolKey);
   return config.steps.filter(step => {
+    if (completedSteps.has(step)) {
+      return false;
+    }
+
     const deps = config.stepDependencies[step] ?? [];
     return deps.every(dep => completedSteps.has(dep));
   });

@@ -96,3 +96,26 @@ Conferma utente registrata:
 
 - capability attive abilitate in frontend;
 - funzionalita list/create projects confermata operativa lato frontend.
+
+---
+
+## Regressione Chiusa - Tool Step Chain (2026-04-26)
+
+Esito corrente:
+
+- Step-by-step frontend nuovamente operativo (step 1 -> step 2 auto-chain).
+- Stato regressione: chiusa.
+
+Fix applicato:
+
+- Corretto il calcolo degli step disponibili per escludere gli step gia completati.
+- Riallineato il comportamento del next step rispetto agli artifact completati.
+
+Evidenze di validazione:
+
+- Test frontend mirati: `npm --prefix frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx` -> `4 passed, 0 failed`.
+- Typecheck frontend: `npm --prefix frontend run typecheck` -> nessun errore.
+- Conferma operativa utente: generation step-by-step funzionante in frontend.
+
+Owner tecnico: frontend tools runtime/template.
+Priorita: chiusa.

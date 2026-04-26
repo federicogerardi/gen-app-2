@@ -91,3 +91,26 @@ Evidenza di regressione post-fix:
 
 - suite backend: `53 passed, 0 failed`
 - suite frontend tools-client: `3 passed, 0 failed`
+
+## 8. Regressione Post-GO Chiusa (2026-04-26)
+
+Scenario aggiornato:
+
+1. avvio generazione step 1: OK
+2. salvataggio output step 1: OK
+3. passaggio automatico a step 2: OK
+
+Risoluzione applicata:
+
+- Correzione del calcolo step disponibili per non riproporre step gia completati.
+- Ripristino del chaining automatico tra step consecutivi su template tools condiviso.
+
+Evidenze di regressione post-fix:
+
+- test frontend mirati: `npm --prefix frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx` -> `4 passed, 0 failed`
+- typecheck frontend: `npm --prefix frontend run typecheck` -> `0` errori
+- conferma manuale: generation step-by-step funzionante in frontend
+
+Riferimento operativo:
+
+- `docs/review/frontend-sprint-go-checklist.md` sezione "Regressione Chiusa - Tool Step Chain (2026-04-26)".

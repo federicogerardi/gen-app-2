@@ -39,24 +39,6 @@ export const AuthenticatedShell = () => {
         <section className={uiPrimitives.mainCanvas}>
           <Outlet />
         </section>
-
-        <Surface as="aside" className={uiPrimitives.contextRail}>
-          <h2>{appCopy.ui.actions.sections}</h2>
-          <ul className={uiPrimitives.contextList}>
-            <li>
-              <strong>{appCopy.ui.meta.state}</strong>
-              <span>{auth.session.user.role}</span>
-            </li>
-            <li>
-              <strong>{appCopy.ui.meta.requestId}</strong>
-              <span>{auth.session.user.email}</span>
-            </li>
-            <li>
-              <strong>{appCopy.ui.labels.project}</strong>
-              <span>{auth.capabilities.projects ? appCopy.ui.states.present : appCopy.ui.states.missing}</span>
-            </li>
-          </ul>
-        </Surface>
       </section>
     </Shell>
   );

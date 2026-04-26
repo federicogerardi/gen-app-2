@@ -142,21 +142,14 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     statusMessage = 'Generation workflow completed';
   }
 
-  // 5. Handle regeneration scenario (previous generation exists, can restart)
-  else if (input.hasCompletedPreviousGeneration && input.briefingStatus === 'ready') {
-    canonicalState = 'prefilled-regenerate';
-    primaryActionPolicy = 'regenerate-current-step';
-    statusMessage = 'Ready to regenerate with updated parameters';
-  }
-
-  // 6. Handle resume from checkpoint
+  // 5. Handle resume from checkpoint
   else if (input.lastCheckpointStep && input.nextAvailableStep) {
     canonicalState = 'paused-with-checkpoint';
     primaryActionPolicy = 'resume-checkpoint';
     statusMessage = `Can resume from: ${input.lastCheckpointStep}`;
   }
 
-  // 7. Handle form ready: project selected, briefing uploaded, next step available
+  // 6. Handle form ready: project selected, briefing uploaded, next step available
   else if (
     input.projectId.trim().length > 0
     && input.briefingStatus === 'ready'
@@ -165,6 +158,17 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     canonicalState = 'draft-ready';
     primaryActionPolicy = 'start-generation';
     statusMessage = 'Ready to generate';
+  }
+
+  // 7. Handle regeneration scenario (previous generation exists, can restart)
+  else if (
+    input.hasCompletedPreviousGeneration
+    && input.briefingStatus === 'ready'
+    && input.completedSteps.size === 0
+  ) {
+    canonicalState = 'prefilled-regenerate';
+    primaryActionPolicy = 'regenerate-current-step';
+    statusMessage = 'Ready to regenerate with updated parameters';
   }
 
   // 8. Default: form empty
@@ -187,7 +191,7 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     config.steps.map(step => {
       let status: 'idle' | 'running' | 'completed' | 'error' = 'idle';
 
-      if (input.currentRunningStep === step) {
+      if (input.isGenerationStreamActive && input.currentRunningStep === step) {
         status = 'running';
       } else if (input.completedSteps.has(step)) {
         status = 'completed';

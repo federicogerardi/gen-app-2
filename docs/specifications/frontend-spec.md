@@ -45,6 +45,11 @@ frontend/
 
 Lo stato as-is del frontend non usa piu silos locali per grafica e testi utente nelle pagine operative principali.
 
+Fonte di verita visuale:
+
+- Le linee guida di design system e UI kit sono definite in `docs/specifications/frontend-design-system-ui-kit-guide.md`.
+- Questa specifica resta il contratto tecnico-operativo di implementazione (registry UI/copy, machine, runtime, test).
+
 ### Layer grafico condiviso
 
 - `frontend/src/app/ui/primitives.tsx` e la fonte canonica delle primitive React riusabili (`Surface`, `Shell`, `TopBar`, `Button`) e dei token di classe (`uiPrimitives`).

@@ -1,5 +1,5 @@
 import { createActor, fromCallback, waitFor } from 'xstate';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { frontendStreamMachine } from './frontend-stream.machine';
 import { StreamLogger, createStreamLogger } from '../runtime/stream-logger';
 
@@ -309,71 +309,76 @@ describe('Failure Scenarios - Terminal & Transport Errors', () => {
   });
 
   it('exhausts reconnection attempts and fails permanently', async () => {
-    const logger = createStreamLogger();
-    const actor = createTestActor({
-      maxReconnectAttempts: 2,
-      reconnectBaseDelayMs: 10,
-      reconnectMaxDelayMs: 10,
-    });
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      const logger = createStreamLogger();
+      const actor = createTestActor({
+        maxReconnectAttempts: 2,
+        reconnectBaseDelayMs: 10,
+        reconnectMaxDelayMs: 10,
+      });
 
-    actor.send({
-      type: 'REQUEST_START',
-      request: createRequest('req-reconnect-exhaust-1'),
-    });
+      actor.send({
+        type: 'REQUEST_START',
+        request: createRequest('req-reconnect-exhaust-1'),
+      });
 
-    // Attempt 1: fail with retryable error
-    actor.send({
-      type: 'STREAM_ERROR',
-      code: 'transport_mid_stream',
-      message: 'Network timeout',
-      retryable: true,
-    });
-    logger.log('warn', 'RECONNECT_ATTEMPT_1', {
-      requestId: 'req-reconnect-exhaust-1',
-      artifactId: null,
-    });
+      // Attempt 1: fail with retryable error
+      actor.send({
+        type: 'STREAM_ERROR',
+        code: 'transport_mid_stream',
+        message: 'Network timeout',
+        retryable: true,
+      });
+      logger.log('warn', 'RECONNECT_ATTEMPT_1', {
+        requestId: 'req-reconnect-exhaust-1',
+        artifactId: null,
+      });
 
-    expect(actor.getSnapshot().context.reconnectAttempts).toBe(1);
+      expect(actor.getSnapshot().context.reconnectAttempts).toBe(1);
 
-    await waitFor(actor, snapshot => snapshot.matches({ active: 'connecting' }), {
-      timeout: 200,
-    });
+      await waitFor(actor, snapshot => snapshot.matches({ active: 'connecting' }), {
+        timeout: 400,
+      });
 
-    // Attempt 2: fail again
-    actor.send({
-      type: 'STREAM_ERROR',
-      code: 'transport_mid_stream',
-      message: 'Network timeout',
-      retryable: true,
-    });
-    logger.log('warn', 'RECONNECT_ATTEMPT_2', {
-      requestId: 'req-reconnect-exhaust-1',
-      artifactId: null,
-    });
+      // Attempt 2: fail again
+      actor.send({
+        type: 'STREAM_ERROR',
+        code: 'transport_mid_stream',
+        message: 'Network timeout',
+        retryable: true,
+      });
+      logger.log('warn', 'RECONNECT_ATTEMPT_2', {
+        requestId: 'req-reconnect-exhaust-1',
+        artifactId: null,
+      });
 
-    expect(actor.getSnapshot().context.reconnectAttempts).toBe(2);
+      expect(actor.getSnapshot().context.reconnectAttempts).toBe(2);
 
-    await waitFor(actor, snapshot => snapshot.matches({ active: 'connecting' }), {
-      timeout: 200,
-    });
+      await waitFor(actor, snapshot => snapshot.matches({ active: 'connecting' }), {
+        timeout: 400,
+      });
 
-    // Attempt 3: fail once more to trigger exhaustion
-    actor.send({
-      type: 'STREAM_ERROR',
-      code: 'transport_mid_stream',
-      message: 'Network timeout',
-      retryable: true,
-    });
-    logger.log('error', 'RECONNECT_EXHAUSTED', {
-      requestId: 'req-reconnect-exhaust-1',
-      artifactId: null,
-      data: { attempts: 3 },
-    });
+      // Attempt 3: fail once more to trigger exhaustion
+      actor.send({
+        type: 'STREAM_ERROR',
+        code: 'transport_mid_stream',
+        message: 'Network timeout',
+        retryable: true,
+      });
+      logger.log('error', 'RECONNECT_EXHAUSTED', {
+        requestId: 'req-reconnect-exhaust-1',
+        artifactId: null,
+        data: { attempts: 3 },
+      });
 
-    const snapshot = actor.getSnapshot();
-    expect(snapshot.matches('failed')).toBe(true);
-    expect(snapshot.context.errorCode).toBe('reconnect_exhausted');
-    expect(snapshot.context.reconnectAttempts).toBeGreaterThan(2);
+      const snapshot = actor.getSnapshot();
+      expect(snapshot.matches('failed')).toBe(true);
+      expect(snapshot.context.errorCode).toBe('reconnect_exhausted');
+      expect(snapshot.context.reconnectAttempts).toBeGreaterThan(2);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });
 

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listProjects, getProjectById } from './projects-client';
 
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
   mockFetch.mockReset();
+  vi.stubGlobal('fetch', mockFetch);
 });
 
 describe('projects-client', () => {

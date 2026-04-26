@@ -3,10 +3,10 @@ import { listArtifacts, getArtifactById } from './artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
 
 beforeEach(() => {
   mockFetch.mockReset();
+  vi.stubGlobal('fetch', mockFetch);
 });
 
 const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({

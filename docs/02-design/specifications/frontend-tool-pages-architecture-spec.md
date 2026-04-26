@@ -1,3 +1,5 @@
+# Frontend Tool Pages — Unified Architecture Specification
+
 ---
 date_created: 2026-04-26
 date_updated: 2026-04-26
@@ -6,8 +8,6 @@ version: 2.0
 title: Frontend Tool Pages — Unified Architecture Specification
 tags: [architecture, tool-pages, unification, scalability, registry]
 ---
-
-# Frontend Tool Pages — Unified Architecture Specification
 
 ## Executive Summary
 
@@ -447,89 +447,6 @@ interface ToolPageTemplateProps {
 }
 ```
 
-**Render**:
-```jsx
-export function ToolPageTemplate({
-  toolKey,
-  sourceArtifactId,
-  intent,
-}: ToolPageTemplateProps) {
-  const toolForm = useToolForm(toolKey);
-  const config = getToolFormConfig(toolKey);
-
-  if (!toolForm) return <LoadingSpinner />;
-
-  return (
-    <Surface>
-      <ToolStatusCard
-        state={toolForm.canonicalUiState}
-        uploadStatus={toolForm.uploadStatus}
-        generationStatus={toolForm.generationStatus}
-        currentStepIndex={toolForm.currentStepIndex}
-        totalSteps={config.steps.length}
-        error={toolForm.error}
-      />
-
-      <form>
-        <ProjectSelector
-          value={toolForm.projectId}
-          onChange={toolForm.setProject}
-        />
-        <ModelSelector
-          value={toolForm.modelId}
-          onChange={toolForm.setModel}
-        />
-        <ToneSelector
-          value={toolForm.toneId}
-          onChange={toolForm.setTone}
-          optional
-        />
-        <NotesInput
-          value={toolForm.notes}
-          onChange={toolForm.setNotes}
-          optional
-        />
-        <BriefingUpload
-          status={toolForm.uploadStatus}
-          fileName={toolForm.uploadedFileName}
-          onUpload={toolForm.uploadBriefing}
-        />
-      </form>
-
-      <div className="steps-grid">
-        {config.steps.map((step, idx) => (
-          <ToolStepCard
-            key={step}
-            step={step}
-            stepIndex={idx}
-            status={/* derive from currentStepIndex */}
-            description={appCopy.ui.steps[step]?.description}
-            preview={toolForm.allStepArtifacts[step]?.preview}
-            artifactId={toolForm.allStepArtifacts[step]?.id}
-            error={
-              toolForm.currentStepIndex === idx
-                ? toolForm.error
-                : null
-            }
-          />
-        ))}
-      </div>
-
-      <ToolActionButtons
-        state={toolForm.canonicalUiState}
-        primaryActionPolicy={toolForm.primaryActionPolicy}
-        secondaryActionFlags={toolForm.secondaryActionFlags}
-        onStartGeneration={toolForm.runNextStep}
-        onResumeCheckpoint={toolForm.resumeCheckpoint}
-        onOpenArtifact={() => /* navigate to artifact */}
-        onRegenerateFromZero={() => /* reset and start */}
-        onResetSetup={toolForm.resetSetup}
-      />
-    </Surface>
-  );
-}
-```
-
 ---
 
 ## 6. Tool Page Wrappers
@@ -567,202 +484,17 @@ export const NextlandToolPage = () => {
 **Time estimate: ~30 minutes** ✅
 
 **1. Add to registry** (`runtime/tool-form-architecture.ts`)
-```typescript
-'campaign-studio': {
-  toolKey: 'campaign-studio',
-  displayName: 'Campaign Studio',
-  defaultPrompt: 'Generate campaign steps...',
-  defaultModel: 'openrouter/auto',
-  steps: ['brief', 'landing', 'email', 'social'] as const,
-  stepDependencies: {
-    brief: [],
-    landing: ['brief'],
-    email: ['brief'],
-    social: ['email'],
-  },
-  defaults: { registrySnapshotRef: 'snapshot:default' },
-},
-```
-
 **2. Create page wrapper** (`campaign-studio/pages/CampaignStudioToolPage.tsx`)
-```typescript
-export const CampaignStudioToolPage = () => (
-  <ToolPageTemplate toolKey="campaign-studio" />
-);
-```
-
 **3. Add copy entries** (`app/copy/system.ts`)
-```typescript
-campaignStudio: {
-  title: 'Campaign Studio',
-  description: 'Generate multi-step campaigns...',
-  // Per-step labels (optional but recommended)
-  steps: {
-    brief: 'Campaign Brief',
-    landing: 'Landing Page',
-    email: 'Email Sequence',
-    social: 'Social Media Posts',
-  },
-},
-```
-
 **4. Register route** (`app-router.tsx`)
-```typescript
-{
-  path: '/tools/campaign-studio',
-  element: <CampaignStudioToolPage />,
-},
-```
-
 **5. Add navigation entry** (if needed in `appCopy.navigation`)
-
 **6. Test**
-```sh
-npm --prefix frontend run build
-npm --prefix frontend run test
-```
 
 **Total: 5 files edited, ~100 lines added** → new tool fully functional ✅
 
 ---
 
-## 8. Type Contracts
-
-### 8.1 ToolFormState
-
-```typescript
-export interface ToolFormState {
-  // Form inputs
-  projectId: string | null;
-  modelId: string | null;
-  toneId: string | null;
-  notes: string;
-
-  // Upload state
-  uploadedFileName: string | null;
-  uploadStatus: UploadStatus;
-  extractionContext: ExtractionContext | null;
-
-  // Generation state
-  generationStatus: GenerationStatus;
-  currentStepIndex: number;
-  allStepArtifacts: Record<string, Artifact>;
-  lastCheckpoint: Checkpoint | null;
-
-  // Derivations (NEW in v2)
-  canonicalUiState: CanonicalToolUiState;
-  primaryActionPolicy: PrimaryActionPolicy;
-  secondaryActionFlags: SecondaryActionFlags;
-
-  // Error state
-  error: Error | null;
-}
-```
-
-### 8.2 ToolFormSubmitData
-
-```typescript
-export interface ToolFormSubmitData {
-  toolKey: ToolKey;
-  projectId: string;
-  step: string;
-  modelId: string;
-  tone: string;
-  notes: string;
-  extractionPayload: {
-    briefingContent: string;
-    processedContext: Record<string, unknown>;
-  };
-  stepDependencyArtifactIds: Record<string, string>;
-  generationRequest: GenerationRequest;
-}
-```
-
----
-
-## 9. Copy System Integration
-
-### 9.1 Editorial Copy (`appCopy.editorial.tools`)
-
-Per tool:
-
-```typescript
-editorial: {
-  tools: {
-    funnelPages: {
-      title: 'HotLeadFunnel Pages',
-      description: 'Generate high-converting...',
-    },
-    nextland: {
-      title: 'NextLand',
-      description: 'Generate landing pages...',
-    },
-    campaignStudio: {
-      title: 'Campaign Studio',
-      description: 'Generate multi-step campaigns...',
-    },
-  },
-},
-```
-
-### 9.2 UI State Labels (`appCopy.ui.states`)
-
-Generic UI state descriptors (used by ToolStatusCard):
-
-```typescript
-ui: {
-  states: {
-    draftEmpty: 'Ready to upload briefing',
-    processingBriefing: 'Processing briefing...',
-    draftReady: 'Ready to generate',
-    runningGeneration: 'Generation in progress...',
-    completed: 'Generation complete',
-  },
-  steps: {
-    // Per-tool step descriptions (optional)
-    optin: { label: 'Opt-in', description: 'Generate opt-in page...' },
-    quiz: { label: 'Quiz', description: 'Generate quiz flow...' },
-    vsl: { label: 'VSL', description: 'Generate VSL script...' },
-  },
-},
-```
-
----
-
-## 10. Migration Path (from as-is to target)
-
-### Phase 1: Types & Architecture (30 min)
-- [ ] Extend ToolFormState, ToolUiDerivationInput in tool-form-architecture.ts
-- [ ] Add new types in primitives (ToolStatusCardProps, ToolStepCardProps, etc.)
-
-### Phase 2: Runtime Hooks (45 min)
-- [ ] Complete useToolForm composition
-- [ ] Add useToolUiState derivation
-
-### Phase 3: UI Components (2-3 hours)
-- [ ] Implement ToolStatusCard, ToolStepCard, ToolActionButtons, ToolPageTemplate
-
-### Phase 4: Page Wrapper Refactor (45 min)
-- [ ] Simplify FunnelPagesToolPage → wrapper only
-- [ ] Simplify NextlandToolPage → wrapper only
-- [ ] Update app-router imports
-
-### Phase 5: Copy System & Editorial (30 min)
-- [ ] Add UI state labels to appCopy
-- [ ] Add per-step descriptions
-
-### Phase 6: Testing & Validation (1 hour)
-- [ ] Build validation check
-- [ ] Test derivation logic
-- [ ] Visual regression check
-
-### Phase 7: Documentation (30 min)
-- [ ] Update README with "Add New Tool" procedure
-- [ ] Add JSDoc comments to ToolPageTemplate
-
----
-
-## 11. Benefits & Outcomes
+## 8. Benefits & Outcomes
 
 ### Immediate
 ✅ **-95% code duplication**: FunnelPages + NextLand consolidated into generics  
@@ -784,20 +516,5 @@ ui: {
 
 ---
 
-## 12. Appendix: Glossary
-
-- **ToolKey**: Unique identifier for a tool (e.g., `'funnel-pages'`, `'nextland'`)
-- **ToolFormConfig**: Registry entry defining tool metadata, steps, dependencies
-- **CanonicalToolUiState**: Unified state machine for all tools (8 states)
-- **PrimaryActionPolicy**: Derived from state, determines primary CTA label + action
-- **ToolPageTemplate**: Generic orchestration component used by all tool pages
-- **useToolForm**: Composite hook containing all tool page state management logic
-- **ToolStatusCard**: Global feedback component showing overall progress checklist
-- **ToolStepCard**: Per-step component showing status, preview, and CTA
-- **ToolActionButtons**: Adaptive CTA buttons (primary + secondaries)
-
----
-
 **Last Updated**: 2026-04-26  
-**Status**: Target Architecture (Post-Unification Implementation)  
-**Next Review**: After Phase 7 completion
+**Status**: Target Architecture (Post-Unification Implementation)

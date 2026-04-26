@@ -35,33 +35,6 @@ Problema:
 - In XState v5 le `entry` actions vengono eseguite prima che l actor invocato sia disponibile.
 - Il risultato e perdita silenziosa di eventi iniziali nei flow `extractionFlow`, `toolGenerationFlow` e `streaming`.
 
-Scope file:
-
-- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/extraction-chain.machine.ts](../../src/lib/machines/extraction-chain.machine.ts)
-- [src/lib/machines/tool-workflow.machine.ts](../../src/lib/machines/tool-workflow.machine.ts)
-- [src/lib/machines/stream-transport.machine.ts](../../src/lib/machines/stream-transport.machine.ts)
-- [src/lib/tests/generation-system.runtime.test.ts](../../src/lib/tests/generation-system.runtime.test.ts)
-
-Closure checklist:
-
-- [x] Nessun action path di `entry` invia piu eventi a `extractionActor` prima dell `invoke`.
-- [x] Nessun action path di `entry` invia piu eventi a `toolActor` prima dell `invoke`.
-- [x] Nessun action path di `entry` invia piu eventi a `streamActor` prima dell `invoke`.
-- [x] I child actor ricevono i dati di bootstrap tramite `input` dell `invoke` oppure tramite bootstrap interno deterministicamente eseguibile.
-- [x] I test runtime coprono almeno un caso extraction, un caso tool e un caso streaming o generic che fallirebbe in presenza di evento perso.
-
-Evidenze minime per chiudere:
-
-- Diff che mostra la rimozione del pattern `entry + sendTo` nei tre flow critici.
-- Diff che mostra l adattamento degli input dei child actor.
-- Esito verde di `npm run typecheck`.
-- Esito verde di `npm run test` con scenari runtime aggiornati.
-
-Condizione di chiusura:
-
-- FIND-001 e `Closed` solo se il reviewer puo verificare che nessun evento iniziale verso actor invocati venga inviato prima della loro esistenza runtime.
-
 Closure note 2026-04-24:
 
 - `generationSystemMachine` non usa piu `sendTo` in `entry` per `extractionFlow`, `toolGenerationFlow` e `streaming`.
@@ -74,32 +47,6 @@ Problema:
 
 - Alcune action implementations leggono `event.type` per scegliere tra payload evento e valore gia presente in context.
 - Questo pattern aggira il modello strict di XState v5 e rende le azioni meno tipizzate e meno locali alla transizione che le usa.
-
-Scope file:
-
-- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/request-gateway.machine.ts](../../src/lib/machines/request-gateway.machine.ts)
-- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
-
-Closure checklist:
-
-- [x] `cacheRequestMeta` usa `params` tipizzati oppure `assertEvent` invece di branching opportunistico su `event.type`.
-- [x] `setUserId` usa `params` tipizzati oppure `assertEvent`.
-- [x] `setValidationData` o equivalenti usano `params` tipizzati coerenti con la transizione sorgente.
-- [x] `setFailureReason` e stato spezzato in azioni piu specifiche oppure riceve `params` tipizzati dalla transizione.
-- [x] requestGatewayMachine non usa piu actions che tornano al valore di context come fallback generico quando il tipo evento e noto.
-- [x] I helper introdotti non usano `any` nei params o nei dati di output.
-
-Evidenze minime per chiudere:
-
-- Diff sulle azioni nominate in `setup` che mostra `params` tipizzati o `assertEvent`.
-- Diff sui blocchi `on`, `onDone` o `always` che mostra il passaggio esplicito dei `params`.
-- Esito verde di `npm run typecheck`.
-
-Condizione di chiusura:
-
-- FIND-002 e `Closed` solo se le azioni segnalate non usano piu il pattern `event.type === 'X' ? valoreEvento : valoreContext` come scorciatoia di typing.
 
 Closure note 2026-04-24:
 
@@ -115,31 +62,6 @@ Problema:
 - Alcuni `assign(...)` sono definiti inline dentro `onDone` o `onError` anziche essere registrati come azioni nominate in `setup({ actions })`.
 - Questo rompe la centralizzazione delle implementazioni e abbassa la leggibilita delle transizioni.
 
-Scope file:
-
-- [src/lib/machines/generation-system.machine.ts](../../src/lib/machines/generation-system.machine.ts)
-- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
-- [src/lib/machines/request-gateway.machine.ts](../../src/lib/machines/request-gateway.machine.ts)
-
-Closure checklist:
-
-- [x] Ogni `assign` inline in `onError` e stato sostituito da una action nominata in `setup`.
-- [x] Ogni `assign` inline in `onDone` e stato sostituito da una action nominata in `setup`.
-- [x] I nomi delle azioni descrivono il fallimento o l aggiornamento di contesto in modo specifico.
-- [x] Le transizioni referenziano solo azioni nominate per gli effetti custom toccati dalla review.
-
-Evidenze minime per chiudere:
-
-- Diff che mostra le nuove azioni nominate in `setup`.
-- Diff che mostra la sostituzione degli `assign` inline nelle transizioni interessate.
-- Esito verde di `npm run typecheck`.
-- Esito verde di `npm run test`.
-
-Condizione di chiusura:
-
-- FIND-003 e `Closed` solo se il reviewer puo controllare che le implementazioni custom vivano in `setup` e che le transizioni contengano solo riferimenti ad azioni nominate.
-
 Closure note 2026-04-24:
 
 - Rimossi tutti gli `assign` inline nei machine target (`generationSystemMachine`, `idempotencyCoordinatorMachine`, `usageMachine`) e sostituiti con azioni nominate in `setup.actions`.
@@ -152,33 +74,6 @@ Problema:
 
 - Alcuni cast su `event.output` restano fragili e i timestamp sono generati da helper locali non iniettabili.
 - Questo rende meno deterministici i test e piu rumorosi i punti in cui XState v5 non tipizza completamente `onDone`.
-
-Scope file:
-
-- [src/lib/machines/idempotency-coordinator.machine.ts](../../src/lib/machines/idempotency-coordinator.machine.ts)
-- [src/lib/machines/usage.machine.ts](../../src/lib/machines/usage.machine.ts)
-- [src/lib/tests/idempotency.machine.test.ts](../../src/lib/tests/idempotency.machine.test.ts)
-- [src/lib/tests/usage.machine.test.ts](../../src/lib/tests/usage.machine.test.ts)
-- [src/lib/tests/stream-transport.machine.test.ts](../../src/lib/tests/stream-transport.machine.test.ts)
-- [src/lib/tests/persistence-batch.machine.test.ts](../../src/lib/tests/persistence-batch.machine.test.ts)
-
-Closure checklist:
-
-- [x] idempotencyCoordinatorMachine accetta una dipendenza `runtime.now` opzionale tramite input.
-- [x] usageMachine accetta una dipendenza `runtime.now` opzionale tramite input.
-- [x] I test verificano timestamp stabili con clock controllato.
-- [x] Gli eventuali cast residui su `event.output` sono confinati in helper o punti esplicitamente giustificati.
-- [x] I test di stream e persistence verificano shape terminale, ordine evento e coerenza lifecycle/accounting sui path interessati.
-
-Evidenze minime per chiudere:
-
-- Diff che mostra l introduzione di `runtime.now` nei tipi input e negli output event.
-- Diff che mostra test deterministici con timestamp attesi fissi.
-- Nota in PR che giustifica eventuali cast residui inevitabili di XState v5.
-
-Condizione di chiusura:
-
-- FIND-004 e `Closed` solo se i machine producono output temporalmente deterministici in test e i residui limiti di typing restano confinati e documentati.
 
 Closure note 2026-04-24:
 
@@ -212,20 +107,6 @@ Gate rerun note 2026-04-24:
 - Eseguito rerun con ambiente caricato da `.env.local`: `set -a && . ./.env.local && set +a && npm run test:smoke && npm run backend:go`.
 - `npm run test:smoke`: verde (`smoke:idempotency` e `smoke:conflict` OK).
 - `npm run backend:go`: verde (migrate + seed + typecheck + test + smoke tutti OK).
-
-## Mapping con Piano e Checklist PR
-
-Riferimenti di esecuzione:
-
-- Piano sprint: [plan/upgrade-xstate-go-gap-1.md](../../plan/upgrade-xstate-go-gap-1.md)
-- Checklist PR-ready: [plan/process-xstate-review-pr-checklist-1.md](../../plan/process-xstate-review-pr-checklist-1.md)
-
-Mapping operativo:
-
-- FIND-001 corrisponde alla Fase 1 del piano e al blocco FIND-001 della checklist PR-ready.
-- FIND-002 e FIND-003 corrispondono alla Fase 2 del piano e ai blocchi FIND-002 e FIND-003 della checklist PR-ready.
-- FIND-004 corrisponde alla Fase 3 del piano e al blocco FIND-004 della checklist PR-ready.
-- Il gate finale della review corrisponde alla Fase 4 del piano e al blocco finale della checklist PR-ready.
 
 ## Chiusura
 

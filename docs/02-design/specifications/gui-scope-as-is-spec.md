@@ -318,4 +318,3 @@ Una replica GUI e considerata equivalente quando:
 4. storico e dettaglio artifact supportano recupero, audit e relaunch.
 5. l'admin e segregato per ruolo e mantiene funzioni di controllo utenti/modelli.
 6. contratti di stato, errore e retry rispettano questo documento.
-

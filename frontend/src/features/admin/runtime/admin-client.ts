@@ -30,9 +30,33 @@ type AdminClientOptions = {
   capabilities?: Partial<BackendCapabilities>;
 };
 
-type AdminUsersResponse = AdminUser[] | { users?: AdminUser[] };
-type AdminModelsResponse = AdminModel[] | { models?: AdminModel[] };
-type AdminActivityResponse = AdminActivity[] | { activity?: AdminActivity[] };
+type AdminUsersResponse = AdminUser[] | { users?: AdminUser[]; data?: { users?: AdminUser[] } };
+type AdminModelsResponse = AdminModel[] | { models?: AdminModel[]; data?: { models?: AdminModel[] } };
+type AdminActivityResponse = AdminActivity[] | { activity?: AdminActivity[]; data?: { activity?: AdminActivity[] } };
+
+const readAdminUsers = (payload: AdminUsersResponse): AdminUser[] => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.users ?? payload.data?.users ?? [];
+};
+
+const readAdminModels = (payload: AdminModelsResponse): AdminModel[] => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.models ?? payload.data?.models ?? [];
+};
+
+const readAdminActivity = (payload: AdminActivityResponse): AdminActivity[] => {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return payload.activity ?? payload.data?.activity ?? [];
+};
 
 export const listAdminUsers = async (
   options: AdminClientOptions = {},
@@ -46,7 +70,7 @@ export const listAdminUsers = async (
       credentials: 'include',
     });
 
-    return Array.isArray(payload) ? payload : (payload.users ?? []);
+    return readAdminUsers(payload);
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to list admin users (HTTP ${error.status ?? 'unknown'})`);
@@ -69,7 +93,7 @@ export const getAdminUserById = async (
       credentials: 'include',
     });
 
-    const users = Array.isArray(payload) ? payload : (payload.users ?? []);
+    const users = readAdminUsers(payload);
     return users.find((user) => user.id === id) ?? null;
   } catch (error) {
     if (isHttpClientError(error) && error.status === 404) {
@@ -99,7 +123,7 @@ export const listAdminModels = async (
       credentials: 'include',
     });
 
-    return Array.isArray(payload) ? payload : (payload.models ?? []);
+    return readAdminModels(payload);
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to list admin models (HTTP ${error.status ?? 'unknown'})`);
@@ -121,7 +145,7 @@ export const listAdminActivity = async (
       credentials: 'include',
     });
 
-    return Array.isArray(payload) ? payload : (payload.activity ?? []);
+    return readAdminActivity(payload);
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to list admin activity (HTTP ${error.status ?? 'unknown'})`);

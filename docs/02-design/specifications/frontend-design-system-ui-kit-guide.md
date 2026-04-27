@@ -1,8 +1,8 @@
 # Frontend Design System e UI Kit Guide
 
-Data: 2026-04-27  
+Data: 2026-04-28  
 Status: Active  
-Versione: 1.1
+Versione: 1.2
 
 ## 1. Ruolo del documento
 
@@ -40,6 +40,12 @@ Keyword di riferimento:
 - Focus
 
 ## 3. Design tokens canonici
+
+Nota aggiornamento 2026-04-28:
+
+- il sistema token supporta esplicitamente tema light + dark tramite override su `:root[data-theme='dark']` in `frontend/src/styles.css`.
+- il cambio tema e gestito da `ThemeProvider` con toggle icon-only in shell pubblica/autenticata.
+- per coerenza UX, il cambio tema avviene senza transizioni CSS globali.
 
 ## 3.1 Colori
 
@@ -143,6 +149,8 @@ Componenti core:
 - Input/select/textarea/file input
 - Status line/meta line/error
 - Card stato e card step tool
+- Theme toggle icon-only (header utility action)
+- Artifact content toolbar (tabs `Markdown`/`Raw` + azione copy)
 
 Regole di composizione:
 
@@ -165,6 +173,11 @@ Pattern feedback:
 - progress highlight sobrio su pannello attivo durante streaming
 - conferme immediate su azioni rapide (copy, start, retry)
 - dropzone evidenziata durante drag and drop file
+
+Regola di consistenza toolbar contenuti artifact:
+
+- i controlli `Markdown`, `Raw` e `Copia contenuto` condividono lo stesso sistema visivo di bottone (`size`, `border`, `radius`, `hover`, `active`, `disabled`).
+- evitare pulsanti floating assoluti sopra i container contenuto quando e disponibile una toolbar strutturata in flusso layout.
 
 ## 7. Iconografia
 

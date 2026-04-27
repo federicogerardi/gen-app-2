@@ -1,14 +1,14 @@
 ---
 status: approved
 version: 2.0
-last-reviewed: 2026-04-27
+last-reviewed: 2026-04-28
 next-review-date: 2026-07-27
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-04-27
+Data: 2026-04-28
 Stato: Active
 Version: 2.0
 
@@ -39,8 +39,18 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 | [Unified Frontend Data Access Layer ADR](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 | [Tools generation go closure](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
 
-Last review date: 2026-04-27  
+Last review date: 2026-04-28  
 Next review date: 2026-07-27
+
+## Delta Sessione 2026-04-28
+
+- Aggiornata la specifica frontend con:
+	- supporto tema dark/light con provider + toggle icon-only;
+	- rendering markdown visuale in dettaglio artifact;
+	- semantica copy differenziata Raw/Markdown;
+	- fix UX runtime su `Cancel -> Resume from checkpoint`.
+- Aggiornate linee guida visuali/UI kit su tema, toolbar artifact e consistenza bottoni.
+- Aggiornata specifica architettura tool pages con guardrail operativo per resume su step interrotto e request id rigenerato.
 
 ## Specifiche attive (02-design/specifications/)
 

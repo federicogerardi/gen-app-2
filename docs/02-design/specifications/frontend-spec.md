@@ -1,6 +1,6 @@
 # Frontend — Specifica as-is
 
-**Data**: 2026-04-25  
+**Data**: 2026-04-28  
 **Radice sorgente**: `frontend/src/`  
 **Stack**: React 19.2 + TypeScript + XState v5 + Vite
 
@@ -68,6 +68,26 @@ Fonte di verita visuale:
 
 - Shell pubblica/autenticata, dashboard, projects, artifacts, admin, generation e tool pages principali consumano il registry UI e il registry copy.
 - I test frontend toccati in questo ciclo importano anch'essi `appCopy` dove l'asserzione dipende dal testo utente, per evitare divergenze tra runtime e suite di test.
+
+### Delta sessione 2026-04-28
+
+- Tema UI:
+  - introdotto `ThemeProvider` (`frontend/src/app/providers/ThemeProvider.tsx`) con persistenza `localStorage` e fallback `prefers-color-scheme`.
+  - introdotto toggle tema icon-only (`frontend/src/app/ui/ThemeToggleButton.tsx`) in shell pubblica e autenticata.
+  - consolidato il tema dark tramite override token in `frontend/src/styles.css` (`:root[data-theme='dark']`).
+  - rimosse tutte le transizioni globali: switch tema immediato senza fading.
+
+- Artifact detail UX:
+  - aggiunto renderer markdown visuale (`react-markdown` + `remark-gfm`) in `ArtifactDetailPage` con modalita `Markdown` e `Raw`.
+  - aggiunto copy button unificato nella toolbar contenuto artifact.
+  - semantica copy aggiornata:
+    - in `Raw`: copia markdown sorgente (`text/plain`).
+    - in `Markdown`: copia `text/html` + fallback `text/plain` per paste ricco su editor tipo Word/Docs.
+
+- Tool generation CTA resilience:
+  - corretto il flusso `Cancel -> Resume from checkpoint` in `ToolPageTemplate`.
+  - dopo cancel/fail viene preservato lo step interrotto come checkpoint locale UI.
+  - `Resume from checkpoint` riparte dallo step interrotto con nuovo `requestId` (evita loop `Generation failed` per riuso id).
 
 ---
 

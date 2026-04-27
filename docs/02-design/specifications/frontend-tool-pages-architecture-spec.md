@@ -2,7 +2,7 @@
 
 ---
 date_created: 2026-04-26
-date_updated: 2026-04-26
+date_updated: 2026-04-28
 status: Target (post-unification)
 version: 2.0
 title: Frontend Tool Pages — Unified Architecture Specification
@@ -246,6 +246,13 @@ export interface SecondaryActionFlags {
   canStartNewGeneration: boolean;     // Begin generation for new project
 }
 ```
+
+### 3.3 Guardrail operativo cancel/resume (delta 2026-04-28)
+
+- Quando l'utente cancella durante `running`, la UI deve preservare lo step interrotto come checkpoint locale (`pausedCheckpointStep`).
+- Finche il checkpoint interrotto non viene ripreso/completato, la policy primaria resta `resume-checkpoint`.
+- L'azione `resume-checkpoint` deve rilanciare lo stesso step interrotto, non degradare automaticamente a `start-generation`.
+- Prima del resume, il run prefix/request id deve essere rigenerato per evitare riuso del requestId del run cancellato.
 
 ---
 

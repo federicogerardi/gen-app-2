@@ -2,7 +2,7 @@
 goal: Descrizione strutturale e UX-flow del tool di generazione (as-is)
 version: 1.0
 date_created: 2026-04-25
-date_updated: 2026-04-25
+date_updated: 2026-04-28
 status: Active
 tags: [ux, tool-generation, flow, setup, progress, checkpoint]
 ---
@@ -259,6 +259,14 @@ Reattivita CTA primaria
 - `draft-ready` -> `Avvia generazione ...`.
 - `completed` -> `Apri ultimo artefatto`.
 
+Comportamento post-cancel durante `running`
+
+- click su `Cancel` interrompe lo stream e porta lo stato in pausa con checkpoint locale dello step interrotto.
+- la CTA primaria non deve tornare a `Avvia generazione` subito dopo cancel.
+- la CTA primaria deve diventare `Riprendi dal checkpoint` finche il checkpoint interrotto non viene completato o resettato.
+- click su `Riprendi dal checkpoint` rilancia dallo step interrotto, non dal primo step disponibile storico.
+- il resume deve usare un nuovo `requestId` run-level per evitare collisioni/idempotency replay del run cancellato.
+
 Reattivita CTA secondarie
 
 - In base a intent e stato vengono mostrate solo azioni coerenti:
@@ -271,6 +279,7 @@ Reattivita CTA secondarie
 Effetto UX atteso
 
 - L utente vede sempre una next action valida e contestuale alla richiesta iniziale (`resume` o `regenerate`), senza dead-end nel form.
+- Nel caso di cancel manuale durante run, la next action valida e sempre `Riprendi dal checkpoint` fino alla ripresa effettiva.
 
 ---
 

@@ -74,6 +74,7 @@ export const ToolPageTemplate = ({
   const generation = useGenerationWorkspace();
   const toolConfig = getToolFormConfig(toolKey);
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
+  const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
   const initialPrefillDoneRef = useRef(false);
@@ -275,15 +276,42 @@ export const ToolPageTemplate = ({
 
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
 
-  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
-  const lastCheckpointStep = useMemo(() => {
-    if (!isResumeIntent || historicalCompletedSteps.size === 0) {
+  const currentRunningStep = useMemo(() => {
+    if (!generation.isStreamActive) {
       return null;
     }
 
-    const sorted = toolConfig.steps.filter((step) => historicalCompletedSteps.has(step));
-    return sorted.at(-1) ?? null;
-  }, [historicalCompletedSteps, isResumeIntent, toolConfig.steps]);
+    const candidate = (generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined)?.step;
+    if (typeof candidate !== 'string') {
+      return null;
+    }
+
+    return toolConfig.steps.includes(candidate as ToolStep) ? candidate as ToolStep : null;
+  }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
+
+  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
+  const lastCheckpointStep = useMemo(() => {
+    if (pausedCheckpointStep && nextAvailableStep) {
+      return pausedCheckpointStep;
+    }
+
+    if (isResumeIntent && historicalCompletedSteps.size > 0) {
+      const sorted = toolConfig.steps.filter((step) => historicalCompletedSteps.has(step));
+      return sorted.at(-1) ?? null;
+    }
+
+    return null;
+  }, [historicalCompletedSteps, isResumeIntent, nextAvailableStep, pausedCheckpointStep, toolConfig.steps]);
+
+  useEffect(() => {
+    if (!pausedCheckpointStep) {
+      return;
+    }
+
+    if (completedStepsForFlow.has(pausedCheckpointStep)) {
+      setPausedCheckpointStep(null);
+    }
+  }, [completedStepsForFlow, pausedCheckpointStep]);
 
   // 9. Derive UI state
   const uiState = useToolUiState(toolKey, {
@@ -296,9 +324,7 @@ export const ToolPageTemplate = ({
     },
     isGenerationStreamActive: generation.isStreamActive,
     completedSteps: completedStepsForFlow,
-    currentRunningStep: generation.isStreamActive
-      ? (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step as ToolStep ?? null
-      : null,
+    currentRunningStep,
     hasCompletedPreviousGeneration: historicalCompletedSteps.size > 0,
     lastCheckpointStep,
     nextAvailableStep,
@@ -364,12 +390,27 @@ export const ToolPageTemplate = ({
   };
 
   const handlePrimaryAction = (): void => {
-    if (!nextAvailableStep) {
+    const targetStep = uiState.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep
+      ? pausedCheckpointStep
+      : nextAvailableStep;
+
+    if (!targetStep) {
       return;
     }
 
+    setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
-    void startGenerationStep(nextAvailableStep);
+    void startGenerationStep(targetStep);
+  };
+
+  const handleCancelGeneration = (): void => {
+    setIsAutoChainEnabled(false);
+    const interruptedStep = currentRunningStep ?? lastRequestedStepRef.current;
+    if (interruptedStep) {
+      setPausedCheckpointStep(interruptedStep);
+    }
+    currentRunPrefixRef.current = null;
+    generation.cancel();
   };
 
   useEffect(() => {
@@ -378,6 +419,10 @@ export const ToolPageTemplate = ({
     }
 
     if (generation.streamStatus === 'failed') {
+      const interruptedStep = currentRunningStep ?? lastRequestedStepRef.current;
+      if (interruptedStep) {
+        setPausedCheckpointStep(interruptedStep);
+      }
       setIsAutoChainEnabled(false);
       currentRunPrefixRef.current = null;
       return;
@@ -409,6 +454,7 @@ export const ToolPageTemplate = ({
     void startGenerationStep(nextAvailableStep);
   }, [
     completedStepsForFlow,
+    currentRunningStep,
     generation.isStreamActive,
     generation.streamStatus,
     isAutoChainEnabled,
@@ -487,7 +533,7 @@ export const ToolPageTemplate = ({
                 primaryPolicy={uiState.primaryActionPolicy}
                 secondaryFlags={uiState.secondaryActions}
                 onPrimaryAction={handlePrimaryAction}
-                onCancelGeneration={generation.cancel}
+                onCancelGeneration={handleCancelGeneration}
                 isLoading={generation.isStreamActive}
               />
             </form>

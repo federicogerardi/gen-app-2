@@ -1,16 +1,19 @@
 ---
-goal: Unificare il frontend riducendo duplicazioni runtime, pagine data-driven e wiring tool
+status: archived
 version: 1.0
-date_created: 2026-04-27
-last_updated: 2026-04-27
+last-reviewed: 2026-04-27
+next-review-date: null
 owner: Frontend Platform Team
-status: Planned
+title: Frontend Unification Refactor Map (Archived)
+date-archived: 2026-04-27
+original-path: plan/frontend-unification-refactor-map.md
+completion-status: completed
 tags: [refactor, frontend, unification, architecture]
 ---
 
 # Refactor Map - Frontend Unification
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Mappa operativa per consolidare pattern duplicati nel frontend con rollout incrementale, regressioni controllate e impatto minimo sul flusso prodotto.
 
@@ -256,7 +259,7 @@ Mitigazioni:
 
 ## 10. Execution Checklist
 
-- [ ] Approvazione sequenza fasi 0-5.
-- [ ] Creazione ADR-001 prima della Phase 1 completa.
-- [ ] Esecuzione refactor incrementale con PR piccole.
-- [ ] Verifica KPI M1-M4 a chiusura.
+- [x] Approvazione sequenza fasi 0-5.
+- [x] Creazione ADR-001 prima della Phase 1 completa.
+- [x] Esecuzione refactor incrementale con PR piccole.
+- [x] Verifica KPI M1-M4 a chiusura.

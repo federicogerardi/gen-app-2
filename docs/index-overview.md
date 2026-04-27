@@ -16,6 +16,32 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 
 **Status**: Post-publish. Documentazione pre-publish archiviata in `docs/99-lifecycle/99-archive/`. Questa documentazione riflette lo stato operativo attuale (as-is) del progetto.
 
+## Mappa Sezioni (owner e documenti primari)
+
+| Sezione | Documento primario | Owner |
+| --- | --- | --- |
+| Overview (`00-overview`) | [Indice root](./index-overview.md) | Documentation Archivist |
+| Requirements (`01-requirements`) | [Requirements folder](./01-requirements/) | Product + Frontend Platform |
+| Design (`02-design`) | [Frontend as-is](./02-design/specifications/frontend-spec.md) | Frontend Platform Team |
+| Development (`03-development`) | [Development folder](./03-development/) | Engineering Team |
+| Testing (`04-testing`) | [Testing folder](./04-testing/) | QA + Engineering Team |
+| Ops (`05-ops`) | [Deployment architecture guide](./02-design/specifications/deployment-architecture-guide.md) | Platform/DevOps |
+| User (`06-user`) | [User docs folder](./06-user/) | Product + UX |
+| Governance (`07-governance`) | [Tools generation go closure](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | Documentation Archivist |
+| Lifecycle (`99-lifecycle`) | [Archive root](./99-lifecycle/99-archive/) | Documentation Archivist |
+
+## Stato Documenti Critici
+
+| Documento | Stato | Ultima review | Prossima review |
+| --- | --- | --- | --- |
+| [Frontend as-is](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
+| [Deployment architecture guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-04-27 | 2026-07-27 |
+| [Unified Frontend Data Access Layer ADR](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
+| [Tools generation go closure](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
+
+Last review date: 2026-04-27  
+Next review date: 2026-07-27
+
 ## Specifiche attive (02-design/specifications/)
 
 - [Frontend as-is](./02-design/specifications/frontend-spec.md)
@@ -49,6 +75,10 @@ Pacchetto atomizzato XState:
 
 Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-archive/governance-pre-publish/` (pre-publish validation phases).
 
+## Piani Attivi (plan/)
+
+- [Infrastructure same-origin deployment](../plan/infrastructure-same-origin-deployment-1.md) - Status: Planned
+
 ## Frontend Resources
 
 - [Streaming Generator Debug Guide](../frontend/DEBUG-STREAMING.md) - Debugging infrastructure per multi-step LLM generation streaming (XState v5, structured logging, MSW handlers, 17 test scenarios)
@@ -68,21 +98,24 @@ Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-
 
 ### Planning Pre-Publish (planning/)
 Tutti i piani di lavoro pre-publish sono archiviati in `docs/99-lifecycle/99-archive/planning/`:
-- `architecture-backend-go-1-snapshot-2026-04-24.md` (backend GO implementation)
-- `feature-frontend-generation-tools-go-1-snapshot-2026-04-25.md` (frontend tool generation GO)
-- `feature-frontend-ux-sprints-1-snapshot-2026-04-24.md` (frontend UX flow completion)
-- `upgrade-xstate-go-gap-1-snapshot-2026-04-24.md` (XState v5 upgrade)
-- `feature-projects-artifacts-backend-frontend-gap-1-snapshot-2026-04-25.md` (projects/artifacts integration)
-- `frontend-development-plan-on-existing-backend-1-snapshot-2026-04-24.md` (frontend development)
-- `process-projects-artifacts-ticket-breakdown-1-snapshot-2026-04-25.md` (ticket breakdown)
-- `process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md` (XState review process)
-- `tool-unification-scalability-1-snapshot-2026-04-25.md` (tool unification)
+- [architecture-backend-go-1-snapshot-2026-04-24.md](./99-lifecycle/99-archive/planning/architecture-backend-go-1-snapshot-2026-04-24.md) (backend GO implementation)
+- [feature-frontend-generation-tools-go-1-snapshot-2026-04-25.md](./99-lifecycle/99-archive/planning/feature-frontend-generation-tools-go-1-snapshot-2026-04-25.md) (frontend tool generation GO)
+- [feature-frontend-ux-sprints-1-snapshot-2026-04-24.md](./99-lifecycle/99-archive/planning/feature-frontend-ux-sprints-1-snapshot-2026-04-24.md) (frontend UX flow completion)
+- [upgrade-xstate-go-gap-1-snapshot-2026-04-24.md](./99-lifecycle/99-archive/planning/upgrade-xstate-go-gap-1-snapshot-2026-04-24.md) (XState v5 upgrade)
+- [feature-projects-artifacts-backend-frontend-gap-1-snapshot-2026-04-25.md](./99-lifecycle/99-archive/planning/feature-projects-artifacts-backend-frontend-gap-1-snapshot-2026-04-25.md) (projects/artifacts integration)
+- [frontend-development-plan-on-existing-backend-1-snapshot-2026-04-24.md](./99-lifecycle/99-archive/planning/frontend-development-plan-on-existing-backend-1-snapshot-2026-04-24.md) (frontend development)
+- [process-projects-artifacts-ticket-breakdown-1-snapshot-2026-04-25.md](./99-lifecycle/99-archive/planning/process-projects-artifacts-ticket-breakdown-1-snapshot-2026-04-25.md) (ticket breakdown)
+- [process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md](./99-lifecycle/99-archive/planning/process-xstate-review-pr-checklist-1-snapshot-2026-04-24.md) (XState review process)
+- [tool-unification-scalability-1-snapshot-2026-04-25.md](./99-lifecycle/99-archive/planning/tool-unification-scalability-1-snapshot-2026-04-25.md) (tool unification)
+- [refactor-frontend-deterministic-unification-1-snapshot-2026-04-27.md](./99-lifecycle/99-archive/planning/refactor-frontend-deterministic-unification-1-snapshot-2026-04-27.md) (frontend deterministic unification, completed)
+- [feature-generation-ux-flow-1-snapshot-2026-04-27.md](./99-lifecycle/99-archive/planning/feature-generation-ux-flow-1-snapshot-2026-04-27.md) (feature generation UX flow, completed)
+- [frontend-unification-refactor-map-snapshot-2026-04-27.md](./99-lifecycle/99-archive/planning/frontend-unification-refactor-map-snapshot-2026-04-27.md) (frontend unification refactor map, completed)
 
 ### Governance Pre-Publish (governance-pre-publish/)
 Sprint validation e code review pre-publish archiviati in `docs/99-lifecycle/99-archive/governance-pre-publish/`:
-- `frontend-sprint-go-checklist-snapshot-2026-04-24.md` (sprint validation)
-- `frontend-sprint-regression-policy-snapshot-2026-04-24.md` (sprint regression policy)
-- `backend-auth-surface-review-snapshot-2026-04-25.md` (auth review, issue resolved)
+- [frontend-sprint-go-checklist-snapshot-2026-04-24.md](./99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-go-checklist-snapshot-2026-04-24.md) (sprint validation)
+- [frontend-sprint-regression-policy-snapshot-2026-04-24.md](./99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-regression-policy-snapshot-2026-04-24.md) (sprint regression policy)
+- [backend-auth-surface-review-snapshot-2026-04-25.md](./99-lifecycle/99-archive/governance-pre-publish/backend-auth-surface-review-snapshot-2026-04-25.md) (auth review, issue resolved)
 
 ## Note di governance applicate
 
@@ -91,4 +124,4 @@ Sprint validation e code review pre-publish archiviati in `docs/99-lifecycle/99-
 - In caso di rename o spostamento, gli indici e i link devono essere aggiornati nello stesso passaggio.
 - Per cambiamenti frontend che toccano stile o visual design, la documentazione canonica da aggiornare è `docs/specifications/frontend-design-system-ui-kit-guide.md`.
 - Tutti i file archiviati mantengono frontmatter con status=archived e data-archived per tracciabilità storica.
-- `backend-auth-surface-review-snapshot-2026-04-25.md` (auth review, issue resolve
+- `backend-auth-surface-review-snapshot-2026-04-25.md` (auth review, issue resolved)

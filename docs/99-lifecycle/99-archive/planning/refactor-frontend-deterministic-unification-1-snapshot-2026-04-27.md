@@ -1,10 +1,12 @@
 ---
-goal: Piano deterministico di unificazione frontend con riduzione duplicazioni runtime e pagine data-driven
+status: archived
 version: 1.0
-date_created: 2026-04-27
-last_updated: 2026-04-27
+last-reviewed: 2026-04-27
+next-review-date: null
 owner: Frontend Platform Team
-status: Completed
+title: Refactor Frontend Deterministic Unification Plan (Archived)
+date-archived: 2026-04-27
+original-path: plan/refactor-frontend-deterministic-unification-1.md
 tags: [refactor, frontend, architecture, deterministic]
 ---
 
@@ -343,7 +345,7 @@ Sprint 6 status:
 
 ## 8. Related Specifications / Further Reading
 
-- plan/frontend-unification-refactor-map.md
-- plan/feature-generation-ux-flow-1.md
+- docs/99-lifecycle/99-archive/planning/frontend-unification-refactor-map-snapshot-2026-04-27.md
+- docs/99-lifecycle/99-archive/planning/feature-generation-ux-flow-1-snapshot-2026-04-27.md
 - docs/02-design/specifications/frontend-tool-pages-architecture-spec.md
 - docs/02-design/specifications/frontend-spec.md

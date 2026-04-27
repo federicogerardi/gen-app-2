@@ -1,16 +1,19 @@
 ---
-goal: Completare UX-flow per relaunch artifact generation e checkpoint resume
+status: archived
 version: 1.1
-date_created: 2026-04-26
-last_updated: 2026-04-26
+last-reviewed: 2026-04-27
+next-review-date: null
 owner: Frontend Platform Team
-status: Planned
+title: Feature Generation UX Flow Plan (Archived)
+date-archived: 2026-04-27
+original-path: plan/feature-generation-ux-flow-1.md
+completion-status: completed
 tags: [feature, ux-flow, generation, checkpoint, relaunch]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Questo piano definisce interventi deterministici per completare il comportamento UX-flow in scope: relaunch artifact generation e checkpoint resume, allineando implementazione frontend e specifica funzionale.
 
@@ -40,9 +43,9 @@ Questo piano definisce interventi deterministici per completare il comportamento
 
 | Task     | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-001 | Verificare mismatch tra specifica UX e codice corrente nei punti: `buildRelaunchRequest` in `frontend/src/features/generation/ui/artifact-history.ts`, `relaunch` in `frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`, CTA artifact in `frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`, CTA form in `frontend/src/features/generation/ui/GenerationForm.tsx`. |  |  |
-| TASK-002 | Definire contratto query params per `resume` e `regenerate` (chiavi, normalizzazione, fallback) in documento tecnico interno `docs/02-design/specifications/tool-generation-structural-ux-flow-spec.md` come appendice operativa. |  |  |
-| TASK-003 | Definire matrice stato->azione primaria/secondaria con mapping eseguibile: `processing-briefing`, `running`, `paused-with-checkpoint`, `prefilled-regenerate`, `draft-ready`, `completed`, `draft-empty`. |  |  |
+| TASK-001 | Verificare mismatch tra specifica UX e codice corrente nei punti: `buildRelaunchRequest` in `frontend/src/features/generation/ui/artifact-history.ts`, `relaunch` in `frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`, CTA artifact in `frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`, CTA form in `frontend/src/features/generation/ui/GenerationForm.tsx`. | ✅ | 2026-04-27 |
+| TASK-002 | Definire contratto query params per `resume` e `regenerate` (chiavi, normalizzazione, fallback) in documento tecnico interno `docs/02-design/specifications/tool-generation-structural-ux-flow-spec.md` come appendice operativa. | ✅ | 2026-04-27 |
+| TASK-003 | Definire matrice stato->azione primaria/secondaria con mapping eseguibile: `processing-briefing`, `running`, `paused-with-checkpoint`, `prefilled-regenerate`, `draft-ready`, `completed`, `draft-empty`. | ✅ | 2026-04-27 |
 
 Completion Criteria:
 Tutti i campi query e le transizioni CTA sono tracciati in una matrice unica e referenziabili da test unitari/integration test senza interpretazione manuale.
@@ -53,11 +56,11 @@ Tutti i campi query e le transizioni CTA sono tracciati in una matrice unica e r
 
 | Task     | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-004 | Introdurre funzione pura `buildArtifactEntryQuery(artifact, intent)` in `frontend/src/features/generation/ui/artifact-history.ts` con output `URLSearchParams` serializzato includendo `sourceArtifactId`, `projectId`, `intent`, `tone`, `notes` se presenti. |  |  |
-| TASK-005 | Modificare `ArtifactDetailPage` (`frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`) per sostituire `generation.relaunch(...)` con `useNavigate()` verso route tool con query costruita da `buildArtifactEntryQuery`. |  |  |
-| TASK-006 | Modificare `ArtifactHistoryPanel` (`frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx`) esponendo due azioni separate: `onResumeFromArtifact` e `onRegenerateFromArtifact`; invocarle da `GenerationConsolePage`. |  |  |
-| TASK-007 | Aggiornare `GenerationConsolePage` (`frontend/src/features/generation/pages/GenerationConsolePage.tsx`) per fornire handler di navigazione centralizzati e conservare `onOpenProject` invariato. |  |  |
-| TASK-007A | Estendere query di ingresso con riferimento lineage al run sorgente (`relaunchFromArtifactId`) per consentire ricostruzione deterministica dello stato step dal backend. |  |  |
+| TASK-004 | Introdurre funzione pura `buildArtifactEntryQuery(artifact, intent)` in `frontend/src/features/generation/ui/artifact-history.ts` con output `URLSearchParams` serializzato includendo `sourceArtifactId`, `projectId`, `intent`, `tone`, `notes` se presenti. | ✅ | 2026-04-27 |
+| TASK-005 | Modificare `ArtifactDetailPage` (`frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`) per sostituire `generation.relaunch(...)` con `useNavigate()` verso route tool con query costruita da `buildArtifactEntryQuery`. | ✅ | 2026-04-27 |
+| TASK-006 | Modificare `ArtifactHistoryPanel` (`frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx`) esponendo due azioni separate: `onResumeFromArtifact` e `onRegenerateFromArtifact`; invocarle da `GenerationConsolePage`. | ✅ | 2026-04-27 |
+| TASK-007 | Aggiornare `GenerationConsolePage` (`frontend/src/features/generation/pages/GenerationConsolePage.tsx`) per fornire handler di navigazione centralizzati e conservare `onOpenProject` invariato. | ✅ | 2026-04-27 |
+| TASK-007A | Estendere query di ingresso con riferimento lineage al run sorgente (`relaunchFromArtifactId`) per consentire ricostruzione deterministica dello stato step dal backend. | ✅ | 2026-04-27 |
 
 Completion Criteria:
 Click su CTA artifact non avvia `REQUEST_START` immediato; la UI naviga al tool target con query corretta e verificabile tramite test.
@@ -68,12 +71,12 @@ Click su CTA artifact non avvia `REQUEST_START` immediato; la UI naviga al tool 
 
 | Task     | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-008 | Estendere `GenerationForm` (`frontend/src/features/generation/ui/GenerationForm.tsx`) per leggere query di ingresso (`intent`, `projectId`, `sourceArtifactId`, `tone`, `notes`) e inizializzare stato locale una sola volta per mount. |  |  |
-| TASK-009 | Integrare risoluzione automatica checkpoint migliore via `selectBestCheckpointForProject` in presenza di `intent=resume`, con fallback esplicito a stato `resume-needs-briefing` quando manca extraction context. |  |  |
-| TASK-010 | Introdurre guardia `isReusableCheckpoint(checkpoint)` in `frontend/src/features/generation/ui/tool-checkpoints.ts` per filtrare checkpoint non riusabili nel path resume da artifact. |  |  |
-| TASK-011 | Aggiornare `GenerationWorkspaceProvider` (`frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`) separando API `start(request)` da API `buildRelaunchRequest` e rimuovendo accoppiamento tra relaunch action e stream start. |  |  |
-| TASK-011A | Implementare idratazione step form da output gia persistiti, usando lookup su artifact/checkpoint per `projectId` + `sourceArtifactId` e mapping nei campi step UI. |  |  |
-| TASK-011B | In caso di recovery data valida, impostare automaticamente fase `review` con step precompilati; in caso di recovery incompleta, forzare fallback guidato a `resume-needs-briefing`. |  |  |
+| TASK-008 | Estendere `GenerationForm` (`frontend/src/features/generation/ui/GenerationForm.tsx`) per leggere query di ingresso (`intent`, `projectId`, `sourceArtifactId`, `tone`, `notes`) e inizializzare stato locale una sola volta per mount. | ✅ | 2026-04-27 |
+| TASK-009 | Integrare risoluzione automatica checkpoint migliore via `selectBestCheckpointForProject` in presenza di `intent=resume`, con fallback esplicito a stato `resume-needs-briefing` quando manca extraction context. | ✅ | 2026-04-27 |
+| TASK-010 | Introdurre guardia `isReusableCheckpoint(checkpoint)` in `frontend/src/features/generation/ui/tool-checkpoints.ts` per filtrare checkpoint non riusabili nel path resume da artifact. | ✅ | 2026-04-27 |
+| TASK-011 | Aggiornare `GenerationWorkspaceProvider` (`frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`) separando API `start(request)` da API `buildRelaunchRequest` e rimuovendo accoppiamento tra relaunch action e stream start. | ✅ | 2026-04-27 |
+| TASK-011A | Implementare idratazione step form da output gia persistiti, usando lookup su artifact/checkpoint per `projectId` + `sourceArtifactId` e mapping nei campi step UI. | ✅ | 2026-04-27 |
+| TASK-011B | In caso di recovery data valida, impostare automaticamente fase `review` con step precompilati; in caso di recovery incompleta, forzare fallback guidato a `resume-needs-briefing`. | ✅ | 2026-04-27 |
 
 Completion Criteria:
 Con query `intent=resume` e checkpoint valido la UI entra in `paused-with-checkpoint`; con query `intent=regenerate` e source artifact valido la UI entra in `prefilled-regenerate`; gli step risultano idratati da output gia presenti a DB.
@@ -84,10 +87,10 @@ Con query `intent=resume` e checkpoint valido la UI entra in `paused-with-checkp
 
 | Task     | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-012 | Introdurre funzione `derivePrimaryActionDescriptor(state, context)` in `frontend/src/features/generation/ui/tool-ux-state.ts` con label e handler key (`resume-checkpoint`, `regenerate-now`, `start-generation`, `open-last-artifact`, `disabled`). |  |  |
-| TASK-013 | Modificare `GenerationForm` per usare il descriptor: cambiare label bottone submit dinamicamente (`Riprendi dal checkpoint`, `Rigenera ora`, `Avvia generazione`, ecc.). |  |  |
-| TASK-014 | Aggiungere CTA secondarie condizionali in `GenerationForm` (`Rigenera da zero`, `Resetta setup`, `Nuova generazione`, `Riprova estrazione`) con regole abilitative derivate da canonical state. |  |  |
-| TASK-015 | Aggiornare `GenerationStreamPanel` (`frontend/src/features/generation/ui/GenerationStreamPanel.tsx`) per mostrare CTA coerenti con policy corrente e non solo metadato testuale della policy. |  |  |
+| TASK-012 | Introdurre funzione `derivePrimaryActionDescriptor(state, context)` in `frontend/src/features/generation/ui/tool-ux-state.ts` con label e handler key (`resume-checkpoint`, `regenerate-now`, `start-generation`, `open-last-artifact`, `disabled`). | ✅ | 2026-04-27 |
+| TASK-013 | Modificare `GenerationForm` per usare il descriptor: cambiare label bottone submit dinamicamente (`Riprendi dal checkpoint`, `Rigenera ora`, `Avvia generazione`, ecc.). | ✅ | 2026-04-27 |
+| TASK-014 | Aggiungere CTA secondarie condizionali in `GenerationForm` (`Rigenera da zero`, `Resetta setup`, `Nuova generazione`, `Riprova estrazione`) con regole abilitative derivate da canonical state. | ✅ | 2026-04-27 |
+| TASK-015 | Aggiornare `GenerationStreamPanel` (`frontend/src/features/generation/ui/GenerationStreamPanel.tsx`) per mostrare CTA coerenti con policy corrente e non solo metadato testuale della policy. | ✅ | 2026-04-27 |
 
 Completion Criteria:
 Ogni canonical state ha CTA primaria coerente e almeno una strategia di uscita; assenza di stati bloccanti senza azione disponibile.
@@ -98,13 +101,13 @@ Ogni canonical state ha CTA primaria coerente e almeno una strategia di uscita; 
 
 | Task     | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-016 | Estendere `frontend/src/features/generation/ui/artifact-history.test.ts` con casi su query builder (`resume`/`regenerate`, preservazione `tone`/`notes`, assenza `idempotencyKey`). |  |  |
-| TASK-017 | Estendere `frontend/src/features/generation/ui/GenerationForm.test.tsx` con test CTA primaria dinamica per stati `paused-with-checkpoint` e `prefilled-regenerate`. |  |  |
-| TASK-018 | Aggiungere test in `frontend/src/features/generation/ui/tool-checkpoints.test.ts` per `isReusableCheckpoint` e fallback su `resume-needs-briefing`. |  |  |
-| TASK-019 | Aggiungere test integration page-level in `frontend/src/features/generation/pages/GenerationConsolePage` (nuovo file test) per verificare wiring handler da ArtifactHistoryPanel e navigazione query. |  |  |
-| TASK-019A | Aggiungere test integration su idratazione step da DB: ingresso da artifact -> form precompilato con output step salvati, senza nuova estrazione. |  |  |
-| TASK-019B | Aggiungere test end-to-end su rilancio completo: nuova variante creata, visibile in storico artifact, e linkata a `briefingId`/`briefingFileName` del run. |  |  |
-| TASK-020 | Eseguire `npm --prefix frontend run test` e `npm --prefix frontend run typecheck`; bloccare merge se uno dei due fallisce. |  |  |
+| TASK-016 | Estendere `frontend/src/features/generation/ui/artifact-history.test.ts` con casi su query builder (`resume`/`regenerate`, preservazione `tone`/`notes`, assenza `idempotencyKey`). | ✅ | 2026-04-27 |
+| TASK-017 | Estendere `frontend/src/features/generation/ui/GenerationForm.test.tsx` con test CTA primaria dinamica per stati `paused-with-checkpoint` e `prefilled-regenerate`. | ✅ | 2026-04-27 |
+| TASK-018 | Aggiungere test in `frontend/src/features/generation/ui/tool-checkpoints.test.ts` per `isReusableCheckpoint` e fallback su `resume-needs-briefing`. | ✅ | 2026-04-27 |
+| TASK-019 | Aggiungere test integration page-level in `frontend/src/features/generation/pages/GenerationConsolePage` (nuovo file test) per verificare wiring handler da ArtifactHistoryPanel e navigazione query. | ✅ | 2026-04-27 |
+| TASK-019A | Aggiungere test integration su idratazione step da DB: ingresso da artifact -> form precompilato con output step salvati, senza nuova estrazione. | ✅ | 2026-04-27 |
+| TASK-019B | Aggiungere test end-to-end su rilancio completo: nuova variante creata, visibile in storico artifact, e linkata a `briefingId`/`briefingFileName` del run. | ✅ | 2026-04-27 |
+| TASK-020 | Eseguire `npm --prefix frontend run test` e `npm --prefix frontend run typecheck`; bloccare merge se uno dei due fallisce. | ✅ | 2026-04-27 |
 
 Completion Criteria:
 Test verdi, typecheck verde, coverage dei path `resume`/`regenerate` tracciata da test nominati, e verifica esplicita del linkage variante->briefing.

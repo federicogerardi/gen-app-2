@@ -1,8 +1,8 @@
 # Frontend Design System e UI Kit Guide
 
-Data: 2026-04-26  
+Data: 2026-04-27  
 Status: Active  
-Versione: 1.0
+Versione: 1.1
 
 ## 1. Ruolo del documento
 
@@ -28,16 +28,16 @@ La GUI deve comunicare velocita, affidabilita tecnica e supporto creativo.
 
 Direzione visiva:
 
-- stile Neo-SaaS Minimalist su base dark
-- superfici stratificate, bordi sottili, profondita morbida
-- accenti cromatici netti per stati e CTA
+- stile Professional Workspace su base chiara e neutra
+- superfici stratificate leggere, bordi definiti e gerarchia leggibile
+- accenti cromatici funzionali e sobri per stati e CTA
 
 Keyword di riferimento:
 
-- Efficienza
-- Modularita
-- Scalabilita
-- Ispirazione
+- Affidabilita
+- Chiarezza
+- Controllo operativo
+- Focus
 
 ## 3. Design tokens canonici
 
@@ -45,28 +45,30 @@ Keyword di riferimento:
 
 Palette primaria:
 
-- Electric Violet: #8B5CF6 (azioni primarie, stati attivi)
-- Deep Carbon: #0F172A (fondi principali)
-- Slate Grey: #1E293B (card e superfici secondarie)
+- Workspace Blue: #2563EB (azioni primarie, stati attivi)
+- Canvas Light: #F6F8FB (fondi principali)
+- Surface Steel: #E6EBF2 (card e superfici secondarie)
+- Text Ink: #0F172A (testo primario e titolazioni)
 
 Palette funzionale:
 
-- SEO Green: #10B981 (stati healthy/success)
-- Media Red/Pink: #F43F5E (errori, alert critici)
-- Copy Amber: #F59E0B (warning, draft, suggerimenti)
+- Success Pine: #15803D (stati healthy/success)
+- Alert Brick: #B42318 (errori, alert critici)
+- Warning Amber: #B7791F (warning, draft, suggerimenti)
 
 Regole:
 
 - nessun colore hardcoded nei componenti quando esiste gia un token globale
 - usare naming semantico (primary, surface, success, error, warning)
 - mantenere contrasto AA minimo su testo e controlli interattivi
+- evitare glow, gradienti aggressivi e contrasti eccessivi non funzionali al task
 
 ## 3.2 Tipografia
 
 Font stack target:
 
-- Headings e UI: Plus Jakarta Sans
-- Body: Inter
+- Headings e UI: IBM Plex Sans
+- Body: Source Sans 3
 - Mono: JetBrains Mono
 
 Gerarchia tipografica di riferimento:
@@ -160,7 +162,7 @@ Stati minimi obbligatori:
 
 Pattern feedback:
 
-- generative shimmer su pannello attivo durante streaming
+- progress highlight sobrio su pannello attivo durante streaming
 - conferme immediate su azioni rapide (copy, start, retry)
 - dropzone evidenziata durante drag and drop file
 
@@ -172,7 +174,7 @@ Standard:
 - stile: outline
 - stroke: 1.5-2
 - colore di default: eredita il testo
-- hover/active: accent primary (Electric Violet)
+- hover/active: accent primary (Workspace Blue)
 
 ## 8. Accessibilita e quality gates visuali
 

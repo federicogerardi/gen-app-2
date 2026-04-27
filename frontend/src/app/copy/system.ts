@@ -24,6 +24,8 @@ export const appCopy = {
     },
     actions: {
       logout: 'Esci',
+      switchToDarkTheme: 'Attiva tema scuro',
+      switchToLightTheme: 'Attiva tema chiaro',
       continueWithGoogleWorkspace: 'Continua con Google Workspace',
       enterWorkspace: 'Entra nel workspace',
       openProjects: 'Apri projects',
@@ -51,6 +53,8 @@ export const appCopy = {
     labels: {
       email: 'Email',
       password: 'Password',
+      themeLight: 'Tema chiaro',
+      themeDark: 'Tema scuro',
       intent: 'Intent',
       checkpointAvailable: 'Checkpoint disponibile',
       recentCheckpoint: 'Checkpoint recente (progetto)',

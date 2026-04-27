@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -16,6 +15,11 @@ import './MainNavigation.css';
 
 type NavIcon = React.ComponentType<{ size: number; className?: string }>;
 
+type MainNavigationProps = {
+  isCollapsed: boolean;
+  onToggleCollapsed: () => void;
+};
+
 const navIcons: Record<string, NavIcon> = {
   '/dashboard': LayoutDashboard,
   '/dashboard/projects': FolderOpen,
@@ -25,15 +29,14 @@ const navIcons: Record<string, NavIcon> = {
   '/admin': Settings,
 };
 
-export const MainNavigation = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export const MainNavigation = ({ isCollapsed, onToggleCollapsed }: MainNavigationProps) => {
 
   return (
     <Surface as="nav" className={cx(uiPrimitives.mainNav, isCollapsed && 'is-collapsed')}>
       <button
         type="button"
         className="nav-toggle"
-        onClick={() => setIsCollapsed((prev) => !prev)}
+        onClick={onToggleCollapsed}
         aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
         aria-expanded={!isCollapsed}
       >
@@ -56,7 +59,7 @@ export const MainNavigation = () => {
               title={item.label}
             >
               <Icon size={18} className="nav-icon" />
-              {!isCollapsed && <span className="nav-label">{item.label}</span>}
+              <span className="nav-label">{item.label}</span>
             </NavLink>
           );
         })}

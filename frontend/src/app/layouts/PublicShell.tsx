@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { appCopy } from '../copy/system';
 import { LoginForm } from '../../features/auth/ui/LoginForm';
 import { useAuthSession } from '../providers/AuthSessionProvider';
+import { ThemeToggleButton } from '../ui/ThemeToggleButton';
 import { Shell, Surface, uiPrimitives } from '../ui/primitives';
 
 export const PublicShell = () => {
@@ -17,6 +18,9 @@ export const PublicShell = () => {
 
   return (
     <Shell as="main">
+      <div className={uiPrimitives.shellUtilityBar}>
+        <ThemeToggleButton />
+      </div>
       {auth.error ? <p className={uiPrimitives.error}>{auth.error}</p> : null}
       <Surface as="section" className={uiPrimitives.stack}>
         <p className={uiPrimitives.metaLine}>{appCopy.editorial.publicShell.eyebrow}</p>

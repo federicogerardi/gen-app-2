@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { appCopy } from '../copy/system';
 import { useAuthSession } from '../providers/AuthSessionProvider';
 import { MainNavigation } from './MainNavigation';
 import './MainNavigation.css';
-import { Button, Shell, Surface, uiPrimitives } from '../ui/primitives';
+import { ThemeToggleButton } from '../ui/ThemeToggleButton';
+import { Button, Shell, Surface, cx, uiPrimitives } from '../ui/primitives';
 
 export const AuthenticatedShell = () => {
   const auth = useAuthSession();
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   if (auth.loading) {
     return <Shell as="main"><p>{appCopy.ui.session.verifying}</p></Shell>;
@@ -27,14 +30,18 @@ export const AuthenticatedShell = () => {
 
         <div className={uiPrimitives.authActions}>
           <span className={uiPrimitives.runtimeBadge}>{appCopy.ui.badges.runtimeAsIs}</span>
+          <ThemeToggleButton />
           <Button type="button" onClick={() => void auth.logout()}>
             {appCopy.ui.actions.logout}
           </Button>
         </div>
       </Surface>
 
-      <section className={uiPrimitives.workbench}>
-        <MainNavigation />
+      <section className={cx(uiPrimitives.workbench, isNavCollapsed && 'is-nav-collapsed')}>
+        <MainNavigation
+          isCollapsed={isNavCollapsed}
+          onToggleCollapsed={() => setIsNavCollapsed((prev) => !prev)}
+        />
 
         <section className={uiPrimitives.mainCanvas}>
           <Outlet />

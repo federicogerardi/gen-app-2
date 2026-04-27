@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { Copy, Check } from 'lucide-react';
 import {
   Button,
   EmptyStateMessage,
@@ -33,6 +36,35 @@ export const ArtifactDetailPage = () => {
   });
 
   const artifact = artifactQuery.data;
+  const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<'markdown' | 'raw'>('markdown');
+  const markdownRef = useRef<HTMLDivElement>(null);
+
+  const handleCopy = () => {
+    const rawText = artifact?.content ?? '';
+    if (viewMode === 'markdown' && markdownRef.current) {
+      const html = markdownRef.current.innerHTML;
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([rawText], { type: 'text/plain' }),
+      });
+      navigator.clipboard.write([item]).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        // fallback to plain text
+        navigator.clipboard.writeText(rawText).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }).catch(() => {});
+      });
+    } else {
+      navigator.clipboard.writeText(rawText).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  };
 
   const resumePath = useMemo(
     () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'resume') : null),
@@ -70,7 +102,45 @@ export const ArtifactDetailPage = () => {
       <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.projectId, artifact.projectId)}</p>
       <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, artifact.status)}</p>
       <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.type, artifact.artifactType)}</p>
-      <pre className={uiPrimitives.artifactContent}>{artifact.content || 'Contenuto non disponibile.'}</pre>
+      <div className="ui-artifact-content-wrapper">
+        <div className="ui-artifact-toolbar">
+          <div className="ui-artifact-toolbar-tabs">
+            <button
+              type="button"
+              className={`ui-view-tab${viewMode === 'markdown' ? ' is-active' : ''}`}
+              onClick={() => setViewMode('markdown')}
+            >
+              {appCopy.ui.actions.viewMarkdown}
+            </button>
+            <button
+              type="button"
+              className={`ui-view-tab${viewMode === 'raw' ? ' is-active' : ''}`}
+              onClick={() => setViewMode('raw')}
+            >
+              {appCopy.ui.actions.viewRaw}
+            </button>
+          </div>
+          <button
+            type="button"
+            className={`ui-view-tab ui-view-tab--icon${copied ? ' is-active' : ''}`}
+            onClick={handleCopy}
+            aria-label={copied ? appCopy.ui.actions.copied : appCopy.ui.actions.copyContent}
+            title={copied ? appCopy.ui.actions.copied : appCopy.ui.actions.copyContent}
+            disabled={!artifact.content}
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+          </button>
+        </div>
+        {viewMode === 'markdown' ? (
+          <div className="ui-artifact-markdown" ref={markdownRef}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {artifact.content || ''}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <pre className={uiPrimitives.artifactContent}>{artifact.content || 'Contenuto non disponibile.'}</pre>
+        )}
+      </div>
 
       <div className={uiPrimitives.actions}>
         <Button

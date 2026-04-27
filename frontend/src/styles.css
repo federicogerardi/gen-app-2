@@ -721,8 +721,186 @@ button:disabled,
   background: var(--artifact-panel-bg);
 }
 
+.ui-artifact-content-wrapper {
+  position: relative;
+}
+
+/* Artifact content toolbar */
+.ui-artifact-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: var(--space-1);
+}
+
+.ui-artifact-toolbar-tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.ui-view-tab {
+  font-size: 0.75rem;
+  font-family: var(--font-family-ui);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ui-view-tab--icon {
+  padding-inline: 6px;
+}
+
+.ui-view-tab:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.ui-view-tab.is-active {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong);
+  color: #fff;
+}
+
+.ui-view-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ui-view-tab:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+/* Markdown prose render */
+.ui-artifact-markdown {
+  min-height: 180px;
+  max-height: 480px;
+  overflow: auto;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--artifact-content-border);
+  background: var(--artifact-content-bg);
+  color: var(--artifact-content-fg);
+  padding: var(--space-3);
+  font-family: var(--font-family-body);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.ui-artifact-markdown h1,
+.ui-artifact-markdown h2,
+.ui-artifact-markdown h3,
+.ui-artifact-markdown h4,
+.ui-artifact-markdown h5,
+.ui-artifact-markdown h6 {
+  font-family: var(--font-family-ui);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-block: var(--space-3) var(--space-1);
+  color: var(--text-primary);
+}
+
+.ui-artifact-markdown h1 { font-size: 1.5rem; }
+.ui-artifact-markdown h2 { font-size: 1.25rem; }
+.ui-artifact-markdown h3 { font-size: 1.0625rem; }
+.ui-artifact-markdown h4,
+.ui-artifact-markdown h5,
+.ui-artifact-markdown h6 { font-size: 0.9375rem; }
+
+.ui-artifact-markdown p {
+  margin-block: var(--space-2);
+}
+
+.ui-artifact-markdown p:first-child,
+.ui-artifact-markdown h1:first-child,
+.ui-artifact-markdown h2:first-child {
+  margin-block-start: 0;
+}
+
+.ui-artifact-markdown ul,
+.ui-artifact-markdown ol {
+  padding-inline-start: 1.5rem;
+  margin-block: var(--space-2);
+}
+
+.ui-artifact-markdown li {
+  margin-block: 0.25rem;
+}
+
+.ui-artifact-markdown blockquote {
+  border-inline-start: 3px solid var(--brand-strong);
+  margin-inline: 0;
+  padding-inline: var(--space-2);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.ui-artifact-markdown code {
+  font-family: var(--font-family-mono);
+  font-size: 0.85em;
+  background: var(--surface-raised);
+  border-radius: var(--radius-badge);
+  padding: 0.1em 0.35em;
+}
+
+.ui-artifact-markdown pre {
+  margin-block: var(--space-2) 0;
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  padding: var(--space-2);
+  overflow-x: auto;
+}
+
+.ui-artifact-markdown pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.825rem;
+}
+
+.ui-artifact-markdown a {
+  color: var(--link-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ui-artifact-markdown a:hover {
+  color: var(--link-hover);
+}
+
+.ui-artifact-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+  margin-block: var(--space-2);
+}
+
+.ui-artifact-markdown th,
+.ui-artifact-markdown td {
+  border: 1px solid var(--control-border);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+}
+
+.ui-artifact-markdown th {
+  background: var(--surface-raised);
+  font-weight: 600;
+}
+
+.ui-artifact-markdown hr {
+  border: none;
+  border-block-start: 1px solid var(--control-border);
+  margin-block: var(--space-3);
+}
+
 .artifact-content,
 .ui-artifact-content {
+  margin-block: 0;
   min-height: 180px;
   max-height: 320px;
   overflow: auto;

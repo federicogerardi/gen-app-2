@@ -49,6 +49,11 @@ export const appCopy = {
       relaunchPrimary: 'Relaunch primario',
       relaunchSecondary: 'Relaunch secondario',
       deleteUiOnly: 'Delete (UI only)',
+      copyContent: 'Copia contenuto',
+      copied: 'Copiato!',
+      copyFailed: 'Copia fallita',
+      viewMarkdown: 'Markdown',
+      viewRaw: 'Raw',
     },
     labels: {
       email: 'Email',

@@ -19,6 +19,7 @@ Obiettivo:
 - evitare nuova duplicazione strutturale;
 - mantenere un solo punto di verita per transport HTTP, endpoint, query hooks e parsing condiviso;
 - rendere i nuovi sviluppi coerenti con il target architetturale gia implementato.
+- mantenere uniforme anche il rendering degli stati pagina e l'osservabilita tecnica minima del layer HTTP.
 
 ## 1. Ambito dell'unificazione
 
@@ -28,6 +29,12 @@ L'unificazione implementata copre quattro aree operative:
 2. registry centralizzato degli endpoint;
 3. query hooks riusabili per pagine list/detail;
 4. parser condivisi per wrapper e ingressi URL.
+
+Completamenti successivi consolidati:
+
+5. componenti shared per loading/error/empty state;
+6. debug opzionale delle richieste HTTP fallite;
+7. copertura page-level sui percorsi critici migrati.
 
 ## 2. Stato target da preservare
 
@@ -43,6 +50,7 @@ Regole:
 - i feature client non devono ridefinire helper locali di composizione URL;
 - gli errori HTTP devono essere normalizzati nel layer runtime, non nelle pagine;
 - `credentials: 'include'` resta obbligatorio per le superfici autenticate.
+- il debug HTTP opzionale, quando attivato, deve loggare solo metadati tecnici minimi e mai payload utente.
 
 ### 2.2 Endpoint registry
 
@@ -76,6 +84,12 @@ Hook attivi:
 - `useArtifactsQuery`
 - `useArtifactDetailQuery`
 - `useAdminUsersQuery`
+
+Componenti shared per il rendering degli stati:
+
+- `LoadingStateMessage`
+- `ErrorStateMessage`
+- `EmptyStateMessage`
 
 ### 2.4 Parser condivisi per wrapper
 
@@ -116,7 +130,7 @@ Sequenza obbligatoria:
 1. aggiungi o riusa endpoint in `frontend/src/app/runtime/api-paths.ts`;
 2. aggiungi o estendi il runtime client nella feature corretta;
 3. se il pattern e list/detail, crea o riusa un query hook in `frontend/src/app/runtime/queries/`;
-4. nella pagina usa solo hook shared e rendering degli stati;
+4. nella pagina usa solo hook shared e componenti shared per loading/error/empty quando il pattern e standard;
 5. aggiungi test mirato della pagina o del hook introdotto.
 
 Da evitare:
@@ -158,6 +172,7 @@ Una modifica frontend e accettabile solo se tutte le risposte sono "si":
 - evita endpoint hardcoded nelle pagine?
 - evita nuovi `joinApiPath` locali?
 - evita nuova duplicazione di `useEffect + IIFE async` dove esiste gia un hook shared?
+- evita markup inline duplicato per loading/error/empty state se esistono componenti shared?
 - mantiene le pagine focalizzate sul rendering?
 - aggiorna test e documentazione quando introduce un nuovo pattern condiviso?
 
@@ -168,6 +183,8 @@ Metriche baseline post-unificazione:
 - helper `joinApiPath` locali nei runtime client: `0`
 - endpoint hardcoded nelle pagine production: `0`
 - pattern `useEffect + IIFE async` nelle pagine target del refactor: `1`
+- shared page-state components disponibili nel layer UI comune: `3`
+- copertura page-level dei percorsi critici migrati: presente per projects list/detail e artifacts list/detail
 
 Ogni nuovo ciclo di refactor o feature deve preservare o migliorare questi valori.
 
@@ -198,3 +215,4 @@ Per ogni modifica coerente con questa guida:
 - [Frontend as-is](./frontend-spec.md)
 - [Frontend Tool Pages Architecture](./frontend-tool-pages-architecture-spec.md)
 - [Tool generation structural UX flow](./tool-generation-structural-ux-flow-spec.md)
+- [Unified Frontend Data Access Layer ADR](../adr/frontend-data-access-layer-adr.md)

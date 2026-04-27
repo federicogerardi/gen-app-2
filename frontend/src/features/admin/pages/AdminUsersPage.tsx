@@ -1,6 +1,11 @@
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import {
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+  uiPrimitives,
+} from '../../../app/ui/primitives';
 import { useAdminUsersQuery } from '../../../app/runtime/queries/useAdminUsersQuery';
 
 export const AdminUsersPage = () => {
@@ -16,8 +21,8 @@ export const AdminUsersPage = () => {
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <h2>{appCopy.editorial.admin.usersTitle}</h2>
-      {usersQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento utenti...</p> : null}
-      {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+      {usersQuery.loading ? <LoadingStateMessage>Caricamento utenti...</LoadingStateMessage> : null}
+      {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
       <ul className={uiPrimitives.listClean}>
         {users.map((user) => (
           <Surface as="li" key={user.id}>

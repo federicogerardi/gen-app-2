@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import {
+  EmptyStateMessage,
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+  TopBar,
+  uiPrimitives,
+} from '../../../app/ui/primitives';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 
 export const ProjectsListPage = () => {
@@ -21,11 +28,11 @@ export const ProjectsListPage = () => {
         <Link to="/dashboard/projects/new" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.newProject}</Link>
       </TopBar>
 
-      {projectsQuery.loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
+      {projectsQuery.loading ? <LoadingStateMessage>{appCopy.ui.states.loadingProjects}</LoadingStateMessage> : null}
 
-      {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+      {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
 
-      {!error && projects.length === 0 ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectsAvailable}</p> : null}
+      {!error && projects.length === 0 ? <EmptyStateMessage>{appCopy.ui.states.noProjectsAvailable}</EmptyStateMessage> : null}
 
       <ul className={uiPrimitives.listClean}>
         {projects.map((project) => (

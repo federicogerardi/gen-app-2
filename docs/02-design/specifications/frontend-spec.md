@@ -157,6 +157,25 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 - `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage` e `AdminUsersPage` usano i query hooks condivisi.
 - Il pattern `useEffect + IIFE async` e stato eliminato da queste pagine e resta confinato ai punti dove la logica e ancora specifica (ad esempio `GenerationConsolePage`).
 
+### Componenti shared per stati pagina
+
+- `frontend/src/app/ui/primitives.tsx` include ora componenti dedicati per uniformare gli stati standard di pagina:
+  - `LoadingStateMessage`
+  - `ErrorStateMessage`
+  - `EmptyStateMessage`
+- Le pagine migrate al pattern unificato riusano questi componenti invece di replicare markup inline per loading/error/empty state.
+
+### Debug HTTP opzionale
+
+- `frontend/src/app/runtime/http-client.ts` supporta debug opzionale per richieste fallite tramite `VITE_DEBUG_HTTP_CLIENT=true`.
+- Il debug logga solo metadati tecnici minimi:
+  - metodo
+  - URL
+  - status
+  - error code
+  - retryable
+- Non vengono loggati payload utente o dati sensibili.
+
 ### Risultato misurato del refactor
 
 | Metrica | Prima | Dopo |
@@ -164,6 +183,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 | Helper `joinApiPath` locali nei runtime client | 5 | 0 |
 | Endpoint hardcoded nelle pagine | 1 | 0 |
 | Pattern `useEffect + IIFE async` nelle pagine target | 6 | 1 |
+| Copertura page-level sulle pagine migrate critiche | parziale | estesa a list/detail projects e artifacts |
 
 ### Linea guida per sviluppi futuri
 
@@ -202,6 +222,7 @@ Per la procedura completa vedere [frontend-unification-replication-guide.md](./f
 2. Se il test deve restare resilient al rewording, usare query per ruolo o comportamento invece di replicare stringhe hardcoded.
 3. Non introdurre fixture di copy parallele nei test se il testo esiste gia nel registry condiviso.
 4. Se una pagina usa un query hook shared, testare almeno il caso "dati caricati senza errore spurio" e il caso di errore reale.
+5. Per pagine list/detail migrate al pattern unificato, mantenere almeno un test page-level critico per percorso happy path e uno per stato empty/error/not-found quando applicabile.
 
 ### Criterio di accettazione per nuovi cambiamenti frontend
 

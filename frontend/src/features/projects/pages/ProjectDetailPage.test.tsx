@@ -1,0 +1,93 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { appCopy } from '../../../app/copy/system';
+import { useMswHandler } from '../../../test/mocks/server';
+import { ProjectDetailPage } from './ProjectDetailPage';
+
+const workspaceBag = {
+  artifacts: [
+    {
+      artifactId: 'art-1',
+      requestId: 'req-1',
+      projectId: 'p1',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'gpt-4',
+      toolKey: null,
+      workflowType: null,
+      content: 'artifact content',
+      createdAt: '2026-04-27T10:00:00.000Z',
+      updatedAt: '2026-04-27T10:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-1',
+        userId: 'u1',
+        projectId: 'p1',
+        artifactType: 'content',
+        model: 'gpt-4',
+        input: {},
+        toolKey: null,
+        workflowType: null,
+      },
+    },
+  ],
+};
+
+vi.mock('../../../app/providers/AuthSessionProvider', () => ({
+  useAuthSession: () => ({
+    session: { user: { id: 'u1', email: 'u@test.com', role: 'user' } },
+    loading: false,
+    error: null,
+    apiBaseUrl: '',
+    capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+  }),
+}));
+
+vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
+  useGenerationWorkspace: () => workspaceBag,
+}));
+
+const renderPage = (projectId = 'p1') => render(
+  <MemoryRouter initialEntries={[`/dashboard/projects/${projectId}`]}>
+    <Routes>
+      <Route path="/dashboard/projects/:id" element={<ProjectDetailPage />} />
+    </Routes>
+  </MemoryRouter>,
+);
+
+beforeEach(() => {
+  useMswHandler(
+    http.get('/api/projects/p1', () => HttpResponse.json({
+      ok: true,
+      data: {
+        project: {
+          id: 'p1',
+          name: 'Project One',
+          description: 'Descrizione progetto',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      },
+    })),
+  );
+});
+
+describe('ProjectDetailPage', () => {
+  it('renders project detail and contextual artifacts', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Project One')).toBeInTheDocument();
+    expect(screen.getByText(appCopy.editorial.projects.contextualArtifacts)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.ui.actions.openArtifact)).toBeInTheDocument();
+  });
+
+  it('shows not found state when project detail returns 404', async () => {
+    useMswHandler(
+      http.get('/api/projects/missing', () => new HttpResponse(null, { status: 404 })),
+    );
+
+    renderPage('missing');
+
+    expect(await screen.findByText(appCopy.ui.states.noProjectFound)).toBeInTheDocument();
+  });
+});

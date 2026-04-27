@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import {
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+  uiPrimitives,
+} from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { type ArtifactQuery } from '../runtime/artifacts-client';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
@@ -30,8 +35,8 @@ export const ArtifactsPage = () => {
     <Surface as="section" className={uiPrimitives.stack}>
       <h2>{appCopy.editorial.artifacts.archiveTitle}</h2>
 
-      {artifactsQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento artifact...</p> : null}
-      {artifactsQuery.error ? <p className={uiPrimitives.error}>{artifactsQuery.error}</p> : null}
+      {artifactsQuery.loading ? <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage> : null}
+      {artifactsQuery.error ? <ErrorStateMessage>{artifactsQuery.error}</ErrorStateMessage> : null}
 
       <div className={uiPrimitives.artifactFilters}>
         <label>

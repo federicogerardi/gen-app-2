@@ -35,6 +35,7 @@ Nota frontend attiva:
 
 - La specifica frontend include ora il contratto operativo per la centralizzazione di grafica e copy (`frontend/src/app/ui/primitives.tsx`, `frontend/src/styles.css`, `frontend/src/app/copy/system.ts`).
 - La guida [Frontend Unification Replication Guide](./02-design/specifications/frontend-unification-replication-guide.md) documenta il pattern canonico per replicare l'unificazione di transport HTTP, endpoint registry, query hooks e parser shared nelle evoluzioni future.
+- L'ultimo completamento del refactor ha esteso il perimetro unificato anche a page-state components condivisi (`LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`), debug HTTP opzionale e test page-level critici su projects/artifacts.
 - La guida [Frontend Design System e UI Kit Guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md) e la fonte unica di verita per ogni intervento GUI visuale.
 - La nuova specifica [Frontend Tool Pages Architecture](./02-design/specifications/frontend-tool-pages-architecture-spec.md) documenta il pattern **unificato** per le pagine dei tool di generazione (FunnelPages, NextLand, futuri tool). Elimina ~95% duplicazione di codice e consente l'aggiunta di nuovi tool in ~30 minuti. Target state post-refactoring.
 
@@ -55,6 +56,7 @@ Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-
 - [Frontend Design System e UI Kit Guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md) - Fonte canonica per linee guida visuali e UI kit
 - [Frontend as-is](./02-design/specifications/frontend-spec.md) - Fonte canonica per registry UI, copy system centralizzato e regole di consistenza per interventi futuri
 - [Frontend Unification Replication Guide](./02-design/specifications/frontend-unification-replication-guide.md) - Playbook operativo per replicare l'approccio unificante nel runtime e nelle pagine data-driven
+- [Unified Frontend Data Access Layer](./02-design/adr/frontend-data-access-layer-adr.md) - Decisione architetturale sintetica sul data access layer unificato e sulle sue regole operative
 - [Frontend Tool Pages Architecture (Unified)](./02-design/specifications/frontend-tool-pages-architecture-spec.md) - Target state post-refactoring: ToolPageTemplate, registry pattern, derivation logic, step-by-step per aggiungere nuovo tool
 
 ## Archivio Storico (99-lifecycle/99-archive/)

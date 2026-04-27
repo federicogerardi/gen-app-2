@@ -26,6 +26,28 @@ type RequestJsonOptions = RequestInit & {
   expectedStatuses?: number[];
 };
 
+const isHttpDebugEnabled = (): boolean => {
+  return (import.meta.env.VITE_DEBUG_HTTP_CLIENT as string | undefined) === 'true';
+};
+
+const logHttpDebug = (
+  level: 'warn' | 'error',
+  context: {
+    method?: string | undefined;
+    url: string;
+    status: number | null;
+    code: HttpClientError['code'];
+    retryable: boolean;
+  },
+): void => {
+  if (!isHttpDebugEnabled()) {
+    return;
+  }
+
+  const logger = level === 'error' ? console.error : console.warn;
+  logger('[http-client]', context);
+};
+
 const parseJsonSafely = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
@@ -57,6 +79,13 @@ export const requestJson = async <TData>(
     const response = await fetch(url, init);
     if (!response.ok && !expectedStatuses.includes(response.status)) {
       const details = await parseJsonSafely(response);
+      logHttpDebug('warn', {
+        method: init.method,
+        url,
+        status: response.status,
+        code: 'http_error',
+        retryable: isRetryableStatus(response.status),
+      });
       throw new HttpClientRequestError({
         code: 'http_error',
         status: response.status,
@@ -73,6 +102,13 @@ export const requestJson = async <TData>(
     }
 
     if (error instanceof Error) {
+      logHttpDebug('error', {
+        method: init.method,
+        url,
+        status: null,
+        code: 'network_error',
+        retryable: true,
+      });
       throw new HttpClientRequestError({
         code: 'network_error',
         status: null,
@@ -81,6 +117,13 @@ export const requestJson = async <TData>(
       });
     }
 
+    logHttpDebug('error', {
+      method: init.method,
+      url,
+      status: null,
+      code: 'unknown_error',
+      retryable: true,
+    });
     throw new HttpClientRequestError({
       code: 'unknown_error',
       status: null,
@@ -100,6 +143,13 @@ export const requestVoid = async (
     const response = await fetch(url, init);
     if (!response.ok && !expectedStatuses.includes(response.status)) {
       const details = await parseJsonSafely(response);
+      logHttpDebug('warn', {
+        method: init.method,
+        url,
+        status: response.status,
+        code: 'http_error',
+        retryable: isRetryableStatus(response.status),
+      });
       throw new HttpClientRequestError({
         code: 'http_error',
         status: response.status,
@@ -114,6 +164,13 @@ export const requestVoid = async (
     }
 
     if (error instanceof Error) {
+      logHttpDebug('error', {
+        method: init.method,
+        url,
+        status: null,
+        code: 'network_error',
+        retryable: true,
+      });
       throw new HttpClientRequestError({
         code: 'network_error',
         status: null,
@@ -122,6 +179,13 @@ export const requestVoid = async (
       });
     }
 
+    logHttpDebug('error', {
+      method: init.method,
+      url,
+      status: null,
+      code: 'unknown_error',
+      retryable: true,
+    });
     throw new HttpClientRequestError({
       code: 'unknown_error',
       status: null,

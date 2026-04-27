@@ -2,7 +2,14 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import {
+  EmptyStateMessage,
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+  TopBar,
+  uiPrimitives,
+} from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
 
@@ -30,11 +37,11 @@ export const ProjectDetailPage = () => {
         <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.backToList}</Link>
       </TopBar>
 
-      {projectQuery.loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
-      {projectQuery.error ? <p className={uiPrimitives.error}>{projectQuery.error}</p> : null}
+      {projectQuery.loading ? <LoadingStateMessage>{appCopy.ui.states.loadingProjects}</LoadingStateMessage> : null}
+      {projectQuery.error ? <ErrorStateMessage>{projectQuery.error}</ErrorStateMessage> : null}
 
       {!project && !projectQuery.loading ? (
-        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectFound}</p>
+        <EmptyStateMessage>{appCopy.ui.states.noProjectFound}</EmptyStateMessage>
       ) : project ? (
         <>
           <h3>{project.name}</h3>
@@ -45,7 +52,7 @@ export const ProjectDetailPage = () => {
 
       <h3>{appCopy.editorial.projects.contextualArtifacts}</h3>
       {projectArtifacts.length === 0 ? (
-        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectArtifacts}</p>
+        <EmptyStateMessage>{appCopy.ui.states.noProjectArtifacts}</EmptyStateMessage>
       ) : (
         <ul className={uiPrimitives.listClean}>
           {projectArtifacts.map((artifact) => (

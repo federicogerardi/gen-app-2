@@ -2,7 +2,15 @@ import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import {
+  Button,
+  EmptyStateMessage,
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+  TopBar,
+  uiPrimitives,
+} from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import {
@@ -43,9 +51,9 @@ export const ArtifactDetailPage = () => {
     return (
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
-        {artifactQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento artifact...</p> : null}
-        {artifactQuery.error ? <p className={uiPrimitives.error}>{artifactQuery.error}</p> : null}
-        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactFound}</p>
+        {artifactQuery.loading ? <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage> : null}
+        {artifactQuery.error ? <ErrorStateMessage>{artifactQuery.error}</ErrorStateMessage> : null}
+        <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
         <Link to="/artifacts" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArchive}</Link>
       </Surface>
     );

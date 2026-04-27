@@ -1,4 +1,4 @@
-import type { ComponentPropsWithoutRef, ElementType, JSX } from 'react';
+import type { ComponentPropsWithoutRef, ElementType, JSX, ReactNode } from 'react';
 
 type PrimitiveProps<T extends ElementType> = {
   as?: T;
@@ -81,6 +81,22 @@ export const TopBar = <T extends ElementType = 'header'>(props: PrimitiveProps<T
 
 type ButtonProps = ComponentPropsWithoutRef<'button'>;
 
+type PageStateMessageProps = {
+  children: ReactNode;
+};
+
 export const Button = ({ className, type = 'button', ...rest }: ButtonProps): JSX.Element => (
   <button type={type} className={cx(uiPrimitives.button, className)} {...rest} />
+);
+
+export const LoadingStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (
+  <p className={uiPrimitives.metaLine}>{children}</p>
+);
+
+export const EmptyStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (
+  <p className={uiPrimitives.metaLine}>{children}</p>
+);
+
+export const ErrorStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (
+  <p className={uiPrimitives.error} role="alert">{children}</p>
 );

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { listArtifacts, type ArtifactQuery } from '../runtime/artifacts-client';
-import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { type ArtifactQuery } from '../runtime/artifacts-client';
+import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
 
 const defaultFilters: ArtifactQuery = {
   type: 'all',
@@ -17,22 +17,21 @@ export const ArtifactsPage = () => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const [filters, setFilters] = useState<ArtifactQuery>(defaultFilters);
-  const [items, setItems] = useState<GenerationArtifact[]>([]);
+  const artifactsQuery = useArtifactsQuery({
+    filters,
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    localArtifacts: generation.artifacts,
+  });
 
-  useEffect(() => {
-    void (async () => {
-      const next = await listArtifacts(filters, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
-        localArtifacts: generation.artifacts,
-      });
-      setItems(next);
-    })();
-  }, [auth.apiBaseUrl, auth.capabilities, filters, generation.artifacts]);
+  const items = artifactsQuery.data;
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <h2>{appCopy.editorial.artifacts.archiveTitle}</h2>
+
+      {artifactsQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento artifact...</p> : null}
+      {artifactsQuery.error ? <p className={uiPrimitives.error}>{artifactsQuery.error}</p> : null}
 
       <div className={uiPrimitives.artifactFilters}>
         <label>

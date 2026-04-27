@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Button, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { getArtifactById } from '../runtime/artifacts-client';
+import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import {
   buildToolEntryPathFromArtifact,
-  type GenerationArtifact,
 } from '../../generation/ui/artifact-history';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
@@ -17,18 +16,15 @@ export const ArtifactDetailPage = () => {
   const navigate = useNavigate();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
-  const [artifact, setArtifact] = useState<GenerationArtifact | null>(null);
+  const artifactQuery = useArtifactDetailQuery({
+    artifactId: id,
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    localArtifacts: generation.artifacts,
+    enabled: id.length > 0,
+  });
 
-  useEffect(() => {
-    void (async () => {
-      const next = await getArtifactById(id, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
-        localArtifacts: generation.artifacts,
-      });
-      setArtifact(next);
-    })();
-  }, [auth.apiBaseUrl, auth.capabilities, generation.artifacts, id]);
+  const artifact = artifactQuery.data;
 
   const resumePath = useMemo(
     () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'resume') : null),
@@ -47,6 +43,8 @@ export const ArtifactDetailPage = () => {
     return (
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
+        {artifactQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento artifact...</p> : null}
+        {artifactQuery.error ? <p className={uiPrimitives.error}>{artifactQuery.error}</p> : null}
         <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactFound}</p>
         <Link to="/artifacts" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArchive}</Link>
       </Surface>

@@ -7,6 +7,11 @@ import {
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import {
+  isHttpClientError,
+  joinApiPath,
+  requestJson,
+} from '../../../app/runtime/http-client';
 
 type ToolsClientOptions = {
   apiBaseUrl?: string;
@@ -51,11 +56,6 @@ export type RunExtractionResult = {
   artifactId: string;
   content: string;
   payload: Record<string, unknown>;
-};
-
-const joinApiPath = (baseUrl: string, path: string): string => {
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  return `${normalizedBase}${path}`;
 };
 
 const randomId = (): string => {
@@ -129,27 +129,30 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
-  const response = await fetch(joinApiPath(options.apiBaseUrl ?? '', path), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      projectId: input.projectId,
-      toolKey: input.toolKey,
-      fileName: input.file.name,
-      mimeType: input.file.type || null,
-      contentBase64,
-    }),
-  });
+  try {
+    const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId: input.projectId,
+        toolKey: input.toolKey,
+        fileName: input.file.name,
+        mimeType: input.file.type || null,
+        contentBase64,
+      }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Unable to upload brief (HTTP ${response.status})`);
+    return parseUploadBriefResponse(payload);
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to upload brief (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
   }
-
-  const payload = await response.json();
-  return parseUploadBriefResponse(payload);
 };
 
 export const runExtraction = async (

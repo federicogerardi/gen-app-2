@@ -25,6 +25,7 @@ export type ApiPaths = {
     users: string;
     userById: (id: string) => string;
     models: string | null;
+    activity: string;
   };
 };
 
@@ -53,5 +54,6 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     users: '/admin/users',
     userById: (id: string) => `/admin/users/${id}`,
     models: capabilities.adminModels ? '/api/admin/models' : null,
+    activity: '/admin/activity',
   },
 });

@@ -1,3 +1,10 @@
+import {
+  isHttpClientError,
+  joinApiPath,
+  requestJson,
+  requestVoid,
+} from '../../../app/runtime/http-client';
+
 type AuthErrorShape = {
   ok: false;
   error: {
@@ -33,69 +40,71 @@ type AuthRequestOptions = {
   apiBaseUrl?: string;
 };
 
-const joinApiPath = (baseUrl: string, path: string): string => {
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  return `${normalizedBase}${path}`;
-};
-
-const readJson = async <TData>(response: Response): Promise<TData> => {
-  return (await response.json()) as TData;
-};
-
 export const loginWithPassword = async (
   email: string,
   password: string,
   options: AuthRequestOptions = {},
 ): Promise<AuthSession> => {
   const apiBaseUrl = options.apiBaseUrl ?? '';
-  const response = await fetch(joinApiPath(apiBaseUrl, '/auth/login'), {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
+  try {
+    const body = await requestJson<AuthSuccessShape<SessionData>>(joinApiPath(apiBaseUrl, '/auth/login'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (!response.ok) {
-    const body = await readJson<AuthErrorShape>(response);
-    throw new Error(body.error.message);
+    return body.data;
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      const details = error.details as AuthErrorShape | null;
+      if (details?.error?.message) {
+        throw new Error(details.error.message);
+      }
+    }
+
+    throw error;
   }
-
-  const body = await readJson<AuthSuccessShape<SessionData>>(response);
-  return body.data;
 };
 
 export const readSession = async (
   options: AuthRequestOptions = {},
 ): Promise<AuthSession | null> => {
   const apiBaseUrl = options.apiBaseUrl ?? '';
-  const response = await fetch(joinApiPath(apiBaseUrl, '/auth/session'), {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const body = await requestJson<AuthSuccessShape<SessionData>>(joinApiPath(apiBaseUrl, '/auth/session'), {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return body.data;
+  } catch (error) {
+    if (isHttpClientError(error) && error.status === 401) {
+      return null;
+    }
 
-  if (response.status === 401) {
-    return null;
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to bootstrap session (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
   }
-
-  if (!response.ok) {
-    throw new Error(`Unable to bootstrap session (HTTP ${response.status})`);
-  }
-
-  const body = await readJson<AuthSuccessShape<SessionData>>(response);
-  return body.data;
 };
 
 export const logoutSession = async (options: AuthRequestOptions = {}): Promise<void> => {
   const apiBaseUrl = options.apiBaseUrl ?? '';
-  const response = await fetch(joinApiPath(apiBaseUrl, '/auth/logout'), {
-    method: 'POST',
-    credentials: 'include',
-  });
+  try {
+    await requestVoid(joinApiPath(apiBaseUrl, '/auth/logout'), {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      throw new Error(`Logout failed (HTTP ${error.status ?? 'unknown'})`);
+    }
 
-  if (!response.ok && response.status !== 204) {
-    throw new Error(`Logout failed (HTTP ${response.status})`);
+    throw error;
   }
 };
 

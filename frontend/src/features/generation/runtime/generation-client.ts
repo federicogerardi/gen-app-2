@@ -7,6 +7,7 @@ import {
   parseBackendStreamEvent,
   SseProtocolError,
 } from '../parser/sse-parser';
+import { joinApiPath } from '../../../app/runtime/http-client';
 
 type TransportErrorCode =
   | 'transport_pre_start'
@@ -30,11 +31,6 @@ export type StreamGenerationOptions = {
   apiBaseUrl?: string;
   signal?: AbortSignal;
   onEvent: (event: BackendStreamEvent) => void;
-};
-
-const joinApiPath = (baseUrl: string, path: string): string => {
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  return `${normalizedBase}${path}`;
 };
 
 export const normalizeTransportError = (error: unknown): GenerationTransportError => {

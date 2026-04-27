@@ -117,6 +117,68 @@ Vedere [frontend-tool-pages-architecture-spec.md](./frontend-tool-pages-architec
 
 ---
 
+## Runtime e data access unificati
+
+Lo stato as-is del frontend include ora un layer condiviso per accesso dati e caricamento pagina, introdotto per ridurre duplicazione tra feature runtime e pagine list/detail.
+
+### Transport HTTP condiviso
+
+- `frontend/src/app/runtime/http-client.ts` e la fonte canonica per:
+  - `joinApiPath()`
+  - `requestJson()`
+  - `requestVoid()`
+  - normalizzazione errori tramite `HttpClientRequestError`
+- I client runtime di auth, projects, artifacts, tools e admin riusano questo layer.
+- `generation-client.ts` riusa `joinApiPath()` ma mantiene la semantica stream dedicata.
+
+### Registry endpoint condiviso
+
+- `frontend/src/app/runtime/api-paths.ts` e la fonte unica di verita per endpoint auth, generation, tools, projects, artifacts e admin.
+- Le pagine production non devono contenere endpoint hardcoded.
+- Il capability gating resta centralizzato in `api-paths.ts` e nei runtime client.
+
+### Query hooks condivisi
+
+- `frontend/src/app/runtime/queries/` centralizza il pattern list/detail per pagine data-driven.
+- Hook attivi:
+  - `useProjectsQuery`
+  - `useProjectDetailQuery`
+  - `useArtifactsQuery`
+  - `useArtifactDetailQuery`
+  - `useAdminUsersQuery`
+- Shape condivisa del contratto hook:
+  - `data`
+  - `loading`
+  - `error`
+  - `reload`
+
+### Adozione corrente
+
+- `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage` e `AdminUsersPage` usano i query hooks condivisi.
+- Il pattern `useEffect + IIFE async` e stato eliminato da queste pagine e resta confinato ai punti dove la logica e ancora specifica (ad esempio `GenerationConsolePage`).
+
+### Risultato misurato del refactor
+
+| Metrica | Prima | Dopo |
+|---|---:|---:|
+| Helper `joinApiPath` locali nei runtime client | 5 | 0 |
+| Endpoint hardcoded nelle pagine | 1 | 0 |
+| Pattern `useEffect + IIFE async` nelle pagine target | 6 | 1 |
+
+### Linea guida per sviluppi futuri
+
+Per replicare l'approccio unificante in modo coerente:
+
+1. aggiungere o riusare endpoint in `api-paths.ts`;
+2. implementare il client feature-aware in `features/*/runtime/` usando `http-client.ts`;
+3. promuovere pattern list/detail in un query hook shared quando esiste almeno un secondo consumer plausibile;
+4. mantenere le pagine focalizzate su rendering e wiring UI;
+5. aggiornare test e documentazione nello stesso change set.
+
+Per la procedura completa vedere [frontend-unification-replication-guide.md](./frontend-unification-replication-guide.md).
+
+---
+
 ## Regole obbligatorie per interventi futuri
 
 ### Interventi grafici
@@ -139,6 +201,7 @@ Vedere [frontend-tool-pages-architecture-spec.md](./frontend-tool-pages-architec
 1. Se un test verifica testo utente, preferire `appCopy` come fonte dell'asserzione quando il testo e parte del contratto di prodotto.
 2. Se il test deve restare resilient al rewording, usare query per ruolo o comportamento invece di replicare stringhe hardcoded.
 3. Non introdurre fixture di copy parallele nei test se il testo esiste gia nel registry condiviso.
+4. Se una pagina usa un query hook shared, testare almeno il caso "dati caricati senza errore spurio" e il caso di errore reale.
 
 ### Criterio di accettazione per nuovi cambiamenti frontend
 
@@ -147,6 +210,7 @@ Un intervento frontend e coerente con questa specifica solo se:
 - non introduce nuovi silos di stile o copy nel TSX;
 - aggiorna i registry condivisi prima dei consumer;
 - mantiene allineati runtime, test e documentazione;
+- riusa `http-client.ts`, `api-paths.ts` e `app/runtime/queries/` quando il problema ricade nei pattern gia unificati;
 - valida almeno `npm --prefix frontend run build` dopo la modifica.
 
 ---

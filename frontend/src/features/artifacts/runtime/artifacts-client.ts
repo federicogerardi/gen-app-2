@@ -2,6 +2,11 @@ import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
+import {
+  isHttpClientError,
+  joinApiPath,
+  requestJson,
+} from '../../../app/runtime/http-client';
 
 export type ArtifactQuery = {
   type: GenerationArtifact['artifactType'] | 'all';
@@ -54,11 +59,6 @@ type ArtifactsResponse =
       artifact?: BackendArtifact;
     };
   };
-
-const joinApiPath = (baseUrl: string, path: string): string => {
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  return `${normalizedBase}${path}`;
-};
 
 const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): GenerationArtifact[] => {
   return artifacts.filter((artifact) => {
@@ -158,18 +158,24 @@ export const listArtifacts = async (
     return applyQuery(options.localArtifacts ?? [], filters);
   }
 
-  const response = await fetch(joinApiPath(options.apiBaseUrl ?? '', `${path}${toQueryString(filters)}`), {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const payload = await requestJson<ArtifactsResponse>(
+      joinApiPath(options.apiBaseUrl ?? '', `${path}${toQueryString(filters)}`),
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    );
 
-  if (!response.ok) {
-    throw new Error(`Unable to list artifacts (HTTP ${response.status})`);
+    const list = Array.isArray(payload) ? payload : (payload.data?.artifacts ?? []);
+    return list.map(toGenerationArtifact);
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to list artifacts (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
   }
-
-  const payload = (await response.json()) as ArtifactsResponse;
-  const list = Array.isArray(payload) ? payload : (payload.data?.artifacts ?? []);
-  return list.map(toGenerationArtifact);
 };
 
 export const getArtifactById = async (
@@ -183,23 +189,26 @@ export const getArtifactById = async (
     return options.localArtifacts?.find((artifact) => artifact.artifactId === id) ?? null;
   }
 
-  const response = await fetch(joinApiPath(options.apiBaseUrl ?? '', path), {
-    method: 'GET',
-    credentials: 'include',
-  });
+  try {
+    const payload = await requestJson<ArtifactsResponse>(joinApiPath(options.apiBaseUrl ?? '', path), {
+      method: 'GET',
+      credentials: 'include',
+    });
 
-  if (response.status === 404) {
-    return null;
+    const detail = Array.isArray(payload)
+      ? payload.find((artifact) => artifact.artifactId === id)
+      : payload.data?.artifact;
+
+    return detail ? toGenerationArtifact(detail) : null;
+  } catch (error) {
+    if (isHttpClientError(error) && error.status === 404) {
+      return null;
+    }
+
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to load artifact detail (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
   }
-
-  if (!response.ok) {
-    throw new Error(`Unable to load artifact detail (HTTP ${response.status})`);
-  }
-
-  const payload = (await response.json()) as ArtifactsResponse;
-  const detail = Array.isArray(payload)
-    ? payload.find((artifact) => artifact.artifactId === id)
-    : payload.data?.artifact;
-
-  return detail ? toGenerationArtifact(detail) : null;
 };

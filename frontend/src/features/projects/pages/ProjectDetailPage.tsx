@@ -1,26 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { getProjectById, type ProjectSummary } from '../runtime/projects-client';
+import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
 
 export const ProjectDetailPage = () => {
   const { id = '' } = useParams();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
-  const [project, setProject] = useState<ProjectSummary | null>(null);
+  const projectQuery = useProjectDetailQuery({
+    projectId: id,
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: id.length > 0,
+  });
 
-  useEffect(() => {
-    void (async () => {
-      const next = await getProjectById(id, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
-      });
-      setProject(next);
-    })();
-  }, [auth.apiBaseUrl, auth.capabilities, id]);
+  const project = projectQuery.data;
 
   const projectArtifacts = useMemo(() => {
     return generation.artifacts.filter((artifact) => artifact.projectId === id);
@@ -33,15 +30,18 @@ export const ProjectDetailPage = () => {
         <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.backToList}</Link>
       </TopBar>
 
-      {!project ? (
+      {projectQuery.loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
+      {projectQuery.error ? <p className={uiPrimitives.error}>{projectQuery.error}</p> : null}
+
+      {!project && !projectQuery.loading ? (
         <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noProjectFound}</p>
-      ) : (
+      ) : project ? (
         <>
           <h3>{project.name}</h3>
           <p>{project.description}</p>
           <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(project.updatedAt).toLocaleString())}</p>
         </>
-      )}
+      ) : null}
 
       <h3>{appCopy.editorial.projects.contextualArtifacts}</h3>
       {projectArtifacts.length === 0 ? (

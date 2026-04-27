@@ -1,14 +1,14 @@
 ---
 status: approved
 version: 2.0
-last-reviewed: 2026-04-26
-next-review-date: 2026-07-26
+last-reviewed: 2026-04-27
+next-review-date: 2026-07-27
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-04-26
+Data: 2026-04-27
 Stato: Active
 Version: 2.0
 
@@ -19,6 +19,7 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 ## Specifiche attive (02-design/specifications/)
 
 - [Frontend as-is](./02-design/specifications/frontend-spec.md)
+- [Frontend Unification Replication Guide](./02-design/specifications/frontend-unification-replication-guide.md) - Regole canoniche per riusare il layer HTTP condiviso, registry endpoint, query hooks e parser unificati nei futuri sviluppi frontend
 - [Frontend Design System e UI Kit Guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md) - Fonte unica di verita per linee guida visuali, tokens, layout e componenti GUI
 - [Frontend Tool Pages Architecture (Unified)](./02-design/specifications/frontend-tool-pages-architecture-spec.md) - **NEW**: Architettura unificata per tool pages, eliminazione duplicazione, scaling pattern per nuovi tool
 - [GUI scope as-is](./02-design/specifications/gui-scope-as-is-spec.md)
@@ -26,9 +27,14 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 - [XState system as-is blueprint index](./02-design/specifications/xstate-system-as-is-spec.md)
 - [Deployment architecture guide](./02-design/specifications/deployment-architecture-guide.md) - Strategie deployment, opzioni platform, checklist pre-deployment
 
+## Architecture Decision Records (02-design/adr/)
+
+- [Unified Frontend Data Access Layer](./02-design/adr/frontend-data-access-layer-adr.md) - Decisione architetturale accettata per centralizzare transport HTTP, endpoint registry, query hooks e parser condivisi nel frontend
+
 Nota frontend attiva:
 
 - La specifica frontend include ora il contratto operativo per la centralizzazione di grafica e copy (`frontend/src/app/ui/primitives.tsx`, `frontend/src/styles.css`, `frontend/src/app/copy/system.ts`).
+- La guida [Frontend Unification Replication Guide](./02-design/specifications/frontend-unification-replication-guide.md) documenta il pattern canonico per replicare l'unificazione di transport HTTP, endpoint registry, query hooks e parser shared nelle evoluzioni future.
 - La guida [Frontend Design System e UI Kit Guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md) e la fonte unica di verita per ogni intervento GUI visuale.
 - La nuova specifica [Frontend Tool Pages Architecture](./02-design/specifications/frontend-tool-pages-architecture-spec.md) documenta il pattern **unificato** per le pagine dei tool di generazione (FunnelPages, NextLand, futuri tool). Elimina ~95% duplicazione di codice e consente l'aggiunta di nuovi tool in ~30 minuti. Target state post-refactoring.
 
@@ -48,6 +54,7 @@ Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-
 - [Tool Form Architecture](../frontend/TOOL-FORM-ARCHITECTURE.md) - Centralized, scalable form architecture for multi-step tools (eliminates ~600 LOC duplication, scales to N tools)
 - [Frontend Design System e UI Kit Guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md) - Fonte canonica per linee guida visuali e UI kit
 - [Frontend as-is](./02-design/specifications/frontend-spec.md) - Fonte canonica per registry UI, copy system centralizzato e regole di consistenza per interventi futuri
+- [Frontend Unification Replication Guide](./02-design/specifications/frontend-unification-replication-guide.md) - Playbook operativo per replicare l'approccio unificante nel runtime e nelle pagine data-driven
 - [Frontend Tool Pages Architecture (Unified)](./02-design/specifications/frontend-tool-pages-architecture-spec.md) - Target state post-refactoring: ToolPageTemplate, registry pattern, derivation logic, step-by-step per aggiungere nuovo tool
 
 ## Archivio Storico (99-lifecycle/99-archive/)

@@ -1,11 +1,12 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, normalize } from 'node:path';
-import { cwd } from 'node:process';
+import { extname, dirname, join, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const host = '0.0.0.0';
 const port = Number.parseInt(process.env.PORT ?? '3000', 10);
-const distDir = join(cwd(), 'dist');
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const distDir = join(scriptDir, 'dist');
 const indexPath = join(distDir, 'index.html');
 
 const MIME_BY_EXT = {

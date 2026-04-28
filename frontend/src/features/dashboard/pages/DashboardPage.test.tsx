@@ -6,7 +6,7 @@ import { DashboardPage } from './DashboardPage';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
-    session: { user: { email: 'u@test.com', role: 'user' } },
+    session: { user: { email: 'u@test.com', role: 'member' } },
     loading: false,
     error: null,
     apiBaseUrl: '',

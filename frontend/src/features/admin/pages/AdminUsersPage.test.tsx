@@ -8,7 +8,7 @@ import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
 
 // Mutable session bag so individual tests can change role
-const sessionBag = { role: 'user' as string | null };
+const sessionBag = { role: 'member' as string | null };
 type TestAdminUser = {
   id: string;
   email: string;
@@ -30,7 +30,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 }));
 
 beforeEach(() => {
-  sessionBag.role = 'user';
+  sessionBag.role = 'member';
   usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
   useMswHandler(http.get('/admin/users', () => HttpResponse.json(usersDb)));
   useMswHandler(http.post('/admin/users', async ({ request }) => {
@@ -88,7 +88,7 @@ beforeEach(() => {
 
 describe('AdminGuard', () => {
   it('redirects to /dashboard when role is not admin', () => {
-    sessionBag.role = 'user';
+    sessionBag.role = 'member';
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>

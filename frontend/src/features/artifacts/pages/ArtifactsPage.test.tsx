@@ -39,7 +39,7 @@ const workspaceBag = {
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'user' } },
+    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
     loading: false,
     error: null,
     apiBaseUrl: '',

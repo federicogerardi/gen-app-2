@@ -17,6 +17,7 @@ import {
   updateAdminUser,
   type AdminUser,
 } from '../runtime/admin-client';
+import type { AuthUserRole, AuthUserStatus } from '../../auth/runtime/auth-client';
 
 const ADMIN_USER_ROLE_OPTIONS = [
   { value: 'member', label: 'Member' },
@@ -31,8 +32,8 @@ const ADMIN_USER_STATUS_OPTIONS = [
 
 type AdminUserFormState = {
   email: string;
-  role: string;
-  status: string;
+  role: AuthUserRole;
+  status: AuthUserStatus;
   password: string;
   monthlyQuota: string;
 };
@@ -60,6 +61,18 @@ const parseOptionalNumber = (value: string): number | undefined => {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const parseRoleInput = (value: string): AuthUserRole => {
+  return value === 'admin' ? 'admin' : 'member';
+};
+
+const parseStatusInput = (value: string): AuthUserStatus => {
+  if (value === 'disabled' || value === 'pending_password_reset') {
+    return value;
+  }
+
+  return 'active';
 };
 
 export const AdminUsersPage = () => {
@@ -199,7 +212,7 @@ export const AdminUsersPage = () => {
             <select
               name="role"
               value={createForm.role}
-              onChange={(event) => setCreateForm((current) => ({ ...current, role: event.target.value }))}
+              onChange={(event) => setCreateForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
             >
               {ADMIN_USER_ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -212,7 +225,7 @@ export const AdminUsersPage = () => {
             <select
               name="status"
               value={createForm.status}
-              onChange={(event) => setCreateForm((current) => ({ ...current, status: event.target.value }))}
+              onChange={(event) => setCreateForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
             >
               {ADMIN_USER_STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -292,7 +305,7 @@ export const AdminUsersPage = () => {
                     <select
                       name={`role-${user.id}`}
                       value={editForm.role}
-                      onChange={(event) => setEditForm((current) => ({ ...current, role: event.target.value }))}
+                      onChange={(event) => setEditForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
                     >
                       {ADMIN_USER_ROLE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -305,7 +318,7 @@ export const AdminUsersPage = () => {
                     <select
                       name={`status-${user.id}`}
                       value={editForm.status}
-                      onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value }))}
+                      onChange={(event) => setEditForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
                     >
                       {ADMIN_USER_STATUS_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>

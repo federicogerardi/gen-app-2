@@ -5,9 +5,10 @@ import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 type LoginFormProps = {
   onSubmit: (email: string, password: string) => Promise<void>;
   oauthStartUrl: string;
+  externalError?: string | null;
 };
 
-export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
+export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: LoginFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
@@ -30,9 +31,6 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
 
   return (
     <Surface as="section" className={uiPrimitives.loginPanel}>
-      <p className={uiPrimitives.metaLine}>{appCopy.editorial.auth.eyebrow}</p>
-      <h1>{appCopy.editorial.auth.headline}</h1>
-      <p>{appCopy.editorial.auth.body}</p>
       <form className={uiPrimitives.grid} onSubmit={handleSubmit}>
         <label>
           {appCopy.ui.labels.email}
@@ -54,7 +52,7 @@ export const LoginForm = ({ onSubmit, oauthStartUrl }: LoginFormProps) => {
           />
         </label>
 
-        {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+        {error || externalError ? <p className={uiPrimitives.error}>{error ?? externalError}</p> : null}
 
         <Button type="submit" disabled={pending}>
           {pending ? appCopy.editorial.auth.pendingAccess : appCopy.ui.actions.enterWorkspace}

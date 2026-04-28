@@ -5,6 +5,12 @@ import {
   requestVoid,
 } from '../../../app/runtime/http-client';
 
+export const AUTH_USER_ROLES = ['admin', 'member'] as const;
+export type AuthUserRole = (typeof AUTH_USER_ROLES)[number];
+
+export const AUTH_USER_STATUSES = ['active', 'disabled', 'pending_password_reset'] as const;
+export type AuthUserStatus = (typeof AUTH_USER_STATUSES)[number];
+
 type AuthErrorShape = {
   ok: false;
   error: {
@@ -18,8 +24,8 @@ type SessionData = {
   user: {
     id: string;
     email: string;
-    role: string;
-    status: string;
+    role: AuthUserRole;
+    status: AuthUserStatus;
   };
   session: {
     id: string;

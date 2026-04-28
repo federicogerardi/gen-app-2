@@ -1,5 +1,6 @@
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import type { AuthUserRole, AuthUserStatus } from '../../auth/runtime/auth-client';
 import {
   isHttpClientError,
   joinApiPath,
@@ -10,16 +11,16 @@ import {
 export type AdminUser = {
   id: string;
   email: string;
-  role: string;
-  status: string;
+  role: AuthUserRole;
+  status: AuthUserStatus;
   monthlyQuota?: number;
   monthlyUsed?: number;
 };
 
 export type CreateAdminUserInput = {
   email: string;
-  role?: string;
-  status?: string;
+  role?: AuthUserRole;
+  status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
   monthlyUsed?: number;
@@ -27,8 +28,8 @@ export type CreateAdminUserInput = {
 
 export type UpdateAdminUserInput = {
   email?: string;
-  role?: string;
-  status?: string;
+  role?: AuthUserRole;
+  status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
   monthlyUsed?: number;

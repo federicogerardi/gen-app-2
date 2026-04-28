@@ -43,7 +43,7 @@ describe('admin-client', () => {
         status: 200,
         json: async () => ({
           users: [
-            { id: 'u2', email: 'bob@test.com', role: 'user', status: 'active' },
+            { id: 'u2', email: 'bob@test.com', role: 'member', status: 'active' },
           ],
         }),
       } as Response);

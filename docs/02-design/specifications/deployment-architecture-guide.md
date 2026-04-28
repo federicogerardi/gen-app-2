@@ -1,313 +1,154 @@
 # Deployment Architecture Guide
 
-**Data**: 2026-04-25  
-**Revisione**: 1.0  
-**Scope**: Opzioni di deployment frontend/backend, compatibilità platform, configurazione production
+**Data**: 2026-04-28  
+**Revisione**: 2.0  
+**Scope**: Stato as-is del deployment production su Railway e regole operative per evitare regressioni
 
 ---
 
-## Architettura Attuale: Riepilogo
+## Stato As-Is (Confermato)
 
-| Layer | Tecnologia | Requisiti |
-|-------|-----------|----------|
-| **Frontend** | React 19 + Vite (SPA) | ✅ Statico, compilabile |
-| **Backend** | Node.js + Express | ❌ Server persistente |
-| **Auth** | Cookie-based sessions (HTTP-only) | ❌ Stateful |
-| **Database** | PostgreSQL (pool connections) | ❌ Persistente |
-| **Cache** | Redis (Upstash) | ❌ Sessioni + idempotency persistenti |
-| **Streaming** | SSE (`/generation/stream`) | ❌ Keep-alive long-polling |
+Topologia attiva:
+
+```text
+Frontend (Railway service) -> Backend (Railway service) -> PostgreSQL + Redis
+```
+
+Domini pubblici (esempio attuale):
+
+- Frontend: `https://frontend-production-19bf.up.railway.app`
+- Backend: `https://gen-app-2-production.up.railway.app`
+
+Note chiave:
+
+- Il frontend e una SPA React/Vite buildata in `frontend/dist` e servita da runtime Node (`frontend/server.mjs`).
+- Il backend usa Node runtime con endpoint auth/api/stream e healthcheck su `/health`.
+- Il deployment e cross-origin (frontend e backend su domini diversi), quindi cookie/CORS/CSRF devono essere configurati in modo esplicito.
 
 ---
 
-## Compatibilità Platform
+## Regole Operative Railway (Nuove)
 
-### ❌ Netlify (Non compatibile come full-stack)
+### 1) Service frontend
 
-**Limitazioni critiche:**
-- Netlify = frontend statico + serverless functions con timeout 26 sec
-- SSE streaming richiede connessioni long-lived (open indefinitamente)
-- Sessioni auth basate su cookie: serverless perde stato tra invocazioni
-- Pool PostgreSQL + Redis connections non sopravvivono tra funzioni
+- Root directory service: `frontend`
+- Builder: Dockerfile (`frontend/Dockerfile`)
+- Start command: `npm run start`
+- Healthcheck path: `/health`
 
-**Caso d'uso Netlify:** Solo frontend statico (vedi "Opzione 1" sotto)
+### 2) Networking frontend
 
-### ✅ Railway.app (Consigliato)
+- Public networking va configurato sulla porta effettiva del processo frontend.
+- Nel setup corrente la porta da impostare e `8080`.
+- L'utente finale usa comunque URL HTTPS senza specificare porta.
 
-- ✅ Native Node.js server
-- ✅ Connessioni persistent (database + redis)
-- ✅ SSE streaming supportato
-- ✅ Zero-downtime deploys
-- ✅ PostgreSQL + Redis preconfigurati via plugins
-- 💰 Free tier: $5/mese, scalabile
+### 3) Runtime frontend
 
-### ✅ Render.com
-
-- ✅ Node.js native
-- ✅ Connessioni persistent
-- ✅ SSE working
-- ✅ PG + Redis plugin
-- 💰 Free tier: auto-sleep dopo inattività (per demo OK)
-
-### ✅ Fly.io
-
-- ✅ Docker-native, full control
-- ✅ Persistent connections
-- ✅ SSE + streaming
-- ✅ Global regions con failover
-- 💰 Free: 3 shared-cpu-1x VMs per app
-
-### ✅ Vercel (Alternative full-stack)
-
-- ✅ Support Node.js Server Runtime (beta / pro)
-- ⚠️ Setup più complesso che Railway
-- 💰 Più caro per backend continuo
-
----
-
-## Strategie di Deployment
-
-### **Opzione 1: Netlify Frontend + Railway Backend** ⭐ Consigliato
-
-**Topologia:**
-```
-Frontend (Netlify SPA) → Backend (Railway Node.js) ↔ PostgreSQL + Redis
-```
-
-**Setup Netlify:**
-
-```toml
-# netlify.toml
-[build]
-  command = "npm --prefix frontend run build"
-  publish = "frontend/dist"
-
-[[redirects]]
-  from = "/api/*"
-  to = "https://your-backend.railway.app/api/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/generation/*"
-  to = "https://your-backend.railway.app/generation/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/auth/*"
-  to = "https://your-backend.railway.app/auth/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/admin/users/*"
-  to = "https://your-backend.railway.app/admin/users/:splat"
-  status = 200
-```
-
-**Env vars Netlify:**
-```bash
-BACKEND_URL=https://your-backend.railway.app
-FRONTEND_ORIGIN=https://your-app.netlify.app
-```
-
-**Deploy backend su Railway:**
+- Script start canonico:
 
 ```bash
-# 1. Installa Railway CLI
-railway login
-
-# 2. Crea nuovo progetto
-railway init
-
-# 3. Aggiungi service (Node.js auto-detect)
-railway add --plugin postgres  # Auto crea PG + db env var
-railway add --plugin redis      # Opzionale: Railway Redis (o usa Upstash)
-
-# 4. Configura env vars
-railway env UPSTASH_REDIS_URL="redis://..."  # Dalla dashboard Upstash
-railway env CORS_ALLOWED_ORIGINS="https://your-app.netlify.app"
-railway env FRONTEND_ORIGIN="https://your-app.netlify.app"
-railway env NODE_ENV="production"
-railway env AUTH_COOKIE_SECURE="true"
-railway env AUTH_COOKIE_SAMESITE="lax"
-
-# 5. Deploy
-railway up
+npm run build && npm run start:server
 ```
 
-**Problemi comuni & fix:**
+- `start:server` avvia `node server.mjs`.
+- `server.mjs` espone:
+  - `GET /health` -> 200 JSON
+  - file statici da `dist/`
+  - SPA fallback su `dist/index.html`
 
-| Problema | Causa | Soluzione |
-|----------|-------|----------|
-| API 403 CORS | Header mismatch | Assicurati CORS_ALLOWED_ORIGINS includa lo schema `https://` |
-| Auth fallisce cross-domain | SameSite cookie | Railway auto-detection OK; verifica AUTH_COOKIE_SECURE=true |
-| SSE taglia dopo 15s | Nginx/proxy timeout | Railway supporta, verifica backend non termina |
-| Frontend dist vuoto | Build fallisce | `npm --prefix frontend run build` localmente prima di deploy |
+Razionale: build al bootstrap per eliminare regressioni legate a `dist` mancante in alcuni deployment/caching scenario.
 
 ---
 
-### **Opzione 2: Docker self-hosted (Massimo controllo)**
+## Variabili Backend Production (Cross-Origin)
 
-**Dockerfile root:**
-
-```dockerfile
-FROM node:22-alpine
-
-WORKDIR /app
-
-# Build frontend
-COPY frontend ./frontend
-RUN npm --prefix frontend ci && npm --prefix frontend run build
-
-# Backend setup
-COPY . .
-RUN npm ci
-
-EXPOSE 3000
-
-CMD ["npm", "run", "start:server"]
-```
-
-**Deploy con:**
-- Railway (upload docker)
-- Fly.io (`flyctl deploy`)
-- Digital Ocean App Platform
-- AWS ECS / AppRunner
-- Self-hosted Docker Compose
-
----
-
-### **Opzione 3: Vercel Full-Stack** (Alternative)
-
-⚠️ Opzione più costosa, ma se vuoi SPA + backend unificato:
+Impostare su backend Railway:
 
 ```bash
-npm install -D @vercel/node
+FRONTEND_ORIGIN=https://frontend-production-19bf.up.railway.app
+CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app
+CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app
+AUTH_COOKIE_SECURE=true
+AUTH_COOKIE_SAMESITE=none
 ```
 
-Richiede restructuring per `api/` folder + separato `frontend/pages/`.
+Per mantenere anche test locale frontend:
+
+```bash
+CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app,http://localhost:5173
+CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app,http://localhost:5173
+```
+
+Nota: `GOOGLE_REDIRECT_URI` resta sul dominio backend pubblico (`/auth/google/callback`).
 
 ---
 
-## Pre-Deployment Checklist
+## Checklist Deploy/Re-Deploy
+
+### Frontend
 
 ```bash
-# 1. Build frontend
+# 1) lockfile allineato
+npm --prefix frontend ci
+
+# 2) build locale di controllo
 npm --prefix frontend run build
-→ Verify output: frontend/dist/ (index.html + assets)
 
-# 2. Typecheck
-npm run typecheck
-npm --prefix frontend run typecheck
-
-# 3. Test backend
-npm run backend:go
-→ Runs: migrations + seeds + tests + smoke tests
-
-# 4. Test SSE streaming locally
-curl -v \
-  -H "Authorization: Bearer test-token" \
-  http://localhost:3000/generation/stream
-→ Expect: Connection upgrade + SSE frame stream
-
-# 5. Verify .env locals
-cat .env.local
-→ Must have: DATABASE_URL, UPSTASH_REDIS_URL
-→ Correct: POSTGRES schema, Redis URL format
-
-# 6. Dry-run migrations in DB vuoto
-npm run db:migrate:minimal
-→ Verify: 3 migration files execute OK
-
-# 7. Check compiled frontend bundle size
-ls -lh frontend/dist/
-→ index.html: < 50KB, assets: < 500KB typical
+# 3) commit + push
+git add frontend/package.json frontend/Dockerfile frontend/railway.toml frontend/server.mjs
+git commit -m "frontend deploy update"
+git push
 ```
 
----
+### Backend
 
-## Cookie & CORS Production
-
-### Cookie SameSite Scenarios
-
-| Scenario | SameSite | Secure | HTTPOnly | Example |
-|----------|----------|--------|----------|---------|
-| Same-domain (api.same.com) | "Lax" | true (prod) | true | ✅ OK |
-| Cross-domain (cdn.other.com) | "None" | **must be true** | true | ⚠️ Requires HTTPS + Secure |
-| localhost dev (different ports) | "Lax" | false (dev) | true | ✅ OK for dev |
-
-**Config backend per production:**
-
-```typescript
-// Da src/server.ts:
-const cookieSecure = parseBooleanEnv(
-  process.env.AUTH_COOKIE_SECURE, 
-  process.env.NODE_ENV === 'production'  // Auto true in prod
-);
-
-const cookieSameSite = (
-  process.env.AUTH_COOKIE_SAMESITE ?? 'lax'
-).toLowerCase() as 'lax' | 'strict' | 'none';
-```
-
-**Railway env setup:**
 ```bash
-railway env AUTH_COOKIE_SECURE="true"
-railway env AUTH_COOKIE_SAMESITE="lax"
+# 1) typecheck/test baseline
+npm run typecheck
+npm run test
+
+# 2) smoke adapters (con env caricata)
+set -a && . ./.env.local && set +a && npm run test:smoke
 ```
 
 ---
 
-## Monitoraggio Post-Deploy
+## Troubleshooting Rapido (Lezioni Apprese)
 
-### Health Check Endpoint
+| Sintomo | Causa tipica | Azione |
+|---|---|---|
+| `Missing script: "start"` | Start command Railway su script non presente | Definire script `start` in `frontend/package.json` e allineare `frontend/railway.toml` |
+| Healthcheck pending/fail | Porta public networking non allineata alla porta runtime | Impostare in Public Networking la porta effettiva runtime (attuale: `8080`) |
+| `Missing dist/index.html` | Build non disponibile al runtime | Usare start con build (`npm run build && npm run start:server`) |
+| Login ok, poi 401 su API o refresh logout | Cookie cross-origin non configurato | `AUTH_COOKIE_SAMESITE=none`, `AUTH_COOKIE_SECURE=true`, CORS/CSRF allineati al dominio frontend |
+| `502` dal dominio frontend | Routing edge verso porta errata o container non healthy | Verificare porta pubblica service e stato healthcheck |
 
-Aggiungere endpoint status (traccia in src/server.ts):
+---
 
-```typescript
-app.get('/health', (_req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
-  });
-});
-```
+## Monitoraggio Operativo
 
-**Configure Railway health check:**
-- Endpoint: `GET /health`
-- Expected: 200 OK
-- Interval: 30s
-- Timeout: 5s
+Comandi utili:
 
-### Logs & Debugging
-
-**Railway logs:**
 ```bash
 railway logs
 railway logs --follow
 ```
 
-**Netlify logs:**
+Probe manuali:
+
 ```bash
-netlify logs:functions
-netlify logs:deploy
+curl -i https://frontend-production-19bf.up.railway.app/health
+curl -i https://frontend-production-19bf.up.railway.app/
+curl -i https://gen-app-2-production.up.railway.app/health
 ```
 
 ---
 
-## Raccomandazione Finale
+## Decisione Corrente
 
-**Per questo progetto: Usa Opzione 1 (Netlify Frontend + Railway Backend)**
+Strategia raccomandata per questo progetto:
 
-**Motivi:**
-1. ✅ Architettura semplice: SPA + Node.js server separati
-2. ✅ Zero migration code needed
-3. ✅ SSE streaming fully supported
-4. ✅ Free tier viable (Netlify $0-$19/mo, Railway $5+)
-5. ✅ Scaling predictable: budget control per tier
-6. ✅ Debugging facile: separazione cleanly separated concerns
-
-**Timeline setup:**
-- Railway backend: 15 min
-- Netlify frontend: 5 min
-- Test integration: 10 min
-- **Total: ~30 min da zero a production**
+1. Frontend su Railway service dedicato
+2. Backend su Railway service dedicato
+3. Configurazione esplicita CORS/CSRF/cookie per cross-origin
+4. Healthcheck espliciti e runbook operativo con regole anti-regressione

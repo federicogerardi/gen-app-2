@@ -35,7 +35,7 @@ Indice operativo della documentazione as-is, organizzato per area e stato del do
 | Documento | Stato | Ultima review | Prossima review |
 | --- | --- | --- | --- |
 | [Frontend as-is](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
-| [Deployment architecture guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-04-27 | 2026-07-27 |
+| [Deployment architecture guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-04-28 | 2026-07-27 |
 | [Unified Frontend Data Access Layer ADR](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 | [Tools generation go closure](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
 
@@ -51,6 +51,7 @@ Next review date: 2026-07-27
 	- fix UX runtime su `Cancel -> Resume from checkpoint`.
 - Aggiornate linee guida visuali/UI kit su tema, toolbar artifact e consistenza bottoni.
 - Aggiornata specifica architettura tool pages con guardrail operativo per resume su step interrotto e request id rigenerato.
+- Aggiornata la guida deployment con stato as-is Railway (frontend + backend online), regole operative per service/frontend runtime, configurazione Public Networking, healthcheck e troubleshooting anti-regressione.
 
 ## Specifiche attive (02-design/specifications/)
 

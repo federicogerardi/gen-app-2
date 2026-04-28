@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
@@ -9,6 +9,15 @@ import { AdminGuard } from '../routing/admin-guard';
 
 // Mutable session bag so individual tests can change role
 const sessionBag = { role: 'user' as string | null };
+type TestAdminUser = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  monthlyQuota?: number;
+};
+
+let usersDb: TestAdminUser[] = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -22,9 +31,59 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 
 beforeEach(() => {
   sessionBag.role = 'user';
-  useMswHandler(
-    http.get('/admin/users', () => HttpResponse.json([])),
-  );
+  usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
+  useMswHandler(http.get('/admin/users', () => HttpResponse.json(usersDb)));
+  useMswHandler(http.post('/admin/users', async ({ request }) => {
+    const body = await request.json() as {
+      email?: string;
+      role?: string;
+      status?: string;
+      monthlyQuota?: number;
+    };
+
+    const created = {
+      id: `u${usersDb.length + 1}`,
+      email: body.email ?? 'missing@test.com',
+      role: body.role ?? 'member',
+      status: body.status ?? 'active',
+      ...(typeof body.monthlyQuota === 'number' ? { monthlyQuota: body.monthlyQuota } : {}),
+    };
+
+    usersDb = [...usersDb, created];
+    return HttpResponse.json({ ok: true, data: { user: created } }, { status: 201 });
+  }));
+  useMswHandler(http.patch('/admin/users/:id', async ({ params, request }) => {
+    const body = await request.json() as {
+      email?: string;
+      role?: string;
+      status?: string;
+      monthlyQuota?: number;
+    };
+    const id = String(params.id);
+    const current = usersDb.find((user) => user.id === id);
+
+    if (!current) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    const updated = {
+      ...current,
+      ...(body.email !== undefined ? { email: body.email } : {}),
+      ...(body.role !== undefined ? { role: body.role } : {}),
+      ...(body.status !== undefined ? { status: body.status } : {}),
+      ...(typeof body.monthlyQuota === 'number' ? { monthlyQuota: body.monthlyQuota } : {}),
+    };
+
+    usersDb = usersDb.map((user) => (user.id === id ? updated : user));
+    return HttpResponse.json({ ok: true, data: { user: updated } });
+  }));
+  useMswHandler(http.delete('/admin/users/:id', ({ params }) => {
+    const id = String(params.id);
+    usersDb = usersDb.map((user) => (
+      user.id === id ? { ...user, status: 'disabled' } : user
+    ));
+    return new HttpResponse(null, { status: 204 });
+  }));
 });
 
 describe('AdminGuard', () => {
@@ -98,16 +157,67 @@ describe('AdminUsersPage', () => {
   });
 
   it('renders users returned by API', async () => {
-    useMswHandler(
-      http.get('/admin/users', () => HttpResponse.json([
-        { id: 'u1', email: 'alice@test.com', role: 'user', status: 'active' },
-      ])),
-    );
     const { findByText } = render(
       <MemoryRouter>
         <AdminUsersPage />
       </MemoryRouter>,
     );
     expect(await findByText('alice@test.com')).toBeInTheDocument();
+  });
+
+  it('creates a new admin user and refreshes the list', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new-member@test.com' } });
+    fireEvent.change(screen.getByLabelText('Password iniziale'), { target: { value: 'Secret-123' } });
+    fireEvent.change(screen.getByLabelText('Monthly quota'), { target: { value: '200' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crea utente' }));
+
+    expect(await screen.findByText('new-member@test.com')).toBeInTheDocument();
+    expect(await screen.findByText('Utente creato.')).toBeInTheDocument();
+  });
+
+  it('updates an existing user inline', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
+    const editForm = screen.getByRole('heading', { name: 'Modifica utente' }).closest('form');
+    expect(editForm).not.toBeNull();
+    if (!editForm) {
+      throw new Error('Edit form not found');
+    }
+
+    fireEvent.change(within(editForm).getByLabelText('Email'), { target: { value: 'alice-admin@test.com' } });
+    fireEvent.change(within(editForm).getByLabelText('Role'), { target: { value: 'admin' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
+
+    expect(await screen.findByText('alice-admin@test.com')).toBeInTheDocument();
+    expect(await screen.findByText('Utente aggiornato.')).toBeInTheDocument();
+    expect(await screen.findByText(/role: admin/i)).toBeInTheDocument();
+  });
+
+  it('disables an existing user', async () => {
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/status: disabled/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText('Utente disabilitato.')).toBeInTheDocument();
   });
 });

@@ -240,6 +240,23 @@ export const createNodeRuntimeRequestHandler = (
       response.end('');
       return;
     }
+
+    if (path === '/health' && (request.method === 'GET' || request.method === 'HEAD')) {
+      if (request.method === 'HEAD') {
+        response.statusCode = 200;
+        response.end();
+        return;
+      }
+
+      writeJson(response, 200, {
+        ok: true,
+        status: 'healthy',
+        uptimeSeconds: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (
       csrfEnabled
       && csrfTrustedOrigins.length > 0

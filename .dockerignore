@@ -1,0 +1,12 @@
+node_modules
+frontend/node_modules
+frontend/dist
+.git
+.github
+.vscode
+docs
+memories
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store

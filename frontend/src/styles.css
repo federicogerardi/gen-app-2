@@ -966,6 +966,44 @@ button:disabled,
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.ui-admin-user-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ui-admin-user-form-headline {
+  display: grid;
+  gap: 4px;
+}
+
+.ui-admin-user-form-grid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.ui-admin-user-card {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ui-admin-user-summary {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr);
+  align-items: start;
+}
+
+.ui-admin-user-kpis {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: var(--space-2);
+  border-radius: var(--radius-button);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-glass);
+}
+
 .dashboard-card,
 .ui-dashboard-card {
   min-height: 220px;
@@ -1030,6 +1068,10 @@ ul {
     align-items: start;
   }
 
+  .ui-admin-user-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .artifact-grid,
   .ui-artifact-grid {
     grid-template-columns: 1fr;
@@ -1073,5 +1115,9 @@ ul {
 
   .ui-auth-actions {
     justify-content: flex-start;
+  }
+
+  .ui-admin-user-summary {
+    grid-template-columns: 1fr;
   }
 }

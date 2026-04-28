@@ -152,3 +152,5 @@ Strategia raccomandata per questo progetto:
 2. Backend su Railway service dedicato
 3. Configurazione esplicita CORS/CSRF/cookie per cross-origin
 4. Healthcheck espliciti e runbook operativo con regole anti-regressione
+
+Per la migrazione progressiva a same-origin: `docs/05-ops/railway-same-origin-migration-strategy-3-phases.md`.

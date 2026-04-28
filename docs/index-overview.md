@@ -90,6 +90,10 @@ Nota: Sprint checklists e regression policy archiviate in `docs/99-lifecycle/99-
 
 - [Infrastructure same-origin deployment](../plan/infrastructure-same-origin-deployment-1.md) - Status: Planned
 
+## Ops Runbook Attivi (05-ops/)
+
+- [Railway same-origin migration strategy (3 phases)](./05-ops/railway-same-origin-migration-strategy-3-phases.md) - Status: Planned
+
 ## Frontend Resources
 
 - [Streaming Generator Debug Guide](../frontend/DEBUG-STREAMING.md) - Debugging infrastructure per multi-step LLM generation streaming (XState v5, structured logging, MSW handlers, 17 test scenarios)

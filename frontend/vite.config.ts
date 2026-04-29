@@ -28,8 +28,13 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         codeSplitting: true,
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'xstate': ['xstate'],
+        },
       },
     },
+    chunkSizeWarningLimit: 1000, // Suppress warnings for now, will improve with lazy loading
   },
   test: {
     environment: 'jsdom',

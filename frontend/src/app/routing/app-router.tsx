@@ -1,19 +1,25 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
-import { DashboardPage } from '../../features/dashboard/pages/DashboardPage';
-import { ProjectsListPage } from '../../features/projects/pages/ProjectsListPage';
-import { NewProjectPage } from '../../features/projects/pages/NewProjectPage';
-import { ProjectDetailPage } from '../../features/projects/pages/ProjectDetailPage';
-import { FunnelPagesToolPage } from '../../features/tools/funnel-pages/pages/FunnelPagesToolPage';
-import { NextlandToolPage } from '../../features/tools/nextland/pages/NextlandToolPage';
-import { ArtifactsPage } from '../../features/artifacts/pages/ArtifactsPage';
-import { ArtifactDetailPage } from '../../features/artifacts/pages/ArtifactDetailPage';
-import { AdminUsersPage } from '../../features/admin/pages/AdminUsersPage';
-import { AdminModelsPage } from '../../features/admin/pages/AdminModelsPage';
-import { AdminActivityPage } from '../../features/admin/pages/AdminActivityPage';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
-import { GenerationConsolePage } from '../../features/generation/pages/GenerationConsolePage';
+
+// Lazy load page components for code splitting
+const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const ProjectsListPage = lazy(() => import('../../features/projects/pages/ProjectsListPage').then(m => ({ default: m.ProjectsListPage })));
+const NewProjectPage = lazy(() => import('../../features/projects/pages/NewProjectPage').then(m => ({ default: m.NewProjectPage })));
+const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages/pages/FunnelPagesToolPage').then(m => ({ default: m.FunnelPagesToolPage })));
+const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
+const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
+const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
+const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
+const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
+const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
+const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
+
+// Loading fallback component
+const PageLoader = () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
 
 const AdminLayout = () => {
   return (
@@ -34,39 +40,39 @@ export const createAppRouter = () => createBrowserRouter([
     children: [
       {
         path: '/dashboard',
-        element: <DashboardPage />,
+        element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>,
       },
       {
         path: '/dashboard/projects',
-        element: <ProjectsListPage />,
+        element: <Suspense fallback={<PageLoader />}><ProjectsListPage /></Suspense>,
       },
       {
         path: '/dashboard/projects/new',
-        element: <NewProjectPage />,
+        element: <Suspense fallback={<PageLoader />}><NewProjectPage /></Suspense>,
       },
       {
         path: '/dashboard/projects/:id',
-        element: <ProjectDetailPage />,
+        element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
       },
       {
         path: '/tools/funnel-pages',
-        element: <FunnelPagesToolPage />,
+        element: <Suspense fallback={<PageLoader />}><FunnelPagesToolPage /></Suspense>,
       },
       {
         path: '/tools/nextland',
-        element: <NextlandToolPage />,
+        element: <Suspense fallback={<PageLoader />}><NextlandToolPage /></Suspense>,
       },
       {
         path: '/tools/console',
-        element: <GenerationConsolePage />,
+        element: <Suspense fallback={<PageLoader />}><GenerationConsolePage /></Suspense>,
       },
       {
         path: '/artifacts',
-        element: <ArtifactsPage />,
+        element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
       },
       {
         path: '/artifacts/:id',
-        element: <ArtifactDetailPage />,
+        element: <Suspense fallback={<PageLoader />}><ArtifactDetailPage /></Suspense>,
       },
       {
         path: '/admin',
@@ -74,15 +80,15 @@ export const createAppRouter = () => createBrowserRouter([
         children: [
           {
             index: true,
-            element: <AdminUsersPage />,
+            element: <Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>,
           },
           {
             path: '/admin/models',
-            element: <AdminModelsPage />,
+            element: <Suspense fallback={<PageLoader />}><AdminModelsPage /></Suspense>,
           },
           {
             path: '/admin/activity',
-            element: <AdminActivityPage />,
+            element: <Suspense fallback={<PageLoader />}><AdminActivityPage /></Suspense>,
           },
         ],
       },

@@ -241,7 +241,7 @@ export const appCopy = {
     },
     tools: {
       funnelPages: {
-        title: 'HotLeadFunnel Tool',
+        title: 'Funnel Pages Tool',
         orderRule: 'Ordine step obbligatorio: optin -> quiz -> vsl',
         defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
       },

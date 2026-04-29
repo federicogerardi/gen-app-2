@@ -28,9 +28,24 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         codeSplitting: true,
-        manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'xstate': ['xstate'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          if (id.includes('/xstate/') || id.includes('/@xstate/')) {
+            return 'xstate';
+          }
+
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/react-router-dom/')
+          ) {
+            return 'vendor';
+          }
+
+          return undefined;
         },
       },
     },

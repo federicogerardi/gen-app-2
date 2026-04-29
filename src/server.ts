@@ -52,7 +52,7 @@ const parseBooleanEnv = (raw: string | undefined, fallback: boolean): boolean =>
 
 const run = async (): Promise<void> => {
   const databaseUrl = getRequiredEnv('DATABASE_URL');
-  const redisUrl = getRequiredEnv('UPSTASH_REDIS_URL');
+  const redisUrl = getRequiredEnv('REDIS_URL');
 
   const host = process.env.HOST ?? '0.0.0.0';
   const port = Number(process.env.PORT ?? '3000');

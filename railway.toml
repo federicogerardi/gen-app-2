@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+watchPaths = ["src/**", "db/**", "package*.json", "tsconfig.json", "Dockerfile"]
 
 [deploy]
 startCommand = "npm run start"

@@ -3,12 +3,13 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
-import { getToolFormConfig } from '../runtime/tool-form-architecture';
+import { getToolFormConfig, mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
 import {
   useProjectsLoader,
@@ -17,8 +18,7 @@ import {
   useAvailableSteps,
   useToolUiState,
 } from '../runtime/useToolForm';
-import { ToolStatusCard } from './ToolStatusCard';
-import { ToolStepCard } from './ToolStepCard';
+import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
@@ -72,6 +72,7 @@ export const ToolPageTemplate = ({
 }: ToolPageTemplateProps) => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
+  const navigate = useNavigate();
   const toolConfig = getToolFormConfig(toolKey);
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
@@ -540,35 +541,31 @@ export const ToolPageTemplate = ({
           </section>
 
           <section className="ui-tool-column ui-tool-column-status">
-            <ToolStatusCard
+            <ToolGenerationFlowVertical
+              toolKey={toolKey}
               canonicalState={uiState.canonicalState}
-              statusMessage={uiState.statusMessage}
-              errorMessage={uiState.errorMessage}
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
+              briefingStatus={effectiveBriefingStatus}
+              briefingError={briefingUpload.error}
+              steps={toolConfig.steps.map((step) => ({
+                step,
+                displayName: mapToolStepToCardConfig(toolKey, step).displayName,
+                status: uiState.stepStatuses[step] ?? 'idle',
+                artifactId: latestArtifactByStep[step]?.artifactId ?? null,
+                isStreaming:
+                  generation.isStreamActive
+                  && (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step === step,
+              }))}
+              currentRunningStep={currentRunningStep}
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
+              statusMessage={uiState.statusMessage}
+              errorMessage={uiState.errorMessage}
+              onViewArtifact={(artifactId) => {
+                void navigate(`/artifacts/${artifactId}`);
+              }}
             />
-
-            {toolConfig.steps.length > 0 ? (
-              <div className="ui-tool-steps-container">
-                <h3>Generation Steps</h3>
-                {toolConfig.steps.map((step) => (
-                  <ToolStepCard
-                    key={step}
-                    toolKey={toolKey}
-                    step={step}
-                    status={uiState.stepStatuses[step] ?? 'idle'}
-                    previewContent={latestArtifactByStep[step]?.content ?? null}
-                    artifactId={latestArtifactByStep[step]?.artifactId ?? null}
-                    isStreaming={
-                      generation.isStreamActive
-                      && (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step === step
-                    }
-                  />
-                ))}
-              </div>
-            ) : null}
           </section>
         </div>
       </div>

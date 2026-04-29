@@ -1,7 +1,6 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-watchPaths = ["frontend/**", "package*.json"]
 
 [deploy]
 startCommand = "npm run start"

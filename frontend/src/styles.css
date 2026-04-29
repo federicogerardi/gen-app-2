@@ -1141,3 +1141,294 @@ ul {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================================
+   ToolGenerationFlowVertical — brutalist vertical flow
+   ============================================================================ */
+
+@keyframes ui-fv-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ui-fv-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+/* Root container — bare, architectural */
+.ui-fv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 1.5rem 1.25rem;
+  /* no background, no card — sits directly on the column */
+}
+
+/* Section block */
+.ui-fv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── label / value ── */
+.ui-fv-label {
+  font-family: var(--font-family-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: block;
+}
+
+.ui-fv-where-value {
+  font-family: var(--font-family-ui);   /* IBM Plex Sans */
+  font-size: 1.125rem;                  /* ~18px — heading secondario */
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  letter-spacing: -0.02em;             /* allineato a H-scale del design system */
+}
+
+.ui-fv-where-hint {
+  font-family: var(--font-family-body); /* Source Sans 3 */
+  font-size: 0.875rem;                  /* body canonical */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ── requirement checklist (input phase) ── */
+.ui-fv-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ui-fv-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-left: 2px solid transparent;
+}
+
+.ui-fv-item.is-todo  { border-left-color: var(--border-subtle); opacity: 0.65; }
+.ui-fv-item.is-active { border-left-color: var(--workspace-blue); background: rgba(37,99,235,0.04); }
+.ui-fv-item.is-done   { border-left-color: var(--success-pine);   background: rgba(21,128,61,0.04); }
+.ui-fv-item.is-error  { border-left-color: var(--alert-brick);    background: rgba(180,35,24,0.05); }
+
+.ui-fv-icon {
+  font-size: 0.8rem;
+  min-width: 1rem;
+  text-align: center;
+  font-family: var(--font-family-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.ui-fv-item.is-active .ui-fv-icon { color: var(--workspace-blue); }
+.ui-fv-item.is-done   .ui-fv-icon { color: var(--success-pine); }
+.ui-fv-item.is-error  .ui-fv-icon { color: var(--alert-brick); }
+
+.ui-fv-icon.is-spinning {
+  display: inline-block;
+  animation: ui-fv-spin 1.2s linear infinite;
+}
+
+.ui-fv-item-text {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: var(--font-family-ui);
+}
+
+.ui-fv-item.is-todo .ui-fv-item-text { color: var(--text-muted); }
+
+.ui-fv-item-detail {
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* animated status label — UPLOADING / EXTRACTING / Running */
+.ui-fv-status-label {
+  font-family: var(--font-family-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--workspace-blue);
+  animation: ui-fv-pulse 1.4s ease-in-out infinite;
+}
+
+/* ── progress bar (monitoring phase) ── */
+.ui-fv-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ui-fv-progress-bar {
+  height: 3px;
+  background: var(--surface-steel);
+  overflow: hidden;
+  border-radius: 0;        /* brutalist — no rounding */
+}
+
+.ui-fv-progress-fill {
+  height: 100%;
+  background: var(--workspace-blue);
+  transition: width 0.35s ease;
+}
+
+.ui-fv-progress-text {
+  font-family: var(--font-family-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── step rows (monitoring + completion phases) ── */
+.ui-fv-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ui-fv-step {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-left: 2px solid transparent;
+}
+
+.ui-fv-step.is-idle      { border-left-color: var(--border-subtle); opacity: 0.5; }
+.ui-fv-step.is-running   { border-left-color: var(--workspace-blue); background: rgba(37,99,235,0.04); }
+.ui-fv-step.is-completed { border-left-color: var(--success-pine);   background: rgba(21,128,61,0.04); }
+.ui-fv-step.is-error     { border-left-color: var(--alert-brick);    background: rgba(180,35,24,0.05); }
+
+.ui-fv-step-icon {
+  font-size: 0.8rem;
+  min-width: 1rem;
+  text-align: center;
+  font-family: var(--font-family-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.ui-fv-step.is-running   .ui-fv-step-icon { color: var(--workspace-blue); }
+.ui-fv-step.is-completed .ui-fv-step-icon { color: var(--success-pine); }
+.ui-fv-step.is-error     .ui-fv-step-icon { color: var(--alert-brick); }
+
+.ui-fv-step-icon.is-spinning {
+  display: inline-block;
+  animation: ui-fv-spin 1.2s linear infinite;
+}
+
+.ui-fv-step-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: var(--font-family-ui);
+}
+
+.ui-fv-step.is-idle .ui-fv-step-name { color: var(--text-muted); }
+
+/* View button — mono, minimal, no fill */
+.ui-fv-step-action {
+  font-family: var(--font-family-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--workspace-blue);
+  background: none;
+  border: 1px solid rgba(37,99,235,0.35);
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  border-radius: 0;          /* brutalist */
+  transition: background 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ui-fv-step-action:hover {
+  background: var(--workspace-blue-soft);
+  border-color: rgba(37,99,235,0.65);
+}
+
+.ui-fv-step-error-label {
+  font-family: var(--font-family-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--alert-brick);
+  flex-shrink: 0;
+}
+
+/* ── completion count ── */
+.ui-fv-completion-count {
+  font-family: var(--font-family-ui);
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--success-pine);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ── global error banner ── */
+.ui-fv-error {
+  padding: 0.625rem 0.75rem;
+  border-left: 2px solid var(--alert-brick);
+  background: var(--error-bg);
+  font-size: 0.85rem;
+  color: var(--error-fg);
+  font-family: var(--font-family-ui);
+}
+
+/* ── reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .ui-fv-icon.is-spinning,
+  .ui-fv-step-icon.is-spinning {
+    animation: none;
+  }
+  .ui-fv-status-label {
+    animation: none;
+  }
+}
+
+/* ── dark theme overrides ── */
+:root[data-theme='dark'] .ui-fv-item.is-active,
+:root[data-theme='dark'] .ui-fv-step.is-running {
+  background: rgba(37,99,235,0.08);
+}
+
+:root[data-theme='dark'] .ui-fv-item.is-done,
+:root[data-theme='dark'] .ui-fv-step.is-completed {
+  background: rgba(21,128,61,0.08);
+}
+
+:root[data-theme='dark'] .ui-fv-item.is-error,
+:root[data-theme='dark'] .ui-fv-step.is-error {
+  background: rgba(180,35,24,0.08);
+}

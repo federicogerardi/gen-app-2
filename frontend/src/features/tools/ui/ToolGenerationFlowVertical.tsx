@@ -1,0 +1,298 @@
+import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
+import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+
+type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
+type StepStatus = 'idle' | 'running' | 'completed' | 'error';
+type ReqStatus = 'todo' | 'active' | 'done' | 'error';
+
+export interface FlowStepProgress {
+  step: ToolStep;
+  displayName: string;
+  status: StepStatus;
+  artifactId?: string | null | undefined;
+  isStreaming?: boolean | undefined;
+  // accepted but unused in this render:
+  description?: string | undefined;
+  previewContent?: string | null | undefined;
+}
+
+export interface ToolGenerationFlowVerticalProps {
+  toolKey: SupportedTool;
+  canonicalState: CanonicalToolUiState;
+  projectName: string | null;
+  briefingFileName: string | null;
+  briefingStatus: BriefingStatus;
+  briefingError: string | null;
+  steps: FlowStepProgress[];
+  currentRunningStep: ToolStep | null;
+  completedStepsCount: number;
+  totalStepsCount: number;
+  statusMessage: string | null;
+  errorMessage: string | null;
+  onViewArtifact?: (artifactId: string) => void;
+}
+
+// ─── derivation helpers ──────────────────────────────────────────────────────
+
+type FlowPhase = 'input' | 'monitoring' | 'completion';
+
+const derivePhase = (s: CanonicalToolUiState): FlowPhase => {
+  if (s === 'completed') return 'completion';
+  if (s === 'running' || s === 'paused-with-checkpoint' || s === 'prefilled-regenerate') return 'monitoring';
+  return 'input';
+};
+
+const WHERE_LABEL: Record<CanonicalToolUiState, string> = {
+  'draft-empty': 'Setup',
+  'processing-briefing': 'Setup',
+  'draft-ready': 'Ready',
+  'resume-needs-briefing': 'Resume',
+  'prefilled-regenerate': 'Regenerate',
+  'paused-with-checkpoint': 'Paused',
+  running: 'Generating',
+  completed: 'Complete',
+};
+
+const STEP_ICON: Record<StepStatus, string> = {
+  idle: '○',
+  running: '⟳',
+  completed: '✓',
+  error: '✕',
+};
+
+const REQ_ICON: Record<ReqStatus, string> = {
+  todo: '○',
+  active: '⟳',
+  done: '✓',
+  error: '✕',
+};
+
+// ─── sub-components ──────────────────────────────────────────────────────────
+
+const Label = ({ children }: { children: string }) => (
+  <span className="ui-fv-label">{children}</span>
+);
+
+const deriveInstruction = (
+  canonicalState: CanonicalToolUiState,
+  projectName: string | null,
+  briefingStatus: BriefingStatus,
+): string => {
+  if (canonicalState === 'running') return 'Generazione in corso';
+  if (canonicalState === 'paused-with-checkpoint') return 'In pausa — riprendi dal checkpoint';
+  if (canonicalState === 'prefilled-regenerate') return 'Contesto caricato — avvia la rigenerazione';
+  if (canonicalState === 'resume-needs-briefing') return 'Carica un nuovo briefing per continuare';
+  if (canonicalState === 'completed') return 'Tutti gli artefatti sono stati generati';
+  // input phase — progressive
+  if (!projectName) return 'Seleziona un progetto per iniziare';
+  if (briefingStatus === 'uploading') return 'Caricamento briefing in corso...';
+  if (briefingStatus === 'extracting') return 'Estrazione contenuto del briefing...';
+  if (briefingStatus === 'ready') return 'Avvia la generazione dalla colonna sinistra';
+  return 'Carica il file di briefing per proseguire';
+};
+
+interface ReqItemProps {
+  status: ReqStatus;
+  text: string;
+  detail?: string | undefined;
+  activeLabel?: string | undefined;
+}
+
+const ReqItem = ({ status, text, detail, activeLabel }: ReqItemProps) => {
+  const isSpinning = status === 'active';
+  return (
+    <li className={`ui-fv-item is-${status}`}>
+      <span className={`ui-fv-icon${isSpinning ? ' is-spinning' : ''}`}>
+        {REQ_ICON[status]}
+      </span>
+      <span className="ui-fv-item-text">{text}</span>
+      {detail && <span className="ui-fv-item-detail">{detail}</span>}
+      {isSpinning && activeLabel && (
+        <span className="ui-fv-status-label">{activeLabel}</span>
+      )}
+    </li>
+  );
+};
+
+interface StepRowProps {
+  step: FlowStepProgress;
+  onViewArtifact?: ((id: string) => void) | undefined;
+}
+
+const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
+  const isSpinning = step.status === 'running';
+  const badge = step.status;
+
+  return (
+    <li className={`ui-fv-step is-${badge}`}>
+      <span className={`ui-fv-step-icon${isSpinning ? ' is-spinning' : ''}`}>
+        {STEP_ICON[step.status]}
+      </span>
+      <span className="ui-fv-step-name">{step.displayName}</span>
+      {step.status === 'running' && (
+        <span className="ui-fv-status-label">Running</span>
+      )}
+      {step.status === 'completed' && step.artifactId && onViewArtifact && (
+        <button
+          type="button"
+          className="ui-fv-step-action"
+          onClick={() => onViewArtifact(step.artifactId!)}
+        >
+          View
+        </button>
+      )}
+      {step.status === 'error' && (
+        <span className="ui-fv-step-error-label">Error</span>
+      )}
+    </li>
+  );
+};
+
+// ─── main component ──────────────────────────────────────────────────────────
+
+export const ToolGenerationFlowVertical = ({
+  canonicalState,
+  projectName,
+  briefingFileName,
+  briefingStatus,
+  briefingError,
+  steps,
+  completedStepsCount,
+  totalStepsCount,
+  errorMessage,
+  onViewArtifact,
+}: ToolGenerationFlowVerticalProps) => {
+  const phase = derivePhase(canonicalState);
+  const whereLabel = WHERE_LABEL[canonicalState];
+  const instruction = deriveInstruction(canonicalState, projectName, briefingStatus);
+
+  // Requirement statuses for input phase
+  const projectReqStatus: ReqStatus = projectName ? 'done' : 'todo';
+
+  const briefingReqStatus: ReqStatus = briefingError
+    ? 'error'
+    : briefingStatus === 'uploading' || briefingStatus === 'extracting'
+      ? 'active'
+      : briefingStatus === 'ready'
+        ? 'done'
+        : 'todo';
+
+  const readyReqStatus: ReqStatus =
+    canonicalState === 'draft-ready' || canonicalState === 'prefilled-regenerate'
+      ? 'done'
+      : briefingReqStatus === 'done' && projectReqStatus === 'done'
+        ? 'active'
+        : 'todo';
+
+  const briefingActiveLabel =
+    briefingStatus === 'uploading'
+      ? 'Uploading'
+      : briefingStatus === 'extracting'
+        ? 'Extracting'
+        : undefined;
+
+  const progressPct = totalStepsCount > 0
+    ? (completedStepsCount / totalStepsCount) * 100
+    : 0;
+
+  return (
+    <div className="ui-fv-root" role="region" aria-label="Generation flow">
+
+      {/* Phase anchor ──────────────────────────────────── */}
+      <div className="ui-fv-section">
+        <span className="ui-fv-where-value">{whereLabel}</span>
+        <span className="ui-fv-where-hint">{instruction}</span>
+      </div>
+
+      {/* Global error ──────────────────────────────────── */}
+      {errorMessage && (
+        <div className="ui-fv-error" role="alert">{errorMessage}</div>
+      )}
+
+      {/* INPUT PHASE ───────────────────────────────────── */}
+      {phase === 'input' && (
+        <div className="ui-fv-section">
+          <Label>What</Label>
+          <ul className="ui-fv-checklist">
+            <ReqItem
+              status={projectReqStatus}
+              text="Project"
+              detail={projectName ?? undefined}
+            />
+            <ReqItem
+              status={briefingReqStatus}
+              text="Briefing"
+              detail={briefingFileName ?? (briefingError ?? undefined)}
+              activeLabel={briefingActiveLabel}
+            />
+            <ReqItem
+              status={readyReqStatus}
+              text="Ready to generate"
+            />
+          </ul>
+        </div>
+      )}
+
+      {/* MONITORING PHASE ──────────────────────────────── */}
+      {phase === 'monitoring' && (
+        <>
+          <div className="ui-fv-section">
+            <Label>Progress</Label>
+            <div className="ui-fv-progress-wrap">
+              <div className="ui-fv-progress-bar" role="progressbar"
+                aria-valuenow={completedStepsCount}
+                aria-valuemin={0}
+                aria-valuemax={totalStepsCount}
+              >
+                <div
+                  className="ui-fv-progress-fill"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <span className="ui-fv-progress-text">
+                {completedStepsCount}&thinsp;/&thinsp;{totalStepsCount}
+              </span>
+            </div>
+          </div>
+
+          <div className="ui-fv-section">
+            <Label>Steps</Label>
+            <ul className="ui-fv-steps">
+              {steps.map((step) => (
+                <StepRow
+                  key={step.step}
+                  step={step}
+                  onViewArtifact={onViewArtifact}
+                />
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+
+      {/* COMPLETION PHASE ──────────────────────────────── */}
+      {phase === 'completion' && (
+        <>
+          <div className="ui-fv-section">
+            <Label>Artifacts</Label>
+            <span className="ui-fv-completion-count">{totalStepsCount}</span>
+          </div>
+
+          <div className="ui-fv-section">
+            <Label>Steps</Label>
+            <ul className="ui-fv-steps">
+              {steps.map((step) => (
+                <StepRow
+                  key={step.step}
+                  step={step}
+                  onViewArtifact={onViewArtifact}
+                />
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+
+    </div>
+  );
+};

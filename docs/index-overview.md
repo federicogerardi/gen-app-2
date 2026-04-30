@@ -19,7 +19,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - Scope: post-publish
 - Root documentale: docs/
 - Archivio storico: [99-lifecycle/99-archive](./99-lifecycle/99-archive/)
-- Last review date: 2026-04-28
+- Last review date: 2026-04-30
 - Next review date: 2026-07-27
 
 ## Section Map
@@ -70,6 +70,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 ### Active Plans And Runbooks
 
 - [infrastructure-same-origin-deployment-1](../plan/infrastructure-same-origin-deployment-1.md) - planned
+- [repository-publication-cleanup-1](../plan/repository-publication-cleanup-1.md) - planned
 - [railway-same-origin-migration-strategy-3-phases](./05-ops/railway-same-origin-migration-strategy-3-phases.md) - planned
 
 ### Frontend Supporting Docs
@@ -91,12 +92,13 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [governance-pre-publish archive](./99-lifecycle/99-archive/governance-pre-publish/)
 - [tool-prompts archive](./99-lifecycle/99-archive/tool-prompts/)
 
-## Current Delta (2026-04-28)
+## Current Delta (2026-04-30)
 
 - Frontend spec aggiornata: tema dark/light, rendering markdown artifact, semantica copy raw/markdown, resume da checkpoint.
 - UI kit aggiornato: tema, toolbar artifact, consistenza bottoni.
 - Tool pages architecture aggiornata: guardrail resume su step interrotto e request id rigenerato.
 - Deployment architecture guide aggiornata: stato Railway as-is, networking pubblico, healthcheck e troubleshooting.
+- Aggiunto piano attivo di cleanup pubblicazione repository: [repository-publication-cleanup-1](../plan/repository-publication-cleanup-1.md).
 
 ## Governance Rules Applied
 

@@ -51,7 +51,7 @@ export const DashboardPage = () => {
           {recentArtifacts.length === 0 ? (
             <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactsAvailable}</p>
           ) : (
-            <ul>
+            <ul className={uiPrimitives.listClean}>
               {recentArtifacts.map((artifact) => (
                 <li key={artifact.artifactId}>
                   <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>

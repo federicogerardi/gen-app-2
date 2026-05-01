@@ -1,6 +1,7 @@
 import { useMachine } from '@xstate/react';
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -12,6 +13,7 @@ import type { GenerationRequest } from '../contracts/backend-stream';
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
 
 export type ToolExtractionContext = {
   projectId: string;
@@ -75,6 +77,7 @@ type GenerationWorkspaceValue = {
   cancel: () => void;
   reset: () => void;
   relaunch: (artifact: GenerationArtifact, mode: 'primary' | 'secondary') => void;
+  reloadArtifacts: () => void;
 };
 
 const GenerationWorkspaceContext = createContext<GenerationWorkspaceValue | null>(null);
@@ -83,6 +86,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   const auth = useAuthSession();
   const [checkpoints, setCheckpoints] = useState<ToolCheckpoint[]>([]);
   const [artifacts, setArtifacts] = useState<GenerationArtifact[]>([]);
+  const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
   const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
   const [extractionByProject, setExtractionByProject] = useState<Record<string, ToolExtractionContext>>({});
 
@@ -197,7 +201,35 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
     send({ type: 'RESET' });
     setFocusedProjectId(null);
     setExtractionByProject({});
+    setPersistedArtifacts([]);
   }, [auth.session, send]);
+
+  const reloadPersistedArtifacts = useCallback(() => {
+    if (!auth.session) {
+      return;
+    }
+
+    void listArtifacts(
+      { type: 'all', status: 'all', projectId: 'all' },
+      { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
+    ).then((fetched) => {
+      setPersistedArtifacts(fetched.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+    }).catch(() => {
+      // silently ignore — dashboard will show in-memory artifacts as fallback
+    });
+  }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
+
+  useEffect(() => {
+    reloadPersistedArtifacts();
+  }, [reloadPersistedArtifacts]);
+
+  // Merge persisted (DB) artifacts with in-memory stream artifacts.
+  // In-memory entries take precedence (they're the live/most-recent version).
+  const mergedArtifacts = useMemo<GenerationArtifact[]>(() => {
+    const inMemoryIds = new Set(artifacts.map((a) => a.artifactId));
+    const dbOnly = persistedArtifacts.filter((a) => !inMemoryIds.has(a.artifactId));
+    return [...artifacts, ...dbOnly].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [artifacts, persistedArtifacts]);
 
   const value = useMemo<GenerationWorkspaceValue>(() => {
     return {
@@ -205,7 +237,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       streamStatus,
       isStreamActive: snapshot.matches('active'),
       checkpoints,
-      artifacts,
+      artifacts: mergedArtifacts,
       focusedProjectId,
       extractionByProject,
       setFocusedProjectId,
@@ -231,8 +263,9 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
         const nextRequest = buildRelaunchRequest(artifact, mode);
         send({ type: 'REQUEST_START', request: nextRequest });
       },
+      reloadArtifacts: reloadPersistedArtifacts,
     };
-  }, [artifacts, checkpoints, extractionByProject, focusedProjectId, send, snapshot, streamStatus]);
+  }, [mergedArtifacts, checkpoints, extractionByProject, focusedProjectId, reloadPersistedArtifacts, send, snapshot, streamStatus]);
 
   return (
     <GenerationWorkspaceContext value={value}>

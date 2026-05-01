@@ -108,9 +108,17 @@ function handleProxy(request, response, backendUrl) {
     },
   );
 
-  // TASK-007: client disconnect → destroy upstream per evitare connessioni zombie
-  request.on('close', () => {
+  // TASK-007: chiudi upstream solo su abort reale del client.
+  // Usare 'close' su request tronca anche richieste sane e causa ECONNRESET.
+  request.on('aborted', () => {
     upstreamReq.destroy();
+  });
+
+  // Se il client chiude la response prima del completamento, interrompi upstream.
+  response.on('close', () => {
+    if (!response.writableEnded) {
+      upstreamReq.destroy();
+    }
   });
 
   // TASK-008: backend non raggiungibile → 502 con diagnostica minimale

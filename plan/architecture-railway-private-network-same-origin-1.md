@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-05-01
 last_updated: 2026-05-01
 owner: Platform/DevOps
-status: In Progress
+status: completed
 tags: [architecture, railway, same-origin, private-network, frontend, backend, proxy]
 ---
 
 # Introduction
 
-![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Questo piano definisce la topologia di deploy same-origin adottata: il browser comunica sempre con l'host pubblico del servizio frontend Railway, mentre `frontend/server.mjs` inoltra internamente le route applicative al backend tramite networking privato Railway. Il backend non viene esposto pubblicamente al browser durante il target finale.
 

@@ -15,12 +15,17 @@ Applicazione per generazione contenuti con:
 ## 2) Architettura ad alto livello
 
 ```text
-Client (React + XState)
-	-> HTTP/SSE
+Browser (React + XState)
+	-> HTTPS same-origin
+Frontend Runtime (Node — frontend/server.mjs)
+	-> asset statici / SPA fallback
+	-> HTTP proxy (Railway private network)
 Backend Runtime (Node + TypeScript)
 	-> PostgreSQL (dati applicativi)
 	-> Redis (idempotenza, coordinamento)
 ```
+
+Il browser comunica esclusivamente con il servizio frontend Railway. `frontend/server.mjs` serve la SPA e inoltra le route applicative (`/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*`) al backend via networking privato Railway. Il backend non è esposto direttamente al browser.
 
 ## 3) Mappa repository
 
@@ -51,9 +56,11 @@ Blocchi chiave:
 ## 5) Frontend - schema logico/funzionale
 
 Entry point frontend: `frontend/src/main.tsx` e `frontend/src/App.tsx`.
+Runtime server: `frontend/server.mjs`.
 
 Responsabilita principali:
 
+- `server.mjs`: serve asset statici e SPA fallback; inoltra route applicative al backend via networking privato Railway; endpoint `/health` locale
 - routing e layout applicativo
 - orchestrazione UI dei flussi tool multi-step
 - consumo stream backend con gestione stati/errore/retry
@@ -61,6 +68,7 @@ Responsabilita principali:
 
 Blocchi chiave:
 
+- Server proxy runtime: `frontend/server.mjs`
 - Feature modules: `frontend/src/features/`
 - Runtime/API client: `frontend/src/features/**/runtime/`
 - UI primitives/layout/provider: `frontend/src/app/`
@@ -125,11 +133,18 @@ npm run db:migrate:minimal
 npm run start:server
 ```
 
-Frontend:
+Frontend (sviluppo locale — Vite dev server):
 
 ```bash
 npm --prefix frontend install
 npm --prefix frontend run dev
+```
+
+Frontend (produzione locale — server.mjs con proxy):
+
+```bash
+npm --prefix frontend run build
+BACKEND_INTERNAL_URL=http://localhost:3000 node frontend/server.mjs
 ```
 
 ## 9) Documentazione architetturale consigliata

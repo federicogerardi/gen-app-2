@@ -1,3 +1,11 @@
+---
+status: approved
+version: 2.1
+last-reviewed: 2026-05-01
+next-review-date: 2026-08-01
+owner: Platform/DevOps
+---
+
 # Deployment Architecture Guide
 
 **Data**: 2026-05-01  

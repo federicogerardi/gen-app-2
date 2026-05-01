@@ -4,13 +4,15 @@ version: 1.0
 date_created: 2026-05-01
 last_updated: 2026-05-01
 owner: Platform/DevOps
-status: 'Planned'
+status: deprecated
 tags: [infrastructure, deployment, railway, same-origin, auth, frontend, backend, migration]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Deprecated](https://img.shields.io/badge/status-Deprecated-lightgrey)
+
+> **Deprecato 2026-05-01.** Questo piano è stato superseded dall'esecuzione completa di [`architecture-railway-private-network-same-origin-1`](./architecture-railway-private-network-same-origin-1.md), che ha implementato la topologia same-origin via private-network Railway (`frontend/server.mjs`) portandola in produzione. I task di questo piano non sono stati eseguiti perché la soluzione alternativa li ha resi ridondanti. Conservato come riferimento storico della strategia pianificata.
 
 Piano unificato che integra la strategia di migrazione same-origin Railway (3 fasi) con il piano implementativo infrastrutturale. Obiettivo: esporre frontend e backend sotto un unico host pubblico Railway, con routing same-origin trasparente per il browser, sessioni cookie-based stabili e fallback rollback documentato per ogni sprint.
 

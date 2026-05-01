@@ -6,7 +6,15 @@ export type BackendCapabilities = {
   adminModels: boolean;
 };
 
-const readFlag = (value: string | undefined): boolean => value === '1' || value === 'true';
+const readFlag = (value: string | undefined): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  // Railway/CI values can include accidental quotes or mixed casing.
+  const normalized = value.trim().replace(/^['\"]|['\"]$/g, '').toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+};
 
 export const readBackendCapabilities = (): BackendCapabilities => {
   return {

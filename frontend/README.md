@@ -20,6 +20,15 @@ Queste variabili sono lette solo dal server Node (`server.mjs`) e **non** sono e
 
 Copiare `frontend/.env.example` in `frontend/.env.local` per lo sviluppo locale.
 
+## Railway: Build vs Runtime variables
+
+`VITE_*` viene letto da Vite al momento della build e viene incorporato nel bundle statico.
+
+- Impostare `VITE_CAP_PROJECTS`, `VITE_CAP_ARTIFACTS`, `VITE_CAP_TOOLS_UPLOAD`, `VITE_CAP_MODELS`, `VITE_CAP_ADMIN_MODELS` come **Build Variables** del servizio frontend Railway.
+- `BACKEND_INTERNAL_URL` resta una **Runtime Variable** del server Node (`server.mjs`).
+
+Se `VITE_CAP_PROJECTS` viene impostata solo a runtime, il frontend continuerà a vedere capability disabilitata nel bundle già buildato.
+
 ## Avvio
 
 1. Installazione dipendenze:

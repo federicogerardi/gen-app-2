@@ -10,7 +10,7 @@ tags: [architecture, railway, same-origin, private-network, frontend, backend, p
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
 
 Questo piano definisce la topologia di deploy same-origin adottata: il browser comunica sempre con l'host pubblico del servizio frontend Railway, mentre `frontend/server.mjs` inoltra internamente le route applicative al backend tramite networking privato Railway. Il backend non viene esposto pubblicamente al browser durante il target finale.
 
@@ -91,7 +91,7 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 | -------- | ----------- | --------- | ---- |
 | TASK-010 | Aggiornare `frontend/railway.toml` e la configurazione del servizio frontend Railway per usare il runtime `server.mjs` come entrypoint pubblico unico, con `PORT` e healthcheck `/health` coerenti. | ✅ | 2026-05-01 |
 | TASK-010b | Correggere il `CMD` in `frontend/Dockerfile`: attualmente `CMD ["npm", "run", "start"]` esegue `npm run build && npm run start:server`, causando una **double-build** ad ogni restart Railway. Sostituire con `CMD ["node", "server.mjs"]` direttamente, o aggiungere uno script `"start:prod": "node server.mjs"` in `package.json` e usare quello. **Verificare anche `frontend/railway.toml`**: il campo `startCommand = "npm run start"` sovrascrive il `CMD` del Dockerfile in Railway (comportamento equivalente a Docker Compose `command`). Aggiornare `startCommand` in `railway.toml` in modo coerente con la correzione al Dockerfile, altrimenti il fix non ha effetto in produzione. | ✅ | 2026-05-01 |
-| TASK-011 | Configurare il servizio backend Railway per essere raggiungibile dal frontend tramite networking interno. Se Railway richiede public networking attivo per healthcheck o gestione, documentare che l'host pubblico backend resta non usato dal browser ma disponibile solo come rollback operativo. |  |  |
+| TASK-011 | Configurare il servizio backend Railway per essere raggiungibile dal frontend tramite networking interno. Se Railway richiede public networking attivo per healthcheck o gestione, documentare che l'host pubblico backend resta non usato dal browser ma disponibile solo come rollback operativo. | ✅ | 2026-05-01 |
 | TASK-012 | Aggiornare env backend per target same-origin browser-side: `FRONTEND_ORIGIN=https://<frontend-public-host>`, `CORS_ALLOWED_ORIGINS=https://<frontend-public-host>`, `CSRF_TRUSTED_ORIGINS=https://<frontend-public-host>`, `AUTH_COOKIE_SECURE=true`, `AUTH_COOKIE_SAMESITE=lax`. |  |  |
 | TASK-013 | Aggiornare `GOOGLE_REDIRECT_URI` per rientrare sull'host pubblico frontend (`https://<frontend-public-host>/auth/google/callback`) e verificare che il proxy inoltri correttamente la callback al backend. **Step obbligatorio e bloccante**: aggiungere l'URI `https://<frontend-public-host>/auth/google/callback` negli **Authorized Redirect URIs** del client OAuth nel pannello Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (errore 400) e il flusso OAuth e completamente bloccato indipendentemente dalla configurazione backend/proxy. |  |  |
 | TASK-014 | Aggiornare il deployment guide con distinzione esplicita tra `frontend public host`, `backend internal host`, eventuale `backend public rollback host`. |  |  |
@@ -102,6 +102,25 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 - Il browser usa un solo host pubblico Railway.
 - Il backend applicativo non e piu richiesto direttamente dal browser.
 - Cookie/CORS/CSRF sono coerenti con same-origin browser-side.
+
+**Checklist Minima GO/NO-GO (Sprint 2)**
+
+1. `TASK-012` completata su backend Railway con valori esatti:
+        - `FRONTEND_ORIGIN=https://<frontend-public-host>`
+        - `CORS_ALLOWED_ORIGINS=https://<frontend-public-host>`
+        - `CSRF_TRUSTED_ORIGINS=https://<frontend-public-host>`
+        - `AUTH_COOKIE_SECURE=true`
+        - `AUTH_COOKIE_SAMESITE=lax`
+2. `TASK-013` completata su backend Railway:
+        - `GOOGLE_REDIRECT_URI=https://<frontend-public-host>/auth/google/callback`
+3. `TASK-013` completata su Google Cloud Console:
+        - in `APIs & Services > Credentials > OAuth 2.0 Client IDs` presente `https://<frontend-public-host>/auth/google/callback` tra gli Authorized Redirect URIs.
+4. Smoke runtime su host frontend pubblico:
+        - `GET /auth/session` risponde dal backend via proxy (non `502`, non errore CORS)
+        - login imposta cookie `HttpOnly`, `Secure`, `SameSite=Lax`
+        - callback OAuth completa senza `redirect_uri_mismatch`
+5. Condizione di stop (NO-GO):
+        - presenza di `redirect_uri_mismatch` oppure `502` su `/auth/*` o `/generation/*` blocca avanzamento a Sprint 3.
 
 ### Sprint 3 - Validation & Go-Live Gates
 

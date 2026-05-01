@@ -10,12 +10,19 @@ import { fileURLToPath } from 'node:url';
 // Default locale: http://localhost:3000
 // Produzione Railway: http://backend.railway.internal:3000
 // Fail-fast in produzione se non impostata.
+// Normalizzazione: aggiunge http:// se manca il protocollo.
 // ---------------------------------------------------------------------------
-const BACKEND_INTERNAL_URL = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:3000';
+let BACKEND_INTERNAL_URL = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:3000';
 
 if (process.env.NODE_ENV === 'production' && !process.env.BACKEND_INTERNAL_URL) {
   console.error('[server] FATAL: BACKEND_INTERNAL_URL is required in production');
   process.exit(1);
+}
+
+// Normalizza URL: se non inizia con http:// o https://, aggiungi http://
+if (!BACKEND_INTERNAL_URL.startsWith('http://') && !BACKEND_INTERNAL_URL.startsWith('https://')) {
+  BACKEND_INTERNAL_URL = `http://${BACKEND_INTERNAL_URL}`;
+  console.log(`[server] Normalized BACKEND_INTERNAL_URL to: ${BACKEND_INTERNAL_URL}`);
 }
 
 const host = '0.0.0.0';

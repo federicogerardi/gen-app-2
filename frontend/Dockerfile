@@ -16,4 +16,6 @@ RUN npm run build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# TASK-010b: CMD diretto a node server.mjs per evitare double-build ad ogni restart Railway.
+# railway.toml startCommand è allineato a "node server.mjs".
+CMD ["node", "server.mjs"]

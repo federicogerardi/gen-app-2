@@ -1,8 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToolPageTemplate } from './ToolPageTemplate';
 
 const startMock = vi.fn();
+
+const renderTemplate = () => render(
+  <MemoryRouter>
+    <ToolPageTemplate toolKey="funnel-pages" />
+  </MemoryRouter>,
+);
 
 const generationState = {
   isStreamActive: false,
@@ -131,7 +138,7 @@ describe('ToolPageTemplate wiring', () => {
     ];
     availableStepsState.steps = ['quiz'];
 
-    render(<ToolPageTemplate toolKey="funnel-pages" />);
+    renderTemplate();
 
     fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
@@ -153,7 +160,7 @@ describe('ToolPageTemplate wiring', () => {
   });
 
   it('auto-starts the next step after previous step completion in auto-chain mode', async () => {
-    const { rerender } = render(<ToolPageTemplate toolKey="funnel-pages" />);
+    const { rerender } = renderTemplate();
 
     fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
@@ -175,7 +182,11 @@ describe('ToolPageTemplate wiring', () => {
     ];
     availableStepsState.steps = ['quiz'];
 
-    rerender(<ToolPageTemplate toolKey="funnel-pages" />);
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(2);

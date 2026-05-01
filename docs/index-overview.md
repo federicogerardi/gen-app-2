@@ -1,8 +1,8 @@
 ---
 status: approved
 version: 2.0
-last-reviewed: 2026-04-30
-next-review-date: 2026-07-27
+last-reviewed: 2026-05-01
+next-review-date: 2026-08-01
 owner: Documentation Archivist
 ---
 
@@ -41,7 +41,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
-| [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-04-28 | 2026-07-27 |
+| [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-05-01 | 2026-08-01 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 | [tools-generation-go-closure-2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
 
@@ -69,9 +69,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ### Active Plans And Runbooks
 
-- [infrastructure-same-origin-deployment-1](../plan/infrastructure-same-origin-deployment-1.md) - planned
 - [repository-publication-cleanup-1](../plan/repository-publication-cleanup-1.md) - planned
-- [railway-same-origin-migration-strategy-3-phases](./05-ops/railway-same-origin-migration-strategy-3-phases.md) - planned
 
 ### Frontend Supporting Docs
 
@@ -85,6 +83,10 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [xstate-system-as-is-monolith-spec](./99-lifecycle/99-archive/xstate-system-as-is-monolith-spec.md)
 - [xstate-review-closure-2026-04-24](./99-lifecycle/99-archive/xstate-review-closure-2026-04-24.md)
 - [frontend-design-artifact-canvas-snapshot-2026-04-26](./99-lifecycle/99-archive/frontend-design-artifact-canvas-snapshot-2026-04-26.md)
+- [infrastructure-same-origin-deployment-1](./99-lifecycle/99-archive/infrastructure-same-origin-deployment-1.md) — superseded da feature-railway-same-origin-unified-1
+- [railway-same-origin-migration-strategy-3-phases](./99-lifecycle/99-archive/railway-same-origin-migration-strategy-3-phases.md) — superseded da feature-railway-same-origin-unified-1
+- [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione
+- [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md) — deprecated 2026-05-01; superseded da architecture-railway-private-network-same-origin-1
 
 ### Archive Buckets
 
@@ -92,13 +94,12 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [governance-pre-publish archive](./99-lifecycle/99-archive/governance-pre-publish/)
 - [tool-prompts archive](./99-lifecycle/99-archive/tool-prompts/)
 
-## Current Delta (2026-04-30)
+## Current Delta (2026-05-01)
 
-- Frontend spec aggiornata: tema dark/light, rendering markdown artifact, semantica copy raw/markdown, resume da checkpoint.
-- UI kit aggiornato: tema, toolbar artifact, consistenza bottoni.
-- Tool pages architecture aggiornata: guardrail resume su step interrotto e request id rigenerato.
-- Deployment architecture guide aggiornata: stato Railway as-is, networking pubblico, healthcheck e troubleshooting.
-- Aggiunto piano attivo di cleanup pubblicazione repository: [repository-publication-cleanup-1](../plan/repository-publication-cleanup-1.md).
+- **Piano same-origin completato**: [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — tutti i 4 sprint eseguiti; topologia Railway private-network via `frontend/server.mjs` in produzione. Piano archiviato.
+- Piano unificato same-origin Railway attivo: [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md).
+- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) aggiornato a rev 2.1 con Variant B, logging proxy, timeout SSE, rollback cross-origin, rischi residui.
+- Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
 
 ## Governance Rules Applied
 

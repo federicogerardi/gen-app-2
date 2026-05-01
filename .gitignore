@@ -37,3 +37,4 @@ Thumbs.db
 # Frontend env locali
 frontend/.env.local
 frontend/.env.*.local
+.vscode/settings.json

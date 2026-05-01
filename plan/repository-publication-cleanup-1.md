@@ -1,8 +1,8 @@
 ---
 goal: Repository Publication Cleanup Plan
-version: 1.0
+version: 1.1
 date_created: 2026-04-30
-last_updated: 2026-04-30
+last_updated: 2026-05-01
 owner: GitHub Copilot
 status: Planned
 tags: [cleanup, repository, publication, production, devops, ci]
@@ -47,9 +47,7 @@ Out of scope:
 ### 3.2 Remove (local artifacts or obsolete)
 
 - cache/build output locale (`node_modules`, `dist`, `build`, `coverage`, `.tmp`)
-- tracing locale non operativo (`.copilot-tracking/`)
 - file editor/temporary (`*.tmp`, `*.swp`, log locali)
-- env locali non pubblicabili (`.env.local`, `frontend/.env.local`)
 
 ### 3.3 Review before removing
 
@@ -65,11 +63,14 @@ Regola: rimuovere solo se il contenuto non e usato da CI/CD, onboarding contribu
 
 Segnali rilevati nel codespace:
 
-- presenti directory locali/tooling: `.agents/`, `.claude/`, `.copilot-tracking/`, `.tmp/`, `node_modules/`
-- presente env locale: `.env.local`
-- `.gitignore` gia copre gran parte di build/cache/env locali
+- **Tracciati da git (richiedono decisione esplicita):** `.agents/` (skill `frontend-design`), `skills-lock.json` (lockfile skills Anthropic)
+- **Non tracciati / già gitignored:** `.copilot-tracking/` (coperto da `.gitignore`), `node_modules/`, `.env.local` (coperto da pattern `.env.*`)
+- **Status `.claude/`:** verificare se presente e se tracciato
+- `.gitignore` copre build/cache/env locali ma **non copre** `.agents/` e `skills-lock.json`
+- CI esistente: `.github/workflows/frontend-sprint-gate.yml` — solo frontend, no build step, azioni non SHA-pinned
+- Nessun workflow CI backend presente
 
-Rischio principale: pubblicare accidentalmente metadati agent/local tooling non necessari al prodotto.
+Rischio principale: `.agents/` e `skills-lock.json` sono **tracciati** e verranno pubblicati salvo decisione esplicita di rimozione + aggiornamento `.gitignore`.
 
 ## 5. Implementation Plan
 
@@ -79,7 +80,7 @@ Rischio principale: pubblicare accidentalmente metadati agent/local tooling non 
 | --- | --- | --- | --- |
 | TASK-001 | Creare branch dedicato `chore/repo-publication-cleanup`. |  |  |
 | TASK-002 | Eseguire inventario file tracciati/non tracciati e classificarli Keep/Remove/Review. |  |  |
-| TASK-003 | Congelare baseline con tag locale o commit checkpoint prima delle rimozioni. |  |  |
+| TASK-003 | Congelare baseline con tag git nominato `pre-cleanup-baseline` prima delle rimozioni: `git tag pre-cleanup-baseline`. |  |  |
 
 Completion criteria:
 
@@ -90,8 +91,9 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-004 | Eliminare artefatti locali non necessari al repository pubblicato (`.tmp/`, tracking locale, cache). |  |  |
-| TASK-005 | Verificare che eventuali file da `.agents/`, `.claude/`, `.copilot-repo-memory.md` non siano richiesti dal flusso di team; in caso negativo rimuoverli. |  |  |
+| TASK-004 | Eliminare artefatti locali non necessari al repository pubblicato (`.tmp/`, tracking locale, cache non tracciati). |  |  |
+| TASK-005 | Decidere per `.agents/` e `skills-lock.json`: se non richiesti da CI/CD o onboarding contributor, rimuoverli dal repository e aggiungere le rispettive voci a `.gitignore`. Criterio: nessun workflow in `.github/` ne referenzia il contenuto → rimuovere. |  |  |
+| TASK-005b | Se `.agents/` e/o `skills-lock.json` vengono rimossi: aggiornare `.gitignore` aggiungendo le voci `.agents/` e `skills-lock.json` per prevenire il re-tracking. |  |  |
 | TASK-006 | Pulire riferimenti in README/docs a tooling locale rimosso. |  |  |
 
 Completion criteria:
@@ -103,73 +105,111 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-007 | Mantenere `docs/index-overview.md` come indice unico per contenuti attivi. |  |  |
-| TASK-008 | Valutare se comprimere o estrarre in release separata parte di `docs/99-lifecycle/99-archive/` se e solo storico non operativo. |  |  |
-| TASK-009 | Verificare coerenza owner/status/date nei documenti attivi critici. |  |  |
+| TASK-007 | Verificare che tutti i link in `docs/index-overview.md` siano raggiungibili: aprire ogni entry della sezione Active Registry e Archive Registry e confermare che il file esista nel path indicato. |  |  |
+| TASK-008 | Valutare se comprimere o estrarre in release separata parte di `docs/99-lifecycle/99-archive/` se è solo storico non operativo. |  |  |
+| TASK-009 | Verificare coerenza owner/status/date nei documenti attivi critici elencati in `docs/index-overview.md` sezione Critical Documents Status. |  |  |
 
 Completion criteria:
 
 - docs operative facilmente navigabili
 - storico separato o chiaramente etichettato
 
-### Phase 4 - CI and Publication Gates
+### Phase 4 - CI Hardening
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-010 | Eseguire gate backend: `npm run typecheck`, `npm run test`, `npm run test:smoke`. |  |  |
-| TASK-011 | Eseguire gate frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. |  |  |
-| TASK-012 | Verificare avvio locale minimo: backend `npm run start:server`, frontend `npm --prefix frontend run dev`. |  |  |
-| TASK-013 | Validare che `.env.example` sia sufficiente e non includa segreti. |  |  |
+| TASK-010 | Aggiungere step `npm run build` al workflow `.github/workflows/frontend-sprint-gate.yml` (attualmente mancante). |  |  |
+| TASK-011 | Pinnare le azioni GitHub Actions nel workflow frontend a SHA specifici: `actions/checkout` e `actions/setup-node` (mitigazione supply chain). |  |  |
+| TASK-012 | Creare workflow CI backend `.github/workflows/backend-gate.yml` con step: `npm ci`, `npm run typecheck`, `npm run test` su push/PR a `main` e path `src/**`. |  |  |
 
 Completion criteria:
 
-- tutti i gate verdi
-- nessun segreto o artefatto locale nel diff finale
+- workflow frontend include build e usa SHA-pinned actions
+- workflow backend esiste e copre typecheck + test
+- nessuna action non-pinned nei workflow pubblicati
 
-### Phase 5 - Final Publication Checklist
+### Phase 5 - Quality Gates Pre-Publish
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-014 | Rieseguire `git status` con working tree pulito eccetto i file del cleanup. |  |  |
-| TASK-015 | Revisionare diff finale con focus su file rimossi e motivazione. |  |  |
-| TASK-016 | Pubblicare PR con titolo e body standardizzato (scope cleanup + rischio nullo funzionale). |  |  |
-| TASK-017 | Merge solo dopo approvazione e passaggio check CI richiesti. |  |  |
+| TASK-013 | Eseguire gate CI automatizzabile backend: `npm run typecheck`, `npm run test`. |  |  |
+| TASK-014 | Eseguire gate CI automatizzabile frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. |  |  |
+| TASK-015 | Eseguire smoke manuale con env locali (non eseguibile in CI senza segreti): `set -a && . ./.env.local && set +a && npm run test:smoke`. |  |  |
+| TASK-016 | Verificare avvio locale minimo: backend `npm run start:server`, frontend `npm --prefix frontend run dev`. |  |  |
+| TASK-017 | Validare che `.env.example` sia sufficiente e non includa segreti: `grep -v '^#' .env.example | grep -v '^$'` e revisione manuale di ogni valore. |  |  |
+
+Completion criteria:
+
+- gate CI (TASK-013, TASK-014) verdi senza env segreti
+- smoke manuale (TASK-015) verde con `.env.local` caricato
+- nessun segreto o artefatto locale nel diff finale
+
+### Phase 6 - Final Publication Checklist
+
+| Task | Description | Completed | Date |
+| --- | --- | --- | --- |
+| TASK-018 | Rieseguire `git status` con working tree pulito eccetto i file del cleanup. |  |  |
+| TASK-019 | Revisionare diff finale con focus su file rimossi e motivazione. |  |  |
+| TASK-020 | Pubblicare PR con titolo e body standardizzato (scope cleanup + rischio nullo funzionale). |  |  |
+| TASK-021 | Merge solo dopo approvazione e passaggio check CI richiesti (frontend-sprint-gate + backend-gate). |  |  |
 
 Completion criteria:
 
 - PR approvata
+- tutti i workflow CI verdi sul branch
 - repository pubblicabile senza elementi obsoleti/non rilevanti
 
 ## 6. Execution Commands (non destructive)
 
 ```bash
-# inventory
+# inventory file tracciati
 git status --short
 git ls-files
 
-# locate potential local artifacts
-find . -maxdepth 2 \( -name ".tmp" -o -name ".copilot-tracking" -o -name ".agents" -o -name ".claude" -o -name "node_modules" \)
+# verifica artefatti tracked da decidere
+git ls-files | grep -E '^\.(agents|claude|copilot)'
+git ls-files skills-lock.json
 
-# quality gates
+# locate potential untracked artifacts
+find . -maxdepth 2 \( -name ".tmp" -o -name ".copilot-tracking" -o -name "node_modules" \) 2>/dev/null
+
+# tag baseline prima delle rimozioni
+git tag pre-cleanup-baseline
+
+# gate CI automatizzabili (senza segreti)
 npm run typecheck
 npm run test
-set -a && . ./.env.local && set +a && npm run test:smoke
 npm --prefix frontend run typecheck
 npm --prefix frontend run test
 npm --prefix frontend run build
+
+# smoke manuale (richiede .env.local)
+set -a && . ./.env.local && set +a && npm run test:smoke
+
+# verifica .env.example non contiene segreti
+grep -v '^#' .env.example | grep -v '^$'
 ```
 
 ## 7. Risks and Mitigations
 
-- RISK-001: Rimozione di file apparentemente locali ma utili al team.
-  - MIT-001: applicare classificazione Review con approvazione esplicita prima della delete.
-- RISK-002: Link rotti in docs dopo cleanup.
-  - MIT-002: validazione link in `docs/index-overview.md` e smoke reading delle sezioni principali.
-- RISK-003: Regressioni involontarie post cleanup.
-  - MIT-003: run completo dei gate backend/frontend prima del merge.
+- RISK-001: Rimozione di `.agents/` o `skills-lock.json` che risultano necessari a workflow CI/CD o onboarding.
+  - MIT-001: TASK-005 include criterio esplicito (nessuna referenza in `.github/`) prima della rimozione.
+- RISK-002: `.agents/` o `skills-lock.json` rimossi ma non gitignored → re-tracking accidentale.
+  - MIT-002: TASK-005b aggiorna `.gitignore` contestualmente alla rimozione.
+- RISK-003: Link rotti in docs dopo cleanup.
+  - MIT-003: TASK-007 valida ogni link dell'indice prima del merge.
+- RISK-004: Regressioni involontarie post cleanup.
+  - MIT-004: run completo dei gate CI automatizzabili + smoke manuale (TASK-013÷015) prima del merge.
+- RISK-005: Workflow CI con azioni non SHA-pinned esposti a supply chain attack post-pubblicazione.
+  - MIT-005: TASK-011 pinna tutte le azioni a SHA verificato.
+- RISK-006: Smoke test (`test:smoke`) inserito in pipeline CI senza segreti → exit 1 in CI.
+  - MIT-006: smoke è classificato come gate manuale (TASK-015), non come step CI automatico.
 
 ## 8. Deliverables
 
 - DEL-001: PR `chore/repo-publication-cleanup`
 - DEL-002: repository senza artefatti locali/obsoleti
 - DEL-003: checklist finale compilata con evidenza test
+- DEL-004: `.github/workflows/frontend-sprint-gate.yml` aggiornato con build step e SHA-pinned actions
+- DEL-005: `.github/workflows/backend-gate.yml` nuovo workflow CI backend
+- DEL-006: `.gitignore` aggiornato se `.agents/` e/o `skills-lock.json` rimossi

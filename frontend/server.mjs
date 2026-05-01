@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 // ---------------------------------------------------------------------------
 // TASK-009: BACKEND_INTERNAL_URL — env server-side, non esposta nel bundle Vite.
 // Default locale: http://localhost:3000
-// Produzione Railway: http://backend.railway.internal:3000
+// Produzione Railway: http://<backend-service-name>.railway.internal:<backend-port>
+// Deploy corrente verificato: http://gen-app-2.railway.internal:8080
 // Fail-fast in produzione se non impostata.
 // Normalizzazione: aggiunge http:// se manca il protocollo.
 // ---------------------------------------------------------------------------
@@ -62,8 +63,17 @@ function isProxyPath(urlPath) {
   );
 }
 
+// TASK-020: logger sintetico — non espone header, cookie o body.
+function logReq(type, method, path) {
+  console.log(`[req] ${type} ${method} ${path}`);
+}
+
 // TASK-006/007/008: proxy request verso backend interno Railway.
 function handleProxy(request, response, backendUrl) {
+  const t0 = Date.now();
+  const logPath = (request.url ?? '/').split('?')[0];
+  logReq('proxy', request.method ?? 'GET', logPath);
+
   const targetUrl = new URL(backendUrl);
   const isHttps = targetUrl.protocol === 'https:';
   const reqFn = isHttps ? httpsRequest : httpRequest;
@@ -96,6 +106,8 @@ function handleProxy(request, response, backendUrl) {
       }
 
       response.statusCode = upstreamRes.statusCode ?? 502;
+      const elapsed = Date.now() - t0;
+      console.log(`[proxy] ${request.method ?? 'GET'} ${logPath} → ${response.statusCode} (${elapsed}ms)`);
 
       if (isSSE) {
         // TASK-007: SSE — flush immediato, no Nagle, pipe senza buffering
@@ -123,7 +135,8 @@ function handleProxy(request, response, backendUrl) {
 
   // TASK-008: backend non raggiungibile → 502 con diagnostica minimale
   upstreamReq.on('error', (err) => {
-    console.error(`[proxy] upstream error: ${err.code} ${err.message} → ${backendUrl}${request.url}`);
+    const elapsed = Date.now() - t0;
+    console.error(`[proxy] error (${elapsed}ms): ${err.code} ${err.message} → ${backendUrl}${request.url}`);
     if (!response.headersSent) {
       response.statusCode = 502;
       response.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -196,6 +209,7 @@ const server = createServer((request, response) => {
 
   // (1) Healthcheck locale
   if (path === '/health') {
+    logReq('health', method, path);
     response.statusCode = 200;
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     response.end(JSON.stringify({ ok: true, status: 'healthy' }));
@@ -204,6 +218,7 @@ const server = createServer((request, response) => {
 
   // (2) Debug connectivity — TASK-003, rimuovere prima del go-live
   if (method === 'GET' && path === '/debug/connectivity') {
+    logReq('debug', method, path);
     handleDebugConnectivity(response);
     return;
   }
@@ -216,6 +231,7 @@ const server = createServer((request, response) => {
 
   // (4) Asset statici — solo GET/HEAD
   if (method !== 'GET' && method !== 'HEAD') {
+    logReq('405', method, path);
     response.statusCode = 405;
     response.end('Method Not Allowed');
     return;
@@ -225,6 +241,7 @@ const server = createServer((request, response) => {
   const requestedPath = join(distDir, normalized);
 
   if (existsSync(requestedPath) && statSync(requestedPath).isFile()) {
+    logReq('static', method, path);
     if (method === 'HEAD') {
       response.statusCode = 200;
       response.end();
@@ -236,11 +253,14 @@ const server = createServer((request, response) => {
 
   // (5) SPA fallback
   if (!existsSync(indexPath)) {
+    console.error('[server] Missing dist/index.html — build step may have failed');
     response.statusCode = 500;
     response.setHeader('Content-Type', 'text/plain; charset=utf-8');
     response.end('Missing dist/index.html. Ensure build step ran successfully.');
     return;
   }
+
+  logReq('spa', method, path);
 
   if (method === 'HEAD') {
     response.statusCode = 200;

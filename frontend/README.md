@@ -12,7 +12,7 @@ Queste variabili sono lette solo dal server Node (`server.mjs`) e **non** sono e
 
 | Variabile | Obbligatoria | Default locale | Valore produzione Railway |
 |---|---|---|---|
-| `BACKEND_INTERNAL_URL` | Sì (produzione) | `http://localhost:3000` | `http://backend.railway.internal:3000` |
+| `BACKEND_INTERNAL_URL` | Sì (produzione) | `http://localhost:3000` | `http://<backend-service-name>.railway.internal:<backend-port>` |
 | `PORT` | No | `3000` | Impostata automaticamente da Railway |
 | `NODE_ENV` | No | `development` | `production` |
 
@@ -26,6 +26,8 @@ Copiare `frontend/.env.example` in `frontend/.env.local` per lo sviluppo locale.
 
 - Impostare `VITE_CAP_PROJECTS`, `VITE_CAP_ARTIFACTS`, `VITE_CAP_TOOLS_UPLOAD`, `VITE_CAP_MODELS`, `VITE_CAP_ADMIN_MODELS` come **Build Variables** del servizio frontend Railway.
 - `BACKEND_INTERNAL_URL` resta una **Runtime Variable** del server Node (`server.mjs`).
+
+Nel deploy corrente verificato: `BACKEND_INTERNAL_URL=http://gen-app-2.railway.internal:8080`.
 
 Se `VITE_CAP_PROJECTS` viene impostata solo a runtime, il frontend continuerà a vedere capability disabilitata nel bundle già buildato.
 

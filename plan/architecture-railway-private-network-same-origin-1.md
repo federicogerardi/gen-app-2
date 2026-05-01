@@ -19,7 +19,7 @@ Topologia target:
 ```text
 Browser -> https://frontend.up.railway.app/*
         -> frontend/server.mjs
-        -> http://backend.railway.internal:3000/*
+        -> http://gen-app-2.railway.internal:8080/*
         -> PostgreSQL + Redis
 ```
 
@@ -92,10 +92,10 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 | TASK-010 | Aggiornare `frontend/railway.toml` e la configurazione del servizio frontend Railway per usare il runtime `server.mjs` come entrypoint pubblico unico, con `PORT` e healthcheck `/health` coerenti. | ✅ | 2026-05-01 |
 | TASK-010b | Correggere il `CMD` in `frontend/Dockerfile`: attualmente `CMD ["npm", "run", "start"]` esegue `npm run build && npm run start:server`, causando una **double-build** ad ogni restart Railway. Sostituire con `CMD ["node", "server.mjs"]` direttamente, o aggiungere uno script `"start:prod": "node server.mjs"` in `package.json` e usare quello. **Verificare anche `frontend/railway.toml`**: il campo `startCommand = "npm run start"` sovrascrive il `CMD` del Dockerfile in Railway (comportamento equivalente a Docker Compose `command`). Aggiornare `startCommand` in `railway.toml` in modo coerente con la correzione al Dockerfile, altrimenti il fix non ha effetto in produzione. | ✅ | 2026-05-01 |
 | TASK-011 | Configurare il servizio backend Railway per essere raggiungibile dal frontend tramite networking interno. Se Railway richiede public networking attivo per healthcheck o gestione, documentare che l'host pubblico backend resta non usato dal browser ma disponibile solo come rollback operativo. | ✅ | 2026-05-01 |
-| TASK-012 | Aggiornare env backend per target same-origin browser-side: `FRONTEND_ORIGIN=https://<frontend-public-host>`, `CORS_ALLOWED_ORIGINS=https://<frontend-public-host>`, `CSRF_TRUSTED_ORIGINS=https://<frontend-public-host>`, `AUTH_COOKIE_SECURE=true`, `AUTH_COOKIE_SAMESITE=lax`. |  |  |
-| TASK-013 | Aggiornare `GOOGLE_REDIRECT_URI` per rientrare sull'host pubblico frontend (`https://<frontend-public-host>/auth/google/callback`) e verificare che il proxy inoltri correttamente la callback al backend. **Step obbligatorio e bloccante**: aggiungere l'URI `https://<frontend-public-host>/auth/google/callback` negli **Authorized Redirect URIs** del client OAuth nel pannello Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (errore 400) e il flusso OAuth e completamente bloccato indipendentemente dalla configurazione backend/proxy. |  |  |
-| TASK-014 | Aggiornare il deployment guide con distinzione esplicita tra `frontend public host`, `backend internal host`, eventuale `backend public rollback host`. |  |  |
-| TASK-014b | Deprecare o aggiornare la nota in `docs/02-design/specifications/deployment-architecture-guide.md` che afferma che `GOOGLE_REDIRECT_URI` resta sul dominio backend pubblico. Con questa variante la callback OAuth si sposta sull'host frontend (`https://<frontend-public-host>/auth/google/callback`), quindi la nota e in conflitto con TASK-013. |  |  |
+| TASK-012 | Aggiornare env backend per target same-origin browser-side: `FRONTEND_ORIGIN=https://<frontend-public-host>`, `CORS_ALLOWED_ORIGINS=https://<frontend-public-host>`, `CSRF_TRUSTED_ORIGINS=https://<frontend-public-host>`, `AUTH_COOKIE_SECURE=true`, `AUTH_COOKIE_SAMESITE=lax`. | ✅ | 2026-05-01 |
+| TASK-013 | Aggiornare `GOOGLE_REDIRECT_URI` per rientrare sull'host pubblico frontend (`https://<frontend-public-host>/auth/google/callback`) e verificare che il proxy inoltri correttamente la callback al backend. **Step obbligatorio e bloccante**: aggiungere l'URI `https://<frontend-public-host>/auth/google/callback` negli **Authorized Redirect URIs** del client OAuth nel pannello Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (errore 400) e il flusso OAuth e completamente bloccato indipendentemente dalla configurazione backend/proxy. | ✅ | 2026-05-01 |
+| TASK-014 | Aggiornare il deployment guide con distinzione esplicita tra `frontend public host`, `backend internal host`, eventuale `backend public rollback host`. | ✅ | 2026-05-01 |
+| TASK-014b | Deprecare o aggiornare la nota in `docs/02-design/specifications/deployment-architecture-guide.md` che afferma che `GOOGLE_REDIRECT_URI` resta sul dominio backend pubblico. Con questa variante la callback OAuth si sposta sull'host frontend (`https://<frontend-public-host>/auth/google/callback`), quindi la nota e in conflitto con TASK-013. | ✅ | 2026-05-01 |
 
 **Completion Criteria**
 
@@ -106,9 +106,9 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 **Checklist Minima GO/NO-GO (Sprint 2)**
 
 1. `TASK-012` completata su backend Railway con valori esatti:
-        - `FRONTEND_ORIGIN=https://<frontend-public-host>`
-        - `CORS_ALLOWED_ORIGINS=https://<frontend-public-host>`
-        - `CSRF_TRUSTED_ORIGINS=https://<frontend-public-host>`
+        - `FRONTEND_ORIGIN=https://frontend-dev-33aa.up.railway.app`
+        - `CORS_ALLOWED_ORIGINS=https://frontend-dev-33aa.up.railway.app`
+        - `CSRF_TRUSTED_ORIGINS=https://frontend-dev-33aa.up.railway.app`
         - `AUTH_COOKIE_SECURE=true`
         - `AUTH_COOKIE_SAMESITE=lax`
 2. `TASK-013` completata su backend Railway:
@@ -122,17 +122,26 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 5. Condizione di stop (NO-GO):
         - presenza di `redirect_uri_mismatch` oppure `502` su `/auth/*` o `/generation/*` blocca avanzamento a Sprint 3.
 
+**Stato verificato deploy (2026-05-01)**
+
+- backend env same-origin aggiornate e coerenti con `frontend-dev-33aa.up.railway.app`
+- Google Cloud Console aggiornata con `https://frontend-dev-33aa.up.railway.app/auth/google/callback` negli Authorized Redirect URIs
+- smoke auth login via host frontend pubblico: esito OK
+- smoke proxy auth/generation via host frontend pubblico: esito OK
+- callback OAuth end-to-end via host frontend pubblico: esito OK
+- Sprint 2 completato operativamente; fase attiva successiva: Sprint 3
+
 ### Sprint 3 - Validation & Go-Live Gates
 
 - **GOAL-004**: Validare end-to-end la variante private-network same-origin con check tecnici e funzionali ripetibili.
 
 | Task | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-015 | Eseguire gate backend: `npm run typecheck`, `npm run test`, `set -a && . ./.env.local && set +a && npm run test:smoke`. |  |  |
-| TASK-016 | Eseguire gate frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. |  |  |
-| TASK-017 | Aggiungere nel deployment guide una checklist di smoke runtime sul solo host frontend pubblico: `/health`, login, logout, `GET /auth/session`, CRUD principali, SSE `/generation/stream`, callback OAuth. |  |  |
-| TASK-018 | Verificare che login e refresh su browser desktop e mobile reale non producano logout involontario e che il cookie sessione sia `HttpOnly`, `Secure`, `SameSite=Lax`. |  |  |
-| TASK-019 | Verificare che il backend non riceva traffico browser-side diretto durante il test target; i log devono mostrare richieste applicative provenienti dal frontend proxy o dall'internal network. |  |  |
+| TASK-015 | Eseguire gate backend: `npm run typecheck`, `npm run test`, `set -a && . ./.env.local && set +a && npm run test:smoke`. | ✅ | 2026-05-01 |
+| TASK-016 | Eseguire gate frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. | ✅ | 2026-05-01 |
+| TASK-017 | Aggiungere nel deployment guide una checklist di smoke runtime sul solo host frontend pubblico: `/health`, login, logout, `GET /auth/session`, CRUD principali, SSE `/generation/stream`, callback OAuth. | ✅ | 2026-05-01 |
+| TASK-018 | Verificare che login e refresh su browser desktop e mobile reale non producano logout involontario e che il cookie sessione sia `HttpOnly`, `Secure`, `SameSite=Lax`. | ✅ | 2026-05-01 |
+| TASK-019 | Verificare che il backend non riceva traffico browser-side diretto durante il test target; i log devono mostrare richieste applicative provenienti dal frontend proxy o dall'internal network. | ✅ | 2026-05-01 |
 
 **Completion Criteria**
 
@@ -146,10 +155,10 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 
 | Task | Description | Completed | Date |
 | -------- | ----------- | --------- | ---- |
-| TASK-020 | Aggiungere logging sintetico in `frontend/server.mjs` per distinguere richieste statiche, SPA fallback, proxy success e proxy failure senza esporre dati sensibili. |  |  |
-| TASK-021 | Documentare timeout, header e limiti del proxy frontend rilevanti per SSE e upload, con soglie operative e segnali di allarme. |  |  |
-| TASK-022 | Formalizzare rollback a cross-origin: ripristino uso host pubblico backend nel browser, `AUTH_COOKIE_SAMESITE=none`, `CORS_ALLOWED_ORIGINS` aggiornati, `GOOGLE_REDIRECT_URI` su backend pubblico. |  |  |
-| TASK-023 | Registrare nel deployment guide i rischi aperti della variante private-network: dipendenza da DNS interno Railway, impatto di restart frontend sul traffico proxy, debugging multi-hop. |  |  |
+| TASK-020 | Aggiungere logging sintetico in `frontend/server.mjs` per distinguere richieste statiche, SPA fallback, proxy success e proxy failure senza esporre dati sensibili. | ✅ | 2026-05-01 |
+| TASK-021 | Documentare timeout, header e limiti del proxy frontend rilevanti per SSE e upload, con soglie operative e segnali di allarme. | ✅ | 2026-05-01 |
+| TASK-022 | Formalizzare rollback a cross-origin: ripristino uso host pubblico backend nel browser, `AUTH_COOKIE_SAMESITE=none`, `CORS_ALLOWED_ORIGINS` aggiornati, `GOOGLE_REDIRECT_URI` su backend pubblico. | ✅ | 2026-05-01 |
+| TASK-023 | Registrare nel deployment guide i rischi aperti della variante private-network: dipendenza da DNS interno Railway, impatto di restart frontend sul traffico proxy, debugging multi-hop. | ✅ | 2026-05-01 |
 
 **Completion Criteria**
 
@@ -180,7 +189,7 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 - **FILE-003**: `frontend/README.md` - documentazione env `BACKEND_INTERNAL_URL`, build e run Railway.
 - **FILE-004**: `docs/02-design/specifications/deployment-architecture-guide.md` - variante private-network, runbook, rollback e troubleshooting.
 - **FILE-005**: `.env.example` (root) - env backend: `DATABASE_URL`, `UPSTASH_REDIS_URL`, `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, ecc. Non includere qui `BACKEND_INTERNAL_URL`, che e una env del servizio frontend Railway e non appartiene al backend.
-- **FILE-006**: `frontend/.env.example` (nuovo file) - env server-side del frontend Railway: `BACKEND_INTERNAL_URL=http://backend.railway.internal:3000`. Separata dal root `.env.example` per evitare confusione tra variabili backend e variabili del proxy frontend.
+- **FILE-006**: `frontend/.env.example` (nuovo file) - env server-side del frontend Railway: `BACKEND_INTERNAL_URL=http://gen-app-2.railway.internal:8080` nel deploy corrente. Separata dal root `.env.example` per evitare confusione tra variabili backend e variabili del proxy frontend.
 - **FILE-007**: `frontend/Dockerfile` - correzione `CMD` per eliminare double-build (TASK-010b).
 - **FILE-008**: `plan/architecture-railway-private-network-same-origin-1.md` - questo piano.
 
@@ -204,7 +213,7 @@ Obiettivo operativo: ottenere same-origin browser-side senza dipendere da DNS cu
 
 - **RISK-001**: `frontend/server.mjs` oggi non implementa proxy; l'aggiunta puo introdurre regressioni su fallback SPA o static asset se l'ordine di matching e errato.
 - **RISK-002**: Il proxy frontend puo interrompere SSE se usa buffering o timeout incompatibili con connessioni lunghe.
-- **RISK-003**: Railway internal hostname o networking policy possono differire dall'assunzione `backend.railway.internal:3000`.
+- **RISK-003**: Railway internal hostname o networking policy possono differire dal valore verificato nel deploy corrente `gen-app-2.railway.internal:8080` in ambienti futuri o dopo rename del servizio.
 - **RISK-004**: La callback OAuth puo fallire se il backend genera URL assoluti non coerenti con l'host pubblico frontend.
 - **RISK-005**: Se il backend resta pubblicamente esposto per motivi operativi, il team puo continuare accidentalmente a testare il path pubblico sbagliato, mascherando regressioni del proxy frontend.
 - **RISK-006**: Se il proxy frontend non inoltra `x-forwarded-for`, l'IP client registrato in sessione/audit sara quello interno Railway del frontend, rendendo inutilizzabile il tracciamento IP per sicurezza e diagnostica.

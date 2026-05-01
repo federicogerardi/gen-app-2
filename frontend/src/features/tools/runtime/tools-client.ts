@@ -208,6 +208,26 @@ export const runExtraction = async (
       },
     });
   } catch (error) {
+    // Recovery: if the stream dropped mid-transport (e.g. proxy restart, Railway disconnect)
+    // but we already received the `start` event, the backend may have completed and persisted
+    // the artifact. Attempt to fetch it before surfacing the error to the user.
+    // Not applied to `terminal_failed` (server explicitly reported failure) or errors
+    // without a known artifact ID (stream dropped before `start`).
+    if (
+      error instanceof GenerationTransportError &&
+      error.code === 'transport_mid_stream' &&
+      startedArtifactId
+    ) {
+      const recovered = await getExtractionArtifact(startedArtifactId, options).catch(() => null);
+      if (recovered?.content) {
+        return {
+          artifactId: recovered.artifactId,
+          content: recovered.content,
+          payload: parseJsonContent(recovered.content),
+        };
+      }
+    }
+
     if (error instanceof GenerationTransportError) {
       throw new Error(error.message);
     }

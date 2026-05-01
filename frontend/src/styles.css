@@ -1137,9 +1137,42 @@ button:disabled,
   gap: var(--space-micro);
 }
 
+.ui-tool-form-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 0.55fr);
+  gap: var(--space-1-5);
+  align-items: start;
+}
+
 .ui-tool-steps-container {
   display: grid;
   gap: var(--space-2);
+}
+
+.ui-tool-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.ui-tool-secondary-actions {
+  display: contents;
+}
+
+.ui-button-secondary {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: var(--border-subtle);
+  box-shadow: none;
+}
+
+.ui-button-secondary:hover {
+  background: var(--surface-steel);
+  color: var(--text-primary);
+  box-shadow: none;
+  transform: none;
 }
 
 .dashboard-grid,
@@ -1254,7 +1287,7 @@ ul {
   }
 
   .ui-tool-layout-grid {
-    grid-template-columns: minmax(340px, 0.95fr) minmax(440px, 1.2fr);
+    grid-template-columns: minmax(340px, 1.6fr) minmax(320px, 1fr);
     align-items: start;
   }
 

@@ -473,43 +473,33 @@ export const ToolPageTemplate = ({
             </header>
 
             <form className="ui-tool-form">
-              <label>
-                <span>Project</span>
-                <select
-                  value={formState.projectId}
-                  onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
-                  disabled={projectsLoading || generation.isStreamActive}
-                >
-                  <option value="">Select a project</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="ui-tool-form-row">
+                <label>
+                  <span>Project</span>
+                  <select
+                    value={formState.projectId}
+                    onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
+                    disabled={projectsLoading || generation.isStreamActive}
+                  >
+                    <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {projectsLoading ? <p className={uiPrimitives.metaLine}>Loading projects...</p> : null}
-
-              <label>
-                <span>Model</span>
-                <input
-                  type="text"
-                  value={formState.model}
-                  onChange={(e) => setFormState({ ...formState, model: e.target.value })}
-                  placeholder="e.g., openrouter/auto"
-                />
-              </label>
-
-              <label>
-                <span>Registry Snapshot</span>
-                <input
-                  type="text"
-                  value={formState.registrySnapshotRef}
-                  onChange={(e) => setFormState({ ...formState, registrySnapshotRef: e.target.value })}
-                  placeholder="e.g., snapshot:default"
-                />
-              </label>
+                <label>
+                  <span>Model</span>
+                  <input
+                    type="text"
+                    value={formState.model}
+                    onChange={(e) => setFormState({ ...formState, model: e.target.value })}
+                    placeholder="e.g., openrouter/auto"
+                  />
+                </label>
+              </div>
 
               <label>
                 <span>Briefing File</span>

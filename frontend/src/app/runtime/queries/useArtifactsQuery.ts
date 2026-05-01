@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listArtifacts,
@@ -33,6 +33,15 @@ export const useArtifactsQuery = (
     setReloadToken((prev) => prev + 1);
   }, []);
 
+  // Keep localArtifacts in a ref: it's only a fallback for the capability-disabled path
+  // and should NOT trigger a re-fetch when the stream pushes new in-memory artifacts.
+  const localArtifactsRef = useRef(options.localArtifacts);
+  localArtifactsRef.current = options.localArtifacts;
+
+  // Serialize filters so that inline object literals don't trigger the effect on every render.
+  const filtersKey = JSON.stringify(options.filters);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- filters are compared by value via filtersKey; localArtifacts is intentionally excluded (ref pattern)
   useEffect(() => {
     if (options.enabled === false) {
       setData([]);
@@ -49,7 +58,7 @@ export const useArtifactsQuery = (
         const artifacts = await listArtifacts(options.filters, {
           apiBaseUrl: options.apiBaseUrl,
           capabilities: options.capabilities,
-          localArtifacts: options.localArtifacts,
+          localArtifacts: localArtifactsRef.current,
         });
 
         if (cancelled) {
@@ -79,8 +88,7 @@ export const useArtifactsQuery = (
     options.apiBaseUrl,
     options.capabilities,
     options.enabled,
-    options.filters,
-    options.localArtifacts,
+    filtersKey,
     reloadToken,
   ]);
 

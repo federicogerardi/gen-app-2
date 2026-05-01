@@ -144,8 +144,6 @@ export const GenerationConsolePage = () => {
           onReset={generation.reset}
           canRetry={generation.snapshot.matches('failed')}
           canCancel={generation.isStreamActive}
-          canonicalState={canonicalState}
-          primaryActionPolicy={primaryActionPolicy}
         />
 
         <ArtifactHistoryPanel

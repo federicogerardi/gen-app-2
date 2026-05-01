@@ -24,13 +24,13 @@ interface ToolStepCardProps {
 const getStatusBadge = (status: StepStatus): { label: string; className: string } => {
   switch (status) {
     case 'idle':
-      return { label: 'Pending', className: 'ui-badge-idle' };
+      return { label: 'In attesa', className: 'ui-badge-idle' };
     case 'running':
-      return { label: 'Generating...', className: 'ui-badge-running' };
+      return { label: 'In generazione...', className: 'ui-badge-running' };
     case 'completed':
-      return { label: 'Done', className: 'ui-badge-completed' };
+      return { label: 'Completato', className: 'ui-badge-completed' };
     case 'error':
-      return { label: 'Error', className: 'ui-badge-error' };
+      return { label: 'Errore', className: 'ui-badge-error' };
   }
 };
 
@@ -62,8 +62,8 @@ export const ToolStepCard = ({
       {previewContent && (
         <div className="ui-tool-step-preview">
           <div className="ui-tool-step-preview-header">
-            <p className={uiPrimitives.metaLine}>Expected: {config.expectedOutputFormat}</p>
-            {isStreaming && <span className="ui-badge ui-badge-streaming">Streaming...</span>}
+            <p className={uiPrimitives.metaLine}>Formato: {config.expectedOutputFormat}</p>
+            {isStreaming && <span className="ui-badge ui-badge-streaming">Streaming</span>}
           </div>
           <div className="ui-tool-step-preview-content">
             {previewContent.slice(0, 500)}
@@ -78,13 +78,13 @@ export const ToolStepCard = ({
           <button
             className={uiPrimitives.button}
             onClick={onViewArtifact}
-            title="Open the full artifact"
+            title="Apri l'artefatto completo"
           >
-            View Artifact
+            Visualizza
           </button>
         )}
         {status === 'error' && (
-          <p className={uiPrimitives.error}>Generation failed for this step</p>
+          <p className={uiPrimitives.error}>Generazione non riuscita per questo step.</p>
         )}
       </div>
     </Surface>

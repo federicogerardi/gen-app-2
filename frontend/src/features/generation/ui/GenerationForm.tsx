@@ -20,7 +20,7 @@ import {
   type ToolCheckpoint,
 } from './tool-checkpoints';
 import type { ToolExtractionContext } from '../runtime/GenerationWorkspaceProvider';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type GenerationFormProps = {
@@ -356,8 +356,12 @@ export const GenerationForm = ({
 
       {selectedCheckpoint ? (
         <div>
-          <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.checkpointStatus, selectedCheckpoint.status)}</p>
-          <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extractionContext, selectedCheckpoint.extractionContextAvailable ? appCopy.ui.states.present : appCopy.ui.states.missing)}</p>
+          <p className={uiPrimitives.metaLine}>
+            Stato: {selectedCheckpoint.status}
+          </p>
+          <p className={uiPrimitives.metaLine}>
+            Brief: {selectedCheckpoint.extractionContextAvailable ? 'disponibile' : 'non disponibile'}
+          </p>
           <div className={uiPrimitives.actions}>
             <Button type="button" onClick={() => applyCheckpoint('resume')} disabled={disabled}>
               {appCopy.ui.actions.useCheckpointResume}
@@ -426,11 +430,8 @@ export const GenerationForm = ({
         {appCopy.ui.actions.processBriefing}
       </Button>
 
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.phase, phase)}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extraction, extractionLifecycle)}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, briefingFileName ?? '-')}</p>
-      {!toolsUploadEnabled ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.toolsUploadDisabled}</p> : null}
       {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
+      {!toolsUploadEnabled ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.toolsUploadDisabled}</p> : null}
 
       <label>
         {appCopy.ui.labels.artifactType}

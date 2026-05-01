@@ -15,6 +15,20 @@ import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
 
 type StatusItemStatus = 'todo' | 'active' | 'done' | 'error';
 
+const CANONICAL_STATE_LABEL: Record<string, string> = {
+  'draft-empty': 'In attesa di configurazione',
+  'processing-briefing': 'Elaborazione brief in corso',
+  'draft-ready': 'Pronto per avviare',
+  'prefilled-regenerate': 'Contesto caricato — pronto a rigenerare',
+  'paused-with-checkpoint': 'In pausa — riprendi dal checkpoint',
+  'resume-needs-briefing': 'Carica un brief per continuare',
+  'running': 'Generazione in corso',
+  'completed': 'Completato',
+};
+
+const toReadableState = (state: string): string =>
+  CANONICAL_STATE_LABEL[state] ?? state;
+
 interface StatusItem {
   label: string;
   status: StatusItemStatus;
@@ -60,28 +74,28 @@ export const ToolStatusCard = ({
   // Build status items based on canonical state
   const items: StatusItem[] = [
     {
-      label: 'Project',
+      label: 'Progetto',
       status: projectName ? 'done' : 'todo',
-      detail: projectName ?? 'Select a project',
+      detail: projectName ?? 'Seleziona un progetto',
     },
     {
-      label: 'Briefing',
+      label: 'Brief',
       status: briefingFileName
         ? 'done'
         : canonicalState === 'processing-briefing'
           ? 'active'
           : 'todo',
-      detail: briefingFileName ?? 'Upload briefing file',
+      detail: briefingFileName ?? 'Carica il documento di brief',
     },
     {
-      label: `Steps (${completedStepsCount}/${totalStepsCount})`,
+      label: `Step (${completedStepsCount}/${totalStepsCount})`,
       status: completedStepsCount === totalStepsCount ? 'done' : 'active',
       detail: canonicalState === 'completed'
-        ? 'All steps completed'
-        : `${totalStepsCount - completedStepsCount} remaining`,
+        ? 'Tutti gli step completati'
+        : `${totalStepsCount - completedStepsCount} rimanenti`,
     },
     {
-      label: 'Status',
+      label: 'Stato',
       status: canonicalState === 'running'
         ? 'active'
         : errorMessage
@@ -89,14 +103,14 @@ export const ToolStatusCard = ({
           : canonicalState === 'draft-ready'
             ? 'todo'
             : 'done',
-      detail: errorMessage ?? statusMessage ?? canonicalState,
+      detail: errorMessage ?? statusMessage ?? toReadableState(canonicalState),
     },
   ];
 
   return (
     <Surface className="ui-tool-status-card">
       <div className="ui-tool-status-header">
-        <h3>Generation Status</h3>
+        <h3>Stato della generazione</h3>
         {errorMessage && (
           <div className={uiPrimitives.error} role="alert">
             {errorMessage}

@@ -1,10 +1,6 @@
 import type { FrontendStreamStatus } from '../machines/frontend-stream.machine';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
-import type {
-  CanonicalToolUiState,
-  PrimaryActionPolicy,
-} from './tool-ux-state';
 
 type GenerationStreamPanelProps = {
   status: FrontendStreamStatus;
@@ -19,14 +15,20 @@ type GenerationStreamPanelProps = {
   onReset: () => void;
   canRetry: boolean;
   canCancel: boolean;
-  canonicalState: CanonicalToolUiState;
-  primaryActionPolicy: PrimaryActionPolicy;
+};
+
+const STREAM_STATUS_LABEL: Record<FrontendStreamStatus, string> = {
+  idle: 'In attesa',
+  connecting: 'Connessione in corso...',
+  streaming: 'Generazione in corso...',
+  completed: 'Completato',
+  failed: 'Si è verificato un errore',
+  reconnecting: 'Riconnessione in corso...',
 };
 
 export const GenerationStreamPanel = ({
   status,
   content,
-  requestId,
   artifactId,
   reconnectAttempts,
   errorCode,
@@ -36,20 +38,21 @@ export const GenerationStreamPanel = ({
   onReset,
   canRetry,
   canCancel,
-  canonicalState,
-  primaryActionPolicy,
 }: GenerationStreamPanelProps) => {
   return (
     <Surface as="section" className={cx(uiPrimitives.streamPanel, `is-${status}`)}>
       <h2>{appCopy.editorial.generation.streamTitle}</h2>
       <p className={uiPrimitives.statusLine}>
-        {appCopy.ui.meta.state}: <strong>{status}</strong>
+        <strong>{STREAM_STATUS_LABEL[status]}</strong>
       </p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.uiState, canonicalState)}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.primaryAction, primaryActionPolicy)}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.requestId, requestId ?? '-')}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifactId, artifactId ?? '-')}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.reconnectAttempts, reconnectAttempts)}</p>
+
+      {artifactId ? (
+        <p className={uiPrimitives.metaLine}>Artefatto: {artifactId}</p>
+      ) : null}
+
+      {reconnectAttempts > 0 ? (
+        <p className={uiPrimitives.metaLine}>Tentativi di riconnessione: {reconnectAttempts}</p>
+      ) : null}
 
       {errorMessage ? (
         <div className={uiPrimitives.error} role="alert">

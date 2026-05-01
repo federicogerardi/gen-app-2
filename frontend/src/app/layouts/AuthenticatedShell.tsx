@@ -29,7 +29,6 @@ export const AuthenticatedShell = () => {
         </div>
 
         <div className={uiPrimitives.authActions}>
-          <span className={uiPrimitives.runtimeBadge}>{appCopy.ui.badges.runtimeAsIs}</span>
           <ThemeToggleButton />
           <Button type="button" onClick={() => void auth.logout()}>
             {appCopy.ui.actions.logout}

@@ -130,7 +130,7 @@ const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
       </span>
       <span className="ui-fv-step-name">{step.displayName}</span>
       {step.status === 'running' && (
-        <span className="ui-fv-status-label">Running</span>
+        <span className="ui-fv-status-label">In esecuzione</span>
       )}
       {step.status === 'completed' && step.artifactId && onViewArtifact && (
         <button
@@ -138,11 +138,11 @@ const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
           className="ui-fv-step-action"
           onClick={() => onViewArtifact(step.artifactId!)}
         >
-          View
+          Visualizza
         </button>
       )}
       {step.status === 'error' && (
-        <span className="ui-fv-step-error-label">Error</span>
+        <span className="ui-fv-step-error-label">Errore</span>
       )}
     </li>
   );
@@ -186,9 +186,9 @@ export const ToolGenerationFlowVertical = ({
 
   const briefingActiveLabel =
     briefingStatus === 'uploading'
-      ? 'Uploading'
+      ? 'Caricamento'
       : briefingStatus === 'extracting'
-        ? 'Extracting'
+        ? 'Estrazione'
         : undefined;
 
   const progressPct = totalStepsCount > 0
@@ -212,22 +212,22 @@ export const ToolGenerationFlowVertical = ({
       {/* INPUT PHASE ───────────────────────────────────── */}
       {phase === 'input' && (
         <div className="ui-fv-section">
-          <Label>What</Label>
+          <Label>Requisiti</Label>
           <ul className="ui-fv-checklist">
             <ReqItem
               status={projectReqStatus}
-              text="Project"
+              text="Progetto"
               detail={projectName ?? undefined}
             />
             <ReqItem
               status={briefingReqStatus}
-              text="Briefing"
+              text="Brief"
               detail={briefingFileName ?? (briefingError ?? undefined)}
               activeLabel={briefingActiveLabel}
             />
             <ReqItem
               status={readyReqStatus}
-              text="Ready to generate"
+              text="Pronto per la generazione"
             />
           </ul>
         </div>
@@ -237,7 +237,7 @@ export const ToolGenerationFlowVertical = ({
       {phase === 'monitoring' && (
         <>
           <div className="ui-fv-section">
-            <Label>Progress</Label>
+            <Label>Avanzamento</Label>
             <div className="ui-fv-progress-wrap">
               <div className="ui-fv-progress-bar" role="progressbar"
                 aria-valuenow={completedStepsCount}
@@ -256,7 +256,7 @@ export const ToolGenerationFlowVertical = ({
           </div>
 
           <div className="ui-fv-section">
-            <Label>Steps</Label>
+            <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
                 <StepRow
@@ -274,12 +274,12 @@ export const ToolGenerationFlowVertical = ({
       {phase === 'completion' && (
         <>
           <div className="ui-fv-section">
-            <Label>Artifacts</Label>
+            <Label>Artefatti generati</Label>
             <span className="ui-fv-completion-count">{totalStepsCount}</span>
           </div>
 
           <div className="ui-fv-section">
-            <Label>Steps</Label>
+            <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
                 <StepRow

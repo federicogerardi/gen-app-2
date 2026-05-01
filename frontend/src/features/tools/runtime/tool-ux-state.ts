@@ -125,28 +125,28 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     canonicalState = 'paused-with-checkpoint';
     primaryActionPolicy = 'resume-checkpoint';
     errorMessage = input.generationError;
-    statusMessage = 'Generation paused due to error';
+    statusMessage = 'Generazione in pausa per un errore';
   }
 
   // 3. Handle briefing upload in progress
   else if (input.briefingStatus === 'uploading' || input.briefingStatus === 'extracting') {
     canonicalState = 'processing-briefing';
     primaryActionPolicy = 'disabled';
-    statusMessage = `Briefing ${input.briefingStatus}...`;
+    statusMessage = `Brief in ${input.briefingStatus === 'uploading' ? 'caricamento' : 'estrazione'}...`;
   }
 
   // 4. Handle completed workflow (no next step available)
   else if (input.nextAvailableStep === null && input.completedSteps.size > 0) {
     canonicalState = 'completed';
     primaryActionPolicy = 'open-last-artifact';
-    statusMessage = 'Generation workflow completed';
+    statusMessage = 'Tutti gli artefatti sono stati generati';
   }
 
   // 5. Handle resume from checkpoint
   else if (input.lastCheckpointStep && input.nextAvailableStep) {
     canonicalState = 'paused-with-checkpoint';
     primaryActionPolicy = 'resume-checkpoint';
-    statusMessage = `Can resume from: ${input.lastCheckpointStep}`;
+    statusMessage = `Puoi riprendere dallo step: ${input.lastCheckpointStep}`;
   }
 
   // 6. Handle form ready: project selected, briefing uploaded, next step available
@@ -157,7 +157,7 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
   ) {
     canonicalState = 'draft-ready';
     primaryActionPolicy = 'start-generation';
-    statusMessage = 'Ready to generate';
+    statusMessage = 'Pronto per la generazione';
   }
 
   // 7. Handle regeneration scenario (previous generation exists, can restart)
@@ -168,14 +168,14 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
   ) {
     canonicalState = 'prefilled-regenerate';
     primaryActionPolicy = 'regenerate-current-step';
-    statusMessage = 'Ready to regenerate with updated parameters';
+    statusMessage = 'Pronto per rigenerare con i nuovi parametri';
   }
 
   // 8. Default: form empty
   else {
     canonicalState = 'draft-empty';
     primaryActionPolicy = 'disabled';
-    statusMessage = 'Select project and upload briefing to begin';
+    statusMessage = 'Seleziona un progetto e carica un brief per iniziare';
   }
 
   // Derive secondary action flags
@@ -229,36 +229,36 @@ export const derivePrimaryActionLabel = (
   switch (policy) {
     case 'disabled':
       return {
-        label: 'Complete form to begin',
+        label: 'Completa il form per iniziare',
         disabled: true,
-        tooltip: 'Select a project and upload a briefing file',
+        tooltip: 'Seleziona un progetto e carica un documento di brief',
       };
 
     case 'start-generation':
       return {
-        label: 'Start Generation',
+        label: 'Avvia la generazione',
         disabled: false,
       };
 
     case 'resume-checkpoint':
       return {
-        label: 'Resume from Checkpoint',
+        label: 'Riprendi dal checkpoint',
         disabled: false,
-        tooltip: 'Continue from where generation was paused',
+        tooltip: 'Continua dal punto in cui la generazione è stata interrotta',
       };
 
     case 'open-last-artifact':
       return {
-        label: 'View Results',
+        label: 'Visualizza i risultati',
         disabled: false,
-        tooltip: 'Open the generated artifact',
+        tooltip: "Apri l'artefatto generato",
       };
 
     case 'regenerate-current-step':
       return {
-        label: 'Regenerate',
+        label: 'Rigenera',
         disabled: false,
-        tooltip: 'Regenerate with updated parameters',
+        tooltip: 'Rigenera con i nuovi parametri',
       };
   }
 };

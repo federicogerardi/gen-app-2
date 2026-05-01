@@ -40,7 +40,7 @@ export const ToolActionButtons = ({
         className={`ui-button-primary${isLoading ? ' is-loading' : ''}`}
         title={primaryLabel.tooltip}
       >
-        {isLoading ? 'Processing...' : primaryLabel.label}
+        {isLoading ? 'In elaborazione...' : primaryLabel.label}
       </Button>
 
       {/* Secondary actions */}
@@ -51,9 +51,9 @@ export const ToolActionButtons = ({
             onClick={onRetry}
             disabled={isLoading}
             className={uiPrimitives.button}
-            title="Retry the failed step"
+            title="Riprova questo step"
           >
-            Retry
+            Riprova
           </button>
         )}
 
@@ -63,9 +63,9 @@ export const ToolActionButtons = ({
             onClick={onSkipStep}
             disabled={isLoading}
             className={uiPrimitives.button}
-            title="Skip this step and move to next"
+            title="Salta allo step successivo"
           >
-            Skip Step
+            Salta step
           </button>
         )}
 
@@ -74,9 +74,9 @@ export const ToolActionButtons = ({
             type="button"
             onClick={onCancelGeneration}
             className={`${uiPrimitives.button} ui-button-secondary`}
-            title="Cancel ongoing generation"
+            title="Interrompi la generazione in corso"
           >
-            Cancel
+            Annulla
           </button>
         )}
 
@@ -86,9 +86,9 @@ export const ToolActionButtons = ({
             onClick={onOpenPreviousArtifact}
             disabled={isLoading}
             className={uiPrimitives.button}
-            title="View previous generated artifact"
+            title="Visualizza il risultato dello step precedente"
           >
-            Previous Artifact
+            Artefatto precedente
           </button>
         )}
       </div>

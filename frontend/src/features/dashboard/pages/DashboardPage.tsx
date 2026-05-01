@@ -7,6 +7,7 @@ export const DashboardPage = () => {
   const generation = useGenerationWorkspace();
   const recentArtifacts = generation.artifacts.slice(0, 5);
   const artifactCount = generation.artifacts.length;
+  const completedCount = generation.artifacts.filter((a) => a.status === 'completed').length;
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
@@ -24,7 +25,7 @@ export const DashboardPage = () => {
           <p>{appCopy.editorial.dashboard.stats[1]}</p>
         </div>
         <div>
-          <h3>As-is</h3>
+          <h3>{completedCount}</h3>
           <p>{appCopy.editorial.dashboard.stats[2]}</p>
         </div>
       </TopBar>
@@ -54,7 +55,7 @@ export const DashboardPage = () => {
               {recentArtifacts.map((artifact) => (
                 <li key={artifact.artifactId}>
                   <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>
-                    {artifact.artifactType} | {artifact.status} | {artifact.projectId}
+                    {artifact.artifactType} · {new Date(artifact.updatedAt).toLocaleDateString('it-IT')}
                   </Link>
                 </li>
               ))}

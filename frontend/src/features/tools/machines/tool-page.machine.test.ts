@@ -62,7 +62,8 @@ const syncCanStartFlow = (actor: ReturnType<typeof createToolPageActor>, canStar
     intent: 'new',
     sourceArtifact: null,
     runRequestPrefix: null,
-    canStartFlow,
+    hasExtractionContext: canStartFlow,
+    hasPrimaryTargetStep: canStartFlow,
   });
 };
 
@@ -231,7 +232,8 @@ describe('toolPageMachine', () => {
       intent: 'regenerate',
       sourceArtifact,
       runRequestPrefix: null,
-      canStartFlow: true,
+      hasExtractionContext: true,
+      hasPrimaryTargetStep: true,
     });
 
     const progress = actor.getSnapshot().context.progress;
@@ -306,12 +308,44 @@ describe('toolPageMachine', () => {
       intent: 'new',
       sourceArtifact,
       runRequestPrefix: null,
-      canStartFlow: true,
+      hasExtractionContext: true,
+      hasPrimaryTargetStep: true,
     });
 
     const progress = actor.getSnapshot().context.progress;
     expect([...progress.completedSteps]).toEqual([]);
     expect(progress.lastCheckpointStep).toBeNull();
     expect(progress.latestArtifactByStep).toEqual({});
+  });
+
+  it('computes structured readiness reason codes from PROGRESS_SYNCED signals', () => {
+    const actor = createToolPageActor();
+
+    actor.send({
+      type: 'PROJECT_SELECTED',
+      projectId: '',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+      hasExtractionContext: false,
+      hasPrimaryTargetStep: false,
+    });
+
+    expect(actor.getSnapshot().context.readiness).toEqual({
+      canStartFlow: false,
+      hasProject: false,
+      hasExtractionContext: false,
+      hasPrimaryTargetStep: false,
+      reasonCodes: [
+        'missing_project',
+        'missing_extraction_context',
+        'missing_primary_target_step',
+      ],
+    });
   });
 });

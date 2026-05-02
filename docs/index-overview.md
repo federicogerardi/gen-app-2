@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 2.0
+version: 2.1
 last-reviewed: 2026-05-02
 next-review-date: 2026-08-02
 owner: Documentation Archivist
@@ -10,7 +10,7 @@ owner: Documentation Archivist
 
 Data: 2026-05-02
 Stato: active
-Versione indice: 2.0
+Versione indice: 2.1
 
 Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezioni stabili, priorita esplicite.
 
@@ -107,7 +107,9 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
 - Piano refactor frontend XState archiviato: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) con chiusura definitiva e verifica E2E GO.
 - Blueprint as-is XState aggiornato al delta refactor frontend 2026-05-02: sincronizzazione input actor briefing, recovery extraction persistita e verifica strict no-unused nel frontend.
-- **Issue aperta frontend tools**: recovery checkpoint non ancora stabile; in alcuni rientri il form resta su `Completa il form per iniziare` e non raggiunge `Pronto per la generazione`.
+- **Issue frontend tools chiusa (2026-05-02)**: recovery checkpoint ripristinato e stabilizzato; smoke test tools confermato `OK` con ripresa generazione da checkpoint.
+- Hardening readiness `toolPageMachine`: snapshot strutturato nel contesto macchina con `reasonCodes` (`missing_project`, `missing_extraction_context`, `missing_primary_target_step`) e consumo UI deterministico nel blocco `Pronto per la generazione`.
+- Recovery extraction legacy-safe: matcher compatibile con artifact storici privi di `sourceRequest.input.toolKey`.
 
 ## Governance Rules Applied
 

@@ -367,10 +367,10 @@ interface ToolGenerationFlowProps {
 - [ ] Customizable phase labels per tool
 - [ ] Export/share generation progress
 - [ ] Undo/redo per step
-- [ ] Checkpoint recovery UI
+- [x] Checkpoint recovery UI (stabilizzazione readiness + compatibilità artifact legacy)
 
 ---
 
-**Last Updated**: 2026-04-29
+**Last Updated**: 2026-05-02
 **Status**: Active
-**Next Review**: 2026-05-29
+**Next Review**: 2026-06-02

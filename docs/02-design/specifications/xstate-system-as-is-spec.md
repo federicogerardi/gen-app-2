@@ -1,9 +1,17 @@
 # XState System As-Is Blueprint Index
 
-Versione: 2.5
+Versione: 2.6
 Data: 2026-05-02
 
 Indice compatto del blueprint atomizzato.
+
+Nota aggiornamento 2.6 (stabilizzazione checkpoint recovery frontend tools):
+
+- readiness flow frontend centralizzata in `toolPageMachine` con snapshot strutturato (`canStartFlow`, `reasonCodes`) usato come source of truth per guard di avvio
+- reason codes as-is esposti: `missing_project`, `missing_extraction_context`, `missing_primary_target_step`
+- feedback UI as-is nel blocco `Pronto per la generazione` derivato dai reason codes macchina (senza logica duplicata nel template)
+- recovery extraction compatibile con artifact legacy privi di `sourceRequest.input.toolKey`
+- smoke test tool checkpoint recovery: `OK` (ripresa generazione da checkpoint confermata)
 
 Nota aggiornamento 2.5 (as-is post-refactor frontend XState scope tools/auth/workspace):
 

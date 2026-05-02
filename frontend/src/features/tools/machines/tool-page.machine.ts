@@ -17,6 +17,48 @@ export type ToolPageProgressState = {
   lastCheckpointStep: ToolStep | null;
 };
 
+export type ToolPageReadinessReasonCode =
+  | 'missing_project'
+  | 'missing_extraction_context'
+  | 'missing_primary_target_step';
+
+export type ToolPageReadinessSnapshot = {
+  canStartFlow: boolean;
+  hasProject: boolean;
+  hasExtractionContext: boolean;
+  hasPrimaryTargetStep: boolean;
+  reasonCodes: ToolPageReadinessReasonCode[];
+};
+
+const buildReadinessSnapshot = (
+  projectId: string,
+  hasExtractionContext: boolean,
+  hasPrimaryTargetStep: boolean,
+): ToolPageReadinessSnapshot => {
+  const hasProject = projectId.trim().length > 0;
+  const reasonCodes: ToolPageReadinessReasonCode[] = [];
+
+  if (!hasProject) {
+    reasonCodes.push('missing_project');
+  }
+
+  if (!hasExtractionContext) {
+    reasonCodes.push('missing_extraction_context');
+  }
+
+  if (!hasPrimaryTargetStep) {
+    reasonCodes.push('missing_primary_target_step');
+  }
+
+  return {
+    canStartFlow: reasonCodes.length === 0,
+    hasProject,
+    hasExtractionContext,
+    hasPrimaryTargetStep,
+    reasonCodes,
+  };
+};
+
 const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
   const step = artifact?.sourceRequest.input?.step;
   return typeof step === 'string' ? step as ToolStep : null;
@@ -201,8 +243,8 @@ export type ToolPageContext = {
   stepArtifactIds: Partial<Record<ToolStep, string>>;
   generationError: string | null;
   progress: ToolPageProgressState;
+  readiness: ToolPageReadinessSnapshot;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
-  canStartFlow: boolean;
 };
 
 type ToolPageInput = {
@@ -234,7 +276,8 @@ export type ToolPageEvent =
     intent: 'new' | 'resume' | 'regenerate';
     sourceArtifact: GenerationArtifact | null;
     runRequestPrefix: string | null;
-    canStartFlow: boolean;
+    hasExtractionContext: boolean;
+    hasPrimaryTargetStep: boolean;
   }
   | { type: 'RESET' }
   | { type: 'INTERNAL_CANCELLED' };
@@ -251,7 +294,7 @@ export const toolPageMachine = setup({
   },
   guards: {
     canStartGeneration: ({ context }) => {
-      return context.canStartFlow;
+      return context.readiness.canStartFlow;
     },
   },
   actions: {
@@ -280,6 +323,11 @@ export const toolPageMachine = setup({
       generationError: () => null,
       stepArtifactIds: () => ({}),
       briefingActorRef: () => null,
+      readiness: ({ event, context }) => buildReadinessSnapshot(
+        event.type === 'PROJECT_SELECTED' ? event.projectId : context.projectId,
+        false,
+        false,
+      ),
     }),
     setModel: assign({
       model: ({ event, context }) => (event.type === 'MODEL_CHANGED' ? event.model : context.model),
@@ -314,12 +362,16 @@ export const toolPageMachine = setup({
           event.runRequestPrefix,
         );
       },
-      canStartFlow: ({ context, event }) => {
+      readiness: ({ context, event }) => {
         if (event.type !== 'PROGRESS_SYNCED') {
-          return context.canStartFlow;
+          return context.readiness;
         }
 
-        return event.canStartFlow;
+        return buildReadinessSnapshot(
+          context.projectId,
+          event.hasExtractionContext,
+          event.hasPrimaryTargetStep,
+        );
       },
     }),
     queueStepStart: assign({
@@ -350,8 +402,8 @@ export const toolPageMachine = setup({
         latestArtifactByStep: {},
         lastCheckpointStep: null,
       },
+      readiness: buildReadinessSnapshot(context.projectId, false, false),
       pendingStepStart: null,
-      canStartFlow: false,
     })),
     sendBriefingSelected: sendTo(
       'briefingActor',
@@ -390,8 +442,8 @@ export const toolPageMachine = setup({
       latestArtifactByStep: {},
       lastCheckpointStep: null,
     },
+    readiness: buildReadinessSnapshot(input.projectId, false, false),
     pendingStepStart: null,
-    canStartFlow: false,
   }),
   on: {
     PROGRESS_SYNCED: {

@@ -568,4 +568,81 @@ describe('ToolPageTemplate restore flow', () => {
       .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
     expect(regenerateSteps).toContain('vsl');
   });
+
+  it('recovers checkpoint from legacy extraction artifact without input.toolKey', async () => {
+    extractionContextState = null;
+    briefingState.fileName = null;
+    briefingState.status = 'idle';
+    briefingState.extractionContext = null;
+
+    generationState.artifacts = [
+      {
+        artifactId: 'source-legacy-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: {
+            briefingId: 'brief-legacy-001',
+            extractionArtifactId: 'extract-legacy-001',
+            briefingFileName: 'legacy-brief.md',
+            step: 'optin',
+          },
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+        },
+        content: 'optin content',
+      },
+      {
+        artifactId: 'extract-legacy-001',
+        requestId: 'req-extract-legacy-001',
+        projectId: 'project-001',
+        artifactType: 'extraction',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'extraction',
+        workflowType: 'extraction',
+        content: '{"summary":"legacy extraction"}',
+        createdAt: '2026-05-02T10:00:00.000Z',
+        updatedAt: '2026-05-02T10:00:01.000Z',
+        sourceRequest: {
+          requestId: 'req-extract-legacy-001',
+          userId: 'seed-user-001',
+          projectId: 'project-001',
+          artifactType: 'extraction',
+          model: 'openrouter/auto',
+          toolKey: 'extraction',
+          workflowType: 'extraction',
+          input: {
+            briefingId: 'brief-legacy-001',
+            // legacy: input.toolKey intentionally missing
+          },
+        },
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['quiz'];
+
+    renderTemplate({
+      intent: 'resume',
+      sourceArtifactId: 'source-legacy-001',
+      initialProjectId: 'project-001',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /riprendi dal checkpoint/i })).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/briefing status:\s*ready\s*- legacy-brief.md/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /riprendi dal checkpoint/i }));
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalled();
+    });
+
+    const resumeSteps = startMock.mock.calls
+      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
+    expect(resumeSteps).toContain('quiz');
+  });
 });

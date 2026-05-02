@@ -4,6 +4,10 @@ import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
 type StepStatus = 'idle' | 'running' | 'completed' | 'error';
 type ReqStatus = 'todo' | 'active' | 'done' | 'error';
+type ReadinessReasonCode =
+  | 'missing_project'
+  | 'missing_extraction_context'
+  | 'missing_primary_target_step';
 
 export interface FlowStepProgress {
   step: ToolStep;
@@ -22,6 +26,7 @@ export interface ToolGenerationFlowVerticalProps {
   projectName: string | null;
   briefingFileName: string | null;
   briefingStatus: BriefingStatus;
+  readinessReasonCodes: ReadonlyArray<ReadinessReasonCode>;
   briefingError: string | null;
   steps: FlowStepProgress[];
   currentRunningStep: ToolStep | null;
@@ -155,6 +160,7 @@ export const ToolGenerationFlowVertical = ({
   projectName,
   briefingFileName,
   briefingStatus,
+  readinessReasonCodes,
   briefingError,
   steps,
   completedStepsCount,
@@ -177,12 +183,38 @@ export const ToolGenerationFlowVertical = ({
         ? 'done'
         : 'todo';
 
-  const readyReqStatus: ReqStatus =
-    canonicalState === 'draft-ready' || canonicalState === 'prefilled-regenerate'
-      ? 'done'
-      : briefingReqStatus === 'done' && projectReqStatus === 'done'
-        ? 'active'
-        : 'todo';
+  const reasonSet = new Set(readinessReasonCodes);
+
+  const readyReqStatus: ReqStatus = (() => {
+    if (readinessReasonCodes.length === 0) {
+      return 'done';
+    }
+
+    if (
+      readinessReasonCodes.length === 1
+      && reasonSet.has('missing_primary_target_step')
+    ) {
+      return 'active';
+    }
+
+    return 'todo';
+  })();
+
+  const readinessDetail = (() => {
+    if (reasonSet.has('missing_project')) {
+      return 'Seleziona un progetto';
+    }
+
+    if (reasonSet.has('missing_extraction_context')) {
+      return 'Carica o recupera un brief';
+    }
+
+    if (reasonSet.has('missing_primary_target_step')) {
+      return 'In attesa dello step disponibile';
+    }
+
+    return undefined;
+  })();
 
   const briefingActiveLabel =
     briefingStatus === 'uploading'
@@ -228,6 +260,8 @@ export const ToolGenerationFlowVertical = ({
             <ReqItem
               status={readyReqStatus}
               text="Pronto per la generazione"
+              detail={readinessDetail}
+              activeLabel={readyReqStatus === 'active' ? 'In attesa' : undefined}
             />
           </ul>
         </div>

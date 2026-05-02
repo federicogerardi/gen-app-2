@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 1.0
+version: 1.1
 last-reviewed: 2026-05-02
 next-review-date: 2026-08-02
 owner: Frontend Platform Team
@@ -37,14 +37,16 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 5. Coerenza action flow e CTA dopo restore checkpoint:
 - completata la gestione policy primaria (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`).
 - avvio step orchestrato via comando macchina (`REQUEST_STEP_START`) con dispatch side effect su pending command.
-- **bug ancora aperto (2026-05-02)**: nel recovery checkpoint alcuni flussi frontend restano in stato non pronto (`Completa il form per iniziare`) anche con progetto selezionato e brief estratto recuperato.
+- hardening readiness centralizzato in `toolPageMachine`: snapshot strutturato nel contesto con reason codes (`missing_project`, `missing_extraction_context`, `missing_primary_target_step`).
+- recovery checkpoint extraction reso legacy-safe: matcher compatibile con artifact storici privi di `sourceRequest.input.toolKey`.
+- UI `ToolGenerationFlowVertical` allineata a reason codes macchina per feedback deterministico del requisito `Pronto per la generazione`.
 
-## Known Open Issue
+## Known Issue Status
 
 - **Tool checkpoint recovery readiness (frontend)**
-	- Stato: `open`
-	- Impatto: CTA primaria disabilitata e colonna destra non passa a `Pronto per la generazione` in specifici rientri da artifact/history.
-	- Nota: ad oggi non si registra cambiamento funzionale percepibile nel comportamento di recovery checkpoint rispetto alla segnalazione utente.
+	- Stato: `closed` (2026-05-02)
+	- Esito: funzionalità di generazione da checkpoint ripristinata; CTA primaria e colonna destra convergono correttamente a stato pronto nei rientri validi da artifact/history.
+	- Verifica: smoke test tools `OK` e suite test frontend aggiornata con casi di regressione su recovery legacy.
 
 ## Documentation Updated In This Delta
 
@@ -60,6 +62,7 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 - `npx tsc -p frontend/tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters` -> pass
 - `npm --prefix frontend run test -- src/features/tools/runtime/useToolForm.test.tsx src/features/tools/machines/briefing-upload.machine.test.ts` -> pass
 - `npm --prefix frontend run test -- ToolPageTemplate.test.tsx src/features/tools/machines/tool-page.machine.test.ts` -> pass
+- `npm --prefix frontend run test -- src/features/tools/ui/ToolGenerationFlowVertical.test.tsx src/features/tools/ui/ToolPageTemplate.test.tsx` -> pass
 - smoke test manuale tools pipeline -> GO
 
 ## References

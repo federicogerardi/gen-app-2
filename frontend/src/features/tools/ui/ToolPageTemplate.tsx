@@ -54,6 +54,24 @@ const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null 
   return typeof step === 'string' ? step as ToolStep : null;
 };
 
+const isExtractionArtifactCompatibleWithTool = (
+  artifact: GenerationArtifact,
+  toolKey: SupportedTool,
+): boolean => {
+  const rawTool = artifact.sourceRequest.input?.toolKey;
+  if (typeof rawTool !== 'string') {
+    // Legacy artifacts may miss toolKey in extraction input.
+    return true;
+  }
+
+  const normalized = rawTool.trim();
+  if (!normalized) {
+    return true;
+  }
+
+  return normalized === toolKey;
+};
+
 const randomId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -329,8 +347,8 @@ export const ToolPageTemplate = ({
       const recoveredArtifact = artifacts
         .filter((artifact) => {
           const artifactBriefingId = artifact.sourceRequest.input?.briefingId;
-          const artifactToolKey = artifact.sourceRequest.input?.toolKey;
-          return artifactBriefingId === briefingIdFromActor && artifactToolKey === toolKey;
+          return artifactBriefingId === briefingIdFromActor
+            && isExtractionArtifactCompatibleWithTool(artifact, toolKey);
         })
         .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
 
@@ -397,7 +415,13 @@ export const ToolPageTemplate = ({
       return;
     }
 
-    const shouldRecover = Boolean(resolvedBriefingId || sourceExtractionArtifactId || sourceArtifactId);
+    // Also trigger for intent='resume' when no explicit artifact pointers are provided:
+    // the user may navigate back to the tool without passing sourceArtifactId/briefingId,
+    // but completed artifacts in the DB still imply a recoverable extraction context.
+    const shouldRecover = Boolean(
+      resolvedBriefingId || sourceExtractionArtifactId || sourceArtifactId
+      || (intent === 'resume' && normalizedProjectId),
+    );
     if (!shouldRecover) {
       return;
     }
@@ -429,10 +453,7 @@ export const ToolPageTemplate = ({
         }
 
         const recoveredArtifact = artifacts
-          .filter((artifact) => {
-            const artifactToolKey = artifact.sourceRequest.input?.toolKey;
-            return artifactToolKey === toolKey;
-          })
+          .filter((artifact) => isExtractionArtifactCompatibleWithTool(artifact, toolKey))
           .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
           .sort((left, right) => {
             const leftIsSourceExtraction = sourceExtractionArtifactId && left.artifactId === sourceExtractionArtifactId ? 1 : 0;
@@ -524,6 +545,7 @@ export const ToolPageTemplate = ({
     sourceArtifact,
     toolKey,
     toolPageSnapshot.context.briefingActorRef,
+    intent,
   ]);
 
   useEffect(() => {
@@ -556,6 +578,7 @@ export const ToolPageTemplate = ({
     ?? null;
 
   const progressState = toolPageSnapshot.context.progress;
+  const readinessSnapshot = toolPageSnapshot.context.readiness;
 
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
@@ -649,11 +672,8 @@ export const ToolPageTemplate = ({
     return null;
   }, [nextAvailableStep, pausedCheckpointStep, sourceStep, uiState.primaryActionPolicy]);
 
-  const canStartFlow = Boolean(
-    normalizedProjectId
-    && extractionContext
-    && primaryTargetStep,
-  );
+  const hasExtractionContext = Boolean(extractionContext);
+  const hasPrimaryTargetStep = Boolean(primaryTargetStep);
 
   // 8. Sync progress into toolPageMachine context and consume a single selector.
   useEffect(() => {
@@ -663,9 +683,10 @@ export const ToolPageTemplate = ({
       intent,
       sourceArtifact,
       runRequestPrefix: currentRunPrefixRef.current,
-      canStartFlow,
+      hasExtractionContext,
+      hasPrimaryTargetStep,
     });
-  }, [allArtifacts, canStartFlow, intent, sourceArtifact, toolPageSend]);
+  }, [allArtifacts, hasExtractionContext, hasPrimaryTargetStep, intent, sourceArtifact, toolPageSend]);
 
   // 10. Build project and step lists
   const currentProject = projects.find((p) => p.id === formState.projectId);
@@ -684,7 +705,8 @@ export const ToolPageTemplate = ({
       intent,
       sourceArtifact,
       runRequestPrefix: runPrefix,
-      canStartFlow: true,
+      hasExtractionContext: true,
+      hasPrimaryTargetStep: true,
     });
 
     const baseRequest: GenerationRequest = {
@@ -750,6 +772,10 @@ export const ToolPageTemplate = ({
       return;
     }
 
+    if (!readinessSnapshot.canStartFlow) {
+      return;
+    }
+
     const targetStep = primaryTargetStep;
 
     if (!targetStep) {
@@ -777,7 +803,8 @@ export const ToolPageTemplate = ({
       intent,
       sourceArtifact,
       runRequestPrefix: null,
-      canStartFlow: false,
+      hasExtractionContext: false,
+      hasPrimaryTargetStep: false,
     });
     toolPageSend({ type: 'CANCEL_GENERATION' });
     generation.cancel();
@@ -922,6 +949,7 @@ export const ToolPageTemplate = ({
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
               briefingStatus={effectiveBriefingStatus}
+              readinessReasonCodes={readinessSnapshot.reasonCodes}
               briefingError={briefingError}
               steps={toolConfig.steps.map((step) => ({
                 step,

@@ -290,3 +290,33 @@ Motivazione:
 - stream e persistence devono essere separati prima di aggiungere nuovi tool;
 - extraction e workflow parametrico si innestano piu facilmente sopra un backbone actor gia stabile.
 
+## 14.8 Frontend Tool Orchestration As-Is (Delta 2026-05-02)
+
+Questa sezione formalizza il comportamento as-is del perimetro frontend introdotto/chiuso dal refactor XState tools.
+
+### 14.8.1 Eventi Frontend Aggiunti (briefing upload actor)
+
+- `INPUT_SYNCED`
+- `EXTRACTION_RECOVERED`
+
+Semantica:
+
+- `INPUT_SYNCED` aggiorna il context del child actor briefing quando i parametri runtime (`projectId`, `userId`, capability/auth context) cambiano dopo il mount React.
+- `EXTRACTION_RECOVERED` chiude esplicitamente la transizione `extracting -> ready` quando e disponibile un artifact extraction persistito coerente con progetto+briefing.
+
+### 14.8.2 Invarianti Frontend As-Is
+
+- Il context actor briefing non deve rimanere stale rispetto al progetto corrente selezionato nella pagina tool.
+- Un artifact extraction persistito valido deve essere sufficiente per convergere allo stato UI `ready` anche in caso di stream non terminale osservabile dal client.
+- Il reset del sottoflusso briefing deve essere deterministico su cambio progetto per evitare riuso involontario di contesto cross-project.
+
+### 14.8.3 Convergenza UI Richiesta
+
+Per ogni run tools:
+
+1. `uploading`
+2. `extracting`
+3. `ready` (diretto via `onDone` oppure via `EXTRACTION_RECOVERED`)
+
+La pagina tool non deve rimanere in pending infinito su `extracting` quando l'artifact extraction e gia stato salvato e recuperabile.
+

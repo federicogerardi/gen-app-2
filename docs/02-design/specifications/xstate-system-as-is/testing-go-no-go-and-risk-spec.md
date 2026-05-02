@@ -128,3 +128,19 @@ Questa sezione formalizza i casi minimi bloccanti aggiunti in Phase 4 per coprir
 
 Nota: warning SSL `pg-connection-string` osservato nei smoke test, non bloccante per GO corrente ma da normalizzare nel cutover finale.
 
+## 18.5 Evidenza As-Is Post-Refactor Frontend (2026-05-02)
+
+Perimetro validato: refactor frontend XState su tools/auth/workspace con fix di convergenza extraction->ready.
+
+Evidenze operative:
+
+- smoke test frontend tools completato fino all'ultimo artifact: esito `GO`
+- typecheck frontend (`npm --prefix frontend run typecheck`): pass
+- check strict unused (`npx tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters`): pass
+- test regressione mirati briefing/recovery (`briefing-upload.machine.test.ts`, `useToolForm.test.tsx`): pass
+
+Conferme di rischio chiuse nel perimetro:
+
+- chiuso rischio input actor stale post-mount (`INPUT_SYNCED`)
+- chiuso rischio stallo UI in `extracting` con artifact gia persistito (`EXTRACTION_RECOVERED`)
+

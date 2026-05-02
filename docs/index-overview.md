@@ -71,6 +71,10 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 - [repository-publication-cleanup-1](../plan/repository-publication-cleanup-1.md) - planned
 
+### Development Changelog
+
+- [frontend-xstate-refactor-as-is-changelog-2026-05-02](./03-development/frontend-xstate-refactor-as-is-changelog-2026-05-02.md)
+
 ### Frontend Supporting Docs
 
 - [debug-streaming](../frontend/DEBUG-STREAMING.md)
@@ -102,6 +106,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) aggiornato a rev 2.1 con Variant B, logging proxy, timeout SSE, rollback cross-origin, rischi residui.
 - Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
 - Piano refactor frontend XState archiviato: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) con chiusura definitiva e verifica E2E GO.
+- Blueprint as-is XState aggiornato al delta refactor frontend 2026-05-02: sincronizzazione input actor briefing, recovery extraction persistita e verifica strict no-unused nel frontend.
 
 ## Governance Rules Applied
 

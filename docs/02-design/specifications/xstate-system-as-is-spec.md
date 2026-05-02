@@ -1,9 +1,16 @@
 # XState System As-Is Blueprint Index
 
-Versione: 2.4
-Data: 2026-04-24
+Versione: 2.5
+Data: 2026-05-02
 
 Indice compatto del blueprint atomizzato.
+
+Nota aggiornamento 2.5 (as-is post-refactor frontend XState scope tools/auth/workspace):
+
+- flusso frontend briefing upload/extraction stabilizzato con sincronizzazione input actor (`INPUT_SYNCED`) in caso di variazione `projectId`/sessione dopo mount
+- recovery deterministico dello stato frontend `extracting` tramite artifact extraction persistito (`EXTRACTION_RECOVERED`) con convergenza a stato `ready`
+- pipeline UI as-is verificata end-to-end fino all'ultimo artifact (`GO` smoke 2026-05-02)
+- hygiene as-is frontend: check strict TypeScript `noUnusedLocals/noUnusedParameters` passato nel workspace frontend
 
 Nota aggiornamento 2.4 (allineamento as-is post-fix orchestration + SSE):
 

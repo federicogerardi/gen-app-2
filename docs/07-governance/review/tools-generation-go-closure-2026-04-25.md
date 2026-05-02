@@ -114,3 +114,18 @@ Evidenze di regressione post-fix:
 Riferimento operativo:
 
 - `docs/99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-go-checklist-snapshot-2026-04-24.md` (snapshot pre-publish di riferimento).
+
+## 9. Delta As-Is Post-Refactor Frontend XState (2026-05-02)
+
+Aggiornamento operativo successivo al piano `refactor-xstate-frontend-machines-1` completato.
+
+Esiti confermati:
+
+- smoke test tools completato fino all'ultimo artifact (GO)
+- convergenza stabile `extracting -> ready` anche in presenza di artifact extraction gia persistito
+- sincronizzazione input actor briefing su variazioni runtime (`projectId`/session)
+- cleanup dead code frontend verificato con check strict TypeScript (`noUnusedLocals`/`noUnusedParameters`)
+
+Conseguenza documentale:
+
+- blueprint as-is e specifiche testing/risk aggiornate al delta 2026-05-02 per riflettere lo stato reale del sistema frontend.

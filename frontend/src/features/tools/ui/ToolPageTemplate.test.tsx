@@ -5,6 +5,90 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
+// Phase 4: briefingUploadMachine mockato per partire in 'ready' con contesto estrazione.
+// Consente a deriveHasExtractionContext di restituire true dal primo render,
+// e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
+vi.mock('../machines/briefing-upload.machine', async () => {
+  const { setup } = await import('xstate');
+  const briefingUploadMachine = setup({
+    types: {
+      context: {} as {
+        projectId: string;
+        toolKey: string;
+        apiBaseUrl: string;
+        capabilities: Record<string, unknown>;
+        userId: string | null;
+        file: File | null;
+        fileName: string | null;
+        briefingId: string | null;
+        extractionArtifactId: string | null;
+        extractionPayload: Record<string, unknown> | null;
+        normalizedText: string | null;
+        parsedFormat: string | null;
+        error: string | null;
+      },
+      events: {} as
+        | { type: 'FILE_SELECTED'; file: File }
+        | { type: 'RESET' }
+        | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
+        | { type: 'EXTRACTION_RECOVERED'; artifactId: string; payload: Record<string, unknown>; briefingId?: string | null; fileName?: string | null },
+      input: {} as {
+        toolKey: string;
+        projectId: string;
+        apiBaseUrl: string;
+        capabilities: Record<string, unknown>;
+        userId: string | null;
+      },
+    },
+  }).createMachine({
+    id: 'briefingUploadMachine',
+    // Parte in 'ready' con contesto estrazione pre-popolato.
+    // Serve al fallback briefingSnapshot.context in startGenerationStep.
+    // fileName: null → effectiveBriefingFileName scende alla prop/sourceArtifact fallback.
+    context: () => ({
+      projectId: 'project-001',
+      toolKey: 'funnel-pages',
+      apiBaseUrl: '',
+      capabilities: {},
+      userId: 'seed-user-001',
+      file: null,
+      fileName: null,
+      briefingId: 'brief-001',
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+      error: null,
+    }),
+    initial: 'ready',
+    states: {
+      idle: {
+        on: {
+          FILE_SELECTED: { target: 'ready' },
+          RESET: { target: 'idle' },
+          INPUT_SYNCED: { target: 'idle' },
+          EXTRACTION_RECOVERED: { target: 'ready' },
+        },
+      },
+      ready: {
+        on: {
+          RESET: { target: 'idle' },
+          INPUT_SYNCED: { target: 'ready' },
+          EXTRACTION_RECOVERED: { target: 'ready' },
+        },
+      },
+    },
+  });
+  return { briefingUploadMachine };
+});
+
+// Phase 4: la hydration avviene in macchina via artifacts-client locale.
+// Con capabilities={} il client usa sempre localArtifacts → nessuna rete.
+vi.mock('../../artifacts/runtime/artifacts-client', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../artifacts/runtime/artifacts-client')>();
+  return original;
+});
+
 const startMock = vi.fn();
 
 type MockExtractionContext = {
@@ -26,6 +110,32 @@ const makeExtractionContext = (): MockExtractionContext => ({
   parsedFormat: 'md',
   updatedAt: new Date().toISOString(),
 });
+
+// Extraction artifact presente in generationState.artifacts per i wiring test.
+// La macchina lo trova via localArtifacts (nessuna rete con capabilities={}).
+const defaultExtractionArtifact = {
+  artifactId: 'artifact-extract-001',
+  requestId: 'req-extract-001',
+  projectId: 'project-001',
+  artifactType: 'extraction' as const,
+  status: 'completed' as const,
+  model: 'openrouter/auto',
+  toolKey: 'funnel-pages',
+  workflowType: 'funnel-pages',
+  content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
+  sourceRequest: {
+    requestId: 'req-extract-001',
+    userId: 'seed-user-001',
+    projectId: 'project-001',
+    artifactType: 'extraction' as const,
+    model: 'openrouter/auto',
+    toolKey: 'funnel-pages',
+    workflowType: 'funnel-pages',
+    input: { briefingId: 'brief-001', toolKey: 'funnel-pages' },
+  },
+} satisfies GenerationArtifact;
 
 const briefingState = {
   file: null as File | null,
@@ -164,7 +274,7 @@ describe('ToolPageTemplate wiring', () => {
     startMock.mockReset();
     generationState.isStreamActive = false;
     generationState.streamStatus = 'idle';
-    generationState.artifacts = [];
+    generationState.artifacts = [defaultExtractionArtifact];
     generationWorkspaceState.streamStatus = 'idle';
     generationWorkspaceState.isStreamActive = false;
     generationWorkspaceState.artifacts = generationState.artifacts;
@@ -184,6 +294,7 @@ describe('ToolPageTemplate wiring', () => {
 
   it('dispatches generation.start with resolved step and dependency metadata', async () => {
     generationState.artifacts = [
+      defaultExtractionArtifact,
       {
         artifactId: 'artifact-optin-001',
         projectId: 'project-001',
@@ -197,6 +308,10 @@ describe('ToolPageTemplate wiring', () => {
     availableStepsState.steps = ['quiz'];
 
     renderTemplate();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
 
@@ -220,6 +335,10 @@ describe('ToolPageTemplate wiring', () => {
   it('auto-starts the next step after previous step completion in auto-chain mode', async () => {
     const { rerender } = renderTemplate();
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
     fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
 
     await waitFor(() => {
@@ -229,6 +348,7 @@ describe('ToolPageTemplate wiring', () => {
     generationState.streamStatus = 'completed';
     generationState.isStreamActive = false;
     generationState.artifacts = [
+      defaultExtractionArtifact,
       {
         artifactId: 'artifact-optin-001',
         projectId: 'project-001',
@@ -659,6 +779,7 @@ describe('ToolPageTemplate restore flow', () => {
     briefingState.status = 'ready';
     briefingState.extractionContext = makeExtractionContext();
     generationState.artifacts = [
+      defaultExtractionArtifact,
       {
         artifactId: 'art-optin-completed',
         projectId: 'project-001',
@@ -696,6 +817,7 @@ describe('ToolPageTemplate restore flow', () => {
     renderTemplate({
       intent: 'new',
       initialProjectId: 'project-001',
+      sourceArtifactId: null, // override default: intent='new' senza sourceArtifact → progressState vuoto → hasCompletedAllSteps via generationState
     });
 
     await waitFor(() => {
@@ -705,5 +827,88 @@ describe('ToolPageTemplate restore flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
 
     expect(startMock).not.toHaveBeenCalled();
+  });
+});
+
+// TASK-019: CTA regression guard e isolamento cross-tool stream
+describe('ToolPageTemplate CTA regression guard', () => {
+  beforeEach(() => {
+    startMock.mockReset();
+    generationState.isStreamActive = false;
+    generationState.streamStatus = 'idle';
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.streamStatus = 'idle';
+    generationWorkspaceState.isStreamActive = false;
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    generationWorkspaceState.snapshot = { context: { lastRequest: { input: {} } } };
+    generationWorkspaceState.focusedProjectId = 'project-001';
+    availableStepsState.steps = ['optin'];
+    extractionContextState = makeExtractionContext();
+    briefingState.status = 'ready';
+    briefingState.extractionContext = makeExtractionContext();
+  });
+
+  it('stream attivo blocca handlePrimaryAction: startMock non viene chiamato', async () => {
+    // Simula uno stream attivo (es. un altro tool sta generando)
+    generationWorkspaceState.isStreamActive = true;
+
+    renderTemplate({ initialProjectId: 'project-001' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    // Il guard in handlePrimaryAction ritorna early se generation.isStreamActive
+    expect(startMock).not.toHaveBeenCalled();
+  });
+
+  it('machine-driven readiness: la readiness della macchina determina la policy CTA, non variabili locali UI', async () => {
+    // Con briefingUploadMachine in 'ready' (mock default) e projectId valido
+    // la macchina deriva canStartFlow=true → policy=start-generation → bottone abilitato
+    renderTemplate({ initialProjectId: 'project-001' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    // Bottone presente e non disabled (la policy non è 'disabled')
+    expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
+  });
+
+  it('CTA non rimane bloccata dopo che lo stream torna inattivo', async () => {
+    // Simula stream attivo: click non deve chiamare start
+    generationWorkspaceState.isStreamActive = true;
+
+    const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    expect(startMock).not.toHaveBeenCalled();
+
+    // Stream termina: rerender con isStreamActive=false
+    generationWorkspaceState.isStreamActive = false;
+    generationWorkspaceState.streamStatus = 'idle';
+
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" initialProjectId="project-001" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    // Ora il click deve propagarsi correttamente
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

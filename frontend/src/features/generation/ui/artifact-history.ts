@@ -16,6 +16,10 @@ export type GenerationArtifact = {
   createdAt: string;
   updatedAt: string;
   sourceRequest: GenerationRequest;
+  // Campi diagnostici DB opzionali
+  failureReason?: string | null;
+  streamedAt?: string | null;
+  completedAt?: string | null;
 };
 
 export type ArtifactFilters = {

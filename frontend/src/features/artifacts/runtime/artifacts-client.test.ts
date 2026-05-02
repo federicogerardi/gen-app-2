@@ -31,6 +31,9 @@ const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationAr
     toolKey: null,
     workflowType: null,
   },
+  failureReason: null,
+  streamedAt: null,
+  completedAt: null,
   ...overrides,
 });
 

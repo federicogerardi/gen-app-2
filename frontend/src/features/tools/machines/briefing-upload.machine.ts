@@ -41,6 +41,8 @@ type BriefingUploadEvent =
       type: 'EXTRACTION_RECOVERED';
       artifactId: string;
       payload: Record<string, unknown>;
+      briefingId?: string | null;
+      fileName?: string | null;
     }
   | { type: 'RESET' };
 
@@ -163,6 +165,8 @@ export const briefingUploadMachine = setup({
         ...context,
         extractionArtifactId: event.artifactId,
         extractionPayload: event.payload,
+        briefingId: event.briefingId ?? context.briefingId,
+        fileName: event.fileName ?? context.fileName,
         error: null,
       };
     }),
@@ -196,6 +200,10 @@ export const briefingUploadMachine = setup({
         FILE_SELECTED: {
           target: 'validating',
           actions: 'cacheSelectedFile',
+        },
+        EXTRACTION_RECOVERED: {
+          target: 'ready',
+          actions: 'applyRecoveredExtraction',
         },
         RESET: {
           actions: 'resetUploadState',

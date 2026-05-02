@@ -292,4 +292,66 @@ describe('briefingUploadMachine', () => {
       expect(mockedRunExtraction).not.toHaveBeenCalled();
       actor.stop();
     });
+
+    // TASK-018: EXTRACTION_RECOVERED idempotency
+    it('EXTRACTION_RECOVERED in idle: transitions to ready with briefingId and fileName from event', async () => {
+      const actor = createMachineActor();
+
+      actor.send({
+        type: 'EXTRACTION_RECOVERED',
+        artifactId: 'artifact-recovered-idle',
+        payload: { topic: 'test' },
+        briefingId: 'brief-from-event',
+        fileName: 'recovered-brief.md',
+      });
+
+      await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+
+      const ctx = actor.getSnapshot().context;
+      expect(ctx.extractionArtifactId).toBe('artifact-recovered-idle');
+      expect(ctx.extractionPayload).toEqual({ topic: 'test' });
+      expect(ctx.briefingId).toBe('brief-from-event');
+      expect(ctx.fileName).toBe('recovered-brief.md');
+      expect(ctx.error).toBeNull();
+      actor.stop();
+    });
+
+    it('EXTRACTION_RECOVERED in ready: idempotent — nessun crash, stato rimane ready, context invariato', async () => {
+      mockedUploadBrief.mockResolvedValue({
+        briefingId: 'brief-ready',
+        projectId: 'project-1',
+        toolKey: 'funnel-pages',
+        fileName: 'brief.md',
+        mimeType: 'text/markdown',
+        size: 10,
+        parsedFormat: 'md',
+        normalizedText: 'brief text',
+        charCount: 10,
+        wordCount: 2,
+      });
+      mockedRunExtraction.mockResolvedValue({
+        artifactId: 'artifact-ready',
+        content: '{"ok":true}',
+        payload: { ok: true },
+      });
+
+      const actor = createMachineActor();
+      actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+
+      await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+      expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
+
+      // EXTRACTION_RECOVERED in ready: nessun handler → droppato silenziosamente (idempotenza)
+      actor.send({
+        type: 'EXTRACTION_RECOVERED',
+        artifactId: 'artifact-duplicate',
+        payload: { duplicate: true },
+      });
+
+      // Stato e context invariati
+      expect(actor.getSnapshot().value).toBe('ready');
+      expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
+      expect(actor.getSnapshot().context.error).toBeNull();
+      actor.stop();
+    });
 });

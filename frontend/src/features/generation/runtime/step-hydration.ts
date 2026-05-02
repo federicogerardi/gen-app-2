@@ -102,18 +102,43 @@ export const buildExtractionContextFromArtifact = (
   artifact: GenerationArtifact,
 ): ToolExtractionContext | null => {
   const input = artifact.sourceRequest.input;
-  const briefingId = typeof input?.briefingId === 'string' ? input.briefingId.trim() : '';
-  const extractionArtifactId = typeof input?.extractionArtifactId === 'string'
-    ? input.extractionArtifactId.trim()
-    : '';
+  // When the artifact IS an extraction artifact, it itself is the extraction result.
+  // Use its own artifactId as the extractionArtifactId and parse its content as payload.
+  const isExtractionArtifact = artifact.artifactType === 'extraction';
+  const briefingId = (() => {
+    const raw = typeof input?.briefingId === 'string' ? input.briefingId.trim() : '';
+    if (raw.length > 0) {
+      return raw;
+    }
+
+    // Legacy extraction artifacts may not carry briefingId in sourceRequest.input.
+    // Keep recovery deterministic by using the extraction artifact id as fallback key.
+    return isExtractionArtifact ? artifact.artifactId : '';
+  })();
+
+  const extractionArtifactId = isExtractionArtifact
+    ? artifact.artifactId
+    : (typeof input?.extractionArtifactId === 'string' ? input.extractionArtifactId.trim() : '');
 
   if (!briefingId || !extractionArtifactId) {
     return null;
   }
 
-  const extractionPayload = typeof input?.extractionPayload === 'object' && input.extractionPayload !== null
-    ? input.extractionPayload as Record<string, unknown>
-    : {};
+  const extractionPayload = isExtractionArtifact
+    ? (() => {
+        try {
+          const parsed = JSON.parse(artifact.content) as unknown;
+          if (parsed && typeof parsed === 'object') {
+            return parsed as Record<string, unknown>;
+          }
+        } catch {
+          // fallback to empty
+        }
+        return {};
+      })()
+    : (typeof input?.extractionPayload === 'object' && input.extractionPayload !== null
+        ? input.extractionPayload as Record<string, unknown>
+        : {});
 
   const normalizedText = typeof input?.briefingText === 'string'
     ? input.briefingText

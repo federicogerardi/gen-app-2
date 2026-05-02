@@ -6,7 +6,10 @@ vi.mock('./briefing-upload.machine', () => {
   const briefingUploadMachine = setup({
     types: {
       context: {} as {},
-      events: {} as { type: 'FILE_SELECTED'; file: File } | { type: 'RESET' },
+      events: {} as
+        | { type: 'FILE_SELECTED'; file: File }
+        | { type: 'RESET' }
+        | { type: 'EXTRACTION_RECOVERED'; artifactId: string; payload: Record<string, unknown>; briefingId?: string | null; fileName?: string | null },
       input: {} as {
         toolKey: 'funnel-pages' | 'nextland';
         projectId: string;
@@ -23,11 +26,13 @@ vi.mock('./briefing-upload.machine', () => {
         on: {
           FILE_SELECTED: { target: 'ready' },
           RESET: { target: 'idle' },
+          EXTRACTION_RECOVERED: { target: 'ready' },
         },
       },
       ready: {
         on: {
           RESET: { target: 'idle' },
+          EXTRACTION_RECOVERED: { target: 'ready' },
         },
       },
     },
@@ -55,15 +60,15 @@ const createToolPageActor = () => {
   return actor;
 };
 
-const syncCanStartFlow = (actor: ReturnType<typeof createToolPageActor>, canStartFlow: boolean) => {
+// Phase 3: syncCanStartFlow non passa più boolean readiness — la macchina li deriva internamente.
+// Il briefing actor dev'essere in stato ready (via BRIEFING_FILE_SELECTED) prima di chiamare questa helper.
+const syncCanStartFlow = (actor: ReturnType<typeof createToolPageActor>) => {
   actor.send({
     type: 'PROGRESS_SYNCED',
     artifacts: [],
     intent: 'new',
     sourceArtifact: null,
     runRequestPrefix: null,
-    hasExtractionContext: canStartFlow,
-    hasPrimaryTargetStep: canStartFlow,
   });
 };
 
@@ -92,7 +97,7 @@ describe('toolPageMachine', () => {
 
     expect(actor.getSnapshot().context.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
 
-    syncCanStartFlow(actor, true);
+    syncCanStartFlow(actor);
 
     actor.send({ type: 'START_GENERATION' });
     expect(actor.getSnapshot().value).toBe('generating');
@@ -112,7 +117,7 @@ describe('toolPageMachine', () => {
       type: 'BRIEFING_FILE_SELECTED',
       file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
     });
-    syncCanStartFlow(actor, true);
+    syncCanStartFlow(actor);
     actor.send({ type: 'START_GENERATION' });
     actor.send({ type: 'STEP_DONE', step: 'optin' });
     actor.send({ type: 'STEP_DONE', step: 'quiz' });
@@ -133,7 +138,7 @@ describe('toolPageMachine', () => {
       type: 'BRIEFING_FILE_SELECTED',
       file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
     });
-    syncCanStartFlow(actor, true);
+    syncCanStartFlow(actor);
     actor.send({ type: 'START_GENERATION' });
 
     expect(actor.getSnapshot().value).toBe('generating');
@@ -226,14 +231,15 @@ describe('toolPageMachine', () => {
       },
     ] satisfies GenerationArtifact[];
 
+    // Phase 3: briefing actor in ready per derivare hasExtractionContext = true
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+
     actor.send({
       type: 'PROGRESS_SYNCED',
       artifacts,
       intent: 'regenerate',
       sourceArtifact,
       runRequestPrefix: null,
-      hasExtractionContext: true,
-      hasPrimaryTargetStep: true,
     });
 
     const progress = actor.getSnapshot().context.progress;
@@ -313,8 +319,6 @@ describe('toolPageMachine', () => {
       intent: 'new',
       sourceArtifact,
       runRequestPrefix: null,
-      hasExtractionContext: true,
-      hasPrimaryTargetStep: true,
     });
 
     const progress = actor.getSnapshot().context.progress;
@@ -326,6 +330,9 @@ describe('toolPageMachine', () => {
   it('computes structured readiness reason codes from PROGRESS_SYNCED signals', () => {
     const actor = createToolPageActor();
 
+    // Phase 3: PROJECT_SELECTED con stringa vuota → hasProject = false
+    // briefingActor in idle (nessun FILE_SELECTED) → hasExtractionContext = false (derivato)
+    // hasPrimaryTargetStep sempre true per tool con step definiti (derivato)
     actor.send({
       type: 'PROJECT_SELECTED',
       projectId: '',
@@ -337,19 +344,16 @@ describe('toolPageMachine', () => {
       intent: 'new',
       sourceArtifact: null,
       runRequestPrefix: null,
-      hasExtractionContext: false,
-      hasPrimaryTargetStep: false,
     });
 
     expect(actor.getSnapshot().context.readiness).toEqual({
       canStartFlow: false,
       hasProject: false,
       hasExtractionContext: false,
-      hasPrimaryTargetStep: false,
+      hasPrimaryTargetStep: true,
       reasonCodes: [
         'missing_project',
         'missing_extraction_context',
-        'missing_primary_target_step',
       ],
     });
 
@@ -432,14 +436,15 @@ describe('toolPageMachine', () => {
       },
     ] satisfies GenerationArtifact[];
 
+    // Phase 3: briefing actor in ready per derivare hasExtractionContext = true
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+
     actor.send({
       type: 'PROGRESS_SYNCED',
       artifacts,
       intent: 'resume',
       sourceArtifact: null,
       runRequestPrefix: null,
-      hasExtractionContext: true,
-      hasPrimaryTargetStep: true,
     });
 
     expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(true);
@@ -479,14 +484,15 @@ describe('toolPageMachine', () => {
       },
     } satisfies GenerationArtifact;
 
+    // Phase 3: briefing actor in ready per derivare hasExtractionContext = true
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+
     actor.send({
       type: 'PROGRESS_SYNCED',
       artifacts: [sourceArtifact],
       intent: 'resume',
       sourceArtifact,
       runRequestPrefix: null,
-      hasExtractionContext: true,
-      hasPrimaryTargetStep: true,
     });
 
     const snapshot = actor.getSnapshot().context;
@@ -494,5 +500,262 @@ describe('toolPageMachine', () => {
     expect(snapshot.viewModel.readiness.canStartFlow).toBe(true);
     expect(snapshot.viewModel.primaryActionPolicy).toBe('resume-checkpoint');
     expect(snapshot.viewModel.canonicalState).toBe('paused-with-checkpoint');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2 – hydration actor (HYDRATE_REQUESTED / success / failure / legacy)
+// ---------------------------------------------------------------------------
+
+vi.mock('../../artifacts/runtime/artifacts-client', () => ({
+  listArtifacts: vi.fn(),
+  getArtifactById: vi.fn(),
+}));
+
+vi.mock('../../generation/runtime/step-hydration', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../generation/runtime/step-hydration')>();
+  return {
+    ...original,
+    buildExtractionContextFromArtifact: vi.fn(original.buildExtractionContextFromArtifact),
+  };
+});
+
+import { listArtifacts, getArtifactById } from '../../artifacts/runtime/artifacts-client';
+import { buildExtractionContextFromArtifact } from '../../generation/runtime/step-hydration';
+
+const makeExtractionArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
+  artifactId: 'ext-1',
+  requestId: 'req-ext-1',
+  projectId: 'project-1',
+  artifactType: 'extraction',
+  status: 'completed',
+  model: 'openrouter/auto',
+  toolKey: 'funnel-pages',
+  workflowType: 'funnel-pages',
+  content: JSON.stringify({ topic: 'test' }),
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
+  sourceRequest: {
+    requestId: 'req-ext-1',
+    userId: 'user-1',
+    projectId: 'project-1',
+    artifactType: 'extraction',
+    model: 'openrouter/auto',
+    toolKey: 'funnel-pages',
+    workflowType: 'funnel-pages',
+    input: { briefingId: 'brief-1', toolKey: 'funnel-pages' },
+  },
+  ...overrides,
+});
+
+describe('toolPageMachine – Phase 2 hydration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('transitions to hydrating on HYDRATE_REQUESTED', () => {
+    vi.mocked(listArtifacts).mockResolvedValue([]);
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
+
+    expect(actor.getSnapshot().value).toBe('hydrating');
+    expect(actor.getSnapshot().context.pendingHydration).not.toBeNull();
+    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+  });
+
+  it('hydration success: transitions back to configuring with hydrationResult set and briefingActor receives EXTRACTION_RECOVERED', async () => {
+    const extractionArtifact = makeExtractionArtifact();
+    vi.mocked(listArtifacts).mockResolvedValue([extractionArtifact]);
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new', localArtifacts: [extractionArtifact] });
+
+    // Wait for async actor to complete
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(ctx.hydrationResult).not.toBeNull();
+    expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-1');
+    expect(ctx.hydrationResult?.briefingId).toBe('brief-1');
+    expect(ctx.hydrationError).toBeNull();
+    // briefingActor should have transitioned to ready via EXTRACTION_RECOVERED
+    expect(ctx.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
+  });
+
+  it('hydration failure: transitions back to configuring with hydrationError set and viewModel.messages.error populated', async () => {
+    vi.mocked(listArtifacts).mockResolvedValue([]);
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(ctx.hydrationError).toBe('no_extraction_artifact');
+    expect(ctx.hydrationResult).toBeNull();
+    expect(ctx.viewModel.messages.error).toBe('no_extraction_artifact');
+  });
+
+  it('hydration legacy: artifact senza briefingId usa artifactId come fallback (TASK-007)', async () => {
+    // Legacy extraction artifact: nessun briefingId in sourceRequest.input
+    const legacyArtifact = makeExtractionArtifact({
+      artifactId: 'legacy-ext',
+      sourceRequest: {
+        requestId: 'req-legacy',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'openrouter/auto',
+        toolKey: null,
+        workflowType: null,
+        input: {},  // nessun briefingId
+      },
+    });
+    vi.mocked(listArtifacts).mockResolvedValue([legacyArtifact]);
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'resume' });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    // briefingId fallback = artifactId del legacy artifact
+    expect(ctx.hydrationResult?.briefingId).toBe('legacy-ext');
+    expect(ctx.hydrationResult?.extractionArtifactId).toBe('legacy-ext');
+    expect(ctx.hydrationError).toBeNull();
+  });
+
+  it('ranking TASK-006: sourceExtractionArtifactId ha precedenza su recency', async () => {
+    const older = makeExtractionArtifact({
+      artifactId: 'ext-target',
+      updatedAt: '2026-04-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'r1',
+        userId: 'u1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'm',
+        toolKey: null,
+        workflowType: null,
+        input: { briefingId: 'brief-target' },
+      },
+    });
+    const newer = makeExtractionArtifact({
+      artifactId: 'ext-newer',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'r2',
+        userId: 'u1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'm',
+        toolKey: null,
+        workflowType: null,
+        input: { briefingId: 'brief-other' },
+      },
+    });
+    vi.mocked(listArtifacts).mockResolvedValue([newer, older]);
+
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'resume',
+      sourceExtractionArtifactId: 'ext-target',
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    // Nonostante `ext-newer` sia più recente, `ext-target` è il match esatto
+    expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-target');
+  });
+
+  // TASK-017: retry after failure
+  it('retry: hydration failure seguita da HYDRATE_REQUESTED valido azzera hydrationError e produce hydrationResult', async () => {
+    // Prima tentativo: fallisce (nessun artifact)
+    vi.mocked(listArtifacts).mockResolvedValueOnce([]);
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    expect(actor.getSnapshot().context.hydrationError).toBe('no_extraction_artifact');
+    expect(actor.getSnapshot().context.hydrationResult).toBeNull();
+
+    // Retry: successo con artifact disponibile
+    const extractionArtifact = makeExtractionArtifact();
+    vi.mocked(listArtifacts).mockResolvedValueOnce([extractionArtifact]);
+
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new', localArtifacts: [extractionArtifact] });
+
+    // Appena inviato HYDRATE_REQUESTED, macchina torna in hydrating e cancella l'errore
+    expect(actor.getSnapshot().value).toBe('hydrating');
+    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-1');
+    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+  });
+
+  // TASK-017: ranking by resolvedBriefingId
+  it('ranking: resolvedBriefingId match vince su recency in assenza di sourceExtractionArtifactId', async () => {
+    const olderWithMatch = makeExtractionArtifact({
+      artifactId: 'ext-briefing-match',
+      updatedAt: '2026-04-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'r1',
+        userId: 'u1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'm',
+        toolKey: null,
+        workflowType: null,
+        input: { briefingId: 'brief-target' },
+      },
+    });
+    const newerNoMatch = makeExtractionArtifact({
+      artifactId: 'ext-no-briefing-match',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'r2',
+        userId: 'u1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'm',
+        toolKey: null,
+        workflowType: null,
+        input: { briefingId: 'brief-other' },
+      },
+    });
+    vi.mocked(listArtifacts).mockResolvedValue([newerNoMatch, olderWithMatch]);
+
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'resume',
+      resolvedBriefingId: 'brief-target',
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    // `ext-briefing-match` vince nonostante sia più vecchio: ha briefingId matching
+    expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-briefing-match');
+    expect(actor.getSnapshot().context.hydrationResult?.briefingId).toBe('brief-target');
   });
 });

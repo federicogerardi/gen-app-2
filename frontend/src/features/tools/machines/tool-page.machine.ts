@@ -1,4 +1,4 @@
-import { assign, raise, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
+import { assign, fromPromise, raise, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { toolFlowMachine, type SupportedTool, type ToolStep } from './tool-flow.machine';
@@ -11,10 +11,29 @@ import type {
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
   belongsToTool,
+  buildExtractionContextFromArtifact,
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
   collectCompletedStepsByTool,
 } from '../../generation/runtime/step-hydration';
+import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
+
+export type HydrationResult = {
+  extractionArtifactId: string;
+  extractionPayload: Record<string, unknown>;
+  briefingId: string;
+  briefingFileName: string | null;
+  normalizedText: string;
+  parsedFormat: 'txt' | 'md' | 'docx';
+};
+
+type PendingHydration = {
+  sourceArtifactId: string | null;
+  intent: 'new' | 'resume' | 'regenerate';
+  resolvedBriefingId: string | null;
+  sourceExtractionArtifactId: string | null;
+  localArtifacts: GenerationArtifact[];
+};
 
 export type ToolPageProgressState = {
   completedSteps: Set<ToolStep>;
@@ -111,6 +130,7 @@ type BuildToolPageViewModelInput = {
   readiness: ToolPageReadinessSnapshot;
   progress: ToolPageProgressState;
   generationError: string | null;
+  hydrationError?: string | null;
 };
 
 const buildToolPageViewModel = ({
@@ -119,6 +139,7 @@ const buildToolPageViewModel = ({
   readiness,
   progress,
   generationError,
+  hydrationError,
 }: BuildToolPageViewModelInput): ToolPageViewModel => {
   const defaultModel = buildDefaultViewModel(toolKey, readiness);
   const totalSteps = toolStepOrder[toolKey].length;
@@ -210,11 +231,30 @@ const buildToolPageViewModel = ({
       canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
     },
     stepStatuses,
+    messages: {
+      ...defaultModel.messages,
+      error: hydrationError ?? null,
+    },
   };
 };
 
 const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {
   return policy === 'start-generation' || policy === 'resume-checkpoint' || policy === 'regenerate-current-step';
+};
+
+// Phase 3: readiness derivata interamente da context macchina
+const deriveHasExtractionContext = (
+  briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
+  hydrationResult: HydrationResult | null,
+): boolean => {
+  if (hydrationResult !== null) {
+    return true;
+  }
+  return briefingActorRef?.getSnapshot().matches('ready') === true;
+};
+
+const deriveHasPrimaryTargetStep = (toolKey: SupportedTool): boolean => {
+  return toolStepOrder[toolKey].length > 0;
 };
 
 const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
@@ -243,7 +283,7 @@ export const resolveRestoredCheckpointState = (
   toolKey: SupportedTool,
   sourceArtifact: GenerationArtifact | null,
 ): ToolPageProgressState => {
-  if (!sourceArtifact || !belongsToTool(sourceArtifact, toolKey)) {
+  if (!sourceArtifact || sourceArtifact.artifactType === 'extraction' || !belongsToTool(sourceArtifact, toolKey)) {
     return {
       completedSteps: new Set<ToolStep>(),
       latestArtifactByStep: {},
@@ -404,6 +444,9 @@ export type ToolPageContext = {
   readiness: ToolPageReadinessSnapshot;
   viewModel: ToolPageViewModel;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
+  hydrationResult: HydrationResult | null;
+  hydrationError: string | null;
+  pendingHydration: PendingHydration | null;
 };
 
 type ToolPageInput = {
@@ -429,17 +472,27 @@ export type ToolPageEvent =
   | { type: 'STEP_DONE'; step: ToolStep }
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
+  | { type: 'RESET' }
+  | { type: 'INTERNAL_CANCELLED' }
   | {
     type: 'PROGRESS_SYNCED';
     artifacts: GenerationArtifact[];
     intent: 'new' | 'resume' | 'regenerate';
     sourceArtifact: GenerationArtifact | null;
     runRequestPrefix: string | null;
-    hasExtractionContext: boolean;
-    hasPrimaryTargetStep: boolean;
+    /** @deprecated Derivato internamente dalla macchina (Phase 3). Sarà rimosso in uno sprint successivo. */
+    hasExtractionContext?: boolean;
+    /** @deprecated Derivato internamente dalla macchina (Phase 3). Sarà rimosso in uno sprint successivo. */
+    hasPrimaryTargetStep?: boolean;
   }
-  | { type: 'RESET' }
-  | { type: 'INTERNAL_CANCELLED' };
+  | {
+    type: 'HYDRATE_REQUESTED';
+    sourceArtifactId?: string | null;
+    intent: 'new' | 'resume' | 'regenerate';
+    resolvedBriefingId?: string | null;
+    sourceExtractionArtifactId?: string | null;
+    localArtifacts?: GenerationArtifact[];
+  };
 
 export const toolPageMachine = setup({
   types: {
@@ -450,6 +503,100 @@ export const toolPageMachine = setup({
   actors: {
     briefingUploadMachine,
     toolFlowMachine,
+    hydrateExtractionContextActor: fromPromise(async ({ input }: {
+      input: {
+        sourceArtifactId: string | null;
+        projectId: string;
+        intent: 'new' | 'resume' | 'regenerate';
+        resolvedBriefingId: string | null;
+        sourceExtractionArtifactId: string | null;
+        apiBaseUrl: string;
+        capabilities: Partial<BackendCapabilities>;
+        localArtifacts: GenerationArtifact[];
+      };
+    }): Promise<HydrationResult> => {
+      const {
+        sourceArtifactId,
+        projectId,
+        resolvedBriefingId,
+        sourceExtractionArtifactId,
+        apiBaseUrl,
+        capabilities,
+        localArtifacts,
+      } = input;
+
+      // Step 1: risolvi direttamente da sourceArtifactId se disponibile
+      if (sourceArtifactId) {
+        try {
+          const artifact = await getArtifactById(sourceArtifactId, { apiBaseUrl, capabilities, localArtifacts });
+          if (artifact) {
+            const ctx = buildExtractionContextFromArtifact(artifact);
+            if (ctx) {
+              return {
+                extractionArtifactId: ctx.extractionArtifactId,
+                extractionPayload: ctx.extractionPayload,
+                briefingId: ctx.briefingId,
+                briefingFileName: null,
+                normalizedText: ctx.normalizedText,
+                parsedFormat: ctx.parsedFormat,
+              };
+            }
+          }
+        } catch {
+          // fallback a list-based recovery
+        }
+      }
+
+      // Step 2: lista artifact extraction e ranking (TASK-006)
+      const normalizedProjectId = projectId.trim();
+      if (!normalizedProjectId) {
+        throw new Error('missing_project');
+      }
+
+      const artifacts = await listArtifacts(
+        { type: 'extraction', status: 'completed', projectId: normalizedProjectId },
+        { apiBaseUrl, capabilities, localArtifacts },
+      );
+
+      // Ranking: (1) exact sourceExtractionArtifactId match, (2) briefingId match, (3) recency
+      const ranked = [...artifacts].sort((a, b) => {
+        const aIsSource = sourceExtractionArtifactId != null && a.artifactId === sourceExtractionArtifactId ? 1 : 0;
+        const bIsSource = sourceExtractionArtifactId != null && b.artifactId === sourceExtractionArtifactId ? 1 : 0;
+        if (aIsSource !== bIsSource) {
+          return bIsSource - aIsSource;
+        }
+
+        const aBriefingId = typeof a.sourceRequest.input?.briefingId === 'string' ? a.sourceRequest.input.briefingId : null;
+        const bBriefingId = typeof b.sourceRequest.input?.briefingId === 'string' ? b.sourceRequest.input.briefingId : null;
+        const aMatchesBriefing = resolvedBriefingId != null && aBriefingId === resolvedBriefingId ? 1 : 0;
+        const bMatchesBriefing = resolvedBriefingId != null && bBriefingId === resolvedBriefingId ? 1 : 0;
+        if (aMatchesBriefing !== bMatchesBriefing) {
+          return bMatchesBriefing - aMatchesBriefing;
+        }
+
+        return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+      });
+
+      const best = ranked[0] ?? null;
+      if (!best) {
+        throw new Error('no_extraction_artifact');
+      }
+
+      // TASK-007: buildExtractionContextFromArtifact usa artifactId come fallback briefingId per artifact legacy
+      const ctx = buildExtractionContextFromArtifact(best);
+      if (!ctx) {
+        throw new Error('hydration_context_unresolvable');
+      }
+
+      return {
+        extractionArtifactId: ctx.extractionArtifactId,
+        extractionPayload: ctx.extractionPayload,
+        briefingId: ctx.briefingId,
+        briefingFileName: null,
+        normalizedText: ctx.normalizedText,
+        parsedFormat: ctx.parsedFormat,
+      };
+    }),
   },
   guards: {
     canStartGeneration: ({ context }) => {
@@ -541,11 +688,10 @@ export const toolPageMachine = setup({
         event.runRequestPrefix,
       );
 
-      const readiness = buildReadinessSnapshot(
-        context.projectId,
-        event.hasExtractionContext,
-        event.hasPrimaryTargetStep,
-      );
+      // Phase 3: readiness derivata interamente da context macchina, non da input UI.
+      const hasExtractionContext = deriveHasExtractionContext(context.briefingActorRef, context.hydrationResult);
+      const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
+      const readiness = buildReadinessSnapshot(context.projectId, hasExtractionContext, hasPrimaryTargetStep);
 
       return {
         progress,
@@ -606,6 +752,9 @@ export const toolPageMachine = setup({
         generationError: null,
       }),
       pendingStepStart: null,
+      hydrationResult: null,
+      hydrationError: null,
+      pendingHydration: null,
     })),
     sendBriefingSelected: sendTo(
       'briefingActor',
@@ -650,6 +799,9 @@ export const toolPageMachine = setup({
       buildReadinessSnapshot(input.projectId, false, false),
     ),
     pendingStepStart: null,
+    hydrationResult: null,
+    hydrationError: null,
+    pendingHydration: null,
   }),
   on: {
     PROGRESS_SYNCED: {
@@ -692,6 +844,109 @@ export const toolPageMachine = setup({
             actions: 'clearGenerationError',
           },
         ],
+        RESET: {
+          target: 'configuring',
+          reenter: true,
+          actions: ['resetConfig', stopChild('briefingActor')],
+        },
+        HYDRATE_REQUESTED: {
+          target: 'hydrating',
+          actions: assign(({ event }) => ({
+            pendingHydration: {
+              sourceArtifactId: event.sourceArtifactId ?? null,
+              intent: event.intent,
+              resolvedBriefingId: event.resolvedBriefingId ?? null,
+              sourceExtractionArtifactId: event.sourceExtractionArtifactId ?? null,
+              localArtifacts: event.localArtifacts ?? [],
+            },
+            hydrationError: null,
+          })),
+        },
+      },
+    },
+    hydrating: {
+      invoke: {
+        id: 'hydrateActor',
+        src: 'hydrateExtractionContextActor',
+        input: ({ context }) => ({
+          sourceArtifactId: context.pendingHydration?.sourceArtifactId ?? null,
+          projectId: context.projectId,
+          intent: context.pendingHydration?.intent ?? 'new',
+          resolvedBriefingId: context.pendingHydration?.resolvedBriefingId ?? null,
+          sourceExtractionArtifactId: context.pendingHydration?.sourceExtractionArtifactId ?? null,
+          apiBaseUrl: context.apiBaseUrl,
+          capabilities: context.capabilities,
+          localArtifacts: context.pendingHydration?.localArtifacts ?? [],
+        }),
+        onDone: {
+          target: 'configuring',
+          actions: [
+            assign(({ context, event }) => {
+              const hydrationResult = event.output as HydrationResult;
+              const intent = context.pendingHydration?.intent ?? 'new';
+              // Ricalcola readiness immediatamente: hydrationResult è ora non-null.
+              const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
+              const readiness = buildReadinessSnapshot(context.projectId, true, hasPrimaryTargetStep);
+              return {
+                hydrationResult,
+                hydrationError: null,
+                pendingHydration: null,
+                readiness,
+                viewModel: buildToolPageViewModel({
+                  toolKey: context.toolKey,
+                  intent,
+                  readiness,
+                  progress: context.progress,
+                  generationError: context.generationError,
+                }),
+              };
+            }),
+            sendTo('briefingActor', ({ event }) => {
+              const result = event.output as HydrationResult;
+              return {
+                type: 'EXTRACTION_RECOVERED' as const,
+                artifactId: result.extractionArtifactId,
+                payload: result.extractionPayload,
+                briefingId: result.briefingId,
+                ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
+              };
+            }),
+          ],
+        },
+        onError: {
+          target: 'configuring',
+          actions: assign(({ context, event }) => {
+            const reason = event.error instanceof Error ? event.error.message : 'hydration_failed';
+            return {
+              hydrationError: reason,
+              hydrationResult: null,
+              pendingHydration: null,
+              viewModel: buildToolPageViewModel({
+                toolKey: context.toolKey,
+                readiness: context.readiness,
+                progress: context.progress,
+                generationError: context.generationError,
+                hydrationError: reason,
+              }),
+            };
+          }),
+        },
+      },
+      on: {
+        HYDRATE_REQUESTED: {
+          target: 'hydrating',
+          reenter: true,
+          actions: assign(({ event }) => ({
+            pendingHydration: {
+              sourceArtifactId: event.sourceArtifactId ?? null,
+              intent: event.intent,
+              resolvedBriefingId: event.resolvedBriefingId ?? null,
+              sourceExtractionArtifactId: event.sourceExtractionArtifactId ?? null,
+              localArtifacts: event.localArtifacts ?? [],
+            },
+            hydrationError: null,
+          })),
+        },
         RESET: {
           target: 'configuring',
           reenter: true,

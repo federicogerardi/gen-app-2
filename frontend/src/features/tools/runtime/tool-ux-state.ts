@@ -50,6 +50,8 @@ export type SecondaryActionFlags = {
 
 /**
  * Input parameters for deriving canonical UI state
+ * @deprecated The canonical source is `toolPageMachine.context.viewModel`.
+ * Keep this type only for compatibility with legacy tests and adapters.
  */
 export type ToolUiDerivationInput = {
   toolKey: SupportedTool;
@@ -70,6 +72,7 @@ export type ToolUiDerivationInput = {
 /**
  * Complete UI derivation output
  * All data needed to drive the unified ToolPageTemplate UI
+ * @deprecated The canonical source is `toolPageMachine.context.viewModel`.
  */
 export type ToolUiDerivationOutput = {
   canonicalState: CanonicalToolUiState;
@@ -86,6 +89,7 @@ export type ToolUiDerivationOutput = {
 
 /**
  * Derive canonical UI state from input conditions
+ * @deprecated Use `toolPageMachine.context.viewModel` for canonical state/policy.
  * 
  * @example
  * ```ts

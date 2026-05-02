@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 2.1
+version: 2.2
 last-reviewed: 2026-05-02
 next-review-date: 2026-08-02
 owner: Documentation Archivist
@@ -10,7 +10,7 @@ owner: Documentation Archivist
 
 Data: 2026-05-02
 Stato: active
-Versione indice: 2.1
+Versione indice: 2.2
 
 Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezioni stabili, priorita esplicite.
 
@@ -93,6 +93,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione
 - [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md) — deprecated 2026-05-01; superseded da architecture-railway-private-network-same-origin-1
 - [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) — archived 2026-05-02; piano completato con smoke test finale GO
+- [unification-xstate-first-frontend-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/unification-xstate-first-frontend-1-snapshot-2026-05-02.md) — archived 2026-05-02; 5 sprint completati, XState-first unification GO
 
 ### Archive Buckets
 
@@ -111,6 +112,9 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - **Issue frontend tools chiusa (2026-05-02)**: recovery checkpoint ripristinato e stabilizzato; smoke test tools confermato `OK` con ripresa generazione da checkpoint.
 - Hardening readiness `toolPageMachine`: snapshot strutturato nel contesto macchina con `reasonCodes` (`missing_project`, `missing_extraction_context`, `missing_primary_target_step`) e consumo UI deterministico nel blocco `Pronto per la generazione`.
 - Recovery extraction legacy-safe: matcher compatibile con artifact storici privi di `sourceRequest.input.toolKey`.
+- Unificazione XState-first frontend tools avanzata a Sprint 4 completato: viewModel macchina canonico, template presenter-thin, contract verticale ridotto e gate regressione/typecheck tutti verdi.
+- Source of truth machine-friendly aggiornato: [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) allineato a ownership `toolPageMachine.context.viewModel`.
+- **Piano unification XState-first archiviato**: [unification-xstate-first-frontend-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/unification-xstate-first-frontend-1-snapshot-2026-05-02.md) — 5 sprint completati, 21 test verdi, typecheck pass, docs allineati. GO/NO-GO: GO.
 
 ## Governance Rules Applied
 

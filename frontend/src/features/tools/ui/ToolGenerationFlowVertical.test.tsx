@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { ToolGenerationFlowVertical, type ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
 
 const baseProps: ToolGenerationFlowVerticalProps = {
-  toolKey: 'funnel-pages',
   canonicalState: 'draft-empty',
   projectName: null,
   briefingFileName: null,
@@ -11,10 +10,8 @@ const baseProps: ToolGenerationFlowVerticalProps = {
   readinessReasonCodes: [],
   briefingError: null,
   steps: [],
-  currentRunningStep: null,
   completedStepsCount: 0,
   totalStepsCount: 3,
-  statusMessage: null,
   errorMessage: null,
 };
 
@@ -57,5 +54,19 @@ describe('ToolGenerationFlowVertical readiness reason mapping', () => {
     expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
     expect(screen.getByText('In attesa dello step disponibile')).toBeInTheDocument();
     expect(screen.getByText('In attesa')).toBeInTheDocument();
+  });
+
+  it('uses deterministic priority fallback when multiple reason codes are present', () => {
+    render(
+      <ToolGenerationFlowVertical
+        {...baseProps}
+        projectName="Project 001"
+        briefingStatus="ready"
+        readinessReasonCodes={['missing_primary_target_step', 'missing_project']}
+      />,
+    );
+
+    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
+    expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
   });
 });

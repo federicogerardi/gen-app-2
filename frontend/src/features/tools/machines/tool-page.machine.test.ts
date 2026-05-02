@@ -240,6 +240,11 @@ describe('toolPageMachine', () => {
     expect([...progress.completedSteps]).toEqual(['optin', 'quiz', 'vsl']);
     expect(progress.lastCheckpointStep).toBe('vsl');
     expect(progress.latestArtifactByStep.optin?.artifactId).toBe('art-optin');
+
+    const viewModel = actor.getSnapshot().context.viewModel;
+    expect(viewModel.readiness.canStartFlow).toBe(true);
+    expect(viewModel.canonicalState).toBe('completed');
+    expect(viewModel.primaryActionPolicy).toBe('open-last-artifact');
   });
 
   it('treats relaunch new from artifact as fresh progress state', () => {
@@ -347,5 +352,147 @@ describe('toolPageMachine', () => {
         'missing_primary_target_step',
       ],
     });
+
+    expect(actor.getSnapshot().context.viewModel.readiness).toEqual(actor.getSnapshot().context.readiness);
+    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('disabled');
+  });
+
+  it('blocks START_GENERATION when readiness is true but policy is not startable', () => {
+    const actor = createToolPageActor();
+
+    const artifacts = [
+      {
+        artifactId: 'art-optin',
+        requestId: 'req-optin',
+        projectId: 'project-1',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'optin',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-optin',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'optin' },
+        },
+      },
+      {
+        artifactId: 'art-quiz',
+        requestId: 'req-quiz',
+        projectId: 'project-1',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'quiz',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-quiz',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'quiz' },
+        },
+      },
+      {
+        artifactId: 'art-vsl',
+        requestId: 'req-vsl',
+        projectId: 'project-1',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'vsl',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-vsl',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'vsl' },
+        },
+      },
+    ] satisfies GenerationArtifact[];
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts,
+      intent: 'resume',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+      hasExtractionContext: true,
+      hasPrimaryTargetStep: true,
+    });
+
+    expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(true);
+    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('open-last-artifact');
+
+    actor.send({ type: 'START_GENERATION' });
+
+    expect(actor.getSnapshot().value).toBe('configuring');
+  });
+
+  it('keeps readiness and policy coherent for resume checkpoint flow', () => {
+    const actor = createToolPageActor();
+
+    const sourceArtifact = {
+      artifactId: 'art-optin',
+      requestId: 'req-optin',
+      projectId: 'project-1',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel-pages',
+      content: 'optin content',
+      createdAt: '2026-05-01T00:00:00.000Z',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-optin',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'content',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        input: {
+          step: 'optin',
+        },
+      },
+    } satisfies GenerationArtifact;
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [sourceArtifact],
+      intent: 'resume',
+      sourceArtifact,
+      runRequestPrefix: null,
+      hasExtractionContext: true,
+      hasPrimaryTargetStep: true,
+    });
+
+    const snapshot = actor.getSnapshot().context;
+    expect(snapshot.readiness.canStartFlow).toBe(true);
+    expect(snapshot.viewModel.readiness.canStartFlow).toBe(true);
+    expect(snapshot.viewModel.primaryActionPolicy).toBe('resume-checkpoint');
+    expect(snapshot.viewModel.canonicalState).toBe('paused-with-checkpoint');
   });
 });

@@ -50,9 +50,10 @@ const generationState = {
     artifactId: string;
     projectId: string;
     status: 'completed' | 'generating' | 'failed';
-    toolKey: 'funnel-pages' | 'nextland';
-    sourceRequest?: { input?: Record<string, unknown> };
+    toolKey: string;
+    sourceRequest?: Record<string, unknown>;
     content?: string;
+    [key: string]: unknown;
   }>,
 };
 
@@ -140,7 +141,7 @@ vi.mock('../runtime/useToolForm', async () => {
       },
     ) => toolUxState.deriveCanonicalToolUiState({
       toolKey,
-      intent: runtimeInput.intent,
+      ...(runtimeInput.intent !== undefined ? { intent: runtimeInput.intent } : {}),
       projectId: runtimeInput.formState.projectId,
       briefingFile: runtimeInput.formState.briefingFile,
       briefingStatus: runtimeInput.formState.briefingStatus,
@@ -151,7 +152,9 @@ vi.mock('../runtime/useToolForm', async () => {
       lastCheckpointStep: runtimeInput.lastCheckpointStep,
       nextAvailableStep: runtimeInput.nextAvailableStep,
       generationError: runtimeInput.generationError,
-      hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun,
+      ...(runtimeInput.hasStartedCurrentRun !== undefined
+        ? { hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun }
+        : {}),
     }),
   };
 });
@@ -439,6 +442,10 @@ describe('resolveFlowProgressState', () => {
 });
 
 describe('ToolPageTemplate restore flow', () => {
+  beforeEach(() => {
+    startMock.mockReset();
+  });
+
   it('updates CTA and feedback to resume-checkpoint when checkpoint hydration completes', async () => {
     extractionContextState = null;
     briefingState.fileName = null;
@@ -644,5 +651,59 @@ describe('ToolPageTemplate restore flow', () => {
     const resumeSteps = startMock.mock.calls
       .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
     expect(resumeSteps).toContain('quiz');
+  });
+
+  it('uses completed CTA policy without dispatching generation start', async () => {
+    extractionContextState = makeExtractionContext();
+    briefingState.fileName = 'completed-brief.md';
+    briefingState.status = 'ready';
+    briefingState.extractionContext = makeExtractionContext();
+    generationState.artifacts = [
+      {
+        artifactId: 'art-optin-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'optin' },
+        },
+        content: 'optin',
+      },
+      {
+        artifactId: 'art-quiz-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'quiz' },
+        },
+        content: 'quiz',
+      },
+      {
+        artifactId: 'art-vsl-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'vsl' },
+        },
+        content: 'vsl',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = [];
+
+    renderTemplate({
+      intent: 'new',
+      initialProjectId: 'project-001',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
+
+    expect(startMock).not.toHaveBeenCalled();
   });
 });

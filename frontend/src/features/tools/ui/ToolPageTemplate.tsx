@@ -19,7 +19,6 @@ import {
   useProjectsLoader,
   useToolFormInit,
   useAvailableSteps,
-  useToolUiState,
 } from '../runtime/useToolForm';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
@@ -139,7 +138,6 @@ export const ToolPageTemplate = ({
         ? 'ready'
         : 'idle';
   const briefingError = briefingSnapshot.context.error;
-  const briefingFile = briefingSnapshot.context.file;
   const briefingFileNameFromActor = briefingSnapshot.context.fileName;
 
   // 4. Apply one-shot prefill from query params
@@ -579,6 +577,7 @@ export const ToolPageTemplate = ({
 
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
+  const machineViewModel = toolPageSnapshot.context.viewModel;
 
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
@@ -618,14 +617,6 @@ export const ToolPageTemplate = ({
     return toolConfig.steps.includes(candidate as ToolStep) ? candidate as ToolStep : null;
   }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
 
-  const lastCheckpointStep = useMemo(() => {
-    if (pausedCheckpointStep && nextAvailableStep) {
-      return pausedCheckpointStep;
-    }
-
-    return progressState.lastCheckpointStep;
-  }, [nextAvailableStep, pausedCheckpointStep, progressState.lastCheckpointStep]);
-
   useEffect(() => {
     if (!pausedCheckpointStep) {
       return;
@@ -636,44 +627,39 @@ export const ToolPageTemplate = ({
     }
   }, [completedStepsForFlow, pausedCheckpointStep]);
 
-  // 9. Derive UI state
-  const uiState = useToolUiState(toolKey, {
-    intent,
-    formState: {
-      ...formState,
-      briefingStatus: effectiveBriefingStatus,
-      briefingFileName: effectiveBriefingFileName ?? null,
-      briefingError,
-      briefingFile,
-    },
-    isGenerationStreamActive: generation.isStreamActive,
-    completedSteps: completedStepsForFlow,
-    currentRunningStep,
-    hasCompletedPreviousGeneration: completedStepsForFlow.size > 0,
-    lastCheckpointStep,
-    nextAvailableStep,
-    generationError: generation.streamStatus === 'failed' ? 'Generation failed' : null,
-    hasStartedCurrentRun: currentRunPrefixRef.current !== null,
-  });
-
   const primaryTargetStep = useMemo(() => {
-    if (uiState.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep) {
+    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep) {
       return pausedCheckpointStep;
     }
 
-    if (uiState.primaryActionPolicy === 'regenerate-current-step') {
+    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step') {
       return sourceStep ?? nextAvailableStep;
     }
 
-    if (uiState.primaryActionPolicy === 'start-generation' || uiState.primaryActionPolicy === 'resume-checkpoint') {
+    if (
+      machineViewModel.primaryActionPolicy === 'start-generation'
+      || machineViewModel.primaryActionPolicy === 'resume-checkpoint'
+    ) {
       return nextAvailableStep;
     }
 
     return null;
-  }, [nextAvailableStep, pausedCheckpointStep, sourceStep, uiState.primaryActionPolicy]);
+  }, [machineViewModel.primaryActionPolicy, nextAvailableStep, pausedCheckpointStep, sourceStep]);
+
+  const candidatePrimaryTargetStep = useMemo(() => {
+    if (pausedCheckpointStep) {
+      return pausedCheckpointStep;
+    }
+
+    if (intent === 'regenerate') {
+      return sourceStep ?? nextAvailableStep;
+    }
+
+    return nextAvailableStep;
+  }, [intent, nextAvailableStep, pausedCheckpointStep, sourceStep]);
 
   const hasExtractionContext = Boolean(extractionContext);
-  const hasPrimaryTargetStep = Boolean(primaryTargetStep);
+  const hasPrimaryTargetStep = Boolean(candidatePrimaryTargetStep);
 
   // 8. Sync progress into toolPageMachine context and consume a single selector.
   useEffect(() => {
@@ -767,7 +753,7 @@ export const ToolPageTemplate = ({
   };
 
   const handlePrimaryAction = (): void => {
-    if (uiState.primaryActionPolicy === 'open-last-artifact') {
+    if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       openLatestArtifact();
       return;
     }
@@ -933,8 +919,8 @@ export const ToolPageTemplate = ({
               </p>
 
               <ToolActionButtons
-                primaryPolicy={uiState.primaryActionPolicy}
-                secondaryFlags={uiState.secondaryActions}
+                primaryPolicy={machineViewModel.primaryActionPolicy}
+                secondaryFlags={machineViewModel.secondaryActionFlags}
                 onPrimaryAction={handlePrimaryAction}
                 onCancelGeneration={handleCancelGeneration}
                 isLoading={generation.isStreamActive}
@@ -944,8 +930,7 @@ export const ToolPageTemplate = ({
 
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
-              toolKey={toolKey}
-              canonicalState={uiState.canonicalState}
+              canonicalState={machineViewModel.canonicalState}
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
               briefingStatus={effectiveBriefingStatus}
@@ -954,17 +939,17 @@ export const ToolPageTemplate = ({
               steps={toolConfig.steps.map((step) => ({
                 step,
                 displayName: mapToolStepToCardConfig(toolKey, step).displayName,
-                status: uiState.stepStatuses[step] ?? 'idle',
+                status: generation.isStreamActive && currentRunningStep === step
+                  ? 'running'
+                  : machineViewModel.stepStatuses[step] ?? 'idle',
                 artifactId: latestArtifactByStep[step]?.artifactId ?? null,
                 isStreaming:
                   generation.isStreamActive
                   && (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step === step,
               }))}
-              currentRunningStep={currentRunningStep}
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
-              statusMessage={uiState.statusMessage}
-              errorMessage={uiState.errorMessage}
+              errorMessage={machineViewModel.messages.error}
               onViewArtifact={(artifactId) => {
                 void navigate(`/artifacts/${artifactId}`);
               }}

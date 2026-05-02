@@ -3,6 +3,11 @@ import type { BackendCapabilities } from '../../../app/runtime/backend-capabilit
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { toolFlowMachine, type SupportedTool, type ToolStep } from './tool-flow.machine';
 import { toolStepOrder } from '../runtime/tool-generation-engine';
+import type {
+  CanonicalToolUiState,
+  PrimaryActionPolicy,
+  SecondaryActionFlags,
+} from '../runtime/tool-ux-state';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
   belongsToTool,
@@ -28,6 +33,18 @@ export type ToolPageReadinessSnapshot = {
   hasExtractionContext: boolean;
   hasPrimaryTargetStep: boolean;
   reasonCodes: ToolPageReadinessReasonCode[];
+};
+
+export type ToolPageViewModel = {
+  readiness: ToolPageReadinessSnapshot;
+  canonicalState: CanonicalToolUiState;
+  primaryActionPolicy: PrimaryActionPolicy;
+  secondaryActionFlags: SecondaryActionFlags;
+  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  messages: {
+    status: string | null;
+    error: string | null;
+  };
 };
 
 const buildReadinessSnapshot = (
@@ -57,6 +74,147 @@ const buildReadinessSnapshot = (
     hasPrimaryTargetStep,
     reasonCodes,
   };
+};
+
+const buildDefaultStepStatuses = (
+  toolKey: SupportedTool,
+): Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'> => {
+  const entries = toolStepOrder[toolKey].map((step) => [step, 'idle'] as const);
+  return Object.fromEntries(entries) as Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+};
+
+const buildDefaultViewModel = (
+  toolKey: SupportedTool,
+  readiness: ToolPageReadinessSnapshot,
+): ToolPageViewModel => ({
+  readiness,
+  canonicalState: readiness.canStartFlow ? 'draft-ready' : 'draft-empty',
+  primaryActionPolicy: readiness.canStartFlow ? 'start-generation' : 'disabled',
+  secondaryActionFlags: {
+    canRetry: false,
+    canSkipStep: false,
+    canCancelGeneration: false,
+    canOpenPreviousArtifact: false,
+  },
+  stepStatuses: buildDefaultStepStatuses(toolKey),
+  messages: {
+    status: readiness.canStartFlow
+      ? 'Pronto per la generazione'
+      : 'Seleziona un progetto e carica un brief per iniziare',
+    error: null,
+  },
+});
+
+type BuildToolPageViewModelInput = {
+  toolKey: SupportedTool;
+  intent?: 'new' | 'resume' | 'regenerate';
+  readiness: ToolPageReadinessSnapshot;
+  progress: ToolPageProgressState;
+  generationError: string | null;
+};
+
+const buildToolPageViewModel = ({
+  toolKey,
+  intent = 'new',
+  readiness,
+  progress,
+  generationError,
+}: BuildToolPageViewModelInput): ToolPageViewModel => {
+  const defaultModel = buildDefaultViewModel(toolKey, readiness);
+  const totalSteps = toolStepOrder[toolKey].length;
+  const completedCount = progress.completedSteps.size;
+  const hasCompletedAtLeastOneStep = completedCount > 0;
+  const hasCompletedAllSteps = completedCount === totalSteps && totalSteps > 0;
+  const hasCheckpoint = progress.lastCheckpointStep !== null;
+  const stepStatuses = buildDefaultStepStatuses(toolKey);
+
+  for (const step of progress.completedSteps) {
+    stepStatuses[step] = 'completed';
+  }
+
+  if (generationError) {
+    return {
+      ...defaultModel,
+      canonicalState: 'paused-with-checkpoint',
+      primaryActionPolicy: 'resume-checkpoint',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canRetry: true,
+        canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
+      },
+      stepStatuses,
+      messages: {
+        status: 'Generazione in pausa per un errore',
+        error: generationError,
+      },
+    };
+  }
+
+  if (hasCompletedAllSteps) {
+    return {
+      ...defaultModel,
+      canonicalState: 'completed',
+      primaryActionPolicy: 'open-last-artifact',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canRetry: true,
+        canOpenPreviousArtifact: true,
+      },
+      stepStatuses,
+      messages: {
+        status: 'Tutti gli artefatti sono stati generati',
+        error: null,
+      },
+    };
+  }
+
+  if (intent === 'regenerate' && hasCompletedAtLeastOneStep && readiness.canStartFlow) {
+    return {
+      ...defaultModel,
+      canonicalState: 'prefilled-regenerate',
+      primaryActionPolicy: 'regenerate-current-step',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canOpenPreviousArtifact: true,
+      },
+      stepStatuses,
+      messages: {
+        status: 'Pronto per rigenerare con i nuovi parametri',
+        error: null,
+      },
+    };
+  }
+
+  if (hasCheckpoint && readiness.canStartFlow) {
+    return {
+      ...defaultModel,
+      canonicalState: 'paused-with-checkpoint',
+      primaryActionPolicy: 'resume-checkpoint',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canRetry: true,
+        canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
+      },
+      stepStatuses,
+      messages: {
+        status: `Puoi riprendere dallo step: ${progress.lastCheckpointStep}`,
+        error: null,
+      },
+    };
+  }
+
+  return {
+    ...defaultModel,
+    secondaryActionFlags: {
+      ...defaultModel.secondaryActionFlags,
+      canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
+    },
+    stepStatuses,
+  };
+};
+
+const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {
+  return policy === 'start-generation' || policy === 'resume-checkpoint' || policy === 'regenerate-current-step';
 };
 
 const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
@@ -244,6 +402,7 @@ export type ToolPageContext = {
   generationError: string | null;
   progress: ToolPageProgressState;
   readiness: ToolPageReadinessSnapshot;
+  viewModel: ToolPageViewModel;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
 };
 
@@ -294,7 +453,7 @@ export const toolPageMachine = setup({
   },
   guards: {
     canStartGeneration: ({ context }) => {
-      return context.readiness.canStartFlow;
+      return context.readiness.canStartFlow && canStartFromPolicy(context.viewModel.primaryActionPolicy);
     },
   },
   actions: {
@@ -323,11 +482,32 @@ export const toolPageMachine = setup({
       generationError: () => null,
       stepArtifactIds: () => ({}),
       briefingActorRef: () => null,
+      progress: () => ({
+        completedSteps: new Set<ToolStep>(),
+        latestArtifactByStep: {},
+        lastCheckpointStep: null,
+      }),
       readiness: ({ event, context }) => buildReadinessSnapshot(
         event.type === 'PROJECT_SELECTED' ? event.projectId : context.projectId,
         false,
         false,
       ),
+      viewModel: ({ event, context }) => {
+        const projectId = event.type === 'PROJECT_SELECTED' ? event.projectId : context.projectId;
+        const readiness = buildReadinessSnapshot(projectId, false, false);
+        const progress = {
+          completedSteps: new Set<ToolStep>(),
+          latestArtifactByStep: {},
+          lastCheckpointStep: null,
+        };
+
+        return buildToolPageViewModel({
+          toolKey: context.toolKey,
+          readiness,
+          progress,
+          generationError: null,
+        });
+      },
     }),
     setModel: assign({
       model: ({ event, context }) => (event.type === 'MODEL_CHANGED' ? event.model : context.model),
@@ -347,32 +527,37 @@ export const toolPageMachine = setup({
     clearGenerationError: assign({
       generationError: () => null,
     }),
-    syncProgress: assign({
-      progress: ({ context, event }) => {
-        if (event.type !== 'PROGRESS_SYNCED') {
-          return context.progress;
-        }
+    syncProgress: assign(({ context, event }) => {
+      if (event.type !== 'PROGRESS_SYNCED') {
+        return {};
+      }
 
-        return resolveFlowProgressState(
-          event.artifacts,
-          context.toolKey,
-          context.projectId,
-          event.intent,
-          event.sourceArtifact,
-          event.runRequestPrefix,
-        );
-      },
-      readiness: ({ context, event }) => {
-        if (event.type !== 'PROGRESS_SYNCED') {
-          return context.readiness;
-        }
+      const progress = resolveFlowProgressState(
+        event.artifacts,
+        context.toolKey,
+        context.projectId,
+        event.intent,
+        event.sourceArtifact,
+        event.runRequestPrefix,
+      );
 
-        return buildReadinessSnapshot(
-          context.projectId,
-          event.hasExtractionContext,
-          event.hasPrimaryTargetStep,
-        );
-      },
+      const readiness = buildReadinessSnapshot(
+        context.projectId,
+        event.hasExtractionContext,
+        event.hasPrimaryTargetStep,
+      );
+
+      return {
+        progress,
+        readiness,
+        viewModel: buildToolPageViewModel({
+          toolKey: context.toolKey,
+          intent: event.intent,
+          readiness,
+          progress,
+          generationError: context.generationError,
+        }),
+      };
     }),
     queueStepStart: assign({
       pendingStepStart: ({ context, event }) => {
@@ -391,6 +576,12 @@ export const toolPageMachine = setup({
     }),
     setGenerationError: assign({
       generationError: () => 'Tool flow failed',
+      viewModel: ({ context }) => buildToolPageViewModel({
+        toolKey: context.toolKey,
+        readiness: context.readiness,
+        progress: context.progress,
+        generationError: 'Tool flow failed',
+      }),
     }),
     resetConfig: assign(({ context }) => ({
       ...context,
@@ -403,6 +594,17 @@ export const toolPageMachine = setup({
         lastCheckpointStep: null,
       },
       readiness: buildReadinessSnapshot(context.projectId, false, false),
+      // Rebuild deterministic viewModel from reset primitives.
+      viewModel: buildToolPageViewModel({
+        toolKey: context.toolKey,
+        readiness: buildReadinessSnapshot(context.projectId, false, false),
+        progress: {
+          completedSteps: new Set<ToolStep>(),
+          latestArtifactByStep: {},
+          lastCheckpointStep: null,
+        },
+        generationError: null,
+      }),
       pendingStepStart: null,
     })),
     sendBriefingSelected: sendTo(
@@ -443,6 +645,10 @@ export const toolPageMachine = setup({
       lastCheckpointStep: null,
     },
     readiness: buildReadinessSnapshot(input.projectId, false, false),
+    viewModel: buildDefaultViewModel(
+      input.toolKey,
+      buildReadinessSnapshot(input.projectId, false, false),
+    ),
     pendingStepStart: null,
   }),
   on: {

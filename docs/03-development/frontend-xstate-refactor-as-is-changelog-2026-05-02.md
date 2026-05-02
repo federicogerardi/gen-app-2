@@ -54,6 +54,7 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 - [xstate-actor-contracts-and-topology-spec](../02-design/specifications/xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md)
 - [testing-go-no-go-and-risk-spec](../02-design/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md)
 - [tools-generation-go-closure-2026-04-25](../07-governance/review/tools-generation-go-closure-2026-04-25.md)
+- [tool-generation-flow-source-of-truth-spec](../02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [index-overview](../index-overview.md)
 
 ## Execution Evidence
@@ -67,5 +68,5 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 
 ## References
 
-- Piano sorgente: [refactor-xstate-frontend-machines-1](../../plan/refactor-xstate-frontend-machines-1.md)
-- Snapshot archivio piano: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](../99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md)
+- Piano sorgente: [unification-xstate-first-frontend-1](../../plan/unification-xstate-first-frontend-1.md)
+- Piano precedente (contesto storico): [refactor-xstate-frontend-machines-1](../../plan/refactor-xstate-frontend-machines-1.md)

@@ -1,6 +1,6 @@
 ---
 goal: Source of truth machine-friendly per il flow tool generation frontend
-version: 1.0
+version: 1.1
 date_created: 2026-05-02
 date_updated: 2026-05-02
 status: Active
@@ -94,6 +94,27 @@ type ToolPageProgressState = {
 };
 ```
 
+### 4.3 ViewModel Snapshot (Machine Source Of Truth)
+
+```ts
+type ToolPageViewModel = {
+  readiness: ToolPageReadinessSnapshot;
+  canonicalState: CanonicalToolUiState;
+  primaryActionPolicy: PrimaryActionPolicy;
+  secondaryActionFlags: SecondaryActionFlags;
+  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  messages: {
+    status: string | null;
+    error: string | null;
+  };
+};
+```
+
+Ownership rule:
+1. `toolPageMachine.context.viewModel` e l'unica sorgente canonica per decisioni UI.
+2. `ToolPageTemplate` non puo derivare localmente policy primaria o canonical state.
+3. `ToolGenerationFlowVertical` riceve dati pronti dal viewModel e non calcola policy.
+
 ## 5. Event Contract (Frontend Internal)
 
 Eventi canonici del flow page:
@@ -153,6 +174,8 @@ Regola XState-first:
 1. la UI legge lo stato da selector macchina
 2. la UI non deve duplicare logica decisionale di readiness
 3. il blocco `Pronto per la generazione` deve essere guidato da `readiness.reasonCodes`
+4. le CTA principali devono usare `viewModel.primaryActionPolicy`
+5. il rendering step deve usare `viewModel.stepStatuses`
 
 Mapping reason code -> feedback:
 
@@ -161,6 +184,18 @@ Mapping reason code -> feedback:
 | `missing_project` | Seleziona un progetto |
 | `missing_extraction_context` | Carica o recupera un brief |
 | `missing_primary_target_step` | In attesa dello step disponibile |
+
+Contract verticale minimo (`ToolGenerationFlowVertical`):
+1. `canonicalState`
+2. `readinessReasonCodes`
+3. `steps`
+4. `completedStepsCount` + `totalStepsCount`
+5. `errorMessage`
+
+Campi esplicitamente non necessari nel contract verticale corrente:
+1. `toolKey`
+2. `currentRunningStep`
+3. `statusMessage`
 
 ## 9. Recovery & Compatibility Rules
 
@@ -183,3 +218,9 @@ Regole aggiornamento documento:
 1. bump minor (`x.y -> x.(y+1)`) per cambi semantici compatibili
 2. bump major (`x -> x+1`) per breaking change di contract eventi/state
 3. ogni update deve includere delta esplicito nei docs attivi (index overview + changelog development)
+
+## 12. Sprint 5 Delta (2026-05-02)
+
+1. formalizzata ownership completa del `viewModel` macchina come source of truth UI.
+2. esplicitato limite architetturale del template: presenter-thin senza derivazioni policy/stato.
+3. allineato contract minimale del verticale ai campi realmente consumati.

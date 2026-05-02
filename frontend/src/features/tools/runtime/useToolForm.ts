@@ -428,9 +428,17 @@ export const useToolUiState = (
   },
 ): ToolUiDerivationOutput => {
   return useMemo(() => {
+    const optionalInput = runtimeInput.intent !== undefined
+      ? { intent: runtimeInput.intent }
+      : {};
+
+    const optionalRunState = runtimeInput.hasStartedCurrentRun !== undefined
+      ? { hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun }
+      : {};
+
     return deriveCanonicalToolUiState({
       toolKey,
-      intent: runtimeInput.intent,
+      ...optionalInput,
       projectId: runtimeInput.formState.projectId,
       briefingFile: runtimeInput.formState.briefingFile,
       briefingStatus: runtimeInput.formState.briefingStatus,
@@ -441,7 +449,7 @@ export const useToolUiState = (
       lastCheckpointStep: runtimeInput.lastCheckpointStep,
       nextAvailableStep: runtimeInput.nextAvailableStep,
       generationError: runtimeInput.generationError,
-      hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun,
+      ...optionalRunState,
     });
   }, [toolKey, runtimeInput]);
 };

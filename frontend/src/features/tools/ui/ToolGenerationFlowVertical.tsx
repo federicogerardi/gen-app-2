@@ -1,5 +1,5 @@
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
-import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ToolStep } from '../machines/tool-flow.machine';
 
 type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
 type StepStatus = 'idle' | 'running' | 'completed' | 'error';
@@ -21,7 +21,6 @@ export interface FlowStepProgress {
 }
 
 export interface ToolGenerationFlowVerticalProps {
-  toolKey: SupportedTool;
   canonicalState: CanonicalToolUiState;
   projectName: string | null;
   briefingFileName: string | null;
@@ -29,10 +28,8 @@ export interface ToolGenerationFlowVerticalProps {
   readinessReasonCodes: ReadonlyArray<ReadinessReasonCode>;
   briefingError: string | null;
   steps: FlowStepProgress[];
-  currentRunningStep: ToolStep | null;
   completedStepsCount: number;
   totalStepsCount: number;
-  statusMessage: string | null;
   errorMessage: string | null;
   onViewArtifact?: (artifactId: string) => void;
 }
@@ -70,6 +67,12 @@ const REQ_ICON: Record<ReqStatus, string> = {
   active: '⟳',
   done: '✓',
   error: '✕',
+};
+
+const READINESS_DETAIL_BY_REASON: Record<ReadinessReasonCode, string> = {
+  missing_project: 'Seleziona un progetto',
+  missing_extraction_context: 'Carica o recupera un brief',
+  missing_primary_target_step: 'In attesa dello step disponibile',
 };
 
 // ─── sub-components ──────────────────────────────────────────────────────────
@@ -201,16 +204,16 @@ export const ToolGenerationFlowVertical = ({
   })();
 
   const readinessDetail = (() => {
-    if (reasonSet.has('missing_project')) {
-      return 'Seleziona un progetto';
-    }
+    const priority: ReadinessReasonCode[] = [
+      'missing_project',
+      'missing_extraction_context',
+      'missing_primary_target_step',
+    ];
 
-    if (reasonSet.has('missing_extraction_context')) {
-      return 'Carica o recupera un brief';
-    }
-
-    if (reasonSet.has('missing_primary_target_step')) {
-      return 'In attesa dello step disponibile';
+    for (const reason of priority) {
+      if (reasonSet.has(reason)) {
+        return READINESS_DETAIL_BY_REASON[reason];
+      }
     }
 
     return undefined;

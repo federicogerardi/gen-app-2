@@ -36,8 +36,15 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 
 5. Coerenza action flow e CTA dopo restore checkpoint:
 - completata la gestione policy primaria (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`).
-- rimosso il blocco CTA nei casi `regenerate` con checkout ripristinato e `nextAvailableStep` nullo.
 - avvio step orchestrato via comando macchina (`REQUEST_STEP_START`) con dispatch side effect su pending command.
+- **bug ancora aperto (2026-05-02)**: nel recovery checkpoint alcuni flussi frontend restano in stato non pronto (`Completa il form per iniziare`) anche con progetto selezionato e brief estratto recuperato.
+
+## Known Open Issue
+
+- **Tool checkpoint recovery readiness (frontend)**
+	- Stato: `open`
+	- Impatto: CTA primaria disabilitata e colonna destra non passa a `Pronto per la generazione` in specifici rientri da artifact/history.
+	- Nota: ad oggi non si registra cambiamento funzionale percepibile nel comportamento di recovery checkpoint rispetto alla segnalazione utente.
 
 ## Documentation Updated In This Delta
 

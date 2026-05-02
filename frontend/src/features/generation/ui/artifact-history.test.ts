@@ -100,6 +100,20 @@ describe('artifact history', () => {
     expect(query.get('briefingFileName')).toBe('brief.md');
   });
 
+  it('builds tool entry query for new relaunch intent', () => {
+    const sourceArtifact = artifact({
+      artifactId: 'art-new-route',
+      projectId: 'project-99',
+    });
+
+    const query = new URLSearchParams(buildArtifactEntryQuery(sourceArtifact, 'new'));
+
+    expect(query.get('intent')).toBe('new');
+    expect(query.get('projectId')).toBe('project-99');
+    expect(query.get('sourceArtifactId')).toBe('art-new-route');
+    expect(query.get('relaunchFromArtifactId')).toBe('art-new-route');
+  });
+
   it('builds tool entry path only for supported tool routes', () => {
     const supported = artifact({
       artifactId: 'art-supported',

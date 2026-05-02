@@ -25,7 +25,7 @@ export type ArtifactFilters = {
   period: ArtifactPeriodFilter;
 };
 
-export type ToolRelaunchIntent = 'resume' | 'regenerate';
+export type ToolRelaunchIntent = 'new' | 'resume' | 'regenerate';
 
 const toPeriodWindowMs = (period: ArtifactPeriodFilter): number | null => {
   if (period === '7d') {

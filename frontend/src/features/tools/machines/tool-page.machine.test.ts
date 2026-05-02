@@ -239,4 +239,79 @@ describe('toolPageMachine', () => {
     expect(progress.lastCheckpointStep).toBe('vsl');
     expect(progress.latestArtifactByStep.optin?.artifactId).toBe('art-optin');
   });
+
+  it('treats relaunch new from artifact as fresh progress state', () => {
+    const actor = createToolPageActor();
+
+    const sourceArtifact = {
+      artifactId: 'art-vsl',
+      requestId: 'req-vsl',
+      projectId: 'project-1',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel-pages',
+      content: 'vsl content',
+      createdAt: '2026-05-02T00:00:00.000Z',
+      updatedAt: '2026-05-02T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-vsl',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'content',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        input: {
+          step: 'vsl',
+          stepDependencyArtifactIdsByStep: {
+            optin: 'art-optin',
+            quiz: 'art-quiz',
+          },
+        },
+      },
+    } satisfies GenerationArtifact;
+
+    const artifacts = [
+      sourceArtifact,
+      {
+        artifactId: 'art-optin',
+        requestId: 'req-optin',
+        projectId: 'project-1',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'optin content',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-optin',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'optin' },
+        },
+      },
+    ] satisfies GenerationArtifact[];
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts,
+      intent: 'new',
+      sourceArtifact,
+      runRequestPrefix: null,
+      canStartFlow: true,
+    });
+
+    const progress = actor.getSnapshot().context.progress;
+    expect([...progress.completedSteps]).toEqual([]);
+    expect(progress.lastCheckpointStep).toBeNull();
+    expect(progress.latestArtifactByStep).toEqual({});
+  });
 });

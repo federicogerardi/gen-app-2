@@ -249,6 +249,11 @@ export const ToolPageTemplate = ({
 
   const normalizedProjectId = formState.projectId.trim();
 
+  const resolvedBriefingId = briefingId
+    ?? readInputString(sourceArtifact, 'briefingId')
+    ?? null;
+  const sourceExtractionArtifactId = readInputString(sourceArtifact, 'extractionArtifactId');
+
   useEffect(() => {
     if (!briefingSnapshot.matches('ready')) {
       return;
@@ -382,6 +387,141 @@ export const ToolPageTemplate = ({
     generation,
     generation.artifacts,
     normalizedProjectId,
+    toolKey,
+    toolPageSnapshot.context.briefingActorRef,
+  ]);
+
+  // 7.b Recovery fallback for relaunch entrypoints with missing extraction fields.
+  useEffect(() => {
+    if (!normalizedProjectId) {
+      return;
+    }
+
+    const shouldRecover = Boolean(resolvedBriefingId || sourceExtractionArtifactId || sourceArtifactId);
+    if (!shouldRecover) {
+      return;
+    }
+
+    const existingContext = generation.getExtractionContext(normalizedProjectId);
+    if (existingContext && (!resolvedBriefingId || existingContext.briefingId === resolvedBriefingId)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const artifacts = await listArtifacts(
+          {
+            type: 'extraction',
+            status: 'completed',
+            projectId: normalizedProjectId,
+          },
+          {
+            apiBaseUrl: auth.apiBaseUrl,
+            capabilities: auth.capabilities,
+            localArtifacts: generation.artifacts,
+          },
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const recoveredArtifact = artifacts
+          .filter((artifact) => {
+            const artifactToolKey = artifact.sourceRequest.input?.toolKey;
+            return artifactToolKey === toolKey;
+          })
+          .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+          .sort((left, right) => {
+            const leftIsSourceExtraction = sourceExtractionArtifactId && left.artifactId === sourceExtractionArtifactId ? 1 : 0;
+            const rightIsSourceExtraction = sourceExtractionArtifactId && right.artifactId === sourceExtractionArtifactId ? 1 : 0;
+            if (leftIsSourceExtraction !== rightIsSourceExtraction) {
+              return rightIsSourceExtraction - leftIsSourceExtraction;
+            }
+
+            const leftBriefingId = typeof left.sourceRequest.input?.briefingId === 'string'
+              ? left.sourceRequest.input.briefingId
+              : null;
+            const rightBriefingId = typeof right.sourceRequest.input?.briefingId === 'string'
+              ? right.sourceRequest.input.briefingId
+              : null;
+            const leftMatchesBriefing = resolvedBriefingId && leftBriefingId === resolvedBriefingId ? 1 : 0;
+            const rightMatchesBriefing = resolvedBriefingId && rightBriefingId === resolvedBriefingId ? 1 : 0;
+            return rightMatchesBriefing - leftMatchesBriefing;
+          })[0];
+
+        if (!recoveredArtifact) {
+          return;
+        }
+
+        const recoveredBriefingId = (() => {
+          const raw = recoveredArtifact.sourceRequest.input?.briefingId;
+          if (typeof raw === 'string' && raw.trim().length > 0) {
+            return raw.trim();
+          }
+
+          if (resolvedBriefingId) {
+            return resolvedBriefingId;
+          }
+
+          return null;
+        })();
+
+        if (!recoveredBriefingId) {
+          return;
+        }
+
+        let extractionPayload: Record<string, unknown> = {};
+        try {
+          const parsed = JSON.parse(recoveredArtifact.content) as unknown;
+          if (parsed && typeof parsed === 'object') {
+            extractionPayload = parsed as Record<string, unknown>;
+          }
+        } catch {
+          extractionPayload = {};
+        }
+
+        generation.upsertExtractionContext({
+          projectId: normalizedProjectId,
+          briefingId: recoveredBriefingId,
+          extractionArtifactId: recoveredArtifact.artifactId,
+          extractionPayload,
+          normalizedText: readInputString(sourceArtifact, 'briefingText') ?? '',
+          parsedFormat: (() => {
+            const raw = readInputString(sourceArtifact, 'parsedFormat')?.toLowerCase();
+            if (raw === 'txt' || raw === 'md' || raw === 'docx') {
+              return raw;
+            }
+            return 'md';
+          })(),
+          updatedAt: recoveredArtifact.updatedAt,
+        });
+
+        toolPageSnapshot.context.briefingActorRef?.send({
+          type: 'EXTRACTION_RECOVERED',
+          artifactId: recoveredArtifact.artifactId,
+          payload: extractionPayload,
+        });
+      } catch {
+        // No-op: preserve current UI, user can still upload briefing manually.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    auth.apiBaseUrl,
+    auth.capabilities,
+    generation,
+    generation.artifacts,
+    normalizedProjectId,
+    resolvedBriefingId,
+    sourceArtifactId,
+    sourceExtractionArtifactId,
+    sourceArtifact,
     toolKey,
     toolPageSnapshot.context.briefingActorRef,
   ]);
@@ -563,7 +703,7 @@ export const ToolPageTemplate = ({
         notes: resolvedNotes,
         relaunchFromArtifactId: resolvedRelaunchSource,
         sourceArtifactId: sourceArtifactId ?? null,
-        briefingId: extractionContext.briefingId || briefingId || readInputString(sourceArtifact, 'briefingId'),
+        briefingId: extractionContext.briefingId || resolvedBriefingId,
         briefingFileName: effectiveBriefingFileName ?? null,
         extractionArtifactId: extractionContext.extractionArtifactId,
         extractionPayload: extractionContext.extractionPayload,

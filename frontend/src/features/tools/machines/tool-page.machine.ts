@@ -135,6 +135,15 @@ export const resolveFlowProgressState = (
   const hasRestoredCheckout = restoredCheckpointState.completedSteps.size > 0;
 
   if (!runRequestPrefix) {
+    // Relaunch "new" from artifact should behave like a fresh run with prefilled briefing context.
+    if (intent === 'new' && sourceArtifact) {
+      return {
+        completedSteps: new Set<ToolStep>(),
+        latestArtifactByStep: {},
+        lastCheckpointStep: null,
+      };
+    }
+
     if ((intent === 'resume' || intent === 'regenerate') && hasRestoredCheckout) {
       return restoredCheckpointState;
     }

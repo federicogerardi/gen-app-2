@@ -92,7 +92,7 @@ Fonte di verita visuale:
 - Tool page orchestration consolidation:
   - `ToolPageTemplate` usa un solo actor tree per il briefing (snapshot actor macchina come sorgente canonica).
   - policy primaria CTA allineata allo stato canonico anche nei restore flow (`regenerate-current-step`, `open-last-artifact`).
-  - eliminato il blocco azione in pagina nei casi checkpoint/checkout ripristinati con progetto+brief gia coerenti.
+  - **bug ancora aperto**: in alcuni recovery checkpoint la UI non passa a `Pronto per la generazione` e la CTA primaria resta disabilitata (`Completa il form per iniziare`) nonostante progetto+brief risultino valorizzati.
 
 ---
 

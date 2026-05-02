@@ -107,6 +107,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
 - Piano refactor frontend XState archiviato: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) con chiusura definitiva e verifica E2E GO.
 - Blueprint as-is XState aggiornato al delta refactor frontend 2026-05-02: sincronizzazione input actor briefing, recovery extraction persistita e verifica strict no-unused nel frontend.
+- **Issue aperta frontend tools**: recovery checkpoint non ancora stabile; in alcuni rientri il form resta su `Completa il form per iniziare` e non raggiunge `Pronto per la generazione`.
 
 ## Governance Rules Applied
 

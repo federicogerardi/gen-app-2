@@ -2,7 +2,7 @@
 
 ---
 date_created: 2026-04-26
-date_updated: 2026-04-28
+date_updated: 2026-05-02
 status: Target (post-unification)
 version: 2.0
 title: Frontend Tool Pages — Unified Architecture Specification
@@ -37,18 +37,21 @@ frontend/src/features/tools/
 │   ├── tool-ux-state.ts               # Canonical state derivation
 │   ├── tool-generation-engine.ts      # Unchanged
 │   ├── tools-client.ts                # Unchanged
-│   └── useToolForm.ts                 # Composite hook: useProjectsLoader, useBriefingUpload, useToolUiState
+│   └── useToolForm.ts                 # Hook utilities: useProjectsLoader, useToolUiState, form helpers
 ├── ui/
 │   ├── ToolPageTemplate.tsx           # Orchestration component (~150 lines)
-│   ├── ToolStatusCard.tsx             # Global feedback card (~80 lines)
-│   ├── ToolStepCard.tsx               # Per-step card + preview (~120 lines)
+│   ├── ToolGenerationFlowVertical.tsx # Unified flow/status right column
+│   ├── ToolStatusCard.tsx             # Legacy reusable component
+│   ├── ToolStepCard.tsx               # Legacy reusable component
 │   └── ToolActionButtons.tsx          # Adaptive CTAs (~100 lines)
 ├── funnel-pages/pages/
 │   └── FunnelPagesToolPage.tsx         # Wrapper only (~50 lines)
 ├── nextland/pages/
 │   └── NextlandToolPage.tsx           # Wrapper only (~50 lines)
 └── machines/
-    └── tool-flow.machine.ts           # Unchanged
+  ├── briefing-upload.machine.ts     # Briefing upload/extraction actor
+  ├── tool-page.machine.ts           # Page orchestrator + progress sync + flow commands
+  └── tool-flow.machine.ts           # Step workflow actor
 ```
 
 ### 1.2 Data Flow
@@ -60,21 +63,21 @@ frontend/src/features/tools/
                    │
       ┌────────────┼────────────┬──────────────────┐
       │            │            │                  │
-      ▼            ▼            ▼                  ▼
-  useToolForm   toolConfig   useToolUiState   derivePrimary
-  (12 useState   lookup       derivation       ActionPolicy
-   → centralized)
+        ▼            ▼            ▼                  ▼
+      toolPageMachine toolConfig  useToolUiState   derivePrimary
+      (briefing actor  lookup      derivation       ActionPolicy
+       + flow commands)
       │            │            │                  │
       └────────────┼────────────┴──────────────────┘
                    │
       ┌────────────┴─────────────────────┐
       │                                  │
-      ▼                                  ▼
-  ToolStatusCard                   ToolPageTemplate.render()
-  (Checklist + global            ├─ Form (Project, Model, Tone, Notes)
-   feedback)                     ├─ BriefingUpload
-                                 ├─ ToolStepCard[] (per-step preview)
-                                 └─ ToolActionButtons (CTA adaptivi)
+        ▼                                  ▼
+      ToolGenerationFlowVertical       ToolPageTemplate.render()
+      (Checklist + progress +         ├─ Form (Project, Model, Tone, Notes)
+       step statuses unificati)       ├─ Briefing upload input (events -> machine actor)
+                      ├─ Flow state da selector macchina
+                      └─ ToolActionButtons (CTA adaptivi)
 ```
 
 ---
@@ -196,7 +199,7 @@ export type CanonicalToolUiState =
   | 'completed';               // Generation done
 
 export interface ToolUiDerivationInput {
-  uploadStatus: 'idle' | 'uploading' | 'extracting' | 'review' | 'failed';
+  uploadStatus: 'idle' | 'uploading' | 'extracting' | 'ready';
   extractionContext: ExtractionContext | null;
   generationStatus: 'idle' | 'running' | 'completed' | 'failed';
   lastCheckpoint: Checkpoint | null;
@@ -224,6 +227,7 @@ export function deriveCanonicalToolUiState(
 export type PrimaryActionPolicy =
   | 'start-generation'
   | 'resume-checkpoint'
+  | 'regenerate-current-step'
   | 'open-last-artifact'
   | 'disabled';
 
@@ -304,10 +308,9 @@ export function useToolForm(toolKey: ToolKey): UseToolFormResult {
 
   // Sub-hooks (extracted, reusable logic)
   const projects = useProjectsLoader(session?.userId);
-  const briefing = useBriefingUpload(session?.userId);
   const uiState = useToolUiState({
-    uploadStatus: briefing.status,
-    extractionContext: briefing.extractionContext,
+    uploadStatus: /* derived from toolPageMachine briefing actor snapshot */,
+    extractionContext: /* from GenerationWorkspaceProvider cache */,
     generationStatus: generation.status,
     lastCheckpoint: generation.lastCheckpoint,
     sourceArtifactId: /* from route */, 
@@ -330,13 +333,18 @@ export function useToolForm(toolKey: ToolKey): UseToolFormResult {
 
 **useProjectsLoader**: Carica lista progetti dell'utente corrente.
 
-**useBriefingUpload**: Gestisce upload file, estrazione, e storage.
+Nota as-is (delta 2026-05-02): `ToolPageTemplate` non usa piu `useBriefingUpload` come sorgente primaria.
+Lo stato briefing e comandato dal child actor `briefing-upload.machine` spawnato da `tool-page.machine`.
+Il template invia eventi (`BRIEFING_FILE_SELECTED`, `BRIEFING_RESET`) e legge snapshot actor via selector.
 
 **useToolUiState**: Invoker per deriveCanonicalToolUiState + derivePrimaryActionPolicy.
 
 ---
 
 ## 5. Generic UI Components
+
+Nota as-is (delta 2026-05-02): la colonna destra runtime e unificata in `ToolGenerationFlowVertical`.
+Le sezioni 5.1 e 5.2 restano come riferimento storico/riuso, non come composizione primaria corrente di `ToolPageTemplate`.
 
 ### 5.1 ToolStatusCard
 
@@ -452,6 +460,12 @@ interface ToolPageTemplateProps {
   sourceArtifactId?: string;  // For resume/regenerate
   intent?: 'resume' | 'regenerate';
 }
+
+Comportamento as-is rilevante:
+
+- CTA primaria gestita per tutte le policy canoniche (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`, `disabled`).
+- Nei restore flow, `regenerate-current-step` usa lo step sorgente del checkout ripristinato anche quando `nextAvailableStep` e nullo.
+- Le richieste di avvio step passano da `tool-page.machine` con comando `REQUEST_STEP_START`; il side effect di dispatch e agganciato al comando pending nel context macchina.
 ```
 
 ---

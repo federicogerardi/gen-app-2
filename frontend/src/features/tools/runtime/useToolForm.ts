@@ -415,6 +415,7 @@ export const useAvailableSteps = (toolKey: SupportedTool, completedSteps: Set<To
 export const useToolUiState = (
   toolKey: SupportedTool,
   runtimeInput: {
+    intent?: 'new' | 'resume' | 'regenerate';
     formState: ToolFormState;
     isGenerationStreamActive: boolean;
     completedSteps: Set<ToolStep>;
@@ -423,11 +424,13 @@ export const useToolUiState = (
     lastCheckpointStep: ToolStep | null;
     nextAvailableStep: ToolStep | null;
     generationError: string | null;
+    hasStartedCurrentRun?: boolean;
   },
 ): ToolUiDerivationOutput => {
   return useMemo(() => {
     return deriveCanonicalToolUiState({
       toolKey,
+      intent: runtimeInput.intent,
       projectId: runtimeInput.formState.projectId,
       briefingFile: runtimeInput.formState.briefingFile,
       briefingStatus: runtimeInput.formState.briefingStatus,
@@ -438,6 +441,7 @@ export const useToolUiState = (
       lastCheckpointStep: runtimeInput.lastCheckpointStep,
       nextAvailableStep: runtimeInput.nextAvailableStep,
       generationError: runtimeInput.generationError,
+      hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun,
     });
   }, [toolKey, runtimeInput]);
 };

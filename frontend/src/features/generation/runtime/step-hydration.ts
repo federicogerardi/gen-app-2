@@ -72,6 +72,7 @@ export const buildLatestArtifactByStep = (
   }, {});
 };
 
+
 export const collectCompletedRunSteps = (
   artifacts: GenerationArtifact[],
   toolKey: SupportedTool,

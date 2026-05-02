@@ -53,6 +53,7 @@ export type SecondaryActionFlags = {
  */
 export type ToolUiDerivationInput = {
   toolKey: SupportedTool;
+  intent?: 'new' | 'resume' | 'regenerate';
   projectId: string;
   briefingFile: File | null;
   briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready';
@@ -63,6 +64,7 @@ export type ToolUiDerivationInput = {
   lastCheckpointStep: ToolStep | null;
   nextAvailableStep: ToolStep | null;
   generationError: string | null;
+  hasStartedCurrentRun?: boolean;
 };
 
 /**
@@ -135,21 +137,33 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     statusMessage = `Brief in ${input.briefingStatus === 'uploading' ? 'caricamento' : 'estrazione'}...`;
   }
 
-  // 4. Handle completed workflow (no next step available)
+  // 4. Handle restored regenerate context before a new run starts
+  else if (
+    input.intent === 'regenerate'
+    && !input.hasStartedCurrentRun
+    && input.hasCompletedPreviousGeneration
+    && input.briefingStatus === 'ready'
+  ) {
+    canonicalState = 'prefilled-regenerate';
+    primaryActionPolicy = 'regenerate-current-step';
+    statusMessage = 'Pronto per rigenerare con i nuovi parametri';
+  }
+
+  // 5. Handle completed workflow (no next step available)
   else if (input.nextAvailableStep === null && input.completedSteps.size > 0) {
     canonicalState = 'completed';
     primaryActionPolicy = 'open-last-artifact';
     statusMessage = 'Tutti gli artefatti sono stati generati';
   }
 
-  // 5. Handle resume from checkpoint
+  // 6. Handle resume from checkpoint
   else if (input.lastCheckpointStep && input.nextAvailableStep) {
     canonicalState = 'paused-with-checkpoint';
     primaryActionPolicy = 'resume-checkpoint';
     statusMessage = `Puoi riprendere dallo step: ${input.lastCheckpointStep}`;
   }
 
-  // 6. Handle form ready: project selected, briefing uploaded, next step available
+  // 7. Handle form ready: project selected, briefing uploaded, next step available
   else if (
     input.projectId.trim().length > 0
     && input.briefingStatus === 'ready'
@@ -160,7 +174,7 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     statusMessage = 'Pronto per la generazione';
   }
 
-  // 7. Handle regeneration scenario (previous generation exists, can restart)
+  // 8. Handle regeneration scenario (previous generation exists, can restart)
   else if (
     input.hasCompletedPreviousGeneration
     && input.briefingStatus === 'ready'
@@ -171,7 +185,7 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
     statusMessage = 'Pronto per rigenerare con i nuovi parametri';
   }
 
-  // 8. Default: form empty
+  // 9. Default: form empty
   else {
     canonicalState = 'draft-empty';
     primaryActionPolicy = 'disabled';

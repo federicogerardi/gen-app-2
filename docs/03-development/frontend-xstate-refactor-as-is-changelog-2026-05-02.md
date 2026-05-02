@@ -30,6 +30,15 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 - cleanup dead code completato nel workspace frontend.
 - check strict TypeScript (`noUnusedLocals` / `noUnusedParameters`) verificato a zero errori.
 
+4. Consolidamento actor tree tool page:
+- eliminata la duplicazione della sorgente briefing tra hook locale e machine.
+- `ToolPageTemplate` usa come sorgente canonica lo snapshot del child actor briefing spawnato da `toolPageMachine`.
+
+5. Coerenza action flow e CTA dopo restore checkpoint:
+- completata la gestione policy primaria (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`).
+- rimosso il blocco CTA nei casi `regenerate` con checkout ripristinato e `nextAvailableStep` nullo.
+- avvio step orchestrato via comando macchina (`REQUEST_STEP_START`) con dispatch side effect su pending command.
+
 ## Documentation Updated In This Delta
 
 - [xstate-system-as-is-spec](../02-design/specifications/xstate-system-as-is-spec.md)
@@ -43,6 +52,7 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 - `npm --prefix frontend run typecheck` -> pass
 - `npx tsc -p frontend/tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters` -> pass
 - `npm --prefix frontend run test -- src/features/tools/runtime/useToolForm.test.tsx src/features/tools/machines/briefing-upload.machine.test.ts` -> pass
+- `npm --prefix frontend run test -- ToolPageTemplate.test.tsx src/features/tools/machines/tool-page.machine.test.ts` -> pass
 - smoke test manuale tools pipeline -> GO
 
 ## References

@@ -3,17 +3,20 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMachine, useSelector } from '@xstate/react';
+import type { ActorRefFrom } from 'xstate';
 import { useNavigate } from 'react-router-dom';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import { briefingUploadMachine } from '../machines/briefing-upload.machine';
+import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig, mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
 import {
   useProjectsLoader,
-  useBriefingUpload,
   useToolFormInit,
   useAvailableSteps,
   useToolUiState,
@@ -22,12 +25,7 @@ import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
-import {
-  buildExtractionContextFromArtifact,
-  buildLatestArtifactByStep,
-  collectCompletedRunSteps,
-  collectCompletedStepsByTool,
-} from '../../generation/runtime/step-hydration';
+import { buildExtractionContextFromArtifact } from '../../generation/runtime/step-hydration';
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -49,6 +47,11 @@ const readInputString = (artifact: GenerationArtifact | null, key: string): stri
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+};
+
+const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
+  const step = artifact?.sourceRequest.input?.step;
+  return typeof step === 'string' ? step as ToolStep : null;
 };
 
 const randomId = (): string => {
@@ -81,6 +84,19 @@ export const ToolPageTemplate = ({
   const initialPrefillDoneRef = useRef(false);
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
+  const previousProjectIdRef = useRef<string>((generation.focusedProjectId ?? initialProjectId ?? '').trim());
+
+  const [toolPageSnapshot, toolPageSend] = useMachine(toolPageMachine, {
+    input: {
+      toolKey,
+      projectId: generation.focusedProjectId ?? initialProjectId ?? '',
+      model: toolConfig.defaultModel,
+      registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
+      apiBaseUrl: auth.apiBaseUrl,
+      capabilities: auth.capabilities,
+      userId: auth.session?.user.id ?? null,
+    },
+  });
 
   // 1. Initialize form state
   const { formState, setFormState } = useToolFormInit(
@@ -91,8 +107,22 @@ export const ToolPageTemplate = ({
   // 2. Load projects
   const { projects, loading: projectsLoading } = useProjectsLoader();
 
-  // 3. Manage briefing upload
-  const briefingUpload = useBriefingUpload(toolKey, formState.projectId);
+  // 3. Read briefing upload state from toolPageMachine child actor.
+  const briefingSnapshot = useSelector(
+    toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,
+    (state) => state,
+  );
+
+  const briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready' = briefingSnapshot.matches('uploading')
+    ? 'uploading'
+    : briefingSnapshot.matches('extracting')
+      ? 'extracting'
+      : briefingSnapshot.matches('ready')
+        ? 'ready'
+        : 'idle';
+  const briefingError = briefingSnapshot.context.error;
+  const briefingFile = briefingSnapshot.context.file;
+  const briefingFileNameFromActor = briefingSnapshot.context.fileName;
 
   // 4. Apply one-shot prefill from query params
   useEffect(() => {
@@ -218,18 +248,164 @@ export const ToolPageTemplate = ({
   }, [generation, sourceArtifact]);
 
   const normalizedProjectId = formState.projectId.trim();
-  const extractionContext = briefingUpload.extractionContext
-    ?? generation.getExtractionContext(normalizedProjectId)
+
+  useEffect(() => {
+    if (!briefingSnapshot.matches('ready')) {
+      return;
+    }
+
+    if (!normalizedProjectId) {
+      return;
+    }
+
+    const briefingIdFromActor = briefingSnapshot.context.briefingId;
+    const extractionArtifactId = briefingSnapshot.context.extractionArtifactId;
+    const extractionPayload = briefingSnapshot.context.extractionPayload;
+    const normalizedText = briefingSnapshot.context.normalizedText;
+    const parsedFormat = briefingSnapshot.context.parsedFormat;
+
+    if (!briefingIdFromActor || !extractionArtifactId || !extractionPayload || !normalizedText || !parsedFormat) {
+      return;
+    }
+
+    const existingContext = generation.getExtractionContext(normalizedProjectId);
+    if (
+      existingContext?.briefingId === briefingIdFromActor
+      && existingContext.extractionArtifactId === extractionArtifactId
+      && existingContext.normalizedText === normalizedText
+      && existingContext.parsedFormat === parsedFormat
+    ) {
+      return;
+    }
+
+    generation.upsertExtractionContext({
+      projectId: normalizedProjectId,
+      briefingId: briefingIdFromActor,
+      extractionArtifactId,
+      extractionPayload,
+      normalizedText,
+      parsedFormat,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [briefingSnapshot, generation, normalizedProjectId]);
+
+  useEffect(() => {
+    if (!briefingSnapshot.matches('extracting')) {
+      return;
+    }
+
+    const briefingIdFromActor = briefingSnapshot.context.briefingId;
+    const normalizedText = briefingSnapshot.context.normalizedText;
+    const parsedFormat = briefingSnapshot.context.parsedFormat;
+    if (!normalizedProjectId || !briefingIdFromActor || !normalizedText || !parsedFormat) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const tryRecoverExtraction = async (): Promise<boolean> => {
+      const artifacts = await listArtifacts(
+        {
+          type: 'extraction',
+          status: 'completed',
+          projectId: normalizedProjectId,
+        },
+        {
+          apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+          localArtifacts: generation.artifacts,
+        },
+      );
+
+      if (cancelled) {
+        return false;
+      }
+
+      const recoveredArtifact = artifacts
+        .filter((artifact) => {
+          const artifactBriefingId = artifact.sourceRequest.input?.briefingId;
+          const artifactToolKey = artifact.sourceRequest.input?.toolKey;
+          return artifactBriefingId === briefingIdFromActor && artifactToolKey === toolKey;
+        })
+        .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
+
+      if (!recoveredArtifact) {
+        return false;
+      }
+
+      let payload: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(recoveredArtifact.content) as unknown;
+        if (parsed && typeof parsed === 'object') {
+          payload = parsed as Record<string, unknown>;
+        }
+      } catch {
+        payload = {};
+      }
+
+      generation.upsertExtractionContext({
+        projectId: normalizedProjectId,
+        briefingId: briefingIdFromActor,
+        extractionArtifactId: recoveredArtifact.artifactId,
+        extractionPayload: payload,
+        normalizedText,
+        parsedFormat,
+        updatedAt: recoveredArtifact.updatedAt,
+      });
+
+      toolPageSnapshot.context.briefingActorRef?.send({
+        type: 'EXTRACTION_RECOVERED',
+        artifactId: recoveredArtifact.artifactId,
+        payload,
+      });
+
+      return true;
+    };
+
+    void tryRecoverExtraction();
+    const timerId = window.setInterval(() => {
+      void tryRecoverExtraction().then((recovered) => {
+        if (recovered && !cancelled) {
+          window.clearInterval(timerId);
+        }
+      });
+    }, 1500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timerId);
+    };
+  }, [
+    auth.apiBaseUrl,
+    auth.capabilities,
+    briefingSnapshot,
+    generation,
+    generation.artifacts,
+    normalizedProjectId,
+    toolKey,
+    toolPageSnapshot.context.briefingActorRef,
+  ]);
+
+  useEffect(() => {
+    if (previousProjectIdRef.current === normalizedProjectId) {
+      return;
+    }
+
+    toolPageSend({ type: 'PROJECT_SELECTED', projectId: normalizedProjectId });
+    previousProjectIdRef.current = normalizedProjectId;
+  }, [normalizedProjectId, toolPageSend]);
+
+  const extractionContext = generation.getExtractionContext(normalizedProjectId)
     ?? (sourceArtifact ? buildExtractionContextFromArtifact(sourceArtifact) : null);
 
-  const effectiveBriefingFileName = briefingUpload.fileName
+  const effectiveBriefingFileName = briefingFileNameFromActor
     ?? briefingFileName
     ?? readInputString(sourceArtifact, 'briefingFileName');
 
   const effectiveBriefingStatus = (
-    briefingUpload.status === 'ready' || extractionContext
+    briefingStatus === 'ready' || extractionContext
       ? 'ready'
-      : briefingUpload.status
+      : briefingStatus
   );
 
   const resolvedTone = relaunchTone ?? readInputString(sourceArtifact, 'tone') ?? '';
@@ -239,30 +415,10 @@ export const ToolPageTemplate = ({
     ?? sourceArtifact?.artifactId
     ?? null;
 
-  // 8. Compute completed steps and artifacts mapping
-  const historicalCompletedSteps = useMemo(() => {
-    return collectCompletedStepsByTool(allArtifacts, toolKey, normalizedProjectId);
-  }, [allArtifacts, normalizedProjectId, toolKey]);
+  const progressState = toolPageSnapshot.context.progress;
 
-  const runCompletedSteps = useMemo(() => {
-    if (!currentRunPrefixRef.current) {
-      return new Set<ToolStep>();
-    }
-
-    return collectCompletedRunSteps(
-      allArtifacts,
-      toolKey,
-      normalizedProjectId,
-      currentRunPrefixRef.current,
-    );
-  }, [allArtifacts, normalizedProjectId, toolKey]);
-
-  const completedStepsForFlow = intent === 'regenerate' ? runCompletedSteps : historicalCompletedSteps;
-
-  const latestArtifactByStep = useMemo(
-    () => buildLatestArtifactByStep(allArtifacts, toolKey, normalizedProjectId),
-    [allArtifacts, normalizedProjectId, toolKey],
-  );
+  const completedStepsForFlow = progressState.completedSteps;
+  const latestArtifactByStep = progressState.latestArtifactByStep;
 
   const completedArtifactsByStep = useMemo(() => {
     return Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, entry) => {
@@ -277,6 +433,15 @@ export const ToolPageTemplate = ({
 
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
 
+  const sourceStep = useMemo(() => {
+    const candidate = readArtifactStep(sourceArtifact);
+    if (!candidate) {
+      return null;
+    }
+
+    return toolConfig.steps.includes(candidate) ? candidate : null;
+  }, [sourceArtifact, toolConfig.steps]);
+
   const currentRunningStep = useMemo(() => {
     if (!generation.isStreamActive) {
       return null;
@@ -290,19 +455,13 @@ export const ToolPageTemplate = ({
     return toolConfig.steps.includes(candidate as ToolStep) ? candidate as ToolStep : null;
   }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
 
-  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
   const lastCheckpointStep = useMemo(() => {
     if (pausedCheckpointStep && nextAvailableStep) {
       return pausedCheckpointStep;
     }
 
-    if (isResumeIntent && historicalCompletedSteps.size > 0) {
-      const sorted = toolConfig.steps.filter((step) => historicalCompletedSteps.has(step));
-      return sorted.at(-1) ?? null;
-    }
-
-    return null;
-  }, [historicalCompletedSteps, isResumeIntent, nextAvailableStep, pausedCheckpointStep, toolConfig.steps]);
+    return progressState.lastCheckpointStep;
+  }, [nextAvailableStep, pausedCheckpointStep, progressState.lastCheckpointStep]);
 
   useEffect(() => {
     if (!pausedCheckpointStep) {
@@ -316,21 +475,57 @@ export const ToolPageTemplate = ({
 
   // 9. Derive UI state
   const uiState = useToolUiState(toolKey, {
+    intent,
     formState: {
       ...formState,
       briefingStatus: effectiveBriefingStatus,
       briefingFileName: effectiveBriefingFileName ?? null,
-      briefingError: briefingUpload.error,
-      briefingFile: briefingUpload.file,
+      briefingError,
+      briefingFile,
     },
     isGenerationStreamActive: generation.isStreamActive,
     completedSteps: completedStepsForFlow,
     currentRunningStep,
-    hasCompletedPreviousGeneration: historicalCompletedSteps.size > 0,
+    hasCompletedPreviousGeneration: completedStepsForFlow.size > 0,
     lastCheckpointStep,
     nextAvailableStep,
     generationError: generation.streamStatus === 'failed' ? 'Generation failed' : null,
+    hasStartedCurrentRun: currentRunPrefixRef.current !== null,
   });
+
+  const primaryTargetStep = useMemo(() => {
+    if (uiState.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep) {
+      return pausedCheckpointStep;
+    }
+
+    if (uiState.primaryActionPolicy === 'regenerate-current-step') {
+      return sourceStep ?? nextAvailableStep;
+    }
+
+    if (uiState.primaryActionPolicy === 'start-generation' || uiState.primaryActionPolicy === 'resume-checkpoint') {
+      return nextAvailableStep;
+    }
+
+    return null;
+  }, [nextAvailableStep, pausedCheckpointStep, sourceStep, uiState.primaryActionPolicy]);
+
+  const canStartFlow = Boolean(
+    normalizedProjectId
+    && extractionContext
+    && primaryTargetStep,
+  );
+
+  // 8. Sync progress into toolPageMachine context and consume a single selector.
+  useEffect(() => {
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: currentRunPrefixRef.current,
+      canStartFlow,
+    });
+  }, [allArtifacts, canStartFlow, intent, sourceArtifact, toolPageSend]);
 
   // 10. Build project and step lists
   const currentProject = projects.find((p) => p.id === formState.projectId);
@@ -343,6 +538,14 @@ export const ToolPageTemplate = ({
 
     const runPrefix = currentRunPrefixRef.current ?? randomId();
     currentRunPrefixRef.current = runPrefix;
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: runPrefix,
+      canStartFlow: true,
+    });
 
     const baseRequest: GenerationRequest = {
       requestId: runPrefix,
@@ -390,18 +593,35 @@ export const ToolPageTemplate = ({
     return true;
   };
 
+  const openLatestArtifact = (): void => {
+    const latestArtifactId = [...toolConfig.steps]
+      .reverse()
+      .map((step) => latestArtifactByStep[step]?.artifactId)
+      .find((artifactId): artifactId is string => typeof artifactId === 'string' && artifactId.length > 0);
+
+    if (latestArtifactId) {
+      void navigate(`/artifacts/${latestArtifactId}`);
+    }
+  };
+
   const handlePrimaryAction = (): void => {
-    const targetStep = uiState.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep
-      ? pausedCheckpointStep
-      : nextAvailableStep;
+    if (uiState.primaryActionPolicy === 'open-last-artifact') {
+      openLatestArtifact();
+      return;
+    }
+
+    const targetStep = primaryTargetStep;
 
     if (!targetStep) {
       return;
     }
 
+    const runPrefix = currentRunPrefixRef.current ?? randomId();
+    currentRunPrefixRef.current = runPrefix;
+
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
-    void startGenerationStep(targetStep);
+    toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
   };
 
   const handleCancelGeneration = (): void => {
@@ -411,8 +631,28 @@ export const ToolPageTemplate = ({
       setPausedCheckpointStep(interruptedStep);
     }
     currentRunPrefixRef.current = null;
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: null,
+      canStartFlow: false,
+    });
+    toolPageSend({ type: 'CANCEL_GENERATION' });
     generation.cancel();
   };
+
+  useEffect(() => {
+    const pending = toolPageSnapshot.context.pendingStepStart;
+    if (!pending) {
+      return;
+    }
+
+    currentRunPrefixRef.current = pending.runRequestPrefix;
+    void startGenerationStep(pending.step);
+    toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
+  }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) {
@@ -508,12 +748,17 @@ export const ToolPageTemplate = ({
                   accept=".docx,.txt,.md"
                   disabled={!formState.projectId.trim() || generation.isStreamActive}
                   onChange={(e) => {
-                    void briefingUpload.handleFileSelected(e.target.files?.[0] ?? null);
+                    const selectedFile = e.target.files?.[0] ?? null;
+                    if (selectedFile) {
+                      toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file: selectedFile });
+                    } else {
+                      toolPageSend({ type: 'BRIEFING_RESET' });
+                    }
                   }}
                 />
               </label>
 
-              {briefingUpload.error ? <p className={uiPrimitives.error}>{briefingUpload.error}</p> : null}
+              {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
               <p className={uiPrimitives.metaLine}>
                 Briefing status: {effectiveBriefingStatus}
@@ -537,7 +782,7 @@ export const ToolPageTemplate = ({
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
               briefingStatus={effectiveBriefingStatus}
-              briefingError={briefingUpload.error}
+              briefingError={briefingError}
               steps={toolConfig.steps.map((step) => ({
                 step,
                 displayName: mapToolStepToCardConfig(toolKey, step).displayName,

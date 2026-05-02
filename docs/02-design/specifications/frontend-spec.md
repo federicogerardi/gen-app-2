@@ -89,6 +89,11 @@ Fonte di verita visuale:
   - dopo cancel/fail viene preservato lo step interrotto come checkpoint locale UI.
   - `Resume from checkpoint` riparte dallo step interrotto con nuovo `requestId` (evita loop `Generation failed` per riuso id).
 
+- Tool page orchestration consolidation:
+  - `ToolPageTemplate` usa un solo actor tree per il briefing (snapshot actor macchina come sorgente canonica).
+  - policy primaria CTA allineata allo stato canonico anche nei restore flow (`regenerate-current-step`, `open-last-artifact`).
+  - eliminato il blocco azione in pagina nei casi checkpoint/checkout ripristinati con progetto+brief gia coerenti.
+
 ---
 
 ## Tool Pages Architecture

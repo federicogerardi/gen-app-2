@@ -2,6 +2,183 @@ import { assign, raise, sendTo, setup, stopChild, type ActorRefFrom } from 'xsta
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { toolFlowMachine, type SupportedTool, type ToolStep } from './tool-flow.machine';
+import { toolStepOrder } from '../runtime/tool-generation-engine';
+import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import {
+  belongsToTool,
+  buildLatestArtifactByStep,
+  collectCompletedRunSteps,
+  collectCompletedStepsByTool,
+} from '../../generation/runtime/step-hydration';
+
+export type ToolPageProgressState = {
+  completedSteps: Set<ToolStep>;
+  latestArtifactByStep: Partial<Record<ToolStep, GenerationArtifact>>;
+  lastCheckpointStep: ToolStep | null;
+};
+
+const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
+  const step = artifact?.sourceRequest.input?.step;
+  return typeof step === 'string' ? step as ToolStep : null;
+};
+
+const readStepDependencyArtifactIdsByStep = (
+  artifact: GenerationArtifact | null,
+): Partial<Record<ToolStep, string>> => {
+  const raw = artifact?.sourceRequest.input?.stepDependencyArtifactIdsByStep;
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+
+  return Object.entries(raw).reduce<Partial<Record<ToolStep, string>>>((acc, [step, artifactId]) => {
+    if (typeof artifactId === 'string' && artifactId.trim().length > 0) {
+      acc[step as ToolStep] = artifactId;
+    }
+    return acc;
+  }, {});
+};
+
+export const resolveRestoredCheckpointState = (
+  artifacts: GenerationArtifact[],
+  toolKey: SupportedTool,
+  sourceArtifact: GenerationArtifact | null,
+): ToolPageProgressState => {
+  if (!sourceArtifact || !belongsToTool(sourceArtifact, toolKey)) {
+    return {
+      completedSteps: new Set<ToolStep>(),
+      latestArtifactByStep: {},
+      lastCheckpointStep: null,
+    };
+  }
+
+  const artifactById = new Map(artifacts.map((artifact) => [artifact.artifactId, artifact]));
+  const latestArtifactByStep = readStepDependencyArtifactIdsByStep(sourceArtifact);
+  const restoredArtifactByStep = Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, GenerationArtifact>>>((acc, [step, artifactId]) => {
+    const artifact = artifactById.get(artifactId);
+    if (
+      artifact
+      && artifact.projectId === sourceArtifact.projectId
+      && belongsToTool(artifact, toolKey)
+    ) {
+      acc[step as ToolStep] = artifact;
+    }
+    return acc;
+  }, {});
+
+  const sourceStep = readArtifactStep(sourceArtifact);
+  if (sourceStep && sourceArtifact.status === 'completed') {
+    restoredArtifactByStep[sourceStep] = sourceArtifact;
+  }
+
+  const completedSteps = new Set(
+    Object.entries(restoredArtifactByStep)
+      .filter(([, artifact]) => artifact?.status === 'completed')
+      .map(([step]) => step as ToolStep),
+  );
+
+  const lastCheckpointStep = toolStepOrder[toolKey].filter((step) => completedSteps.has(step)).at(-1) ?? null;
+
+  return {
+    completedSteps,
+    latestArtifactByStep: restoredArtifactByStep,
+    lastCheckpointStep,
+  };
+};
+
+const buildLatestRunArtifactByStep = (
+  artifacts: GenerationArtifact[],
+  toolKey: SupportedTool,
+  projectId: string,
+  runRequestPrefix: string,
+): Partial<Record<ToolStep, GenerationArtifact>> => {
+  const normalizedProjectId = projectId.trim();
+  const normalizedRunRequestPrefix = runRequestPrefix.trim();
+  if (!normalizedProjectId || !normalizedRunRequestPrefix) {
+    return {};
+  }
+
+  const sorted = [...artifacts]
+    .filter((artifact) => (
+      artifact.projectId === normalizedProjectId
+      && artifact.status === 'completed'
+      && typeof artifact.requestId === 'string'
+      && artifact.requestId.startsWith(`${normalizedRunRequestPrefix}:`)
+      && belongsToTool(artifact, toolKey)
+    ))
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+
+  return sorted.reduce<Partial<Record<ToolStep, GenerationArtifact>>>((acc, artifact) => {
+    const step = artifact.sourceRequest.input?.step;
+    if (typeof step !== 'string') {
+      return acc;
+    }
+
+    if (!acc[step as ToolStep]) {
+      acc[step as ToolStep] = artifact;
+    }
+
+    return acc;
+  }, {});
+};
+
+export const resolveFlowProgressState = (
+  artifacts: GenerationArtifact[],
+  toolKey: SupportedTool,
+  projectId: string,
+  intent: 'new' | 'resume' | 'regenerate',
+  sourceArtifact: GenerationArtifact | null,
+  runRequestPrefix: string | null,
+): ToolPageProgressState => {
+  const historicalCompletedSteps = collectCompletedStepsByTool(artifacts, toolKey, projectId);
+  const historicalLatestArtifactByStep = buildLatestArtifactByStep(artifacts, toolKey, projectId);
+  const restoredCheckpointState = resolveRestoredCheckpointState(artifacts, toolKey, sourceArtifact);
+  const hasRestoredCheckout = restoredCheckpointState.completedSteps.size > 0;
+
+  if (!runRequestPrefix) {
+    if ((intent === 'resume' || intent === 'regenerate') && hasRestoredCheckout) {
+      return restoredCheckpointState;
+    }
+
+    return {
+      completedSteps: historicalCompletedSteps,
+      latestArtifactByStep: historicalLatestArtifactByStep,
+      lastCheckpointStep: intent === 'resume'
+        ? toolStepOrder[toolKey].filter((step) => historicalCompletedSteps.has(step)).at(-1) ?? null
+        : null,
+    };
+  }
+
+  const runCompletedSteps = collectCompletedRunSteps(artifacts, toolKey, projectId, runRequestPrefix);
+  const runLatestArtifactByStep = buildLatestRunArtifactByStep(artifacts, toolKey, projectId, runRequestPrefix);
+
+  if (intent === 'regenerate') {
+    return {
+      completedSteps: runCompletedSteps,
+      latestArtifactByStep: runLatestArtifactByStep,
+      lastCheckpointStep: null,
+    };
+  }
+
+  if (intent === 'resume') {
+    const baseCompletedSteps = hasRestoredCheckout ? restoredCheckpointState.completedSteps : historicalCompletedSteps;
+    return {
+      completedSteps: new Set([...baseCompletedSteps, ...runCompletedSteps]),
+      latestArtifactByStep: {
+        ...(hasRestoredCheckout ? restoredCheckpointState.latestArtifactByStep : historicalLatestArtifactByStep),
+        ...runLatestArtifactByStep,
+      },
+      lastCheckpointStep: hasRestoredCheckout
+        ? restoredCheckpointState.lastCheckpointStep
+        : toolStepOrder[toolKey].filter((step) => historicalCompletedSteps.has(step)).at(-1) ?? null,
+    };
+  }
+
+  return {
+    completedSteps: historicalCompletedSteps,
+    latestArtifactByStep: historicalLatestArtifactByStep,
+    lastCheckpointStep: null,
+  };
+};
 
 export type ToolPageContext = {
   toolKey: SupportedTool;
@@ -14,6 +191,9 @@ export type ToolPageContext = {
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null;
   stepArtifactIds: Partial<Record<ToolStep, string>>;
   generationError: string | null;
+  progress: ToolPageProgressState;
+  pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
+  canStartFlow: boolean;
 };
 
 type ToolPageInput = {
@@ -32,11 +212,21 @@ export type ToolPageEvent =
   | { type: 'STEP_ARTIFACT_UPDATED'; step: ToolStep; artifactId: string }
   | { type: 'BRIEFING_FILE_SELECTED'; file: File }
   | { type: 'BRIEFING_RESET' }
+  | { type: 'REQUEST_STEP_START'; step: ToolStep; runRequestPrefix: string }
+  | { type: 'STEP_REQUEST_DISPATCHED' }
   | { type: 'START_GENERATION' }
   | { type: 'CANCEL_GENERATION' }
   | { type: 'STEP_DONE'; step: ToolStep }
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
+  | {
+    type: 'PROGRESS_SYNCED';
+    artifacts: GenerationArtifact[];
+    intent: 'new' | 'resume' | 'regenerate';
+    sourceArtifact: GenerationArtifact | null;
+    runRequestPrefix: string | null;
+    canStartFlow: boolean;
+  }
   | { type: 'RESET' }
   | { type: 'INTERNAL_CANCELLED' };
 
@@ -52,11 +242,7 @@ export const toolPageMachine = setup({
   },
   guards: {
     canStartGeneration: ({ context }) => {
-      if (context.projectId.trim().length === 0) {
-        return false;
-      }
-
-      return context.briefingActorRef?.getSnapshot().matches('ready') ?? false;
+      return context.canStartFlow;
     },
   },
   actions: {
@@ -104,6 +290,44 @@ export const toolPageMachine = setup({
     clearGenerationError: assign({
       generationError: () => null,
     }),
+    syncProgress: assign({
+      progress: ({ context, event }) => {
+        if (event.type !== 'PROGRESS_SYNCED') {
+          return context.progress;
+        }
+
+        return resolveFlowProgressState(
+          event.artifacts,
+          context.toolKey,
+          context.projectId,
+          event.intent,
+          event.sourceArtifact,
+          event.runRequestPrefix,
+        );
+      },
+      canStartFlow: ({ context, event }) => {
+        if (event.type !== 'PROGRESS_SYNCED') {
+          return context.canStartFlow;
+        }
+
+        return event.canStartFlow;
+      },
+    }),
+    queueStepStart: assign({
+      pendingStepStart: ({ context, event }) => {
+        if (event.type !== 'REQUEST_STEP_START') {
+          return context.pendingStepStart;
+        }
+
+        return {
+          step: event.step,
+          runRequestPrefix: event.runRequestPrefix,
+        };
+      },
+    }),
+    clearPendingStepStart: assign({
+      pendingStepStart: () => null,
+    }),
     setGenerationError: assign({
       generationError: () => 'Tool flow failed',
     }),
@@ -112,6 +336,13 @@ export const toolPageMachine = setup({
       generationError: null,
       stepArtifactIds: {},
       briefingActorRef: null,
+      progress: {
+        completedSteps: new Set<ToolStep>(),
+        latestArtifactByStep: {},
+        lastCheckpointStep: null,
+      },
+      pendingStepStart: null,
+      canStartFlow: false,
     })),
     sendBriefingSelected: sendTo(
       'briefingActor',
@@ -145,7 +376,19 @@ export const toolPageMachine = setup({
     briefingActorRef: null,
     stepArtifactIds: {},
     generationError: null,
+    progress: {
+      completedSteps: new Set<ToolStep>(),
+      latestArtifactByStep: {},
+      lastCheckpointStep: null,
+    },
+    pendingStepStart: null,
+    canStartFlow: false,
   }),
+  on: {
+    PROGRESS_SYNCED: {
+      actions: 'syncProgress',
+    },
+  },
   initial: 'configuring',
   states: {
     configuring: {
@@ -168,6 +411,13 @@ export const toolPageMachine = setup({
         BRIEFING_RESET: {
           actions: 'sendBriefingReset',
         },
+        REQUEST_STEP_START: [
+          {
+            guard: 'canStartGeneration',
+            target: 'generating',
+            actions: ['queueStepStart', 'clearGenerationError'],
+          },
+        ],
         START_GENERATION: [
           {
             guard: 'canStartGeneration',
@@ -216,6 +466,9 @@ export const toolPageMachine = setup({
         INTERNAL_CANCELLED: {
           target: 'configuring',
           actions: 'clearGenerationError',
+        },
+        STEP_REQUEST_DISPATCHED: {
+          actions: 'clearPendingStepStart',
         },
         RESET: {
           target: 'configuring',

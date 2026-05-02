@@ -1,7 +1,7 @@
 import { createActor, fromCallback, waitFor } from 'xstate';
 import { describe, expect, it, vi } from 'vitest';
 import { frontendStreamMachine } from './frontend-stream.machine';
-import { StreamLogger, createStreamLogger } from '../runtime/stream-logger';
+import { createStreamLogger } from '../runtime/stream-logger';
 
 const createRequest = (requestId: string) => ({
   requestId,

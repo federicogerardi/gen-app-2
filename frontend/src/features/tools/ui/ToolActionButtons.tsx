@@ -3,7 +3,6 @@
  * Renders primary action + secondary action options based on UI derivation
  */
 
-import type { ReactNode } from 'react';
 import { Button, uiPrimitives } from '../../../app/ui/primitives';
 import type { PrimaryActionPolicy, SecondaryActionFlags } from '../runtime/tool-ux-state';
 import { derivePrimaryActionLabel } from '../runtime/tool-ux-state';

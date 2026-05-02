@@ -18,12 +18,9 @@
  * consistent visual hierarchy and information architecture.
  */
 
-import type { ReactNode } from 'react';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
-import { getToolFormConfig } from '../runtime/tool-form-architecture';
-import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 type FlowPhase = 'input-requirements' | 'generation-monitoring' | 'completion';
 
@@ -192,21 +189,20 @@ const buildInputRequirements = (
 };
 
 export const ToolGenerationFlow = ({
-  toolKey,
+  toolKey: _toolKey,
   canonicalState,
   projectName,
   briefingFileName,
   briefingStatus,
   briefingError,
   steps,
-  currentRunningStep,
+  currentRunningStep: _currentRunningStep,
   completedStepsCount,
   totalStepsCount,
   statusMessage,
   errorMessage,
   onViewArtifact,
 }: ToolGenerationFlowProps) => {
-  const config = getToolFormConfig(toolKey);
   const currentPhase = deriveFlowPhase(canonicalState);
   const inputRequirements = buildInputRequirements(
     projectName,

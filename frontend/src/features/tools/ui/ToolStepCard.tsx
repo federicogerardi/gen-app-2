@@ -3,7 +3,6 @@
  * Shows step metadata, status badge, and preview of generated content
  */
 
-import type { ReactNode } from 'react';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { ToolStep } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';

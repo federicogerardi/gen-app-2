@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import type { ArtifactType } from '../contracts/backend-stream';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 import {

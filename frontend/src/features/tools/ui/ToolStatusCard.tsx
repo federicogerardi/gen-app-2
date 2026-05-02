@@ -9,7 +9,6 @@
  * - Generation workflow state
  */
 
-import type { ReactNode } from 'react';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
 

@@ -10,7 +10,7 @@
  */
 
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
-import { getToolFormConfig, type ToolFormState } from './tool-form-architecture';
+import { getToolFormConfig } from './tool-form-architecture';
 
 /**
  * Canonical UI states for tool generation workflow

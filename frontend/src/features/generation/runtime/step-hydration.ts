@@ -1,6 +1,5 @@
 import type { GenerationArtifact } from '../ui/artifact-history';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
-import { toolStepOrder } from '../../tools/runtime/tool-generation-engine';
 import type { ToolExtractionContext } from './GenerationWorkspaceProvider';
 
 const normalize = (value: unknown): string | null => {

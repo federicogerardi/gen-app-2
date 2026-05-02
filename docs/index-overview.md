@@ -55,6 +55,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-structural-ux-flow-spec](./02-design/specifications/tool-generation-structural-ux-flow-spec.md)
+- [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [xstate-system-as-is-spec](./02-design/specifications/xstate-system-as-is-spec.md)
 - [xstate-system-as-is](./02-design/specifications/xstate-system-as-is/)
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md)

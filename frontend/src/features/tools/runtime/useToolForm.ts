@@ -3,26 +3,38 @@
  * Extracted from FunnelPagesToolPage and NextlandToolPage
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMachine } from '@xstate/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
+import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
 import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
-import { runExtraction, uploadBrief } from './tools-client';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import { briefingUploadMachine } from '../machines/briefing-upload.machine';
 import {
   getToolFormConfig,
-  isAllowedBriefingExtension,
   getAvailableSteps,
   validateToolForm,
   type ToolFormState,
 } from './tool-form-architecture';
 import {
   deriveCanonicalToolUiState,
-  type CanonicalToolUiState,
-  type PrimaryActionPolicy,
-  type SecondaryActionFlags,
   type ToolUiDerivationOutput,
 } from './tool-ux-state';
+
+const areCapabilitiesEqual = (
+  left: Record<string, unknown>,
+  right: Record<string, unknown>,
+): boolean => {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    if (left[key] !== right[key]) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 /**
  * Hook: Load projects for the authenticated user
@@ -83,105 +95,212 @@ export const useProjectsLoader = () => {
 export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
-  const [file, setFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'extracting' | 'ready'>('idle');
+  const [snapshot, send] = useMachine(briefingUploadMachine, {
+    input: {
+      toolKey,
+      projectId,
+      apiBaseUrl: auth.apiBaseUrl,
+      capabilities: auth.capabilities,
+      userId: auth.session?.user.id ?? null,
+    },
+  });
+  const previousProjectIdRef = useRef(projectId.trim());
+
+  useEffect(() => {
+    const normalizedProjectId = projectId.trim();
+    const previousProjectId = previousProjectIdRef.current;
+    const nextUserId = auth.session?.user.id ?? null;
+    const capabilitiesChanged = !areCapabilitiesEqual(
+      snapshot.context.capabilities as Record<string, unknown>,
+      auth.capabilities as Record<string, unknown>,
+    );
+    const shouldSync = (
+      snapshot.context.projectId !== normalizedProjectId
+      || snapshot.context.apiBaseUrl !== auth.apiBaseUrl
+      || snapshot.context.userId !== nextUserId
+      || capabilitiesChanged
+    );
+
+    if (shouldSync) {
+      send({
+        type: 'INPUT_SYNCED',
+        projectId: normalizedProjectId,
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+        userId: nextUserId,
+      });
+    }
+
+    if (previousProjectId !== normalizedProjectId) {
+      send({ type: 'RESET' });
+    }
+
+    previousProjectIdRef.current = normalizedProjectId;
+  }, [auth.apiBaseUrl, auth.capabilities, auth.session?.user.id, projectId, send]);
 
   const extractionContext = generation.getExtractionContext(projectId.trim());
 
   const handleFileSelected = async (selectedFile: File | null): Promise<void> => {
     if (!selectedFile) {
-      setFile(null);
-      setFileName(null);
-      setUploadError(null);
-      setStatus('idle');
+      send({ type: 'RESET' });
       return;
     }
 
-    if (!isAllowedBriefingExtension(selectedFile.name)) {
-      setUploadError('Formato briefing non supportato. Usa .docx, .txt o .md');
-      setFile(null);
-      setFileName(null);
-      setStatus('idle');
-      return;
-    }
+    send({ type: 'FILE_SELECTED', file: selectedFile });
+  };
 
-    setFile(selectedFile);
-    setStatus('uploading');
-    setUploadError(null);
-
-    if (!auth.session) {
-      setStatus('idle');
-      setUploadError('Sessione non disponibile');
-      setFile(null);
-      setFileName(null);
+  useEffect(() => {
+    if (!snapshot.matches('ready')) {
       return;
     }
 
     const normalizedProjectId = projectId.trim();
     if (!normalizedProjectId) {
-      setStatus('idle');
-      setUploadError('Project ID mancante');
-      setFile(null);
-      setFileName(null);
       return;
     }
 
-    try {
-      // Upload file
-      const uploaded = await uploadBrief({
-        projectId: normalizedProjectId,
-        toolKey,
-        file: selectedFile,
-      }, {
-        capabilities: { toolsUpload: auth.capabilities.toolsUpload ?? false },
-        apiBaseUrl: auth.apiBaseUrl,
-      });
+    const briefingId = snapshot.context.briefingId;
+    const extractionArtifactId = snapshot.context.extractionArtifactId;
+    const extractionPayload = snapshot.context.extractionPayload;
+    const normalizedText = snapshot.context.normalizedText;
+    const parsedFormat = snapshot.context.parsedFormat;
 
-      setFileName(uploaded.fileName);
-      setStatus('extracting');
+    if (!briefingId || !extractionArtifactId || !extractionPayload || !normalizedText || !parsedFormat) {
+      return;
+    }
 
-      // Run extraction
-      const extraction = await runExtraction(
+    const existingContext = generation.getExtractionContext(normalizedProjectId);
+    if (
+      existingContext?.briefingId === briefingId
+      && existingContext.extractionArtifactId === extractionArtifactId
+      && existingContext.normalizedText === normalizedText
+      && existingContext.parsedFormat === parsedFormat
+    ) {
+      return;
+    }
+
+    generation.upsertExtractionContext({
+      projectId: normalizedProjectId,
+      briefingId,
+      extractionArtifactId,
+      extractionPayload,
+      normalizedText,
+      parsedFormat,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [generation, projectId, snapshot]);
+
+  useEffect(() => {
+    if (!snapshot.matches('extracting')) {
+      return;
+    }
+
+    const normalizedProjectId = projectId.trim();
+    const briefingId = snapshot.context.briefingId;
+    const normalizedText = snapshot.context.normalizedText;
+    const parsedFormat = snapshot.context.parsedFormat;
+
+    if (!normalizedProjectId || !briefingId || !normalizedText || !parsedFormat) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const tryRecoverExtraction = async (): Promise<boolean> => {
+      const artifacts = await listArtifacts(
         {
-          userId: auth.session.user.id,
-          toolKey,
+          type: 'extraction',
+          status: 'completed',
           projectId: normalizedProjectId,
-          model: 'openrouter/auto',
-          briefingId: uploaded.briefingId,
-          briefingText: uploaded.normalizedText,
-          registrySnapshotRef: 'snapshot:default',
         },
         {
-          capabilities: { toolsUpload: auth.capabilities.toolsUpload ?? false },
           apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+          localArtifacts: generation.artifacts,
         },
       );
 
+      if (cancelled) {
+        return false;
+      }
+
+      const recoveredArtifact = artifacts
+        .filter((artifact) => {
+          const artifactBriefingId = artifact.sourceRequest.input?.briefingId;
+          const artifactToolKey = artifact.sourceRequest.input?.toolKey;
+          return artifactBriefingId === briefingId && artifactToolKey === toolKey;
+        })
+        .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0];
+
+      if (!recoveredArtifact) {
+        return false;
+      }
+
+      let payload: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(recoveredArtifact.content) as unknown;
+        if (parsed && typeof parsed === 'object') {
+          payload = parsed as Record<string, unknown>;
+        }
+      } catch {
+        payload = {};
+      }
+
       generation.upsertExtractionContext({
         projectId: normalizedProjectId,
-        briefingId: uploaded.briefingId,
-        extractionArtifactId: extraction.artifactId,
-        extractionPayload: extraction.payload,
-        normalizedText: uploaded.normalizedText,
-        parsedFormat: uploaded.parsedFormat,
-        updatedAt: new Date().toISOString(),
+        briefingId,
+        extractionArtifactId: recoveredArtifact.artifactId,
+        extractionPayload: payload,
+        normalizedText,
+        parsedFormat,
+        updatedAt: recoveredArtifact.updatedAt,
       });
 
-      setStatus('ready');
-    } catch (error) {
-      setStatus('idle');
-      setUploadError(error instanceof Error ? error.message : 'Errore durante upload/extraction');
-      setFile(null);
-      setFileName(null);
-    }
-  };
+      send({
+        type: 'EXTRACTION_RECOVERED',
+        artifactId: recoveredArtifact.artifactId,
+        payload,
+      });
+
+      return true;
+    };
+
+    void tryRecoverExtraction();
+    const timerId = window.setInterval(() => {
+      void tryRecoverExtraction().then((recovered) => {
+        if (recovered && !cancelled) {
+          window.clearInterval(timerId);
+        }
+      });
+    }, 1500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timerId);
+    };
+  }, [
+    auth.apiBaseUrl,
+    auth.capabilities,
+    generation,
+    generation.artifacts,
+    projectId,
+    send,
+    snapshot,
+    toolKey,
+  ]);
+
+  const status: 'idle' | 'uploading' | 'extracting' | 'ready' = snapshot.matches('uploading')
+    ? 'uploading'
+    : snapshot.matches('extracting')
+      ? 'extracting'
+      : snapshot.matches('ready')
+        ? 'ready'
+        : 'idle';
 
   return {
-    file,
-    fileName,
-    error: uploadError,
+    file: snapshot.context.file,
+    fileName: snapshot.context.fileName,
+    error: snapshot.context.error,
     status,
     extractionContext,
     handleFileSelected,

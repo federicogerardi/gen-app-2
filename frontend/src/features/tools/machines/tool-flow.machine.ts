@@ -238,6 +238,7 @@ export const toolFlowMachine = setup({
       },
     },
     done: {
+      type: 'final',
       on: {
         RESET: {
           target: 'idle',

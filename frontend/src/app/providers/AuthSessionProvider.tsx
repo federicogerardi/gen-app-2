@@ -1,22 +1,19 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react';
+import { useMachine } from '@xstate/react';
 import {
   googleOAuthStartUrl,
-  loginWithPassword,
-  logoutSession,
-  readSession,
   type AuthSession,
 } from '../../features/auth/runtime/auth-client';
 import {
   readBackendCapabilities,
   type BackendCapabilities,
 } from '../runtime/backend-capabilities';
+import { authSessionMachine } from '../machines/auth-session.machine';
 
 const DEFAULT_API_BASE = '';
 
@@ -39,58 +36,48 @@ type AuthSessionProviderProps = {
 };
 
 export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
-  const [session, setSession] = useState<AuthSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const apiBaseUrl =
     (import.meta.env.VITE_API_BASE_URL as string | undefined)
     ?? DEFAULT_API_BASE;
   const capabilities = readBackendCapabilities();
 
-  const refresh = async (): Promise<void> => {
-    setLoading(true);
+  const [snapshot, send] = useMachine(authSessionMachine, {
+    input: { apiBaseUrl },
+  });
 
-    try {
-      const nextSession = await readSession({ apiBaseUrl });
-      setSession(nextSession);
-      setError(null);
-    } catch (sessionError) {
-      setSession(null);
-      setError(sessionError instanceof Error ? sessionError.message : 'Session bootstrap failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void refresh();
-  }, []);
+  const loading =
+    snapshot.matches('bootstrapping') ||
+    snapshot.matches('authenticating') ||
+    snapshot.matches('loggingOut') ||
+    snapshot.matches('refreshing');
 
   const login = async (email: string, password: string): Promise<void> => {
-    const next = await loginWithPassword(email, password, { apiBaseUrl });
-    setSession(next);
-    setError(null);
+    send({ type: 'LOGIN', email, password });
   };
 
   const logout = async (): Promise<void> => {
-    await logoutSession({ apiBaseUrl });
-    setSession(null);
+    send({ type: 'LOGOUT' });
   };
 
-  const value = useMemo<AuthSessionContextValue>(() => {
-    return {
+  const refresh = async (): Promise<void> => {
+    send({ type: 'REFRESH' });
+  };
+
+  const value = useMemo<AuthSessionContextValue>(
+    () => ({
       apiBaseUrl,
       capabilities,
-      session,
+      session: snapshot.context.session,
       loading,
-      error,
+      error: snapshot.context.error,
       oauthStartUrl: googleOAuthStartUrl(apiBaseUrl),
       login,
       logout,
       refresh,
-    };
-  }, [apiBaseUrl, capabilities, error, loading, session]);
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [apiBaseUrl, capabilities, snapshot.context.session, snapshot.context.error, loading],
+  );
 
   return (
     <AuthSessionContext value={value}>

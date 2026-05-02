@@ -1,14 +1,14 @@
 ---
 status: approved
 version: 2.0
-last-reviewed: 2026-05-01
-next-review-date: 2026-08-01
+last-reviewed: 2026-05-02
+next-review-date: 2026-08-02
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-04-30
+Data: 2026-05-02
 Stato: active
 Versione indice: 2.0
 
@@ -87,6 +87,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [railway-same-origin-migration-strategy-3-phases](./99-lifecycle/99-archive/railway-same-origin-migration-strategy-3-phases.md) — superseded da feature-railway-same-origin-unified-1
 - [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione
 - [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md) — deprecated 2026-05-01; superseded da architecture-railway-private-network-same-origin-1
+- [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) — archived 2026-05-02; piano completato con smoke test finale GO
 
 ### Archive Buckets
 
@@ -94,12 +95,13 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [governance-pre-publish archive](./99-lifecycle/99-archive/governance-pre-publish/)
 - [tool-prompts archive](./99-lifecycle/99-archive/tool-prompts/)
 
-## Current Delta (2026-05-01)
+## Current Delta (2026-05-02)
 
 - **Piano same-origin completato**: [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — tutti i 4 sprint eseguiti; topologia Railway private-network via `frontend/server.mjs` in produzione. Piano archiviato.
 - Piano unificato same-origin Railway attivo: [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md).
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) aggiornato a rev 2.1 con Variant B, logging proxy, timeout SSE, rollback cross-origin, rischi residui.
 - Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
+- Piano refactor frontend XState archiviato: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) con chiusura definitiva e verifica E2E GO.
 
 ## Governance Rules Applied
 

@@ -596,3 +596,70 @@ describe('Context State Snapshots', () => {
     });
   });
 });
+
+// ── Checkpoint & Extraction context ───────────────────────────────────────────
+
+import type { ToolCheckpoint } from '../ui/tool-checkpoints';
+import type { ToolExtractionContext } from './frontend-stream.machine';
+
+describe('CHECKPOINT_UPSERTED and EXTRACTION_UPSERTED events', () => {
+  it('CHECKPOINT_UPSERTED upserts and replaces checkpoints in context', () => {
+    const actor = createTestActor();
+
+    const cp1: ToolCheckpoint = {
+      artifactId: 'art-cp-1',
+      projectId: 'proj-1',
+      status: 'generating',
+      extractionContextAvailable: false,
+      model: 'openrouter:auto',
+      workflowType: null,
+      toolKey: null,
+      contentPreview: 'Hello',
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+
+    actor.send({ type: 'CHECKPOINT_UPSERTED', checkpoint: cp1 });
+    expect(actor.getSnapshot().context.checkpoints).toHaveLength(1);
+    expect(actor.getSnapshot().context.checkpoints[0]?.artifactId).toBe('art-cp-1');
+
+    // Upsert (replace) same artifactId
+    const cp1Updated: ToolCheckpoint = { ...cp1, status: 'completed', contentPreview: 'Hello world' };
+    actor.send({ type: 'CHECKPOINT_UPSERTED', checkpoint: cp1Updated });
+    expect(actor.getSnapshot().context.checkpoints).toHaveLength(1);
+    expect(actor.getSnapshot().context.checkpoints[0]?.status).toBe('completed');
+
+    // RESET clears checkpoints
+    actor.send({ type: 'RESET' });
+    expect(actor.getSnapshot().context.checkpoints).toHaveLength(0);
+
+    actor.stop();
+  });
+
+  it('EXTRACTION_UPSERTED stores extraction context keyed by projectId', () => {
+    const actor = createTestActor();
+
+    const extraction: ToolExtractionContext = {
+      projectId: 'proj-1',
+      briefingId: 'brief-1',
+      extractionArtifactId: 'ext-art-1',
+      extractionPayload: { foo: 'bar' },
+      normalizedText: 'text',
+      parsedFormat: 'txt',
+      updatedAt: '2026-01-01T00:00:00Z',
+    };
+
+    actor.send({ type: 'EXTRACTION_UPSERTED', context: extraction });
+    expect(actor.getSnapshot().context.extractionByProject['proj-1']).toEqual(extraction);
+
+    // Overwrite same project
+    const updated: ToolExtractionContext = { ...extraction, briefingId: 'brief-2' };
+    actor.send({ type: 'EXTRACTION_UPSERTED', context: updated });
+    expect(actor.getSnapshot().context.extractionByProject['proj-1']?.briefingId).toBe('brief-2');
+
+    // RESET clears
+    actor.send({ type: 'RESET' });
+    expect(actor.getSnapshot().context.extractionByProject).toEqual({});
+
+    actor.stop();
+  });
+});

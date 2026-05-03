@@ -288,6 +288,11 @@ export const ToolPageTemplate = ({
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
   const machineViewModel = toolPageSnapshot.context.viewModel;
+  const effectiveCanonicalState = (
+    toolPageSnapshot.matches('generating') || generation.isStreamActive
+      ? 'running'
+      : machineViewModel.canonicalState
+  );
 
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
@@ -687,7 +692,7 @@ export const ToolPageTemplate = ({
 
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
-              canonicalState={machineViewModel.canonicalState}
+              canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
               briefingStatus={effectiveBriefingStatus}

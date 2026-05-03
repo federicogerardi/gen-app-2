@@ -613,7 +613,7 @@ describe('ToolPageTemplate restore flow', () => {
       .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
     expect(resumeSteps).toContain('quiz');
 
-    expect(screen.getByText(/in pausa — riprendi dal checkpoint/i)).toBeInTheDocument();
+    expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
     expect(screen.getByText(/briefing status:\s*ready\s*- restore-brief.md/i)).toBeInTheDocument();
   });
 
@@ -875,6 +875,18 @@ describe('ToolPageTemplate CTA regression guard', () => {
 
     // Bottone presente e non disabled (la policy non è 'disabled')
     expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
+  });
+
+  it('mostra fase di generazione nel pannello verticale quando lo stream è attivo', async () => {
+    generationWorkspaceState.isStreamActive = true;
+    generationWorkspaceState.streamStatus = 'streaming';
+    generationWorkspaceState.snapshot = { context: { lastRequest: { input: { step: 'optin' } } } };
+
+    renderTemplate({ initialProjectId: 'project-001' });
+
+    await waitFor(() => {
+      expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
+    });
   });
 
   it('CTA non rimane bloccata dopo che lo stream torna inattivo', async () => {

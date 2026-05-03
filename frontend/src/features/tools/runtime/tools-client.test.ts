@@ -104,6 +104,90 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ ok: true });
   });
 
+  it('runExtraction recovers payload from artifact detail when stream has no chunks', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    getArtifactByIdMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '{"fromDetail":true}',
+      status: 'completed',
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.artifactId).toBe('artifact-001');
+    expect(result.content).toBe('{"fromDetail":true}');
+    expect(result.payload).toEqual({ fromDetail: true });
+    expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('runExtraction parses fenced json chunk output into extraction payload', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: '```json\n{"payload":{"offer":"test","audience":"cold"}}\n```',
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
+  });
+
+  it('runExtraction falls back to sourceRequest.input.extractionPayload when artifact content is non-json', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    getArtifactByIdMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: 'extraction completed',
+      sourceRequest: {
+        input: {
+          extractionPayload: {
+            audience: 'warm',
+            tone: 'direct',
+          },
+        },
+      },
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({ audience: 'warm', tone: 'direct' });
+  });
+
   describe('runExtraction — stream interruption recovery', () => {
     const makeTransportError = (code: 'transport_mid_stream' | 'terminal_failed', message: string) =>
       new GenerationTransportError(code, message, code === 'transport_mid_stream');

@@ -329,7 +329,10 @@ describe('ToolPageTemplate wiring', () => {
     expect(request.workflowType).toBe('funnel-pages');
     expect(request.input.step).toBe('quiz');
     expect(request.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
+    expect(request.input.briefingId).toBe('brief-001');
+    expect(request.input.briefingText).toBe('brief text');
     expect(request.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(request.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
   });
 
   it('auto-starts the next step after previous step completion in auto-chain mode', async () => {
@@ -374,6 +377,111 @@ describe('ToolPageTemplate wiring', () => {
     const secondRequest = startMock.mock.calls[1]?.[0] as { input: Record<string, unknown> };
     expect(secondRequest.input.step).toBe('quiz');
   });
+
+  it('persists extraction context and grows step dependency context incrementally across steps', async () => {
+    availableStepsState.steps = ['optin'];
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+
+    const { rerender } = renderTemplate();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Step 1: optin
+    const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(firstRequest.input.step).toBe('optin');
+    expect(firstRequest.input.briefingId).toBe('brief-001');
+    expect(firstRequest.input.briefingText).toBe('brief text');
+    expect(firstRequest.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(firstRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(firstRequest.input.stepDependencyArtifactIds).toEqual([]);
+
+    // Step 2: quiz (depends on optin)
+    generationState.streamStatus = 'completed';
+    generationState.isStreamActive = false;
+    generationState.artifacts = [
+      defaultExtractionArtifact,
+      {
+        artifactId: 'artifact-optin-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'optin' } },
+        content: 'optin content',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['quiz'];
+
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(2);
+    });
+
+    const secondRequest = startMock.mock.calls[1]?.[0] as { input: Record<string, unknown> };
+    expect(secondRequest.input.step).toBe('quiz');
+    expect(secondRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(secondRequest.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
+    expect(secondRequest.input.stepDependencyArtifactContentsByStep).toEqual({ optin: 'optin content' });
+
+    // Step 3: vsl (depends on optin + quiz)
+    generationState.streamStatus = 'completed';
+    generationState.isStreamActive = false;
+    generationState.artifacts = [
+      defaultExtractionArtifact,
+      {
+        artifactId: 'artifact-optin-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'optin' } },
+        content: 'optin content',
+      },
+      {
+        artifactId: 'artifact-quiz-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'quiz' } },
+        content: 'quiz content',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['vsl'];
+
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(3);
+    });
+
+    const thirdRequest = startMock.mock.calls[2]?.[0] as { input: Record<string, unknown> };
+    expect(thirdRequest.input.step).toBe('vsl');
+    expect(thirdRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(thirdRequest.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001', 'artifact-quiz-001']);
+    expect(thirdRequest.input.stepDependencyArtifactContentsByStep).toEqual({
+      optin: 'optin content',
+      quiz: 'quiz content',
+    });
+  });
+
 });
 
 describe('resolveFlowProgressState', () => {
@@ -689,9 +797,43 @@ describe('ToolPageTemplate restore flow', () => {
       return button as HTMLButtonElement;
     });
 
-    expect(screen.getByText(/briefing status:\s*ready\s*- restore-regen.md/i)).toBeInTheDocument();
+    expect(screen.getByText(/briefing status:\s*ready/i)).toBeInTheDocument();
 
     expect(primaryActionButton).toBeEnabled();
+  });
+
+  it('uses regenerate intent deterministically for artifact-driven relaunch with extraction source', async () => {
+    extractionContextState = null;
+    briefingState.fileName = null;
+    briefingState.status = 'idle';
+    briefingState.extractionContext = null;
+
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['optin'];
+
+    renderTemplate({
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-001',
+      initialProjectId: 'project-001',
+    });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /avvia la generazione/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
+    });
+
+    fireEvent.click(primaryActionButton);
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalled();
+    });
+
+    const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(firstRequest.input.intent).toBe('regenerate');
+    expect(firstRequest.input.briefingText).toBe('brief text');
   });
 
   it('recovers checkpoint from legacy extraction artifact without input.toolKey', async () => {

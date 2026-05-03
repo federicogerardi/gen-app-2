@@ -44,6 +44,68 @@ const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null 
   return typeof step === 'string' ? step as ToolStep : null;
 };
 
+const parseExtractionPayloadFromContent = (content: string): Record<string, unknown> => {
+  const parseCandidate = (candidate: string): Record<string, unknown> => {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      if (parsed && typeof parsed === 'object') {
+        const record = parsed as Record<string, unknown>;
+        const payload = record['payload'];
+        if (payload && typeof payload === 'object') {
+          return payload as Record<string, unknown>;
+        }
+
+        const extractionPayload = record['extractionPayload'];
+        if (extractionPayload && typeof extractionPayload === 'object') {
+          return extractionPayload as Record<string, unknown>;
+        }
+
+        return record;
+      }
+    } catch {
+      // Keep runtime resilient: invalid JSON means no structured payload.
+    }
+
+    return {};
+  };
+
+  const direct = parseCandidate(content);
+  if (Object.keys(direct).length > 0) {
+    return direct;
+  }
+
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    const fromFence = parseCandidate(fenced[1]);
+    if (Object.keys(fromFence).length > 0) {
+      return fromFence;
+    }
+  }
+
+  const objectSlice = content.match(/\{[\s\S]*\}/);
+  if (objectSlice?.[0]) {
+    const fromSlice = parseCandidate(objectSlice[0]);
+    if (Object.keys(fromSlice).length > 0) {
+      return fromSlice;
+    }
+  }
+
+  return {};
+};
+
+const readExtractionPayloadFromArtifactInput = (artifact: GenerationArtifact): Record<string, unknown> => {
+  const inputPayload = artifact.sourceRequest.input?.extractionPayload;
+  if (inputPayload && typeof inputPayload === 'object') {
+    return inputPayload as Record<string, unknown>;
+  }
+
+  return {};
+};
+
+const isEmptyPayload = (payload: Record<string, unknown>): boolean => {
+  return Object.keys(payload).length === 0;
+};
+
 export const ToolPageTemplate = ({
   toolKey,
   sourceArtifactId,
@@ -380,11 +442,21 @@ export const ToolPageTemplate = ({
   const currentProject = projects.find((p) => p.id === formState.projectId);
 
   const resolveRuntimeIntent = (): 'new' | 'resume' | 'regenerate' => {
-    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint') {
+    // Deterministic DDD rule: artifact-driven relaunch defaults to regenerate.
+    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' || intent === 'resume') {
       return 'resume';
     }
 
-    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step') {
+    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step' || intent === 'regenerate') {
+      return 'regenerate';
+    }
+
+    const hasArtifactDrivenEntry =
+      (sourceArtifactId?.trim().length ?? 0) > 0
+      || sourceArtifact !== null
+      || machineHydrationResult !== null;
+
+    if (hasArtifactDrivenEntry) {
       return 'regenerate';
     }
 
@@ -417,7 +489,7 @@ export const ToolPageTemplate = ({
   };
 
   // 11. Handle generation start and chaining
-  const startGenerationStep = (step: ToolStep): boolean => {
+  const startGenerationStep = async (step: ToolStep): Promise<boolean> => {
     if (import.meta.env.DEV) {
       const runtimeIntent = resolveRuntimeIntent();
       console.info('[ToolPageTemplate] primary CTA diagnostic', {
@@ -439,6 +511,8 @@ export const ToolPageTemplate = ({
         primaryTargetStep,
         hasSession: !!auth.session,
         normalizedProjectId,
+        briefingTextLengthFromBriefing: (briefingSnapshot.context.normalizedText ?? '').length,
+        extractionPayloadKeysFromBriefing: Object.keys(briefingSnapshot.context.extractionPayload ?? {}).length,
       });
     }
 
@@ -450,11 +524,16 @@ export const ToolPageTemplate = ({
     // Contesto estrazione: in recovery da artifact deve essere deterministico e
     // provenire dalla hydration machine; in upload manuale usa briefingSnapshot.
     const extractionInfo = (() => {
+      const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
+
       if (machineHydrationResult !== null) {
         return {
           extractionArtifactId: machineHydrationResult.extractionArtifactId,
           extractionPayload: machineHydrationResult.extractionPayload,
           briefingId: machineHydrationResult.briefingId,
+          briefingText: machineHydrationResult.normalizedText.trim().length > 0
+            ? machineHydrationResult.normalizedText
+            : briefingContextText,
         };
       }
 
@@ -468,6 +547,7 @@ export const ToolPageTemplate = ({
           extractionArtifactId: bc.extractionArtifactId,
           extractionPayload: bc.extractionPayload ?? {},
           briefingId: bc.briefingId,
+          briefingText: bc.normalizedText ?? '',
         };
       }
       return null;
@@ -475,6 +555,56 @@ export const ToolPageTemplate = ({
 
     if (!extractionInfo) {
       return false;
+    }
+
+    let effectiveExtractionInfo = extractionInfo;
+    const hasExtractionArtifactId = effectiveExtractionInfo.extractionArtifactId.trim().length > 0;
+    const needsPayloadEnrichment = isEmptyPayload(effectiveExtractionInfo.extractionPayload);
+    const needsBriefingTextEnrichment = effectiveExtractionInfo.briefingText.trim().length === 0;
+    const needsBriefingIdEnrichment = effectiveExtractionInfo.briefingId.trim().length === 0;
+    const shouldEnrichFromExtractionArtifact =
+      hasExtractionArtifactId
+      && (needsPayloadEnrichment || needsBriefingTextEnrichment || needsBriefingIdEnrichment);
+
+    if (shouldEnrichFromExtractionArtifact) {
+      const extractionArtifact = await getArtifactById(effectiveExtractionInfo.extractionArtifactId, {
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+        localArtifacts: allArtifacts,
+      }).catch(() => null);
+
+      if (extractionArtifact) {
+        const enrichedPayload = needsPayloadEnrichment
+          ? (() => {
+              const fromContent = parseExtractionPayloadFromContent(extractionArtifact.content);
+              if (Object.keys(fromContent).length > 0) {
+                return fromContent;
+              }
+
+              return readExtractionPayloadFromArtifactInput(extractionArtifact);
+            })()
+          : effectiveExtractionInfo.extractionPayload;
+
+        const enrichedBriefingText =
+          effectiveExtractionInfo.briefingText.trim().length > 0
+            ? effectiveExtractionInfo.briefingText
+            : (typeof extractionArtifact.sourceRequest.input?.briefingText === 'string'
+              ? extractionArtifact.sourceRequest.input.briefingText
+              : '');
+
+        const enrichedBriefingId =
+          effectiveExtractionInfo.briefingId
+          || (typeof extractionArtifact.sourceRequest.input?.briefingId === 'string'
+            ? extractionArtifact.sourceRequest.input.briefingId
+            : '');
+
+        effectiveExtractionInfo = {
+          extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
+          extractionPayload: enrichedPayload,
+          briefingId: enrichedBriefingId,
+          briefingText: enrichedBriefingText,
+        };
+      }
     }
 
     const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
@@ -504,10 +634,11 @@ export const ToolPageTemplate = ({
         notes: resolvedNotes,
         relaunchFromArtifactId: resolvedRelaunchSource,
         sourceArtifactId: sourceArtifactId ?? null,
-        briefingId: resolvedBriefingId ?? extractionInfo.briefingId,
+        briefingId: resolvedBriefingId ?? effectiveExtractionInfo.briefingId,
+        briefingText: effectiveExtractionInfo.briefingText,
         briefingFileName: effectiveBriefingFileName ?? null,
-        extractionArtifactId: extractionInfo.extractionArtifactId,
-        extractionPayload: extractionInfo.extractionPayload,
+        extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
+        extractionPayload: effectiveExtractionInfo.extractionPayload,
       },
     };
 
@@ -528,6 +659,35 @@ export const ToolPageTemplate = ({
       dependencies,
       dependencyArtifactContentsByStep,
     );
+
+    if (import.meta.env.DEV) {
+      const briefingTextInRequest = typeof request.input.briefingText === 'string'
+        ? request.input.briefingText
+        : '';
+      const extractionPayloadInRequest = request.input.extractionPayload;
+      const extractionPayloadKeysInRequest = (
+        extractionPayloadInRequest !== null
+        && typeof extractionPayloadInRequest === 'object'
+      )
+        ? Object.keys(extractionPayloadInRequest as Record<string, unknown>).length
+        : 0;
+      const stepDependencyArtifactIdsCount = Array.isArray(request.input.stepDependencyArtifactIds)
+        ? request.input.stepDependencyArtifactIds.length
+        : 0;
+
+      console.info('[ToolPageTemplate] generation request context', {
+        step,
+        routeIntent: intent,
+        runtimeIntent: request.input.intent,
+        requestId: request.requestId,
+        sourceArtifactId: request.input.sourceArtifactId,
+        briefingId: request.input.briefingId,
+        briefingTextLengthInRequest: briefingTextInRequest.length,
+        extractionArtifactIdInRequest: request.input.extractionArtifactId,
+        extractionPayloadKeysInRequest,
+        stepDependencyArtifactIdsCount,
+      });
+    }
 
     generation.start(request);
     lastRequestedStepRef.current = step;

@@ -477,7 +477,6 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | `models` | `VITE_CAP_MODELS` | `GET /api/models` | Array vuoto |
 | `artifacts` | `VITE_CAP_ARTIFACTS` | `GET /api/artifacts`, `GET /api/artifacts/:id` | Store locale `GenerationArtifact[]` da `GenerationWorkspaceProvider` |
 | `toolsUpload` | `VITE_CAP_TOOLS_UPLOAD` | `POST /api/tools/briefs` | Disabilitato (process briefing non disponibile) |
-| `adminModels` | `VITE_CAP_ADMIN_MODELS` | `GET /api/admin/models` | Banner "Backend endpoint pending" |
 
 ### Comportamento fallback per modulo
 
@@ -486,7 +485,6 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | Projects list/detail | Mostra lista vuota; nessuna chiamata HTTP |
 | Artifacts archive | Filtra artifacts da store XState locale; nessuna chiamata HTTP |
 | Artifact detail | Cerca per `artifactId` tra artifacts locali; restituisce null se non trovato |
-| Admin models | Mostra pagina con banner warning; dati modelli non disponibili |
 | Admin users | Chiama sempre `/admin/users` (endpoint as-is disponibile); nessun fallback |
 | Tool upload | Upload/extraction disabilitati; nessuna chiamata HTTP verso `/api/tools/briefs` |
 

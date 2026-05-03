@@ -198,9 +198,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
 }));
 
-vi.mock('../runtime/useToolForm', async () => {
-  const toolUxState = await vi.importActual<typeof import('../runtime/tool-ux-state')>('../runtime/tool-ux-state');
-
+vi.mock('../runtime/useToolForm', () => {
   return {
     useProjectsLoader: () => ({
       projects: [{ id: 'project-001', name: 'Project 001' }],
@@ -231,41 +229,6 @@ vi.mock('../runtime/useToolForm', async () => {
       validation: { isValid: true, errors: {} },
     }),
     useAvailableSteps: () => availableStepsState.steps,
-    useToolUiState: (
-      toolKey: 'funnel-pages' | 'nextland',
-      runtimeInput: {
-        intent?: 'new' | 'resume' | 'regenerate';
-        formState: {
-          projectId: string;
-          briefingFile: File | null;
-          briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready';
-        };
-        isGenerationStreamActive: boolean;
-        completedSteps: Set<'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you'>;
-        currentRunningStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        hasCompletedPreviousGeneration: boolean;
-        lastCheckpointStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        nextAvailableStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        generationError: string | null;
-        hasStartedCurrentRun?: boolean;
-      },
-    ) => toolUxState.deriveCanonicalToolUiState({
-      toolKey,
-      ...(runtimeInput.intent !== undefined ? { intent: runtimeInput.intent } : {}),
-      projectId: runtimeInput.formState.projectId,
-      briefingFile: runtimeInput.formState.briefingFile,
-      briefingStatus: runtimeInput.formState.briefingStatus,
-      isGenerationStreamActive: runtimeInput.isGenerationStreamActive,
-      completedSteps: runtimeInput.completedSteps,
-      currentRunningStep: runtimeInput.currentRunningStep,
-      hasCompletedPreviousGeneration: runtimeInput.hasCompletedPreviousGeneration,
-      lastCheckpointStep: runtimeInput.lastCheckpointStep,
-      nextAvailableStep: runtimeInput.nextAvailableStep,
-      generationError: runtimeInput.generationError,
-      ...(runtimeInput.hasStartedCurrentRun !== undefined
-        ? { hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun }
-        : {}),
-    }),
   };
 });
 

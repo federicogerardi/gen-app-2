@@ -68,7 +68,7 @@ type StubProjectRecord = {
   updatedAt: string;
 };
 
-type StubArtifactQueryRecord = {
+export type StubArtifactQueryRecord = {
   artifactId: string;
   requestId: string;
   userId: string;

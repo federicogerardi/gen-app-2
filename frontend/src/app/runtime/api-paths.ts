@@ -12,6 +12,8 @@ export type ApiPaths = {
   };
   tools: {
     briefs: string | null;
+    hydrate: string | null;
+    orchestrate: string | null;
   };
   projects: {
     list: string | null;
@@ -24,8 +26,6 @@ export type ApiPaths = {
   admin: {
     users: string;
     userById: (id: string) => string;
-    models: string | null;
-    activity: string;
   };
 };
 
@@ -41,6 +41,8 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   },
   tools: {
     briefs: capabilities.toolsUpload ? '/api/tools/briefs' : null,
+    hydrate: capabilities.artifacts ? '/api/tools/hydrate' : null,
+    orchestrate: capabilities.artifacts ? '/api/tools/orchestrate' : null,
   },
   projects: {
     list: capabilities.projects ? '/api/projects' : null,
@@ -53,7 +55,5 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   admin: {
     users: '/admin/users',
     userById: (id: string) => `/admin/users/${id}`,
-    models: capabilities.adminModels ? '/api/admin/models' : null,
-    activity: '/admin/activity',
   },
 });

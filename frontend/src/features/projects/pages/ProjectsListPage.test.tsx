@@ -7,7 +7,7 @@ import { useMswHandler } from '../../../test/mocks/server';
 import { ProjectsListPage } from './ProjectsListPage';
 
 const authBag = {
-  capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+  capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false },
 };
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({

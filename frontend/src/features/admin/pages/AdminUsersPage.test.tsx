@@ -10,7 +10,7 @@ import { AdminGuard } from '../routing/admin-guard';
 // Mutable session bag so individual tests can change role
 const sessionBag = { role: 'member' as string | null };
 const authBag = {
-  capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+  capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
 };
 type TestAdminUser = {
   id: string;

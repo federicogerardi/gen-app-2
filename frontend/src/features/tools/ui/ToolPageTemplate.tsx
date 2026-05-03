@@ -24,7 +24,7 @@ import {
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
+import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -124,7 +124,6 @@ export const ToolPageTemplate = ({
   const toolConfig = getToolFormConfig(toolKey);
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
-  const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
   const initialPrefillDoneRef = useRef(false);
   const currentRunPrefixRef = useRef<string | null>(null);
@@ -189,59 +188,6 @@ export const ToolPageTemplate = ({
     initialPrefillDoneRef.current = true;
   }, [generation, initialProjectId, setFormState]);
 
-  // 5. Load persisted artifacts for selected project (DB + fallback)
-  useEffect(() => {
-    const normalizedProjectId = formState.projectId.trim();
-    if (!normalizedProjectId) {
-      setPersistedArtifacts([]);
-      return;
-    }
-
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const list = await listArtifacts(
-          {
-            type: 'all',
-            status: 'all',
-            projectId: normalizedProjectId,
-          },
-          {
-            apiBaseUrl: auth.apiBaseUrl,
-            capabilities: auth.capabilities,
-            localArtifacts: generation.artifacts,
-          },
-        );
-
-        if (!cancelled) {
-          setPersistedArtifacts(list);
-        }
-      } catch {
-        if (!cancelled) {
-          setPersistedArtifacts(generation.artifacts.filter((item) => item.projectId === normalizedProjectId));
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [auth.apiBaseUrl, auth.capabilities, formState.projectId, generation.artifacts]);
-
-  const allArtifacts = useMemo(() => {
-    const merged = [...generation.artifacts, ...persistedArtifacts];
-    const byId = new Map<string, GenerationArtifact>();
-
-    for (const artifact of merged) {
-      if (!byId.has(artifact.artifactId)) {
-        byId.set(artifact.artifactId, artifact);
-      }
-    }
-
-    return [...byId.values()];
-  }, [generation.artifacts, persistedArtifacts]);
-
   // 6. Resolve source artifact for relaunch intent
   useEffect(() => {
     const normalizedSourceArtifactId = sourceArtifactId?.trim() ?? '';
@@ -250,7 +196,7 @@ export const ToolPageTemplate = ({
       return;
     }
 
-    const localSource = allArtifacts.find((artifact) => artifact.artifactId === normalizedSourceArtifactId) ?? null;
+    const localSource = generation.artifacts.find((artifact) => artifact.artifactId === normalizedSourceArtifactId) ?? null;
     if (localSource) {
       setSourceArtifact(localSource);
       return;
@@ -262,7 +208,7 @@ export const ToolPageTemplate = ({
         const detail = await getArtifactById(normalizedSourceArtifactId, {
           apiBaseUrl: auth.apiBaseUrl,
           capabilities: auth.capabilities,
-          localArtifacts: allArtifacts,
+          localArtifacts: generation.artifacts,
         });
 
         if (!cancelled) {
@@ -278,7 +224,7 @@ export const ToolPageTemplate = ({
     return () => {
       cancelled = true;
     };
-  }, [allArtifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
+  }, [generation.artifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
 
   const normalizedProjectId = formState.projectId.trim();
 
@@ -303,10 +249,10 @@ export const ToolPageTemplate = ({
         readInputField(sourceArtifact, 'extractionArtifactId')
         ?? extractionArtifactId
         ?? null,
-      localArtifacts: allArtifacts,
+      localArtifacts: generation.artifacts,
     });
   }, [
-    allArtifacts,
+    generation.artifacts,
     briefingId,
     extractionArtifactId,
     intent,
@@ -431,12 +377,12 @@ export const ToolPageTemplate = ({
   useEffect(() => {
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: currentRunPrefixRef.current,
     });
-  }, [allArtifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
+  }, [generation.artifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
 
   // 10. Build project and step lists
   const currentProject = projects.find((p) => p.id === formState.projectId);
@@ -570,7 +516,7 @@ export const ToolPageTemplate = ({
       const extractionArtifact = await getArtifactById(effectiveExtractionInfo.extractionArtifactId, {
         apiBaseUrl: auth.apiBaseUrl,
         capabilities: auth.capabilities,
-        localArtifacts: allArtifacts,
+        localArtifacts: generation.artifacts,
       }).catch(() => null);
 
       if (extractionArtifact) {
@@ -612,7 +558,7 @@ export const ToolPageTemplate = ({
     const runtimeIntent = resolveRuntimeIntent();
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: runPrefix,
@@ -646,7 +592,7 @@ export const ToolPageTemplate = ({
     const dependencyArtifactContentsByStep = Object.fromEntries(
       Object.entries(dependencies)
         .map(([stepKey, artifactId]): [string, string] => {
-          const dependencyArtifact = allArtifacts.find((artifact) => artifact.artifactId === artifactId);
+          const dependencyArtifact = generation.artifacts.find((artifact) => artifact.artifactId === artifactId);
           return [stepKey, dependencyArtifact?.content ?? ''];
         })
         .filter((entry) => entry[1].trim().length > 0),
@@ -736,7 +682,7 @@ export const ToolPageTemplate = ({
     currentRunPrefixRef.current = null;
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: null,
@@ -757,8 +703,8 @@ export const ToolPageTemplate = ({
   }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
 
   // Bridge: quando generation stream termina, invia STEP_DONE/STEP_FAILED alla macchina.
-  // Necessario perché toolFlowMachine (invocato in 'generating') attende questi eventi per avanzare.
-  // Senza di essi la macchina resta bloccata in 'generating' e il pulsante mostra "In elaborazione..." indefinitamente.
+  // Legge completedStep/failedStep dal payload terminal BE (BackendStreamEvent.terminal.data) —
+  // non inferisce più dall'isStreamActive/streamStatus lato UI (TASK-026).
   useEffect(() => {
     if (generation.isStreamActive) {
       wasStreamActiveRef.current = true;
@@ -773,17 +719,15 @@ export const ToolPageTemplate = ({
 
     wasStreamActiveRef.current = false;
 
-    const step = lastRequestedStepRef.current;
-    if (!step) {
-      return;
-    }
+    const completedStep = generation.terminalCompletedStep;
+    const failedStep = generation.terminalFailedStep;
 
-    if (generation.streamStatus === 'completed') {
-      toolPageSend({ type: 'STEP_DONE', step });
-    } else if (generation.streamStatus === 'failed') {
-      toolPageSend({ type: 'STEP_FAILED', step, message: 'Generazione fallita' });
+    if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
+      toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
+    } else if (failedStep && toolConfig.steps.includes(failedStep as ToolStep)) {
+      toolPageSend({ type: 'STEP_FAILED', step: failedStep as ToolStep, message: 'Generazione fallita' });
     }
-  }, [generation.isStreamActive, generation.streamStatus, toolPageSend]);
+  }, [generation.isStreamActive, generation.terminalCompletedStep, generation.terminalFailedStep, toolConfig.steps, toolPageSend]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) {

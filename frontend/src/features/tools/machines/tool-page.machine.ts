@@ -11,12 +11,10 @@ import type {
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
   belongsToTool,
-  buildExtractionContextFromArtifact,
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
   collectCompletedStepsByTool,
 } from '../../generation/runtime/step-hydration';
-import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
 
 export type HydrationResult = {
   extractionArtifactId: string;
@@ -498,10 +496,6 @@ export type ToolPageEvent =
     intent: 'new' | 'resume' | 'regenerate';
     sourceArtifact: GenerationArtifact | null;
     runRequestPrefix: string | null;
-    /** @deprecated Derivato internamente dalla macchina (Phase 3). Sarà rimosso in uno sprint successivo. */
-    hasExtractionContext?: boolean;
-    /** @deprecated Derivato internamente dalla macchina (Phase 3). Sarà rimosso in uno sprint successivo. */
-    hasPrimaryTargetStep?: boolean;
   }
   | {
     type: 'HYDRATE_REQUESTED';
@@ -530,135 +524,40 @@ export const toolPageMachine = setup({
         sourceExtractionArtifactId: string | null;
         apiBaseUrl: string;
         capabilities: Partial<BackendCapabilities>;
-        localArtifacts: GenerationArtifact[];
       };
     }): Promise<HydrationResult> => {
       const {
         sourceArtifactId,
         projectId,
+        intent,
         resolvedBriefingId,
         sourceExtractionArtifactId,
         apiBaseUrl,
-        capabilities,
-        localArtifacts,
       } = input;
 
-      let resolvedBriefingIdForRanking = toCanonicalBriefingId(resolvedBriefingId);
-      let sourceExtractionArtifactIdForRanking = sourceExtractionArtifactId;
-
-      // Step 1: deterministic by ArtifactType
-      // - extraction: direct recovery
-      // - content: recover via linked extraction lookup (Step 2)
-      if (sourceArtifactId) {
-        try {
-          const artifact = await getArtifactById(sourceArtifactId, { apiBaseUrl, capabilities, localArtifacts });
-          if (artifact) {
-            if (artifact.artifactType === 'extraction') {
-              const ctx = buildExtractionContextFromArtifact(artifact);
-              if (ctx) {
-                // Legacy extraction artifacts use artifactId as fallback briefingId.
-                // Prefer resolvedBriefingId from HYDRATE_REQUESTED when available.
-                const effectiveBriefingId =
-                  ctx.briefingId === artifact.artifactId && resolvedBriefingId != null
-                    ? resolvedBriefingId
-                    : ctx.briefingId;
-                return {
-                  extractionArtifactId: ctx.extractionArtifactId,
-                  extractionPayload: ctx.extractionPayload,
-                  briefingId: effectiveBriefingId,
-                  briefingFileName: null,
-                  normalizedText: ctx.normalizedText,
-                  parsedFormat: ctx.parsedFormat,
-                };
-              }
-            } else {
-              const artifactBriefingId = toCanonicalBriefingId(artifact.sourceRequest.input?.briefingId);
-              const artifactExtractionArtifactId = typeof artifact.sourceRequest.input?.extractionArtifactId === 'string'
-                ? artifact.sourceRequest.input.extractionArtifactId
-                : null;
-
-              resolvedBriefingIdForRanking = resolvedBriefingIdForRanking ?? artifactBriefingId;
-              sourceExtractionArtifactIdForRanking = sourceExtractionArtifactIdForRanking ?? artifactExtractionArtifactId;
-
-              // Content artifacts must point to a valid extraction reference.
-              // Without references, hydration cannot be considered valid.
-              if (!resolvedBriefingIdForRanking && !sourceExtractionArtifactIdForRanking) {
-                throw new Error('missing_extraction_reference');
-              }
-            }
-          }
-        } catch (error) {
-          if (error instanceof Error && error.message === 'missing_extraction_reference') {
-            throw error;
-          }
-          // fallback a list-based recovery
-        }
-      }
-
-      // Step 2: lista artifact extraction e ranking (TASK-006)
-      const normalizedProjectId = projectId.trim();
-      if (!normalizedProjectId) {
-        throw new Error('missing_project');
-      }
-
-      const artifacts = await listArtifacts(
-        { type: 'extraction', status: 'completed', projectId: normalizedProjectId },
-        { apiBaseUrl, capabilities, localArtifacts },
-      );
-
-      // Ranking: (1) exact sourceExtractionArtifactId match, (2) briefingId match, (3) recency
-      const ranked = [...artifacts].sort((a, b) => {
-        const aIsSource = sourceExtractionArtifactIdForRanking != null && a.artifactId === sourceExtractionArtifactIdForRanking ? 1 : 0;
-        const bIsSource = sourceExtractionArtifactIdForRanking != null && b.artifactId === sourceExtractionArtifactIdForRanking ? 1 : 0;
-        if (aIsSource !== bIsSource) {
-          return bIsSource - aIsSource;
-        }
-
-        const aBriefingId = typeof a.sourceRequest.input?.briefingId === 'string' ? a.sourceRequest.input.briefingId : null;
-        const bBriefingId = typeof b.sourceRequest.input?.briefingId === 'string' ? b.sourceRequest.input.briefingId : null;
-        const aMatchesBriefing = resolvedBriefingIdForRanking != null && aBriefingId === resolvedBriefingIdForRanking ? 1 : 0;
-        const bMatchesBriefing = resolvedBriefingIdForRanking != null && bBriefingId === resolvedBriefingIdForRanking ? 1 : 0;
-        if (aMatchesBriefing !== bMatchesBriefing) {
-          return bMatchesBriefing - aMatchesBriefing;
-        }
-
-        return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+      const res = await fetch(`${apiBaseUrl}/api/tools/hydrate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          projectId,
+          ...(sourceArtifactId ? { sourceArtifactId } : {}),
+          ...(resolvedBriefingId ? { resolvedBriefingId } : {}),
+          ...(sourceExtractionArtifactId ? { sourceExtractionArtifactId } : {}),
+          intent,
+        }),
       });
 
-      const best = ranked[0] ?? null;
-      if (!best) {
-        throw new Error('no_extraction_artifact');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({})) as { error?: { code?: string; message?: string } };
+        // Use message as domain error code when available (BE sends snake_case codes as message)
+        throw new Error(errData?.error?.message ?? errData?.error?.code ?? 'hydration_failed');
       }
 
-      // List endpoint may omit the content field. Fetch by ID to ensure extractionPayload
-      // can be built from the artifact content.
-      const bestWithContent =
-        best.content.length > 0
-          ? best
-          : (await getArtifactById(best.artifactId, { apiBaseUrl, capabilities, localArtifacts })) ?? best;
-
-      // TASK-007: buildExtractionContextFromArtifact usa artifactId come fallback briefingId per artifact legacy
-      const ctx = buildExtractionContextFromArtifact(bestWithContent);
-      if (!ctx) {
-        throw new Error('hydration_context_unresolvable');
-      }
-
-      // Legacy extraction artifacts use artifactId as fallback briefingId.
-      // Prefer resolvedBriefingIdForRanking (from HYDRATE_REQUESTED or content artifact) when available.
-      const canonicalCtxBriefingId = toCanonicalBriefingId(ctx.briefingId);
-      const effectiveBriefingId =
-        canonicalCtxBriefingId
-        ?? (ctx.briefingId === bestWithContent.artifactId && resolvedBriefingIdForRanking != null
-          ? resolvedBriefingIdForRanking
-          : ctx.briefingId);
-
+      const resData = await res.json() as { ok: boolean; data: { hydration: HydrationResult } };
       return {
-        extractionArtifactId: ctx.extractionArtifactId,
-        extractionPayload: ctx.extractionPayload,
-        briefingId: effectiveBriefingId,
+        ...resData.data.hydration,
         briefingFileName: null,
-        normalizedText: ctx.normalizedText,
-        parsedFormat: ctx.parsedFormat,
       };
     }),
   },
@@ -940,7 +839,6 @@ export const toolPageMachine = setup({
           sourceExtractionArtifactId: context.pendingHydration?.sourceExtractionArtifactId ?? null,
           apiBaseUrl: context.apiBaseUrl,
           capabilities: context.capabilities,
-          localArtifacts: context.pendingHydration?.localArtifacts ?? [],
         }),
         onDone: {
           target: 'configuring',

@@ -32,7 +32,6 @@ describe('backend-capabilities', () => {
       models: true,
       artifacts: true,
       toolsUpload: true,
-      adminModels: true,
     };
     const result = resolveBackendCapabilities(all);
     expect(result).toEqual(all);
@@ -42,7 +41,6 @@ describe('backend-capabilities', () => {
     const r1 = resolveBackendCapabilities({});
     const r2 = resolveBackendCapabilities({});
     expect(r1).toEqual(r2);
-    expect(r1.adminModels).toBe(false);
   });
 
   it('resolveBackendCapabilities supports explicit disable for listing capabilities', () => {

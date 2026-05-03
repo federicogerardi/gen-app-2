@@ -10,7 +10,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
   }),
 }));
 

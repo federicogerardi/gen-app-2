@@ -65,6 +65,7 @@ export {
   RedisIdempotencyRepositoryStub,
   RedisQuotaRepositoryStub,
   RedisStreamSessionRepositoryStub,
+  type StubArtifactQueryRecord,
   type PostgresRedisStubOptions,
 } from './postgres-redis.stub';
 

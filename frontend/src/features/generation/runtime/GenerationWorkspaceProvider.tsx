@@ -57,6 +57,8 @@ type GenerationWorkspaceValue = {
   snapshot: ReturnType<typeof frontendStreamMachine.transition>;
   streamStatus: FrontendStreamStatus;
   isStreamActive: boolean;
+  terminalCompletedStep: string | null;
+  terminalFailedStep: string | null;
   checkpoints: ToolCheckpoint[];
   artifacts: GenerationArtifact[];
   focusedProjectId: string | null;
@@ -216,6 +218,8 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       snapshot,
       streamStatus,
       isStreamActive: snapshot.matches('active'),
+      terminalCompletedStep: snapshot.context.terminalCompletedStep,
+      terminalFailedStep: snapshot.context.terminalFailedStep,
       checkpoints: snapshot.context.checkpoints,
       artifacts: mergedArtifacts,
       focusedProjectId,

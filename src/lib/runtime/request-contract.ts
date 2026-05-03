@@ -6,6 +6,13 @@ import type {
 import type { OutputFormat } from '../types/artifact';
 import { resolveToolPrompt } from './tool-prompts';
 
+/**
+ * Authoritative backend definition of the generation request payload.
+ * This is the canonical source of truth for the request contract.
+ * Frontend counterpart: GenerationRequest in frontend/src/features/generation/contracts/backend-stream.ts.
+ * Both types must remain structurally identical; validate with the type-parity guard.
+ * DDD canonical term: GenerationRequest (DDD-002).
+ */
 export type BackendGenerationRequest = {
   requestId: string;
   userId: string;

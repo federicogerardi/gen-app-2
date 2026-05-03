@@ -17,10 +17,7 @@ import {
   validateToolForm,
   type ToolFormState,
 } from './tool-form-architecture';
-import {
-  deriveCanonicalToolUiState,
-  type ToolUiDerivationOutput,
-} from './tool-ux-state';
+
 
 const areCapabilitiesEqual = (
   left: Record<string, unknown>,
@@ -91,6 +88,8 @@ export const useProjectsLoader = () => {
 /**
  * Hook: Manage briefing file upload lifecycle
  * Handles extraction and artifact caching
+ * @deprecated Not imported by runtime components. Superseded by toolPageMachine + briefingUploadMachine.
+ * Kept for backward-compat test coverage (useToolForm.test.tsx). Remove in next cleanup cycle.
  */
 export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => {
   const auth = useAuthSession();
@@ -308,49 +307,6 @@ export const useBriefingUpload = (toolKey: SupportedTool, projectId: string) => 
 };
 
 /**
- * Hook: Manage step selection and dependencies
- */
-export const useStepSelection = (toolKey: SupportedTool, artifacts: any[]) => {
-  const [selectedSteps, setSelectedSteps] = useState<Set<ToolStep>>(new Set());
-  const [stepArtifactIds, setStepArtifactIds] = useState<Partial<Record<ToolStep, string>>>({});
-
-  const config = getToolFormConfig(toolKey);
-
-  const completedSteps = useMemo(() => {
-    return new Set(
-      artifacts
-        .filter(a => a.toolKey === toolKey)
-        .map(a => a.metadata?.step)
-        .filter((step): step is ToolStep => !!step),
-    );
-  }, [toolKey, artifacts]);
-
-  const availableSteps = useMemo(() => {
-    return getAvailableSteps(toolKey, completedSteps);
-  }, [toolKey, completedSteps]);
-
-  const toggleStep = (step: ToolStep): void => {
-    const next = new Set(selectedSteps);
-    if (next.has(step)) {
-      next.delete(step);
-    } else {
-      next.add(step);
-    }
-    setSelectedSteps(next);
-  };
-
-  return {
-    selectedSteps,
-    stepArtifactIds,
-    setStepArtifactIds,
-    completedSteps,
-    availableSteps,
-    config,
-    toggleStep,
-  };
-};
-
-/**
  * Hook: Initialize form with tool defaults
  */
 export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: string) => {
@@ -393,63 +349,5 @@ export const useAvailableSteps = (toolKey: SupportedTool, completedSteps: Set<To
   }, [toolKey, completedSteps]);
 };
 
-/**
- * Hook: Derive canonical UI state for ToolPageTemplate
- * Maps form state + runtime generation state to unified UI state
- * 
- * @example
- * ```ts
- * const uiState = useToolUiState('funnel-pages', {
- *   formState: { projectId: 'p1', briefingStatus: 'ready', ... },
- *   isGenerationStreamActive: false,
- *   completedSteps: new Set(['optin']),
- *   currentRunningStep: null,
- *   hasCompletedPreviousGeneration: true,
- *   lastCheckpointStep: 'optin',
- *   nextAvailableStep: 'quiz',
- *   generationError: null,
- * });
- * // Returns complete UI derivation output with canonical state, CTA policy, etc.
- * ```
- */
-export const useToolUiState = (
-  toolKey: SupportedTool,
-  runtimeInput: {
-    intent?: 'new' | 'resume' | 'regenerate';
-    formState: ToolFormState;
-    isGenerationStreamActive: boolean;
-    completedSteps: Set<ToolStep>;
-    currentRunningStep: ToolStep | null;
-    hasCompletedPreviousGeneration: boolean;
-    lastCheckpointStep: ToolStep | null;
-    nextAvailableStep: ToolStep | null;
-    generationError: string | null;
-    hasStartedCurrentRun?: boolean;
-  },
-): ToolUiDerivationOutput => {
-  return useMemo(() => {
-    const optionalInput = runtimeInput.intent !== undefined
-      ? { intent: runtimeInput.intent }
-      : {};
-
-    const optionalRunState = runtimeInput.hasStartedCurrentRun !== undefined
-      ? { hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun }
-      : {};
-
-    return deriveCanonicalToolUiState({
-      toolKey,
-      ...optionalInput,
-      projectId: runtimeInput.formState.projectId,
-      briefingFile: runtimeInput.formState.briefingFile,
-      briefingStatus: runtimeInput.formState.briefingStatus,
-      isGenerationStreamActive: runtimeInput.isGenerationStreamActive,
-      completedSteps: runtimeInput.completedSteps,
-      currentRunningStep: runtimeInput.currentRunningStep,
-      hasCompletedPreviousGeneration: runtimeInput.hasCompletedPreviousGeneration,
-      lastCheckpointStep: runtimeInput.lastCheckpointStep,
-      nextAvailableStep: runtimeInput.nextAvailableStep,
-      generationError: runtimeInput.generationError,
-      ...optionalRunState,
-    });
-  }, [toolKey, runtimeInput]);
-};
+// useToolUiState removed — test-only (not imported by any runtime component). Removed in Sprint 4 / TASK-013.
+// Canonical UI state is derived by toolPageMachine.context.viewModel.

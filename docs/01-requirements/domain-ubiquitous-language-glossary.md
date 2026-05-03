@@ -1,7 +1,7 @@
 ---
 status: active
-version: 1.1
-last-reviewed: 2026-05-03
+version: 1.2
+last-reviewed: 2026-05-04
 next-review-date: 2026-08-03
 owner: Domain Architecture
 ---
@@ -122,3 +122,10 @@ Operational note for `ExtractionContext`: at ToolStep dispatch time, `Generation
 | `StreamUsageMetrics` | LlmUsageMetrics | Former interface in `xstate.ts`. Deprecated DDD-016; backward-compat alias `StreamUsageMetrics = LlmUsageMetrics` maintained. |
 | `PersistedArtifactStatus` | ArtifactStatus | Former type in `generation.adapters.ts`. Deprecated DDD-017; backward-compat alias `PersistedArtifactStatus = ArtifactStatus` maintained. |
 | `relaunchPrimary` / `relaunchSecondary` (UI copy keys) | ArtifactRelaunch | Deprecated UI copy split for a single domain concept. Canonical UL keeps one `ArtifactRelaunch` concept, one effective generation-start CTA after hydration, and default runtime intent `regenerate` for artifact-driven relaunch entries. |
+| `ToolUiDerivationInput` / `ToolUiDerivationOutput` | — (removed) | Deprecated types in `frontend/src/features/tools/runtime/tool-ux-state.ts`. Removed in Sprint 4 / DDD-024; no runtime consumers existed. Canonical state is `toolPageMachine.context.viewModel`. |
+| `deriveCanonicalToolUiState` (tools/runtime shim) | `deriveCanonicalToolUiState` (generation/ui) | Deprecated overload in `tools/runtime/tool-ux-state.ts`. Removed in Sprint 4 / DDD-024. Use canonical source in `frontend/src/features/generation/ui/tool-ux-state.ts`. |
+| `useStepSelection` | — (removed) | Unused hook in `useToolForm.ts`. Removed in Sprint 4 / DDD-024; had no runtime consumers. |
+| `useToolUiState` | — (removed) | Test-only hook in `useToolForm.ts`. Removed in Sprint 4 / DDD-024; was mocked in tests only, not imported by any runtime component. |
+| `PROGRESS_SYNCED.hasExtractionContext?` / `PROGRESS_SYNCED.hasPrimaryTargetStep?` | — (removed) | Deprecated optional event payload fields in `tool-page.machine.ts`. Removed in Sprint 4 / DDD-024; machine derives them internally via `deriveHasExtractionContext`/`deriveHasPrimaryTargetStep`. |
+| `adminModels` (BackendCapabilities) | — (removed) | Frontend capability flag for `GET /api/admin/models`. Removed in Sprint 3 / DDD-024; endpoint not implemented in backend runtime. |
+| `listAdminModels` / `listAdminActivity` | — (removed) | Dead admin client functions. Removed in Sprint 3 / DDD-024; no runtime consumers. |

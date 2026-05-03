@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createActor, setup } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
@@ -507,83 +507,48 @@ describe('toolPageMachine', () => {
 // Phase 2 – hydration actor (HYDRATE_REQUESTED / success / failure / legacy)
 // ---------------------------------------------------------------------------
 
-vi.mock('../../artifacts/runtime/artifacts-client', () => ({
-  listArtifacts: vi.fn(),
-  getArtifactById: vi.fn(),
-}));
+import type { HydrationResult } from './tool-page.machine';
 
-vi.mock('../../generation/runtime/step-hydration', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../generation/runtime/step-hydration')>();
-  return {
-    ...original,
-    buildExtractionContextFromArtifact: vi.fn(original.buildExtractionContextFromArtifact),
-  };
-});
+const makeFetchSuccess = (hydration: Partial<HydrationResult> & { extractionArtifactId: string }) =>
+  Promise.resolve({
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        ok: true,
+        data: {
+          hydration: {
+            extractionPayload: { topic: 'test' },
+            briefingId: 'brief-1',
+            normalizedText: '',
+            parsedFormat: 'md',
+            briefingFileName: null,
+            ...hydration,
+          } satisfies HydrationResult,
+        },
+      }),
+  } as Response);
 
-import { listArtifacts, getArtifactById } from '../../artifacts/runtime/artifacts-client';
-import { buildExtractionContextFromArtifact } from '../../generation/runtime/step-hydration';
-
-const makeExtractionArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
-  artifactId: 'ext-1',
-  requestId: 'req-ext-1',
-  projectId: 'project-1',
-  artifactType: 'extraction',
-  status: 'completed',
-  model: 'openrouter/auto',
-  toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
-  content: JSON.stringify({ topic: 'test' }),
-  createdAt: '2026-05-01T00:00:00.000Z',
-  updatedAt: '2026-05-01T00:00:00.000Z',
-  sourceRequest: {
-    requestId: 'req-ext-1',
-    userId: 'user-1',
-    projectId: 'project-1',
-    artifactType: 'extraction',
-    model: 'openrouter/auto',
-    toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
-    input: { briefingId: 'brief-1', toolKey: 'funnel-pages' },
-  },
-  ...overrides,
-});
-
-const makeContentArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
-  artifactId: 'cnt-1',
-  requestId: 'req-cnt-1',
-  projectId: 'project-1',
-  artifactType: 'content',
-  status: 'completed',
-  model: 'openrouter/auto',
-  toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
-  content: 'generated content',
-  createdAt: '2026-05-01T00:00:00.000Z',
-  updatedAt: '2026-05-01T00:00:00.000Z',
-  sourceRequest: {
-    requestId: 'req-cnt-1',
-    userId: 'user-1',
-    projectId: 'project-1',
-    artifactType: 'content',
-    model: 'openrouter/auto',
-    toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
-    input: {
-      step: 'optin',
-      briefingId: 'brief-1',
-      extractionArtifactId: 'ext-1',
-    },
-  },
-  ...overrides,
-});
+const makeFetchError = (message: string, code = 'bad_request') =>
+  Promise.resolve({
+    ok: false,
+    json: () => Promise.resolve({ ok: false, error: { code, message } }),
+  } as Response);
 
 describe('toolPageMachine – Phase 2 hydration', () => {
+  let mockFetch: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('transitions to hydrating on HYDRATE_REQUESTED', () => {
-    vi.mocked(listArtifacts).mockResolvedValue([]);
+    mockFetch.mockReturnValue(new Promise(() => {/* never resolves */}));
 
     const actor = createToolPageActor();
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
@@ -594,13 +559,11 @@ describe('toolPageMachine – Phase 2 hydration', () => {
   });
 
   it('hydration success: transitions back to configuring with hydrationResult set and briefingActor receives EXTRACTION_RECOVERED', async () => {
-    const extractionArtifact = makeExtractionArtifact();
-    vi.mocked(listArtifacts).mockResolvedValue([extractionArtifact]);
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'ext-1', briefingId: 'brief-1' }));
 
     const actor = createToolPageActor();
-    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new', localArtifacts: [extractionArtifact] });
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
-    // Wait for async actor to complete
     await vi.waitFor(() => {
       expect(actor.getSnapshot().value).toBe('configuring');
     });
@@ -614,16 +577,14 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(ctx.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
   });
 
-  it('hydration deterministic branch: source extraction artifact is resolved directly via getArtifactById', async () => {
-    const extractionArtifact = makeExtractionArtifact({ artifactId: 'ext-direct' });
-    vi.mocked(getArtifactById).mockResolvedValue(extractionArtifact);
+  it('hydration deterministic branch: source extraction artifact is resolved directly', async () => {
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'ext-direct', briefingId: 'brief-1' }));
 
     const actor = createToolPageActor();
     actor.send({
       type: 'HYDRATE_REQUESTED',
       intent: 'new',
       sourceArtifactId: 'ext-direct',
-      localArtifacts: [extractionArtifact],
     });
 
     await vi.waitFor(() => {
@@ -631,33 +592,19 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     const ctx = actor.getSnapshot().context;
-    expect(vi.mocked(getArtifactById)).toHaveBeenCalledWith(
-      'ext-direct',
-      expect.objectContaining({ localArtifacts: [extractionArtifact] }),
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/tools/hydrate',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"sourceArtifactId":"ext-direct"'),
+      }),
     );
-    expect(vi.mocked(listArtifacts)).not.toHaveBeenCalled();
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-direct');
     expect(ctx.readiness.canStartFlow).toBe(true);
   });
 
   it('hydration deterministic branch: source content artifact resolves via linked extraction lookup', async () => {
-    const contentArtifact = makeContentArtifact({ artifactId: 'cnt-source' });
-    const linkedExtraction = makeExtractionArtifact({
-      artifactId: 'ext-linked',
-      sourceRequest: {
-        requestId: 'req-ext-linked',
-        userId: 'user-1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
-        input: { briefingId: 'brief-linked', toolKey: 'funnel-pages' },
-      },
-    });
-
-    vi.mocked(getArtifactById).mockResolvedValue(contentArtifact);
-    vi.mocked(listArtifacts).mockResolvedValue([linkedExtraction]);
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'ext-linked', briefingId: 'brief-linked' }));
 
     const actor = createToolPageActor();
     actor.send({
@@ -666,7 +613,6 @@ describe('toolPageMachine – Phase 2 hydration', () => {
       sourceArtifactId: 'cnt-source',
       resolvedBriefingId: 'brief-linked',
       sourceExtractionArtifactId: 'ext-linked',
-      localArtifacts: [contentArtifact, linkedExtraction],
     });
 
     await vi.waitFor(() => {
@@ -674,41 +620,25 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     const ctx = actor.getSnapshot().context;
-    expect(vi.mocked(getArtifactById)).toHaveBeenCalledWith(
-      'cnt-source',
-      expect.objectContaining({ localArtifacts: [contentArtifact, linkedExtraction] }),
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/tools/hydrate',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"sourceArtifactId":"cnt-source"'),
+      }),
     );
-    expect(vi.mocked(listArtifacts)).toHaveBeenCalled();
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-linked');
     expect(ctx.readiness.canStartFlow).toBe(true);
   });
 
   it('does not hydrate content source artifact without brief references', async () => {
-    const contentArtifactWithoutRefs = makeContentArtifact({
-      artifactId: 'cnt-without-refs',
-      sourceRequest: {
-        requestId: 'req-cnt-without-refs',
-        userId: 'user-1',
-        projectId: 'project-1',
-        artifactType: 'content',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
-        input: {
-          step: 'optin',
-        },
-      },
-    });
-
-    vi.mocked(getArtifactById).mockResolvedValue(contentArtifactWithoutRefs);
-    vi.mocked(listArtifacts).mockResolvedValue([makeExtractionArtifact({ artifactId: 'ext-unrelated' })]);
+    mockFetch.mockReturnValue(makeFetchError('missing_extraction_reference', 'bad_request'));
 
     const actor = createToolPageActor();
     actor.send({
       type: 'HYDRATE_REQUESTED',
       intent: 'new',
       sourceArtifactId: 'cnt-without-refs',
-      localArtifacts: [contentArtifactWithoutRefs],
     });
 
     await vi.waitFor(() => {
@@ -723,7 +653,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
   });
 
   it('hydration failure: transitions back to configuring with hydrationError set and viewModel.messages.error populated', async () => {
-    vi.mocked(listArtifacts).mockResolvedValue([]);
+    mockFetch.mockReturnValue(makeFetchError('no_extraction_artifact', 'not_found'));
 
     const actor = createToolPageActor();
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
@@ -739,21 +669,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
   });
 
   it('hydration legacy: artifact senza briefingId usa artifactId come fallback (TASK-007)', async () => {
-    // Legacy extraction artifact: nessun briefingId in sourceRequest.input
-    const legacyArtifact = makeExtractionArtifact({
-      artifactId: 'legacy-ext',
-      sourceRequest: {
-        requestId: 'req-legacy',
-        userId: 'user-1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'openrouter/auto',
-        toolKey: null,
-        workflowType: null,
-        input: {},  // nessun briefingId
-      },
-    });
-    vi.mocked(listArtifacts).mockResolvedValue([legacyArtifact]);
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'legacy-ext', briefingId: 'legacy-ext' }));
 
     const actor = createToolPageActor();
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'resume' });
@@ -763,42 +679,13 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     const ctx = actor.getSnapshot().context;
-    // briefingId fallback = artifactId del legacy artifact
     expect(ctx.hydrationResult?.briefingId).toBe('legacy-ext');
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('legacy-ext');
     expect(ctx.hydrationError).toBeNull();
   });
 
   it('ranking TASK-006: sourceExtractionArtifactId ha precedenza su recency', async () => {
-    const older = makeExtractionArtifact({
-      artifactId: 'ext-target',
-      updatedAt: '2026-04-01T00:00:00.000Z',
-      sourceRequest: {
-        requestId: 'r1',
-        userId: 'u1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'm',
-        toolKey: null,
-        workflowType: null,
-        input: { briefingId: 'brief-target' },
-      },
-    });
-    const newer = makeExtractionArtifact({
-      artifactId: 'ext-newer',
-      updatedAt: '2026-05-01T00:00:00.000Z',
-      sourceRequest: {
-        requestId: 'r2',
-        userId: 'u1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'm',
-        toolKey: null,
-        workflowType: null,
-        input: { briefingId: 'brief-other' },
-      },
-    });
-    vi.mocked(listArtifacts).mockResolvedValue([newer, older]);
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'ext-target', briefingId: 'brief-target' }));
 
     const actor = createToolPageActor();
     actor.send({
@@ -811,14 +698,19 @@ describe('toolPageMachine – Phase 2 hydration', () => {
       expect(actor.getSnapshot().value).toBe('configuring');
     });
 
-    // Nonostante `ext-newer` sia più recente, `ext-target` è il match esatto
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/tools/hydrate',
+      expect.objectContaining({
+        body: expect.stringContaining('"sourceExtractionArtifactId":"ext-target"'),
+      }),
+    );
     expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-target');
   });
 
   // TASK-017: retry after failure
   it('retry: hydration failure seguita da HYDRATE_REQUESTED valido azzera hydrationError e produce hydrationResult', async () => {
-    // Prima tentativo: fallisce (nessun artifact)
-    vi.mocked(listArtifacts).mockResolvedValueOnce([]);
+    // Prima tentativo: fallisce
+    mockFetch.mockReturnValueOnce(makeFetchError('no_extraction_artifact', 'not_found'));
 
     const actor = createToolPageActor();
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
@@ -830,11 +722,10 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(actor.getSnapshot().context.hydrationError).toBe('no_extraction_artifact');
     expect(actor.getSnapshot().context.hydrationResult).toBeNull();
 
-    // Retry: successo con artifact disponibile
-    const extractionArtifact = makeExtractionArtifact();
-    vi.mocked(listArtifacts).mockResolvedValueOnce([extractionArtifact]);
+    // Retry: successo
+    mockFetch.mockReturnValueOnce(makeFetchSuccess({ extractionArtifactId: 'ext-1', briefingId: 'brief-1' }));
 
-    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new', localArtifacts: [extractionArtifact] });
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
     // Appena inviato HYDRATE_REQUESTED, macchina torna in hydrating e cancella l'errore
     expect(actor.getSnapshot().value).toBe('hydrating');
@@ -849,50 +740,28 @@ describe('toolPageMachine – Phase 2 hydration', () => {
   });
 
   // TASK-017: ranking by resolvedBriefingId
-  it('ranking: resolvedBriefingId match vince su recency in assenza di sourceExtractionArtifactId', async () => {
-    const olderWithMatch = makeExtractionArtifact({
-      artifactId: 'ext-briefing-match',
-      updatedAt: '2026-04-01T00:00:00.000Z',
-      sourceRequest: {
-        requestId: 'r1',
-        userId: 'u1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'm',
-        toolKey: null,
-        workflowType: null,
-        input: { briefingId: 'brief-target' },
-      },
-    });
-    const newerNoMatch = makeExtractionArtifact({
-      artifactId: 'ext-no-briefing-match',
-      updatedAt: '2026-05-01T00:00:00.000Z',
-      sourceRequest: {
-        requestId: 'r2',
-        userId: 'u1',
-        projectId: 'project-1',
-        artifactType: 'extraction',
-        model: 'm',
-        toolKey: null,
-        workflowType: null,
-        input: { briefingId: 'brief-other' },
-      },
-    });
-    vi.mocked(listArtifacts).mockResolvedValue([newerNoMatch, olderWithMatch]);
+  it('ranking: resolvedBriefingId viene passato al BE endpoint', async () => {
+    mockFetch.mockReturnValue(makeFetchSuccess({ extractionArtifactId: 'ext-briefing-match', briefingId: 'brief_target' }));
 
     const actor = createToolPageActor();
     actor.send({
       type: 'HYDRATE_REQUESTED',
       intent: 'resume',
-      resolvedBriefingId: 'brief-target',
+      resolvedBriefingId: 'brief_target',
     });
 
     await vi.waitFor(() => {
       expect(actor.getSnapshot().value).toBe('configuring');
     });
 
-    // `ext-briefing-match` vince nonostante sia più vecchio: ha briefingId matching
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/tools/hydrate',
+      expect.objectContaining({
+        body: expect.stringContaining('"resolvedBriefingId":"brief_target"'),
+      }),
+    );
     expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-briefing-match');
-    expect(actor.getSnapshot().context.hydrationResult?.briefingId).toBe('brief-target');
+    expect(actor.getSnapshot().context.hydrationResult?.briefingId).toBe('brief_target');
   });
 });
+

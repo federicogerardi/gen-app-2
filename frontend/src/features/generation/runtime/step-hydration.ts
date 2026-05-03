@@ -3,6 +3,53 @@ import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.mac
 import type { ExtractionContext } from './GenerationWorkspaceProvider';
 import { normalizeIdentifier } from '../../../app/runtime/shared-utils';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Canonical extraction payload read path.
+ *
+ * Priority:
+ *  1. `input.extraction.payload` — BE-canonical envelope persisted by `toPersistenceInputJson`.
+ *  2. `JSON.parse(artifact.content)` — extraction artifact content (fallback for older artifacts
+ *     persisted before `extraction` envelope was introduced).
+ *  3. `input.extractionPayload` — non-extraction artifacts that carry the payload inline.
+ *
+ * Callers should not add further fallbacks; add them here to keep the read path in one place.
+ */
+export const readExtractionPayloadFromArtifact = (artifact: GenerationArtifact): Record<string, unknown> => {
+  const input = artifact.sourceRequest?.input;
+
+  // 1. BE-canonical envelope
+  const extraction = input?.extraction;
+  if (isRecord(extraction)) {
+    const canonicalPayload = extraction.payload;
+    if (isRecord(canonicalPayload) && Object.keys(canonicalPayload).length > 0) {
+      return canonicalPayload;
+    }
+  }
+
+  // 2. Extraction artifact content (direct JSON)
+  if (artifact.artifactType === 'extraction' && artifact.content) {
+    try {
+      const parsed = JSON.parse(artifact.content) as unknown;
+      if (isRecord(parsed) && Object.keys(parsed).length > 0) {
+        return parsed;
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  // 3. Legacy inline field
+  const legacyPayload = input?.extractionPayload;
+  if (isRecord(legacyPayload)) {
+    return legacyPayload;
+  }
+
+  return {};
+};
+
 
 export const belongsToTool = (artifact: GenerationArtifact, toolKey: SupportedTool): boolean => {
   const candidates = [
@@ -127,21 +174,7 @@ export const buildExtractionContextFromArtifact = (
     return null;
   }
 
-  const extractionPayload = isExtractionArtifact
-    ? (() => {
-        try {
-          const parsed = JSON.parse(artifact.content) as unknown;
-          if (parsed && typeof parsed === 'object') {
-            return parsed as Record<string, unknown>;
-          }
-        } catch {
-          // fallback to empty
-        }
-        return {};
-      })()
-    : (typeof input?.extractionPayload === 'object' && input.extractionPayload !== null
-        ? input.extractionPayload as Record<string, unknown>
-        : {});
+  const extractionPayload = readExtractionPayloadFromArtifact(artifact);
 
   const normalizedText = typeof input?.briefingText === 'string'
     ? input.briefingText

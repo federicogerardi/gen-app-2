@@ -3,7 +3,6 @@ export type BackendCapabilities = {
   models: boolean;
   artifacts: boolean;
   toolsUpload: boolean;
-  adminModels: boolean;
 };
 
 const readFlag = (value: string | undefined, fallback = false): boolean => {
@@ -23,7 +22,6 @@ export const readBackendCapabilities = (): BackendCapabilities => {
     models: readFlag(import.meta.env.VITE_CAP_MODELS as string | undefined),
     artifacts: readFlag(import.meta.env.VITE_CAP_ARTIFACTS as string | undefined, true),
     toolsUpload: readFlag(import.meta.env.VITE_CAP_TOOLS_UPLOAD as string | undefined),
-    adminModels: readFlag(import.meta.env.VITE_CAP_ADMIN_MODELS as string | undefined),
   };
 };
 
@@ -32,7 +30,6 @@ export const defaultBackendCapabilities: BackendCapabilities = {
   models: false,
   artifacts: false,
   toolsUpload: false,
-  adminModels: false,
 };
 
 export const resolveBackendCapabilities = (

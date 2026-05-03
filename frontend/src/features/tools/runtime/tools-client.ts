@@ -7,6 +7,7 @@ import {
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { readExtractionPayloadFromArtifact } from '../../generation/runtime/step-hydration';
 import {
   isHttpClientError,
   joinApiPath,
@@ -176,17 +177,15 @@ const parseJsonContent = (content: string): Record<string, unknown> => {
 };
 
 const resolveExtractionPayloadFromArtifact = (artifact: GenerationArtifact): Record<string, unknown> => {
-  const fromContent = parseJsonContent(artifact.content);
-  if (Object.keys(fromContent).length > 0) {
-    return fromContent;
+  // Canonical read path: delegates to step-hydration which checks BE envelope first.
+  const canonical = readExtractionPayloadFromArtifact(artifact);
+  if (Object.keys(canonical).length > 0) {
+    return canonical;
   }
 
-  const inputPayload = artifact.sourceRequest.input?.extractionPayload;
-  if (isRecord(inputPayload)) {
-    return inputPayload;
-  }
-
-  return {};
+  // Fallback: attempt multi-envelope content parsing for live-stream results
+  // that were built from raw SSE chunk accumulation (not yet persisted as an artifact).
+  return parseJsonContent(artifact.content);
 };
 
 export const uploadBrief = async (
@@ -328,6 +327,43 @@ export const runExtraction = async (
     content,
     payload: parseJsonContent(content),
   };
+};
+
+export type OrchestrationResult = {
+  toolKey: string;
+  targetStep: string;
+  stepDependencyArtifactIds: string[];
+  dependencyArtifactIdsByStep: Record<string, string>;
+};
+
+export const orchestrateToolStep = async (
+  projectId: string,
+  toolKey: string,
+  targetStep: string,
+  options: ToolsClientOptions = {},
+): Promise<OrchestrationResult> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const path = buildApiPaths(capabilities).tools.orchestrate;
+  if (!path) {
+    throw new Error('Tools orchestrate capability is disabled');
+  }
+
+  const payload = await requestJson<{ ok: boolean; data: { orchestration: OrchestrationResult } }>(
+    joinApiPath(options.apiBaseUrl ?? '', path),
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, toolKey, targetStep }),
+    },
+  );
+
+  const orchestration = payload.data?.orchestration;
+  if (!orchestration) {
+    throw new Error('Invalid tools orchestrate response payload');
+  }
+
+  return orchestration;
 };
 
 export const getExtractionArtifact = async (

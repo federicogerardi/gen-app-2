@@ -1,10 +1,8 @@
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
+import { toolStepOrder } from '../machines/tool-flow.machine';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 
-export const toolStepOrder: Record<SupportedTool, ToolStep[]> = {
-  'funnel-pages': ['optin', 'quiz', 'vsl'],
-  nextland: ['landing', 'thank_you'],
-};
+export { toolStepOrder };
 
 export const createStepRequest = (
   baseRequest: GenerationRequest,

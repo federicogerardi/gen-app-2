@@ -26,7 +26,7 @@ type ToolFlowEvent =
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' };
 
-const toolSteps: Record<SupportedTool, ToolStep[]> = {
+export const toolStepOrder: Record<SupportedTool, ToolStep[]> = {
   'funnel-pages': ['optin', 'quiz', 'vsl'],
   nextland: ['landing', 'thank_you'],
 };
@@ -156,7 +156,7 @@ export const toolFlowMachine = setup({
   id: 'toolFlowMachine',
   context: ({ input }) => ({
     tool: input.tool,
-    steps: toolSteps[input.tool],
+    steps: toolStepOrder[input.tool],
     currentIndex: 0,
     stepStatus: {
       ...initialStatus,

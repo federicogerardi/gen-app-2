@@ -100,6 +100,34 @@ describe('artifact history', () => {
     expect(query.get('briefingFileName')).toBe('brief.md');
   });
 
+  it('builds tool entry query for new relaunch intent', () => {
+    const sourceArtifact = artifact({
+      artifactId: 'art-new-route',
+      projectId: 'project-99',
+      sourceRequest: {
+        ...request,
+        input: {
+          prompt: 'seed',
+          tone: 'friendly',
+          notes: 'stale note',
+          briefingId: 'brief-stale',
+          briefingFileName: 'brief-stale.md',
+        },
+      },
+    });
+
+    const query = new URLSearchParams(buildArtifactEntryQuery(sourceArtifact, 'new'));
+
+    expect(query.get('intent')).toBe('new');
+    expect(query.get('projectId')).toBe('project-99');
+    expect(query.get('sourceArtifactId')).toBeNull();
+    expect(query.get('relaunchFromArtifactId')).toBeNull();
+    expect(query.get('tone')).toBeNull();
+    expect(query.get('notes')).toBeNull();
+    expect(query.get('briefingId')).toBeNull();
+    expect(query.get('briefingFileName')).toBeNull();
+  });
+
   it('builds tool entry path only for supported tool routes', () => {
     const supported = artifact({
       artifactId: 'art-supported',
@@ -124,5 +152,26 @@ describe('artifact history', () => {
     const supportedPath = buildToolEntryPathFromArtifact(supported, 'regenerate');
     expect(supportedPath?.startsWith('/tools/funnel-pages?')).toBe(true);
     expect(buildToolEntryPathFromArtifact(unsupported, 'resume')).toBeNull();
+  });
+
+  it('builds clean tool entry path for new intent', () => {
+    const supported = artifact({
+      artifactId: 'art-supported-new',
+      projectId: 'project-clean',
+      toolKey: 'funnel-pages',
+      sourceRequest: {
+        ...request,
+        toolKey: 'funnel-pages',
+        input: {
+          prompt: 'seed',
+          tone: 'friendly',
+          notes: 'carry-over',
+          briefingId: 'brief-1',
+          briefingFileName: 'brief-1.md',
+        },
+      },
+    });
+
+    expect(buildToolEntryPathFromArtifact(supported, 'new')).toBe('/tools/funnel-pages?intent=new&projectId=project-clean');
   });
 });

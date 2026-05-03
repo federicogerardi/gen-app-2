@@ -3,7 +3,7 @@
  * Renders common form sections without coupling to specific tools
  */
 
-import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import type { ToolStep } from '../machines/tool-flow.machine';
 import type { ProjectSummary } from '../../projects/runtime/projects-client';
 import type { ToolFormConfig } from '../runtime/tool-form-architecture';
 import { appCopy, formatMeta } from '../../../app/copy/system';

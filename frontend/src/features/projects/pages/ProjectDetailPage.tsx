@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -12,6 +11,7 @@ import {
 } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
+import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
 
 export const ProjectDetailPage = () => {
   const { id = '' } = useParams();
@@ -26,9 +26,15 @@ export const ProjectDetailPage = () => {
 
   const project = projectQuery.data;
 
-  const projectArtifacts = useMemo(() => {
-    return generation.artifacts.filter((artifact) => artifact.projectId === id);
-  }, [generation.artifacts, id]);
+  const artifactsQuery = useArtifactsQuery({
+    filters: { type: 'all', status: 'all', projectId: id },
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    localArtifacts: generation.artifacts,
+    enabled: id.length > 0,
+  });
+
+  const projectArtifacts = artifactsQuery.data;
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
@@ -51,7 +57,9 @@ export const ProjectDetailPage = () => {
       ) : null}
 
       <h3>{appCopy.editorial.projects.contextualArtifacts}</h3>
-      {projectArtifacts.length === 0 ? (
+      {artifactsQuery.loading ? <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage> : null}
+      {artifactsQuery.error ? <ErrorStateMessage>{artifactsQuery.error}</ErrorStateMessage> : null}
+      {!artifactsQuery.loading && projectArtifacts.length === 0 ? (
         <EmptyStateMessage>{appCopy.ui.states.noProjectArtifacts}</EmptyStateMessage>
       ) : (
         <ul className={uiPrimitives.listClean}>

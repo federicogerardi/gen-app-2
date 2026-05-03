@@ -66,8 +66,8 @@ export const ArtifactDetailPage = () => {
     }
   };
 
-  const resumePath = useMemo(
-    () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'resume') : null),
+  const restartPath = useMemo(
+    () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'new') : null),
     [artifact],
   );
   const regeneratePath = useMemo(
@@ -75,8 +75,8 @@ export const ArtifactDetailPage = () => {
     [artifact],
   );
   const relaunchDisabled = useMemo(
-    () => generation.isStreamActive || !artifact || !resumePath || !regeneratePath,
-    [artifact, generation.isStreamActive, regeneratePath, resumePath],
+    () => generation.isStreamActive || !artifact || !restartPath || !regeneratePath,
+    [artifact, generation.isStreamActive, regeneratePath, restartPath],
   );
 
   if (!artifact) {
@@ -146,8 +146,8 @@ export const ArtifactDetailPage = () => {
         <Button
           type="button"
           onClick={() => {
-            if (resumePath) {
-              navigate(resumePath);
+            if (restartPath) {
+              navigate(restartPath);
             }
           }}
           disabled={relaunchDisabled}

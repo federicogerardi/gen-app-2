@@ -6,9 +6,9 @@ export type BackendCapabilities = {
   adminModels: boolean;
 };
 
-const readFlag = (value: string | undefined): boolean => {
+const readFlag = (value: string | undefined, fallback = false): boolean => {
   if (!value) {
-    return false;
+    return fallback;
   }
 
   // Railway/CI values can include accidental quotes or mixed casing.
@@ -18,9 +18,10 @@ const readFlag = (value: string | undefined): boolean => {
 
 export const readBackendCapabilities = (): BackendCapabilities => {
   return {
-    projects: readFlag(import.meta.env.VITE_CAP_PROJECTS as string | undefined),
+    // Projects and artifacts are core listing endpoints: default to enabled unless explicitly disabled.
+    projects: readFlag(import.meta.env.VITE_CAP_PROJECTS as string | undefined, true),
     models: readFlag(import.meta.env.VITE_CAP_MODELS as string | undefined),
-    artifacts: readFlag(import.meta.env.VITE_CAP_ARTIFACTS as string | undefined),
+    artifacts: readFlag(import.meta.env.VITE_CAP_ARTIFACTS as string | undefined, true),
     toolsUpload: readFlag(import.meta.env.VITE_CAP_TOOLS_UPLOAD as string | undefined),
     adminModels: readFlag(import.meta.env.VITE_CAP_ADMIN_MODELS as string | undefined),
   };

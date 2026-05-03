@@ -5,17 +5,19 @@ export type IsoTimestamp = string;
 export type RegistryBackedArtifactType = ArtifactType | (string & {});
 export type RegistryBackedWorkflowType = ToolWorkflow | (string & {}) | null;
 export type RegistryBackedToolKey = ToolWorkflow | (string & {});
-export type ToolRegistryVersion = string & {};
-export type ToolRegistrySnapshotRef = string & {};
+export type RegistryVersion = string & {};
+export type RegistrySnapshotRef = string & {};
+export type ToolRegistryVersion = RegistryVersion;
+export type ToolRegistrySnapshotRef = RegistrySnapshotRef;
 
 export type RequestRegistrySelector =
   | {
-    registryVersion: ToolRegistryVersion;
-    registrySnapshotRef?: ToolRegistrySnapshotRef;
+    registryVersion: RegistryVersion;
+    registrySnapshotRef?: RegistrySnapshotRef;
   }
   | {
-    registryVersion?: ToolRegistryVersion;
-    registrySnapshotRef: ToolRegistrySnapshotRef;
+    registryVersion?: RegistryVersion;
+    registrySnapshotRef: RegistrySnapshotRef;
   };
 
 export type WorkflowRunMode = 'new' | 'resume' | 'regenerate';
@@ -50,8 +52,8 @@ export interface GenerationSystemContext {
   userId: string | null;
   projectId: string | null;
   toolKey: RegistryBackedToolKey | null;
-  registryVersion: ToolRegistryVersion | null;
-  registrySnapshotRef: ToolRegistrySnapshotRef | null;
+  registryVersion: RegistryVersion | null;
+  registrySnapshotRef: RegistrySnapshotRef | null;
   workflowType: RegistryBackedWorkflowType;
   artifactType: RegistryBackedArtifactType;
   artifactId: string | null;
@@ -87,11 +89,12 @@ export interface StreamHeartbeatMetadata {
   costEstimate: number;
 }
 
-export interface StreamUsageMetrics {
+export interface LlmUsageMetrics {
   inputTokens: number;
   outputTokens: number;
   costUsd: number;
 }
+export type StreamUsageMetrics = LlmUsageMetrics;
 
 export interface IdempotencyReplayMetadata {
   content: string;
@@ -203,8 +206,8 @@ export interface AuthFailEvent {
 export interface ValidationOkEvent {
   type: 'VALIDATION_OK';
   workflowType: RegistryBackedWorkflowType;
-  registryVersion: ToolRegistryVersion | null;
-  registrySnapshotRef: ToolRegistrySnapshotRef | null;
+  registryVersion: RegistryVersion | null;
+  registrySnapshotRef: RegistrySnapshotRef | null;
 }
 
 export interface ValidationFailEvent {
@@ -273,7 +276,7 @@ export type StreamTerminatedSuccessEvent = GenerationActorEventEnvelope<
 > & {
   artifactId: string;
   content?: string;
-  metrics?: StreamUsageMetrics;
+  metrics?: LlmUsageMetrics;
 };
 
 export type StreamTerminatedFailureEvent = GenerationActorEventEnvelope<
@@ -283,7 +286,7 @@ export type StreamTerminatedFailureEvent = GenerationActorEventEnvelope<
   artifactId: string;
   reason: string;
   content?: string;
-  metrics?: StreamUsageMetrics;
+  metrics?: LlmUsageMetrics;
 };
 
 export type PersistenceFlushCommittedEvent = GenerationActorEventEnvelope<

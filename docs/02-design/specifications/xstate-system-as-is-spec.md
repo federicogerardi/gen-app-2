@@ -1,9 +1,24 @@
 # XState System As-Is Blueprint Index
 
-Versione: 2.4
-Data: 2026-04-24
+Versione: 2.6
+Data: 2026-05-02
 
 Indice compatto del blueprint atomizzato.
+
+Nota aggiornamento 2.6 (stabilizzazione checkpoint recovery frontend tools):
+
+- readiness flow frontend centralizzata in `toolPageMachine` con snapshot strutturato (`canStartFlow`, `reasonCodes`) usato come source of truth per guard di avvio
+- reason codes as-is esposti: `missing_project`, `missing_extraction_context`, `missing_primary_target_step`
+- feedback UI as-is nel blocco `Pronto per la generazione` derivato dai reason codes macchina (senza logica duplicata nel template)
+- recovery extraction compatibile con artifact legacy privi di `sourceRequest.input.toolKey`
+- smoke test tool checkpoint recovery: `OK` (ripresa generazione da checkpoint confermata)
+
+Nota aggiornamento 2.5 (as-is post-refactor frontend XState scope tools/auth/workspace):
+
+- flusso frontend briefing upload/extraction stabilizzato con sincronizzazione input actor (`INPUT_SYNCED`) in caso di variazione `projectId`/sessione dopo mount
+- recovery deterministico dello stato frontend `extracting` tramite artifact extraction persistito (`EXTRACTION_RECOVERED`) con convergenza a stato `ready`
+- pipeline UI as-is verificata end-to-end fino all'ultimo artifact (`GO` smoke 2026-05-02)
+- hygiene as-is frontend: check strict TypeScript `noUnusedLocals/noUnusedParameters` passato nel workspace frontend
 
 Nota aggiornamento 2.4 (allineamento as-is post-fix orchestration + SSE):
 
@@ -16,7 +31,7 @@ Nota aggiornamento 2.4 (allineamento as-is post-fix orchestration + SSE):
 Nota aggiornamento 2.3 (as-is runtime LLM + auth + OAuth):
 
 - provider LLM as-is: OpenRouter (con fallback sintetico per test/offline)
-- contratto SSE esterno as-is: `start/chunk/terminal`
+- contratto SSE esterno as-is: `start/chunk/terminal` (`BackendStreamEvent` — canonical term per UL glossary)
 - runtime helper Node as-is: stream AsyncIterable + adapter HTTP SSE su ServerResponse
 - surface auth HTTP minima as-is: `POST /auth/login`, `POST /auth/logout`, `GET /auth/session`
 - contratti runtime auth as-is: session cookie runtime + password hashing runtime

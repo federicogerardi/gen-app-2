@@ -3,31 +3,27 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMachine, useSelector } from '@xstate/react';
+import type { ActorRefFrom } from 'xstate';
 import { useNavigate } from 'react-router-dom';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import { briefingUploadMachine } from '../machines/briefing-upload.machine';
+import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig, mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
 import {
   useProjectsLoader,
-  useBriefingUpload,
   useToolFormInit,
   useAvailableSteps,
-  useToolUiState,
 } from '../runtime/useToolForm';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
-import {
-  buildExtractionContextFromArtifact,
-  buildLatestArtifactByStep,
-  collectCompletedRunSteps,
-  collectCompletedStepsByTool,
-} from '../../generation/runtime/step-hydration';
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -49,6 +45,11 @@ const readInputString = (artifact: GenerationArtifact | null, key: string): stri
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : null;
+};
+
+const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
+  const step = artifact?.sourceRequest.input?.step;
+  return typeof step === 'string' ? step as ToolStep : null;
 };
 
 const randomId = (): string => {
@@ -81,6 +82,20 @@ export const ToolPageTemplate = ({
   const initialPrefillDoneRef = useRef(false);
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
+  const wasStreamActiveRef = useRef(false);
+  const previousProjectIdRef = useRef<string>((generation.focusedProjectId ?? initialProjectId ?? '').trim());
+
+  const [toolPageSnapshot, toolPageSend] = useMachine(toolPageMachine, {
+    input: {
+      toolKey,
+      projectId: generation.focusedProjectId ?? initialProjectId ?? '',
+      model: toolConfig.defaultModel,
+      registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
+      apiBaseUrl: auth.apiBaseUrl,
+      capabilities: auth.capabilities,
+      userId: auth.session?.user.id ?? null,
+    },
+  });
 
   // 1. Initialize form state
   const { formState, setFormState } = useToolFormInit(
@@ -91,8 +106,21 @@ export const ToolPageTemplate = ({
   // 2. Load projects
   const { projects, loading: projectsLoading } = useProjectsLoader();
 
-  // 3. Manage briefing upload
-  const briefingUpload = useBriefingUpload(toolKey, formState.projectId);
+  // 3. Read briefing upload state from toolPageMachine child actor.
+  const briefingSnapshot = useSelector(
+    toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,
+    (state) => state,
+  );
+
+  const briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready' = briefingSnapshot.matches('uploading')
+    ? 'uploading'
+    : briefingSnapshot.matches('extracting')
+      ? 'extracting'
+      : briefingSnapshot.matches('ready')
+        ? 'ready'
+        : 'idle';
+  const briefingError = briefingSnapshot.context.error;
+  const briefingFileNameFromActor = briefingSnapshot.context.fileName;
 
   // 4. Apply one-shot prefill from query params
   useEffect(() => {
@@ -205,31 +233,49 @@ export const ToolPageTemplate = ({
     };
   }, [allArtifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
 
-  // 7. Hydrate extraction context from source artifact when available
+  // 7. Hydrate extraction context from source artifact: send HYDRATE_REQUESTED to machine.
   useEffect(() => {
     if (!sourceArtifact) {
       return;
     }
 
-    const sourceContext = buildExtractionContextFromArtifact(sourceArtifact);
-    if (sourceContext) {
-      generation.upsertExtractionContext(sourceContext);
-    }
-  }, [generation, sourceArtifact]);
+    toolPageSend({
+      type: 'HYDRATE_REQUESTED',
+      intent,
+      sourceArtifactId: sourceArtifact.artifactId,
+      resolvedBriefingId: readInputString(sourceArtifact, 'briefingId') ?? briefingId ?? null,
+      sourceExtractionArtifactId: readInputString(sourceArtifact, 'extractionArtifactId'),
+      localArtifacts: allArtifacts,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceArtifact]);
 
   const normalizedProjectId = formState.projectId.trim();
-  const extractionContext = briefingUpload.extractionContext
-    ?? generation.getExtractionContext(normalizedProjectId)
-    ?? (sourceArtifact ? buildExtractionContextFromArtifact(sourceArtifact) : null);
 
-  const effectiveBriefingFileName = briefingUpload.fileName
+  const resolvedBriefingId = briefingId
+    ?? readInputString(sourceArtifact, 'briefingId')
+    ?? null;
+
+  useEffect(() => {
+    if (previousProjectIdRef.current === normalizedProjectId) {
+      return;
+    }
+
+    toolPageSend({ type: 'PROJECT_SELECTED', projectId: normalizedProjectId });
+    previousProjectIdRef.current = normalizedProjectId;
+  }, [normalizedProjectId, toolPageSend]);
+
+  // Phase 4: extraction context letto dallo snapshot della macchina, non dalla workspace.
+  const machineHydrationResult = toolPageSnapshot.context.hydrationResult;
+
+  const effectiveBriefingFileName = briefingFileNameFromActor
     ?? briefingFileName
     ?? readInputString(sourceArtifact, 'briefingFileName');
 
   const effectiveBriefingStatus = (
-    briefingUpload.status === 'ready' || extractionContext
+    briefingStatus === 'ready' || machineHydrationResult !== null
       ? 'ready'
-      : briefingUpload.status
+      : briefingStatus
   );
 
   const resolvedTone = relaunchTone ?? readInputString(sourceArtifact, 'tone') ?? '';
@@ -239,30 +285,17 @@ export const ToolPageTemplate = ({
     ?? sourceArtifact?.artifactId
     ?? null;
 
-  // 8. Compute completed steps and artifacts mapping
-  const historicalCompletedSteps = useMemo(() => {
-    return collectCompletedStepsByTool(allArtifacts, toolKey, normalizedProjectId);
-  }, [allArtifacts, normalizedProjectId, toolKey]);
-
-  const runCompletedSteps = useMemo(() => {
-    if (!currentRunPrefixRef.current) {
-      return new Set<ToolStep>();
-    }
-
-    return collectCompletedRunSteps(
-      allArtifacts,
-      toolKey,
-      normalizedProjectId,
-      currentRunPrefixRef.current,
-    );
-  }, [allArtifacts, normalizedProjectId, toolKey]);
-
-  const completedStepsForFlow = intent === 'regenerate' ? runCompletedSteps : historicalCompletedSteps;
-
-  const latestArtifactByStep = useMemo(
-    () => buildLatestArtifactByStep(allArtifacts, toolKey, normalizedProjectId),
-    [allArtifacts, normalizedProjectId, toolKey],
+  const progressState = toolPageSnapshot.context.progress;
+  const readinessSnapshot = toolPageSnapshot.context.readiness;
+  const machineViewModel = toolPageSnapshot.context.viewModel;
+  const effectiveCanonicalState = (
+    toolPageSnapshot.matches('generating') || generation.isStreamActive
+      ? 'running'
+      : machineViewModel.canonicalState
   );
+
+  const completedStepsForFlow = progressState.completedSteps;
+  const latestArtifactByStep = progressState.latestArtifactByStep;
 
   const completedArtifactsByStep = useMemo(() => {
     return Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, entry) => {
@@ -277,6 +310,15 @@ export const ToolPageTemplate = ({
 
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
 
+  const sourceStep = useMemo(() => {
+    const candidate = readArtifactStep(sourceArtifact);
+    if (!candidate) {
+      return null;
+    }
+
+    return toolConfig.steps.includes(candidate) ? candidate : null;
+  }, [sourceArtifact, toolConfig.steps]);
+
   const currentRunningStep = useMemo(() => {
     if (!generation.isStreamActive) {
       return null;
@@ -290,20 +332,6 @@ export const ToolPageTemplate = ({
     return toolConfig.steps.includes(candidate as ToolStep) ? candidate as ToolStep : null;
   }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
 
-  const isResumeIntent = intent === 'resume' && Boolean(sourceArtifactId);
-  const lastCheckpointStep = useMemo(() => {
-    if (pausedCheckpointStep && nextAvailableStep) {
-      return pausedCheckpointStep;
-    }
-
-    if (isResumeIntent && historicalCompletedSteps.size > 0) {
-      const sorted = toolConfig.steps.filter((step) => historicalCompletedSteps.has(step));
-      return sorted.at(-1) ?? null;
-    }
-
-    return null;
-  }, [historicalCompletedSteps, isResumeIntent, nextAvailableStep, pausedCheckpointStep, toolConfig.steps]);
-
   useEffect(() => {
     if (!pausedCheckpointStep) {
       return;
@@ -314,35 +342,82 @@ export const ToolPageTemplate = ({
     }
   }, [completedStepsForFlow, pausedCheckpointStep]);
 
-  // 9. Derive UI state
-  const uiState = useToolUiState(toolKey, {
-    formState: {
-      ...formState,
-      briefingStatus: effectiveBriefingStatus,
-      briefingFileName: effectiveBriefingFileName ?? null,
-      briefingError: briefingUpload.error,
-      briefingFile: briefingUpload.file,
-    },
-    isGenerationStreamActive: generation.isStreamActive,
-    completedSteps: completedStepsForFlow,
-    currentRunningStep,
-    hasCompletedPreviousGeneration: historicalCompletedSteps.size > 0,
-    lastCheckpointStep,
-    nextAvailableStep,
-    generationError: generation.streamStatus === 'failed' ? 'Generation failed' : null,
-  });
+  const primaryTargetStep = useMemo(() => {
+    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep) {
+      return pausedCheckpointStep;
+    }
+
+    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step') {
+      return sourceStep ?? nextAvailableStep;
+    }
+
+    if (
+      machineViewModel.primaryActionPolicy === 'start-generation'
+      || machineViewModel.primaryActionPolicy === 'resume-checkpoint'
+    ) {
+      return nextAvailableStep;
+    }
+
+    return null;
+  }, [machineViewModel.primaryActionPolicy, nextAvailableStep, pausedCheckpointStep, sourceStep]);
+
+  // 8. Sync progress into toolPageMachine context.
+  // Phase 4: boolean readiness derivati dalla macchina, non passati dall'UI.
+  // briefingSnapshot nelle dep: quando l'actor diventa ready, PROGRESS_SYNCED ri-triggera
+  // e syncProgress ricalcola deriveHasExtractionContext correttamente.
+  useEffect(() => {
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: currentRunPrefixRef.current,
+    });
+  }, [allArtifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
 
   // 10. Build project and step lists
   const currentProject = projects.find((p) => p.id === formState.projectId);
 
   // 11. Handle generation start and chaining
   const startGenerationStep = (step: ToolStep): boolean => {
-    if (!auth.session || !normalizedProjectId || !extractionContext) {
+    if (!auth.session || !normalizedProjectId) {
+      return false;
+    }
+
+    // Contesto estrazione: preferisce machineHydrationResult (recovery da artifact),
+    // fallback a briefingSnapshot.context (flusso upload utente).
+    const extractionInfo = (() => {
+      if (machineHydrationResult !== null) {
+        return {
+          extractionArtifactId: machineHydrationResult.extractionArtifactId,
+          extractionPayload: machineHydrationResult.extractionPayload,
+          briefingId: machineHydrationResult.briefingId,
+        };
+      }
+      const bc = briefingSnapshot.context;
+      if (bc.extractionArtifactId && bc.briefingId) {
+        return {
+          extractionArtifactId: bc.extractionArtifactId,
+          extractionPayload: bc.extractionPayload ?? {},
+          briefingId: bc.briefingId,
+        };
+      }
+      return null;
+    })();
+
+    if (!extractionInfo) {
       return false;
     }
 
     const runPrefix = currentRunPrefixRef.current ?? randomId();
     currentRunPrefixRef.current = runPrefix;
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: runPrefix,
+    });
 
     const baseRequest: GenerationRequest = {
       requestId: runPrefix,
@@ -360,10 +435,10 @@ export const ToolPageTemplate = ({
         notes: resolvedNotes,
         relaunchFromArtifactId: resolvedRelaunchSource,
         sourceArtifactId: sourceArtifactId ?? null,
-        briefingId: extractionContext.briefingId || briefingId || readInputString(sourceArtifact, 'briefingId'),
+        briefingId: extractionInfo.briefingId || resolvedBriefingId,
         briefingFileName: effectiveBriefingFileName ?? null,
-        extractionArtifactId: extractionContext.extractionArtifactId,
-        extractionPayload: extractionContext.extractionPayload,
+        extractionArtifactId: extractionInfo.extractionArtifactId,
+        extractionPayload: extractionInfo.extractionPayload,
       },
     };
 
@@ -390,18 +465,37 @@ export const ToolPageTemplate = ({
     return true;
   };
 
+  const openResultsArchive = (): void => {
+    void navigate('/artifacts');
+  };
+
   const handlePrimaryAction = (): void => {
-    const targetStep = uiState.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep
-      ? pausedCheckpointStep
-      : nextAvailableStep;
+    if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
+      openResultsArchive();
+      return;
+    }
+
+    if (!readinessSnapshot.canStartFlow) {
+      return;
+    }
+
+    // Prevent starting a new generation if another tool is already streaming.
+    if (generation.isStreamActive) {
+      return;
+    }
+
+    const targetStep = primaryTargetStep;
 
     if (!targetStep) {
       return;
     }
 
+    const runPrefix = currentRunPrefixRef.current ?? randomId();
+    currentRunPrefixRef.current = runPrefix;
+
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
-    void startGenerationStep(targetStep);
+    toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
   };
 
   const handleCancelGeneration = (): void => {
@@ -411,8 +505,56 @@ export const ToolPageTemplate = ({
       setPausedCheckpointStep(interruptedStep);
     }
     currentRunPrefixRef.current = null;
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: allArtifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: null,
+    });
+    toolPageSend({ type: 'CANCEL_GENERATION' });
     generation.cancel();
   };
+
+  useEffect(() => {
+    const pending = toolPageSnapshot.context.pendingStepStart;
+    if (!pending) {
+      return;
+    }
+
+    currentRunPrefixRef.current = pending.runRequestPrefix;
+    void startGenerationStep(pending.step);
+    toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
+  }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
+
+  // Bridge: quando generation stream termina, invia STEP_DONE/STEP_FAILED alla macchina.
+  // Necessario perché toolFlowMachine (invocato in 'generating') attende questi eventi per avanzare.
+  // Senza di essi la macchina resta bloccata in 'generating' e il pulsante mostra "In elaborazione..." indefinitamente.
+  useEffect(() => {
+    if (generation.isStreamActive) {
+      wasStreamActiveRef.current = true;
+      return;
+    }
+
+    // isStreamActive è ora false
+    if (!wasStreamActiveRef.current) {
+      // Era già inattivo (mount iniziale o stato precedente): skip
+      return;
+    }
+
+    wasStreamActiveRef.current = false;
+
+    const step = lastRequestedStepRef.current;
+    if (!step) {
+      return;
+    }
+
+    if (generation.streamStatus === 'completed') {
+      toolPageSend({ type: 'STEP_DONE', step });
+    } else if (generation.streamStatus === 'failed') {
+      toolPageSend({ type: 'STEP_FAILED', step, message: 'Generazione fallita' });
+    }
+  }, [generation.isStreamActive, generation.streamStatus, toolPageSend]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) {
@@ -473,43 +615,33 @@ export const ToolPageTemplate = ({
             </header>
 
             <form className="ui-tool-form">
-              <label>
-                <span>Project</span>
-                <select
-                  value={formState.projectId}
-                  onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
-                  disabled={projectsLoading || generation.isStreamActive}
-                >
-                  <option value="">Select a project</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="ui-tool-form-row">
+                <label>
+                  <span>Project</span>
+                  <select
+                    value={formState.projectId}
+                    onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
+                    disabled={projectsLoading || generation.isStreamActive}
+                  >
+                    <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {projectsLoading ? <p className={uiPrimitives.metaLine}>Loading projects...</p> : null}
-
-              <label>
-                <span>Model</span>
-                <input
-                  type="text"
-                  value={formState.model}
-                  onChange={(e) => setFormState({ ...formState, model: e.target.value })}
-                  placeholder="e.g., openrouter/auto"
-                />
-              </label>
-
-              <label>
-                <span>Registry Snapshot</span>
-                <input
-                  type="text"
-                  value={formState.registrySnapshotRef}
-                  onChange={(e) => setFormState({ ...formState, registrySnapshotRef: e.target.value })}
-                  placeholder="e.g., snapshot:default"
-                />
-              </label>
+                <label>
+                  <span>Model</span>
+                  <input
+                    type="text"
+                    value={formState.model}
+                    onChange={(e) => setFormState({ ...formState, model: e.target.value })}
+                    placeholder="e.g., openrouter/auto"
+                  />
+                </label>
+              </div>
 
               <label>
                 <span>Briefing File</span>
@@ -518,12 +650,17 @@ export const ToolPageTemplate = ({
                   accept=".docx,.txt,.md"
                   disabled={!formState.projectId.trim() || generation.isStreamActive}
                   onChange={(e) => {
-                    void briefingUpload.handleFileSelected(e.target.files?.[0] ?? null);
+                    const selectedFile = e.target.files?.[0] ?? null;
+                    if (selectedFile) {
+                      toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file: selectedFile });
+                    } else {
+                      toolPageSend({ type: 'BRIEFING_RESET' });
+                    }
                   }}
                 />
               </label>
 
-              {briefingUpload.error ? <p className={uiPrimitives.error}>{briefingUpload.error}</p> : null}
+              {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
               <p className={uiPrimitives.metaLine}>
                 Briefing status: {effectiveBriefingStatus}
@@ -531,37 +668,43 @@ export const ToolPageTemplate = ({
               </p>
 
               <ToolActionButtons
-                primaryPolicy={uiState.primaryActionPolicy}
-                secondaryFlags={uiState.secondaryActions}
+                primaryPolicy={machineViewModel.primaryActionPolicy}
+                secondaryFlags={{
+                  ...machineViewModel.secondaryActionFlags,
+                  // canCancelGeneration è sempre false in buildDefaultViewModel perché la macchina
+                  // non conosce il proprio stato corrente dentro buildToolPageViewModel.
+                  // Lo deriviamo direttamente dallo stato macchina.
+                  canCancelGeneration: toolPageSnapshot.matches('generating'),
+                }}
                 onPrimaryAction={handlePrimaryAction}
                 onCancelGeneration={handleCancelGeneration}
-                isLoading={generation.isStreamActive}
+                isLoading={toolPageSnapshot.matches('generating')}
               />
             </form>
           </section>
 
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
-              toolKey={toolKey}
-              canonicalState={uiState.canonicalState}
+              canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
               briefingFileName={effectiveBriefingFileName ?? null}
               briefingStatus={effectiveBriefingStatus}
-              briefingError={briefingUpload.error}
+              readinessReasonCodes={readinessSnapshot.reasonCodes}
+              briefingError={briefingError}
               steps={toolConfig.steps.map((step) => ({
                 step,
                 displayName: mapToolStepToCardConfig(toolKey, step).displayName,
-                status: uiState.stepStatuses[step] ?? 'idle',
+                status: generation.isStreamActive && currentRunningStep === step
+                  ? 'running'
+                  : machineViewModel.stepStatuses[step] ?? 'idle',
                 artifactId: latestArtifactByStep[step]?.artifactId ?? null,
                 isStreaming:
                   generation.isStreamActive
                   && (generation.snapshot.context.lastRequest?.input as Record<string, unknown>)?.step === step,
               }))}
-              currentRunningStep={currentRunningStep}
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
-              statusMessage={uiState.statusMessage}
-              errorMessage={uiState.errorMessage}
+              errorMessage={machineViewModel.messages.error}
               onViewArtifact={(artifactId) => {
                 void navigate(`/artifacts/${artifactId}`);
               }}

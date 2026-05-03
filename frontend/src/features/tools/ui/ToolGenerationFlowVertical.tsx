@@ -1,14 +1,14 @@
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
-import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ToolStep, ToolStepStatus } from '../machines/tool-flow.machine';
+import type { ReadinessReasonCode } from '../machines/tool-page.machine';
 
 type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
-type StepStatus = 'idle' | 'running' | 'completed' | 'error';
 type ReqStatus = 'todo' | 'active' | 'done' | 'error';
 
 export interface FlowStepProgress {
   step: ToolStep;
   displayName: string;
-  status: StepStatus;
+  status: ToolStepStatus;
   artifactId?: string | null | undefined;
   isStreaming?: boolean | undefined;
   // accepted but unused in this render:
@@ -17,17 +17,15 @@ export interface FlowStepProgress {
 }
 
 export interface ToolGenerationFlowVerticalProps {
-  toolKey: SupportedTool;
   canonicalState: CanonicalToolUiState;
   projectName: string | null;
   briefingFileName: string | null;
   briefingStatus: BriefingStatus;
+  readinessReasonCodes: ReadonlyArray<ReadinessReasonCode>;
   briefingError: string | null;
   steps: FlowStepProgress[];
-  currentRunningStep: ToolStep | null;
   completedStepsCount: number;
   totalStepsCount: number;
-  statusMessage: string | null;
   errorMessage: string | null;
   onViewArtifact?: (artifactId: string) => void;
 }
@@ -53,10 +51,10 @@ const WHERE_LABEL: Record<CanonicalToolUiState, string> = {
   completed: 'Complete',
 };
 
-const STEP_ICON: Record<StepStatus, string> = {
+const STEP_ICON: Record<ToolStepStatus, string> = {
   idle: '○',
   running: '⟳',
-  completed: '✓',
+  done: '✓',
   error: '✕',
 };
 
@@ -65,6 +63,12 @@ const REQ_ICON: Record<ReqStatus, string> = {
   active: '⟳',
   done: '✓',
   error: '✕',
+};
+
+const READINESS_DETAIL_BY_REASON: Record<ReadinessReasonCode, string> = {
+  missing_project: 'Seleziona un progetto',
+  missing_extraction_context: 'Carica o recupera un brief',
+  missing_primary_target_step: 'In attesa dello step disponibile',
 };
 
 // ─── sub-components ──────────────────────────────────────────────────────────
@@ -130,19 +134,19 @@ const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
       </span>
       <span className="ui-fv-step-name">{step.displayName}</span>
       {step.status === 'running' && (
-        <span className="ui-fv-status-label">Running</span>
+        <span className="ui-fv-status-label">In esecuzione</span>
       )}
-      {step.status === 'completed' && step.artifactId && onViewArtifact && (
+      {step.status === 'done' && step.artifactId && onViewArtifact && (
         <button
           type="button"
           className="ui-fv-step-action"
           onClick={() => onViewArtifact(step.artifactId!)}
         >
-          View
+          Visualizza
         </button>
       )}
       {step.status === 'error' && (
-        <span className="ui-fv-step-error-label">Error</span>
+        <span className="ui-fv-step-error-label">Errore</span>
       )}
     </li>
   );
@@ -155,6 +159,7 @@ export const ToolGenerationFlowVertical = ({
   projectName,
   briefingFileName,
   briefingStatus,
+  readinessReasonCodes,
   briefingError,
   steps,
   completedStepsCount,
@@ -177,18 +182,44 @@ export const ToolGenerationFlowVertical = ({
         ? 'done'
         : 'todo';
 
-  const readyReqStatus: ReqStatus =
-    canonicalState === 'draft-ready' || canonicalState === 'prefilled-regenerate'
-      ? 'done'
-      : briefingReqStatus === 'done' && projectReqStatus === 'done'
-        ? 'active'
-        : 'todo';
+  const reasonSet = new Set(readinessReasonCodes);
+
+  const readyReqStatus: ReqStatus = (() => {
+    if (readinessReasonCodes.length === 0) {
+      return 'done';
+    }
+
+    if (
+      readinessReasonCodes.length === 1
+      && reasonSet.has('missing_primary_target_step')
+    ) {
+      return 'active';
+    }
+
+    return 'todo';
+  })();
+
+  const readinessDetail = (() => {
+    const priority: ReadinessReasonCode[] = [
+      'missing_project',
+      'missing_extraction_context',
+      'missing_primary_target_step',
+    ];
+
+    for (const reason of priority) {
+      if (reasonSet.has(reason)) {
+        return READINESS_DETAIL_BY_REASON[reason];
+      }
+    }
+
+    return undefined;
+  })();
 
   const briefingActiveLabel =
     briefingStatus === 'uploading'
-      ? 'Uploading'
+      ? 'Caricamento'
       : briefingStatus === 'extracting'
-        ? 'Extracting'
+        ? 'Estrazione'
         : undefined;
 
   const progressPct = totalStepsCount > 0
@@ -212,22 +243,24 @@ export const ToolGenerationFlowVertical = ({
       {/* INPUT PHASE ───────────────────────────────────── */}
       {phase === 'input' && (
         <div className="ui-fv-section">
-          <Label>What</Label>
+          <Label>Requisiti</Label>
           <ul className="ui-fv-checklist">
             <ReqItem
               status={projectReqStatus}
-              text="Project"
+              text="Progetto"
               detail={projectName ?? undefined}
             />
             <ReqItem
               status={briefingReqStatus}
-              text="Briefing"
+              text="Brief"
               detail={briefingFileName ?? (briefingError ?? undefined)}
               activeLabel={briefingActiveLabel}
             />
             <ReqItem
               status={readyReqStatus}
-              text="Ready to generate"
+              text="Pronto per la generazione"
+              detail={readinessDetail}
+              activeLabel={readyReqStatus === 'active' ? 'In attesa' : undefined}
             />
           </ul>
         </div>
@@ -237,7 +270,7 @@ export const ToolGenerationFlowVertical = ({
       {phase === 'monitoring' && (
         <>
           <div className="ui-fv-section">
-            <Label>Progress</Label>
+            <Label>Avanzamento</Label>
             <div className="ui-fv-progress-wrap">
               <div className="ui-fv-progress-bar" role="progressbar"
                 aria-valuenow={completedStepsCount}
@@ -256,7 +289,7 @@ export const ToolGenerationFlowVertical = ({
           </div>
 
           <div className="ui-fv-section">
-            <Label>Steps</Label>
+            <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
                 <StepRow
@@ -274,12 +307,12 @@ export const ToolGenerationFlowVertical = ({
       {phase === 'completion' && (
         <>
           <div className="ui-fv-section">
-            <Label>Artifacts</Label>
+            <Label>Artefatti generati</Label>
             <span className="ui-fv-completion-count">{totalStepsCount}</span>
           </div>
 
           <div className="ui-fv-section">
-            <Label>Steps</Label>
+            <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
                 <StepRow

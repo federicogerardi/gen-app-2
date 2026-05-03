@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
 import { ProjectsListPage } from './ProjectsListPage';
+
+const authBag = {
+  capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+};
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -12,7 +16,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+    capabilities: authBag.capabilities,
   }),
 }));
 
@@ -53,5 +57,44 @@ describe('ProjectsListPage', () => {
     );
 
     expect(await screen.findByText(/Unable to list projects/i)).toBeInTheDocument();
+  });
+
+  it('refetches remote projects after SPA navigation remount', async () => {
+    let requestCount = 0;
+    useMswHandler(
+      http.get('/api/projects', () => {
+        requestCount += 1;
+
+        return HttpResponse.json([
+          {
+            id: `p${requestCount}`,
+            name: `Project ${requestCount}`,
+            description: `Descrizione ${requestCount}`,
+            updatedAt: '2026-04-27T10:00:00.000Z',
+          },
+        ]);
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/start']}>
+        <Routes>
+          <Route
+            path="/start"
+            element={<Link to="/dashboard/projects">Apri projects</Link>}
+          />
+          <Route
+            path="/dashboard/projects"
+            element={<ProjectsListPage />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Apri projects' }));
+    expect(await screen.findByText('Project 1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestCount).toBe(1);
+    });
   });
 });

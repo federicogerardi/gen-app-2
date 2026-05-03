@@ -1,5 +1,4 @@
 import { setupServer } from 'msw/node';
-import { streamHandlers } from './stream-handlers';
 
 export const mswServer = setupServer();
 

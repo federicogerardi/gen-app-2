@@ -1,15 +1,13 @@
 import type {
   IdempotencyCoordinatorInput,
+  LlmUsageMetrics,
   PersistenceBatchInput,
   StreamTransportInput,
   UsageActorInput,
 } from '../types/xstate';
+import type { ArtifactStatus } from '../types/artifact';
 
-export type LlmUsageMetrics = {
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number;
-};
+export type { LlmUsageMetrics };
 
 export type LlmStreamInput = {
   requestId: string;
@@ -39,7 +37,7 @@ export type IdempotencyDecision =
   | { status: 'replay'; artifactId: string; content: string }
   | { status: 'conflict'; reason: string };
 
-export type PersistedArtifactStatus = 'generating' | 'completed' | 'failed';
+export type PersistedArtifactStatus = ArtifactStatus;
 
 export interface UsageAdapter {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
@@ -89,7 +87,7 @@ type IdempotencyRecord = {
 };
 
 type ArtifactRecord = {
-  status: PersistedArtifactStatus;
+  status: ArtifactStatus;
   content: string;
   updatedAt: string;
 };

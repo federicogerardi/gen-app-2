@@ -511,6 +511,84 @@ test('auth HTTP runtime supports Google OAuth start/callback login flow', async 
   assert.equal(sessionData.user.email, 'google.user@example.com');
 });
 
+test('auth HTTP runtime auto-provisions user on Google OAuth callback when user is missing', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const capturedStart: { state?: string; codeVerifier?: string } = {};
+  const googleOAuthStub: GoogleOAuthRuntime = {
+    redirectUri: 'http://localhost/auth/google/callback',
+    buildAuthorizationUrl(input) {
+      capturedStart.state = input.state;
+      capturedStart.codeVerifier = input.codeVerifier;
+      return `https://accounts.google.test/auth?state=${encodeURIComponent(input.state)}`;
+    },
+    async exchangeCodeForIdentity(input) {
+      assert.equal(input.codeVerifier, capturedStart.codeVerifier);
+      return {
+        providerSubject: 'google-subject-new-001',
+        email: 'new.google.user@example.com',
+        emailVerified: true,
+        profile: {
+          sub: 'google-subject-new-001',
+          email: 'new.google.user@example.com',
+          email_verified: true,
+        },
+      };
+    },
+  };
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    passwordHashing: hasher,
+    sessionCookies,
+    googleOAuth: googleOAuthStub,
+    googleOAuthSuccessRedirectPath: '/app',
+    now: () => new Date('2026-04-24T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-google-new-user-001' },
+  });
+
+  const startRequest = new MockIncomingMessage({
+    method: 'GET',
+    url: '/auth/google/start',
+  });
+  const startResponse = new MockServerResponse();
+
+  await runtime.handleRequest(
+    startRequest as unknown as IncomingMessage,
+    startResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(startResponse.statusCode, 302);
+  assert.ok(capturedStart.state);
+  assert.ok(capturedStart.codeVerifier);
+
+  const callbackRequest = new MockIncomingMessage({
+    method: 'GET',
+    url: `/auth/google/callback?state=${encodeURIComponent(capturedStart.state ?? '')}&code=oauth-code-new-user-001`,
+    headers: { 'user-agent': 'test-google/1.0' },
+  });
+  const callbackResponse = new MockServerResponse();
+
+  await runtime.handleRequest(
+    callbackRequest as unknown as IncomingMessage,
+    callbackResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(callbackResponse.statusCode, 302);
+  assert.equal(callbackResponse.getHeader('location'), '/app');
+
+  const createdUser = await repositories.users.findUserByEmail('new.google.user@example.com');
+  assert.ok(createdUser);
+  assert.equal(createdUser.role, 'member');
+  assert.equal(createdUser.status, 'active');
+
+  const bySubject = await repositories.users.findUserByOAuthSubject('google', 'google-subject-new-001');
+  assert.ok(bySubject);
+  assert.equal(bySubject.id, createdUser.id);
+});
+
 test('auth HTTP runtime supports /api/projects endpoints for authenticated user', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();

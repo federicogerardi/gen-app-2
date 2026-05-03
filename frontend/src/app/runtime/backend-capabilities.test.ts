@@ -6,7 +6,7 @@ import {
 } from './backend-capabilities';
 
 describe('backend-capabilities', () => {
-  it('defaultBackendCapabilities has all capabilities set to false', () => {
+  it('defaultBackendCapabilities keeps deterministic fallback for explicit resolver usage', () => {
     const keys = Object.keys(defaultBackendCapabilities) as (keyof BackendCapabilities)[];
     expect(keys.length).toBeGreaterThan(0);
     keys.forEach((key) => {
@@ -43,5 +43,11 @@ describe('backend-capabilities', () => {
     const r2 = resolveBackendCapabilities({});
     expect(r1).toEqual(r2);
     expect(r1.adminModels).toBe(false);
+  });
+
+  it('resolveBackendCapabilities supports explicit disable for listing capabilities', () => {
+    const result = resolveBackendCapabilities({ projects: false, artifacts: false });
+    expect(result.projects).toBe(false);
+    expect(result.artifacts).toBe(false);
   });
 });

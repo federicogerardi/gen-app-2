@@ -35,6 +35,13 @@ type BackendArtifact = {
   content?: string;
   createdAt: string;
   updatedAt: string;
+  // Campi diagnostici DB (opzionali: presenti solo se esposti dal backend)
+  failure_reason?: string | null;
+  failureReason?: string | null;
+  streamed_at?: string | null;
+  streamedAt?: string | null;
+  completed_at?: string | null;
+  completedAt?: string | null;
 };
 
 const readToolKey = (artifact: BackendArtifact): string | null => {
@@ -101,6 +108,18 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
   };
 };
 
+const readDiagnosticString = (a: string | null | undefined, b: string | null | undefined): string | null => {
+  if (typeof a === 'string' && a.trim().length > 0) {
+    return a.trim();
+  }
+
+  if (typeof b === 'string' && b.trim().length > 0) {
+    return b.trim();
+  }
+
+  return null;
+};
+
 const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => {
   const toolKey = readToolKey(artifact);
 
@@ -117,6 +136,9 @@ const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => 
     createdAt: artifact.createdAt,
     updatedAt: artifact.updatedAt,
     sourceRequest: toSourceRequest(artifact),
+    failureReason: readDiagnosticString(artifact.failureReason, artifact.failure_reason),
+    streamedAt: readDiagnosticString(artifact.streamedAt, artifact.streamed_at),
+    completedAt: readDiagnosticString(artifact.completedAt, artifact.completed_at),
   };
 };
 

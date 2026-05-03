@@ -1,3 +1,13 @@
+---
+status: archived
+version: 1.0
+last-reviewed: 2026-04-27
+next-review-date: N/A
+owner: Documentation Archivist
+archived-on: 2026-05-03
+archived-reason: GO closure snapshot superseded by Delta As-Is Post-Refactor (2026-05-02). Operational evidence preserved as historical record.
+---
+
 # Tools Generation GO Closure - 2026-04-25
 
 Data: 2026-04-25
@@ -114,3 +124,18 @@ Evidenze di regressione post-fix:
 Riferimento operativo:
 
 - `docs/99-lifecycle/99-archive/governance-pre-publish/frontend-sprint-go-checklist-snapshot-2026-04-24.md` (snapshot pre-publish di riferimento).
+
+## 9. Delta As-Is Post-Refactor Frontend XState (2026-05-02)
+
+Aggiornamento operativo successivo al piano `refactor-xstate-frontend-machines-1` completato.
+
+Esiti confermati:
+
+- smoke test tools completato fino all'ultimo artifact (GO)
+- convergenza stabile `extracting -> ready` anche in presenza di artifact extraction gia persistito
+- sincronizzazione input actor briefing su variazioni runtime (`projectId`/session)
+- cleanup dead code frontend verificato con check strict TypeScript (`noUnusedLocals`/`noUnusedParameters`)
+
+Conseguenza documentale:
+
+- blueprint as-is e specifiche testing/risk aggiornate al delta 2026-05-02 per riflettere lo stato reale del sistema frontend.

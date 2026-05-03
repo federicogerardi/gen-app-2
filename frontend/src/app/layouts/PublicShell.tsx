@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { LoginForm } from '../../features/auth/ui/LoginForm';
 import { useAuthSession } from '../providers/AuthSessionProvider';
 import { ThemeToggleButton } from '../ui/ThemeToggleButton';
-import { Shell, uiPrimitives } from '../ui/primitives';
+import { Shell } from '../ui/primitives';
 
 export const PublicShell = () => {
   const auth = useAuthSession();

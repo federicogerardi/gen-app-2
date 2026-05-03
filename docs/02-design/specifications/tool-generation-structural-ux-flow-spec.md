@@ -2,7 +2,7 @@
 goal: Descrizione strutturale e UX-flow del tool di generazione (as-is)
 version: 1.0
 date_created: 2026-04-25
-date_updated: 2026-04-28
+date_updated: 2026-05-02
 status: Active
 tags: [ux, tool-generation, flow, setup, progress, checkpoint]
 ---
@@ -22,7 +22,7 @@ Definire in modo strutturato il flusso UX dei tool di generazione attivi (HotLea
 
 ## Ambito
 
-Documento as-is basato sulla UI corrente in `src/app/tools/funnel-pages/**`, `src/app/tools/nextland/**` e componenti condivisi in `src/tools/shared/components/**`.
+Documento as-is basato sulla UI corrente in `frontend/src/features/tools/**` e runtime correlati (`frontend/src/features/generation/**`, `frontend/src/features/artifacts/**`).
 
 ## 1) Campi Input
 
@@ -62,12 +62,12 @@ Documento as-is basato sulla UI corrente in `src/app/tools/funnel-pages/**`, `sr
 - `idle`: nessun briefing caricato
 - `uploading`: caricamento file in corso
 - `extracting`: estrazione briefing in corso
-- `review`: contesto pronto, utente puo avviare generazione
-- `failed_hard` (lifecycle extraction): errore recuperabile con azione esplicita
+- `ready`: contesto pronto, utente puo avviare generazione
+- errore: esposto come messaggio nel form con possibilita di nuovo upload/reset
 
 ### Output dell'upload
 
-- `extractionContext` popolato (briefing processabile)
+- `ExtractionContext` popolato (briefing processabile) — termine canonico UL; campo runtime: `extractionPayload`
 - eventuale `uploadError` o `extractionError`
 - abilitazione CTA primaria di generazione se precondizioni soddisfatte
 
@@ -90,15 +90,14 @@ Documento as-is basato sulla UI corrente in `src/app/tools/funnel-pages/**`, `sr
 2. Tool precompila contesto recuperabile da artifact/checkpoint.
 3. CTA primaria diventa contestuale:
    - `Riprendi dal checkpoint`
-   - oppure `Rigenera ora`
+  - oppure `Rigenera`
 4. Utente puo anche usare azioni secondarie (`Rigenera da zero`, `Resetta setup`, `Nuova generazione`).
 
 ## 4) Card Unica Feedback Avanzamento Globale
 
 ### Componente
 
-- Funnel: `FunnelStatusQuick`
-- NextLand: `NextLandStatusQuick`
+- `ToolGenerationFlowVertical` (colonna destra unificata)
 
 ### Ruolo UX
 
@@ -128,10 +127,7 @@ Documento as-is basato sulla UI corrente in `src/app/tools/funnel-pages/**`, `sr
 
 ### Componenti
 
-- Funnel: `FunnelStepCards`
-  - step: `optin`, `quiz`, `vsl`
-- NextLand: `NextLandStepCards`
-  - step: `landing`, `thank_you`
+- Gli step sono renderizzati dal flow unificato (`ToolGenerationFlowVertical`) con configurazione per tool (`funnel-pages`, `nextland`).
 
 ### Informazioni per card step
 
@@ -150,13 +146,13 @@ Documento as-is basato sulla UI corrente in `src/app/tools/funnel-pages/**`, `sr
 
 ## 6) Buttons per Richiamo Generazione da Punti Precedenti
 
-Le azioni sono gestite da stato UI (`useFunnelUiState`, `useNextLandUiState`) e cambiano in base a fase/intent/checkpoint.
+Le azioni sono gestite da stato UI canonico (`useToolUiState`) e da orchestrazione `tool-page.machine`, variando in base a fase/intent/checkpoint.
 
 ### CTA primaria (dipendente da stato)
 
 - `Riprendi dal checkpoint`
 - `Carica nuovo briefing`
-- `Rigenera ora`
+- `Rigenera`
 - `Avvia generazione funnel` / `Avvia generazione NextLand`
 - `Apri ultimo artefatto`
 
@@ -166,7 +162,7 @@ Le azioni sono gestite da stato UI (`useFunnelUiState`, `useNextLandUiState`) e 
   - disponibile in stati iniziali o resume senza briefing pronto
 
 - `Riprova estrazione`
-  - disponibile quando extraction fallisce (`failed_hard`) e c e testo riutilizzabile
+  - disponibile quando upload/estrazione espongono errore recuperabile
 
 - `Rigenera da zero`
   - disponibile da stato pausato con checkpoint
@@ -184,7 +180,7 @@ Le azioni sono gestite da stato UI (`useFunnelUiState`, `useNextLandUiState`) e 
 | processing-briefing | Caricamento/Estrazione in corso | nessuna |
 | running | Generazione in corso | nessuna |
 | paused-with-checkpoint | Riprendi dal checkpoint | Rigenera da zero, Resetta setup |
-| prefilled-regenerate | Rigenera ora | Resetta setup |
+| prefilled-regenerate | Rigenera | Resetta setup |
 | draft-ready | Avvia generazione | Riprova estrazione, Resetta setup |
 | completed | Apri ultimo artefatto | Rigenera, Nuova generazione |
 | draft-empty | Completa dati obbligatori | Riprendi da checkpoint |
@@ -242,7 +238,7 @@ Comportamento nel tool
 
 - Il tool entra in modalita `regenerate` con prefill del contesto disponibile.
 - Quando extraction e pronta, lo stato UI diventa `prefilled-regenerate`.
-- La CTA primaria diventa `Rigenera ora` e avvia run completa di nuova variante.
+- La CTA primaria diventa `Rigenera` e avvia run completa di nuova variante.
 
 ### 9.3 Buttons del form reattivi alla richiesta di rigenerazione
 
@@ -255,7 +251,7 @@ Reattivita CTA primaria
 - `processing-briefing` -> bottone disabilitato con label di caricamento/estrazione.
 - `running` -> bottone disabilitato con label `Generazione in corso...`.
 - `paused-with-checkpoint` -> `Riprendi dal checkpoint`.
-- `prefilled-regenerate` -> `Rigenera ora`.
+- `prefilled-regenerate` -> `Rigenera`.
 - `draft-ready` -> `Avvia generazione ...`.
 - `completed` -> `Apri ultimo artefatto`.
 

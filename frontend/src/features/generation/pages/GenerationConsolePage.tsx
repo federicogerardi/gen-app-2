@@ -5,8 +5,6 @@ import { GenerationForm } from '../ui/GenerationForm';
 import { GenerationStreamPanel } from '../ui/GenerationStreamPanel';
 import { ArtifactHistoryPanel } from '../ui/ArtifactHistoryPanel';
 import {
-  deriveCanonicalToolUiState,
-  derivePrimaryActionPolicy,
   type ExtractionLifecycle,
   type ToolIntent,
   type ToolPhase,
@@ -28,7 +26,7 @@ export const GenerationConsolePage = () => {
   const [projectsLoading, setProjectsLoading] = useState(true);
   const [projectsError, setProjectsError] = useState<string | null>(null);
 
-  const [toolSetupState, setToolSetupState] = useState<{
+  const [, setToolSetupState] = useState<{
     phase: ToolPhase;
     intent: ToolIntent;
     extractionLifecycle: ExtractionLifecycle;
@@ -47,12 +45,6 @@ export const GenerationConsolePage = () => {
     checkpointHasExtractionContext: false,
     hasSourceArtifact: false,
   });
-
-  const canonicalState = deriveCanonicalToolUiState({
-    ...toolSetupState,
-    streamStatus: generation.streamStatus,
-  });
-  const primaryActionPolicy = derivePrimaryActionPolicy(canonicalState);
 
   useEffect(() => {
     if (!auth.session || !auth.capabilities.projects) {
@@ -103,7 +95,7 @@ export const GenerationConsolePage = () => {
 
   const handleArtifactIntentNavigation = (
     artifact: GenerationArtifact,
-    intent: 'resume' | 'regenerate',
+    intent: 'new' | 'resume' | 'regenerate',
   ): void => {
     const targetPath = buildToolEntryPathFromArtifact(artifact, intent);
     if (!targetPath) {
@@ -144,15 +136,13 @@ export const GenerationConsolePage = () => {
           onReset={generation.reset}
           canRetry={generation.snapshot.matches('failed')}
           canCancel={generation.isStreamActive}
-          canonicalState={canonicalState}
-          primaryActionPolicy={primaryActionPolicy}
         />
 
         <ArtifactHistoryPanel
           artifacts={generation.artifacts}
           relaunchDisabled={generation.isStreamActive}
           onOpenProject={(projectId) => generation.setFocusedProjectId(projectId)}
-          onResumeFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'resume')}
+          onResumeFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'new')}
           onRegenerateFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'regenerate')}
         />
       </section>

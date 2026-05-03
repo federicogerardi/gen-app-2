@@ -522,20 +522,22 @@ export const createAuthHttpRuntime = (
     let user = await repositories.users.findUserByOAuthSubject('google', identity.providerSubject);
     if (!user) {
       const byEmail = await repositories.users.findUserByEmail(identity.email);
-      if (!byEmail) {
-        writeError(response, 403, 'forbidden', 'Google account not linked to an allowed user');
-        return;
-      }
+      const ensuredUser = byEmail ?? await repositories.users.createUser({
+        id: `usr_${randomUUID()}`,
+        email: identity.email,
+        role: 'member',
+        status: 'active',
+      });
 
       await repositories.users.linkOAuthAccount({
-        userId: byEmail.id,
+        userId: ensuredUser.id,
         provider: 'google',
         providerSubject: identity.providerSubject,
         emailAtProvider: identity.email,
         profileJson: identity.profile,
       });
 
-      user = byEmail;
+      user = ensuredUser;
     }
 
     if (user.status !== 'active') {

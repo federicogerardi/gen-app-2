@@ -16,6 +16,10 @@ export type GenerationArtifact = {
   createdAt: string;
   updatedAt: string;
   sourceRequest: GenerationRequest;
+  // Campi diagnostici DB opzionali
+  failureReason?: string | null;
+  streamedAt?: string | null;
+  completedAt?: string | null;
 };
 
 export type ArtifactFilters = {
@@ -25,7 +29,7 @@ export type ArtifactFilters = {
   period: ArtifactPeriodFilter;
 };
 
-export type ToolRelaunchIntent = 'resume' | 'regenerate';
+export type ToolRelaunchIntent = 'new' | 'resume' | 'regenerate';
 
 const toPeriodWindowMs = (period: ArtifactPeriodFilter): number | null => {
   if (period === '7d') {
@@ -132,6 +136,11 @@ export const buildArtifactEntryQuery = (
   const params = new URLSearchParams();
   params.set('intent', intent);
   params.set('projectId', artifact.projectId.trim());
+
+  if (intent === 'new') {
+    return params.toString();
+  }
+
   params.set('sourceArtifactId', artifact.artifactId);
   params.set('relaunchFromArtifactId', artifact.artifactId);
 

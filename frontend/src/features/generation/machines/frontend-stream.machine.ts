@@ -4,6 +4,7 @@ import {
   setup,
 } from 'xstate';
 import type { GenerationRequest } from '../contracts/backend-stream';
+import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import {
   normalizeTransportError,
   streamGeneration,
@@ -16,6 +17,16 @@ export type FrontendStreamStatus =
   | 'completed'
   | 'failed'
   | 'reconnecting';
+
+export type ExtractionContext = {
+  projectId: string;
+  briefingId: string;
+  extractionArtifactId: string;
+  extractionPayload: Record<string, unknown>;
+  normalizedText: string;
+  parsedFormat: 'txt' | 'md' | 'docx';
+  updatedAt: string;
+};
 
 export type FrontendStreamContext = {
   requestId: string | null;
@@ -31,6 +42,8 @@ export type FrontendStreamContext = {
   hasTerminal: boolean;
   lastRequest: GenerationRequest | null;
   apiBaseUrl: string;
+  checkpoints: ToolCheckpoint[];
+  extractionByProject: Record<string, ExtractionContext>;
 };
 
 type FrontendStreamInput = {
@@ -53,7 +66,9 @@ type FrontendStreamEvent =
   | { type: 'STREAM_ERROR'; code: string; message: string; retryable: boolean }
   | { type: 'CANCEL' }
   | { type: 'RETRY' }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  | { type: 'CHECKPOINT_UPSERTED'; checkpoint: ToolCheckpoint }
+  | { type: 'EXTRACTION_UPSERTED'; context: ExtractionContext };
 
 const computeReconnectDelay = (attempt: number, baseDelay: number, maxDelay: number): number => {
   const expDelay = Math.min(maxDelay, baseDelay * 2 ** Math.max(0, attempt - 1));
@@ -236,6 +251,26 @@ export const frontendStreamMachine = setup({
       reconnectAttempts: () => 0,
       requestId: ({ context }) => context.lastRequest?.requestId ?? null,
     }),
+    upsertCheckpoint: assign({
+      checkpoints: ({ context, event }) => {
+        if (event.type !== 'CHECKPOINT_UPSERTED') return context.checkpoints;
+        const { checkpoint } = event;
+        const index = context.checkpoints.findIndex((c) => c.artifactId === checkpoint.artifactId);
+        if (index === -1) {
+          return [checkpoint, ...context.checkpoints].slice(0, 100);
+        }
+        const clone = [...context.checkpoints];
+        clone[index] = checkpoint;
+        return clone;
+      },
+    }),
+    upsertExtraction: assign({
+      extractionByProject: ({ context, event }) => {
+        if (event.type !== 'EXTRACTION_UPSERTED') return context.extractionByProject;
+        const ctx = event.context;
+        return { ...context.extractionByProject, [ctx.projectId]: ctx };
+      },
+    }),
     resetStreamContext: assign(({ context }) => ({
       ...context,
       requestId: null,
@@ -247,6 +282,8 @@ export const frontendStreamMachine = setup({
       reconnectAttempts: 0,
       hasTerminal: false,
       lastRequest: null,
+      checkpoints: [],
+      extractionByProject: {},
     })),
   },
   delays: {
@@ -274,6 +311,8 @@ export const frontendStreamMachine = setup({
     hasTerminal: false,
     lastRequest: null,
     apiBaseUrl: input.apiBaseUrl,
+    checkpoints: [],
+    extractionByProject: {},
   }),
   initial: 'idle',
   states: {
@@ -286,6 +325,8 @@ export const frontendStreamMachine = setup({
         RESET: {
           actions: 'resetStreamContext',
         },
+        CHECKPOINT_UPSERTED: { actions: 'upsertCheckpoint' },
+        EXTRACTION_UPSERTED: { actions: 'upsertExtraction' },
       },
     },
     active: {
@@ -334,6 +375,8 @@ export const frontendStreamMachine = setup({
           target: '#frontendStreamMachine.idle',
           actions: 'resetStreamContext',
         },
+        CHECKPOINT_UPSERTED: { actions: 'upsertCheckpoint' },
+        EXTRACTION_UPSERTED: { actions: 'upsertExtraction' },
       },
       initial: 'connecting',
       states: {
@@ -395,6 +438,8 @@ export const frontendStreamMachine = setup({
           target: 'idle',
           actions: 'resetStreamContext',
         },
+        CHECKPOINT_UPSERTED: { actions: 'upsertCheckpoint' },
+        EXTRACTION_UPSERTED: { actions: 'upsertExtraction' },
       },
     },
     failed: {
@@ -407,6 +452,8 @@ export const frontendStreamMachine = setup({
           target: 'idle',
           actions: 'resetStreamContext',
         },
+        CHECKPOINT_UPSERTED: { actions: 'upsertCheckpoint' },
+        EXTRACTION_UPSERTED: { actions: 'upsertExtraction' },
         RETRY: {
           guard: 'hasRequestToRetry',
           target: 'active',

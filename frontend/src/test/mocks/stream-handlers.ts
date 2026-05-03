@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 export type StreamScenario = 'success' | 'failure' | 'malformed-sequence' | 'timeout' | 'network-error';
 
 export const createStreamHandler = (scenario: StreamScenario) => {
-  return http.post('*/generation/stream', async ({ request }) => {
+  return http.post('*/generation/stream', async ({ request: _request }) => {
     const encoder = new TextEncoder();
 
     if (scenario === 'success') {

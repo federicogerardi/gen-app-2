@@ -6,7 +6,7 @@ description: >
   vocabolario condiviso, naming consistency across code and docs,
   chat in italiano / output docs in english.
 name: "DDD Ubiquitous Language Specialist"
-tools: [read, search, edit, ask, todo, web]
+tools: [vscode/memory, vscode/askQuestions, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/textSearch, search/searchSubagent, search/usages, web/fetch, web/githubRepo, web/githubTextSearch, todo]
 argument-hint: "Describe the DDD task: extract domain model, audit naming, define glossary, map bounded contexts, or update docs."
 hooks:
   PostToolUse:

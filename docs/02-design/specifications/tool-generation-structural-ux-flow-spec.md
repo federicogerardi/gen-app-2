@@ -67,7 +67,7 @@ Documento as-is basato sulla UI corrente in `frontend/src/features/tools/**` e r
 
 ### Output dell'upload
 
-- `extractionContext` popolato (briefing processabile)
+- `ExtractionContext` popolato (briefing processabile) — termine canonico UL; campo runtime: `extractionPayload`
 - eventuale `uploadError` o `extractionError`
 - abilitazione CTA primaria di generazione se precondizioni soddisfatte
 

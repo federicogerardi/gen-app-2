@@ -40,6 +40,9 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
+| [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-03 | 2026-08-03 |
+| [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-03 | 2026-08-03 |
+| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-03 | 2026-08-03 |
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
 | [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-05-01 | 2026-08-01 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
@@ -109,6 +112,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Current Delta (2026-05-03)
 
+- **✅ DDD Ubiquitous Language — review documentazione attiva (2026-05-03)**: rilevati e corretti 4 drift in 4 spec attive. (1) `tool-generation-flow-source-of-truth-spec`: `ToolStepStatus` usava `'completed'` invece del valore canonico `'done'`; (2) `xstate-system-as-is-spec`: riferimento SSE privo del termine canonico `BackendStreamEvent`; (3) `frontend-tool-pages-architecture-spec`: `ToolKey` non relazionato a `SupportedTool` canonico; (4) `tool-generation-structural-ux-flow-spec`: `extractionContext` corretto in `ExtractionContext`. Decision log aggiornato: DDD-011 approvato, DDD-C-003 risolto.
+- **✅ DDD Ubiquitous Language — prima analisi completa**: glossario con 39 termini canonici distribuiti su 4 bounded context (Generation, Auth, Usage/Quota, Frontend/UI); bounded context map con attori XState, responsabilità e regole di traduzione cross-context; 10 naming decision approvate + 3 conflitti risolti nel decision log. Istruzione `.github/instructions/dominio-ubiquitous-language.instructions.md` aggiornata con tabella dei termini critici da non confondere. Tutti e tre i documenti canonici promossi da `draft` ad `active`.
 - **✅ Bug risolto — sblocco UI post-generazione**: `toolFlowMachine` non riceveva mai `STEP_DONE`/`STEP_FAILED` dal template → macchina bloccata in `generating` indefinitamente. Fix: `wasStreamActiveRef` + bridge `useEffect` in [ToolPageTemplate.tsx](../frontend/src/features/tools/ui/ToolPageTemplate.tsx); `canCancelGeneration` derivato direttamente da `toolPageSnapshot.matches('generating')`. Smoke test browser confermato GO. Typecheck e 38/38 test verdi.
 - **✅ Bug risolto — CTA post-generazione con path contaminato**: `buildArtifactEntryQuery` con `intent='new'` includeva `sourceArtifactId`, `relaunchFromArtifactId`, `tone`, `notes`, `briefingId` → navigazione verso tool page con query sporca. Fix in [artifact-history.ts](../frontend/src/features/generation/ui/artifact-history.ts): path `new` restituisce solo `intent` + `projectId`; path `resume`/`regenerate` mantiene tutti i parametri. Smoke test browser confermato GO.
 - **✅ Bug risolto — listing projects/artifacts vuoti dopo navigazione SPA**: `BackendCapabilities` per `projects` e `artifacts` defaultavano a `false` (opt-in) → query hooks non eseguivano fetch. Corretto in [backend-capabilities.ts](../frontend/src/app/runtime/backend-capabilities.ts): `projects` e `artifacts` ora opt-out (abilitati di default quando env var assente). Stabilizzata identity di `capabilities` in [AuthSessionProvider.tsx](../frontend/src/app/providers/AuthSessionProvider.tsx) via `useMemo` per prevenire loop di re-fetch.

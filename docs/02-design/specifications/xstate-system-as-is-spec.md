@@ -31,7 +31,7 @@ Nota aggiornamento 2.4 (allineamento as-is post-fix orchestration + SSE):
 Nota aggiornamento 2.3 (as-is runtime LLM + auth + OAuth):
 
 - provider LLM as-is: OpenRouter (con fallback sintetico per test/offline)
-- contratto SSE esterno as-is: `start/chunk/terminal`
+- contratto SSE esterno as-is: `start/chunk/terminal` (`BackendStreamEvent` — canonical term per UL glossary)
 - runtime helper Node as-is: stream AsyncIterable + adapter HTTP SSE su ServerResponse
 - surface auth HTTP minima as-is: `POST /auth/login`, `POST /auth/logout`, `GET /auth/session`
 - contratti runtime auth as-is: session cookie runtime + password hashing runtime

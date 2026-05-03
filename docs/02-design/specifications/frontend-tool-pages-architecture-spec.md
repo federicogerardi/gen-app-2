@@ -143,6 +143,8 @@ export const toolFormRegistry: Record<ToolKey, ToolFormConfig> = {
 };
 
 export type ToolKey = keyof typeof toolFormRegistry;
+// ToolKey is the registry implementation type for the canonical SupportedTool domain concept.
+// SupportedTool (UL glossary) = the set of tools live in the system; ToolKey extends it for registry lookups.
 
 export interface ToolFormConfig {
   toolKey: ToolKey;

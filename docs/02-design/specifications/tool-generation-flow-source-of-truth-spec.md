@@ -102,7 +102,7 @@ type ToolPageViewModel = {
   canonicalState: CanonicalToolUiState;
   primaryActionPolicy: PrimaryActionPolicy;
   secondaryActionFlags: SecondaryActionFlags;
-  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'done' | 'error'>;
   messages: {
     status: string | null;
     error: string | null;

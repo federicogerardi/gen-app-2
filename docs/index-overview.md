@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 2.2
-last-reviewed: 2026-05-02
-next-review-date: 2026-08-02
+version: 2.3
+last-reviewed: 2026-05-03
+next-review-date: 2026-08-03
 owner: Documentation Archivist
 ---
 
@@ -19,8 +19,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - Scope: post-publish
 - Root documentale: docs/
 - Archivio storico: [99-lifecycle/99-archive](./99-lifecycle/99-archive/)
-- Last review date: 2026-04-30
-- Next review date: 2026-07-27
+- Last review date: 2026-05-03
+- Next review date: 2026-08-03
 
 ## Section Map
 
@@ -46,6 +46,12 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | [tools-generation-go-closure-2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
 
 ## Active Registry
+
+### DDD Canonical References
+
+- [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md)
+- [domain-bounded-context-map](./02-design/domain-bounded-context-map.md)
+- [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md)
 
 ### Design Specifications
 
@@ -103,8 +109,10 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Current Delta (2026-05-03)
 
-- **Bug parzialmente corretto — sblocco UI post-generazione**: `toolFlowMachine` (invocato in stato `generating`) non riceveva mai `STEP_DONE`/`STEP_FAILED` dal template → macchina bloccata in `generating` indefinitamente → "In elaborazione..." permanente. Aggiunto `wasStreamActiveRef` + bridge `useEffect` in [ToolPageTemplate.tsx](../frontend/src/features/tools/ui/ToolPageTemplate.tsx) che osserva `generation.isStreamActive` e invia l'evento corretto al cambio. Aggiunto anche `canCancelGeneration: toolPageSnapshot.matches('generating')` direttamente in `ToolActionButtons`. Typecheck e 38/38 test verdi. Fix commit: 2026-05-03.
-- **Bug ancora aperto — stale closure in auto-chain e pendingStepStart**: l'`useEffect` di auto-chain (dipendenze `[completedStepsForFlow, currentRunningStep, generation.isStreamActive, generation.streamStatus, isAutoChainEnabled, nextAvailableStep]`) chiama `startGenerationStep(nextAvailableStep)` ma `startGenerationStep` **non è nelle dipendenze**. `startGenerationStep` è una funzione non memoizzata che cattura in chiusura `machineHydrationResult`, `briefingSnapshot.context`, `allArtifacts`, `completedArtifactsByStep` al momento del render. In un flusso multi-step (step 1 → step 2 auto-chain), la chiamata per step 2 usa snapshot stantii → `getStepDependencies` riceve `completedArtifactsByStep` incompleto → `stepDependencyArtifactIds` vuoto o errato → backend non trova artefatti di dipendenza. Stessa issue nell'effect `pendingStepStart` (ma qui `startGenerationStep` è già nelle deps, quindi meno critico). **Fix da applicare**: wrappare `startGenerationStep` in `useCallback` con deps complete oppure spostare la funzione in un `useRef` aggiornato ad ogni render; aggiungere `startGenerationStep` alle deps dell'auto-chain effect. File: [ToolPageTemplate.tsx](../frontend/src/features/tools/ui/ToolPageTemplate.tsx), effect auto-chain ~riga 531. Test da aggiungere: auto-chain step 2 verifica che `stepDependencyArtifactIds` contenga l'artifactId di step 1.
+- **✅ Bug risolto — sblocco UI post-generazione**: `toolFlowMachine` non riceveva mai `STEP_DONE`/`STEP_FAILED` dal template → macchina bloccata in `generating` indefinitamente. Fix: `wasStreamActiveRef` + bridge `useEffect` in [ToolPageTemplate.tsx](../frontend/src/features/tools/ui/ToolPageTemplate.tsx); `canCancelGeneration` derivato direttamente da `toolPageSnapshot.matches('generating')`. Smoke test browser confermato GO. Typecheck e 38/38 test verdi.
+- **✅ Bug risolto — CTA post-generazione con path contaminato**: `buildArtifactEntryQuery` con `intent='new'` includeva `sourceArtifactId`, `relaunchFromArtifactId`, `tone`, `notes`, `briefingId` → navigazione verso tool page con query sporca. Fix in [artifact-history.ts](../frontend/src/features/generation/ui/artifact-history.ts): path `new` restituisce solo `intent` + `projectId`; path `resume`/`regenerate` mantiene tutti i parametri. Smoke test browser confermato GO.
+- **✅ Bug risolto — listing projects/artifacts vuoti dopo navigazione SPA**: `BackendCapabilities` per `projects` e `artifacts` defaultavano a `false` (opt-in) → query hooks non eseguivano fetch. Corretto in [backend-capabilities.ts](../frontend/src/app/runtime/backend-capabilities.ts): `projects` e `artifacts` ora opt-out (abilitati di default quando env var assente). Stabilizzata identity di `capabilities` in [AuthSessionProvider.tsx](../frontend/src/app/providers/AuthSessionProvider.tsx) via `useMemo` per prevenire loop di re-fetch.
+- **Test coverage aggiunta**: consumer-level CTA navigation (`ArtifactDetailPage.test.tsx`, `GenerationConsolePage.test.tsx`); router integration SPA flow (2 test in `app-router.test.tsx`); SPA remount refetch (`ProjectsListPage`, `ArtifactsPage`, `AdminUsersPage`). Totale: 10/10 router test verdi, 27/27 test verdi nei file modificati.
 
 ## Current Delta (2026-05-02)
 

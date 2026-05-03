@@ -13,10 +13,23 @@ description: "Use when creating, updating, reorganizing, archiving, or reviewing
 ## Documentation Root And Taxonomy
 - Treat `docs/` as the canonical documentation root.
 - Preserve the current high-level taxonomy unless a real file move requires a change:
-  - `docs/specifications/` for specs and contracts.
-  - `docs/review/` for checklists, reviews, and go/no-go material.
-  - `docs/archive/` for superseded or historical documents.
+  - `docs/01-requirements/` for product/domain requirements and glossary-level definitions.
+  - `docs/02-design/` for design specs and ADR.
+  - `docs/03-development/` for implementation deltas and development changelog.
+  - `docs/04-testing/` for quality gates, test strategy, and verification artifacts.
+  - `docs/05-ops/` for operations and deployment documentation.
+  - `docs/06-user/` for user-facing documentation.
+  - `docs/07-governance/` for governance rules, review decisions, and domain naming decisions.
+  - `docs/99-lifecycle/99-archive/` for superseded or historical documents.
 - Prefer updating existing docs instead of creating duplicates.
+
+## DDD-First Policy
+- Every new or updated documentation artifact must be DDD-first.
+- Use canonical terms from the DDD reference set before introducing new terminology:
+  - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
+  - `docs/02-design/domain-bounded-context-map.md`
+  - `docs/07-governance/domain-naming-decision-log.md`
+- If a required canonical term is missing, add it to the reference set first, then proceed with the target document.
 
 ## Naming Rules
 - Use lowercase kebab-case for all markdown filenames.

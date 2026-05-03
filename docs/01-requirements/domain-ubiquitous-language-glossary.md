@@ -2,6 +2,7 @@
 status: active
 version: 1.1
 last-reviewed: 2026-05-03
+next-review-date: 2026-08-03
 owner: Domain Architecture
 ---
 
@@ -32,9 +33,9 @@ owner: Domain Architecture
 | WorkflowRunMode | Value Object | Intent of a generation invocation relative to prior runs. Values: `new`, `resume`, `regenerate`. | `src/lib/types/xstate.ts:22` | canonical |
 | WorkflowStep | Entity | A single named step within a multi-step tool generation flow. Carries its own status lifecycle. | `src/lib/types/xstate.ts` (`WorkflowStepDescriptor`, `WorkflowStepState`) | canonical |
 | WorkflowStepStatus | Value Object | Status of a single WorkflowStep. Values: `idle`, `running`, `done`, `error`, `skipped`. | `src/lib/types/xstate.ts:23` | canonical |
-| RegistryVersion | Value Object | Version identifier for a tool configuration snapshot in the tool registry. | `src/lib/types/xstate.ts:7-8` | canonical |
-| RegistrySnapshotRef | Value Object | Content-addressable reference to a specific tool registry snapshot. | `src/lib/types/xstate.ts:9` | canonical |
-| LlmUsageMetrics | Value Object | Measured cost and token counters for a completed generation: `inputTokens`, `outputTokens`, `costUsd`. | `src/lib/adapters/generation.adapters.ts:12-16` | canonical |
+| RegistryVersion | Value Object | Version identifier for a tool configuration snapshot in the tool registry. | `src/lib/types/xstate.ts` | canonical |
+| RegistrySnapshotRef | Value Object | Content-addressable reference to a specific tool registry snapshot. | `src/lib/types/xstate.ts` | canonical |
+| LlmUsageMetrics | Value Object | Measured cost and token counters for a completed generation: `inputTokens`, `outputTokens`, `costUsd`. | `src/lib/types/xstate.ts` | canonical |
 | GenerationSystem | Aggregate Root | The XState actor tree orchestrating the end-to-end lifecycle of a single generation: gateway → idempotency → usage → stream → persistence. | `src/lib/machines/generation-system.machine.ts` | canonical |
 | StreamTransport | Domain Service | Actor managing the SSE streaming session from the LLM to the backend. Emits `chunk`, `heartbeat`, `completed` events. | `src/lib/machines/stream-transport.machine.ts` | canonical |
 | PersistenceBatch | Domain Service | Actor responsible for flushing incremental chunks and finalizing the artifact in the database. | `src/lib/machines/persistence-batch.machine.ts` | canonical |
@@ -92,7 +93,7 @@ owner: Domain Architecture
 | ToolStepStatus | Value Object | Runtime status of a ToolStep. Values: `idle`, `running`, `done`, `error`. | `frontend/src/features/tools/machines/tool-flow.machine.ts:5` | canonical |
 | BriefingUpload | Domain Service | The frontend actor managing the lifecycle of a briefing file: upload, extraction, normalization, and recovery from prior extraction artifacts. | `frontend/src/features/tools/machines/briefing-upload.machine.ts` | canonical |
 | BriefingFile | Value Object | The uploaded source file (txt, md, docx) from which extraction context is derived. | `frontend/src/features/tools/machines/briefing-upload.machine.ts` (field `file`) | canonical |
-| ExtractionContext | Value Object | The structured payload extracted from a BriefingFile, used as input context for generation steps. | `frontend/src/features/tools/machines/briefing-upload.machine.ts` (field `extractionPayload`) | canonical |
+| ExtractionContext | Value Object | The structured payload extracted from a BriefingFile, used as input context for generation steps. | `frontend/src/features/generation/machines/frontend-stream.machine.ts:21` | canonical |
 | HydrationResult | Value Object | The complete state snapshot produced when loading prior artifact history into a ToolPage session, including extraction payload, briefing reference, and normalized text. | `frontend/src/features/tools/machines/tool-page.machine.ts:22-30` | canonical |
 | StepHydration | Domain Service | The process of recovering prior WorkflowStep completion state from artifact history to enable resume/regenerate flows. | `frontend/src/features/generation/runtime/step-hydration.ts` | canonical |
 | GenerationArtifact | Value Object | The frontend read model of an artifact as displayed in artifact history, carrying step association and content. | `frontend/src/features/generation/ui/artifact-history.ts` | canonical |
@@ -108,3 +109,11 @@ owner: Domain Architecture
 | `monthly_quota` / `monthly_used` (DB columns) | MonthlyQuota / MonthlyUsed | Mapped to camelCase in TypeScript types. |
 | `requestIdempotency` (DB table) | IdempotencyCoordinator / IdempotencyKey | Table represents the persistence layer for idempotency logic. |
 | `quota_history` (DB table) | QuotaHistory | DB table name; canonical term is `QuotaHistory`. |
+| `ToolExtractionContext` | ExtractionContext | Former name in `frontend-stream.machine.ts`. Deprecated DDD-012; backward-compat alias in `tool-form-architecture.ts`. |
+| `BriefingContext` | ExtractionContext | Former definition in `tool-form-architecture.ts`. Deprecated DDD-012; replaced with `export type BriefingContext = ExtractionContext`. |
+| `ToolPageReadinessSnapshot` | ReadinessSnapshot | Former name in `tool-page.machine.ts`. Deprecated DDD-014; backward-compat alias maintained for 1 cycle. |
+| `ToolPageReadinessReasonCode` | ReadinessReasonCode | Former name in `tool-page.machine.ts`. Deprecated DDD-014; backward-compat alias maintained for 1 cycle. |
+| `ToolRegistryVersion` | RegistryVersion | Former name in `src/lib/types/xstate.ts`. Deprecated DDD-015; backward-compat alias `ToolRegistryVersion = RegistryVersion` maintained. |
+| `ToolRegistrySnapshotRef` | RegistrySnapshotRef | Former name in `src/lib/types/xstate.ts`. Deprecated DDD-015; backward-compat alias maintained. |
+| `StreamUsageMetrics` | LlmUsageMetrics | Former interface in `xstate.ts`. Deprecated DDD-016; backward-compat alias `StreamUsageMetrics = LlmUsageMetrics` maintained. |
+| `PersistedArtifactStatus` | ArtifactStatus | Former type in `generation.adapters.ts`. Deprecated DDD-017; backward-compat alias `PersistedArtifactStatus = ArtifactStatus` maintained. |

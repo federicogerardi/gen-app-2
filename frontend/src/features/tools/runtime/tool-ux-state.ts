@@ -9,7 +9,7 @@
  * - Progressive enhancement from empty → processing → ready → running → completed
  */
 
-import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ToolStep, SupportedTool, ToolStepStatus } from '../machines/tool-flow.machine';
 import { getToolFormConfig } from './tool-form-architecture';
 
 /**
@@ -84,7 +84,7 @@ export type ToolUiDerivationOutput = {
   errorMessage: string | null;
   
   // Step metadata for each step card
-  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  stepStatuses: Record<ToolStep, ToolStepStatus>;
 };
 
 /**
@@ -207,18 +207,18 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
   // Build step statuses for each step card
   const stepStatuses = Object.fromEntries(
     config.steps.map(step => {
-      let status: 'idle' | 'running' | 'completed' | 'error' = 'idle';
+      let status: ToolStepStatus = 'idle';
 
       if (input.isGenerationStreamActive && input.currentRunningStep === step) {
         status = 'running';
       } else if (input.completedSteps.has(step)) {
-        status = 'completed';
+        status = 'done';
       }
       // Note: 'error' status would be set if we had per-step error tracking
 
       return [step, status];
     }),
-  ) as Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  ) as Record<ToolStep, ToolStepStatus>;
 
   return {
     canonicalState,

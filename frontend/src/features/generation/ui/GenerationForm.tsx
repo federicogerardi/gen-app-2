@@ -19,7 +19,7 @@ import {
   sortCheckpointsForResume,
   type ToolCheckpoint,
 } from './tool-checkpoints';
-import type { ToolExtractionContext } from '../runtime/GenerationWorkspaceProvider';
+import type { ExtractionContext } from '../runtime/GenerationWorkspaceProvider';
 import { appCopy } from '../../../app/copy/system';
 import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
 
@@ -36,8 +36,8 @@ type GenerationFormProps = {
   disabled: boolean;
   checkpoints: ToolCheckpoint[];
   prefillProjectId: string | null;
-  onExtractionContextChange: (context: ToolExtractionContext) => void;
-  getExtractionContext: (projectId: string) => ToolExtractionContext | null;
+  onExtractionContextChange: (context: ExtractionContext) => void;
+  getExtractionContext: (projectId: string) => ExtractionContext | null;
   onSetupStateChange: (state: {
     phase: ToolPhase;
     intent: ToolIntent;

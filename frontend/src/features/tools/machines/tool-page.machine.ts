@@ -1,7 +1,7 @@
 import { assign, fromPromise, raise, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { briefingUploadMachine } from './briefing-upload.machine';
-import { toolFlowMachine, type SupportedTool, type ToolStep } from './tool-flow.machine';
+import { toolFlowMachine, type SupportedTool, type ToolStep, type ToolStepStatus } from './tool-flow.machine';
 import { toolStepOrder } from '../runtime/tool-generation-engine';
 import type {
   CanonicalToolUiState,
@@ -41,25 +41,28 @@ export type ToolPageProgressState = {
   lastCheckpointStep: ToolStep | null;
 };
 
-export type ToolPageReadinessReasonCode =
+export type ReadinessReasonCode =
   | 'missing_project'
   | 'missing_extraction_context'
   | 'missing_primary_target_step';
 
-export type ToolPageReadinessSnapshot = {
+export type ReadinessSnapshot = {
   canStartFlow: boolean;
   hasProject: boolean;
   hasExtractionContext: boolean;
   hasPrimaryTargetStep: boolean;
-  reasonCodes: ToolPageReadinessReasonCode[];
+  reasonCodes: ReadinessReasonCode[];
 };
 
+export type ToolPageReadinessReasonCode = ReadinessReasonCode;
+export type ToolPageReadinessSnapshot = ReadinessSnapshot;
+
 export type ToolPageViewModel = {
-  readiness: ToolPageReadinessSnapshot;
+  readiness: ReadinessSnapshot;
   canonicalState: CanonicalToolUiState;
   primaryActionPolicy: PrimaryActionPolicy;
   secondaryActionFlags: SecondaryActionFlags;
-  stepStatuses: Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  stepStatuses: Record<ToolStep, ToolStepStatus>;
   messages: {
     status: string | null;
     error: string | null;
@@ -70,9 +73,9 @@ const buildReadinessSnapshot = (
   projectId: string,
   hasExtractionContext: boolean,
   hasPrimaryTargetStep: boolean,
-): ToolPageReadinessSnapshot => {
+): ReadinessSnapshot => {
   const hasProject = projectId.trim().length > 0;
-  const reasonCodes: ToolPageReadinessReasonCode[] = [];
+  const reasonCodes: ReadinessReasonCode[] = [];
 
   if (!hasProject) {
     reasonCodes.push('missing_project');
@@ -97,14 +100,14 @@ const buildReadinessSnapshot = (
 
 const buildDefaultStepStatuses = (
   toolKey: SupportedTool,
-): Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'> => {
+): Record<ToolStep, ToolStepStatus> => {
   const entries = toolStepOrder[toolKey].map((step) => [step, 'idle'] as const);
-  return Object.fromEntries(entries) as Record<ToolStep, 'idle' | 'running' | 'completed' | 'error'>;
+  return Object.fromEntries(entries) as Record<ToolStep, ToolStepStatus>;
 };
 
 const buildDefaultViewModel = (
   toolKey: SupportedTool,
-  readiness: ToolPageReadinessSnapshot,
+  readiness: ReadinessSnapshot,
 ): ToolPageViewModel => ({
   readiness,
   canonicalState: readiness.canStartFlow ? 'draft-ready' : 'draft-empty',
@@ -127,7 +130,7 @@ const buildDefaultViewModel = (
 type BuildToolPageViewModelInput = {
   toolKey: SupportedTool;
   intent?: 'new' | 'resume' | 'regenerate';
-  readiness: ToolPageReadinessSnapshot;
+  readiness: ReadinessSnapshot;
   progress: ToolPageProgressState;
   generationError: string | null;
   hydrationError?: string | null;
@@ -150,7 +153,7 @@ const buildToolPageViewModel = ({
   const stepStatuses = buildDefaultStepStatuses(toolKey);
 
   for (const step of progress.completedSteps) {
-    stepStatuses[step] = 'completed';
+    stepStatuses[step] = 'done';
   }
 
   if (generationError) {
@@ -441,7 +444,7 @@ export type ToolPageContext = {
   stepArtifactIds: Partial<Record<ToolStep, string>>;
   generationError: string | null;
   progress: ToolPageProgressState;
-  readiness: ToolPageReadinessSnapshot;
+  readiness: ReadinessSnapshot;
   viewModel: ToolPageViewModel;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
   hydrationResult: HydrationResult | null;

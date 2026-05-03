@@ -1,6 +1,6 @@
 import type { GenerationArtifact } from '../ui/artifact-history';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
-import type { ToolExtractionContext } from './GenerationWorkspaceProvider';
+import type { ExtractionContext } from './GenerationWorkspaceProvider';
 
 const normalize = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -100,7 +100,7 @@ export const collectCompletedRunSteps = (
 
 export const buildExtractionContextFromArtifact = (
   artifact: GenerationArtifact,
-): ToolExtractionContext | null => {
+): ExtractionContext | null => {
   const input = artifact.sourceRequest.input;
   // When the artifact IS an extraction artifact, it itself is the extraction result.
   // Use its own artifactId as the extractionArtifactId and parse its content as payload.

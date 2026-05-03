@@ -600,7 +600,7 @@ describe('Context State Snapshots', () => {
 // ── Checkpoint & Extraction context ───────────────────────────────────────────
 
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
-import type { ToolExtractionContext } from './frontend-stream.machine';
+import type { ExtractionContext } from './frontend-stream.machine';
 
 describe('CHECKPOINT_UPSERTED and EXTRACTION_UPSERTED events', () => {
   it('CHECKPOINT_UPSERTED upserts and replaces checkpoints in context', () => {
@@ -638,7 +638,7 @@ describe('CHECKPOINT_UPSERTED and EXTRACTION_UPSERTED events', () => {
   it('EXTRACTION_UPSERTED stores extraction context keyed by projectId', () => {
     const actor = createTestActor();
 
-    const extraction: ToolExtractionContext = {
+    const extraction: ExtractionContext = {
       projectId: 'proj-1',
       briefingId: 'brief-1',
       extractionArtifactId: 'ext-art-1',
@@ -652,7 +652,7 @@ describe('CHECKPOINT_UPSERTED and EXTRACTION_UPSERTED events', () => {
     expect(actor.getSnapshot().context.extractionByProject['proj-1']).toEqual(extraction);
 
     // Overwrite same project
-    const updated: ToolExtractionContext = { ...extraction, briefingId: 'brief-2' };
+    const updated: ExtractionContext = { ...extraction, briefingId: 'brief-2' };
     actor.send({ type: 'EXTRACTION_UPSERTED', context: updated });
     expect(actor.getSnapshot().context.extractionByProject['proj-1']?.briefingId).toBe('brief-2');
 

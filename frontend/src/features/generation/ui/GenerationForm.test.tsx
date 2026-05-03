@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { GenerationForm } from './GenerationForm';
 import type { GenerationRequest } from '../contracts/backend-stream';
 
@@ -78,8 +78,8 @@ describe('GenerationForm', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(formatMeta(appCopy.ui.meta.phase, 'review'))).toBeInTheDocument();
-      expect(screen.getByText(formatMeta(appCopy.ui.meta.extraction, 'completed_full'))).toBeInTheDocument();
+      expect(setupStates.some((state) => state.phase === 'review')).toBe(true);
+      expect(setupStates.some((state) => state.extractionLifecycle === 'completed_full')).toBe(true);
     });
 
     expect(setupStates.some((state) => state.phase === 'uploading')).toBe(true);

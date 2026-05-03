@@ -1,13 +1,22 @@
 ---
-applyTo: "docs/**/*.md"
-description: "Instruction for maintaining a consistent Ubiquitous Language across project documentation — gen-app-2."
+applyTo: "**"
+description: "Instruction for maintaining a consistent Ubiquitous Language across ALL project files (code, tests, docs) — gen-app-2. Primary reference for any analysis or intervention on TypeScript/React source code."
 ---
 
 # Domain Ubiquitous Language — gen-app-2
 
 ## Purpose
-- Keep domain terminology consistent across all documentation under `docs/`.
+- Keep domain terminology consistent across **all files**: TypeScript source (`src/`, `frontend/src/`), tests, and documentation under `docs/`.
 - Ensure the same concept is always named with one canonical term across all four bounded contexts.
+- **This instruction is the first reference to consult before naming, renaming, or reviewing any domain concept in code or docs.**
+
+## Canonical DDD References (Read First)
+
+| Priority | File | Role |
+| --- | --- | --- |
+| 1 | `docs/01-requirements/domain-ubiquitous-language-glossary.md` | Canonical term definitions (39 terms) |
+| 2 | `docs/02-design/domain-bounded-context-map.md` | Bounded context ownership and translation rules |
+| 3 | `docs/07-governance/domain-naming-decision-log.md` | Approved decisions, deprecated aliases, DDD-NNN log |
 
 ## Canonical Bounded Contexts (gen-app-2)
 - **Generation** — artifact lifecycle, XState actors, stream/persistence pipeline

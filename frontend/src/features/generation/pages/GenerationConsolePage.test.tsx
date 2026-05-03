@@ -97,7 +97,7 @@ vi.mock('../ui/ArtifactHistoryPanel', () => ({
     <div>
       <button
         type="button"
-        onClick={() => onResumeFromArtifact(artifacts[0])}
+        onClick={() => onResumeFromArtifact(artifacts[0]!)}
       >
         {appCopy.ui.actions.relaunchPrimary}
       </button>

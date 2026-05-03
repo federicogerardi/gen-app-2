@@ -4,29 +4,26 @@
  */
 
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
-import type { ToolStep } from '../machines/tool-flow.machine';
+import type { ToolStep, ToolStepStatus, SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
-import type { SupportedTool } from '../machines/tool-flow.machine';
-
-type StepStatus = 'idle' | 'running' | 'completed' | 'error';
 
 interface ToolStepCardProps {
   toolKey: SupportedTool;
   step: ToolStep;
-  status: StepStatus;
+  status: ToolStepStatus;
   previewContent?: string | null;
   artifactId?: string | null;
   onViewArtifact?: () => void;
   isStreaming?: boolean;
 }
 
-const getStatusBadge = (status: StepStatus): { label: string; className: string } => {
+const getStatusBadge = (status: ToolStepStatus): { label: string; className: string } => {
   switch (status) {
     case 'idle':
       return { label: 'In attesa', className: 'ui-badge-idle' };
     case 'running':
       return { label: 'In generazione...', className: 'ui-badge-running' };
-    case 'completed':
+    case 'done':
       return { label: 'Completato', className: 'ui-badge-completed' };
     case 'error':
       return { label: 'Errore', className: 'ui-badge-error' };
@@ -73,7 +70,7 @@ export const ToolStepCard = ({
 
       {/* Actions */}
       <div className="ui-tool-step-actions">
-        {artifactId && onViewArtifact && status === 'completed' && (
+        {artifactId && onViewArtifact && status === 'done' && (
           <button
             className={uiPrimitives.button}
             onClick={onViewArtifact}

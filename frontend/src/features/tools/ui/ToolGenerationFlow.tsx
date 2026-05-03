@@ -20,7 +20,7 @@
 
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
-import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ToolStep, SupportedTool, ToolStepStatus } from '../machines/tool-flow.machine';
 
 type FlowPhase = 'input-requirements' | 'generation-monitoring' | 'completion';
 
@@ -44,7 +44,7 @@ interface StepProgress {
   step: ToolStep;
   displayName: string;
   description: string;
-  status: 'idle' | 'running' | 'completed' | 'error';
+  status: ToolStepStatus;
   previewContent?: string | null;
   artifactId?: string | null;
   isStreaming?: boolean;
@@ -105,7 +105,7 @@ const getStepStatusIcon = (status: StepProgress['status']): string => {
       return '○';
     case 'running':
       return '⟳';
-    case 'completed':
+    case 'done':
       return '✓';
     case 'error':
       return '✕';
@@ -118,7 +118,7 @@ const getStepStatusBadge = (status: StepProgress['status']): { label: string; cl
       return { label: 'Pending', className: 'ui-badge-idle' };
     case 'running':
       return { label: 'Generating...', className: 'ui-badge-running' };
-    case 'completed':
+    case 'done':
       return { label: 'Done', className: 'ui-badge-completed' };
     case 'error':
       return { label: 'Error', className: 'ui-badge-error' };
@@ -343,7 +343,7 @@ export const ToolGenerationFlow = ({
                 <p className={uiPrimitives.metaLine}>{step.description}</p>
 
                 {/* Preview area for running or completed steps */}
-                {(step.status === 'running' || step.status === 'completed') &&
+                {(step.status === 'running' || step.status === 'done') &&
                   step.previewContent && (
                     <div className="ui-flow-step-preview">
                       <div className="ui-flow-step-preview-header">
@@ -366,7 +366,7 @@ export const ToolGenerationFlow = ({
                 )}
 
                 {/* View artifact button for completed steps */}
-                {step.status === 'completed' && step.artifactId && onViewArtifact && (
+                {step.status === 'done' && step.artifactId && onViewArtifact && (
                   <button
                     className={uiPrimitives.button}
                     onClick={() => onViewArtifact(step.artifactId!)}

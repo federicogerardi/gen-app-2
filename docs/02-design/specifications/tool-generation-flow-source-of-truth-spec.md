@@ -2,7 +2,8 @@
 goal: Source of truth machine-friendly per il flow tool generation frontend
 version: 1.1
 date_created: 2026-05-02
-date_updated: 2026-05-02
+last-reviewed: 2026-05-03
+next-review-date: 2026-08-03
 status: Active
 owner: Frontend Platform Team
 tags: [xstate, tool-generation, source-of-truth, frontend, state-machine]
@@ -64,17 +65,17 @@ Ownership:
 Schema canonico:
 
 ```ts
-type ToolPageReadinessReasonCode =
+type ReadinessReasonCode =
   | 'missing_project'
   | 'missing_extraction_context'
   | 'missing_primary_target_step';
 
-type ToolPageReadinessSnapshot = {
+type ReadinessSnapshot = {
   canStartFlow: boolean;
   hasProject: boolean;
   hasExtractionContext: boolean;
   hasPrimaryTargetStep: boolean;
-  reasonCodes: ToolPageReadinessReasonCode[];
+  reasonCodes: ReadinessReasonCode[];
 };
 ```
 
@@ -98,7 +99,7 @@ type ToolPageProgressState = {
 
 ```ts
 type ToolPageViewModel = {
-  readiness: ToolPageReadinessSnapshot;
+  readiness: ReadinessSnapshot;
   canonicalState: CanonicalToolUiState;
   primaryActionPolicy: PrimaryActionPolicy;
   secondaryActionFlags: SecondaryActionFlags;

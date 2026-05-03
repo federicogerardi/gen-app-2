@@ -18,7 +18,7 @@ export type FrontendStreamStatus =
   | 'failed'
   | 'reconnecting';
 
-export type ToolExtractionContext = {
+export type ExtractionContext = {
   projectId: string;
   briefingId: string;
   extractionArtifactId: string;
@@ -43,7 +43,7 @@ export type FrontendStreamContext = {
   lastRequest: GenerationRequest | null;
   apiBaseUrl: string;
   checkpoints: ToolCheckpoint[];
-  extractionByProject: Record<string, ToolExtractionContext>;
+  extractionByProject: Record<string, ExtractionContext>;
 };
 
 type FrontendStreamInput = {
@@ -68,7 +68,7 @@ type FrontendStreamEvent =
   | { type: 'RETRY' }
   | { type: 'RESET' }
   | { type: 'CHECKPOINT_UPSERTED'; checkpoint: ToolCheckpoint }
-  | { type: 'EXTRACTION_UPSERTED'; context: ToolExtractionContext };
+  | { type: 'EXTRACTION_UPSERTED'; context: ExtractionContext };
 
 const computeReconnectDelay = (attempt: number, baseDelay: number, maxDelay: number): number => {
   const expDelay = Math.min(maxDelay, baseDelay * 2 ** Math.max(0, attempt - 1));

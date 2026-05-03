@@ -8,9 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { frontendStreamMachine, type FrontendStreamStatus, type ToolExtractionContext } from '../machines/frontend-stream.machine';
+import { frontendStreamMachine, type FrontendStreamStatus, type ExtractionContext } from '../machines/frontend-stream.machine';
 
-export type { ToolExtractionContext };
+export type { ExtractionContext };
 import type { GenerationRequest } from '../contracts/backend-stream';
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
@@ -60,10 +60,10 @@ type GenerationWorkspaceValue = {
   checkpoints: ToolCheckpoint[];
   artifacts: GenerationArtifact[];
   focusedProjectId: string | null;
-  extractionByProject: Record<string, ToolExtractionContext>;
+  extractionByProject: Record<string, ExtractionContext>;
   setFocusedProjectId: (projectId: string | null) => void;
-  upsertExtractionContext: (context: ToolExtractionContext) => void;
-  getExtractionContext: (projectId: string) => ToolExtractionContext | null;
+  upsertExtractionContext: (context: ExtractionContext) => void;
+  getExtractionContext: (projectId: string) => ExtractionContext | null;
   start: (request: GenerationRequest) => void;
   retry: () => void;
   cancel: () => void;

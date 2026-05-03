@@ -15,12 +15,12 @@ export type RegistryBackedArtifactType = ArtifactType | (string & {});
 export type RegistryBackedWorkflowType = ToolWorkflow | (string & {}) | null;
 export type RegistryBackedToolKey = ToolWorkflow | (string & {});
 
-export type ToolRegistryVersion = string & {};
-export type ToolRegistrySnapshotRef = string & {};
+export type RegistryVersion = string & {};
+export type RegistrySnapshotRef = string & {};
 
 export type RequestRegistrySelector =
-  | { registryVersion: ToolRegistryVersion; registrySnapshotRef?: ToolRegistrySnapshotRef }
-  | { registryVersion?: ToolRegistryVersion; registrySnapshotRef: ToolRegistrySnapshotRef };
+  | { registryVersion: RegistryVersion; registrySnapshotRef?: RegistrySnapshotRef }
+  | { registryVersion?: RegistryVersion; registrySnapshotRef: RegistrySnapshotRef };
 ```
 
 Envelope eventi actor-to-actor (obbligatorio):
@@ -52,8 +52,8 @@ export interface GenerationSystemContext {
   userId: string | null;
   projectId: string | null;
   toolKey: RegistryBackedToolKey | null;
-  registryVersion: ToolRegistryVersion | null;
-  registrySnapshotRef: ToolRegistrySnapshotRef | null;
+  registryVersion: RegistryVersion | null;
+  registrySnapshotRef: RegistrySnapshotRef | null;
   workflowType: RegistryBackedWorkflowType;
   artifactType: RegistryBackedArtifactType;
   artifactId: string | null;

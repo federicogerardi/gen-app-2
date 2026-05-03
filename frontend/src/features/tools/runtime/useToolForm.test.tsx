@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBriefingUpload } from './useToolForm';
 import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
 import { runExtraction, uploadBrief } from './tools-client';
-import type { ToolExtractionContext } from '../../generation/runtime/GenerationWorkspaceProvider';
+import type { ExtractionContext } from '../../generation/runtime/GenerationWorkspaceProvider';
 
-let storedExtractionContext: ToolExtractionContext | null = null;
-const upsertExtractionContextMock = vi.fn((context: ToolExtractionContext) => {
+let storedExtractionContext: ExtractionContext | null = null;
+const upsertExtractionContextMock = vi.fn((context: ExtractionContext) => {
   storedExtractionContext = context;
 });
 

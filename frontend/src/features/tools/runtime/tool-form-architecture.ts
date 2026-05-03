@@ -4,6 +4,7 @@
  */
 
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
 
 /**
  * Configuration for a tool page form
@@ -48,16 +49,9 @@ export type BriefingUploadState = {
 
 /**
  * Extracted briefing context from upload processor
+ * @deprecated use ExtractionContext (DDD-007)
  */
-export type BriefingContext = {
-  projectId: string;
-  briefingId: string;
-  extractionArtifactId: string;
-  extractionPayload: Record<string, unknown>;
-  normalizedText: string;
-  parsedFormat: 'txt' | 'md' | 'docx';
-  updatedAt: string;
-};
+export type BriefingContext = ExtractionContext;
 
 /**
  * Tool form state that maps to step dependencies and generation

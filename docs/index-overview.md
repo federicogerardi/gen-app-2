@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 2.3
+version: 2.4
 last-reviewed: 2026-05-03
 next-review-date: 2026-08-03
 owner: Documentation Archivist
@@ -13,6 +13,16 @@ Stato: active
 Versione indice: 2.2
 
 Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezioni stabili, priorita esplicite.
+
+> **⚑ DDD GATE — Leggere prima di qualsiasi analisi o intervento**
+>
+> Questi tre documenti sono il riferimento primario obbligatorio per ogni agente, sviluppatore o revisore che opera su questo workspace — sia su codice che su documentazione:
+>
+> 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico, 39 termini su 4 bounded context
+> 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 17 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
+>
+> Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
 ## Snapshot Operativo
 
@@ -33,7 +43,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | 04-testing | [04-testing](./04-testing/) | QA + Engineering Team |
 | 05-ops | [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | Platform/DevOps |
 | 06-user | [06-user](./06-user/) | Product + UX |
-| 07-governance | [tools-generation-go-closure-2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | Documentation Archivist |
+| 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist |
 | 99-lifecycle | [99-archive](./99-lifecycle/99-archive/) | Documentation Archivist |
 
 ## Critical Documents Status
@@ -46,7 +56,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
 | [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-05-01 | 2026-08-01 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
-| [tools-generation-go-closure-2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md) | approved | 2026-04-27 | 2026-07-27 |
+| [tools-generation-go-closure-2026-04-25](./99-lifecycle/99-archive/tools-generation-go-closure-2026-04-25.md) | archived | 2026-04-27 | N/A |
 
 ## Active Registry
 
@@ -75,7 +85,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ### Governance Review
 
-- [tools-generation-go-closure-2026-04-25](./07-governance/review/tools-generation-go-closure-2026-04-25.md)
+- [tools-generation-go-closure-2026-04-25](./99-lifecycle/99-archive/tools-generation-go-closure-2026-04-25.md) — archived
 
 ### Active Plans And Runbooks
 
@@ -112,6 +122,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Current Delta (2026-05-03)
 
+- **✅ DDD UL Alignment — Phase 1–4 (refactor-frontend-ddd-ul-alignment-1)**: 11 drift risolti su 4 cluster tematici. Phase 1: `ToolExtractionContext` → `ExtractionContext` (DDD-012); `BriefingContext` deprecato con alias. Phase 2: `ToolStepStatus` unificato con valore `'done'` (DDD-013); tipi inline `'idle'|'running'|'completed'|'error'` rimossi da 5 file. Phase 3: `ToolPageReadinessSnapshot`/`ToolPageReadinessReasonCode` → `ReadinessSnapshot`/`ReadinessReasonCode` con alias backward-compat (DDD-014); ridefinizione locale rimossa da `ToolGenerationFlowVertical.tsx`. Phase 4: decision log aggiornato DDD-012..014; glossario aggiornato con 4 alias deprecati. Typecheck 1 errore pre-esistente, 1 test pre-esistente fallito — nessuna regressione introdotta.
 - **✅ DDD Ubiquitous Language — review documentazione attiva (2026-05-03)**: rilevati e corretti 4 drift in 4 spec attive. (1) `tool-generation-flow-source-of-truth-spec`: `ToolStepStatus` usava `'completed'` invece del valore canonico `'done'`; (2) `xstate-system-as-is-spec`: riferimento SSE privo del termine canonico `BackendStreamEvent`; (3) `frontend-tool-pages-architecture-spec`: `ToolKey` non relazionato a `SupportedTool` canonico; (4) `tool-generation-structural-ux-flow-spec`: `extractionContext` corretto in `ExtractionContext`. Decision log aggiornato: DDD-011 approvato, DDD-C-003 risolto.
 - **✅ DDD Ubiquitous Language — prima analisi completa**: glossario con 39 termini canonici distribuiti su 4 bounded context (Generation, Auth, Usage/Quota, Frontend/UI); bounded context map con attori XState, responsabilità e regole di traduzione cross-context; 10 naming decision approvate + 3 conflitti risolti nel decision log. Istruzione `.github/instructions/dominio-ubiquitous-language.instructions.md` aggiornata con tabella dei termini critici da non confondere. Tutti e tre i documenti canonici promossi da `draft` ad `active`.
 - **✅ Bug risolto — sblocco UI post-generazione**: `toolFlowMachine` non riceveva mai `STEP_DONE`/`STEP_FAILED` dal template → macchina bloccata in `generating` indefinitamente. Fix: `wasStreamActiveRef` + bridge `useEffect` in [ToolPageTemplate.tsx](../frontend/src/features/tools/ui/ToolPageTemplate.tsx); `canCancelGeneration` derivato direttamente da `toolPageSnapshot.matches('generating')`. Smoke test browser confermato GO. Typecheck e 38/38 test verdi.

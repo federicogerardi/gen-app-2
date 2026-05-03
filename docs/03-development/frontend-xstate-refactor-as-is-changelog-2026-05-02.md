@@ -53,7 +53,7 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 - [xstate-system-as-is-spec](../02-design/specifications/xstate-system-as-is-spec.md)
 - [xstate-actor-contracts-and-topology-spec](../02-design/specifications/xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md)
 - [testing-go-no-go-and-risk-spec](../02-design/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md)
-- [tools-generation-go-closure-2026-04-25](../07-governance/review/tools-generation-go-closure-2026-04-25.md)
+- [tools-generation-go-closure-2026-04-25](../99-lifecycle/99-archive/tools-generation-go-closure-2026-04-25.md) — archived
 - [tool-generation-flow-source-of-truth-spec](../02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [index-overview](../index-overview.md)
 

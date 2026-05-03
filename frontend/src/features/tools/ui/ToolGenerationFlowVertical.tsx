@@ -1,18 +1,14 @@
 import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
-import type { ToolStep } from '../machines/tool-flow.machine';
+import type { ToolStep, ToolStepStatus } from '../machines/tool-flow.machine';
+import type { ReadinessReasonCode } from '../machines/tool-page.machine';
 
 type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
-type StepStatus = 'idle' | 'running' | 'completed' | 'error';
 type ReqStatus = 'todo' | 'active' | 'done' | 'error';
-type ReadinessReasonCode =
-  | 'missing_project'
-  | 'missing_extraction_context'
-  | 'missing_primary_target_step';
 
 export interface FlowStepProgress {
   step: ToolStep;
   displayName: string;
-  status: StepStatus;
+  status: ToolStepStatus;
   artifactId?: string | null | undefined;
   isStreaming?: boolean | undefined;
   // accepted but unused in this render:
@@ -55,10 +51,10 @@ const WHERE_LABEL: Record<CanonicalToolUiState, string> = {
   completed: 'Complete',
 };
 
-const STEP_ICON: Record<StepStatus, string> = {
+const STEP_ICON: Record<ToolStepStatus, string> = {
   idle: '○',
   running: '⟳',
-  completed: '✓',
+  done: '✓',
   error: '✕',
 };
 
@@ -140,7 +136,7 @@ const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
       {step.status === 'running' && (
         <span className="ui-fv-status-label">In esecuzione</span>
       )}
-      {step.status === 'completed' && step.artifactId && onViewArtifact && (
+      {step.status === 'done' && step.artifactId && onViewArtifact && (
         <button
           type="button"
           className="ui-fv-step-action"

@@ -10,11 +10,13 @@
 import type { ToolStep, SupportedTool, ToolStepStatus } from '../machines/tool-flow.machine';
 import { getToolFormConfig } from './tool-form-architecture';
 
-export type {
+import type {
   CanonicalToolUiState,
   PrimaryActionPolicy,
   SecondaryActionFlags,
 } from '../../generation/ui/tool-ux-state';
+
+export type { CanonicalToolUiState, PrimaryActionPolicy, SecondaryActionFlags };
 
 export { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 

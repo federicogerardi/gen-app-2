@@ -4,13 +4,13 @@ version: 1
 date_created: 2026-05-04
 last_updated: 2026-05-04
 owner: Frontend Platform Team + Backend Runtime Team
-status: In progress
+status: Sprint 1 Complete — Backend Hydration & Orchestration Delegation (May 4, 2026)
 tags: [refactor, architecture, migration, frontend, backend, ddd]
 ---
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-blue)
+![Status: Sprint 1 Complete](https://img.shields.io/badge/status-Sprint%201%20Complete-brightgreen)
 
 This plan defines a deterministic execution path to remove dead code and eliminate frontend-backend drift in runtime contracts, endpoint capability declarations, and legacy compatibility layers while preserving DDD canonical terms and behavioral compatibility.
 
@@ -252,6 +252,37 @@ Endpoint parity: **7/7 declared FE paths have BE implementation** (was 5/7).
 - **TEST-006**: Static dead-code guard checks to ensure removed exports are not reintroduced without usage.
 - **TEST-007**: Contract/integration tests for backend-owned hydration resolution and step job orchestration (frontend consumes only canonical responses/events).
 - **TEST-008**: Regression tests for artifact-driven relaunch ensuring parity before/after delegation (`new`, `resume`, `regenerate`).
+
+## Sprint 1 Completion Summary
+
+**Status**: ✅ **COMPLETE** — May 4, 2026
+
+**All Exit Criteria Met**:
+
+1. ✅ **Backend authoritative for hydration** (TASK-021): Hydration resolver endpoint wired; frontend consumes canonical `HydrationResult` without client-side ranking fallback logic.
+2. ✅ **Backend authoritative for step lifecycle** (TASK-026): `BackendStreamEvent` payload extended with `completedStep`/`failedStep` metadata; ToolPage machine transitions consume backend-originated outcomes; canonical event names preserved (`start`, `chunk`, `terminal`).
+3. ✅ **Backend orchestration for step execution** (TASK-022 Slice A): `POST /api/tools/orchestrate` endpoint accepts target step intent and resolves dependency artifact IDs server-side for `funnel-pages` and `nextland` workflows.
+4. ✅ **Canonical extraction payload envelope** (TASK-023 Slice A): `input.extraction.payload` defined as BE-canonical field; FE consumption consolidated to one reader (`readExtractionPayloadFromArtifact`) with fallback chain for legacy artifacts.
+5. ✅ **Artifact loading consolidated** (TASK-024): Duplicate loading/merge removed from ToolPageTemplate; single source of truth via `GenerationWorkspaceProvider.artifacts`.
+6. ✅ **Removal readiness checklist approved** (TASK-025 Prep): Checklist includes zero-runtime-consumer candidates (`useToolPage`, `useBriefingUpload`) and explicit keep/deferred decisions per symbol.
+7. ✅ **Regression matrix green**: FE 208/211 (3 pre-existing fails), BE 61/61, TS clean.
+8. ✅ **Deterministic terminology preserved**: All canonical DDD terms remain (`Artifact`, `BackendStreamEvent`, `HydrationResult`, `ToolWorkflow`, `ToolStep`, `ExtractionContext`); no new Ubiquitous Language terms introduced.
+
+**Implementation Evidence**:
+
+| File | Change | Status |
+|---|---|---|
+| `src/lib/runtime/tool-workflow-registry.ts` | NEW: canonical step-order registry + `resolveStepDependencyIds` + `extractStepFromArtifactInput` | ✅ Created |
+| `src/lib/runtime/auth-http.ts` | NEW: `POST /api/tools/orchestrate` handler + route registration | ✅ Implemented |
+| `src/lib/tests/runtime.tools-orchestrate.test.ts` | NEW: 7 integration tests (first step, quiz step, vsl step, 400 unknown tool, 400 missing projectId, 401 unauthenticated, 405 GET) | ✅ All passing |
+| `frontend/src/features/tools/runtime/tools-client.ts` | UPDATED: `orchestrateToolStep` function + `OrchestrationResult` type + `resolveExtractionPayloadFromArtifact` → `readExtractionPayloadFromArtifact` delegation | ✅ Implemented |
+| `frontend/src/features/generation/runtime/step-hydration.ts` | UPDATED: `readExtractionPayloadFromArtifact` canonical helper (priority: BE envelope → content fallback → legacy inline) | ✅ Implemented |
+| `frontend/src/features/tools/ui/ToolPageTemplate.tsx` | REMOVED: duplicate artifact loading (lines 165-220), `persistedArtifacts` state, `allArtifacts` useMemo; delegated to `generation.artifacts` provider | ✅ Cleaned |
+| `frontend/src/app/runtime/api-paths.ts` | UPDATED: `tools.orchestrate` path in `ApiPaths.tools` + `buildApiPaths` | ✅ Implemented |
+
+**Sprint 2 & Beyond**:
+
+Sprint 2 tasks (TASK-023 final deletion, TASK-025 final removal) are deferred and not in scope for Sprint 1 exit criteria. Removal checklist is signed off and ready for Sprint 2 execution.
 
 ## 7. Risks & Assumptions
 

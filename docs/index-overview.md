@@ -20,7 +20,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 >
 > 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico, 39 termini su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 21 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 22 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 

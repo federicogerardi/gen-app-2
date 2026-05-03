@@ -1,129 +1,117 @@
-# Gen App 2 - Architettura Repository
+# Gen App 2 — Repository Architecture
 
-Panoramica rapida dello schema logico e funzionale dell'applicazione full-stack (backend + frontend).
+Content generation application organized around four **bounded contexts** (DDD), implemented with XState v5 actor trees on both backend and frontend.
 
-## 1) Obiettivo del sistema
+> Ubiquitous Language reference: `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 
-Applicazione per generazione contenuti con:
+---
 
-- autenticazione a sessione (cookie + OAuth Google)
-- streaming dei risultati di generazione (SSE)
-- persistenza su PostgreSQL
-- coordinamento idempotenza e lock su Redis
-- UI React per workflow tools e gestione artifacts/progetti
+## 1) Domain Model
 
-## 2) Architettura ad alto livello
+Four bounded contexts, each with an authoritative aggregate root or key actors:
+
+| Bounded Context | Aggregate Root / Key Actor | Responsibility |
+| --- | --- | --- |
+| **Generation** | `GenerationSystem` | End-to-end `Artifact` lifecycle: gateway → idempotency → quota → stream → persistence |
+| **Auth** | `User` / `AuthSession` | Identity, `AuthSessionPrincipal`, OAuth, role enforcement |
+| **Usage/Quota** | `QuotaHistory` / `Project` | `ClaimUsage` command, `MonthlyQuota` enforcement, audit history |
+| **Frontend/UI** | `ToolPage` | Tool session orchestration: `ReadinessSnapshot`, `ExtractionContext`, `HydrationResult`, `ToolStep` flow |
+
+### Key cross-context translations
+
+- `AuthSessionPrincipal` — Auth → Generation, Usage/Quota, Frontend/UI
+- `BackendStreamEvent` (start / chunk / terminal) — Generation → Frontend/UI protocol
+- `Artifact` + `Project` — shared between Generation and Frontend/UI (read model: `GenerationArtifact`)
+- `ToolWorkflow` (Generation) ↔ `SupportedTool` (Frontend/UI) — distinct, kept context-local per DDD-C-001
+
+---
+
+## 2) XState Actor Topology
+
+XState v5 is the primary orchestration mechanism in both contexts. Actors map 1:1 to domain services.
+
+### Generation Context — backend actors
+
+Root: `GenerationSystem` (`src/lib/machines/generation-system.machine.ts`)
+
+| Actor (machine file) | Domain Service / Command | Responsibility |
+| --- | --- | --- |
+| `request-gateway.machine.ts` | `RequestGateway` | Validates `GenerationRequest`: auth, input, project ownership, usage gate |
+| `idempotency-coordinator.machine.ts` | `IdempotencyCoordinator` | Atomic claim of `IdempotencyKey`; decision: `claimed` / `replay` / `conflict` |
+| `usage.machine.ts` | `ClaimUsage` | Checks `MonthlyQuota`, produces `UsageDecision`, decrements on grant |
+| `stream-transport.machine.ts` | `StreamTransport` | Manages LLM SSE session; emits `BackendStreamEvent` (start/chunk/terminal) |
+| `extraction-chain.machine.ts` | `ExtractionChain` | Structured extraction pipeline with plain-text fallback |
+| `tool-workflow.machine.ts` | — | Advances `WorkflowStep` lifecycle (`idle → running → done / error`) |
+| `persistence-batch.machine.ts` | `PersistenceBatch` | Incremental flush + final commit of `Artifact` to PostgreSQL |
+
+### Frontend/UI Context — frontend actors
+
+Root: `ToolPage` (`frontend/src/features/tools/machines/tool-page.machine.ts`)
+
+| Actor (machine file) | Domain Service / Value Object | Responsibility |
+| --- | --- | --- |
+| `tool-page.machine.ts` | `ToolPage` (Aggregate Root) | Computes `ReadinessSnapshot`, triggers `StepHydration`, exposes `ToolPageViewModel` |
+| `briefing-upload.machine.ts` | `BriefingUpload` | `BriefingFile` → `ExtractionContext` lifecycle; recovery from prior extraction artifacts |
+| `tool-flow.machine.ts` | `ToolStep` / `ToolStepStatus` | Step sequencing for each `SupportedTool` (`idle → running → done / error`) |
+| `frontend-stream.machine.ts` | — | Consumes `BackendStreamEvent`; stream lifecycle (`connecting → streaming → completed / failed / reconnecting`) |
+
+### Integration contract
+
+- **Generation** owns domain state and persistence authority (`GenerationSystem`)
+- **Frontend/UI** owns interaction and presentation authority (`ToolPage`)
+- `BackendStreamEvent` is the sole protocol crossing the two contexts
+- `WorkflowRunMode` (`new` / `resume` / `regenerate`) drives both `HydrationResult` loading and `CanonicalToolUiState` derivation
+
+---
+
+## 3) End-to-End Flow
+
+1. `ToolPage` evaluates `ReadinessSnapshot` (checks `ExtractionContext`, `Project`, target `ToolStep`).
+2. User triggers primary action → `ToolPage` emits `GenerationRequest` (`requestId`, `toolKey`, `workflowType`, `idempotencyKey`, step-level fields).
+3. `frontendStreamMachine` opens SSE connection (state: `connecting`).
+4. Backend `GenerationSystem` spawns actor tree: `RequestGateway` validates → `IdempotencyCoordinator` claims `IdempotencyKey` → `ClaimUsage` enforces `MonthlyQuota`.
+5. `StreamTransport` starts LLM session; `PersistenceBatch` persists `Artifact` incrementally (`ArtifactStatus: generating`).
+6. `BackendStreamEvent` (start / chunk / terminal) flows to `frontendStreamMachine`; `ToolStepStatus` advances to `done` or `error`.
+7. `Artifact` finalized (`ArtifactStatus: completed`), recorded in `QuotaHistory`, available in `GenerationArtifact` history.
+
+---
+
+## 4) Deployment Architecture
 
 ```text
-Browser (React + XState)
-	-> HTTPS same-origin
+Browser (React + XState — Frontend/UI context)
+    -> HTTPS same-origin
 Frontend Runtime (Node — frontend/server.mjs)
-	-> asset statici / SPA fallback
-	-> HTTP proxy (Railway private network)
-Backend Runtime (Node + TypeScript)
-	-> PostgreSQL (dati applicativi)
-	-> Redis (idempotenza, coordinamento)
+    -> static assets / SPA fallback
+    -> HTTP proxy (Railway private network)
+Backend Runtime (Node + TypeScript — Generation, Auth, Usage/Quota contexts)
+    -> PostgreSQL  (Artifact, QuotaHistory, Project, User, AuthSession)
+    -> Redis       (IdempotencyKey claims, real-time MonthlyQuota enforcement)
 ```
 
-Il browser comunica esclusivamente con il servizio frontend Railway. `frontend/server.mjs` serve la SPA e inoltra le route applicative (`/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*`) al backend via networking privato Railway. Il backend non è esposto direttamente al browser.
+`frontend/server.mjs` proxies `/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*` to the backend over Railway private network. The backend is not directly reachable from the browser.
 
-## 3) Mappa repository
+---
 
-- `src/`: backend runtime, adapter infrastrutturali, macchine XState server-side
-- `frontend/`: applicazione React + Vite, macchine XState client-side
-- `db/migrations/`: schema SQL evolutivo
-- `db/seeds/`: seed minimi e script esempi idempotenza
-- `docs/`: specifiche as-is, ADR, governance, archivio lifecycle
-- `plan/`: piani operativi attivi
+## 5) Repository Map
 
-## 4) Backend - schema logico/funzionale
+| Path | Bounded Context | Contents |
+| --- | --- | --- |
+| `src/lib/machines/` | Generation | XState actors: `GenerationSystem` and all domain services |
+| `src/lib/adapters/` | Generation, Auth, Usage/Quota | Infrastructure adapters (PostgreSQL, Redis, LLM) |
+| `src/lib/runtime/` | Auth | HTTP/session runtime wiring |
+| `src/lib/types/` | all | Canonical TypeScript types for all bounded context value objects |
+| `frontend/src/features/tools/machines/` | Frontend/UI | `ToolPage`, `BriefingUpload`, `ToolFlow` actors |
+| `frontend/src/features/generation/` | Frontend/UI ↔ Generation | `frontendStreamMachine`, `GenerationRequest` contracts, `BackendStreamEvent`, `StepHydration` |
+| `frontend/src/features/generation/ui/` | Frontend/UI | `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags` |
+| `frontend/src/app/` | Frontend/UI | UI primitives, layout, providers |
+| `db/migrations/` | all | Evolutionary SQL schema (`artifacts`, `quota_history`, `projects`, `users`, `auth_sessions`) |
+| `docs/` | — | DDD references, specs, ADRs, governance, lifecycle archive |
+| `plan/` | — | Active implementation plans |
 
-Entry point backend: `src/server.ts`.
+---
 
-Responsabilita principali:
-
-- bootstrap connessioni PostgreSQL e Redis
-- configurazione CORS/CSRF e session cookie auth
-- esposizione endpoint auth e generazione stream
-- wiring adapter di produzione e runtime HTTP
-
-Blocchi chiave:
-
-- Runtime HTTP/Auth: `src/lib/runtime/`
-- Adapter persistence e integrazione: `src/lib/adapters/`
-- Orchestrazione state machine: `src/lib/machines/`
-
-## 5) Frontend - schema logico/funzionale
-
-Entry point frontend: `frontend/src/main.tsx` e `frontend/src/App.tsx`.
-Runtime server: `frontend/server.mjs`.
-
-Responsabilita principali:
-
-- `server.mjs`: serve asset statici e SPA fallback; inoltra route applicative al backend via networking privato Railway; endpoint `/health` locale
-- routing e layout applicativo
-- orchestrazione UI dei flussi tool multi-step
-- consumo stream backend con gestione stati/errore/retry
-- rendering artifacts e pagine data-driven
-
-Blocchi chiave:
-
-- Server proxy runtime: `frontend/server.mjs`
-- Feature modules: `frontend/src/features/`
-- Runtime/API client: `frontend/src/features/**/runtime/`
-- UI primitives/layout/provider: `frontend/src/app/`
-
-## 6) Sezione dedicata: architettura XState
-
-Il progetto usa XState v5 sia nel backend sia nel frontend, con separazione chiara tra orchestrazione dominio e trasporto.
-
-### 6.1 Backend XState
-
-Root machine: `src/lib/machines/generation-system.machine.ts`
-
-Sottomacchine principali:
-
-- `request-gateway.machine.ts`: ingresso richiesta e validazioni iniziali
-- `idempotency-coordinator.machine.ts`: claim/replay/conflict request-idempotent
-- `usage.machine.ts`: regole di consumo/quota
-- `stream-transport.machine.ts`: trasporto stream e segnali sessione
-- `extraction-chain.machine.ts`: pipeline extraction strutturata
-- `tool-workflow.machine.ts`: avanzamento step dei tool
-- `persistence-batch.machine.ts`: commit batch di persistenza
-
-Funzione architetturale:
-
-- rendere deterministico il workflow di generazione
-- isolare failure mode e fallback per stato
-- rendere testabili i passaggi critici per evento/transizione
-
-### 6.2 Frontend XState
-
-Macchine principali:
-
-- `frontend/src/features/generation/machines/frontend-stream.machine.ts`
-- `frontend/src/features/tools/machines/tool-flow.machine.ts`
-
-Funzione architetturale:
-
-- `frontend-stream.machine`: lifecycle stream (idle/connecting/streaming/completed/failed/reconnecting), monotonicita chunk, retry controllato
-- `tool-flow.machine`: orchestrazione step tool (start, done/fail, retry, reset)
-
-### 6.3 Principio di integrazione
-
-- backend: autorita di stato dominio e persistenza
-- frontend: autorita di stato interazione utente e presentazione
-- protocollo eventi stream: ponte tra i due livelli
-
-## 7) Flusso end-to-end (sintesi)
-
-1. L'utente avvia una generazione dal frontend.
-2. Il frontend invia request HTTP e apre stream SSE.
-3. Il backend orchestra la richiesta via XState (idempotenza, usage, workflow tool, persistence).
-4. Il frontend riceve eventi stream (start/chunk/terminal) e aggiorna UI/state machine.
-5. Risultato finale salvato e consultabile come artifact.
-
-## 8) Avvio rapido
+## 6) Quick Start
 
 Backend:
 
@@ -133,24 +121,35 @@ npm run db:migrate:minimal
 npm run start:server
 ```
 
-Frontend (sviluppo locale — Vite dev server):
+Frontend (local dev — Vite):
 
 ```bash
 npm --prefix frontend install
 npm --prefix frontend run dev
 ```
 
-Frontend (produzione locale — server.mjs con proxy):
+Frontend (production local — server.mjs with proxy):
 
 ```bash
 npm --prefix frontend run build
 BACKEND_INTERNAL_URL=http://localhost:3000 node frontend/server.mjs
 ```
 
-## 9) Documentazione architetturale consigliata
+---
+
+## 7) DDD and Ubiquitous Language References
+
+| Document | Role |
+| --- | --- |
+| `docs/01-requirements/domain-ubiquitous-language-glossary.md` | 39 canonical terms across 4 bounded contexts — **read first** |
+| `docs/02-design/domain-bounded-context-map.md` | Context responsibilities and cross-context translation rules |
+| `docs/07-governance/domain-naming-decision-log.md` | 17 approved naming decisions, deprecated aliases, DDD-NNN log |
+
+## 8) Further Architecture References
 
 - `docs/index-overview.md`
+- `docs/02-design/specifications/xstate-system-as-is-spec.md`
 - `docs/02-design/specifications/frontend-spec.md`
 - `docs/02-design/specifications/deployment-architecture-guide.md`
 - `docs/02-design/adr/frontend-data-access-layer-adr.md`
-- `docs/02-design/specifications/xstate-system-as-is-spec.md`
+- `docs/02-design/tool-generation-flow.md`

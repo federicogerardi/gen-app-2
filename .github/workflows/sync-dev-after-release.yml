@@ -1,0 +1,96 @@
+name: Sync dev after release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: sync-dev-after-release
+  cancel-in-progress: false
+
+jobs:
+  sync-dev:
+    name: Reset dev to main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Evaluate sync safety
+        id: evaluate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main dev --prune
+
+          MAIN_SHA=$(git rev-parse origin/main)
+          DEV_SHA=$(git rev-parse origin/dev)
+          MAIN_TREE=$(git rev-parse origin/main^{tree})
+          DEV_TREE=$(git rev-parse origin/dev^{tree})
+          DEV_AHEAD_COUNT=$(git rev-list --count origin/main..origin/dev)
+          DEV_BEHIND_COUNT=$(git rev-list --count origin/dev..origin/main)
+          OPEN_DEV_PRS=$(gh pr list --base dev --state open --json number --jq 'length')
+
+          echo "main_sha=$MAIN_SHA"
+          echo "dev_sha=$DEV_SHA"
+          echo "dev_ahead_count=$DEV_AHEAD_COUNT"
+          echo "dev_behind_count=$DEV_BEHIND_COUNT"
+          echo "open_dev_prs=$OPEN_DEV_PRS"
+
+          if [ "$DEV_SHA" = "$MAIN_SHA" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "reason=dev already matches main" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$OPEN_DEV_PRS" -gt 0 ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "reason=open PRs target dev ($OPEN_DEV_PRS)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$DEV_TREE" != "$MAIN_TREE" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "reason=dev content differs from main" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "reason=trees match and reset is safe" >> "$GITHUB_OUTPUT"
+
+      - name: Skip sync
+        if: steps.evaluate.outputs.skip == 'true'
+        run: |
+          echo "Skipping dev sync: ${{ steps.evaluate.outputs.reason }}"
+          if [ "${{ steps.evaluate.outputs.reason }}" = "dev content differs from main" ]; then
+            git diff --stat origin/main origin/dev || true
+          fi
+
+      - name: Reset dev to main (only if no new work on dev)
+        if: steps.evaluate.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+
+          git checkout -B dev origin/dev
+          git reset --hard origin/main
+
+          if ! git push --force-with-lease origin dev; then
+            echo "::error::Failed to push synced dev branch. Check workflow token write permissions and whether dev allows force-push from GitHub Actions."
+            exit 1
+          fi
+
+          echo "dev reset to main successfully."

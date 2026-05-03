@@ -20,7 +20,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 >
 > 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico, 39 termini su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 17 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 19 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
@@ -75,6 +75,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-structural-ux-flow-spec](./02-design/specifications/tool-generation-structural-ux-flow-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+- [tool-generation-flow](./02-design/tool-generation-flow.md)
+- [tool-generation-flow-vertical](./02-design/tool-generation-flow-vertical.md)
 - [xstate-system-as-is-spec](./02-design/specifications/xstate-system-as-is-spec.md)
 - [xstate-system-as-is](./02-design/specifications/xstate-system-as-is/)
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md)
@@ -122,6 +124,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Current Delta (2026-05-03)
 
+- **✅ Quality Audit — codice e documentazione (2026-05-03)**: 5 interventi di consistenza eseguiti. (1) Canonico `generation/ui/tool-ux-state.ts` esteso con `'regenerate-current-step'` in `PrimaryActionPolicy`, `SecondaryActionFlags`, e `derivePrimaryActionLabel`; legacy `tools/runtime/tool-ux-state.ts` convertito in shim con re-export dai canonici. (2) `toolStepOrder` deduplicato: fonte unica in `tool-flow.machine.ts` (DDD-019), re-export da `tool-generation-engine.ts`. (3) `GenerationRequest` frontend esteso con campi opzionali `briefingId`, `extractionArtifactId`, `stepDependencyArtifactIds`. (4) Alias deprecati `ToolPageReadinessSnapshot` / `ToolPageReadinessReasonCode` rimossi da `tool-page.machine.ts` (fine ciclo DDD-014). (5) File archiviato `FunnelPagesToolPage.refactored.example.tsx` eliminato; `TOOL_GENERATION_FLOW*.md` spostati in `docs/02-design/`. Tutti i 189 test frontend verdi.
 - **✅ DDD UL Alignment — Phase 1–4 (refactor-frontend-ddd-ul-alignment-1)**: 11 drift risolti su 4 cluster tematici. Phase 1: `ToolExtractionContext` → `ExtractionContext` (DDD-012); `BriefingContext` deprecato con alias. Phase 2: `ToolStepStatus` unificato con valore `'done'` (DDD-013); tipi inline `'idle'|'running'|'completed'|'error'` rimossi da 5 file. Phase 3: `ToolPageReadinessSnapshot`/`ToolPageReadinessReasonCode` → `ReadinessSnapshot`/`ReadinessReasonCode` con alias backward-compat (DDD-014); ridefinizione locale rimossa da `ToolGenerationFlowVertical.tsx`. Phase 4: decision log aggiornato DDD-012..014; glossario aggiornato con 4 alias deprecati. Typecheck 1 errore pre-esistente, 1 test pre-esistente fallito — nessuna regressione introdotta.
 - **✅ DDD Ubiquitous Language — review documentazione attiva (2026-05-03)**: rilevati e corretti 4 drift in 4 spec attive. (1) `tool-generation-flow-source-of-truth-spec`: `ToolStepStatus` usava `'completed'` invece del valore canonico `'done'`; (2) `xstate-system-as-is-spec`: riferimento SSE privo del termine canonico `BackendStreamEvent`; (3) `frontend-tool-pages-architecture-spec`: `ToolKey` non relazionato a `SupportedTool` canonico; (4) `tool-generation-structural-ux-flow-spec`: `extractionContext` corretto in `ExtractionContext`. Decision log aggiornato: DDD-011 approvato, DDD-C-003 risolto.
 - **✅ DDD Ubiquitous Language — prima analisi completa**: glossario con 39 termini canonici distribuiti su 4 bounded context (Generation, Auth, Usage/Quota, Frontend/UI); bounded context map con attori XState, responsabilità e regole di traduzione cross-context; 10 naming decision approvate + 3 conflitti risolti nel decision log. Istruzione `.github/instructions/dominio-ubiquitous-language.instructions.md` aggiornata con tabella dei termini critici da non confondere. Tutti e tre i documenti canonici promossi da `draft` ad `active`.

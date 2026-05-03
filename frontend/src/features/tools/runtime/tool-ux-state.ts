@@ -1,52 +1,24 @@
 /**
- * Canonical UI state derivation for tool pages
- * Maps complex tool state to a single canonical state for consistent UI rendering
- * 
- * This enables:
- * - Unified feedback messages across tools
- * - Consistent CTA behavior based on state transitions
- * - Step-specific UI rendering logic
- * - Progressive enhancement from empty → processing → ready → running → completed
+ * @deprecated This file re-exports canonical types from `../../generation/ui/tool-ux-state`.
+ * Import directly from `../../generation/ui/tool-ux-state` for new code.
+ *
+ * This file retains only the legacy deprecated `deriveCanonicalToolUiState` overload
+ * (old-style input) and its associated types, which are kept for backward compatibility
+ * until `useToolForm.ts` is fully migrated to `toolPageMachine`.
  */
 
 import type { ToolStep, SupportedTool, ToolStepStatus } from '../machines/tool-flow.machine';
 import { getToolFormConfig } from './tool-form-architecture';
 
-/**
- * Canonical UI states for tool generation workflow
- * Each state maps to specific UI feedback, CTAs, and form behavior
- */
-export type CanonicalToolUiState =
-  | 'draft-empty'                    // Initial state: form empty, briefing not uploaded
-  | 'processing-briefing'            // Briefing upload/extraction in progress
-  | 'draft-ready'                    // Form ready: project selected, briefing uploaded, next step available
-  | 'prefilled-regenerate'           // Previous generation completed, can regenerate with same briefing
-  | 'paused-with-checkpoint'         // Generation paused at a step, can resume from checkpoint
-  | 'resume-needs-briefing'          // Resuming requires new briefing (e.g., different project)
-  | 'running'                        // Generation stream active
-  | 'completed';                     // All steps completed
+import type {
+  CanonicalToolUiState,
+  PrimaryActionPolicy,
+  SecondaryActionFlags,
+} from '../../generation/ui/tool-ux-state';
 
-/**
- * Primary action policy based on canonical state
- * Determines the main CTA label and behavior
- */
-export type PrimaryActionPolicy =
-  | 'disabled'                       // Form not ready, CTA disabled
-  | 'start-generation'               // Start generation with new briefing
-  | 'resume-checkpoint'              // Resume from previous checkpoint
-  | 'open-last-artifact'             // Open the most recent artifact (read-only mode)
-  | 'regenerate-current-step';       // Regenerate current step with new parameters
+export type { CanonicalToolUiState, PrimaryActionPolicy, SecondaryActionFlags };
 
-/**
- * Secondary action eligibility flags
- * Determines which secondary CTAs are visible/enabled
- */
-export type SecondaryActionFlags = {
-  canRetry: boolean;                 // Failed step can be retried
-  canSkipStep: boolean;              // Current step can be skipped
-  canCancelGeneration: boolean;      // Active generation can be cancelled
-  canOpenPreviousArtifact: boolean;  // Navigate to previous step's artifact
-};
+export { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 /**
  * Input parameters for deriving canonical UI state
@@ -230,80 +202,3 @@ export const deriveCanonicalToolUiState = (input: ToolUiDerivationInput): ToolUi
   };
 };
 
-/**
- * Derive primary action CTA label and enable state based on primary action policy
- * Use this to set button text and disabled state
- * 
- * @example
- * ```ts
- * const policy = output.primaryActionPolicy;
- * const { label, disabled } = derivePrimaryActionLabel(policy);
- * // policy 'start-generation' → label: 'Start Generation', disabled: false
- * ```
- */
-export const derivePrimaryActionLabel = (
-  policy: PrimaryActionPolicy,
-): { label: string; disabled: boolean; tooltip?: string } => {
-  switch (policy) {
-    case 'disabled':
-      return {
-        label: 'Completa il form per iniziare',
-        disabled: true,
-        tooltip: 'Seleziona un progetto e carica un documento di brief',
-      };
-
-    case 'start-generation':
-      return {
-        label: 'Avvia la generazione',
-        disabled: false,
-      };
-
-    case 'resume-checkpoint':
-      return {
-        label: 'Riprendi dal checkpoint',
-        disabled: false,
-        tooltip: 'Continua dal punto in cui la generazione è stata interrotta',
-      };
-
-    case 'open-last-artifact':
-      return {
-        label: 'Visualizza i risultati',
-        disabled: false,
-        tooltip: "Apri l'artefatto generato",
-      };
-
-    case 'regenerate-current-step':
-      return {
-        label: 'Rigenera',
-        disabled: false,
-        tooltip: 'Rigenera con i nuovi parametri',
-      };
-  }
-};
-
-/**
- * Build UI state from ToolFormState and runtime generation state
- * Convenience function for ToolPageTemplate
- * 
- * Usage in hook:
- * ```ts
- * export const useToolUiState = (toolKey: SupportedTool, formState: ToolFormState, runtimeState: {...}) => {
- *   return useMemo(() =>
- *     deriveCanonicalToolUiState({
- *       toolKey,
- *       projectId: formState.projectId,
- *       briefingFile: formState.briefingFile,
- *       briefingStatus: formState.briefingStatus,
- *       isGenerationStreamActive: runtimeState.isStreamActive,
- *       completedSteps: runtimeState.completedSteps,
- *       currentRunningStep: runtimeState.currentRunningStep,
- *       hasCompletedPreviousGeneration: runtimeState.hasAnyArtifacts,
- *       lastCheckpointStep: runtimeState.lastCheckpointStep ?? null,
- *       nextAvailableStep: runtimeState.nextAvailableStep ?? null,
- *       generationError: runtimeState.lastError ?? null,
- *     }),
- *     [toolKey, formState, runtimeState],
- *   );
- * };
- * ```
- */

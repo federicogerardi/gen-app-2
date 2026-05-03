@@ -14,6 +14,9 @@ export type GenerationRequest = {
   outputFormat?: OutputFormat;
   registryVersion?: string;
   registrySnapshotRef?: string;
+  briefingId?: string | null;
+  extractionArtifactId?: string | null;
+  stepDependencyArtifactIds?: string[] | null;
 };
 
 export type BackendStreamEvent =

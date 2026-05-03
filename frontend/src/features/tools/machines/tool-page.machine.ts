@@ -54,9 +54,6 @@ export type ReadinessSnapshot = {
   reasonCodes: ReadinessReasonCode[];
 };
 
-export type ToolPageReadinessReasonCode = ReadinessReasonCode;
-export type ToolPageReadinessSnapshot = ReadinessSnapshot;
-
 export type ToolPageViewModel = {
   readiness: ReadinessSnapshot;
   canonicalState: CanonicalToolUiState;

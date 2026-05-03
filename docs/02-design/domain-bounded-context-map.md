@@ -76,7 +76,7 @@ owner: Domain Architecture
 - `toolFlowMachine` — step-by-step generation flow
 - `frontendStreamMachine` — SSE stream consumer
 
-**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`  
+**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`  
 **Key Domain Services**: `BriefingUpload`, `StepHydration`
 
 ---

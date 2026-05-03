@@ -39,7 +39,7 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
   const apiBaseUrl =
     (import.meta.env.VITE_API_BASE_URL as string | undefined)
     ?? DEFAULT_API_BASE;
-  const capabilities = readBackendCapabilities();
+  const capabilities = useMemo(() => readBackendCapabilities(), []);
 
   const [snapshot, send] = useMachine(authSessionMachine, {
     input: { apiBaseUrl },

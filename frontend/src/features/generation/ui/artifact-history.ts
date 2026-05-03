@@ -136,6 +136,11 @@ export const buildArtifactEntryQuery = (
   const params = new URLSearchParams();
   params.set('intent', intent);
   params.set('projectId', artifact.projectId.trim());
+
+  if (intent === 'new') {
+    return params.toString();
+  }
+
   params.set('sourceArtifactId', artifact.artifactId);
   params.set('relaunchFromArtifactId', artifact.artifactId);
 

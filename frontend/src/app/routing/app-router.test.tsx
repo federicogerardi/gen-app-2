@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
+import { createAppRouter } from './app-router';
 
 // Minimal stubs for route smoke tests
 vi.mock('../../app/providers/AuthSessionProvider', () => ({
@@ -20,6 +21,43 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
 vi.mock('../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
   GenerationWorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../layouts/AuthenticatedShell', () => ({
+  AuthenticatedShell: () => <Outlet />,
+}));
+
+vi.mock('../layouts/PublicShell', () => ({
+  PublicShell: () => <div data-testid="public-shell">public</div>,
+}));
+
+vi.mock('../../features/admin/routing/admin-guard', () => ({
+  AdminGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
+  FunnelPagesToolPage: () => {
+    const navigate = useNavigate();
+
+    return (
+      <button type="button" onClick={() => navigate('/artifacts')}>
+        Visualizza i risultati
+      </button>
+    );
+  },
+}));
+
+vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
+  ArtifactsPage: () => (
+    <div data-testid="artifacts-listing">
+      Artifacts listing loaded
+      <Link to="/artifacts/art-1">Apri dettaglio artifact</Link>
+    </div>
+  ),
+}));
+
+vi.mock('../../features/artifacts/pages/ArtifactDetailPage', () => ({
+  ArtifactDetailPage: () => <div data-testid="artifact-detail-page">Artifact detail loaded</div>,
 }));
 
 const PlaceholderPage = ({ label }: { label: string }) => <div data-testid="page">{label}</div>;
@@ -60,5 +98,33 @@ describe('app router – smoke', () => {
     // Without a guard wrapper we verify only that the router resolves; the real
     // guard is tested in AuthenticatedShell's own render path.
     expect(screen.getByTestId('dash')).toBeInTheDocument();
+  });
+});
+
+describe('app router – integration', () => {
+  it('follows SPA flow tool completed -> CTA -> artifacts listing', async () => {
+    window.history.pushState({}, '', '/tools/funnel-pages');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    const cta = await screen.findByRole('button', { name: /visualizza i risultati/i });
+    cta.click();
+
+    expect(await screen.findByTestId('artifacts-listing')).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('navigates from /artifacts listing item to /artifacts/:id detail route', async () => {
+    window.history.pushState({}, '', '/artifacts');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    const openDetailLink = await screen.findByRole('link', { name: /apri dettaglio artifact/i });
+    fireEvent.click(openDetailLink);
+
+    expect(await screen.findByTestId('artifact-detail-page')).toBeInTheDocument();
+    router.dispose();
   });
 });

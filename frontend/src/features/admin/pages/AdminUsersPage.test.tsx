@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
 import { AdminUsersPage } from './AdminUsersPage';
@@ -9,6 +9,9 @@ import { AdminGuard } from '../routing/admin-guard';
 
 // Mutable session bag so individual tests can change role
 const sessionBag = { role: 'member' as string | null };
+const authBag = {
+  capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+};
 type TestAdminUser = {
   id: string;
   email: string;
@@ -25,7 +28,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+    capabilities: authBag.capabilities,
   }),
 }));
 
@@ -219,5 +222,40 @@ describe('AdminUsersPage', () => {
       expect(screen.getByText(/status: disabled/i)).toBeInTheDocument();
     });
     expect(screen.getByText('Utente disabilitato.')).toBeInTheDocument();
+  });
+
+  it('refetches remote admin users after SPA navigation remount', async () => {
+    sessionBag.role = 'admin';
+    let requestCount = 0;
+
+    useMswHandler(http.get('/admin/users', () => {
+      requestCount += 1;
+      return HttpResponse.json([
+        {
+          id: `u${requestCount}`,
+          email: `admin-${requestCount}@test.com`,
+          role: 'admin',
+          status: 'active',
+        },
+      ]);
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/start']}>
+        <Routes>
+          <Route
+            path="/start"
+            element={<Link to="/admin">Apri admin</Link>}
+          />
+          <Route path="/admin" element={<AdminUsersPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Apri admin' }));
+    expect(await screen.findByText('admin-1@test.com')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestCount).toBe(1);
+    });
   });
 });

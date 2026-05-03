@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useMswHandler } from '../../../test/mocks/server';
 import { ArtifactsPage } from './ArtifactsPage';
 
@@ -83,5 +83,68 @@ describe('ArtifactsPage', () => {
     );
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/Unable to list artifacts/i);
+  });
+
+  it('refetches remote artifacts after SPA navigation remount', async () => {
+    authBag.capabilities = { projects: false, models: false, artifacts: true, toolsUpload: false, adminModels: false };
+    let requestCount = 0;
+
+    useMswHandler(
+      http.get('/api/artifacts', () => {
+        requestCount += 1;
+
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            artifacts: [
+              {
+                artifactId: `a${requestCount}`,
+                requestId: `r${requestCount}`,
+                projectId: 'p1',
+                artifactType: 'content',
+                status: 'completed',
+                model: 'gpt-4',
+                toolKey: null,
+                workflowType: null,
+                content: `artifact ${requestCount}`,
+                createdAt: '2026-04-27T10:00:00.000Z',
+                updatedAt: '2026-04-27T10:00:00.000Z',
+                sourceRequest: {
+                  requestId: `r${requestCount}`,
+                  userId: 'u1',
+                  projectId: 'p1',
+                  artifactType: 'content',
+                  model: 'gpt-4',
+                  input: {},
+                  toolKey: null,
+                  workflowType: null,
+                },
+              },
+            ],
+          },
+        });
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/start']}>
+        <Routes>
+          <Route
+            path="/start"
+            element={<Link to="/artifacts">Apri artifacts</Link>}
+          />
+          <Route
+            path="/artifacts"
+            element={<ArtifactsPage />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('link', { name: 'Apri artifacts' }));
+    expect(await screen.findByText('content')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(requestCount).toBe(1);
+    });
   });
 });

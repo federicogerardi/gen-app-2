@@ -95,9 +95,10 @@ owner: Domain Architecture
 | BriefingUpload | Domain Service | The frontend actor managing the lifecycle of a briefing file: upload, extraction, normalization, and recovery from prior extraction artifacts. | `frontend/src/features/tools/machines/briefing-upload.machine.ts` | canonical |
 | BriefingFile | Value Object | The uploaded source file (txt, md, docx) from which extraction context is derived. | `frontend/src/features/tools/machines/briefing-upload.machine.ts` (field `file`) | canonical |
 | ExtractionContext | Value Object | The structured payload extracted from a BriefingFile, used as input context for generation steps. | `frontend/src/features/generation/machines/frontend-stream.machine.ts:21` | canonical |
-| HydrationResult | Value Object | The complete state snapshot produced when loading prior artifact history into a ToolPage session, including extraction payload, briefing reference, and normalized text. | `frontend/src/features/tools/machines/tool-page.machine.ts:22-30` | canonical |
+| HydrationResult | Value Object | The complete state snapshot produced when entering a ToolPage from an existing Artifact. Resolution is deterministic by source `ArtifactType`: `extraction` artifacts are hydrated directly, while `content` artifacts hydrate by resolving the referenced extraction context (`briefingId` and/or `extractionArtifactId`). | `frontend/src/features/tools/machines/tool-page.machine.ts:22-30`, `frontend/src/features/tools/machines/tool-page.machine.ts:506-606` | canonical |
 | StepHydration | Domain Service | The process of recovering prior WorkflowStep completion state from artifact history to enable resume/regenerate flows. | `frontend/src/features/generation/runtime/step-hydration.ts` | canonical |
 | GenerationArtifact | Value Object | The frontend read model of an artifact as displayed in artifact history, carrying step association and content. | `frontend/src/features/generation/ui/artifact-history.ts` | canonical |
+| ArtifactRelaunch | Concept | The user action that starts a new generation cycle from an existing Artifact by opening the ToolPage in a hydrated ready state (project and extraction context preloaded), regardless of source `ArtifactType`. Domain UX requires one relaunch concept and one effective primary CTA to start generation. | `frontend/src/features/generation/ui/artifact-history.ts:28-34`, `frontend/src/features/tools/ui/ToolPageTemplate.tsx:225-237`, `frontend/src/features/tools/machines/tool-page.machine.ts:909-946` | canonical |
 
 ---
 
@@ -118,3 +119,4 @@ owner: Domain Architecture
 | `ToolRegistrySnapshotRef` | RegistrySnapshotRef | Former name in `src/lib/types/xstate.ts`. Deprecated DDD-015; backward-compat alias maintained. |
 | `StreamUsageMetrics` | LlmUsageMetrics | Former interface in `xstate.ts`. Deprecated DDD-016; backward-compat alias `StreamUsageMetrics = LlmUsageMetrics` maintained. |
 | `PersistedArtifactStatus` | ArtifactStatus | Former type in `generation.adapters.ts`. Deprecated DDD-017; backward-compat alias `PersistedArtifactStatus = ArtifactStatus` maintained. |
+| `relaunchPrimary` / `relaunchSecondary` (UI copy keys) | ArtifactRelaunch | UI labels in artifact detail currently expose two buttons for one domain concept. Canonical UL keeps a single `ArtifactRelaunch` concept and a single effective generation-start CTA after hydration. |

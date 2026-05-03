@@ -1,4 +1,5 @@
 import type { ArtifactType, GenerationRequest } from '../contracts/backend-stream';
+import { generateRequestId, normalizeIdentifier, readInputField } from '../../../app/runtime/shared-utils';
 
 export type ArtifactLifecycleStatus = 'generating' | 'completed' | 'failed';
 export type ArtifactPeriodFilter = 'all' | '7d' | '30d' | '90d';
@@ -83,39 +84,12 @@ export const filterArtifacts = (
   });
 };
 
-const randomId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `req-${Date.now()}`;
-};
-
-const normalizeToolKey = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase().replace(/_/g, '-');
-  return normalized.length > 0 ? normalized : null;
-};
-
-const readInputString = (request: GenerationRequest, key: string): string | null => {
-  const value = request.input[key];
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
 export const resolveToolRouteFromArtifact = (artifact: GenerationArtifact): string | null => {
   const candidates = [
-    normalizeToolKey(artifact.toolKey),
-    normalizeToolKey(artifact.workflowType),
-    normalizeToolKey(artifact.sourceRequest.toolKey),
-    normalizeToolKey(artifact.sourceRequest.workflowType),
+    normalizeIdentifier(artifact.toolKey),
+    normalizeIdentifier(artifact.workflowType),
+    normalizeIdentifier(artifact.sourceRequest.toolKey),
+    normalizeIdentifier(artifact.sourceRequest.workflowType),
   ];
 
   if (candidates.includes('funnel-pages')) {
@@ -138,28 +112,43 @@ export const buildArtifactEntryQuery = (
   params.set('projectId', artifact.projectId.trim());
 
   if (intent === 'new') {
+    // Keep the relaunch entry deterministic: ToolPage hydration needs sourceArtifactId.
+    params.set('sourceArtifactId', artifact.artifactId);
+
+    // Preserve explicit brief references when available so hydration can stay bound
+    // to the source artifact brief instead of generic project fallback.
+    const briefingId = readInputField(artifact.sourceRequest, 'briefingId');
+    if (briefingId) {
+      params.set('briefingId', briefingId);
+    }
+
+    const extractionArtifactId = readInputField(artifact.sourceRequest, 'extractionArtifactId');
+    if (extractionArtifactId) {
+      params.set('extractionArtifactId', extractionArtifactId);
+    }
+
     return params.toString();
   }
 
   params.set('sourceArtifactId', artifact.artifactId);
   params.set('relaunchFromArtifactId', artifact.artifactId);
 
-  const tone = readInputString(artifact.sourceRequest, 'tone');
+  const tone = readInputField(artifact.sourceRequest, 'tone');
   if (tone) {
     params.set('tone', tone);
   }
 
-  const notes = readInputString(artifact.sourceRequest, 'notes');
+  const notes = readInputField(artifact.sourceRequest, 'notes');
   if (notes) {
     params.set('notes', notes);
   }
 
-  const briefingId = readInputString(artifact.sourceRequest, 'briefingId');
+  const briefingId = readInputField(artifact.sourceRequest, 'briefingId');
   if (briefingId) {
     params.set('briefingId', briefingId);
   }
 
-  const briefingFileName = readInputString(artifact.sourceRequest, 'briefingFileName');
+  const briefingFileName = readInputField(artifact.sourceRequest, 'briefingFileName');
   if (briefingFileName) {
     params.set('briefingFileName', briefingFileName);
   }
@@ -188,7 +177,7 @@ export const buildRelaunchRequest = (
 
   return {
     ...requestWithoutIdempotency,
-    requestId: randomId(),
+    requestId: generateRequestId(),
     input: {
       ...artifact.sourceRequest.input,
       relaunchFromArtifactId: artifact.artifactId,

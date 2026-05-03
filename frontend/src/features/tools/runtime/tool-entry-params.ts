@@ -8,6 +8,7 @@ export type ToolEntryParams = {
   relaunchNotes: string | null;
   relaunchFromArtifactId: string | null;
   briefingId: string | null;
+  extractionArtifactId: string | null;
   briefingFileName: string | null;
 };
 
@@ -37,6 +38,7 @@ export const parseToolEntryParams = (searchParams: URLSearchParams): ToolEntryPa
     relaunchNotes: parseOptionalString(searchParams.get('notes')),
     relaunchFromArtifactId: parseOptionalString(searchParams.get('relaunchFromArtifactId')),
     briefingId: parseOptionalString(searchParams.get('briefingId')),
+    extractionArtifactId: parseOptionalString(searchParams.get('extractionArtifactId')),
     briefingFileName: parseOptionalString(searchParams.get('briefingFileName')),
   };
 };

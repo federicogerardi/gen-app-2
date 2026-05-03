@@ -21,6 +21,7 @@ export const NextlandToolPage = () => {
 			relaunchNotes={params.relaunchNotes}
 			relaunchFromArtifactId={params.relaunchFromArtifactId}
 			briefingId={params.briefingId}
+			extractionArtifactId={params.extractionArtifactId}
 			briefingFileName={params.briefingFileName}
 		/>
 	);

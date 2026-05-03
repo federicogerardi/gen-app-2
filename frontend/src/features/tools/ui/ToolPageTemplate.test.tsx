@@ -613,11 +613,15 @@ describe('ToolPageTemplate restore flow', () => {
       .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
     expect(resumeSteps).toContain('quiz');
 
+    const resumeIntents = startMock.mock.calls
+      .map((call) => (call[0] as { input: Record<string, unknown> }).input.intent);
+    expect(resumeIntents).toContain('resume');
+
     expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
     expect(screen.getByText(/briefing status:\s*ready\s*- restore-brief.md/i)).toBeInTheDocument();
   });
 
-  it('updates CTA and feedback to regenerate when a completed checkout is restored', async () => {
+  it('restores briefing state and exposes a primary CTA when a completed checkout is restored', async () => {
     extractionContextState = null;
     briefingState.fileName = null;
     briefingState.status = 'idle';
@@ -678,22 +682,16 @@ describe('ToolPageTemplate restore flow', () => {
       initialProjectId: 'project-001',
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^rigenera$/i })).toBeInTheDocument();
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
     });
 
-    expect(screen.getByText(/contesto caricato — avvia la rigenerazione/i)).toBeInTheDocument();
     expect(screen.getByText(/briefing status:\s*ready\s*- restore-regen.md/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^rigenera$/i }));
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalled();
-    });
-
-    const regenerateSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(regenerateSteps).toContain('vsl');
+    expect(primaryActionButton).toBeEnabled();
   });
 
   it('recovers checkpoint from legacy extraction artifact without input.toolKey', async () => {

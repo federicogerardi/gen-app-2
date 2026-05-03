@@ -548,6 +548,35 @@ const makeExtractionArtifact = (overrides: Partial<GenerationArtifact> = {}): Ge
   ...overrides,
 });
 
+const makeContentArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
+  artifactId: 'cnt-1',
+  requestId: 'req-cnt-1',
+  projectId: 'project-1',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'openrouter/auto',
+  toolKey: 'funnel-pages',
+  workflowType: 'funnel-pages',
+  content: 'generated content',
+  createdAt: '2026-05-01T00:00:00.000Z',
+  updatedAt: '2026-05-01T00:00:00.000Z',
+  sourceRequest: {
+    requestId: 'req-cnt-1',
+    userId: 'user-1',
+    projectId: 'project-1',
+    artifactType: 'content',
+    model: 'openrouter/auto',
+    toolKey: 'funnel-pages',
+    workflowType: 'funnel-pages',
+    input: {
+      step: 'optin',
+      briefingId: 'brief-1',
+      extractionArtifactId: 'ext-1',
+    },
+  },
+  ...overrides,
+});
+
 describe('toolPageMachine – Phase 2 hydration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -583,6 +612,114 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(ctx.hydrationError).toBeNull();
     // briefingActor should have transitioned to ready via EXTRACTION_RECOVERED
     expect(ctx.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
+  });
+
+  it('hydration deterministic branch: source extraction artifact is resolved directly via getArtifactById', async () => {
+    const extractionArtifact = makeExtractionArtifact({ artifactId: 'ext-direct' });
+    vi.mocked(getArtifactById).mockResolvedValue(extractionArtifact);
+
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'new',
+      sourceArtifactId: 'ext-direct',
+      localArtifacts: [extractionArtifact],
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(vi.mocked(getArtifactById)).toHaveBeenCalledWith(
+      'ext-direct',
+      expect.objectContaining({ localArtifacts: [extractionArtifact] }),
+    );
+    expect(vi.mocked(listArtifacts)).not.toHaveBeenCalled();
+    expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-direct');
+    expect(ctx.readiness.canStartFlow).toBe(true);
+  });
+
+  it('hydration deterministic branch: source content artifact resolves via linked extraction lookup', async () => {
+    const contentArtifact = makeContentArtifact({ artifactId: 'cnt-source' });
+    const linkedExtraction = makeExtractionArtifact({
+      artifactId: 'ext-linked',
+      sourceRequest: {
+        requestId: 'req-ext-linked',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'extraction',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        input: { briefingId: 'brief-linked', toolKey: 'funnel-pages' },
+      },
+    });
+
+    vi.mocked(getArtifactById).mockResolvedValue(contentArtifact);
+    vi.mocked(listArtifacts).mockResolvedValue([linkedExtraction]);
+
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'new',
+      sourceArtifactId: 'cnt-source',
+      resolvedBriefingId: 'brief-linked',
+      sourceExtractionArtifactId: 'ext-linked',
+      localArtifacts: [contentArtifact, linkedExtraction],
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(vi.mocked(getArtifactById)).toHaveBeenCalledWith(
+      'cnt-source',
+      expect.objectContaining({ localArtifacts: [contentArtifact, linkedExtraction] }),
+    );
+    expect(vi.mocked(listArtifacts)).toHaveBeenCalled();
+    expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-linked');
+    expect(ctx.readiness.canStartFlow).toBe(true);
+  });
+
+  it('does not hydrate content source artifact without brief references', async () => {
+    const contentArtifactWithoutRefs = makeContentArtifact({
+      artifactId: 'cnt-without-refs',
+      sourceRequest: {
+        requestId: 'req-cnt-without-refs',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'content',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        input: {
+          step: 'optin',
+        },
+      },
+    });
+
+    vi.mocked(getArtifactById).mockResolvedValue(contentArtifactWithoutRefs);
+    vi.mocked(listArtifacts).mockResolvedValue([makeExtractionArtifact({ artifactId: 'ext-unrelated' })]);
+
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'new',
+      sourceArtifactId: 'cnt-without-refs',
+      localArtifacts: [contentArtifactWithoutRefs],
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(ctx.hydrationResult).toBeNull();
+    expect(ctx.hydrationError).toBe('missing_extraction_reference');
+    expect(ctx.readiness.hasExtractionContext).toBe(false);
+    expect(ctx.readiness.canStartFlow).toBe(false);
   });
 
   it('hydration failure: transitions back to configuring with hydrationError set and viewModel.messages.error populated', async () => {

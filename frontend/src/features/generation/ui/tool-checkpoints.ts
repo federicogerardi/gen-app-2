@@ -53,6 +53,34 @@ export const selectBestCheckpointForProject = (
   return sortCheckpointsForResume(filtered)[0] ?? null;
 };
 
+/**
+ * Select a checkpoint for a project with optional preferred checkpoint ID.
+ * Consolidates the pattern of filtering by project, then selecting by ID or best match.
+ * Returns the preferred checkpoint if ID provided and found, otherwise the best checkpoint for project,
+ * or null if no checkpoints available or projectId empty.
+ */
+export const selectCheckpointForProject = (
+  checkpoints: ToolCheckpoint[],
+  projectId: string,
+  preferredCheckpointId?: string,
+): ToolCheckpoint | null => {
+  const normalizedProjectId = projectId.trim();
+  if (normalizedProjectId.length === 0) {
+    return null;
+  }
+
+  const filtered = checkpoints.filter((checkpoint) => checkpoint.projectId === normalizedProjectId);
+  if (filtered.length === 0) {
+    return null;
+  }
+
+  if (preferredCheckpointId) {
+    return filtered.find((c) => c.artifactId === preferredCheckpointId) ?? null;
+  }
+
+  return sortCheckpointsForResume(filtered)[0] ?? null;
+};
+
 export const shouldRequireBriefingForResume = (
   checkpoint: Pick<ToolCheckpoint, 'extractionContextAvailable'> | null,
 ): boolean => {

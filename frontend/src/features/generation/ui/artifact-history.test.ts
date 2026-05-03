@@ -100,7 +100,7 @@ describe('artifact history', () => {
     expect(query.get('briefingFileName')).toBe('brief.md');
   });
 
-  it('builds tool entry query for new relaunch intent', () => {
+  it('builds tool entry query for new relaunch intent preserving sourceArtifactId and brief references', () => {
     const sourceArtifact = artifact({
       artifactId: 'art-new-route',
       projectId: 'project-99',
@@ -111,6 +111,7 @@ describe('artifact history', () => {
           tone: 'friendly',
           notes: 'stale note',
           briefingId: 'brief-stale',
+          extractionArtifactId: 'ext-stale',
           briefingFileName: 'brief-stale.md',
         },
       },
@@ -120,11 +121,12 @@ describe('artifact history', () => {
 
     expect(query.get('intent')).toBe('new');
     expect(query.get('projectId')).toBe('project-99');
-    expect(query.get('sourceArtifactId')).toBeNull();
+    expect(query.get('sourceArtifactId')).toBe('art-new-route');
+    expect(query.get('briefingId')).toBe('brief-stale');
+    expect(query.get('extractionArtifactId')).toBe('ext-stale');
     expect(query.get('relaunchFromArtifactId')).toBeNull();
     expect(query.get('tone')).toBeNull();
     expect(query.get('notes')).toBeNull();
-    expect(query.get('briefingId')).toBeNull();
     expect(query.get('briefingFileName')).toBeNull();
   });
 
@@ -154,7 +156,7 @@ describe('artifact history', () => {
     expect(buildToolEntryPathFromArtifact(unsupported, 'resume')).toBeNull();
   });
 
-  it('builds clean tool entry path for new intent', () => {
+  it('builds deterministic tool entry path for new intent', () => {
     const supported = artifact({
       artifactId: 'art-supported-new',
       projectId: 'project-clean',
@@ -167,11 +169,12 @@ describe('artifact history', () => {
           tone: 'friendly',
           notes: 'carry-over',
           briefingId: 'brief-1',
+          extractionArtifactId: 'ext-1',
           briefingFileName: 'brief-1.md',
         },
       },
     });
 
-    expect(buildToolEntryPathFromArtifact(supported, 'new')).toBe('/tools/funnel-pages?intent=new&projectId=project-clean');
+    expect(buildToolEntryPathFromArtifact(supported, 'new')).toBe('/tools/funnel-pages?intent=new&projectId=project-clean&sourceArtifactId=art-supported-new&briefingId=brief-1&extractionArtifactId=ext-1');
   });
 });

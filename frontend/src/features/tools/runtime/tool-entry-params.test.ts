@@ -41,6 +41,7 @@ describe('tool-entry-params', () => {
         notes: ' note ',
         relaunchFromArtifactId: ' rel-1 ',
         briefingId: ' brief-1 ',
+        extractionArtifactId: ' ext-1 ',
         briefingFileName: ' file.md ',
       });
 
@@ -52,6 +53,7 @@ describe('tool-entry-params', () => {
         relaunchNotes: 'note',
         relaunchFromArtifactId: 'rel-1',
         briefingId: 'brief-1',
+        extractionArtifactId: 'ext-1',
         briefingFileName: 'file.md',
       });
     });
@@ -67,6 +69,7 @@ describe('tool-entry-params', () => {
         relaunchNotes: null,
         relaunchFromArtifactId: null,
         briefingId: null,
+        extractionArtifactId: null,
         briefingFileName: null,
       });
     });

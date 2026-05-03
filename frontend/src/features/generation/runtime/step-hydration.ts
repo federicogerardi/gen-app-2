@@ -1,22 +1,15 @@
 import type { GenerationArtifact } from '../ui/artifact-history';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
 import type { ExtractionContext } from './GenerationWorkspaceProvider';
+import { normalizeIdentifier } from '../../../app/runtime/shared-utils';
 
-const normalize = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase().replace(/_/g, '-');
-  return normalized.length > 0 ? normalized : null;
-};
 
 export const belongsToTool = (artifact: GenerationArtifact, toolKey: SupportedTool): boolean => {
   const candidates = [
-    normalize(artifact.toolKey),
-    normalize(artifact.workflowType),
-    normalize(artifact.sourceRequest.toolKey),
-    normalize(artifact.sourceRequest.workflowType),
+    normalizeIdentifier(artifact.toolKey),
+    normalizeIdentifier(artifact.workflowType),
+    normalizeIdentifier(artifact.sourceRequest.toolKey),
+    normalizeIdentifier(artifact.sourceRequest.workflowType),
   ];
 
   return candidates.includes(toolKey);
@@ -96,6 +89,16 @@ export const collectCompletedRunSteps = (
       .map((artifact) => artifact.sourceRequest.input?.step)
       .filter((step): step is ToolStep => typeof step === 'string'),
   );
+};
+
+/**
+ * Extract the step value from an artifact's source request input.
+ * Consolidates the pattern `artifact?.sourceRequest.input?.step` that appears 6+ times.
+ * Returns null if step is not a string or artifact is null.
+ */
+export const extractArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
+  const step = artifact?.sourceRequest.input?.step;
+  return typeof step === 'string' ? (step as ToolStep) : null;
 };
 
 export const buildExtractionContextFromArtifact = (

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
@@ -826,6 +826,71 @@ describe('ToolPageTemplate restore flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
 
+    expect(startMock).not.toHaveBeenCalled();
+  });
+
+  it('completed CTA navigates to artifacts archive instead of a single artifact detail', async () => {
+    extractionContextState = makeExtractionContext();
+    briefingState.fileName = 'completed-brief.md';
+    briefingState.status = 'ready';
+    briefingState.extractionContext = makeExtractionContext();
+    generationState.artifacts = [
+      defaultExtractionArtifact,
+      {
+        artifactId: 'art-optin-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'optin' },
+        },
+        content: 'optin',
+      },
+      {
+        artifactId: 'art-quiz-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'quiz' },
+        },
+        content: 'quiz',
+      },
+      {
+        artifactId: 'art-vsl-completed',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: {
+          input: { step: 'vsl' },
+        },
+        content: 'vsl',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = [];
+
+    render(
+      <MemoryRouter initialEntries={['/tools/funnel-pages']}>
+        <Routes>
+          <Route
+            path="/tools/funnel-pages"
+            element={<ToolPageTemplate toolKey="funnel-pages" intent="new" initialProjectId="project-001" sourceArtifactId={null} />}
+          />
+          <Route path="/artifacts" element={<div>Artifacts archive page</div>} />
+          <Route path="/artifacts/:id" element={<div>Artifact detail page</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
+
+    expect(await screen.findByText('Artifacts archive page')).toBeInTheDocument();
+    expect(screen.queryByText('Artifact detail page')).toBeNull();
     expect(startMock).not.toHaveBeenCalled();
   });
 });

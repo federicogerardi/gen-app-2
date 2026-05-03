@@ -465,20 +465,13 @@ export const ToolPageTemplate = ({
     return true;
   };
 
-  const openLatestArtifact = (): void => {
-    const latestArtifactId = [...toolConfig.steps]
-      .reverse()
-      .map((step) => latestArtifactByStep[step]?.artifactId)
-      .find((artifactId): artifactId is string => typeof artifactId === 'string' && artifactId.length > 0);
-
-    if (latestArtifactId) {
-      void navigate(`/artifacts/${latestArtifactId}`);
-    }
+  const openResultsArchive = (): void => {
+    void navigate('/artifacts');
   };
 
   const handlePrimaryAction = (): void => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      openLatestArtifact();
+      openResultsArchive();
       return;
     }
 

@@ -8,10 +8,10 @@ import type {
 import type {
   IdempotencyDecision,
   LlmStreamAdapter,
-  PersistedArtifactStatus,
   UsageDecision,
 } from './generation.adapters';
 import { createSyntheticLlmStreamAdapter } from './generation.adapters';
+import type { ArtifactStatus } from '../types/artifact';
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import type {
   ArtifactDetail,
@@ -47,7 +47,7 @@ type StubIdempotencyRecord = {
 };
 
 type StubArtifactRecord = {
-  status: PersistedArtifactStatus;
+  status: ArtifactStatus;
   content: string;
   updatedAt: string;
 };

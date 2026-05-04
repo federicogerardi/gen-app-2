@@ -15,7 +15,8 @@ import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { briefingUploadMachine } from '../machines/briefing-upload.machine';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig, mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
-import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
+import { createStepRequest } from '../runtime/tool-generation-engine';
+import { orchestrateToolStep } from '../runtime/tools-client';
 import {
   useProjectsLoader,
   useToolFormInit,
@@ -588,7 +589,19 @@ export const ToolPageTemplate = ({
       },
     };
 
-    const dependencies = getStepDependencies(toolKey, completedArtifactsByStep, step);
+    let orchestrationResult;
+    try {
+      orchestrationResult = await orchestrateToolStep(
+        normalizedProjectId,
+        toolKey,
+        step,
+        { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
+      );
+    } catch (err) {
+      console.error('[ToolPageTemplate] orchestrateToolStep failed — generation blocked', { toolKey, step, err });
+      return false;
+    }
+    const dependencies = orchestrationResult.dependencyArtifactIdsByStep;
     const dependencyArtifactContentsByStep = Object.fromEntries(
       Object.entries(dependencies)
         .map(([stepKey, artifactId]): [string, string] => {

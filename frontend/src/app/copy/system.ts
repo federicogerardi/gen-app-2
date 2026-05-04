@@ -47,7 +47,6 @@ export const appCopy = {
       useCheckpointRegenerate: 'Rigenera con nuovi parametri',
       historyBack: 'Torna allo storico',
       relaunchPrimary: 'Avvia di nuovo',
-      relaunchSecondary: 'Rigenera con nuovi parametri',
       deleteUiOnly: 'Rimuovi dalla vista',
       copyContent: 'Copia contenuto',
       copied: 'Copiato!',

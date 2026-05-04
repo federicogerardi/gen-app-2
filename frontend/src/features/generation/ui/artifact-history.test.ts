@@ -16,8 +16,8 @@ const request: GenerationRequest = {
   artifactType: 'content',
   model: 'openrouter:auto',
   input: { prompt: 'seed' },
-  toolKey: 'meta_ads',
-  workflowType: 'meta_ads',
+  toolKey: 'funnel-pages',
+  workflowType: 'funnel_pages',
   registrySnapshotRef: 'snapshot:default',
 };
 
@@ -28,8 +28,8 @@ const artifact = (overrides: Partial<GenerationArtifact>): GenerationArtifact =>
   artifactType: 'content',
   status: 'completed',
   model: 'openrouter:auto',
-  toolKey: 'meta_ads',
-  workflowType: 'meta_ads',
+  toolKey: 'funnel-pages',
+  workflowType: 'funnel_pages',
   content: 'hello',
   createdAt: '2026-04-20T10:00:00.000Z',
   updatedAt: '2026-04-20T10:00:00.000Z',
@@ -65,11 +65,11 @@ describe('artifact history', () => {
       },
     });
 
-    const relaunch = buildRelaunchRequest(sourceArtifact, 'secondary');
+    const relaunch = buildRelaunchRequest(sourceArtifact);
     expect(relaunch.requestId).not.toBe(sourceArtifact.sourceRequest.requestId);
     expect(relaunch.idempotencyKey).toBeUndefined();
     expect(relaunch.input['relaunchFromArtifactId']).toBe('art-relaunch');
-    expect(relaunch.input['relaunchMode']).toBe('secondary');
+    expect(relaunch.input['relaunchMode']).toBeUndefined();
   });
 
   it('builds tool entry query with required and optional relaunch fields', () => {
@@ -142,12 +142,12 @@ describe('artifact history', () => {
 
     const unsupported = artifact({
       artifactId: 'art-unsupported',
-      toolKey: 'meta_ads',
-      workflowType: 'meta_ads',
+      toolKey: 'extraction',
+      workflowType: 'extraction',
       sourceRequest: {
         ...request,
-        toolKey: 'meta_ads',
-        workflowType: 'meta_ads',
+        toolKey: 'extraction',
+        workflowType: 'extraction',
       },
     });
 

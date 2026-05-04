@@ -70,7 +70,7 @@ type GenerationWorkspaceValue = {
   retry: () => void;
   cancel: () => void;
   reset: () => void;
-  relaunch: (artifact: GenerationArtifact, mode: 'primary' | 'secondary') => void;
+  relaunch: (artifact: GenerationArtifact) => void;
   reloadArtifacts: () => void;
 };
 
@@ -240,8 +240,8 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       retry: () => send({ type: 'RETRY' }),
       cancel: () => send({ type: 'CANCEL' }),
       reset: () => send({ type: 'RESET' }),
-      relaunch: (artifact, mode) => {
-        const nextRequest = buildRelaunchRequest(artifact, mode);
+      relaunch: (artifact) => {
+        const nextRequest = buildRelaunchRequest(artifact);
         send({ type: 'REQUEST_START', request: nextRequest });
       },
       reloadArtifacts: reloadPersistedArtifacts,

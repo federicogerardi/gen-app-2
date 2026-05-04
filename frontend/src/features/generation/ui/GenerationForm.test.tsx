@@ -17,7 +17,7 @@ describe('GenerationForm', () => {
     uploadBriefMock.mockResolvedValue({
       briefingId: 'briefing-frontend-001',
       projectId: 'project-001',
-      toolKey: 'meta_ads',
+      toolKey: 'funnel-pages',
       fileName: 'brief.md',
       mimeType: 'text/markdown',
       size: 128,

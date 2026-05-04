@@ -37,8 +37,6 @@ export type IdempotencyDecision =
   | { status: 'replay'; artifactId: string; content: string }
   | { status: 'conflict'; reason: string };
 
-export type PersistedArtifactStatus = ArtifactStatus;
-
 export interface UsageAdapter {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
 }

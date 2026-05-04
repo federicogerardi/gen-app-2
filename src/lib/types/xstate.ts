@@ -7,8 +7,6 @@ export type RegistryBackedWorkflowType = ToolWorkflow | (string & {}) | null;
 export type RegistryBackedToolKey = ToolWorkflow | (string & {});
 export type RegistryVersion = string & {};
 export type RegistrySnapshotRef = string & {};
-export type ToolRegistryVersion = RegistryVersion;
-export type ToolRegistrySnapshotRef = RegistrySnapshotRef;
 
 export type RequestRegistrySelector =
   | {
@@ -94,7 +92,6 @@ export interface LlmUsageMetrics {
   outputTokens: number;
   costUsd: number;
 }
-export type StreamUsageMetrics = LlmUsageMetrics;
 
 export interface IdempotencyReplayMetadata {
   content: string;

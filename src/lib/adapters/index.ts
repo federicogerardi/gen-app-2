@@ -7,7 +7,6 @@ export {
   type LlmStreamInput,
   type LlmUsageMetrics,
   type PersistenceAdapter,
-  type PersistedArtifactStatus,
   type StreamAdapter,
   type UsageDecision,
   type IdempotencyDecision,

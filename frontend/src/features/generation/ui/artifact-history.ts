@@ -171,7 +171,6 @@ export const buildToolEntryPathFromArtifact = (
 
 export const buildRelaunchRequest = (
   artifact: GenerationArtifact,
-  mode: 'primary' | 'secondary',
 ): GenerationRequest => {
   const { idempotencyKey: _ignoredIdempotencyKey, ...requestWithoutIdempotency } = artifact.sourceRequest;
 
@@ -181,7 +180,6 @@ export const buildRelaunchRequest = (
     input: {
       ...artifact.sourceRequest.input,
       relaunchFromArtifactId: artifact.artifactId,
-      relaunchMode: mode,
     },
   };
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runExtraction, uploadBrief } from './tools-client';
+import { orchestrateToolStep, runExtraction, uploadBrief } from './tools-client';
 import { GenerationTransportError } from '../../generation/runtime/generation-client';
 
 const streamGenerationMock = vi.fn();
@@ -371,5 +371,72 @@ describe('tools-client', () => {
     expect(result.artifactId).toBe('artifact-001');
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
+  });
+});
+
+describe('orchestrateToolStep', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns OrchestrationResult on success', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          orchestration: {
+            toolKey: 'funnel-pages',
+            targetStep: 'optin',
+            stepDependencyArtifactIds: [],
+            dependencyArtifactIdsByStep: {},
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await orchestrateToolStep('project-1', 'funnel-pages', 'optin', {
+      capabilities: { artifacts: true },
+    });
+
+    expect(result.toolKey).toBe('funnel-pages');
+    expect(result.targetStep).toBe('optin');
+    expect(result.stepDependencyArtifactIds).toEqual([]);
+    expect(result.dependencyArtifactIdsByStep).toEqual({});
+  });
+
+  it('returns OrchestrationResult with dependency artifacts when previous steps are completed', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          orchestration: {
+            toolKey: 'funnel-pages',
+            targetStep: 'quiz',
+            stepDependencyArtifactIds: ['art-optin-1'],
+            dependencyArtifactIdsByStep: { optin: 'art-optin-1' },
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await orchestrateToolStep('project-1', 'funnel-pages', 'quiz', {
+      capabilities: { artifacts: true },
+    });
+
+    expect(result.targetStep).toBe('quiz');
+    expect(result.stepDependencyArtifactIds).toEqual(['art-optin-1']);
+    expect(result.dependencyArtifactIdsByStep).toEqual({ optin: 'art-optin-1' });
+  });
+
+  it('throws when artifacts capability is disabled', async () => {
+    await expect(
+      orchestrateToolStep('project-1', 'funnel-pages', 'optin', {
+        capabilities: { artifacts: false },
+      }),
+    ).rejects.toThrow(/capability is disabled/i);
   });
 });

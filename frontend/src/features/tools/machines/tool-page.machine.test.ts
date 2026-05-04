@@ -249,8 +249,8 @@ describe('toolPageMachine', () => {
 
     const viewModel = actor.getSnapshot().context.viewModel;
     expect(viewModel.readiness.canStartFlow).toBe(true);
-    expect(viewModel.canonicalState).toBe('completed');
-    expect(viewModel.primaryActionPolicy).toBe('open-last-artifact');
+    expect(viewModel.canonicalState).toBe('prefilled-regenerate');
+    expect(viewModel.primaryActionPolicy).toBe('regenerate-current-step');
   });
 
   it('treats relaunch new from artifact as fresh progress state', () => {
@@ -500,6 +500,230 @@ describe('toolPageMachine', () => {
     expect(snapshot.viewModel.readiness.canStartFlow).toBe(true);
     expect(snapshot.viewModel.primaryActionPolicy).toBe('resume-checkpoint');
     expect(snapshot.viewModel.canonicalState).toBe('paused-with-checkpoint');
+  });
+
+  const makeAllStepsArtifacts = () =>
+    [
+      {
+        artifactId: 'art-optin',
+        requestId: 'req-optin',
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'optin content',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-optin',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'optin' },
+        },
+      },
+      {
+        artifactId: 'art-quiz',
+        requestId: 'req-quiz',
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'quiz content',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-quiz',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'quiz' },
+        },
+      },
+      {
+        artifactId: 'art-vsl',
+        requestId: 'req-vsl',
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'vsl content',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-vsl',
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'vsl' },
+        },
+      },
+    ] satisfies GenerationArtifact[];
+
+  it('returns open-last-artifact when intent=new and all steps completed (TEST-002)', () => {
+    const actor = createToolPageActor();
+
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: makeAllStepsArtifacts(),
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('completed');
+    expect(vm.primaryActionPolicy).toBe('open-last-artifact');
+  });
+
+  it('returns open-last-artifact when intent=resume and all steps completed (TEST-003)', () => {
+    const actor = createToolPageActor();
+
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: makeAllStepsArtifacts(),
+      intent: 'resume',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('completed');
+    expect(vm.primaryActionPolicy).toBe('open-last-artifact');
+  });
+
+  it('returns regenerate-current-step when intent=regenerate and zero steps completed (TEST-004)', () => {
+    const actor = createToolPageActor();
+
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'regenerate',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('prefilled-regenerate');
+    expect(vm.primaryActionPolicy).toBe('regenerate-current-step');
+  });
+
+  it('returns open-last-artifact when intent=regenerate and current run completed all steps (TEST-005)', () => {
+    // Simulates the state after the user clicked "Rilancia" and the new run finished:
+    // runRequestPrefix is set (non-null) and all steps of the current run are done.
+    // resolveFlowProgressState with a non-null prefix returns ONLY current-run steps
+    // (filter: artifact.requestId.startsWith(`${runPrefix}:`)).
+    // All 3 steps present → isCurrentRunComplete=true → regenerate branch is skipped →
+    // hasCompletedAllSteps branch fires → open-last-artifact.
+    const actor = createToolPageActor();
+    actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+
+    const runPrefix = 'req-current-run-001';
+    const currentRunArtifacts: GenerationArtifact[] = [
+      {
+        artifactId: 'art-run-optin',
+        requestId: `${runPrefix}:optin`,
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'optin content',
+        createdAt: '2026-05-05T10:00:00.000Z',
+        updatedAt: '2026-05-05T10:00:00.000Z',
+        sourceRequest: {
+          requestId: `${runPrefix}:optin`,
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'optin' },
+        },
+      },
+      {
+        artifactId: 'art-run-quiz',
+        requestId: `${runPrefix}:quiz`,
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'quiz content',
+        createdAt: '2026-05-05T10:01:00.000Z',
+        updatedAt: '2026-05-05T10:01:00.000Z',
+        sourceRequest: {
+          requestId: `${runPrefix}:quiz`,
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'quiz' },
+        },
+      },
+      {
+        artifactId: 'art-run-vsl',
+        requestId: `${runPrefix}:vsl`,
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+        content: 'vsl content',
+        createdAt: '2026-05-05T10:02:00.000Z',
+        updatedAt: '2026-05-05T10:02:00.000Z',
+        sourceRequest: {
+          requestId: `${runPrefix}:vsl`,
+          userId: 'user-1',
+          projectId: 'project-1',
+          artifactType: 'content' as const,
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel-pages',
+          input: { step: 'vsl' },
+        },
+      },
+    ];
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: currentRunArtifacts,
+      intent: 'regenerate',
+      sourceArtifact: null,
+      runRequestPrefix: runPrefix,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('completed');
+    expect(vm.primaryActionPolicy).toBe('open-last-artifact');
   });
 });
 

@@ -130,6 +130,8 @@ type BuildToolPageViewModelInput = {
   progress: ToolPageProgressState;
   generationError: string | null;
   hydrationError?: string | null;
+  /** Non-null when a run has been started in the current session (set by REQUEST_STEP_START / startGenerationStep). */
+  runRequestPrefix?: string | null;
 };
 
 const buildToolPageViewModel = ({
@@ -139,6 +141,7 @@ const buildToolPageViewModel = ({
   progress,
   generationError,
   hydrationError,
+  runRequestPrefix = null,
 }: BuildToolPageViewModelInput): ToolPageViewModel => {
   const defaultModel = buildDefaultViewModel(toolKey, readiness);
   const totalSteps = toolStepOrder[toolKey].length;
@@ -147,6 +150,9 @@ const buildToolPageViewModel = ({
   const hasCompletedAllSteps = completedCount === totalSteps && totalSteps > 0;
   const hasCheckpoint = progress.lastCheckpointStep !== null;
   const stepStatuses = buildDefaultStepStatuses(toolKey);
+  // True when the current session run has completed all steps (runRequestPrefix!=null means a run
+  // was started this session; completedSteps are then filtered to that run by resolveFlowProgressState).
+  const isCurrentRunComplete = runRequestPrefix !== null && hasCompletedAllSteps;
 
   for (const step of progress.completedSteps) {
     stepStatuses[step] = 'done';
@@ -170,6 +176,23 @@ const buildToolPageViewModel = ({
     };
   }
 
+  if (intent === 'regenerate' && readiness.canStartFlow && !isCurrentRunComplete) {
+    return {
+      ...defaultModel,
+      canonicalState: 'prefilled-regenerate',
+      primaryActionPolicy: 'regenerate-current-step',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
+      },
+      stepStatuses,
+      messages: {
+        status: 'Pronto per rigenerare con i nuovi parametri',
+        error: null,
+      },
+    };
+  }
+
   if (hasCompletedAllSteps) {
     return {
       ...defaultModel,
@@ -183,23 +206,6 @@ const buildToolPageViewModel = ({
       stepStatuses,
       messages: {
         status: 'Tutti gli artefatti sono stati generati',
-        error: null,
-      },
-    };
-  }
-
-  if (intent === 'regenerate' && hasCompletedAtLeastOneStep && readiness.canStartFlow) {
-    return {
-      ...defaultModel,
-      canonicalState: 'prefilled-regenerate',
-      primaryActionPolicy: 'regenerate-current-step',
-      secondaryActionFlags: {
-        ...defaultModel.secondaryActionFlags,
-        canOpenPreviousArtifact: true,
-      },
-      stepStatuses,
-      messages: {
-        status: 'Pronto per rigenerare con i nuovi parametri',
         error: null,
       },
     };
@@ -698,6 +704,7 @@ export const toolPageMachine = setup({
           readiness,
           progress,
           generationError: context.generationError,
+          runRequestPrefix: event.runRequestPrefix,
         }),
       };
     }),

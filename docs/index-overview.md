@@ -66,6 +66,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [domain-bounded-context-map](./02-design/domain-bounded-context-map.md)
 - [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md)
 
+**Visual representations**: [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md) provides Mermaid diagrams and cross-referenced documentation for the Generation context Tool flow, grounded in all 37 canonical DDD terms (DDD-001 through DDD-037).
+
 ### Design Specifications
 
 - [frontend-spec](./02-design/specifications/frontend-spec.md)
@@ -77,6 +79,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-vertical](./02-design/tool-generation-flow-vertical.md)
+- [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
 - [xstate-system-as-is-spec](./02-design/specifications/xstate-system-as-is-spec.md)
 - [xstate-system-as-is](./02-design/specifications/xstate-system-as-is/)
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md)

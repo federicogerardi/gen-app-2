@@ -1,0 +1,269 @@
+---
+status: active
+version: 1.0
+last-reviewed: 2026-05-04
+owner: Domain Architecture
+---
+
+# Tool Generation Flow — Generation Context
+
+## Overview
+
+This diagram represents the canonical flow of a multi-step Tool execution in the **Generation** bounded context, grounded in the Ubiquitous Language (UL) defined in `domain-ubiquitous-language-glossary.md` and `domain-naming-decision-log.md`.
+
+All domain terms are canonical as of 2026-05-04 (DDD-026 through DDD-037).
+
+---
+
+## Tool Execution Flow (Complete Journey)
+
+```mermaid
+graph TB
+    START([Start: GenerationRequest])
+    REQUEST["<b>GenerationRequest</b><br/>ToolKey, ArtifactType,<br/>WorkflowRunMode, input"]
+    
+    ROUTING["<b>Route Resolution</b><br/>(RouteType = 'tool')"]
+    PLAN["<b>ToolWorkflow Plan</b><br/>tool-workflow-registry:<br/>toolWorkflowStepOrder[toolKey]"]
+    
+    IDEMPOTENCY["<b>Idempotency Check</b><br/>IdempotencyCoordinator"]
+    USAGE["<b>Quota Claim</b><br/>ClaimUsage"]
+    
+    BOOTSTRAP_CHECK{WorkflowRunMode?}
+    
+    BOOTSTRAP["<b>Resume: Inject Bootstrap</b><br/>WorkflowStepBootstrap<br/>{ stepKey, output, artifactId }"]
+    
+    MACHINE["<b>toolWorkflowMachine</b><br/>orchestrates WorkflowStep chain"]
+    
+    STEP_LOOP["FOR each WorkflowStep:"]
+    
+    DEPS["<b>WorkflowStepUnlocked</b><br/>(dependencies satisfied)"]
+    EXEC["<b>Execute Step</b><br/>WorkflowStepType:<br/>- extraction<br/>- generation<br/>- acquisition"]
+    
+    ARTIFACT_OUT["<b>Step Output</b><br/>Artifact { id, type, role }"]
+    
+    ROLE_CHECK{ArtifactRole?}
+    INTERMEDIATE["<b>Step Artifact</b><br/>artifactRole = 'step'<br/>feeds dependencies"]
+    FINAL_ART["<b>Final Artifact</b><br/>artifactRole = 'final'<br/>complete Tool output"]
+    
+    COMPLETION["<b>WorkflowStepCompleted</b><br/>(unblock dependents)"]
+    
+    PERSIST_META["<b>Build Persistence Meta</b><br/>ToolWorkflowPersistenceMetadata<br/>{ toolKey, workflowType, runMode,<br/>artifactRole, stepKey,<br/>dependsOnSteps, dependencyArtifactIds }"]
+    
+    PERSIST["<b>Persist Artifact</b><br/>PersistenceBatch<br/>(DB + Redis idempotency cache)"]
+    
+    STREAM_EVENT["<b>BackendStreamEvent</b><br/>SSE wire → Frontend<br/>type: 'start' | 'chunk' | 'terminal'"]
+    
+    COMPLETE([Artifact Ready])
+    
+    START --> REQUEST
+    REQUEST --> ROUTING
+    ROUTING --> PLAN
+    PLAN --> IDEMPOTENCY
+    IDEMPOTENCY --> USAGE
+    USAGE --> BOOTSTRAP_CHECK
+    
+    BOOTSTRAP_CHECK -->|resume/regenerate| BOOTSTRAP
+    BOOTSTRAP_CHECK -->|new| MACHINE
+    BOOTSTRAP --> MACHINE
+    
+    MACHINE --> STEP_LOOP
+    STEP_LOOP --> DEPS
+    DEPS --> EXEC
+    EXEC --> ARTIFACT_OUT
+    ARTIFACT_OUT --> ROLE_CHECK
+    
+    ROLE_CHECK -->|step| INTERMEDIATE
+    ROLE_CHECK -->|final| FINAL_ART
+    INTERMEDIATE --> COMPLETION
+    FINAL_ART --> COMPLETION
+    
+    COMPLETION --> PERSIST_META
+    PERSIST_META --> PERSIST
+    PERSIST --> STREAM_EVENT
+    STREAM_EVENT --> COMPLETE
+```
+
+---
+
+## WorkflowStep State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle: step registered
+    
+    idle --> running: WorkflowStepUnlocked<br/>(dependencies satisfied)
+    
+    running --> done: STEP_SUCCESS<br/>WorkflowStepCompleted
+    running --> error: STEP_FAILURE<br/>WorkflowStepCompleted
+    running --> skipped: STEP_SKIP<br/>WorkflowStepCompleted
+    
+    error --> running: STEP_RETRY
+    
+    done --> [*]
+    error --> [*]
+    skipped --> [*]
+    
+    note right of idle
+        WorkflowStepStatus = 'idle'
+        awaiting dependencies
+    end note
+    
+    note right of running
+        WorkflowStepStatus = 'running'
+        executing step logic
+        (extraction, generation, acquisition)
+    end note
+    
+    note right of done
+        WorkflowStepStatus = 'done'
+        artifact produced: ArtifactRole = step | final
+    end note
+    
+    note right of error
+        WorkflowStepStatus = 'error'
+        may retry or fail workflow
+    end note
+    
+    note right of skipped
+        WorkflowStepStatus = 'skipped'
+        (if optional step or strategic skip)
+    end note
+```
+
+---
+
+## Multi-Step Dependency Graph (Example: funnel-pages Tool)
+
+```mermaid
+graph LR
+    OPTIN["<b>optin</b><br/>WorkflowStep<br/>dependencies: []"]
+    QUIZ["<b>quiz</b><br/>WorkflowStep<br/>dependencies: [optin]"]
+    VSL["<b>vsl</b><br/>WorkflowStep<br/>dependencies: [optin, quiz]<br/><br/>ArtifactRole: final"]
+    
+    OPTIN -->|artifact_id| QUIZ
+    OPTIN -->|artifact_id| VSL
+    QUIZ -->|artifact_id| VSL
+```
+
+**Tool**: funnel-pages
+
+**Execution order**: optin → quiz → vsl (all subsequent steps depend on prior completion)
+
+---
+
+## Resume/Regenerate Flow
+
+```mermaid
+graph TB
+    HYDRATE["<b>StepHydration</b><br/>(FE Client-Side Projection)"]
+    METADATA["<b>ToolWorkflowPersistenceMetadata</b><br/>read from prior Artifact<br/>input.toolWorkflow"]
+    
+    RESOLVE["resolve:<br/>- stepKey resume point<br/>- dependencyArtifactIds<br/>- artifactRole"]
+    
+    BOOTSTRAP_OBJ["<b>WorkflowStepBootstrap</b><br/>{ stepKey, output, artifactId }"]
+    
+    NEW_REQUEST["<b>New GenerationRequest</b><br/>WorkflowRunMode = 'resume'<br/>toolKey, bootstrapped state"]
+    
+    MACHINE_RESUME["<b>toolWorkflowMachine</b><br/>skips completed steps,<br/>starts from stepKey"]
+    
+    HYDRATE --> METADATA
+    METADATA --> RESOLVE
+    RESOLVE --> BOOTSTRAP_OBJ
+    BOOTSTRAP_OBJ --> NEW_REQUEST
+    NEW_REQUEST --> MACHINE_RESUME
+```
+
+---
+
+## Canonical Concepts (DDD Quick Reference)
+
+| Term | Type | Role in Flow |
+|---|---|---|
+| **Tool** (DDD-026) | Concept | Organizing unit; encapsulates a multi-step generation capability |
+| **ToolKey** (DDD-029) | Value Object | Cross-context identifier for a Tool; carries identity across FE/BE |
+| **ToolWorkflow** (glossary) | Value Object | Generation-context routing path; determines artifact type and step chain |
+| **GenerationRequest** (DDD-002) | Command | Input that triggers a generation; carries ToolKey, ArtifactType, user input |
+| **WorkflowStep** (DDD-003) | Entity | A single step in a Tool's chain; abstract descriptor in BE |
+| **WorkflowStepStatus** (glossary) | Value Object | Runtime state: idle, running, done, error, skipped |
+| **WorkflowStepType** (DDD-027) | Value Object | Execution strategy: extraction, generation, acquisition (provisional) |
+| **WorkflowRunMode** (glossary) | Value Object | Intent: new, resume, regenerate; normalized from requestInput.intent |
+| **WorkflowStepUnlocked** (DDD-035) | Domain Event | Internal: dependencies satisfied, step ready to run |
+| **WorkflowStepCompleted** (DDD-036) | Domain Event | Internal: step finished, artifact produced, dependents unblocked |
+| **WorkflowStepBootstrap** (DDD-037) | Value Object | Resume point: { stepKey, output, artifactId } for resume/regenerate flows |
+| **ArtifactRole** (DDD-033) | Value Object | Classification: 'step' (intermediate, feeds dependents) or 'final' (complete output) |
+| **ToolWorkflowPersistenceMetadata** (DDD-034) | Value Object | Persistence contract: metadata embedded in artifact input.toolWorkflow for hydration |
+| **Artifact** (DDD-001) | Entity | Persisted output of a generation; carries type, role, metrics, idempotency cache |
+| **BackendStreamEvent** (DDD-009) | Domain Event | SSE wire event: start, chunk, terminal; crosses FE/BE boundary |
+
+---
+
+## Tool Execution Invariants
+
+1. **Dependency Ordering**: No `WorkflowStep` executes until all its declared dependencies have reached `'done'` status.
+2. **Artifact Role Consistency**: Intermediate steps produce `ArtifactRole = 'step'`; only the final step produces `'final'`.
+3. **Resumable State**: `ToolWorkflowPersistenceMetadata` persists the exact state tree to allow deterministic resume from any completed step.
+4. **Idempotency**: Each `GenerationRequest` maps to a unique `IdempotencyKey` scoped to `(userId, projectId, endpoint)`; duplicate requests return the cached artifact without re-running.
+5. **Quota Enforcement**: `ClaimUsage` atomically decrements quota before `StreamTransport` begins; if quota is exhausted, the generation is rejected before any artifact is produced.
+6. **No Cross-Tool Steps**: A `WorkflowStep` belongs to exactly one `Tool` and cannot be reused across different Tools in a single generation request (though step definitions may be shared in the registry).
+
+---
+
+## Error Handling & Rollback
+
+```mermaid
+graph TB
+    STEP_FAIL["STEP_FAILURE event"]
+    ERROR_STATE["WorkflowStepStatus = 'error'"]
+    RETRY{Retry Count?}
+    RETRY_STEP["STEP_RETRY → re-run from scratch"]
+    ABORT["Abort workflow → STREAM_TERMINATED_FAILURE"]
+    
+    STEP_FAIL --> ERROR_STATE
+    ERROR_STATE --> RETRY
+    RETRY -->|retry count < max| RETRY_STEP
+    RETRY -->|exhausted or skip| ABORT
+    
+    RETRY_STEP --> STEP_FAIL
+```
+
+---
+
+## Persistence & Idempotency
+
+When a generation completes, `PersistenceBatch` persists to both:
+
+1. **PostgreSQL** (`artifacts` table):
+   - `artifact_id`, `user_id`, `project_id`, `artifact_type`, `workflow_type`
+   - `status` (completed | failed), `failure_reason`, `content`, `input_json`
+   - `created_at`, `completed_at`, `llm_usage_metrics`
+
+2. **Redis** (idempotency cache, TTL 24h):
+   - Key: `idempotency:{userId}:{projectId}:{endpoint}:{idempotencyKey}`
+   - Value: `{ artifactId, content, metadata }`
+   - Used to replay the same generation on duplicate `GenerationRequest`
+
+**Idempotency Determinism**: If the exact same `GenerationRequest` is received (same `idempotencyKey`), the cached artifact is returned **without re-running any steps**, preserving deterministic output and cost.
+
+---
+
+## Bounded Context Ownership
+
+```
+┌────────────────────────────────────────────────────────┐
+│                 GENERATION CONTEXT                     │
+│                  (Owner of Workflow)                   │
+├────────────────────────────────────────────────────────┤
+│ Responsible for:                                       │
+│  ✓ ToolWorkflow routing                               │
+│  ✓ GenerationRequest validation & idempotency        │
+│  ✓ WorkflowStep orchestration & dependency graph     │
+│  ✓ Artifact production & persistence                 │
+│  ✓ BackendStreamEvent emission                        │
+│  ✓ ToolWorkflowPersistenceMetadata construction      │
+├────────────────────────────────────────────────────────┤
+│ Consumed by:                                           │
+│  • Frontend/UI (via BackendStreamEvent & hydration)   │
+│  • Auth (input: AuthSessionPrincipal)                 │
+│  • Usage/Quota (via ClaimUsage & audit history)       │
+└────────────────────────────────────────────────────────┘
+```

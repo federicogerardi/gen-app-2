@@ -4,7 +4,7 @@ version: 1.0
 date_created: 2026-05-04
 last_updated: 2026-05-04
 owner: Domain Architecture
-status: pending
+status: completed
 tags: [ddd, ubiquitous-language, bcm, documentation, tool, toolkey, refactor-target]
 ---
 
@@ -44,9 +44,9 @@ Tutte le modifiche sono **documentation-only** — nessuna modifica a codice sor
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | In `docs/02-design/domain-bounded-context-map.md`, nella tabella Shared Concepts And Translation Rules, aggiornare la riga `ToolWorkflow / ToolKey`: (1) rimuovere "`meta_ads` exists only in `ToolWorkflow` (no FE `SupportedTool` counterpart)" — sostituire con nota deprecazione DDD-030; (2) aggiornare il framing da "Two orthogonal identifiers" a framing che riflette `ToolKey` come cross-context canonical (DDD-029); (3) cambiare "See DDD-025" → "See DDD-029". | ☐ | — |
-| TASK-002 | Verificare che il testo aggiornato sia coerente con la riga `Tool` nella stessa tabella (nessuna contraddizione). | ☐ | — |
-| TASK-003 | Bumpa versione BCM → 1.6. | ☐ | — |
+| TASK-001 | In `docs/02-design/domain-bounded-context-map.md`, nella tabella Shared Concepts And Translation Rules, aggiornare la riga `ToolWorkflow / ToolKey`: (1) rimuovere "`meta_ads` exists only in `ToolWorkflow` (no FE `SupportedTool` counterpart)" — sostituire con nota deprecazione DDD-030; (2) aggiornare il framing da "Two orthogonal identifiers" a framing che riflette `ToolKey` come cross-context canonical (DDD-029); (3) cambiare "See DDD-025" → "See DDD-029". | ✅ | 2026-05-04 |
+| TASK-002 | Verificare che il testo aggiornato sia coerente con la riga `Tool` nella stessa tabella (nessuna contraddizione). | ✅ | 2026-05-04 |
+| TASK-003 | Bumpa versione BCM → 1.6. | ✅ | 2026-05-04 |
 
 **Contenuto target** per la cella Translation Rule della riga `ToolWorkflow / ToolKey`:
 
@@ -62,8 +62,8 @@ Tutte le modifiche sono **documentation-only** — nessuna modifica a codice sor
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-004 | In `docs/02-design/domain-bounded-context-map.md`, nella tabella Shared Concepts And Translation Rules, riga `Tool`: cambiare "Generation routes via `ToolWorkflow` and **orchestrates steps via `ToolKey`**" → "Generation routes via `ToolWorkflow`; `ToolKey` is the cross-context canonical identifier expressed in both layers — `SupportedTool` (Frontend) and `toolKey` field in `GenerationRequest` (Generation)". | ☐ | — |
-| TASK-005 | Verificare che il riferimento a `WorkflowStepType` nella stessa riga sia ancora accurato dopo la modifica. | ☐ | — |
+| TASK-004 | In `docs/02-design/domain-bounded-context-map.md`, nella tabella Shared Concepts And Translation Rules, riga `Tool`: cambiare "Generation routes via `ToolWorkflow` and **orchestrates steps via `ToolKey`**" → "Generation routes via `ToolWorkflow`; `ToolKey` is the cross-context canonical identifier expressed in both layers — `SupportedTool` (Frontend) and `toolKey` field in `GenerationRequest` (Generation)". | ✅ | 2026-05-04 |
+| TASK-005 | Verificare che il riferimento a `WorkflowStepType` nella stessa riga sia ancora accurato dopo la modifica. | ✅ | 2026-05-04 |
 
 ---
 
@@ -76,8 +76,8 @@ Tutte le modifiche sono **documentation-only** — nessuna modifica a codice sor
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | In `docs/02-design/domain-bounded-context-map.md`, sezione Frontend/UI Context, campo "Organizing concept": cambiare "`SupportedTool` is the Frontend-context identifier for a `Tool` (DDD-026)" → "`SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term." | ☐ | — |
-| TASK-007 | In `docs/02-design/domain-bounded-context-map.md`, tabella Integration Constraints, aggiungere riga: Constraint = `ToolStepOrchestration` target pattern; Contexts = Generation ↔ Frontend/UI; Rule = Step dependency resolution at dispatch time must route through `resolveStepDependencyIds` (BE) via `/api/tools/orchestrate` endpoint. FE `orchestrateToolStep` (`tools-client.ts:339`) is the intended adapter — currently zero runtime callers (DDD-C-007). FE `getStepDependencies` is the current production implementation but is flagged as architecture drift. Resolution: see DDD-031 (provisional term `ToolStepOrchestration`); Decision = DDD-031, DDD-C-007. | ☐ | — |
+| TASK-006 | In `docs/02-design/domain-bounded-context-map.md`, sezione Frontend/UI Context, campo "Organizing concept": cambiare "`SupportedTool` is the Frontend-context identifier for a `Tool` (DDD-026)" → "`SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term." | ✅ | 2026-05-04 |
+| TASK-007 | In `docs/02-design/domain-bounded-context-map.md`, tabella Integration Constraints, aggiungere riga: Constraint = `ToolStepOrchestration` target pattern; Contexts = Generation ↔ Frontend/UI; Rule = Step dependency resolution at dispatch time must route through `resolveStepDependencyIds` (BE) via `/api/tools/orchestrate` endpoint. FE `orchestrateToolStep` (`tools-client.ts:339`) is the intended adapter — currently zero runtime callers (DDD-C-007). FE `getStepDependencies` is the current production implementation but is flagged as architecture drift. Resolution: see DDD-031 (provisional term `ToolStepOrchestration`); Decision = DDD-031, DDD-C-007. | ✅ | 2026-05-04 |
 
 ---
 
@@ -99,10 +99,10 @@ Tutte le modifiche sono **documentation-only** — nessuna modifica a codice sor
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-008 | Aprire discussione con utente sul termine candidato preferito tra i tre sopra. | ☐ | — |
-| TASK-009 | Una volta scelto il termine, creare entry DDD-032 nel decision log (`docs/07-governance/domain-naming-decision-log.md`) con decisione, rationale, scope. | ☐ | — |
-| TASK-010 | Aggiungere il termine al glossario (`docs/01-requirements/domain-ubiquitous-language-glossary.md`) nella sezione del bounded context appropriato (Frontend/UI o Cross-Context). | ☐ | — |
-| TASK-011 | Aggiungere una riga alla tabella Shared Concepts And Translation Rules nel BCM che descriva il flow FE → BE per il request assembly. | ☐ | — |
+| TASK-008 | Aprire discussione con utente sul termine candidato preferito tra i tre sopra. | ✅ | 2026-05-04 |
+| TASK-009 | Una volta scelto il termine, creare entry DDD-032 nel decision log (`docs/07-governance/domain-naming-decision-log.md`) con decisione, rationale, scope. | ✅ | 2026-05-04 |
+| TASK-010 | Aggiungere il termine al glossario (`docs/01-requirements/domain-ubiquitous-language-glossary.md`) nella sezione del bounded context appropriato (Frontend/UI o Cross-Context). | ✅ | 2026-05-04 |
+| TASK-011 | Aggiungere una riga alla tabella Shared Concepts And Translation Rules nel BCM che descriva il flow FE → BE per il request assembly. | ✅ | 2026-05-04 |
 
 ---
 

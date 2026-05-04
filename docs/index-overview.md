@@ -76,7 +76,6 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
-- [tool-generation-structural-ux-flow-spec](./02-design/specifications/tool-generation-structural-ux-flow-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
@@ -117,15 +116,23 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [two-bugs-fix-summary-2026-05-04](./99-lifecycle/99-archive/two-bugs-fix-summary-2026-05-04.md) — archived; complete; bug solved
 - [infrastructure-same-origin-deployment-1](./99-lifecycle/99-archive/infrastructure-same-origin-deployment-1.md) — superseded da feature-railway-same-origin-unified-1
 - [railway-same-origin-migration-strategy-3-phases](./99-lifecycle/99-archive/railway-same-origin-migration-strategy-3-phases.md) — superseded da feature-railway-same-origin-unified-1
-- [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione
-- [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md) — deprecated 2026-05-01; superseded da architecture-railway-private-network-same-origin-1
+- [architecture-railway-private-network-same-origin-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/architecture-railway-private-network-same-origin-1-snapshot-2026-05-04.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione
+- [feature-railway-same-origin-unified-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/feature-railway-same-origin-unified-1-snapshot-2026-05-04.md) — deprecated 2026-05-01; superseded da architecture-railway-private-network-same-origin-1
+- [ddd-bcm-tool-consistency-patch-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/ddd-bcm-tool-consistency-patch-1-snapshot-2026-05-04.md) — completed 2026-05-04; DDD BCM tool consistency patch applicato
+- [refactor-frontend-ddd-ul-alignment-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/refactor-frontend-ddd-ul-alignment-1-snapshot-2026-05-04.md) — completed 2026-05-04; Phase 1-4 UL alignment completato
+- [scope-artifact-checkpoint-recovery-alignment-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/scope-artifact-checkpoint-recovery-alignment-1-snapshot-2026-05-04.md) — completed 2026-05-04
+- [refactor-xstate-frontend-machines-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-04.md) — completed 2026-05-04; piano aggiornato post-unification
+- [unification-xstate-first-frontend-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/unification-xstate-first-frontend-1-snapshot-2026-05-04.md) — completed 2026-05-04; 5 sprint completati, XState-first unification GO
 - [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) — archived 2026-05-02; piano completato con smoke test finale GO
 - [unification-xstate-first-frontend-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/unification-xstate-first-frontend-1-snapshot-2026-05-02.md) — archived 2026-05-02; 5 sprint completati, XState-first unification GO
 
 ### Archive Buckets
 
 - [xstate-system-as-is-2026-05-04](./99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/) — XState technical specs (19 files) archived per DDD-first transition (2026-05-04)
-- [planning archive](./99-lifecycle/99-archive/planning/)
+- [planning archive](./99-lifecycle/99-archive/planning/) — 14 piani completati/superseded
+- [code-review archive](./99-lifecycle/99-archive/code-review/) — [auth-role-coherence-review](./99-lifecycle/99-archive/code-review/2026-04-28-auth-role-coherence-review.md) (closed 2026-04-28)
+- [tool-generation-structural-ux-flow-spec](./99-lifecycle/99-archive/tool-generation-structural-ux-flow-spec.md) — archived 2026-05-04; contenuto consolidato in tool-generation-flow-source-of-truth-spec (§9-13)
+- [frontend-tool-pages-unified-flow-migration](./99-lifecycle/99-archive/frontend-tool-pages-unified-flow-migration.md) — historical-reference; migration rationale superseded da frontend-unification-replication-guide
 - [governance-pre-publish archive](./99-lifecycle/99-archive/governance-pre-publish/)
 - [tool-prompts archive](./99-lifecycle/99-archive/tool-prompts/)
 
@@ -155,8 +162,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Current Delta (2026-05-02)
 
-- **Piano same-origin completato**: [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — tutti i 4 sprint eseguiti; topologia Railway private-network via `frontend/server.mjs` in produzione. Piano archiviato.
-- Piano unificato same-origin Railway attivo: [feature-railway-same-origin-unified-1](../plan/feature-railway-same-origin-unified-1.md).
+- **Piano same-origin completato**: [architecture-railway-private-network-same-origin-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/architecture-railway-private-network-same-origin-1-snapshot-2026-05-04.md) — tutti i 4 sprint eseguiti; topologia Railway private-network via `frontend/server.mjs` in produzione. Piano archiviato.
+- Piano unificato same-origin Railway (deprecated): [feature-railway-same-origin-unified-1-snapshot-2026-05-04](./99-lifecycle/99-archive/planning/feature-railway-same-origin-unified-1-snapshot-2026-05-04.md).
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) aggiornato a rev 2.1 con Variant B, logging proxy, timeout SSE, rollback cross-origin, rischi residui.
 - Recovery automatica `runExtraction` in caso di stream drop mid-transport (artefatto già salvato lato server).
 - Piano refactor frontend XState archiviato: [refactor-xstate-frontend-machines-1-snapshot-2026-05-02](./99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-02.md) con chiusura definitiva e verifica E2E GO.

@@ -73,5 +73,5 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 
 ## References
 
-- Piano sorgente: [unification-xstate-first-frontend-1](../../plan/unification-xstate-first-frontend-1.md)
-- Piano precedente (contesto storico): [refactor-xstate-frontend-machines-1](../../plan/refactor-xstate-frontend-machines-1.md)
+- Piano sorgente: [unification-xstate-first-frontend-1-snapshot-2026-05-04](../99-lifecycle/99-archive/planning/unification-xstate-first-frontend-1-snapshot-2026-05-04.md)
+- Piano precedente (contesto storico): [refactor-xstate-frontend-machines-1-snapshot-2026-05-04](../99-lifecycle/99-archive/planning/refactor-xstate-frontend-machines-1-snapshot-2026-05-04.md)

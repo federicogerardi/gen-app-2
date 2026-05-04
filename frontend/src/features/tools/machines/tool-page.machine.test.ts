@@ -1,15 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createActor, setup } from 'xstate';
+import { assign, createActor, setup } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 vi.mock('./briefing-upload.machine', () => {
   const briefingUploadMachine = setup({
     types: {
-      context: {} as {},
+      context: {} as {
+        extractionArtifactId: string | null;
+        extractionPayload: Record<string, unknown> | null;
+        briefingId: string | null;
+        fileName: string | null;
+        normalizedText: string | null;
+        parsedFormat: 'txt' | 'md' | 'docx' | null;
+      },
       events: {} as
         | { type: 'FILE_SELECTED'; file: File }
         | { type: 'RESET' }
-        | { type: 'EXTRACTION_RECOVERED'; artifactId: string; payload: Record<string, unknown>; briefingId?: string | null; fileName?: string | null },
+        | {
+            type: 'EXTRACTION_RECOVERED';
+            artifactId: string;
+            payload: Record<string, unknown>;
+            briefingId?: string | null;
+            fileName?: string | null;
+            normalizedText?: string | null;
+            parsedFormat?: 'txt' | 'md' | 'docx' | null;
+          },
       input: {} as {
         toolKey: 'funnel-pages' | 'nextland';
         projectId: string;
@@ -20,19 +35,77 @@ vi.mock('./briefing-upload.machine', () => {
     },
   }).createMachine({
     id: 'briefingUploadMachine',
+    context: {
+      extractionArtifactId: null,
+      extractionPayload: null,
+      briefingId: null,
+      fileName: null,
+      normalizedText: null,
+      parsedFormat: null,
+    },
     initial: 'idle',
     states: {
       idle: {
         on: {
-          FILE_SELECTED: { target: 'ready' },
-          RESET: { target: 'idle' },
-          EXTRACTION_RECOVERED: { target: 'ready' },
+          FILE_SELECTED: {
+            target: 'ready',
+            actions: assign({
+              extractionArtifactId: () => 'mock-extraction-artifact',
+              extractionPayload: () => ({ topic: 'mock' }),
+              briefingId: () => 'mock-briefing-id',
+              fileName: ({ event }) => event.file.name,
+              normalizedText: () => 'mock brief text',
+              parsedFormat: () => 'md',
+            }),
+          },
+          RESET: {
+            target: 'idle',
+            actions: assign({
+              extractionArtifactId: () => null,
+              extractionPayload: () => null,
+              briefingId: () => null,
+              fileName: () => null,
+              normalizedText: () => null,
+              parsedFormat: () => null,
+            }),
+          },
+          EXTRACTION_RECOVERED: {
+            target: 'ready',
+            actions: assign({
+              extractionArtifactId: ({ event }) => event.artifactId,
+              extractionPayload: ({ event }) => event.payload,
+              briefingId: ({ event }) => event.briefingId ?? null,
+              fileName: ({ event }) => event.fileName ?? null,
+              normalizedText: ({ event }) => event.normalizedText ?? null,
+              parsedFormat: ({ event }) => event.parsedFormat ?? null,
+            }),
+          },
         },
       },
       ready: {
         on: {
-          RESET: { target: 'idle' },
-          EXTRACTION_RECOVERED: { target: 'ready' },
+          RESET: {
+            target: 'idle',
+            actions: assign({
+              extractionArtifactId: () => null,
+              extractionPayload: () => null,
+              briefingId: () => null,
+              fileName: () => null,
+              normalizedText: () => null,
+              parsedFormat: () => null,
+            }),
+          },
+          EXTRACTION_RECOVERED: {
+            target: 'ready',
+            actions: assign({
+              extractionArtifactId: ({ context }) => context.extractionArtifactId,
+              extractionPayload: ({ context }) => context.extractionPayload,
+              briefingId: ({ context }) => context.briefingId,
+              fileName: ({ context }) => context.fileName,
+              normalizedText: ({ context }) => context.normalizedText,
+              parsedFormat: ({ context }) => context.parsedFormat,
+            }),
+          },
         },
       },
     },
@@ -743,7 +816,7 @@ const makeFetchSuccess = (hydration: Partial<HydrationResult> & { extractionArti
           hydration: {
             extractionPayload: { topic: 'test' },
             briefingId: 'brief-1',
-            normalizedText: '',
+            normalizedText: 'brief text',
             parsedFormat: 'md',
             briefingFileName: null,
             ...hydration,
@@ -796,9 +869,11 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(ctx.hydrationResult).not.toBeNull();
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-1');
     expect(ctx.hydrationResult?.briefingId).toBe('brief-1');
+    expect(ctx.hydrationResult?.normalizedText).toBe('brief text');
     expect(ctx.hydrationError).toBeNull();
     // briefingActor should have transitioned to ready via EXTRACTION_RECOVERED
     expect(ctx.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
+    expect(ctx.briefingActorRef?.getSnapshot().context.normalizedText).toBe('brief text');
   });
 
   it('hydration deterministic branch: source extraction artifact is resolved directly', async () => {
@@ -824,6 +899,99 @@ describe('toolPageMachine – Phase 2 hydration', () => {
       }),
     );
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-direct');
+    expect(ctx.readiness.canStartFlow).toBe(true);
+  });
+
+  it('hydrates legacy extraction artifact from normalizedText fallback without network', async () => {
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'new',
+      sourceArtifactId: 'ext-legacy-local',
+      localArtifacts: [
+        {
+          artifactId: 'ext-legacy-local',
+          requestId: 'req-ext-legacy-local',
+          projectId: 'project-1',
+          artifactType: 'extraction',
+          status: 'completed',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'extraction',
+          content: '{"schemaVersion":"extraction.v1"}',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          updatedAt: '2026-05-01T00:00:00.000Z',
+          sourceRequest: {
+            requestId: 'req-ext-legacy-local',
+            userId: 'user-1',
+            projectId: 'project-1',
+            artifactType: 'extraction',
+            model: 'openrouter/auto',
+            toolKey: 'extraction',
+            workflowType: 'extraction',
+            input: {
+              briefingId: 'brief-legacy-local',
+              normalizedText: 'legacy brief text',
+            },
+          },
+        },
+      ],
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-legacy-local');
+    expect(ctx.hydrationResult?.normalizedText).toBe('legacy brief text');
+    expect(ctx.readiness.canStartFlow).toBe(true);
+  });
+
+  it('hydrates extraction artifact from fenced JSON payload without network', async () => {
+    const actor = createToolPageActor();
+    actor.send({
+      type: 'HYDRATE_REQUESTED',
+      intent: 'new',
+      sourceArtifactId: 'ext-fenced-local',
+      localArtifacts: [
+        {
+          artifactId: 'ext-fenced-local',
+          requestId: 'req-ext-fenced-local',
+          projectId: 'project-1',
+          artifactType: 'extraction',
+          status: 'completed',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'extraction',
+          content: '```json\n{"payload":{"offer":"test","audience":"cold"}}\n```',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          updatedAt: '2026-05-01T00:00:00.000Z',
+          sourceRequest: {
+            requestId: 'req-ext-fenced-local',
+            userId: 'user-1',
+            projectId: 'project-1',
+            artifactType: 'extraction',
+            model: 'openrouter/auto',
+            toolKey: 'extraction',
+            workflowType: 'extraction',
+            input: {
+              briefingId: 'brief-fenced-local',
+              briefingText: 'fenced brief text',
+            },
+          },
+        },
+      ],
+    });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(ctx.hydrationResult?.extractionPayload).toEqual({ offer: 'test', audience: 'cold' });
     expect(ctx.readiness.canStartFlow).toBe(true);
   });
 
@@ -872,6 +1040,27 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     const ctx = actor.getSnapshot().context;
     expect(ctx.hydrationResult).toBeNull();
     expect(ctx.hydrationError).toBe('missing_extraction_reference');
+    expect(ctx.readiness.hasExtractionContext).toBe(false);
+    expect(ctx.readiness.canStartFlow).toBe(false);
+  });
+
+  it('blocks readiness when hydrate returns incomplete extraction context', async () => {
+    mockFetch.mockReturnValue(makeFetchSuccess({
+      extractionArtifactId: 'ext-incomplete',
+      briefingId: 'brief-incomplete',
+      normalizedText: '',
+    }));
+
+    const actor = createToolPageActor();
+    actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
+
+    await vi.waitFor(() => {
+      expect(actor.getSnapshot().value).toBe('configuring');
+    });
+
+    const ctx = actor.getSnapshot().context;
+    expect(ctx.hydrationResult).toBeNull();
+    expect(ctx.hydrationError).toBe('incomplete_extraction_context');
     expect(ctx.readiness.hasExtractionContext).toBe(false);
     expect(ctx.readiness.canStartFlow).toBe(false);
   });

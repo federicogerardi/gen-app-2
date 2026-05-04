@@ -90,6 +90,19 @@ Regola canonica:
 canStartFlow = hasProject AND hasExtractionContext AND hasPrimaryTargetStep
 ```
 
+Readiness completeness rule:
+
+```text
+hasExtractionContext = true only when the effective ExtractionContext is complete enough
+to assemble a valid GenerationRequest.
+
+For artifact-driven relaunch hydration, completeness requires:
+- non-empty briefing text recovered from the artifact briefingText source
+- structured extractionPayload recovered through canonical extraction fallbacks
+
+A non-null HydrationResult alone is not sufficient.
+```
+
 ### 4.2 Progress Snapshot
 
 ```ts

@@ -746,6 +746,8 @@ export const createAuthHttpRuntime = (
     const projectIdRaw = url.searchParams.get('projectId');
     const fromRaw = url.searchParams.get('from');
     const toRaw = url.searchParams.get('to');
+    const limitRaw = url.searchParams.get('limit');
+    const offsetRaw = url.searchParams.get('offset');
 
     if (typeRaw && !isArtifactType(typeRaw)) {
       writeError(response, 400, 'bad_request', 'Invalid type filter');
@@ -772,6 +774,22 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    if (limitRaw !== null) {
+      const limit = Number.parseInt(limitRaw, 10);
+      if (!Number.isFinite(limit) || limit <= 0) {
+        writeError(response, 400, 'bad_request', 'Invalid limit filter');
+        return;
+      }
+    }
+
+    if (offsetRaw !== null) {
+      const offset = Number.parseInt(offsetRaw, 10);
+      if (!Number.isFinite(offset) || offset < 0) {
+        writeError(response, 400, 'bad_request', 'Invalid offset filter');
+        return;
+      }
+    }
+
     const filters: ArtifactListFilters = {};
     if (typeRaw) {
       filters.type = typeRaw as ArtifactType;
@@ -787,6 +805,12 @@ export const createAuthHttpRuntime = (
     }
     if (toRaw) {
       filters.to = toRaw;
+    }
+    if (limitRaw !== null) {
+      filters.limit = Number.parseInt(limitRaw, 10);
+    }
+    if (offsetRaw !== null) {
+      filters.offset = Number.parseInt(offsetRaw, 10);
     }
 
     const artifacts = await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
@@ -930,15 +954,71 @@ export const createAuthHttpRuntime = (
     let resolvedBriefingId = typeof body.resolvedBriefingId === 'string' ? body.resolvedBriefingId.trim() || null : null;
     let sourceExtractionArtifactId = typeof body.sourceExtractionArtifactId === 'string' ? body.sourceExtractionArtifactId.trim() || null : null;
 
-    const parseExtractionContent = (content: string): Record<string, unknown> => {
-      try {
-        const parsed = JSON.parse(content) as unknown;
-        if (parsed && typeof parsed === 'object') {
-          return parsed as Record<string, unknown>;
-        }
-      } catch {
-        // fallback empty
+    const isRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+
+    const normalizeExtractionPayload = (value: unknown): Record<string, unknown> => {
+      if (!isRecord(value)) {
+        return {};
       }
+
+      const payload = value.payload;
+      if (isRecord(payload)) {
+        return payload;
+      }
+
+      const extractionPayload = value.extractionPayload;
+      if (isRecord(extractionPayload)) {
+        return extractionPayload;
+      }
+
+      const data = value.data;
+      if (isRecord(data)) {
+        const dataPayload = data.payload;
+        if (isRecord(dataPayload)) {
+          return dataPayload;
+        }
+
+        const dataExtractionPayload = data.extractionPayload;
+        if (isRecord(dataExtractionPayload)) {
+          return dataExtractionPayload;
+        }
+      }
+
+      return value;
+    };
+
+    const parseJsonCandidate = (candidate: string): Record<string, unknown> => {
+      try {
+        const parsed = JSON.parse(candidate) as unknown;
+        return normalizeExtractionPayload(parsed);
+      } catch {
+        return {};
+      }
+    };
+
+    const parseExtractionContent = (content: string): Record<string, unknown> => {
+      const direct = parseJsonCandidate(content);
+      if (Object.keys(direct).length > 0) {
+        return direct;
+      }
+
+      const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced?.[1]) {
+        const fromFence = parseJsonCandidate(fenced[1]);
+        if (Object.keys(fromFence).length > 0) {
+          return fromFence;
+        }
+      }
+
+      const objectSlice = content.match(/\{[\s\S]*\}/);
+      if (objectSlice?.[0]) {
+        const fromSlice = parseJsonCandidate(objectSlice[0]);
+        if (Object.keys(fromSlice).length > 0) {
+          return fromSlice;
+        }
+      }
+
       return {};
     };
 
@@ -960,8 +1040,20 @@ export const createAuthHttpRuntime = (
             : artifact.artifactId;
 
           const extractionPayload = parseExtractionContent(artifact.content);
-          const normalizedText = typeof artifact.input.briefingText === 'string' ? artifact.input.briefingText : '';
+          const normalizedText = typeof artifact.input.briefingText === 'string' && artifact.input.briefingText.trim().length > 0
+            ? artifact.input.briefingText
+            : (typeof artifact.input.normalizedText === 'string' ? artifact.input.normalizedText : '');
           const parsedFormat = parsedFormatFromInput(artifact.input);
+
+          console.debug('[auth-http] hydrate direct extraction artifact resolved', {
+            sourceArtifactId,
+            artifactId: artifact.artifactId,
+            projectId,
+            briefingId,
+            normalizedTextLength: normalizedText.trim().length,
+            extractionPayloadKeys: Object.keys(extractionPayload).length,
+            parsedFormat,
+          });
 
           await repositories.sessions.touchSession(principal.session.id, now());
           writeSuccess(response, 200, {
@@ -1023,8 +1115,23 @@ export const createAuthHttpRuntime = (
       : bestDetail.artifactId;
 
     const extractionPayload = parseExtractionContent(bestDetail.content);
-    const normalizedText = typeof bestDetail.input.briefingText === 'string' ? bestDetail.input.briefingText : '';
+    const normalizedText = typeof bestDetail.input.briefingText === 'string' && bestDetail.input.briefingText.trim().length > 0
+      ? bestDetail.input.briefingText
+      : (typeof bestDetail.input.normalizedText === 'string' ? bestDetail.input.normalizedText : '');
     const parsedFormat = parsedFormatFromInput(bestDetail.input);
+
+    console.debug('[auth-http] hydrate ranked extraction artifact resolved', {
+      sourceArtifactId,
+      sourceExtractionArtifactId,
+      resolvedBriefingId,
+      rankedCandidateCount: ranked.length,
+      selectedArtifactId: bestDetail.artifactId,
+      projectId,
+      briefingId,
+      normalizedTextLength: normalizedText.trim().length,
+      extractionPayloadKeys: Object.keys(extractionPayload).length,
+      parsedFormat,
+    });
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, {

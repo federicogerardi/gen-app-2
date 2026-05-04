@@ -14,6 +14,8 @@ export type ArtifactQuery = {
   projectId: string | 'all';
   from?: string;
   to?: string;
+  limit?: number;
+  offset?: number;
 };
 
 type ArtifactsClientOptions = {
@@ -68,7 +70,7 @@ type ArtifactsResponse =
   };
 
 const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): GenerationArtifact[] => {
-  return artifacts.filter((artifact) => {
+  const filtered = artifacts.filter((artifact) => {
     if (filters.type && filters.type !== 'all' && artifact.artifactType !== filters.type) {
       return false;
     }
@@ -91,6 +93,11 @@ const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): Ge
 
     return true;
   });
+
+  const offset = typeof filters.offset === 'number' ? filters.offset : 0;
+  const end = typeof filters.limit === 'number' ? offset + filters.limit : undefined;
+
+  return filtered.slice(offset, end);
 };
 
 const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
@@ -163,6 +170,14 @@ const toQueryString = (filters: ArtifactQuery): string => {
 
   if (filters.to) {
     params.set('to', filters.to);
+  }
+
+  if (typeof filters.limit === 'number') {
+    params.set('limit', String(filters.limit));
+  }
+
+  if (typeof filters.offset === 'number') {
+    params.set('offset', String(filters.offset));
   }
 
   const serialized = params.toString();

@@ -14,6 +14,7 @@ import {
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
   collectCompletedStepsByTool,
+  extractArtifactStep,
   readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
 
@@ -92,6 +93,57 @@ const buildReadinessSnapshot = (
     hasPrimaryTargetStep,
     reasonCodes,
   };
+};
+
+const isNonEmptyRecord = (value: Record<string, unknown> | null | undefined): value is Record<string, unknown> => {
+  return !!value && Object.keys(value).length > 0;
+};
+
+const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hydrationResult is HydrationResult => {
+  if (hydrationResult === null) {
+    return false;
+  }
+
+  return hydrationResult.extractionArtifactId.trim().length > 0
+    && hydrationResult.briefingId.trim().length > 0
+    && hydrationResult.normalizedText.trim().length > 0
+    && isNonEmptyRecord(hydrationResult.extractionPayload);
+};
+
+const hasCompleteBriefingContext = (
+  briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
+): boolean => {
+  const snapshot = briefingActorRef?.getSnapshot();
+  if (!snapshot?.matches('ready')) {
+    return false;
+  }
+
+  return (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+    && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+    && (snapshot.context.normalizedText?.trim().length ?? 0) > 0;
+};
+
+const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
+  if (!hasCompleteHydrationResult(hydrationResult)) {
+    console.debug('[toolPageMachine] hydrate rejected incomplete extraction context', {
+      extractionArtifactId: hydrationResult.extractionArtifactId,
+      briefingId: hydrationResult.briefingId,
+      normalizedTextLength: hydrationResult.normalizedText.trim().length,
+      extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
+      parsedFormat: hydrationResult.parsedFormat,
+    });
+    throw new Error('incomplete_extraction_context');
+  }
+
+  console.debug('[toolPageMachine] hydrate accepted extraction context', {
+    extractionArtifactId: hydrationResult.extractionArtifactId,
+    briefingId: hydrationResult.briefingId,
+    normalizedTextLength: hydrationResult.normalizedText.trim().length,
+    extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
+    parsedFormat: hydrationResult.parsedFormat,
+  });
+
+  return hydrationResult;
 };
 
 const buildDefaultStepStatuses = (
@@ -265,25 +317,35 @@ const toCanonicalBriefingId = (value: unknown): string | null => {
   return normalized.startsWith('brief_') ? normalized : null;
 };
 
+const readNormalizedBriefingText = (input: Record<string, unknown> | undefined): string => {
+  if (typeof input?.briefingText === 'string' && input.briefingText.trim().length > 0) {
+    return input.briefingText;
+  }
+
+  if (typeof input?.normalizedText === 'string' && input.normalizedText.trim().length > 0) {
+    return input.normalizedText;
+  }
+
+  return '';
+};
+
 // Phase 3: readiness derivata interamente da context macchina
 const deriveHasExtractionContext = (
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
-  if (hydrationResult !== null) {
+  if (hasCompleteHydrationResult(hydrationResult)) {
     return true;
   }
-  return briefingActorRef?.getSnapshot().matches('ready') === true;
+
+  return hasCompleteBriefingContext(briefingActorRef);
 };
 
 const deriveHasPrimaryTargetStep = (toolKey: SupportedTool): boolean => {
   return toolStepOrder[toolKey].length > 0;
 };
 
-const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
-  const step = artifact?.sourceRequest.input?.step;
-  return typeof step === 'string' ? step as ToolStep : null;
-};
+
 
 const readStepDependencyArtifactIdsByStep = (
   artifact: GenerationArtifact | null,
@@ -328,7 +390,7 @@ export const resolveRestoredCheckpointState = (
     return acc;
   }, {});
 
-  const sourceStep = readArtifactStep(sourceArtifact);
+  const sourceStep = extractArtifactStep(sourceArtifact);
   if (sourceStep && sourceArtifact.status === 'completed') {
     restoredArtifactByStep[sourceStep] = sourceArtifact;
   }
@@ -371,13 +433,13 @@ const buildLatestRunArtifactByStep = (
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 
   return sorted.reduce<Partial<Record<ToolStep, GenerationArtifact>>>((acc, artifact) => {
-    const step = artifact.sourceRequest.input?.step;
-    if (typeof step !== 'string') {
+    const step = extractArtifactStep(artifact);
+    if (step === null) {
       return acc;
     }
 
-    if (!acc[step as ToolStep]) {
-      acc[step as ToolStep] = artifact;
+    if (!acc[step]) {
+      acc[step] = artifact;
     }
 
     return acc;
@@ -559,18 +621,16 @@ export const toolPageMachine = setup({
         if (extractionArtifact) {
           const payload = readExtractionPayloadFromArtifact(extractionArtifact);
           const sourceInput = extractionArtifact.sourceRequest?.input as Record<string, unknown> | undefined;
-          return {
+          return assertCompleteHydrationResult({
             extractionArtifactId: extractionArtifact.artifactId,
             extractionPayload: payload,
             briefingId: typeof sourceInput?.briefingId === 'string'
               ? sourceInput.briefingId
               : (resolvedBriefingId ?? ''),
             briefingFileName: null,
-            normalizedText: typeof sourceInput?.normalizedText === 'string'
-              ? sourceInput.normalizedText
-              : '',
+            normalizedText: readNormalizedBriefingText(sourceInput),
             parsedFormat: 'md',
-          };
+          });
         }
       }
 
@@ -594,10 +654,10 @@ export const toolPageMachine = setup({
       }
 
       const resData = await res.json() as { ok: boolean; data: { hydration: HydrationResult } };
-      return {
+      return assertCompleteHydrationResult({
         ...resData.data.hydration,
         briefingFileName: null,
-      };
+      });
     }),
   },
   guards: {
@@ -911,6 +971,8 @@ export const toolPageMachine = setup({
                 artifactId: result.extractionArtifactId,
                 payload: result.extractionPayload,
                 briefingId: result.briefingId,
+                normalizedText: result.normalizedText,
+                parsedFormat: result.parsedFormat,
                 ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
               };
             }),

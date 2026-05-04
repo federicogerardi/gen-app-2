@@ -7,6 +7,25 @@ import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { useMswHandler } from '../../../test/mocks/server';
 
+const briefingMachineSeed = vi.hoisted(() => ({
+  initialState: 'ready' as 'idle' | 'ready',
+  context: {
+    projectId: 'project-001',
+    toolKey: 'funnel-pages',
+    apiBaseUrl: '',
+    capabilities: {},
+    userId: 'seed-user-001',
+    file: null as File | null,
+    fileName: null as string | null,
+    briefingId: 'brief-001',
+    extractionArtifactId: 'artifact-extract-001',
+    extractionPayload: { schemaVersion: 'extraction.v1' } as Record<string, unknown>,
+    normalizedText: 'brief text',
+    parsedFormat: 'md' as string | null,
+    error: null as string | null,
+  },
+}));
+
 // Phase 4: briefingUploadMachine mockato per partire in 'ready' con contesto estrazione.
 // Consente a deriveHasExtractionContext di restituire true dal primo render,
 // e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
@@ -33,7 +52,15 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         | { type: 'FILE_SELECTED'; file: File }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
-        | { type: 'EXTRACTION_RECOVERED'; artifactId: string; payload: Record<string, unknown>; briefingId?: string | null; fileName?: string | null },
+        | {
+            type: 'EXTRACTION_RECOVERED';
+            artifactId: string;
+            payload: Record<string, unknown>;
+            briefingId?: string | null;
+            fileName?: string | null;
+            normalizedText?: string | null;
+            parsedFormat?: string | null;
+          },
       input: {} as {
         toolKey: string;
         projectId: string;
@@ -48,21 +75,9 @@ vi.mock('../machines/briefing-upload.machine', async () => {
     // Serve al fallback briefingSnapshot.context in startGenerationStep.
     // fileName: null → effectiveBriefingFileName scende alla prop/sourceArtifact fallback.
     context: () => ({
-      projectId: 'project-001',
-      toolKey: 'funnel-pages',
-      apiBaseUrl: '',
-      capabilities: {},
-      userId: 'seed-user-001',
-      file: null,
-      fileName: null,
-      briefingId: 'brief-001',
-      extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: { schemaVersion: 'extraction.v1' },
-      normalizedText: 'brief text',
-      parsedFormat: 'md',
-      error: null,
+      ...briefingMachineSeed.context,
     }),
-    initial: 'ready',
+    initial: briefingMachineSeed.initialState,
     states: {
       idle: {
         on: {
@@ -88,7 +103,17 @@ vi.mock('../machines/briefing-upload.machine', async () => {
 // Con capabilities={} il client usa sempre localArtifacts → nessuna rete.
 vi.mock('../../artifacts/runtime/artifacts-client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../artifacts/runtime/artifacts-client')>();
-  return original;
+  return {
+    ...original,
+    getArtifactById: async (id: string, options?: { localArtifacts?: GenerationArtifact[] }) => {
+      const local = options?.localArtifacts?.find((artifact) => artifact.artifactId === id) ?? null;
+      if (local) {
+        return local;
+      }
+
+      return original.getArtifactById(id, options);
+    },
+  };
 });
 
 const startMock = vi.fn();
@@ -135,7 +160,7 @@ const defaultExtractionArtifact = {
     model: 'openrouter/auto',
     toolKey: 'funnel-pages',
     workflowType: 'funnel-pages',
-    input: { briefingId: 'brief-001', toolKey: 'funnel-pages' },
+    input: { briefingId: 'brief-001', briefingText: 'brief text', toolKey: 'funnel-pages' },
   },
 } satisfies GenerationArtifact;
 
@@ -171,7 +196,7 @@ const generationState = {
 
 const authState = {
   session: { user: { id: 'seed-user-001' } },
-  capabilities: {},
+  capabilities: { artifacts: true } as Record<string, unknown>,
   apiBaseUrl: '',
 };
 
@@ -237,6 +262,7 @@ vi.mock('../runtime/useToolForm', () => {
 describe('ToolPageTemplate wiring', () => {
   beforeEach(() => {
     startMock.mockReset();
+    authState.capabilities = { artifacts: true } as Record<string, unknown>;
     generationState.isStreamActive = false;
     generationState.streamStatus = 'idle';
     generationState.artifacts = [defaultExtractionArtifact];
@@ -255,6 +281,48 @@ describe('ToolPageTemplate wiring', () => {
     briefingState.error = null;
     briefingState.status = 'ready';
     briefingState.extractionContext = makeExtractionContext();
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        const targetStep = typeof body.targetStep === 'string' ? body.targetStep : '';
+        const projectId = typeof body.projectId === 'string' ? body.projectId : '';
+        const stepDeps: Record<string, string> = {};
+        const allArtifacts = generationWorkspaceState.artifacts as Array<{ artifactId: string; projectId: string; status: string; toolKey: string; sourceRequest?: { input?: Record<string, unknown> } }>;
+        for (const artifact of allArtifacts) {
+          if (artifact.projectId === projectId && artifact.status === 'completed' && artifact.sourceRequest?.input?.step) {
+            const s = artifact.sourceRequest.input.step as string;
+            if (s !== targetStep) {
+              stepDeps[s] = artifact.artifactId;
+            }
+          }
+        }
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: Object.values(stepDeps),
+              dependencyArtifactIdsByStep: stepDeps,
+            },
+          },
+        });
+      }),
+    );
+    useMswHandler(
+      http.get('*/api/artifacts/:artifactId', async ({ params }) => {
+        const artifactId = typeof params.artifactId === 'string' ? params.artifactId : '';
+        const artifact = generationWorkspaceState.artifacts.find((entry) => entry.artifactId === artifactId);
+        if (!artifact) {
+          return HttpResponse.json({ ok: false, error: { message: 'not_found' } }, { status: 404 });
+        }
+
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            artifact,
+          },
+        });
+      }),
+    );
   });
 
   it('dispatches generation.start with resolved step and dependency metadata', async () => {
@@ -637,7 +705,37 @@ describe('resolveFlowProgressState', () => {
 describe('ToolPageTemplate restore flow', () => {
   beforeEach(() => {
     startMock.mockReset();
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      projectId: 'project-001',
+      toolKey: 'funnel-pages',
+      apiBaseUrl: '',
+      capabilities: {},
+      userId: 'seed-user-001',
+      file: null,
+      fileName: null,
+      briefingId: 'brief-001',
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+      error: null,
+    };
 
+    // Handler for /api/tools/orchestrate: restituisce deps vuote (nessuno step completato al momento del click).
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async () => {
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: [],
+              dependencyArtifactIdsByStep: {},
+            },
+          },
+        });
+      }),
+    );
     // Handler for /api/tools/hydrate: resolves hydration from the sourceArtifact's input fields.
     // Required for tests where the extraction artifact is NOT present in localArtifacts
     // and the machine cannot do local resolution (falls through to the network).
@@ -661,7 +759,9 @@ describe('ToolPageTemplate restore flow', () => {
               extractionPayload: { schemaVersion: 'extraction.v1' },
               briefingId,
               briefingFileName: null,
-              normalizedText: '',
+              normalizedText: typeof sourceInput.briefingText === 'string'
+                ? sourceInput.briefingText
+                : 'brief restored',
               parsedFormat: 'md',
             },
           },
@@ -775,6 +875,57 @@ describe('ToolPageTemplate restore flow', () => {
     const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
     expect(firstRequest.input.intent).toBe('regenerate');
     expect(firstRequest.input.briefingText).toBe('brief text');
+  });
+
+  it('blocks relaunch from extraction artifact when hydration recovers no briefing text', async () => {
+    briefingMachineSeed.initialState = 'idle';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      briefingId: null,
+      extractionArtifactId: null,
+      extractionPayload: null,
+      normalizedText: null,
+      parsedFormat: null,
+    };
+    extractionContextState = null;
+    briefingState.fileName = null;
+    briefingState.status = 'idle';
+    briefingState.extractionContext = null;
+
+    generationState.artifacts = [
+      {
+        ...defaultExtractionArtifact,
+        artifactId: 'artifact-extract-missing-text',
+        content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
+        sourceRequest: {
+          ...defaultExtractionArtifact.sourceRequest,
+          input: {
+            briefingId: 'brief-missing-text',
+            toolKey: 'funnel-pages',
+          },
+        },
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['optin'];
+
+    renderTemplate({
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-missing-text',
+      initialProjectId: 'project-001',
+    });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /completa il form per iniziare/i });
+      expect(button).toBeDisabled();
+      return button;
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('incomplete_extraction_context');
+
+    fireEvent.click(primaryActionButton);
+
+    expect(startMock).not.toHaveBeenCalled();
   });
 
   it('uses completed CTA policy without dispatching generation start', async () => {
@@ -915,6 +1066,19 @@ describe('ToolPageTemplate CTA regression guard', () => {
     extractionContextState = makeExtractionContext();
     briefingState.status = 'ready';
     briefingState.extractionContext = makeExtractionContext();
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async () => {
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: [],
+              dependencyArtifactIdsByStep: {},
+            },
+          },
+        });
+      }),
+    );
   });
 
   it('stream attivo blocca handlePrimaryAction: startMock non viene chiamato', async () => {
@@ -944,6 +1108,36 @@ describe('ToolPageTemplate CTA regression guard', () => {
 
     // Bottone presente e non disabled (la policy non è 'disabled')
     expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
+  });
+
+  it('non interrompe la chain dopo extraction success se il payload viene arricchito dall artifact', async () => {
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: {},
+      normalizedText: 'brief text',
+      briefingId: 'brief-001',
+    };
+
+    renderTemplate({ initialProjectId: 'project-001' });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /avvia la generazione/i });
+      expect(button).not.toBeDisabled();
+      return button;
+    });
+
+    fireEvent.click(primaryActionButton);
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(request.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(request.input.briefingText).toBe('brief text');
+    expect(request.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
   });
 
   it('mostra fase di generazione nel pannello verticale quando lo stream è attivo', async () => {

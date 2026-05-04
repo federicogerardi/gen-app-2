@@ -127,12 +127,16 @@ describe('briefingUploadMachine', () => {
       type: 'EXTRACTION_RECOVERED',
       artifactId: 'artifact-recovered',
       payload: { recovered: true },
+      normalizedText: 'recovered brief',
+      parsedFormat: 'md',
     });
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
     expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-recovered');
     expect(actor.getSnapshot().context.extractionPayload).toEqual({ recovered: true });
+    expect(actor.getSnapshot().context.normalizedText).toBe('recovered brief');
+    expect(actor.getSnapshot().context.parsedFormat).toBe('md');
     actor.stop();
   });
 
@@ -303,6 +307,8 @@ describe('briefingUploadMachine', () => {
         payload: { topic: 'test' },
         briefingId: 'brief-from-event',
         fileName: 'recovered-brief.md',
+        normalizedText: 'recovered idle brief',
+        parsedFormat: 'md',
       });
 
       await waitFor(actor, (snapshot) => snapshot.matches('ready'));
@@ -312,6 +318,8 @@ describe('briefingUploadMachine', () => {
       expect(ctx.extractionPayload).toEqual({ topic: 'test' });
       expect(ctx.briefingId).toBe('brief-from-event');
       expect(ctx.fileName).toBe('recovered-brief.md');
+      expect(ctx.normalizedText).toBe('recovered idle brief');
+      expect(ctx.parsedFormat).toBe('md');
       expect(ctx.error).toBeNull();
       actor.stop();
     });

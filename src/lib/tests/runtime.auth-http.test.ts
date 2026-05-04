@@ -1020,3 +1020,96 @@ test('auth HTTP runtime enforces project ownership for /api/tools/briefs', async
   const body = uploadResponse.jsonBody();
   assert.equal(body.ok, false);
 });
+
+test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-001',
+    now: () => new Date('2026-05-05T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-001',
+    email: 'hydrate@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-fenced-001',
+      requestId: 'req-extract-fenced-001',
+      userId: 'user-hydrate-001',
+      projectId: 'project-hydrate-001',
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-hydrate-001',
+        briefingText: 'brief fenced text',
+      },
+      content: '```json\n{"payload":{"offer":"audit","audience":"b2b"}}\n```',
+      failureReason: null,
+      createdAt: '2026-05-05T10:00:00.000Z',
+      updatedAt: '2026-05-05T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-05T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-001' },
+  });
+
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify({ email: 'hydrate@example.com', password: 'Hydrate-Pass-1' }),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const hydrateRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/tools/hydrate',
+    headers: { cookie: cookieHeader },
+    body: JSON.stringify({
+      projectId: 'project-hydrate-001',
+      sourceArtifactId: 'artifact-extract-fenced-001',
+      intent: 'regenerate',
+    }),
+  });
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    hydrateRequest as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  assert.equal(payload.ok, true);
+  assert.deepEqual((payload.data as { hydration: { extractionPayload: Record<string, unknown> } }).hydration.extractionPayload, {
+    offer: 'audit',
+    audience: 'b2b',
+  });
+});

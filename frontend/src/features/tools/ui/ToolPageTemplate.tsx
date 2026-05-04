@@ -25,6 +25,7 @@ import {
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { extractArtifactStep } from '../../generation/runtime/step-hydration';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 
 interface ToolPageTemplateProps {
@@ -39,11 +40,6 @@ interface ToolPageTemplateProps {
   extractionArtifactId?: string | null;
   briefingFileName?: string | null;
 }
-
-const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
-  const step = artifact?.sourceRequest.input?.step;
-  return typeof step === 'string' ? step as ToolStep : null;
-};
 
 const parseExtractionPayloadFromContent = (content: string): Record<string, unknown> => {
   const parseCandidate = (candidate: string): Record<string, unknown> => {
@@ -241,15 +237,28 @@ export const ToolPageTemplate = ({
       ? routeBriefingId
       : sourceBriefingId;
 
+    const resolvedSourceExtractionArtifactId =
+      readInputField(sourceArtifact, 'extractionArtifactId')
+      ?? extractionArtifactId
+      ?? null;
+
+    console.debug('[ToolPageTemplate] sending HYDRATE_REQUESTED', {
+      intent,
+      sourceArtifactId: sourceArtifact.artifactId,
+      sourceArtifactType: sourceArtifact.artifactType,
+      projectId: normalizedProjectId,
+      resolvedHydrationBriefingId,
+      resolvedSourceExtractionArtifactId,
+      localArtifactsCount: generation.artifacts.length,
+      sourceArtifactBriefingId: sourceBriefingId,
+    });
+
     toolPageSend({
       type: 'HYDRATE_REQUESTED',
       intent,
       sourceArtifactId: sourceArtifact.artifactId,
       resolvedBriefingId: resolvedHydrationBriefingId,
-      sourceExtractionArtifactId:
-        readInputField(sourceArtifact, 'extractionArtifactId')
-        ?? extractionArtifactId
-        ?? null,
+      sourceExtractionArtifactId: resolvedSourceExtractionArtifactId,
       localArtifacts: generation.artifacts,
     });
   }, [
@@ -321,7 +330,7 @@ export const ToolPageTemplate = ({
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
 
   const sourceStep = useMemo(() => {
-    const candidate = readArtifactStep(sourceArtifact);
+    const candidate = extractArtifactStep(sourceArtifact);
     if (!candidate) {
       return null;
     }
@@ -590,6 +599,7 @@ export const ToolPageTemplate = ({
     };
 
     let orchestrationResult;
+    lastRequestedStepRef.current = step;
     try {
       orchestrationResult = await orchestrateToolStep(
         normalizedProjectId,
@@ -653,7 +663,6 @@ export const ToolPageTemplate = ({
     }
 
     generation.start(request);
-    lastRequestedStepRef.current = step;
     return true;
   };
 

@@ -839,6 +839,17 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       where.push(`updated_at <= $${params.length}::timestamptz`);
     }
 
+    let paginationClause = '';
+    if (typeof filters.limit === 'number') {
+      params.push(filters.limit);
+      paginationClause += `\n      LIMIT $${params.length}`;
+    }
+
+    if (typeof filters.offset === 'number') {
+      params.push(filters.offset);
+      paginationClause += `\n      OFFSET $${params.length}`;
+    }
+
     const query = `
       SELECT
         id,
@@ -857,6 +868,7 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       FROM ${this.artifactsTableName}
       WHERE ${where.join(' AND ')}
       ORDER BY updated_at DESC, id DESC
+      ${paginationClause}
     `;
 
     const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);

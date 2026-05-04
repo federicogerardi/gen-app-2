@@ -6,6 +6,8 @@ export type ArtifactListFilters = {
   projectId?: string;
   from?: string;
   to?: string;
+  limit?: number;
+  offset?: number;
 };
 
 export type ArtifactSummary = {

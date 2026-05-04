@@ -6,6 +6,83 @@ import { normalizeIdentifier } from '../../../app/runtime/shared-utils';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const normalizeExtractionPayload = (value: unknown): Record<string, unknown> => {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const payload = value.payload;
+  if (isRecord(payload)) {
+    return payload;
+  }
+
+  const extractionPayload = value.extractionPayload;
+  if (isRecord(extractionPayload)) {
+    return extractionPayload;
+  }
+
+  const data = value.data;
+  if (isRecord(data)) {
+    const dataPayload = data.payload;
+    if (isRecord(dataPayload)) {
+      return dataPayload;
+    }
+
+    const dataExtractionPayload = data.extractionPayload;
+    if (isRecord(dataExtractionPayload)) {
+      return dataExtractionPayload;
+    }
+  }
+
+  return value;
+};
+
+const parseJsonCandidate = (candidate: string): Record<string, unknown> => {
+  try {
+    const parsed = JSON.parse(candidate) as unknown;
+    return normalizeExtractionPayload(parsed);
+  } catch {
+    return {};
+  }
+};
+
+const parseExtractionArtifactContent = (content: string): Record<string, unknown> => {
+  const direct = parseJsonCandidate(content);
+  if (Object.keys(direct).length > 0) {
+    return direct;
+  }
+
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    const fromFence = parseJsonCandidate(fenced[1]);
+    if (Object.keys(fromFence).length > 0) {
+      return fromFence;
+    }
+  }
+
+  const objectSlice = content.match(/\{[\s\S]*\}/);
+  if (objectSlice?.[0]) {
+    const fromSlice = parseJsonCandidate(objectSlice[0]);
+    if (Object.keys(fromSlice).length > 0) {
+      return fromSlice;
+    }
+  }
+
+  return {};
+};
+
+const readNormalizedBriefingText = (input: Record<string, unknown> | undefined): string => {
+  if (typeof input?.briefingText === 'string' && input.briefingText.trim().length > 0) {
+    return input.briefingText;
+  }
+
+  if (typeof input?.normalizedText === 'string' && input.normalizedText.trim().length > 0) {
+    return input.normalizedText;
+  }
+
+  return '';
+};
+
 /**
  * Canonical extraction payload read path.
  *
@@ -29,15 +106,11 @@ export const readExtractionPayloadFromArtifact = (artifact: GenerationArtifact):
     }
   }
 
-  // 2. Extraction artifact content (direct JSON)
+  // 2. Extraction artifact content (direct JSON, fenced JSON, or payload envelope)
   if (artifact.artifactType === 'extraction' && artifact.content) {
-    try {
-      const parsed = JSON.parse(artifact.content) as unknown;
-      if (isRecord(parsed) && Object.keys(parsed).length > 0) {
-        return parsed;
-      }
-    } catch {
-      // fall through
+    const parsed = parseExtractionArtifactContent(artifact.content);
+    if (Object.keys(parsed).length > 0) {
+      return parsed;
     }
   }
 
@@ -62,25 +135,43 @@ export const belongsToTool = (artifact: GenerationArtifact, toolKey: SupportedTo
   return candidates.includes(toolKey);
 };
 
+type ArtifactFilterCriteria = {
+  projectId: string;
+  toolKey: SupportedTool;
+  status?: ArtifactLifecycleStatus;
+  runRequestPrefix?: string;
+};
+
+const filterArtifactsForStep = (
+  artifacts: GenerationArtifact[],
+  criteria: ArtifactFilterCriteria,
+): GenerationArtifact[] => {
+  const normalizedProjectId = criteria.projectId.trim();
+  return artifacts.filter((artifact) => {
+    if (artifact.projectId !== normalizedProjectId) return false;
+    if (!belongsToTool(artifact, criteria.toolKey)) return false;
+    if (criteria.status && artifact.status !== criteria.status) return false;
+    if (criteria.runRequestPrefix) {
+      const prefix = criteria.runRequestPrefix.trim();
+      if (typeof artifact.requestId !== 'string' || !artifact.requestId.startsWith(`${prefix}:`)) return false;
+    }
+    return true;
+  });
+};
+
 export const collectCompletedStepsByTool = (
   artifacts: GenerationArtifact[],
   toolKey: SupportedTool,
   projectId: string,
 ): Set<ToolStep> => {
-  const normalizedProjectId = projectId.trim();
-  if (!normalizedProjectId) {
+  if (!projectId.trim()) {
     return new Set();
   }
 
   return new Set(
-    artifacts
-      .filter((artifact) => (
-        artifact.projectId === normalizedProjectId
-        && artifact.status === 'completed'
-        && belongsToTool(artifact, toolKey)
-      ))
-      .map((artifact) => artifact.sourceRequest.input?.step)
-      .filter((step): step is ToolStep => typeof step === 'string'),
+    filterArtifactsForStep(artifacts, { projectId, toolKey, status: 'completed' })
+      .map(extractArtifactStep)
+      .filter((step): step is ToolStep => step !== null),
   );
 };
 
@@ -89,29 +180,21 @@ export const buildLatestArtifactByStep = (
   toolKey: SupportedTool,
   projectId: string,
 ): Partial<Record<ToolStep, GenerationArtifact>> => {
-  const normalizedProjectId = projectId.trim();
-  if (!normalizedProjectId) {
+  if (!projectId.trim()) {
     return {};
   }
 
-  const sorted = [...artifacts]
-    .filter((artifact) => artifact.projectId === normalizedProjectId && belongsToTool(artifact, toolKey))
+  const sorted = [...filterArtifactsForStep(artifacts, { projectId, toolKey })]
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 
   return sorted.reduce<Partial<Record<ToolStep, GenerationArtifact>>>((acc, artifact) => {
-    const step = artifact.sourceRequest.input?.step;
-    if (typeof step !== 'string') {
-      return acc;
+    const step = extractArtifactStep(artifact);
+    if (step !== null && !acc[step]) {
+      acc[step] = artifact;
     }
-
-    if (!acc[step as ToolStep]) {
-      acc[step as ToolStep] = artifact;
-    }
-
     return acc;
   }, {});
 };
-
 
 export const collectCompletedRunSteps = (
   artifacts: GenerationArtifact[],
@@ -119,22 +202,14 @@ export const collectCompletedRunSteps = (
   projectId: string,
   runRequestPrefix: string,
 ): Set<ToolStep> => {
-  const normalizedProjectId = projectId.trim();
-  if (!normalizedProjectId || !runRequestPrefix.trim()) {
+  if (!projectId.trim() || !runRequestPrefix.trim()) {
     return new Set();
   }
 
   return new Set(
-    artifacts
-      .filter((artifact) => (
-        artifact.projectId === normalizedProjectId
-        && artifact.status === 'completed'
-        && typeof artifact.requestId === 'string'
-        && artifact.requestId.startsWith(`${runRequestPrefix}:`)
-        && belongsToTool(artifact, toolKey)
-      ))
-      .map((artifact) => artifact.sourceRequest.input?.step)
-      .filter((step): step is ToolStep => typeof step === 'string'),
+    filterArtifactsForStep(artifacts, { projectId, toolKey, status: 'completed', runRequestPrefix })
+      .map(extractArtifactStep)
+      .filter((step): step is ToolStep => step !== null),
   );
 };
 
@@ -147,6 +222,7 @@ export const extractArtifactStep = (artifact: GenerationArtifact | null): ToolSt
   const step = artifact?.sourceRequest.input?.step;
   return typeof step === 'string' ? (step as ToolStep) : null;
 };
+
 
 export const buildExtractionContextFromArtifact = (
   artifact: GenerationArtifact,
@@ -176,9 +252,7 @@ export const buildExtractionContextFromArtifact = (
 
   const extractionPayload = readExtractionPayloadFromArtifact(artifact);
 
-  const normalizedText = typeof input?.briefingText === 'string'
-    ? input.briefingText
-    : '';
+  const normalizedText = readNormalizedBriefingText(input);
 
   const parsedFormat = (() => {
     const raw = typeof input?.parsedFormat === 'string' ? input.parsedFormat.trim().toLowerCase() : '';

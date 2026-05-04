@@ -632,6 +632,10 @@ export const ToolPageTemplate = ({
         extractionArtifactIdInRequest: request.input.extractionArtifactId,
         extractionPayloadKeysInRequest,
         stepDependencyArtifactIdsCount,
+        // Bug 1 diagnostics: track payload origin
+        extractionPayloadFromBriefing: Object.keys(briefingSnapshot.context.extractionPayload ?? {}).length,
+        extractionPayloadFromMachine: machineHydrationResult ? Object.keys(machineHydrationResult.extractionPayload ?? {}).length : 0,
+        extractionPayloadSource: machineHydrationResult !== null ? 'hydration' : 'briefing',
       });
     }
 
@@ -726,8 +730,22 @@ export const ToolPageTemplate = ({
       toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
     } else if (failedStep && toolConfig.steps.includes(failedStep as ToolStep)) {
       toolPageSend({ type: 'STEP_FAILED', step: failedStep as ToolStep, message: 'Generazione fallita' });
+    } else if (!completedStep && !failedStep && generation.streamStatus === 'completed') {
+      // Interim fallback: TASK-026 incomplete — backend didn't send completedStep in SSE_TERMINAL
+      // Infer step from lastRequest.input.step to unblock readiness/CTA after generation completes
+      const inferredStep = (generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined)?.step;
+      if (typeof inferredStep === 'string' && toolConfig.steps.includes(inferredStep as ToolStep)) {
+        if (import.meta.env.DEV) {
+          console.warn('[ToolPageTemplate] inferring step completion from lastRequest (backend TASK-026 incomplete)', {
+            inferredStep,
+            terminalCompletedStep: completedStep,
+            terminalFailedStep: failedStep,
+          });
+        }
+        toolPageSend({ type: 'STEP_DONE', step: inferredStep as ToolStep });
+      }
     }
-  }, [generation.isStreamActive, generation.terminalCompletedStep, generation.terminalFailedStep, toolConfig.steps, toolPageSend]);
+  }, [generation.isStreamActive, generation.terminalCompletedStep, generation.terminalFailedStep, generation.streamStatus, generation.snapshot, toolConfig.steps, toolPageSend]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) {

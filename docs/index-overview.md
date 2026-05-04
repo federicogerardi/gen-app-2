@@ -44,6 +44,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | 05-ops | [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | Platform/DevOps |
 | 06-user | [06-user](./06-user/) | Product + UX |
 | 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist |
+| 07-governance | [ddd-first-docs-supersession-audit-2026-05-04](./07-governance/ddd-first-docs-supersession-audit-2026-05-04.md) | Domain Architecture |
 | 99-lifecycle | [99-archive](./99-lifecycle/99-archive/) | Documentation Archivist |
 
 ## Critical Documents Status
@@ -70,19 +71,18 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ### Design Specifications
 
-- [frontend-spec](./02-design/specifications/frontend-spec.md)
+- [frontend-spec](./02-design/specifications/frontend-spec.md) — **Start here for Frontend architecture (DDD-aligned)**
 - [frontend-unification-replication-guide](./02-design/specifications/frontend-unification-replication-guide.md)
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-structural-ux-flow-spec](./02-design/specifications/tool-generation-structural-ux-flow-spec.md)
-- [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+- [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
-- [tool-generation-flow-vertical](./02-design/tool-generation-flow-vertical.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
-- [xstate-system-as-is-spec](./02-design/specifications/xstate-system-as-is-spec.md)
-- [xstate-system-as-is](./02-design/specifications/xstate-system-as-is/)
-- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md)
+- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) (operational)
+
+**[Archived technical specs (DDD-superseded)](./99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/)**: XState machine specifications, checklists, and contracts (19 files) moved to archive 2026-05-04. All domain concepts captured in canonical UL glossary, BCM, and visual diagrams.
 
 ### Design ADR
 
@@ -124,6 +124,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ### Archive Buckets
 
+- [xstate-system-as-is-2026-05-04](./99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/) — XState technical specs (19 files) archived per DDD-first transition (2026-05-04)
 - [planning archive](./99-lifecycle/99-archive/planning/)
 - [governance-pre-publish archive](./99-lifecycle/99-archive/governance-pre-publish/)
 - [tool-prompts archive](./99-lifecycle/99-archive/tool-prompts/)
@@ -169,6 +170,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ## Governance Rules Applied
 
+- **DDD-First Model (2026-05-04)**: All active documentation must reference canonical UL (glossary, BCM, decision log). Technical specifications superseded by UL are archived. See [ddd-first-docs-supersession-audit-2026-05-04](./07-governance/ddd-first-docs-supersession-audit-2026-05-04.md).
 - Documenti attivi in aree operative; snapshot conclusi e pre-publish in archive.
 - Naming markdown: lowercase kebab-case con topic + doc-type.
 - Rename/spostamenti: update link e indici nello stesso change set.

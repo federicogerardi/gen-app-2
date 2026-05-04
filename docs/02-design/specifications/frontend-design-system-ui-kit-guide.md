@@ -1,4 +1,16 @@
+---
+status: active
+version: 1.2
+date_created: 2026-04-28
+last-reviewed: 2026-05-04
+next-review-date: 2026-08-04
+owner: Frontend Platform Team
+type: design-system-guide
+---
+
 # Frontend Design System e UI Kit Guide
+
+> ⓘ **Design Document** — This guide covers visual language, design tokens, layout system, and UI components. It is orthogonal to the DDD domain model (no UL linkage required per governance policy). For domain-facing architecture, see [Frontend Tool Pages Architecture Spec](./frontend-tool-pages-architecture-spec.md).
 
 Data: 2026-04-28  
 Status: Active  

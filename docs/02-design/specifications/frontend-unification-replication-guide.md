@@ -8,6 +8,11 @@ owner: Frontend Platform Team
 
 # Frontend Unification Replication Guide
 
+> ⚑ **DDD Reference**: This guide covers Frontend/UI bounded context infrastructure (data access layer). For canonical domain terminology, see:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — `ExtractionContext` (DDD-013), `ToolPage` (DDD-004), `HydrationResult` (DDD-020)
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend--ui-context) — Frontend/UI Context, data access responsibilities
+> - [Frontend Data Access Layer ADR](../adr/frontend-data-access-layer-adr.md) — architectural decision backing this guide
+
 Data: 2026-04-27
 Stato: Active
 Version: 1.0
@@ -214,5 +219,5 @@ Per ogni modifica coerente con questa guida:
 
 - [Frontend as-is](./frontend-spec.md)
 - [Frontend Tool Pages Architecture](./frontend-tool-pages-architecture-spec.md)
-- [Tool generation structural UX flow](./tool-generation-structural-ux-flow-spec.md)
+- [Tool Generation Flow Source Of Truth (Frontend)](./tool-generation-flow-source-of-truth-spec.md) — UX state routing, form behavior, state-to-action mapping
 - [Unified Frontend Data Access Layer ADR](../adr/frontend-data-access-layer-adr.md)

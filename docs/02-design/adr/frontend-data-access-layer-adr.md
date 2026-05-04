@@ -8,6 +8,12 @@ owner: Frontend Platform Team
 
 # ADR-001: Unified Frontend Data Access Layer
 
+> ⚑ **DDD Reference**: This ADR concerns the Frontend/UI bounded context data access infrastructure. Domain concepts referenced below:
+> - `ExtractionContext` (DDD-013) — briefing extraction output, consumed by tool data access layer
+> - `HydrationResult` (DDD-020) — session rehydration output, served via the query hooks layer
+> - `ToolPage` (DDD-004) — aggregate root for tool page orchestration
+> - See [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) and [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend-ui-context) for full context.
+
 **Status**: Accepted
 **Date**: 2026-04-27
 **Deciders**: Frontend Platform Team

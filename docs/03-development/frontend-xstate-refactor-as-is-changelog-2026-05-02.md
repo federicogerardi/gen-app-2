@@ -8,6 +8,11 @@ owner: Frontend Platform Team
 
 # Frontend XState Refactor As-Is Changelog (2026-05-02)
 
+> ⚑ **DDD Reference**: This changelog concerns the Frontend/UI bounded context (`toolPageMachine`, `briefingUploadMachine`, `toolFlowMachine`). Canonical terms referenced:
+> - `ReadinessSnapshot` (DDD-014), `ToolPage` (DDD-004), `ExtractionContext` (DDD-013), `HydrationResult` (DDD-020), `WorkflowRunMode` (DDD-005)
+> - [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md) — full term definitions
+> - [Tool Generation Flow Source Of Truth (Frontend)](../02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — current canonical machine contract
+
 ## Scope
 
 Nota di changelog documentale per allineare il sistema as-is nel perimetro del refactoring frontend XState (tools/auth/workspace).
@@ -37,7 +42,7 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 5. Coerenza action flow e CTA dopo restore checkpoint:
 - completata la gestione policy primaria (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`).
 - avvio step orchestrato via comando macchina (`REQUEST_STEP_START`) con dispatch side effect su pending command.
-- hardening readiness centralizzato in `toolPageMachine`: snapshot strutturato nel contesto con reason codes (`missing_project`, `missing_extraction_context`, `missing_primary_target_step`).
+- hardening readiness centralizzato in `toolPageMachine`: `ReadinessSnapshot` (DDD-014) strutturata nel contesto con reason codes (`missing_project`, `missing_extraction_context`, `missing_primary_target_step`).
 - recovery checkpoint extraction reso legacy-safe: matcher compatibile con artifact storici privi di `sourceRequest.input.toolKey`.
 - UI `ToolGenerationFlowVertical` allineata a reason codes macchina per feedback deterministico del requisito `Pronto per la generazione`.
 
@@ -50,9 +55,9 @@ Nota di changelog documentale per allineare il sistema as-is nel perimetro del r
 
 ## Documentation Updated In This Delta
 
-- [xstate-system-as-is-spec](../02-design/specifications/xstate-system-as-is-spec.md)
-- [xstate-actor-contracts-and-topology-spec](../02-design/specifications/xstate-system-as-is/xstate-actor-contracts-and-topology-spec.md)
-- [testing-go-no-go-and-risk-spec](../02-design/specifications/xstate-system-as-is/testing-go-no-go-and-risk-spec.md)
+- [xstate-system-as-is-spec](../99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/xstate-system-as-is-spec.md) — **archived 2026-05-04** (superseded by DDD-first model)
+- [xstate-actor-contracts-and-topology-spec](../99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/xstate-actor-contracts-and-topology-spec.md) — **archived 2026-05-04**
+- [testing-go-no-go-and-risk-spec](../99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/testing-go-no-go-and-risk-spec.md) — **archived 2026-05-04**
 - [tools-generation-go-closure-2026-04-25](../99-lifecycle/99-archive/tools-generation-go-closure-2026-04-25.md) — archived
 - [tool-generation-flow-source-of-truth-spec](../02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [index-overview](../index-overview.md)

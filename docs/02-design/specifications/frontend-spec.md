@@ -1,4 +1,18 @@
+---
+status: approved
+version: 2.1
+date_created: 2026-04-28
+last-reviewed: 2026-05-03
+next-review-date: 2026-08-03
+owner: Frontend Platform Team
+---
+
 # Frontend — Specifica as-is
+
+> ⚑ **DDD Reference**: This document describes the Frontend/UI bounded context architecture. For canonical domain terminology, see:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — frontend terms: `ToolPage`, `ReadinessSnapshot`, `SupportedTool`, `ToolStep`, `ExtractionContext`, `HydrationResult`
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md) — Frontend/UI Context section
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions DDD-004, DDD-006, DDD-028 (Frontend terms)
 
 **Data**: 2026-04-28  
 **Radice sorgente**: `frontend/src/`  

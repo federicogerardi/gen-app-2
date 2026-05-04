@@ -2,12 +2,18 @@
 goal: Descrizione strutturale e UX-flow del tool di generazione (as-is)
 version: 1.0
 date_created: 2026-04-25
-date_updated: 2026-05-02
-status: Active
+date_updated: 2026-05-04
+status: archived
 tags: [ux, tool-generation, flow, setup, progress, checkpoint]
+reason: Content consolidated into tool-generation-flow-source-of-truth-spec.md (Phase 3, 2026-05-04)
+archived_date: 2026-05-04
 ---
 
-# Tool Generation: Struttura e UX Flow
+# Tool Generation: Struttura e UX Flow ⚠️ ARCHIVED
+
+> ⚠️ **Archived Document**: This document has been consolidated into [Tool Generation Flow Source Of Truth (Frontend)](./tool-generation-flow-source-of-truth-spec.md). All content regarding UX structure, form behavior, state-to-action routing, and regeneration flows is now maintained in a single canonical source.
+>
+> **Replacement**: See [Tool Generation Flow Source Of Truth (Frontend)](./tool-generation-flow-source-of-truth-spec.md) — section 9 "UX Structure & Form Behavior" and section 13 "State-to-Action Routing".
 
 ## Obiettivo
 

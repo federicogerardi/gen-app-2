@@ -8,6 +8,14 @@ tags: [code-review, ddd-alignment, overengineering, duplication]
 
 # Checkpoint Recovery Code Review — Overengineering & Duplication Analysis
 
+> ⚑ **DDD Reference**: This review concerns the Frontend/UI bounded context checkpoint and hydration flow. Canonical terms:
+> - `ArtifactRelaunch` (DDD-020), `HydrationResult` (DDD-020), `ReadinessSnapshot` (DDD-014)
+> - `WorkflowStepBootstrap` (DDD-037) — **canonical term** for resume checkpoint state (injected into `ToolWorkflowInput` on resume/regenerate)
+> - `CanonicalToolUiState: paused-with-checkpoint` (DDD-006) — canonical UI state for paused+resumable condition
+> - `ExtractionContext` (DDD-013), `ToolStep` (DDD-028), `WorkflowRunMode` (DDD-005)
+> - Note: `ToolCheckpoint` and `ToolCheckpointStatus` below are **implementation-only types** (DDD-022 pattern). Domain concept: `WorkflowStepBootstrap` (DDD-037).
+> - See [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md) and [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md)
+
 ## Executive Summary
 
 The artifact checkpoint recovery implementation (`scope-artifact-checkpoint-recovery-alignment-1.md` completed 2026-05-03) respects DDD constraints (`ArtifactRelaunch`, `HydrationResult`, `ReadinessSnapshot`) but introduces **3 major vectors of unnecessary complexity**:
@@ -205,6 +213,8 @@ export const collectCompletedRunSteps = (artifacts, toolKey, projectId, runReque
 - `tool-checkpoints.ts:26-37` — `sortCheckpointsForResume()` + `selectBestCheckpointForProject()`
 - `GenerationForm.tsx:104-108` — duplicate call and logic
 - `tool-ux-state.ts` — derives state but repeats priority logic
+
+> ⓘ **DDD Note**: `ToolCheckpoint` and `ToolCheckpointStatus` below are implementation-only types (DDD-022 pattern). Canonical domain term: `WorkflowStepBootstrap` (DDD-037). `ToolCheckpointStatus` values map to `CanonicalToolUiState` (DDD-006): `generating` → `running`, `completed_partial`/`generating` → `paused-with-checkpoint`.
 
 ### Current Implementation
 

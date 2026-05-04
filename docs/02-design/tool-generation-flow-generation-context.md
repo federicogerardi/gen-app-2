@@ -13,6 +13,8 @@ This diagram represents the canonical flow of a multi-step Tool execution in the
 
 All domain terms are canonical as of 2026-05-04 (DDD-026 through DDD-037).
 
+> 📖 **Frontend UI Representation**: See [ToolGenerationFlow: Unified Flow Component](./tool-generation-flow.md) for the Frontend UI implementation of this flow. For detailed UX state routing and form behavior, see [Tool Generation Flow Source Of Truth (Frontend)](./specifications/tool-generation-flow-source-of-truth-spec.md).
+
 ---
 
 ## Tool Execution Flow (Complete Journey)

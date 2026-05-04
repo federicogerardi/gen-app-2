@@ -1,13 +1,20 @@
 ---
 date_created: 2026-04-29
-date_updated: 2026-04-29
-status: Active
+date_updated: 2026-05-04
+status: historical-reference
 version: 1.0
 title: Tool Pages - Unified Flow Migration
 tags: [architecture, tool-pages, unification, flow, ui-components]
+type: architecture-change-rationale
+owner: Frontend Platform Team
 ---
 
 # Tool Pages: Unified Flow Migration
+
+> 📖 **Background**: This document provides the architectural rationale and before/after comparison for the unified ToolGenerationFlow component. For the current implementation, see:
+> - [ToolGenerationFlow: Unified Flow Component](../tool-generation-flow.md)
+> - [Tool Generation Flow Source Of Truth (Frontend)](./tool-generation-flow-source-of-truth-spec.md) — UX state routing and form behavior
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — canonical domain terms
 
 ## Executive Summary
 

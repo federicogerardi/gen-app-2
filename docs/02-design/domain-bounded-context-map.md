@@ -1,7 +1,7 @@
 ---
 status: active
-version: 1.1
-last-reviewed: 2026-05-03
+version: 1.5
+last-reviewed: 2026-05-04
 next-review-date: 2026-08-03
 owner: Domain Architecture
 ---
@@ -40,23 +40,13 @@ owner: Domain Architecture
 - `toolWorkflowMachine` — multi-step tool orchestration; owns `WorkflowStep` lifecycle (descriptor + runtime state) and emits per-step `BackendStreamEvent`
 - `extractionChainMachine` — structured extraction fallback
 
-**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`
+**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `ToolKey`, `WorkflowStepType`, `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`
+
+**Organizing concept**: `Tool` (DDD-026) is the top-level domain concept. Each Tool is a named capability that chains `WorkflowStep`s of typed execution strategies (`WorkflowStepType`: `extraction`, `generation`, `acquisition`-provisional) over structured user input to produce `Artifact`s. Generation context is the runtime owner of Tool execution; Frontend context is the interaction owner.
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 
 **Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. `RequestGateway` performs a quota pre-authorization gate only; the actual atomic quota decrement is executed by `usageMachine` after idempotency is resolved.
-
-**Behavioral contract for user-problem resolution**:
-- `GenerationSystem` must support both first-time generation (`WorkflowRunMode = new`) and artifact-driven re-entry (`WorkflowRunMode = regenerate` by default after hydration).
-- The effective post-hydration primary action remains `start-generation`; runtime intent selection must not fragment the user journey into multiple primary entry concepts.
-- In multi-step flows, each completed step contributes deterministic context to downstream steps through dependency-linked artifact references (`stepDependencyArtifactIds`) so each output remains coherent with the requested step.
-
-**Mini Acceptance Criteria (Given/When/Then)**:
-- Given a first-time session with valid project and complete `ExtractionContext`, When the user triggers `start-generation`, Then `GenerationSystem` executes with `WorkflowRunMode = new` and emits `BackendStreamEvent` through terminal completion.
-- Given an artifact-driven entry with successful `HydrationResult`, When the page becomes ready, Then the effective primary action is `start-generation` and default runtime intent is `regenerate`.
-- Given step-1 dispatch preparation, When `GenerationRequest.input` is validated, Then both non-empty `briefingText` and structured `extractionPayload` are required, with deterministic fallback order from artifact content to `sourceRequest.input.extractionPayload`.
-- Given a multi-step workflow, When step N completes, Then step N+1 receives deterministic dependency-linked context via `stepDependencyArtifactIds` without dropping prior-step semantics.
-- Given artifact history after multi-step execution, When artifacts are rendered and relaunched, Then each `GenerationArtifact` remains step-recognizable and the UX progression stays linear and unambiguous.
 
 ---
 
@@ -91,7 +81,12 @@ owner: Domain Architecture
 - `frontendStreamMachine` — SSE stream consumer
 
 **Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`  
-**Key Domain Services**: `BriefingUpload`, `StepHydration`
+**Key Domain Services**: `BriefingUpload`  
+**Client-Side Projections**: `StepHydration` (projects BE-owned `WorkflowStep` state into FE context; does not own domain logic — see DDD-028)
+
+**Architecture boundary**: Frontend owns interaction and display only. Step ordering authority is BE (`toolWorkflowStepOrder`, `resolveStepDependencyIds`). Step dependency resolution at dispatch time should route through `/api/tools/orchestrate` (BE endpoint). See DDD-C-007 for the current code-level drift.
+
+**Organizing concept**: `SupportedTool` is the Frontend-context identifier for a `Tool` (DDD-026). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display.
 
 ---
 
@@ -104,8 +99,19 @@ owner: Domain Architecture
 | `AuthSessionPrincipal` | Auth | Generation | Generation receives `userId` + `role` from Auth. Generation trusts the principal and does not re-validate credentials. |
 | `AuthSessionPrincipal` | Auth | Frontend/UI | Frontend reads session state to drive routing and feature visibility. Frontend machines receive `userId` as input — they do not own session lifecycle. |
 | `UsageDecision` | Usage/Quota | Generation | The `UsageMachine` wraps `UsageDecision` and emits `USAGE_GRANTED` or `USAGE_REJECTED` events into the `GenerationSystem`. |
-| `BackendStreamEvent` | Generation | Frontend/UI | Generation emits SSE events (start, chunk, terminal); Frontend `frontendStreamMachine` consumes them and translates to machine events. No shared type — contract defined in `frontend/src/features/generation/contracts/backend-stream.ts`. |
+| `BackendStreamEvent` | Generation | Frontend/UI | Generation emits SSE events (start, chunk, terminal). Contract authority is Frontend-owned: type definitions live in `frontend/src/features/generation/contracts/backend-stream.ts` and are enforced against BE shapes by a compile-time parity guard (`backend-stream.parity.guard.ts`). Frontend `frontendStreamMachine` consumes and translates to internal machine events. See DDD-023. |
 | `ExtractionContext` completeness gate | Frontend/UI | Generation | Before dispatching step 1, Frontend must populate `GenerationRequest.input.briefingText` and `GenerationRequest.input.extractionPayload` deterministically. Payload resolution order: extraction artifact content (raw JSON, fenced JSON, payload envelope) then `sourceRequest.input.extractionPayload` fallback when content is non-JSON (`frontend/src/features/tools/runtime/tools-client.ts:113-329`, `frontend/src/features/tools/ui/ToolPageTemplate.tsx:47-589`, `frontend/src/features/tools/runtime/tools-client.test.ts:134-187`). |
 | `WorkflowStep` / `ToolStep` coherence | Generation | Frontend/UI | Frontend-selected `ToolStep` must map to backend `WorkflowStep` execution with deterministic dependency order; each emitted artifact must be step-recognizable in history to preserve linear and understandable UX progression. |
-| `ToolWorkflow` | Generation | Frontend/UI | Backend uses `ToolWorkflow` to route to generation logic; Frontend uses `SupportedTool` to drive UI steps. These are parallel representations — see naming conflict DDD-C-001. |
+| `ToolWorkflow` / `ToolKey` | Generation ↔ Frontend/UI | both | Two orthogonal identifiers cross the ACL boundary for the same logical Tool. `SupportedTool` (Frontend, kebab-case) is passed as `toolKey` in `GenerationRequest` — no value transformation. `ToolWorkflow` (Generation, snake_case, DB-compatible) is derived independently for artifact routing. `meta_ads` exists only in `ToolWorkflow` (no FE `SupportedTool` counterpart). Convention divergence: DDD-C-005. Context-local coexistence: DDD-C-001. See DDD-025. |
 | `ArtifactRelaunch` | Frontend/UI | Generation | Entering a tool from an existing artifact must resolve `HydrationResult` by `ArtifactType`: direct hydration for `extraction`, linked extraction lookup for `content` (via `briefingId`/`extractionArtifactId`). After hydration, Frontend exposes one effective generation-start action (`start-generation`) and applies default runtime intent `regenerate` for artifact-driven relaunch entries. |
+| `Tool` | all | all | Cross-context organizing concept (DDD-026). Frontend expresses Tool identity as `SupportedTool`; Generation routes via `ToolWorkflow` and orchestrates steps via `ToolKey`. No value translation at the boundary — `SupportedTool` and `ToolKey` values are identical (kebab-case). `WorkflowStepType` classifies step execution strategies within a Tool's chain (`extraction`, `generation`, `acquisition`-provisional). |
+
+---
+
+## Integration Constraints
+
+| Constraint | Contexts | Rule | Decision |
+| --- | --- | --- | --- |
+| `ExtractionContext` completeness at step dispatch | Frontend/UI → Generation | Before dispatching step 1, `GenerationRequest.input` must carry both non-empty `briefingText` and structured `extractionPayload`. Payload resolution order: extraction artifact content (raw JSON, fenced JSON, payload envelope) then `sourceRequest.input.extractionPayload` fallback. Sources: `frontend/src/features/tools/runtime/tools-client.ts:113-329`, `frontend/src/features/tools/ui/ToolPageTemplate.tsx:47-589`, `frontend/src/features/tools/runtime/tools-client.test.ts:134-187`. | DDD-021 |
+| `WorkflowStep` / `ToolStep` step-recognizability | Generation → Frontend/UI | Frontend-selected `ToolStep` must map to backend `WorkflowStep` execution with deterministic dependency order. Each emitted `Artifact` must remain step-recognizable in history (e.g., `optin`, `quiz`, `vsl`) to preserve linear UX progression and unambiguous relaunch intent. | DDD-004, DDD-020 |
+| `ArtifactRelaunch` default runtime intent | Frontend/UI → Generation | Artifact-driven relaunch entries must default to `WorkflowRunMode = regenerate`. The effective post-hydration primary action is always `start-generation`; no secondary entry concept is permitted. | DDD-020 |

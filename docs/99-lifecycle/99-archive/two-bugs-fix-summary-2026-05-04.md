@@ -1,7 +1,11 @@
 ---
-title: "Two Bugs in Tool Generation Flow — Debug & Fix Summary (May 4, 2026)"
-date_created: 2026-05-04
-status: "Interim fixes applied + Diagnostics added"
+status: archived
+version: 1.0
+last-reviewed: 2026-05-04
+next-review-date: 2026-08-03
+owner: Engineering Team
+completion-status: complete
+bug-status: solved
 ---
 
 # Bug Summary & Fixes

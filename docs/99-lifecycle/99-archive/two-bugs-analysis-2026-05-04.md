@@ -1,8 +1,20 @@
+---
+status: archived
+version: 1.0
+last-reviewed: 2026-05-04
+next-review-date: 2026-08-03
+owner: Engineering Team
+completion-status: complete
+bug-status: solved
+---
+
 # Analisi Tecnica: Due Bug nel Flusso Generazione ToolPageTemplate
 
 **Data**: 2026-05-04  
-**Status**: IN PROGRESS  
+**Status**: COMPLETE  
 **Traccia**: Bug 1 (Brief Output Non Serializzato), Bug 2 (CTA Disabile Post-Generazione)
+
+**Bug status**: SOLVED
 
 ---
 

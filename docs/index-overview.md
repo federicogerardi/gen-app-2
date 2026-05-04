@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 2.4
-last-reviewed: 2026-05-03
+version: 2.5
+last-reviewed: 2026-05-04
 next-review-date: 2026-08-03
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-05-03
+Data: 2026-05-04
 Stato: active
-Versione indice: 2.4
+Versione indice: 2.5
 
 Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezioni stabili, priorita esplicite.
 
@@ -110,6 +110,8 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [xstate-system-as-is-monolith-spec](./99-lifecycle/99-archive/xstate-system-as-is-monolith-spec.md)
 - [xstate-review-closure-2026-04-24](./99-lifecycle/99-archive/xstate-review-closure-2026-04-24.md)
 - [frontend-design-artifact-canvas-snapshot-2026-04-26](./99-lifecycle/99-archive/frontend-design-artifact-canvas-snapshot-2026-04-26.md)
+- [two-bugs-analysis-2026-05-04](./99-lifecycle/99-archive/two-bugs-analysis-2026-05-04.md) — archived; complete; bug solved
+- [two-bugs-fix-summary-2026-05-04](./99-lifecycle/99-archive/two-bugs-fix-summary-2026-05-04.md) — archived; complete; bug solved
 - [infrastructure-same-origin-deployment-1](./99-lifecycle/99-archive/infrastructure-same-origin-deployment-1.md) — superseded da feature-railway-same-origin-unified-1
 - [railway-same-origin-migration-strategy-3-phases](./99-lifecycle/99-archive/railway-same-origin-migration-strategy-3-phases.md) — superseded da feature-railway-same-origin-unified-1
 - [architecture-railway-private-network-same-origin-1](../plan/architecture-railway-private-network-same-origin-1.md) — completed 2026-05-01; tutti i 4 sprint eseguiti, topologia same-origin privata in produzione

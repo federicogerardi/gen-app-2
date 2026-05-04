@@ -14,6 +14,7 @@ import {
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
   collectCompletedStepsByTool,
+  readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
 
 export type HydrationResult = {
@@ -522,6 +523,7 @@ export const toolPageMachine = setup({
         intent: 'new' | 'resume' | 'regenerate';
         resolvedBriefingId: string | null;
         sourceExtractionArtifactId: string | null;
+        localArtifacts: GenerationArtifact[];
         apiBaseUrl: string;
         capabilities: Partial<BackendCapabilities>;
       };
@@ -532,8 +534,39 @@ export const toolPageMachine = setup({
         intent,
         resolvedBriefingId,
         sourceExtractionArtifactId,
+        localArtifacts,
         apiBaseUrl,
       } = input;
+
+      // Local resolution: try to resolve from localArtifacts before hitting the network.
+      // Case 1: sourceExtractionArtifactId matches a local artifact.
+      // Case 2: sourceArtifactId is itself an extraction artifact (e.g. relaunch from extraction).
+      if (localArtifacts.length > 0) {
+        const byExtractionId = sourceExtractionArtifactId
+          ? localArtifacts.find((a) => a.artifactId === sourceExtractionArtifactId)
+          : null;
+        const bySourceAsExtraction = !byExtractionId && sourceArtifactId
+          ? localArtifacts.find((a) => a.artifactId === sourceArtifactId && a.artifactType === 'extraction')
+          : null;
+        const extractionArtifact = byExtractionId ?? bySourceAsExtraction;
+
+        if (extractionArtifact) {
+          const payload = readExtractionPayloadFromArtifact(extractionArtifact);
+          const sourceInput = extractionArtifact.sourceRequest?.input as Record<string, unknown> | undefined;
+          return {
+            extractionArtifactId: extractionArtifact.artifactId,
+            extractionPayload: payload,
+            briefingId: typeof sourceInput?.briefingId === 'string'
+              ? sourceInput.briefingId
+              : (resolvedBriefingId ?? ''),
+            briefingFileName: null,
+            normalizedText: typeof sourceInput?.normalizedText === 'string'
+              ? sourceInput.normalizedText
+              : '',
+            parsedFormat: 'md',
+          };
+        }
+      }
 
       const res = await fetch(`${apiBaseUrl}/api/tools/hydrate`, {
         method: 'POST',
@@ -837,6 +870,7 @@ export const toolPageMachine = setup({
           intent: context.pendingHydration?.intent ?? 'new',
           resolvedBriefingId: context.pendingHydration?.resolvedBriefingId ?? null,
           sourceExtractionArtifactId: context.pendingHydration?.sourceExtractionArtifactId ?? null,
+          localArtifacts: context.pendingHydration?.localArtifacts ?? [],
           apiBaseUrl: context.apiBaseUrl,
           capabilities: context.capabilities,
         }),

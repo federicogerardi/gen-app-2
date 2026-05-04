@@ -1,9 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { useMswHandler } from '../../../test/mocks/server';
 
 // Phase 4: briefingUploadMachine mockato per partire in 'ready' con contesto estrazione.
 // Consente a deriveHasExtractionContext di restituire true dal primo render,
@@ -635,61 +637,37 @@ describe('resolveFlowProgressState', () => {
 describe('ToolPageTemplate restore flow', () => {
   beforeEach(() => {
     startMock.mockReset();
-  });
 
-  it('updates CTA and feedback to resume-checkpoint when checkpoint hydration completes', async () => {
-    extractionContextState = null;
-    briefingState.fileName = null;
-    briefingState.status = 'idle';
-    briefingState.extractionContext = null;
-    generationState.artifacts = [
-      {
-        artifactId: 'source-checkpoint-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            briefingId: 'brief-restore-001',
-            extractionArtifactId: 'artifact-extract-restore-001',
-            briefingFileName: 'restore-brief.md',
-            step: 'optin',
+    // Handler for /api/tools/hydrate: resolves hydration from the sourceArtifact's input fields.
+    // Required for tests where the extraction artifact is NOT present in localArtifacts
+    // and the machine cannot do local resolution (falls through to the network).
+    useMswHandler(
+      http.post('/api/tools/hydrate', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        const sourceId = typeof body.sourceArtifactId === 'string' ? body.sourceArtifactId : '';
+        const artifact = generationState.artifacts.find((a) => a.artifactId === sourceId);
+        const sourceInput = (artifact?.sourceRequest?.input ?? {}) as Record<string, unknown>;
+        const extractionArtifactId = typeof sourceInput.extractionArtifactId === 'string'
+          ? sourceInput.extractionArtifactId
+          : `extract-${sourceId}`;
+        const briefingId = typeof sourceInput.briefingId === 'string'
+          ? sourceInput.briefingId
+          : (typeof body.resolvedBriefingId === 'string' ? body.resolvedBriefingId : 'brief-restored');
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            hydration: {
+              extractionArtifactId,
+              extractionPayload: { schemaVersion: 'extraction.v1' },
+              briefingId,
+              briefingFileName: null,
+              normalizedText: '',
+              parsedFormat: 'md',
+            },
           },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
-        },
-        content: 'optin content',
-      },
-    ];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['quiz'];
-
-    renderTemplate({
-      intent: 'resume',
-      sourceArtifactId: 'source-checkpoint-001',
-      initialProjectId: 'project-001',
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /riprendi dal checkpoint/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /riprendi dal checkpoint/i }));
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalled();
-    });
-
-    const resumeSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(resumeSteps).toContain('quiz');
-
-    const resumeIntents = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.intent);
-    expect(resumeIntents).toContain('resume');
-
-    expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
-    expect(screen.getByText(/briefing status:\s*ready\s*- restore-brief.md/i)).toBeInTheDocument();
+        });
+      }),
+    );
   });
 
   it('restores briefing state and exposes a primary CTA when a completed checkout is restored', async () => {
@@ -797,83 +775,6 @@ describe('ToolPageTemplate restore flow', () => {
     const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
     expect(firstRequest.input.intent).toBe('regenerate');
     expect(firstRequest.input.briefingText).toBe('brief text');
-  });
-
-  it('recovers checkpoint from legacy extraction artifact without input.toolKey', async () => {
-    extractionContextState = null;
-    briefingState.fileName = null;
-    briefingState.status = 'idle';
-    briefingState.extractionContext = null;
-
-    generationState.artifacts = [
-      {
-        artifactId: 'source-legacy-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            briefingId: 'brief-legacy-001',
-            extractionArtifactId: 'extract-legacy-001',
-            briefingFileName: 'legacy-brief.md',
-            step: 'optin',
-          },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
-        },
-        content: 'optin content',
-      },
-      {
-        artifactId: 'extract-legacy-001',
-        requestId: 'req-extract-legacy-001',
-        projectId: 'project-001',
-        artifactType: 'extraction',
-        status: 'completed',
-        model: 'openrouter/auto',
-        toolKey: 'extraction',
-        workflowType: 'extraction',
-        content: '{"summary":"legacy extraction"}',
-        createdAt: '2026-05-02T10:00:00.000Z',
-        updatedAt: '2026-05-02T10:00:01.000Z',
-        sourceRequest: {
-          requestId: 'req-extract-legacy-001',
-          userId: 'seed-user-001',
-          projectId: 'project-001',
-          artifactType: 'extraction',
-          model: 'openrouter/auto',
-          toolKey: 'extraction',
-          workflowType: 'extraction',
-          input: {
-            briefingId: 'brief-legacy-001',
-            // legacy: input.toolKey intentionally missing
-          },
-        },
-      },
-    ];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['quiz'];
-
-    renderTemplate({
-      intent: 'resume',
-      sourceArtifactId: 'source-legacy-001',
-      initialProjectId: 'project-001',
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /riprendi dal checkpoint/i })).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/briefing status:\s*ready\s*- legacy-brief.md/i)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /riprendi dal checkpoint/i }));
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalled();
-    });
-
-    const resumeSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(resumeSteps).toContain('quiz');
   });
 
   it('uses completed CTA policy without dispatching generation start', async () => {

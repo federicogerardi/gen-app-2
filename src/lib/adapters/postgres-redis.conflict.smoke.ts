@@ -17,9 +17,9 @@ const requiredEnv = (name: 'DATABASE_URL'): string => {
 };
 
 const resolveRedisUrl = (): string => {
-  const redisUrl = process.env.UPSTASH_REDIS_URL;
+  const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
-    throw new Error('Missing Redis URL. Set UPSTASH_REDIS_URL');
+    throw new Error('Missing Redis URL. Set REDIS_URL');
   }
   return redisUrl;
 };

@@ -77,7 +77,7 @@ Execution update 2026-05-05:
 - workflow frontend rinominato e hardenizzato: `.github/workflows/main-pr-gate.yml` con build step e actions SHA-pinned
 - nuovo workflow backend creato: `.github/workflows/backend-gate.yml`
 - gate backend e frontend eseguiti con esito verde
-- smoke test bloccato per env mancante: `UPSTASH_REDIS_URL`
+- smoke test bloccato per env mancante: `REDIS_URL`
 
 Rischio principale: `.agents/` e `skills-lock.json` sono **tracciati** e verranno pubblicati salvo decisione esplicita di rimozione + aggiornamento `.gitignore`.
 

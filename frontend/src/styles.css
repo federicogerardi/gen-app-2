@@ -1356,6 +1356,10 @@ ul {
     display: inline-flex;
   }
 
+  .ui-workbench {
+    position: relative;
+  }
+
   .main-nav,
   .ui-main-nav {
     display: none;

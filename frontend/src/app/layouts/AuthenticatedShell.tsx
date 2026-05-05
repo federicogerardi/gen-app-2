@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { appCopy } from '../copy/system';
 import { useAuthSession } from '../providers/AuthSessionProvider';
 import { MainNavigation } from './MainNavigation';
@@ -32,16 +32,29 @@ export const AuthenticatedShell = () => {
 
         <div className={uiPrimitives.authActions}>
           <ThemeToggleButton />
-          <button
-            type="button"
-            className={cx(uiPrimitives.menuToggle, 'is-priority', isMobileNavOpen && 'is-hidden')}
-            onClick={() => setIsMobileNavOpen(true)}
-            aria-label={appCopy.ui.actions.openNavigationMenu}
-            aria-expanded={isMobileNavOpen}
-            aria-controls="main-navigation"
-          >
-            <Menu size={18} aria-hidden="true" />
-          </button>
+          {isMobileNavOpen ? (
+            <button
+              type="button"
+              className={uiPrimitives.menuToggle}
+              onClick={() => setIsMobileNavOpen(false)}
+              aria-label={appCopy.ui.actions.closeNavigationMenu}
+              aria-expanded={true}
+              aria-controls="main-navigation"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={cx(uiPrimitives.menuToggle, 'is-priority')}
+              onClick={() => setIsMobileNavOpen(true)}
+              aria-label={appCopy.ui.actions.openNavigationMenu}
+              aria-expanded={false}
+              aria-controls="main-navigation"
+            >
+              <Menu size={18} aria-hidden="true" />
+            </button>
+          )}
         </div>
       </Surface>
 

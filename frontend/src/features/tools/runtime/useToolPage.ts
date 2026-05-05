@@ -164,13 +164,15 @@ export const useToolPage = ({
     const resolvedSourceExtractionArtifactId =
       readInputField(sourceArtifact, 'extractionArtifactId') ?? extractionArtifactId ?? null;
 
-    console.debug('[useToolPage] sending HYDRATE_REQUESTED', {
-      intent,
-      sourceArtifactId: sourceArtifact.artifactId,
-      projectId: normalizedProjectId,
-      resolvedHydrationBriefingId,
-      resolvedSourceExtractionArtifactId,
-    });
+    if (import.meta.env.DEV) {
+      console.debug('[useToolPage] sending HYDRATE_REQUESTED', {
+        intent,
+        sourceArtifactId: sourceArtifact.artifactId,
+        projectId: normalizedProjectId,
+        resolvedHydrationBriefingId,
+        resolvedSourceExtractionArtifactId,
+      });
+    }
 
     toolPageSend({
       type: 'HYDRATE_REQUESTED',
@@ -248,6 +250,22 @@ export const useToolPage = ({
       generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
     )?.step;
     if (typeof candidate !== 'string') return null;
+    return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
+  }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
+
+  const streamingStep = useMemo(() => {
+    if (!generation.isStreamActive) {
+      return null;
+    }
+
+    const candidate = (
+      generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
+    )?.step;
+
+    if (typeof candidate !== 'string') {
+      return null;
+    }
+
     return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
   }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
 
@@ -643,6 +661,14 @@ export const useToolPage = ({
     generation.cancel();
   }, [currentRunningStep, generation, intent, sourceArtifact, toolPageSend]);
 
+  const handleBriefingFileSelected = useCallback((file: File): void => {
+    toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file });
+  }, [toolPageSend]);
+
+  const handleBriefingReset = useCallback((): void => {
+    toolPageSend({ type: 'BRIEFING_RESET' });
+  }, [toolPageSend]);
+
   return {
     // Config
     toolConfig,
@@ -657,28 +683,27 @@ export const useToolPage = ({
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     // Machine
-    toolPageSnapshot,
-    toolPageSend,
     machineViewModel,
     isGenerating,
     // Readiness & progress
     readinessSnapshot,
-    progressState,
     completedStepsForFlow,
     latestArtifactByStep,
     completedArtifactsByStep,
     // Steps
     currentRunningStep,
+    streamingStep,
     nextAvailableStep,
     // Presentation
     effectiveCanonicalState,
     currentProject,
     // Generation workspace passthrough (for JSX derived values)
     isStreamActive: generation.isStreamActive,
-    generationSnapshot: generation.snapshot,
     // Handlers
     handlePrimaryAction,
     handleCancelGeneration,
+    handleBriefingFileSelected,
+    handleBriefingReset,
     // Navigation
     navigate,
   };

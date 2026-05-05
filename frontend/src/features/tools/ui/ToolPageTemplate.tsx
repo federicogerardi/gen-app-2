@@ -33,20 +33,20 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     briefingError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
-    toolPageSnapshot,
-    toolPageSend,
     machineViewModel,
     isGenerating,
     readinessSnapshot,
     completedStepsForFlow,
     latestArtifactByStep,
     currentRunningStep,
+    streamingStep,
     effectiveCanonicalState,
     currentProject,
     isStreamActive,
-    generationSnapshot,
     handlePrimaryAction,
     handleCancelGeneration,
+    handleBriefingFileSelected,
+    handleBriefingReset,
     navigate,
   } = useToolPage(props);
 
@@ -98,9 +98,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   onChange={(e) => {
                     const selectedFile = e.target.files?.[0] ?? null;
                     if (selectedFile) {
-                      toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file: selectedFile });
+                      handleBriefingFileSelected(selectedFile);
                     } else {
-                      toolPageSend({ type: 'BRIEFING_RESET' });
+                      handleBriefingReset();
                     }
                   }}
                 />
@@ -142,10 +142,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     ? 'running'
                     : machineViewModel.stepStatuses[step] ?? 'idle',
                 artifactId: latestArtifactByStep[step]?.artifactId ?? null,
-                isStreaming:
-                  isStreamActive &&
-                  (generationSnapshot.context.lastRequest?.input as Record<string, unknown>)
-                    ?.step === step,
+                isStreaming: isStreamActive && streamingStep === step,
               }))}
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}

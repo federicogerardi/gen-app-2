@@ -157,6 +157,32 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
   });
 
+  it('runExtraction rejects top-level array payloads and returns empty object', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: '[{"offer":"test"}]',
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({});
+  });
+
   it('runExtraction falls back to sourceRequest.input.extractionPayload when artifact content is non-json', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });

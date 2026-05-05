@@ -1,6 +1,6 @@
 ---
 goal: Risoluzione sistematica dei 12 problemi di qualità, architettura e modularità identificati nel code review del 2026-05-05
-version: 1.1
+version: 1.2
 date_created: 2026-05-05
 last_updated: 2026-05-05
 owner: Engineering
@@ -12,7 +12,16 @@ tags: [refactor, quality, architecture, dry, modularità, scalabilità, chore]
 
 ![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
-Piano derivato dal code review del 2026-05-05 che ha identificato 12 problemi distribuiti su 4 livelli di impatto: bug concreti (P1/P11), dead code e stub (P6/P7/P8), problemi architetturali moderati (P9/P10), e refactor strutturali ad alto sforzo (P2/P3/P4/P5/P12). Il piano è organizzato in 4 fasi eseguibili in sequenza stretta (le fasi precedenti stabilizzano il codebase per quelle successive). Nessuna modifica al comportamento runtime è introdotta nelle fasi 1–2; le fasi 3–4 richiedono test verdi come gate obbligatorio.
+Piano derivato dal code review del 2026-05-05 che ha identificato 12 problemi distribuiti su 4 livelli di impatto: bug concreti (P1/P11), dead code e stub (P6/P7/P8), problemi architetturali moderati (P9/P10), e refactor strutturali ad alto sforzo (P2/P3/P4/P5/P12). Il piano era stato chiuso dopo 4 fasi complete, ma viene **riaperto** in data 2026-05-05 sulla base della code review aggiornata post-fix: 9 problemi risolti, 1 parzialmente risolto (P1), 2 volutamente aperti (P2, P3), 5 nuovi punti di hardening (N1–N5).
+
+### Update 2026-05-05 — Code Review Post-Fix
+
+| Area | Stato | Note |
+|---|---|---|
+| P4, P5, P6, P7, P8, P9, P10, P11, P12 | ✅ Risolti | Implementati e verificati da gate G-1..G-4 |
+| P1 | ⚠️ Parziale | Residuo parser duplicato in `tools-client.ts` |
+| P2, P3 | 🔴 Aperti deliberatamente | Vincolo architetturale e fuori scope fase precedente |
+| N1, N2, N3, N4, N5 | 🟡 Nuovi | Refactor hardening + test coverage mancanti |
 
 Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i problemi sono di qualità/architettura implementativa, non di linguaggio di dominio. I termini `ExtractionContext`, `readExtractionPayloadFromArtifact`, `GenerationArtifact` e `generateRequestId` sono già canonici nei riferimenti DDD esistenti.
 
@@ -31,6 +40,10 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 - **CON-003**: La Fase 4 (God Component + registry unificato + routing data-driven) è ad alto sforzo. Ogni task di Fase 4 deve essere approvato individualmente prima dell'esecuzione.
 - **GUD-001**: Seguire il pattern import-from-canonical: quando una funzione esiste già in un modulo condiviso, importarla da lì — non ridefinirla localmente.
 - **GUD-002**: I tipi UI locali (`type StepStatus = ...`) non devono essere ridefiniti nei componenti: importare sempre dal tipo canonico nella machine.
+- **REQ-007**: Completare il residuo P1 esponendo un parser canonico riusabile da step-hydration verso tools-client, evitando copie locali della stessa logica di envelope parsing.
+- **REQ-008**: `ToolPageTemplate` deve rimanere presentazionale puro: nessuna esposizione diretta di snapshot macchina o `toolPageSend` nel componente.
+- **REQ-009**: Tutti i log diagnostici in `useToolPage` devono essere protetti da `if (import.meta.env.DEV)`.
+- **REQ-010**: Implementare i test pianificati ma mancanti: TEST-005 (`useToolPage`) e TEST-006 (`isRecord` array guard).
 
 ---
 
@@ -98,7 +111,25 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 | TASK-019 | **P4 — Hook useToolPage**: estrarre da `ToolPageTemplate.tsx` tutti gli hook XState, i `useEffect` di orchestrazione, la logica di source artifact resolution, la hydration context, e la logica auto-chain in un hook dedicato `frontend/src/features/tools/runtime/useToolPage.ts`. Il hook deve accettare le stesse props di `ToolPageTemplate` e restituire i valori necessari al rendering. `ToolPageTemplate` deve diventare un componente di sola presentazione che usa `useToolPage` e delega il rendering a `ToolGenerationFlowVertical` e `ToolActionButtons`. Target: `ToolPageTemplate.tsx` sotto le 200 righe dopo l'estrazione. | ✅ | 2026-05-05 |
 | TASK-020 | Eseguire `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, e smoke test manuale delle pagine funnel-pages e nextland. Registrare esito come gate G-4. | ✅ | 2026-05-05 |
 
-| **Gate G-4** ✅ 2026-05-05: `ToolPageTemplate.tsx` = 162 righe (< 200); routing generato da `TOOL_ROUTES` (via `toolFormRegistry`); typecheck clean; 28 test file, 222 test verdi; smoke test manuale positivo su extraction + funnel-pages (`optin`, `quiz`, `vsl`).
+**Gate G-4** ✅ 2026-05-05: `ToolPageTemplate.tsx` = 162 righe (< 200); routing generato da `TOOL_ROUTES` (via `toolFormRegistry`); typecheck clean; 28 test file, 222 test verdi; smoke test manuale positivo su extraction + funnel-pages (`optin`, `quiz`, `vsl`).
+
+---
+
+### Implementation Phase 5 — Hardening post code-review aggiornata (P1 residuo, N1–N5)
+
+- GOAL-005: Chiudere il residuo P1, rimuovere leakage architetturali nel boundary hook→presentational, e completare la coverage test pianificata.
+
+| Task | Description | Completed | Date |
+|------|-------------|-----------|------|
+| TASK-021 | **P1 residuo**: adottare la soluzione canonica coerente con la review: esportare da `frontend/src/features/generation/runtime/step-hydration.ts` la funzione parser core multi-envelope (nome consigliato: `parseExtractionArtifactContent`) e riusarla in `frontend/src/features/tools/runtime/tools-client.ts`. In `tools-client.ts` è ammesso solo un wrapper minimale di adattamento input/output, senza logica di envelope parsing duplicata (`parseJsonCandidate`/`parseJsonContent` da rimuovere o ridurre a delega diretta). Criterio di completamento: parser core definito una sola volta nel codebase frontend. | ✅ | 2026-05-05 |
+| TASK-022 | **N1**: in `frontend/src/features/tools/runtime/useToolPage.ts` esporre `streamingStep: ToolStep | null` già derivato; rimuovere `generationSnapshot` dal return API del hook. Aggiornare `frontend/src/features/tools/ui/ToolPageTemplate.tsx` per usare solo `streamingStep`. | ✅ | 2026-05-05 |
+| TASK-023 | **N2**: in `frontend/src/features/tools/runtime/useToolPage.ts` esporre handler semantici `handleBriefingFileSelected(file)` e `handleBriefingReset()`. In `frontend/src/features/tools/ui/ToolPageTemplate.tsx` rimuovere chiamate dirette a `toolPageSend(...)` sugli eventi briefing. | ✅ | 2026-05-05 |
+| TASK-024 | **N3 + N4**: proteggere `console.debug('[useToolPage] sending HYDRATE_REQUESTED', ...)` con `if (import.meta.env.DEV)`; ridurre il return object del hook rimuovendo campi non usati dal consumer (incluso `progressState` se non necessario). | ✅ | 2026-05-05 |
+| TASK-025 | **N5 / TEST-005**: aggiungere `frontend/src/features/tools/runtime/useToolPage.test.ts` con test su inizializzazione macchina, hydration path, e dispatch avvio step (mock dependency boundary). | ✅ | 2026-05-05 |
+| TASK-026 | **N5 / TEST-006**: estendere `frontend/src/features/tools/runtime/tools-client.test.ts` con caso esplicito che verifica che top-level array non venga trattato come record (`isRecord` guard). | ✅ | 2026-05-05 |
+| TASK-027 | Eseguire gate finale G-5: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm run typecheck`, `npm run test` e smoke test manuale relaunch/generation su funnel-pages. | ✅ | 2026-05-05 |
+
+**Gate G-5** ✅ 2026-05-05: P1 chiuso (nessuna duplicazione parser core); `ToolPageTemplate` senza accesso diretto a snapshot/send della macchina; log debug gated in DEV; nuovi test TEST-005/006 verdi; suite FE+BE verde (29 file / 227 test FE, 63 test BE); smoke test autenticato generazione artefatto: OK.
 
 ---
 
@@ -119,6 +150,9 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 - **DEP-003**: TASK-012/013 (estrazione TOOL_WORKFLOW_REGISTRY) dipendono da `WorkflowStepDescriptor` — verificare che sia già definito/esportabile da tool-workflow-registry.ts o da un tipo condiviso BE prima di eseguire.
 - **DEP-004**: TASK-017 (factory createToolPage) dipende dall'interfaccia stabile di `ToolPageTemplate` props — non modificare ToolPageTemplate props durante la Fase 4 finché TASK-017 non è completato.
 - **DEP-005**: TASK-019 (hook useToolPage) è il task più dipendente: richiede che TASK-017 sia completato e che nessun refactor di ToolPageTemplate sia in corso in parallelo.
+- **DEP-006**: TASK-021 richiede sincronizzazione tra `step-hydration.ts` e `tools-client.ts` per evitare regressioni sul path extraction raw-content.
+- **DEP-007**: TASK-022/023/024 dipendono da API contract stabile del hook `useToolPage` verso `ToolPageTemplate`.
+- **DEP-008**: TASK-025 dipende da boundary di testability nel hook (handler e valori derivati esposti in modo deterministico).
 
 ---
 
@@ -138,6 +172,8 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 - **FILE-012**: `frontend/src/features/tools/nextland/pages/NextlandToolPage.tsx` — Fase 4 (usa factory)
 - **FILE-013**: `frontend/src/app/routing/app-router.tsx` — Fase 4 (routing data-driven)
 - **FILE-014**: `frontend/src/features/tools/runtime/useToolPage.ts` — Fase 4 (nuovo file, hook estratto da ToolPageTemplate)
+- **FILE-015**: `frontend/src/features/generation/runtime/step-hydration.ts` — Fase 5 (parser canonico riusabile)
+- **FILE-016**: `frontend/src/features/tools/runtime/useToolPage.test.ts` — Fase 5 (nuovo file test hook)
 
 ---
 
@@ -147,8 +183,9 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 - **TEST-002**: Gate G-2 — `npm --prefix frontend run typecheck` e `npm --prefix frontend run test` verdi dopo Fase 2. Verificare `grep -rn "useBriefingUpload\|getCompletedArtifactForStep" frontend/src/` → zero risultati.
 - **TEST-003**: Gate G-3 — typecheck FE + BE, test FE + BE verdi dopo Fase 3. Verificare che `TOOL_WORKFLOW_REGISTRY` non sia più una costante locale in `generation-system.machine.ts`.
 - **TEST-004**: Gate G-4 — typecheck + test + smoke test manuale delle tool page dopo Fase 4. Verificare che `ToolPageTemplate.tsx` sia < 200 righe.
-- **TEST-005**: Aggiungere test unitari per `useToolPage` hook in `frontend/src/features/tools/runtime/useToolPage.test.ts` (Fase 4) che verifichino inizializzazione macchine, hydration, e avvio generazione step in isolamento.
-- **TEST-006**: Dopo TASK-004 (fix isRecord), aggiungere test in `frontend/src/features/tools/runtime/tools-client.test.ts` che verifichino che `normalizeExtractionPayload` rifietti gli array come input top-level (non li tratti come record).
+- **TEST-005**: Aggiungere test unitari per `useToolPage` hook in `frontend/src/features/tools/runtime/useToolPage.test.ts` (Fase 5) che verifichino inizializzazione macchine, hydration, e avvio generazione step in isolamento.
+- **TEST-006**: Aggiungere test in `frontend/src/features/tools/runtime/tools-client.test.ts` che verifichino che top-level array venga rifiutato come record (`isRecord` guard).
+- **TEST-007**: Gate G-5 — typecheck/test FE+BE verdi dopo i task di hardening post-review (`npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm run typecheck`, `npm run test` tutti senza fail).
 
 ---
 
@@ -158,7 +195,9 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 - **RISK-002**: `useBriefingUpload` in `useToolForm.test.tsx` potrebbe essere referenziato in altri file non individuati. Mitigazione: eseguire `grep -rn "useBriefingUpload" frontend/src/` prima di TASK-007 e rimuovere tutti i riferimenti trovati.
 - **RISK-003**: `ToolWorkflowPlan` in generation-system.machine.ts usa `WorkflowStepDescriptor` che potrebbe non essere definito in tool-workflow-registry.ts. Se non presente, TASK-012 deve prima definirlo o importarlo da un tipo condiviso. Mitigazione: verificare con `grep -rn "WorkflowStepDescriptor" src/lib/` prima di TASK-012.
 - **RISK-004**: Il routing data-driven (TASK-018) usa `toolFormRegistry` (FE) ma potrebbe non coprire tool con routing speciale (parametri route diversi). Verificare che tutti i tool in `toolFormRegistry` abbiano path uniformi prima di TASK-018.
-- **ASSUMPTION-001**: La suite test frontend ha test pre-esistenti in stato fail per ragioni note (non regressioni introdotte da questo piano). Il gate è "non in regressione rispetto alla baseline", non "tutti i test verdi" se la baseline ha fail noti.
+- **RISK-005**: Estrazione parser canonico (TASK-021) può alterare fallback parsing su artifact legacy/non-JSON. Mitigazione: aggiungere test di parità con fixture già presenti in `tools-client.test.ts` e `step-hydration`.
+- **RISK-006**: Ridurre superficie return di `useToolPage` (TASK-024) può rompere consumer futuri non tipati. Mitigazione: aggiornare solo consumer espliciti e validare con typecheck + test.
+- **ASSUMPTION-001**: Per la riapertura Phase 5 il criterio di qualità è aggiornato a "suite FE+BE verde"; eventuali fail pre-esistenti devono essere risolti o esplicitamente rimossi dallo scope prima della chiusura del gate G-5.
 - **ASSUMPTION-002**: `readExtractionPayloadFromArtifact` in step-hydration.ts è già esportata come funzione pubblica (confermato da L.100 del file nella sessione di analisi).
 - **ASSUMPTION-003**: `generateRequestId` in shared-utils.ts è già importabile da tools-client.ts senza circular dependency (percorso: `features/tools/runtime/` → `app/runtime/shared-utils.ts` — percorso upward, non circolare).
 

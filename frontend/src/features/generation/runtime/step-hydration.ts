@@ -46,7 +46,16 @@ const parseJsonCandidate = (candidate: string): Record<string, unknown> => {
   }
 };
 
-const parseExtractionArtifactContent = (content: string): Record<string, unknown> => {
+const isTopLevelArrayJson = (candidate: string): boolean => {
+  const trimmed = candidate.trim();
+  return trimmed.startsWith('[') && trimmed.endsWith(']');
+};
+
+export const parseExtractionArtifactContent = (content: string): Record<string, unknown> => {
+  if (isTopLevelArrayJson(content)) {
+    return {};
+  }
+
   const direct = parseJsonCandidate(content);
   if (Object.keys(direct).length > 0) {
     return direct;
@@ -54,9 +63,14 @@ const parseExtractionArtifactContent = (content: string): Record<string, unknown
 
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
-    const fromFence = parseJsonCandidate(fenced[1]);
+    const fencedCandidate = fenced[1].trim();
+    const fromFence = parseJsonCandidate(fencedCandidate);
     if (Object.keys(fromFence).length > 0) {
       return fromFence;
+    }
+
+    if (isTopLevelArrayJson(fencedCandidate)) {
+      return {};
     }
   }
 

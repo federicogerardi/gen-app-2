@@ -1,8 +1,8 @@
 ---
 goal: Repository Publication Cleanup Plan
-version: 1.1
+version: 1.2
 date_created: 2026-04-30
-last_updated: 2026-05-01
+last_updated: 2026-05-05
 owner: GitHub Copilot
 status: Planned
 tags: [cleanup, repository, publication, production, devops, ci]
@@ -63,12 +63,21 @@ Regola: rimuovere solo se il contenuto non e usato da CI/CD, onboarding contribu
 
 Segnali rilevati nel codespace:
 
-- **Tracciati da git (richiedono decisione esplicita):** `.agents/` (skill `frontend-design`), `skills-lock.json` (lockfile skills Anthropic)
+- **Tracciati da git (richiedono decisione esplicita):** nessuno tra `.agents/`, `.claude/`, `.copilot-repo-memory.md`, `skills-lock.json` (rimossi il 2026-05-05)
 - **Non tracciati / già gitignored:** `.copilot-tracking/` (coperto da `.gitignore`), `node_modules/`, `.env.local` (coperto da pattern `.env.*`)
 - **Status `.claude/`:** verificare se presente e se tracciato
-- `.gitignore` copre build/cache/env locali ma **non copre** `.agents/` e `skills-lock.json`
-- CI esistente: `.github/workflows/frontend-sprint-gate.yml` — solo frontend, no build step, azioni non SHA-pinned
-- Nessun workflow CI backend presente
+- `.gitignore` copre ora anche `.agents/`, `.claude/`, `.copilot-repo-memory.md`, `skills-lock.json`
+- CI frontend: `.github/workflows/main-pr-gate.yml` con `typecheck + test + build` e actions SHA-pinned
+- CI backend presente: `.github/workflows/backend-gate.yml`
+
+Execution update 2026-05-05:
+
+- `.agents/`, `.claude/`, `.copilot-repo-memory.md`, `skills-lock.json` rimossi dal repository
+- `.gitignore` aggiornato per prevenire re-tracking
+- workflow frontend rinominato e hardenizzato: `.github/workflows/main-pr-gate.yml` con build step e actions SHA-pinned
+- nuovo workflow backend creato: `.github/workflows/backend-gate.yml`
+- gate backend e frontend eseguiti con esito verde
+- smoke test bloccato per env mancante: `REDIS_URL`
 
 Rischio principale: `.agents/` e `skills-lock.json` sono **tracciati** e verranno pubblicati salvo decisione esplicita di rimozione + aggiornamento `.gitignore`.
 
@@ -78,8 +87,8 @@ Rischio principale: `.agents/` e `skills-lock.json` sono **tracciati** e verrann
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-001 | Creare branch dedicato `chore/repo-publication-cleanup`. |  |  |
-| TASK-002 | Eseguire inventario file tracciati/non tracciati e classificarli Keep/Remove/Review. |  |  |
+| TASK-001 | Creare branch dedicato `chore/repo-publication-cleanup`. | x | 2026-05-05 |
+| TASK-002 | Eseguire inventario file tracciati/non tracciati e classificarli Keep/Remove/Review. | x | 2026-05-05 |
 | TASK-003 | Congelare baseline con tag git nominato `pre-cleanup-baseline` prima delle rimozioni: `git tag pre-cleanup-baseline`. |  |  |
 
 Completion criteria:
@@ -92,8 +101,8 @@ Completion criteria:
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
 | TASK-004 | Eliminare artefatti locali non necessari al repository pubblicato (`.tmp/`, tracking locale, cache non tracciati). |  |  |
-| TASK-005 | Decidere per `.agents/` e `skills-lock.json`: se non richiesti da CI/CD o onboarding contributor, rimuoverli dal repository e aggiungere le rispettive voci a `.gitignore`. Criterio: nessun workflow in `.github/` ne referenzia il contenuto → rimuovere. |  |  |
-| TASK-005b | Se `.agents/` e/o `skills-lock.json` vengono rimossi: aggiornare `.gitignore` aggiungendo le voci `.agents/` e `skills-lock.json` per prevenire il re-tracking. |  |  |
+| TASK-005 | Decidere per `.agents/` e `skills-lock.json`: se non richiesti da CI/CD o onboarding contributor, rimuoverli dal repository e aggiungere le rispettive voci a `.gitignore`. Criterio: nessun workflow in `.github/` ne referenzia il contenuto → rimuovere. | x | 2026-05-05 |
+| TASK-005b | Se `.agents/` e/o `skills-lock.json` vengono rimossi: aggiornare `.gitignore` aggiungendo le voci `.agents/` e `skills-lock.json` per prevenire il re-tracking. | x | 2026-05-05 |
 | TASK-006 | Pulire riferimenti in README/docs a tooling locale rimosso. |  |  |
 
 Completion criteria:
@@ -118,9 +127,9 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-010 | Aggiungere step `npm run build` al workflow `.github/workflows/frontend-sprint-gate.yml` (attualmente mancante). |  |  |
-| TASK-011 | Pinnare le azioni GitHub Actions nel workflow frontend a SHA specifici: `actions/checkout` e `actions/setup-node` (mitigazione supply chain). |  |  |
-| TASK-012 | Creare workflow CI backend `.github/workflows/backend-gate.yml` con step: `npm ci`, `npm run typecheck`, `npm run test` su push/PR a `main` e path `src/**`. |  |  |
+| TASK-010 | Aggiungere step `npm run build` al workflow `.github/workflows/main-pr-gate.yml` (attualmente mancante). | x | 2026-05-05 |
+| TASK-011 | Pinnare le azioni GitHub Actions nel workflow frontend a SHA specifici: `actions/checkout` e `actions/setup-node` (mitigazione supply chain). | x | 2026-05-05 |
+| TASK-012 | Creare workflow CI backend `.github/workflows/backend-gate.yml` con step: `npm ci`, `npm run typecheck`, `npm run test` su push/PR a `main` e path `src/**`. | x | 2026-05-05 |
 
 Completion criteria:
 
@@ -132,11 +141,11 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-013 | Eseguire gate CI automatizzabile backend: `npm run typecheck`, `npm run test`. |  |  |
-| TASK-014 | Eseguire gate CI automatizzabile frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. |  |  |
+| TASK-013 | Eseguire gate CI automatizzabile backend: `npm run typecheck`, `npm run test`. | x | 2026-05-05 |
+| TASK-014 | Eseguire gate CI automatizzabile frontend: `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, `npm --prefix frontend run build`. | x | 2026-05-05 |
 | TASK-015 | Eseguire smoke manuale con env locali (non eseguibile in CI senza segreti): `set -a && . ./.env.local && set +a && npm run test:smoke`. |  |  |
 | TASK-016 | Verificare avvio locale minimo: backend `npm run start:server`, frontend `npm --prefix frontend run dev`. |  |  |
-| TASK-017 | Validare che `.env.example` sia sufficiente e non includa segreti: `grep -v '^#' .env.example | grep -v '^$'` e revisione manuale di ogni valore. |  |  |
+| TASK-017 | Validare che `.env.example` sia sufficiente e non includa segreti: `grep -v '^#' .env.example | grep -v '^$'` e revisione manuale di ogni valore. | x | 2026-05-05 |
 
 Completion criteria:
 
@@ -151,7 +160,7 @@ Completion criteria:
 | TASK-018 | Rieseguire `git status` con working tree pulito eccetto i file del cleanup. |  |  |
 | TASK-019 | Revisionare diff finale con focus su file rimossi e motivazione. |  |  |
 | TASK-020 | Pubblicare PR con titolo e body standardizzato (scope cleanup + rischio nullo funzionale). |  |  |
-| TASK-021 | Merge solo dopo approvazione e passaggio check CI richiesti (frontend-sprint-gate + backend-gate). |  |  |
+| TASK-021 | Merge solo dopo approvazione e passaggio check CI richiesti (main-pr-gate + backend-gate). |  |  |
 
 Completion criteria:
 
@@ -210,6 +219,6 @@ grep -v '^#' .env.example | grep -v '^$'
 - DEL-001: PR `chore/repo-publication-cleanup`
 - DEL-002: repository senza artefatti locali/obsoleti
 - DEL-003: checklist finale compilata con evidenza test
-- DEL-004: `.github/workflows/frontend-sprint-gate.yml` aggiornato con build step e SHA-pinned actions
+- DEL-004: `.github/workflows/main-pr-gate.yml` aggiornato con build step e SHA-pinned actions
 - DEL-005: `.github/workflows/backend-gate.yml` nuovo workflow CI backend
 - DEL-006: `.gitignore` aggiornato se `.agents/` e/o `skills-lock.json` rimossi

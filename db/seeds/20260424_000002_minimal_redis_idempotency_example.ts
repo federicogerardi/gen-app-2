@@ -1,8 +1,8 @@
 import Redis from 'ioredis';
 
-const redisUrl = process.env.UPSTASH_REDIS_URL;
+const redisUrl = process.env.REDIS_URL;
 if (!redisUrl) {
-  throw new Error('Missing Redis URL. Set UPSTASH_REDIS_URL');
+  throw new Error('Missing Redis URL. Set REDIS_URL');
 }
 
 const keyPrefix = process.env.IDEMPOTENCY_REDIS_KEY_PREFIX ?? 'generation:idempotency';

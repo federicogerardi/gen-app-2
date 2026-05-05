@@ -7,6 +7,8 @@
  * can resolve step dependency artifact IDs without requiring the frontend to compute them.
  */
 
+import type { WorkflowStepDescriptor } from '../types/xstate';
+
 export type SupportedToolWorkflow = 'funnel-pages' | 'nextland';
 
 /**
@@ -74,4 +76,46 @@ export const extractStepFromArtifactInput = (input: Record<string, unknown>): st
   }
 
   return null;
+};
+
+/**
+ * Canonical dependency-graph plan for a ToolWorkflow.
+ * Exported so generation-system.machine.ts can import instead of defining locally.
+ */
+export type ToolWorkflowPlan = {
+  toolKey: string;
+  steps: WorkflowStepDescriptor[];
+  dependencyGraph: Record<string, string[]>;
+};
+
+/**
+ * Registry of all supported ToolWorkflow plans.
+ * Single source of truth for step ordering and dependency graphs in the backend.
+ * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
+ */
+export const TOOL_WORKFLOW_REGISTRY: Record<string, ToolWorkflowPlan> = {
+  'funnel-pages': {
+    toolKey: 'funnel-pages',
+    steps: [
+      { key: 'optin', dependencies: [] },
+      { key: 'quiz', dependencies: ['optin'] },
+      { key: 'vsl', dependencies: ['optin', 'quiz'] },
+    ],
+    dependencyGraph: {
+      optin: [],
+      quiz: ['optin'],
+      vsl: ['optin', 'quiz'],
+    },
+  },
+  nextland: {
+    toolKey: 'nextland',
+    steps: [
+      { key: 'landing', dependencies: [] },
+      { key: 'thank_you', dependencies: ['landing'] },
+    ],
+    dependencyGraph: {
+      landing: [],
+      thank_you: ['landing'],
+    },
+  },
 };

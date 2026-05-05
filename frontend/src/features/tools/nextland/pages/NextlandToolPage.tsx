@@ -1,28 +1,8 @@
 /**
  * Nextland Tool Page
- * Unified via ToolPageTemplate - minimal wrapper
+ * Unified via ToolPageTemplate - minimal wrapper via createToolPage factory
  */
 
-import { ToolPageTemplate } from '../../ui/ToolPageTemplate';
-import { useSearchParams } from 'react-router-dom';
-import { parseToolEntryParams } from '../../runtime/tool-entry-params';
+import { createToolPage } from '../../ui/createToolPage';
 
-export const NextlandToolPage = () => {
-	const [searchParams] = useSearchParams();
-	const params = parseToolEntryParams(searchParams);
-
-	return (
-		<ToolPageTemplate
-			toolKey="nextland"
-			intent={params.intent}
-			sourceArtifactId={params.sourceArtifactId}
-			initialProjectId={params.initialProjectId}
-			relaunchTone={params.relaunchTone}
-			relaunchNotes={params.relaunchNotes}
-			relaunchFromArtifactId={params.relaunchFromArtifactId}
-			briefingId={params.briefingId}
-			extractionArtifactId={params.extractionArtifactId}
-			briefingFileName={params.briefingFileName}
-		/>
-	);
-};
+export const NextlandToolPage = createToolPage('nextland');

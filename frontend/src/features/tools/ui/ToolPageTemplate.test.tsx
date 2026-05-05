@@ -232,14 +232,6 @@ vi.mock('../runtime/useToolForm', () => {
       loading: false,
       error: null,
     }),
-    useBriefingUpload: () => ({
-      file: briefingState.file,
-      fileName: briefingState.fileName,
-      error: briefingState.error,
-      status: briefingState.status,
-      extractionContext: briefingState.extractionContext,
-      handleFileSelected: vi.fn(),
-    }),
     useToolFormInit: () => ({
       formState: {
         projectId: 'project-001',

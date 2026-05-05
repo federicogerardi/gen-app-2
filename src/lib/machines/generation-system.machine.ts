@@ -15,6 +15,7 @@ import type {
   WorkflowStepDescriptor,
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
+import { TOOL_WORKFLOW_REGISTRY, type ToolWorkflowPlan } from '../runtime/tool-workflow-registry';
 
 type GenerationSystemInput = {
   adapters: GenerationAdapters;
@@ -383,39 +384,6 @@ const normalizeValue = (value: string | null | undefined): string | null => {
   }
   const normalized = value.trim().toLowerCase();
   return normalized.length > 0 ? normalized : null;
-};
-
-type ToolWorkflowPlan = {
-  toolKey: string;
-  steps: WorkflowStepDescriptor[];
-  dependencyGraph: Record<string, string[]>;
-};
-
-const TOOL_WORKFLOW_REGISTRY: Record<string, ToolWorkflowPlan> = {
-  'funnel-pages': {
-    toolKey: 'funnel-pages',
-    steps: [
-      { key: 'optin', dependencies: [] },
-      { key: 'quiz', dependencies: ['optin'] },
-      { key: 'vsl', dependencies: ['optin', 'quiz'] },
-    ],
-    dependencyGraph: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
-  },
-  nextland: {
-    toolKey: 'nextland',
-    steps: [
-      { key: 'landing', dependencies: [] },
-      { key: 'thank_you', dependencies: ['landing'] },
-    ],
-    dependencyGraph: {
-      landing: [],
-      thank_you: ['landing'],
-    },
-  },
 };
 
 const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {

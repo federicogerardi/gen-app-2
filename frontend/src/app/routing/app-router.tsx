@@ -3,6 +3,8 @@ import { lazy, Suspense } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
+import { toolFormRegistry } from '../../features/tools/runtime/tool-form-architecture';
+import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 
 // Lazy load page components for code splitting
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -18,6 +20,21 @@ const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModel
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
 
+// Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
+const toolPageComponents: Record<SupportedTool, React.LazyExoticComponent<React.FC>> = {
+  'funnel-pages': FunnelPagesToolPage,
+  nextland: NextlandToolPage,
+};
+
+/**
+ * Data-driven route table for tool pages.
+ * Adding a new SupportedTool only requires entries in toolFormRegistry and toolPageComponents.
+ */
+const TOOL_ROUTES = (Object.keys(toolFormRegistry) as SupportedTool[]).map((toolKey) => ({
+  toolKey,
+  path: `/tools/${toolKey}`,
+  component: toolPageComponents[toolKey],
+}));
 const PageLoader = () => (
   <div className="route-loader" role="status" aria-live="polite" aria-label="Caricamento pagina">
     <div className="route-loader__panel">
@@ -68,14 +85,10 @@ export const createAppRouter = () => createBrowserRouter([
         path: '/dashboard/projects/:id',
         element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
       },
-      {
-        path: '/tools/funnel-pages',
-        element: <Suspense fallback={<PageLoader />}><FunnelPagesToolPage /></Suspense>,
-      },
-      {
-        path: '/tools/nextland',
-        element: <Suspense fallback={<PageLoader />}><NextlandToolPage /></Suspense>,
-      },
+      ...TOOL_ROUTES.map(({ path, component: ToolPage }) => ({
+        path,
+        element: <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>,
+      })),
       {
         path: '/tools/console',
         element: <Suspense fallback={<PageLoader />}><GenerationConsolePage /></Suspense>,

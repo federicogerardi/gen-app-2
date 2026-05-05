@@ -13,6 +13,7 @@ import {
   joinApiPath,
   requestJson,
 } from '../../../app/runtime/http-client';
+import { generateRequestId } from '../../../app/runtime/shared-utils';
 
 type ToolsClientOptions = {
   apiBaseUrl?: string;
@@ -59,14 +60,6 @@ export type RunExtractionResult = {
   payload: Record<string, unknown>;
 };
 
-const randomId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `req-${Date.now()}`;
-};
-
 const toBase64 = async (file: File): Promise<string> => {
   if (typeof file.arrayBuffer !== 'function') {
     return await new Promise<string>((resolve, reject) => {
@@ -108,7 +101,7 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 const normalizeExtractionPayload = (value: unknown): Record<string, unknown> => {
@@ -230,7 +223,7 @@ export const runExtraction = async (
   options: ToolsClientOptions = {},
 ): Promise<RunExtractionResult> => {
   const request: GenerationRequest = {
-    requestId: randomId(),
+    requestId: generateRequestId(),
     userId: input.userId,
     projectId: input.projectId,
     artifactType: 'extraction',

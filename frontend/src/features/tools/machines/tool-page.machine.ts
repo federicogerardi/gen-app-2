@@ -95,19 +95,16 @@ const buildReadinessSnapshot = (
   };
 };
 
-const isNonEmptyRecord = (value: Record<string, unknown> | null | undefined): value is Record<string, unknown> => {
-  return !!value && Object.keys(value).length > 0;
-};
-
 const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hydrationResult is HydrationResult => {
   if (hydrationResult === null) {
     return false;
   }
 
+  // extractionPayload is optional — old artifacts may not have stored it.
+  // normalizedText alone is sufficient to proceed with generation.
   return hydrationResult.extractionArtifactId.trim().length > 0
     && hydrationResult.briefingId.trim().length > 0
-    && hydrationResult.normalizedText.trim().length > 0
-    && isNonEmptyRecord(hydrationResult.extractionPayload);
+    && hydrationResult.normalizedText.trim().length > 0;
 };
 
 const hasCompleteBriefingContext = (
@@ -621,15 +618,25 @@ export const toolPageMachine = setup({
         if (extractionArtifact) {
           const payload = readExtractionPayloadFromArtifact(extractionArtifact);
           const sourceInput = extractionArtifact.sourceRequest?.input as Record<string, unknown> | undefined;
-          return assertCompleteHydrationResult({
+          const normalizedText = readNormalizedBriefingText(sourceInput);
+
+          // Only use local resolution if at least one of text or payload is recoverable.
+          // Old artifacts may have neither stored locally — fall through to network in that case.
+          if (normalizedText.trim().length > 0 || Object.keys(payload).length > 0) {
+            return assertCompleteHydrationResult({
+              extractionArtifactId: extractionArtifact.artifactId,
+              extractionPayload: payload,
+              briefingId: typeof sourceInput?.briefingId === 'string'
+                ? sourceInput.briefingId
+                : (resolvedBriefingId ?? ''),
+              briefingFileName: null,
+              normalizedText,
+              parsedFormat: 'md',
+            });
+          }
+          // else: artifact found locally but has no recoverable text/payload — fall through to network
+          console.log('[toolPageMachine] local extraction artifact has no text/payload, falling through to network hydration', {
             extractionArtifactId: extractionArtifact.artifactId,
-            extractionPayload: payload,
-            briefingId: typeof sourceInput?.briefingId === 'string'
-              ? sourceInput.briefingId
-              : (resolvedBriefingId ?? ''),
-            briefingFileName: null,
-            normalizedText: readNormalizedBriefingText(sourceInput),
-            parsedFormat: 'md',
           });
         }
       }

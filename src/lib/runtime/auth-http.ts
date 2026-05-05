@@ -1045,6 +1045,9 @@ export const createAuthHttpRuntime = (
             : (typeof artifact.input.normalizedText === 'string' ? artifact.input.normalizedText : '');
           const parsedFormat = parsedFormatFromInput(artifact.input);
 
+          const hasPayload = Object.keys(extractionPayload).length > 0;
+          const hasText = normalizedText.trim().length > 0;
+
           console.debug('[auth-http] hydrate direct extraction artifact resolved', {
             sourceArtifactId,
             artifactId: artifact.artifactId,
@@ -1053,30 +1056,41 @@ export const createAuthHttpRuntime = (
             normalizedTextLength: normalizedText.trim().length,
             extractionPayloadKeys: Object.keys(extractionPayload).length,
             parsedFormat,
+            willFallThrough: !hasPayload && !hasText,
           });
 
-          await repositories.sessions.touchSession(principal.session.id, now());
-          writeSuccess(response, 200, {
-            hydration: {
-              extractionArtifactId: artifact.artifactId,
-              extractionPayload,
-              briefingId,
-              normalizedText,
-              parsedFormat,
-            },
-          });
-          return;
-        }
+          // If the referenced extraction artifact has no recoverable text or payload
+          // (old artifact stored before text/payload persistence was introduced),
+          // fall through to list-based ranking which may find a more complete artifact.
+          if (hasPayload || hasText) {
+            await repositories.sessions.touchSession(principal.session.id, now());
+            writeSuccess(response, 200, {
+              hydration: {
+                extractionArtifactId: artifact.artifactId,
+                extractionPayload,
+                briefingId,
+                normalizedText,
+                parsedFormat,
+              },
+            });
+            return;
+          }
 
-        // Content artifact: extract hints for list-based ranking
-        const artifactBriefingId = typeof artifact.input.briefingId === 'string' ? artifact.input.briefingId.trim() || null : null;
-        const artifactExtractionArtifactId = typeof artifact.input.extractionArtifactId === 'string' ? artifact.input.extractionArtifactId.trim() || null : null;
-        resolvedBriefingId = resolvedBriefingId ?? artifactBriefingId;
-        sourceExtractionArtifactId = sourceExtractionArtifactId ?? artifactExtractionArtifactId;
+          // Fall through to Step 2.
+          // Do NOT set sourceExtractionArtifactId to this empty artifact — Step 2 should
+          // use recency-based ranking to find the most recent complete extraction artifact.
+          resolvedBriefingId = resolvedBriefingId ?? briefingId;
+        } else {
+          // Content artifact: extract hints for list-based ranking
+          const artifactBriefingId = typeof artifact.input.briefingId === 'string' ? artifact.input.briefingId.trim() || null : null;
+          const artifactExtractionArtifactId = typeof artifact.input.extractionArtifactId === 'string' ? artifact.input.extractionArtifactId.trim() || null : null;
+          resolvedBriefingId = resolvedBriefingId ?? artifactBriefingId;
+          sourceExtractionArtifactId = sourceExtractionArtifactId ?? artifactExtractionArtifactId;
 
-        if (!resolvedBriefingId && !sourceExtractionArtifactId) {
-          writeError(response, 400, 'bad_request', 'missing_extraction_reference');
-          return;
+          if (!resolvedBriefingId && !sourceExtractionArtifactId) {
+            writeError(response, 400, 'bad_request', 'missing_extraction_reference');
+            return;
+          }
         }
       }
       // If artifact not found, fall through to list-based ranking

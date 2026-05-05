@@ -1,4 +1,4 @@
-import type { GenerationArtifact } from '../ui/artifact-history';
+import type { ArtifactLifecycleStatus, GenerationArtifact } from '../ui/artifact-history';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
 import type { ExtractionContext } from './GenerationWorkspaceProvider';
 import { normalizeIdentifier } from '../../../app/runtime/shared-utils';

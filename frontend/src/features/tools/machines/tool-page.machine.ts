@@ -123,11 +123,11 @@ const hasCompleteBriefingContext = (
 const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
   if (!hasCompleteHydrationResult(hydrationResult)) {
     console.debug('[toolPageMachine] hydrate rejected incomplete extraction context', {
-      extractionArtifactId: hydrationResult.extractionArtifactId,
-      briefingId: hydrationResult.briefingId,
-      normalizedTextLength: hydrationResult.normalizedText.trim().length,
-      extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
-      parsedFormat: hydrationResult.parsedFormat,
+      extractionArtifactId: (hydrationResult as HydrationResult).extractionArtifactId,
+      briefingId: (hydrationResult as HydrationResult).briefingId,
+      normalizedTextLength: (hydrationResult as HydrationResult).normalizedText.trim().length,
+      extractionPayloadKeys: Object.keys((hydrationResult as HydrationResult).extractionPayload ?? {}).length,
+      parsedFormat: (hydrationResult as HydrationResult).parsedFormat,
     });
     throw new Error('incomplete_extraction_context');
   }

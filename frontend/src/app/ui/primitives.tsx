@@ -51,6 +51,7 @@ export const uiPrimitives = {
   mainNavOpen: 'is-open',
   dashboardGrid: 'ui-dashboard-grid',
   dashboardCard: 'ui-dashboard-card',
+  clusterRow: 'ui-cluster-row',
 } as const;
 
 export const Shell = <T extends ElementType = 'div'>(props: PrimitiveProps<T>): JSX.Element => {

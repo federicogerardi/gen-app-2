@@ -67,7 +67,7 @@ Segnali rilevati nel codespace:
 - **Non tracciati / già gitignored:** `.copilot-tracking/` (coperto da `.gitignore`), `node_modules/`, `.env.local` (coperto da pattern `.env.*`)
 - **Status `.claude/`:** verificare se presente e se tracciato
 - `.gitignore` copre build/cache/env locali ma **non copre** `.agents/` e `skills-lock.json`
-- CI esistente: `.github/workflows/frontend-sprint-gate.yml` — solo frontend, no build step, azioni non SHA-pinned
+- CI esistente: `.github/workflows/main-pr-gate.yml` — solo frontend, no build step, azioni non SHA-pinned
 - Nessun workflow CI backend presente
 
 Rischio principale: `.agents/` e `skills-lock.json` sono **tracciati** e verranno pubblicati salvo decisione esplicita di rimozione + aggiornamento `.gitignore`.
@@ -118,7 +118,7 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 | --- | --- | --- | --- |
-| TASK-010 | Aggiungere step `npm run build` al workflow `.github/workflows/frontend-sprint-gate.yml` (attualmente mancante). |  |  |
+| TASK-010 | Aggiungere step `npm run build` al workflow `.github/workflows/main-pr-gate.yml` (attualmente mancante). |  |  |
 | TASK-011 | Pinnare le azioni GitHub Actions nel workflow frontend a SHA specifici: `actions/checkout` e `actions/setup-node` (mitigazione supply chain). |  |  |
 | TASK-012 | Creare workflow CI backend `.github/workflows/backend-gate.yml` con step: `npm ci`, `npm run typecheck`, `npm run test` su push/PR a `main` e path `src/**`. |  |  |
 
@@ -151,7 +151,7 @@ Completion criteria:
 | TASK-018 | Rieseguire `git status` con working tree pulito eccetto i file del cleanup. |  |  |
 | TASK-019 | Revisionare diff finale con focus su file rimossi e motivazione. |  |  |
 | TASK-020 | Pubblicare PR con titolo e body standardizzato (scope cleanup + rischio nullo funzionale). |  |  |
-| TASK-021 | Merge solo dopo approvazione e passaggio check CI richiesti (frontend-sprint-gate + backend-gate). |  |  |
+| TASK-021 | Merge solo dopo approvazione e passaggio check CI richiesti (main-pr-gate + backend-gate). |  |  |
 
 Completion criteria:
 
@@ -210,6 +210,6 @@ grep -v '^#' .env.example | grep -v '^$'
 - DEL-001: PR `chore/repo-publication-cleanup`
 - DEL-002: repository senza artefatti locali/obsoleti
 - DEL-003: checklist finale compilata con evidenza test
-- DEL-004: `.github/workflows/frontend-sprint-gate.yml` aggiornato con build step e SHA-pinned actions
+- DEL-004: `.github/workflows/main-pr-gate.yml` aggiornato con build step e SHA-pinned actions
 - DEL-005: `.github/workflows/backend-gate.yml` nuovo workflow CI backend
 - DEL-006: `.gitignore` aggiornato se `.agents/` e/o `skills-lock.json` rimossi

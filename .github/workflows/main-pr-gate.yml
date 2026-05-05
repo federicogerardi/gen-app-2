@@ -1,10 +1,9 @@
-name: Frontend Sprint Gate
+name: Main PR Gate
 
 on:
   pull_request:
-    paths:
-      - 'frontend/**'
-      - 'package.json'
+    branches:
+      - main
   push:
     branches:
       - main

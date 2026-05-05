@@ -78,7 +78,7 @@ describe('ProjectDetailPage', () => {
 
     expect(await screen.findByText('Project One')).toBeInTheDocument();
     expect(screen.getByText(appCopy.editorial.projects.contextualArtifacts)).toBeInTheDocument();
-    expect(screen.getByText(appCopy.ui.actions.openArtifact)).toBeInTheDocument();
+    expect(await screen.findByText(appCopy.ui.actions.openDetail)).toBeInTheDocument();
   });
 
   it('shows not found state when project detail returns 404', async () => {

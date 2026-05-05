@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
+import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
 import { ArtifactsPage } from './ArtifactsPage';
 
@@ -222,17 +223,17 @@ describe('ArtifactsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Page 1')).toBeInTheDocument();
+    expect(await screen.findByText(`${appCopy.ui.labels.page} 1`)).toBeInTheDocument();
     await waitFor(() => {
       expect(seenQueries).toEqual(['limit=10;offset=0']);
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.nextPage }));
 
     await waitFor(() => {
       expect(seenQueries).toEqual(['limit=10;offset=0', 'limit=10;offset=10']);
     });
-    expect(screen.getByText('Page 2')).toBeInTheDocument();
+    expect(screen.getByText(`${appCopy.ui.labels.page} 2`)).toBeInTheDocument();
   });
 
   it('paginates local fallback artifacts in batches of 10', async () => {
@@ -270,13 +271,13 @@ describe('ArtifactsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Page 1')).toBeInTheDocument();
+    expect(await screen.findByText(`${appCopy.ui.labels.page} 1`)).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(10);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.nextPage }));
 
     await waitFor(() => {
-      expect(screen.getByText('Page 2')).toBeInTheDocument();
+      expect(screen.getByText(`${appCopy.ui.labels.page} 2`)).toBeInTheDocument();
     });
     expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(2);
   });

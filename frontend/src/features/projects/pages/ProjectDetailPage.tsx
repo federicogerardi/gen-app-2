@@ -9,14 +9,12 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
-import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
+import { ArtifactsListingSection } from '../../artifacts/ui/ArtifactsListingSection';
 
 export const ProjectDetailPage = () => {
   const { id = '' } = useParams();
   const auth = useAuthSession();
-  const generation = useGenerationWorkspace();
   const projectQuery = useProjectDetailQuery({
     projectId: id,
     apiBaseUrl: auth.apiBaseUrl,
@@ -25,16 +23,6 @@ export const ProjectDetailPage = () => {
   });
 
   const project = projectQuery.data;
-
-  const artifactsQuery = useArtifactsQuery({
-    filters: { type: 'all', status: 'all', projectId: id },
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
-    localArtifacts: generation.artifacts,
-    enabled: id.length > 0,
-  });
-
-  const projectArtifacts = artifactsQuery.data;
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
@@ -53,26 +41,15 @@ export const ProjectDetailPage = () => {
           <h3>{project.name}</h3>
           <p>{project.description}</p>
           <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(project.updatedAt).toLocaleString())}</p>
+
+          <ArtifactsListingSection
+            title={appCopy.editorial.projects.contextualArtifacts}
+            emptyStateMessage={appCopy.ui.states.noProjectArtifacts}
+            fixedProjectId={id}
+            enabled={id.length > 0}
+          />
         </>
       ) : null}
-
-      <h3>{appCopy.editorial.projects.contextualArtifacts}</h3>
-      {artifactsQuery.loading ? <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage> : null}
-      {artifactsQuery.error ? <ErrorStateMessage>{artifactsQuery.error}</ErrorStateMessage> : null}
-      {!artifactsQuery.loading && projectArtifacts.length === 0 ? (
-        <EmptyStateMessage>{appCopy.ui.states.noProjectArtifacts}</EmptyStateMessage>
-      ) : (
-        <ul className={uiPrimitives.listClean}>
-          {projectArtifacts.map((artifact) => (
-            <Surface as="li" key={artifact.artifactId}>
-              <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.model, artifact.model)}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.date, new Date(artifact.updatedAt).toLocaleString())}</p>
-              <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openArtifact}</Link>
-            </Surface>
-          ))}
-        </ul>
-      )}
     </Surface>
   );
 };

@@ -53,6 +53,8 @@ export const appCopy = {
       copyFailed: 'Copia fallita',
       viewMarkdown: 'Markdown',
       viewRaw: 'Raw',
+      previousPage: 'Precedente',
+      nextPage: 'Successivo',
     },
     labels: {
       email: 'Email',
@@ -83,6 +85,7 @@ export const appCopy = {
       status: 'Stato',
       project: 'Progetto',
       period: 'Periodo',
+      page: 'Pagina',
     },
     meta: {
       phase: 'phase',

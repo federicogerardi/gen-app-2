@@ -136,7 +136,10 @@ button.nav-item {
   }
 
   .ui-main-nav.is-open {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: var(--space-1);
     position: absolute;
     left: 0;
     top: var(--space-4);
@@ -149,10 +152,16 @@ button.nav-item {
 
   .ui-main-nav.is-open .nav-mobile-header {
     display: flex;
-    justify-content: flex-end;
-    padding-bottom: var(--space-1);
-    margin-bottom: var(--space-1);
-    border-bottom: 1px solid var(--border-subtle);
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    align-self: start;
+  }
+
+  .ui-main-nav.is-open .nav-items {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
   }
 
   .ui-main-nav.is-open .nav-item {

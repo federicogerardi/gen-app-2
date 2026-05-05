@@ -67,7 +67,6 @@ export const MainNavigation = ({
         <button
           type="button"
           className={cx(uiPrimitives.menuToggle, 'nav-mobile-close')}
-          id="mobile-nav-close-button"
           onClick={onCloseMobile}
           aria-label={appCopy.ui.actions.closeNavigationMenu}
         >

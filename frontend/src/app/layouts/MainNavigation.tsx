@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  X,
 } from 'lucide-react';
 import { appCopy, appNavigation } from '../copy/system';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
@@ -61,6 +62,18 @@ export const MainNavigation = ({
       >
         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
+
+      <div className="nav-mobile-header">
+        <button
+          type="button"
+          className={cx(uiPrimitives.menuToggle, 'nav-mobile-close')}
+          id="mobile-nav-close-button"
+          onClick={onCloseMobile}
+          aria-label={appCopy.ui.actions.closeNavigationMenu}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
 
       <div className="nav-items">
         {visibleItems.map((item) => {

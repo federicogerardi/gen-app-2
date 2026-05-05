@@ -669,6 +669,7 @@ button:disabled,
 
 .ui-shell-auth {
   gap: var(--space-2);
+  position: relative;
 }
 
 .ui-auth-header {
@@ -758,6 +759,9 @@ button:disabled,
 
 .ui-mobile-nav-backdrop {
   display: none;
+  border-radius: 0;
+  transform: none;
+  box-shadow: none;
 }
 
 .ui-workbench {
@@ -1356,10 +1360,6 @@ ul {
     display: inline-flex;
   }
 
-  .ui-workbench {
-    position: relative;
-  }
-
   .main-nav,
   .ui-main-nav {
     display: none;
@@ -1375,11 +1375,15 @@ ul {
     position: fixed;
     inset: 0;
     border: 0;
+    border-radius: 0;
     padding: 0;
     margin: 0;
     background: rgba(2, 6, 23, 0.36);
     z-index: 90;
     cursor: pointer;
+    transform: none;
+    box-shadow: none;
+    filter: none;
   }
 
 }

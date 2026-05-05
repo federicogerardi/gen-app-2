@@ -55,6 +55,10 @@ export const appCopy = {
       viewRaw: 'Raw',
       previousPage: 'Precedente',
       nextPage: 'Successivo',
+      openNavigationMenu: 'Apri menu di navigazione',
+      closeNavigationMenu: 'Chiudi menu di navigazione',
+      expandNavigation: 'Espandi navigazione',
+      collapseNavigation: 'Comprimi navigazione',
     },
     labels: {
       email: 'Email',
@@ -262,5 +266,5 @@ export const appNavigation = [
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false },
-  { to: '/admin', label: appCopy.ui.navigation.admin, end: false },
+  { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },
 ] as const;

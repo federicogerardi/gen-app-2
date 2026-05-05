@@ -8,8 +8,10 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  X,
 } from 'lucide-react';
-import { appNavigation } from '../copy/system';
+import { appCopy, appNavigation } from '../copy/system';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
 import './MainNavigation.css';
 
@@ -17,7 +19,11 @@ type NavIcon = React.ComponentType<{ size: number; className?: string }>;
 
 type MainNavigationProps = {
   isCollapsed: boolean;
+  isMobileOpen: boolean;
+  isAdmin: boolean;
   onToggleCollapsed: () => void;
+  onCloseMobile: () => void;
+  onLogout: () => void;
 };
 
 const navIcons: Record<string, NavIcon> = {
@@ -29,22 +35,47 @@ const navIcons: Record<string, NavIcon> = {
   '/admin': Settings,
 };
 
-export const MainNavigation = ({ isCollapsed, onToggleCollapsed }: MainNavigationProps) => {
+export const MainNavigation = ({
+  isCollapsed,
+  isMobileOpen,
+  isAdmin,
+  onToggleCollapsed,
+  onCloseMobile,
+  onLogout,
+}: MainNavigationProps) => {
+  const visibleItems = appNavigation.filter(
+    (item) => !('adminOnly' in item && item.adminOnly) || isAdmin,
+  );
 
   return (
-    <Surface as="nav" className={cx(uiPrimitives.mainNav, isCollapsed && 'is-collapsed')}>
+    <Surface
+      as="nav"
+      id="main-navigation"
+      className={cx(uiPrimitives.mainNav, isCollapsed && !isMobileOpen && 'is-collapsed', isMobileOpen && uiPrimitives.mainNavOpen)}
+    >
       <button
         type="button"
         className="nav-toggle"
         onClick={onToggleCollapsed}
-        aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+        aria-label={isCollapsed ? appCopy.ui.actions.expandNavigation : appCopy.ui.actions.collapseNavigation}
         aria-expanded={!isCollapsed}
       >
         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
 
+      <div className="nav-mobile-header">
+        <button
+          type="button"
+          className="nav-mobile-close"
+          onClick={onCloseMobile}
+          aria-label={appCopy.ui.actions.closeNavigationMenu}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+
       <div className="nav-items">
-        {appNavigation.map((item) => {
+        {visibleItems.map((item) => {
           const Icon = navIcons[item.to] || LayoutDashboard;
           return (
             <NavLink
@@ -56,6 +87,7 @@ export const MainNavigation = ({ isCollapsed, onToggleCollapsed }: MainNavigatio
                 isActive && uiPrimitives.navLinkActive,
                 'nav-item',
               )}
+              onClick={onCloseMobile}
               title={item.label}
             >
               <Icon size={18} className="nav-icon" />
@@ -63,6 +95,22 @@ export const MainNavigation = ({ isCollapsed, onToggleCollapsed }: MainNavigatio
             </NavLink>
           );
         })}
+
+        <hr className="nav-divider" aria-hidden="true" />
+
+        <button
+          type="button"
+          className="nav-item"
+          onClick={() => {
+            onCloseMobile();
+            onLogout();
+          }}
+          aria-label={appCopy.ui.actions.logout}
+          title={appCopy.ui.actions.logout}
+        >
+          <LogOut size={18} className="nav-icon" />
+          <span className="nav-label">{appCopy.ui.actions.logout}</span>
+        </button>
       </div>
     </Surface>
   );

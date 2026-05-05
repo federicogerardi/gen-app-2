@@ -93,11 +93,10 @@ export const GenerationConsolePage = () => {
     return null;
   }
 
-  const handleArtifactIntentNavigation = (
+  const handleArtifactRelaunchNavigation = (
     artifact: GenerationArtifact,
-    intent: 'new' | 'resume' | 'regenerate',
   ): void => {
-    const targetPath = buildToolEntryPathFromArtifact(artifact, intent);
+    const targetPath = buildToolEntryPathFromArtifact(artifact, 'regenerate');
     if (!targetPath) {
       return;
     }
@@ -142,8 +141,7 @@ export const GenerationConsolePage = () => {
           artifacts={generation.artifacts}
           relaunchDisabled={generation.isStreamActive}
           onOpenProject={(projectId) => generation.setFocusedProjectId(projectId)}
-          onResumeFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'new')}
-          onRegenerateFromArtifact={(artifact) => handleArtifactIntentNavigation(artifact, 'regenerate')}
+          onRelaunchFromArtifact={handleArtifactRelaunchNavigation}
         />
       </section>
     </section>

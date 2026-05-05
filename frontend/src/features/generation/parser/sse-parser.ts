@@ -145,6 +145,8 @@ export const parseBackendStreamEvent = (frame: SseFrame): BackendStreamEvent => 
             : ensureString(data.artifactId, 'artifactId'),
         status,
         reason: ensureNullableString(data.reason, 'reason'),
+        completedStep: ensureNullableString(data.completedStep ?? null, 'completedStep'),
+        failedStep: ensureNullableString(data.failedStep ?? null, 'failedStep'),
       },
     };
   }

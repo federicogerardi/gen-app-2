@@ -67,16 +67,12 @@ export const ArtifactDetailPage = () => {
   };
 
   const restartPath = useMemo(
-    () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'new') : null),
-    [artifact],
-  );
-  const regeneratePath = useMemo(
     () => (artifact ? buildToolEntryPathFromArtifact(artifact, 'regenerate') : null),
     [artifact],
   );
   const relaunchDisabled = useMemo(
-    () => generation.isStreamActive || !artifact || !restartPath || !regeneratePath,
-    [artifact, generation.isStreamActive, regeneratePath, restartPath],
+    () => generation.isStreamActive || !artifact || !restartPath,
+    [artifact, generation.isStreamActive, restartPath],
   );
 
   if (!artifact) {
@@ -153,17 +149,6 @@ export const ArtifactDetailPage = () => {
           disabled={relaunchDisabled}
         >
           {appCopy.ui.actions.relaunchPrimary}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => {
-            if (regeneratePath) {
-              navigate(regeneratePath);
-            }
-          }}
-          disabled={relaunchDisabled}
-        >
-          {appCopy.ui.actions.relaunchSecondary}
         </Button>
         <Button type="button" disabled={!isDeleteEnabled}>
           {appCopy.ui.actions.deleteUiOnly}

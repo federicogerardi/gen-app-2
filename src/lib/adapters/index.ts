@@ -7,7 +7,6 @@ export {
   type LlmStreamInput,
   type LlmUsageMetrics,
   type PersistenceAdapter,
-  type PersistedArtifactStatus,
   type StreamAdapter,
   type UsageDecision,
   type IdempotencyDecision,
@@ -65,6 +64,7 @@ export {
   RedisIdempotencyRepositoryStub,
   RedisQuotaRepositoryStub,
   RedisStreamSessionRepositoryStub,
+  type StubArtifactQueryRecord,
   type PostgresRedisStubOptions,
 } from './postgres-redis.stub';
 

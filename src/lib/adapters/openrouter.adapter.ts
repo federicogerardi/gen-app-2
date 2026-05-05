@@ -99,6 +99,19 @@ const buildContextBlock = (requestInput: Record<string, unknown>): string | null
       ? JSON.stringify(extractionPayload, null, 2)
       : null;
 
+  // Bug 1 diagnostics: log what we're receiving server-side
+  if (process.env.DEBUG || process.env.NODE_ENV !== 'production') {
+    console.log('[openrouter] buildContextBlock diagnostics', {
+      hasBriefingText: !!briefingText,
+      briefingTextLength: briefingText?.length ?? 0,
+      extractionPayloadType: typeof extractionPayload,
+      extractionPayloadKeys: extractionPayload && typeof extractionPayload === 'object'
+        ? Object.keys(extractionPayload).length
+        : 0,
+      payloadJsonLength: payloadJson?.length ?? 0,
+    });
+  }
+
   const dependencyOutputsByStepRaw = requestInput.stepDependencyArtifactContentsByStep;
   const dependencyOutputsByStep =
     dependencyOutputsByStepRaw && typeof dependencyOutputsByStepRaw === 'object' && !Array.isArray(dependencyOutputsByStepRaw)
@@ -140,14 +153,24 @@ const buildMessages = (requestInput: Record<string, unknown>) => {
     : 'Generate a response for the current request.';
 
   const contextBlock = buildContextBlock(requestInput);
-  if (contextBlock) {
-    return [{
+  const finalMessages = contextBlock
+    ? [{
       role: 'user',
       content: `${normalizedPrompt}\n\n---\n\nUse only the context below as source of truth.\n\n${contextBlock}`,
-    }];
+    }]
+    : [{ role: 'user', content: normalizedPrompt }];
+
+  // Bug 1 diagnostics: log final message sent to LLM
+  if (process.env.DEBUG || process.env.NODE_ENV !== 'production') {
+    console.log('[openrouter] buildMessages final output', {
+      hasContextBlock: !!contextBlock,
+      contextBlockLength: contextBlock?.length ?? 0,
+      userMessageLength: finalMessages[0]?.content?.length ?? 0,
+      userMessagePrefix: (finalMessages[0]?.content as string)?.substring(0, 100),
+    });
   }
 
-  return [{ role: 'user', content: normalizedPrompt }];
+  return finalMessages;
 };
 
 async function* parseSseResponse(response: Response): AsyncIterable<LlmStreamEvent> {

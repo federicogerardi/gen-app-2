@@ -8,13 +8,15 @@ import type { ActorRefFrom } from 'xstate';
 import { useNavigate } from 'react-router-dom';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { generateRequestId, readInputField } from '../../../app/runtime/shared-utils';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { briefingUploadMachine } from '../machines/briefing-upload.machine';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig, mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
-import { createStepRequest, getStepDependencies } from '../runtime/tool-generation-engine';
+import { createStepRequest } from '../runtime/tool-generation-engine';
+import { orchestrateToolStep } from '../runtime/tools-client';
 import {
   useProjectsLoader,
   useToolFormInit,
@@ -23,7 +25,8 @@ import {
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { getArtifactById, listArtifacts } from '../../artifacts/runtime/artifacts-client';
+import { extractArtifactStep } from '../../generation/runtime/step-hydration';
+import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -34,30 +37,70 @@ interface ToolPageTemplateProps {
   relaunchNotes?: string | null;
   relaunchFromArtifactId?: string | null;
   briefingId?: string | null;
+  extractionArtifactId?: string | null;
   briefingFileName?: string | null;
 }
 
-const readInputString = (artifact: GenerationArtifact | null, key: string): string | null => {
-  const value = artifact?.sourceRequest.input?.[key];
-  if (typeof value !== 'string') {
-    return null;
+const parseExtractionPayloadFromContent = (content: string): Record<string, unknown> => {
+  const parseCandidate = (candidate: string): Record<string, unknown> => {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      if (parsed && typeof parsed === 'object') {
+        const record = parsed as Record<string, unknown>;
+        const payload = record['payload'];
+        if (payload && typeof payload === 'object') {
+          return payload as Record<string, unknown>;
+        }
+
+        const extractionPayload = record['extractionPayload'];
+        if (extractionPayload && typeof extractionPayload === 'object') {
+          return extractionPayload as Record<string, unknown>;
+        }
+
+        return record;
+      }
+    } catch {
+      // Keep runtime resilient: invalid JSON means no structured payload.
+    }
+
+    return {};
+  };
+
+  const direct = parseCandidate(content);
+  if (Object.keys(direct).length > 0) {
+    return direct;
   }
 
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const readArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
-  const step = artifact?.sourceRequest.input?.step;
-  return typeof step === 'string' ? step as ToolStep : null;
-};
-
-const randomId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    const fromFence = parseCandidate(fenced[1]);
+    if (Object.keys(fromFence).length > 0) {
+      return fromFence;
+    }
   }
 
-  return `req-${Date.now()}`;
+  const objectSlice = content.match(/\{[\s\S]*\}/);
+  if (objectSlice?.[0]) {
+    const fromSlice = parseCandidate(objectSlice[0]);
+    if (Object.keys(fromSlice).length > 0) {
+      return fromSlice;
+    }
+  }
+
+  return {};
+};
+
+const readExtractionPayloadFromArtifactInput = (artifact: GenerationArtifact): Record<string, unknown> => {
+  const inputPayload = artifact.sourceRequest.input?.extractionPayload;
+  if (inputPayload && typeof inputPayload === 'object') {
+    return inputPayload as Record<string, unknown>;
+  }
+
+  return {};
+};
+
+const isEmptyPayload = (payload: Record<string, unknown>): boolean => {
+  return Object.keys(payload).length === 0;
 };
 
 export const ToolPageTemplate = ({
@@ -69,6 +112,7 @@ export const ToolPageTemplate = ({
   relaunchNotes,
   relaunchFromArtifactId,
   briefingId,
+  extractionArtifactId,
   briefingFileName,
 }: ToolPageTemplateProps) => {
   const auth = useAuthSession();
@@ -77,7 +121,6 @@ export const ToolPageTemplate = ({
   const toolConfig = getToolFormConfig(toolKey);
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
-  const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
   const initialPrefillDoneRef = useRef(false);
   const currentRunPrefixRef = useRef<string | null>(null);
@@ -142,59 +185,6 @@ export const ToolPageTemplate = ({
     initialPrefillDoneRef.current = true;
   }, [generation, initialProjectId, setFormState]);
 
-  // 5. Load persisted artifacts for selected project (DB + fallback)
-  useEffect(() => {
-    const normalizedProjectId = formState.projectId.trim();
-    if (!normalizedProjectId) {
-      setPersistedArtifacts([]);
-      return;
-    }
-
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const list = await listArtifacts(
-          {
-            type: 'all',
-            status: 'all',
-            projectId: normalizedProjectId,
-          },
-          {
-            apiBaseUrl: auth.apiBaseUrl,
-            capabilities: auth.capabilities,
-            localArtifacts: generation.artifacts,
-          },
-        );
-
-        if (!cancelled) {
-          setPersistedArtifacts(list);
-        }
-      } catch {
-        if (!cancelled) {
-          setPersistedArtifacts(generation.artifacts.filter((item) => item.projectId === normalizedProjectId));
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [auth.apiBaseUrl, auth.capabilities, formState.projectId, generation.artifacts]);
-
-  const allArtifacts = useMemo(() => {
-    const merged = [...generation.artifacts, ...persistedArtifacts];
-    const byId = new Map<string, GenerationArtifact>();
-
-    for (const artifact of merged) {
-      if (!byId.has(artifact.artifactId)) {
-        byId.set(artifact.artifactId, artifact);
-      }
-    }
-
-    return [...byId.values()];
-  }, [generation.artifacts, persistedArtifacts]);
-
   // 6. Resolve source artifact for relaunch intent
   useEffect(() => {
     const normalizedSourceArtifactId = sourceArtifactId?.trim() ?? '';
@@ -203,7 +193,7 @@ export const ToolPageTemplate = ({
       return;
     }
 
-    const localSource = allArtifacts.find((artifact) => artifact.artifactId === normalizedSourceArtifactId) ?? null;
+    const localSource = generation.artifacts.find((artifact) => artifact.artifactId === normalizedSourceArtifactId) ?? null;
     if (localSource) {
       setSourceArtifact(localSource);
       return;
@@ -215,7 +205,7 @@ export const ToolPageTemplate = ({
         const detail = await getArtifactById(normalizedSourceArtifactId, {
           apiBaseUrl: auth.apiBaseUrl,
           capabilities: auth.capabilities,
-          localArtifacts: allArtifacts,
+          localArtifacts: generation.artifacts,
         });
 
         if (!cancelled) {
@@ -231,29 +221,58 @@ export const ToolPageTemplate = ({
     return () => {
       cancelled = true;
     };
-  }, [allArtifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
+  }, [generation.artifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
+
+  const normalizedProjectId = formState.projectId.trim();
 
   // 7. Hydrate extraction context from source artifact: send HYDRATE_REQUESTED to machine.
   useEffect(() => {
-    if (!sourceArtifact) {
+    if (!sourceArtifact || !normalizedProjectId) {
       return;
     }
+
+    const routeBriefingId = briefingId?.trim() ?? '';
+    const sourceBriefingId = readInputField(sourceArtifact, 'briefingId');
+    const resolvedHydrationBriefingId = routeBriefingId.length > 0
+      ? routeBriefingId
+      : sourceBriefingId;
+
+    const resolvedSourceExtractionArtifactId =
+      readInputField(sourceArtifact, 'extractionArtifactId')
+      ?? extractionArtifactId
+      ?? null;
+
+    console.debug('[ToolPageTemplate] sending HYDRATE_REQUESTED', {
+      intent,
+      sourceArtifactId: sourceArtifact.artifactId,
+      sourceArtifactType: sourceArtifact.artifactType,
+      projectId: normalizedProjectId,
+      resolvedHydrationBriefingId,
+      resolvedSourceExtractionArtifactId,
+      localArtifactsCount: generation.artifacts.length,
+      sourceArtifactBriefingId: sourceBriefingId,
+    });
 
     toolPageSend({
       type: 'HYDRATE_REQUESTED',
       intent,
       sourceArtifactId: sourceArtifact.artifactId,
-      resolvedBriefingId: readInputString(sourceArtifact, 'briefingId') ?? briefingId ?? null,
-      sourceExtractionArtifactId: readInputString(sourceArtifact, 'extractionArtifactId'),
-      localArtifacts: allArtifacts,
+      resolvedBriefingId: resolvedHydrationBriefingId,
+      sourceExtractionArtifactId: resolvedSourceExtractionArtifactId,
+      localArtifacts: generation.artifacts,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sourceArtifact]);
-
-  const normalizedProjectId = formState.projectId.trim();
+  }, [
+    generation.artifacts,
+    briefingId,
+    extractionArtifactId,
+    intent,
+    normalizedProjectId,
+    sourceArtifact,
+    toolPageSend,
+  ]);
 
   const resolvedBriefingId = briefingId
-    ?? readInputString(sourceArtifact, 'briefingId')
+    ?? readInputField(sourceArtifact, 'briefingId')
     ?? null;
 
   useEffect(() => {
@@ -270,7 +289,7 @@ export const ToolPageTemplate = ({
 
   const effectiveBriefingFileName = briefingFileNameFromActor
     ?? briefingFileName
-    ?? readInputString(sourceArtifact, 'briefingFileName');
+    ?? readInputField(sourceArtifact, 'briefingFileName');
 
   const effectiveBriefingStatus = (
     briefingStatus === 'ready' || machineHydrationResult !== null
@@ -278,8 +297,8 @@ export const ToolPageTemplate = ({
       : briefingStatus
   );
 
-  const resolvedTone = relaunchTone ?? readInputString(sourceArtifact, 'tone') ?? '';
-  const resolvedNotes = relaunchNotes ?? readInputString(sourceArtifact, 'notes') ?? '';
+  const resolvedTone = relaunchTone ?? readInputField(sourceArtifact, 'tone') ?? '';
+  const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact, 'notes') ?? '';
   const resolvedRelaunchSource = relaunchFromArtifactId
     ?? sourceArtifactId
     ?? sourceArtifact?.artifactId
@@ -311,7 +330,7 @@ export const ToolPageTemplate = ({
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
 
   const sourceStep = useMemo(() => {
-    const candidate = readArtifactStep(sourceArtifact);
+    const candidate = extractArtifactStep(sourceArtifact);
     if (!candidate) {
       return null;
     }
@@ -368,38 +387,123 @@ export const ToolPageTemplate = ({
   useEffect(() => {
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: currentRunPrefixRef.current,
     });
-  }, [allArtifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
+  }, [generation.artifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
 
   // 10. Build project and step lists
   const currentProject = projects.find((p) => p.id === formState.projectId);
 
+  const resolveRuntimeIntent = (): 'new' | 'resume' | 'regenerate' => {
+    // Deterministic DDD rule: artifact-driven relaunch defaults to regenerate.
+    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' || intent === 'resume') {
+      return 'resume';
+    }
+
+    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step' || intent === 'regenerate') {
+      return 'regenerate';
+    }
+
+    const hasArtifactDrivenEntry =
+      (sourceArtifactId?.trim().length ?? 0) > 0
+      || sourceArtifact !== null
+      || machineHydrationResult !== null;
+
+    if (hasArtifactDrivenEntry) {
+      return 'regenerate';
+    }
+
+    return 'new';
+  };
+
+  const logPrimaryCtaDiagnostic = (runtimeIntent: 'new' | 'resume' | 'regenerate'): void => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.info('[ToolPageTemplate] primary CTA diagnostic', {
+      toolKey,
+      routeIntent: intent,
+      runtimeIntent,
+      primaryActionPolicy: machineViewModel.primaryActionPolicy,
+      readiness: readinessSnapshot,
+      sourceArtifactId,
+      resolvedBriefingId,
+      extractionArtifactId: machineHydrationResult?.extractionArtifactId
+        ?? briefingSnapshot.context.extractionArtifactId
+        ?? extractionArtifactId
+        ?? null,
+      hydrationResult: machineHydrationResult,
+      pausedCheckpointStep,
+      nextAvailableStep,
+      sourceStep,
+      primaryTargetStep,
+    });
+  };
+
   // 11. Handle generation start and chaining
-  const startGenerationStep = (step: ToolStep): boolean => {
+  const startGenerationStep = async (step: ToolStep): Promise<boolean> => {
+    if (import.meta.env.DEV) {
+      const runtimeIntent = resolveRuntimeIntent();
+      console.info('[ToolPageTemplate] primary CTA diagnostic', {
+        step,
+        toolKey,
+        routeIntent: intent,
+        runtimeIntent,
+        primaryActionPolicy: machineViewModel.primaryActionPolicy,
+        readiness: readinessSnapshot,
+        sourceArtifactId,
+        resolvedBriefingId,
+        extractionArtifactIdFromMachine: machineHydrationResult?.extractionArtifactId ?? null,
+        extractionArtifactIdFromBriefing: briefingSnapshot.context.extractionArtifactId ?? null,
+        extractionArtifactIdFromRoute: extractionArtifactId ?? null,
+        hydrationResult: machineHydrationResult,
+        pausedCheckpointStep,
+        nextAvailableStep,
+        sourceStep,
+        primaryTargetStep,
+        hasSession: !!auth.session,
+        normalizedProjectId,
+        briefingTextLengthFromBriefing: (briefingSnapshot.context.normalizedText ?? '').length,
+        extractionPayloadKeysFromBriefing: Object.keys(briefingSnapshot.context.extractionPayload ?? {}).length,
+      });
+    }
+
     if (!auth.session || !normalizedProjectId) {
       return false;
     }
 
-    // Contesto estrazione: preferisce machineHydrationResult (recovery da artifact),
-    // fallback a briefingSnapshot.context (flusso upload utente).
+    const hasSourceArtifact = sourceArtifact !== null;
+    // Contesto estrazione: in recovery da artifact deve essere deterministico e
+    // provenire dalla hydration machine; in upload manuale usa briefingSnapshot.
     const extractionInfo = (() => {
+      const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
+
       if (machineHydrationResult !== null) {
         return {
           extractionArtifactId: machineHydrationResult.extractionArtifactId,
           extractionPayload: machineHydrationResult.extractionPayload,
           briefingId: machineHydrationResult.briefingId,
+          briefingText: machineHydrationResult.normalizedText.trim().length > 0
+            ? machineHydrationResult.normalizedText
+            : briefingContextText,
         };
       }
+
+      if (hasSourceArtifact) {
+        return null;
+      }
+
       const bc = briefingSnapshot.context;
       if (bc.extractionArtifactId && bc.briefingId) {
         return {
           extractionArtifactId: bc.extractionArtifactId,
           extractionPayload: bc.extractionPayload ?? {},
           briefingId: bc.briefingId,
+          briefingText: bc.normalizedText ?? '',
         };
       }
       return null;
@@ -409,11 +513,62 @@ export const ToolPageTemplate = ({
       return false;
     }
 
-    const runPrefix = currentRunPrefixRef.current ?? randomId();
+    let effectiveExtractionInfo = extractionInfo;
+    const hasExtractionArtifactId = effectiveExtractionInfo.extractionArtifactId.trim().length > 0;
+    const needsPayloadEnrichment = isEmptyPayload(effectiveExtractionInfo.extractionPayload);
+    const needsBriefingTextEnrichment = effectiveExtractionInfo.briefingText.trim().length === 0;
+    const needsBriefingIdEnrichment = effectiveExtractionInfo.briefingId.trim().length === 0;
+    const shouldEnrichFromExtractionArtifact =
+      hasExtractionArtifactId
+      && (needsPayloadEnrichment || needsBriefingTextEnrichment || needsBriefingIdEnrichment);
+
+    if (shouldEnrichFromExtractionArtifact) {
+      const extractionArtifact = await getArtifactById(effectiveExtractionInfo.extractionArtifactId, {
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+        localArtifacts: generation.artifacts,
+      }).catch(() => null);
+
+      if (extractionArtifact) {
+        const enrichedPayload = needsPayloadEnrichment
+          ? (() => {
+              const fromContent = parseExtractionPayloadFromContent(extractionArtifact.content);
+              if (Object.keys(fromContent).length > 0) {
+                return fromContent;
+              }
+
+              return readExtractionPayloadFromArtifactInput(extractionArtifact);
+            })()
+          : effectiveExtractionInfo.extractionPayload;
+
+        const enrichedBriefingText =
+          effectiveExtractionInfo.briefingText.trim().length > 0
+            ? effectiveExtractionInfo.briefingText
+            : (typeof extractionArtifact.sourceRequest.input?.briefingText === 'string'
+              ? extractionArtifact.sourceRequest.input.briefingText
+              : '');
+
+        const enrichedBriefingId =
+          effectiveExtractionInfo.briefingId
+          || (typeof extractionArtifact.sourceRequest.input?.briefingId === 'string'
+            ? extractionArtifact.sourceRequest.input.briefingId
+            : '');
+
+        effectiveExtractionInfo = {
+          extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
+          extractionPayload: enrichedPayload,
+          briefingId: enrichedBriefingId,
+          briefingText: enrichedBriefingText,
+        };
+      }
+    }
+
+    const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    const runtimeIntent = resolveRuntimeIntent();
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: runPrefix,
@@ -430,23 +585,37 @@ export const ToolPageTemplate = ({
       workflowType: toolKey,
       registrySnapshotRef: formState.registrySnapshotRef,
       input: {
-        intent,
+        intent: runtimeIntent,
         tone: resolvedTone,
         notes: resolvedNotes,
         relaunchFromArtifactId: resolvedRelaunchSource,
         sourceArtifactId: sourceArtifactId ?? null,
-        briefingId: extractionInfo.briefingId || resolvedBriefingId,
+        briefingId: resolvedBriefingId ?? effectiveExtractionInfo.briefingId,
+        briefingText: effectiveExtractionInfo.briefingText,
         briefingFileName: effectiveBriefingFileName ?? null,
-        extractionArtifactId: extractionInfo.extractionArtifactId,
-        extractionPayload: extractionInfo.extractionPayload,
+        extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
+        extractionPayload: effectiveExtractionInfo.extractionPayload,
       },
     };
 
-    const dependencies = getStepDependencies(toolKey, completedArtifactsByStep, step);
+    let orchestrationResult;
+    lastRequestedStepRef.current = step;
+    try {
+      orchestrationResult = await orchestrateToolStep(
+        normalizedProjectId,
+        toolKey,
+        step,
+        { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
+      );
+    } catch (err) {
+      console.error('[ToolPageTemplate] orchestrateToolStep failed — generation blocked', { toolKey, step, err });
+      return false;
+    }
+    const dependencies = orchestrationResult.dependencyArtifactIdsByStep;
     const dependencyArtifactContentsByStep = Object.fromEntries(
       Object.entries(dependencies)
         .map(([stepKey, artifactId]): [string, string] => {
-          const dependencyArtifact = allArtifacts.find((artifact) => artifact.artifactId === artifactId);
+          const dependencyArtifact = generation.artifacts.find((artifact) => artifact.artifactId === artifactId);
           return [stepKey, dependencyArtifact?.content ?? ''];
         })
         .filter((entry) => entry[1].trim().length > 0),
@@ -460,8 +629,40 @@ export const ToolPageTemplate = ({
       dependencyArtifactContentsByStep,
     );
 
+    if (import.meta.env.DEV) {
+      const briefingTextInRequest = typeof request.input.briefingText === 'string'
+        ? request.input.briefingText
+        : '';
+      const extractionPayloadInRequest = request.input.extractionPayload;
+      const extractionPayloadKeysInRequest = (
+        extractionPayloadInRequest !== null
+        && typeof extractionPayloadInRequest === 'object'
+      )
+        ? Object.keys(extractionPayloadInRequest as Record<string, unknown>).length
+        : 0;
+      const stepDependencyArtifactIdsCount = Array.isArray(request.input.stepDependencyArtifactIds)
+        ? request.input.stepDependencyArtifactIds.length
+        : 0;
+
+      console.info('[ToolPageTemplate] generation request context', {
+        step,
+        routeIntent: intent,
+        runtimeIntent: request.input.intent,
+        requestId: request.requestId,
+        sourceArtifactId: request.input.sourceArtifactId,
+        briefingId: request.input.briefingId,
+        briefingTextLengthInRequest: briefingTextInRequest.length,
+        extractionArtifactIdInRequest: request.input.extractionArtifactId,
+        extractionPayloadKeysInRequest,
+        stepDependencyArtifactIdsCount,
+        // Bug 1 diagnostics: track payload origin
+        extractionPayloadFromBriefing: Object.keys(briefingSnapshot.context.extractionPayload ?? {}).length,
+        extractionPayloadFromMachine: machineHydrationResult ? Object.keys(machineHydrationResult.extractionPayload ?? {}).length : 0,
+        extractionPayloadSource: machineHydrationResult !== null ? 'hydration' : 'briefing',
+      });
+    }
+
     generation.start(request);
-    lastRequestedStepRef.current = step;
     return true;
   };
 
@@ -490,7 +691,7 @@ export const ToolPageTemplate = ({
       return;
     }
 
-    const runPrefix = currentRunPrefixRef.current ?? randomId();
+    const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
 
     setPausedCheckpointStep(null);
@@ -507,7 +708,7 @@ export const ToolPageTemplate = ({
     currentRunPrefixRef.current = null;
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: allArtifacts,
+      artifacts: generation.artifacts,
       intent,
       sourceArtifact,
       runRequestPrefix: null,
@@ -528,8 +729,8 @@ export const ToolPageTemplate = ({
   }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
 
   // Bridge: quando generation stream termina, invia STEP_DONE/STEP_FAILED alla macchina.
-  // Necessario perché toolFlowMachine (invocato in 'generating') attende questi eventi per avanzare.
-  // Senza di essi la macchina resta bloccata in 'generating' e il pulsante mostra "In elaborazione..." indefinitamente.
+  // Legge completedStep/failedStep dal payload terminal BE (BackendStreamEvent.terminal.data) —
+  // non inferisce più dall'isStreamActive/streamStatus lato UI (TASK-026).
   useEffect(() => {
     if (generation.isStreamActive) {
       wasStreamActiveRef.current = true;
@@ -544,17 +745,29 @@ export const ToolPageTemplate = ({
 
     wasStreamActiveRef.current = false;
 
-    const step = lastRequestedStepRef.current;
-    if (!step) {
-      return;
-    }
+    const completedStep = generation.terminalCompletedStep;
+    const failedStep = generation.terminalFailedStep;
 
-    if (generation.streamStatus === 'completed') {
-      toolPageSend({ type: 'STEP_DONE', step });
-    } else if (generation.streamStatus === 'failed') {
-      toolPageSend({ type: 'STEP_FAILED', step, message: 'Generazione fallita' });
+    if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
+      toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
+    } else if (failedStep && toolConfig.steps.includes(failedStep as ToolStep)) {
+      toolPageSend({ type: 'STEP_FAILED', step: failedStep as ToolStep, message: 'Generazione fallita' });
+    } else if (!completedStep && !failedStep && generation.streamStatus === 'completed') {
+      // Interim fallback: TASK-026 incomplete — backend didn't send completedStep in SSE_TERMINAL
+      // Infer step from lastRequest.input.step to unblock readiness/CTA after generation completes
+      const inferredStep = (generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined)?.step;
+      if (typeof inferredStep === 'string' && toolConfig.steps.includes(inferredStep as ToolStep)) {
+        if (import.meta.env.DEV) {
+          console.warn('[ToolPageTemplate] inferring step completion from lastRequest (backend TASK-026 incomplete)', {
+            inferredStep,
+            terminalCompletedStep: completedStep,
+            terminalFailedStep: failedStep,
+          });
+        }
+        toolPageSend({ type: 'STEP_DONE', step: inferredStep as ToolStep });
+      }
     }
-  }, [generation.isStreamActive, generation.streamStatus, toolPageSend]);
+  }, [generation.isStreamActive, generation.terminalCompletedStep, generation.terminalFailedStep, generation.streamStatus, generation.snapshot, toolConfig.steps, toolPageSend]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) {

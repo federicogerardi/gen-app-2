@@ -13,6 +13,11 @@ import type { ArtifactStatus, ArtifactType } from '../types/artifact';
 import { isArtifactStatus, isArtifactType } from '../types/artifact';
 import { BriefParseError, parseBriefInput } from './brief-parser';
 import {
+  isSupportedToolWorkflow,
+  resolveStepDependencyIds,
+  extractStepFromArtifactInput,
+} from './tool-workflow-registry';
+import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
   createDefaultPasswordHashRuntime,
@@ -103,6 +108,14 @@ type CreateToolBriefRequestBody = {
   fileName?: unknown;
   mimeType?: unknown;
   contentBase64?: unknown;
+};
+
+type ToolHydrateRequestBody = {
+  projectId?: unknown;
+  sourceArtifactId?: unknown;
+  resolvedBriefingId?: unknown;
+  sourceExtractionArtifactId?: unknown;
+  intent?: unknown;
 };
 
 const AUTH_USER_ROLE_SET = new Set<AuthUserRole>(['admin', 'member']);
@@ -733,6 +746,8 @@ export const createAuthHttpRuntime = (
     const projectIdRaw = url.searchParams.get('projectId');
     const fromRaw = url.searchParams.get('from');
     const toRaw = url.searchParams.get('to');
+    const limitRaw = url.searchParams.get('limit');
+    const offsetRaw = url.searchParams.get('offset');
 
     if (typeRaw && !isArtifactType(typeRaw)) {
       writeError(response, 400, 'bad_request', 'Invalid type filter');
@@ -759,6 +774,22 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    if (limitRaw !== null) {
+      const limit = Number.parseInt(limitRaw, 10);
+      if (!Number.isFinite(limit) || limit <= 0) {
+        writeError(response, 400, 'bad_request', 'Invalid limit filter');
+        return;
+      }
+    }
+
+    if (offsetRaw !== null) {
+      const offset = Number.parseInt(offsetRaw, 10);
+      if (!Number.isFinite(offset) || offset < 0) {
+        writeError(response, 400, 'bad_request', 'Invalid offset filter');
+        return;
+      }
+    }
+
     const filters: ArtifactListFilters = {};
     if (typeRaw) {
       filters.type = typeRaw as ArtifactType;
@@ -774,6 +805,12 @@ export const createAuthHttpRuntime = (
     }
     if (toRaw) {
       filters.to = toRaw;
+    }
+    if (limitRaw !== null) {
+      filters.limit = Number.parseInt(limitRaw, 10);
+    }
+    if (offsetRaw !== null) {
+      filters.offset = Number.parseInt(offsetRaw, 10);
     }
 
     const artifacts = await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
@@ -876,6 +913,349 @@ export const createAuthHttpRuntime = (
         normalizedText: parsedBrief.normalizedText,
         charCount: parsedBrief.charCount,
         wordCount: parsedBrief.wordCount,
+      },
+    });
+  };
+
+  const handleToolsHydrate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for tools hydrate');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    let body: ToolHydrateRequestBody;
+    try {
+      body = await parseJsonBody<ToolHydrateRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
+    if (!projectId) {
+      writeError(response, 400, 'bad_request', 'projectId is required');
+      return;
+    }
+
+    const sourceArtifactId = typeof body.sourceArtifactId === 'string' ? body.sourceArtifactId.trim() || null : null;
+    let resolvedBriefingId = typeof body.resolvedBriefingId === 'string' ? body.resolvedBriefingId.trim() || null : null;
+    let sourceExtractionArtifactId = typeof body.sourceExtractionArtifactId === 'string' ? body.sourceExtractionArtifactId.trim() || null : null;
+
+    const isRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+
+    const normalizeExtractionPayload = (value: unknown): Record<string, unknown> => {
+      if (!isRecord(value)) {
+        return {};
+      }
+
+      const payload = value.payload;
+      if (isRecord(payload)) {
+        return payload;
+      }
+
+      const extractionPayload = value.extractionPayload;
+      if (isRecord(extractionPayload)) {
+        return extractionPayload;
+      }
+
+      const data = value.data;
+      if (isRecord(data)) {
+        const dataPayload = data.payload;
+        if (isRecord(dataPayload)) {
+          return dataPayload;
+        }
+
+        const dataExtractionPayload = data.extractionPayload;
+        if (isRecord(dataExtractionPayload)) {
+          return dataExtractionPayload;
+        }
+      }
+
+      return value;
+    };
+
+    const parseJsonCandidate = (candidate: string): Record<string, unknown> => {
+      try {
+        const parsed = JSON.parse(candidate) as unknown;
+        return normalizeExtractionPayload(parsed);
+      } catch {
+        return {};
+      }
+    };
+
+    const parseExtractionContent = (content: string): Record<string, unknown> => {
+      const direct = parseJsonCandidate(content);
+      if (Object.keys(direct).length > 0) {
+        return direct;
+      }
+
+      const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fenced?.[1]) {
+        const fromFence = parseJsonCandidate(fenced[1]);
+        if (Object.keys(fromFence).length > 0) {
+          return fromFence;
+        }
+      }
+
+      const objectSlice = content.match(/\{[\s\S]*\}/);
+      if (objectSlice?.[0]) {
+        const fromSlice = parseJsonCandidate(objectSlice[0]);
+        if (Object.keys(fromSlice).length > 0) {
+          return fromSlice;
+        }
+      }
+
+      return {};
+    };
+
+    const parsedFormatFromInput = (input: Record<string, unknown>): 'txt' | 'md' | 'docx' => {
+      const raw = typeof input.parsedFormat === 'string' ? input.parsedFormat.trim().toLowerCase() : '';
+      if (raw === 'txt' || raw === 'md' || raw === 'docx') {
+        return raw;
+      }
+      return 'md';
+    };
+
+    // Step 1: resolve from sourceArtifactId if provided
+    if (sourceArtifactId) {
+      const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, sourceArtifactId);
+      if (artifact) {
+        if (artifact.artifactType === 'extraction') {
+          const briefingId = (typeof artifact.input.briefingId === 'string' && artifact.input.briefingId.trim())
+            ? artifact.input.briefingId.trim()
+            : artifact.artifactId;
+
+          const extractionPayload = parseExtractionContent(artifact.content);
+          const normalizedText = typeof artifact.input.briefingText === 'string' && artifact.input.briefingText.trim().length > 0
+            ? artifact.input.briefingText
+            : (typeof artifact.input.normalizedText === 'string' ? artifact.input.normalizedText : '');
+          const parsedFormat = parsedFormatFromInput(artifact.input);
+
+          const hasPayload = Object.keys(extractionPayload).length > 0;
+          const hasText = normalizedText.trim().length > 0;
+
+          console.debug('[auth-http] hydrate direct extraction artifact resolved', {
+            sourceArtifactId,
+            artifactId: artifact.artifactId,
+            projectId,
+            briefingId,
+            normalizedTextLength: normalizedText.trim().length,
+            extractionPayloadKeys: Object.keys(extractionPayload).length,
+            parsedFormat,
+            willFallThrough: !hasPayload && !hasText,
+          });
+
+          // If the referenced extraction artifact has no recoverable text or payload
+          // (old artifact stored before text/payload persistence was introduced),
+          // fall through to list-based ranking which may find a more complete artifact.
+          if (hasPayload || hasText) {
+            await repositories.sessions.touchSession(principal.session.id, now());
+            writeSuccess(response, 200, {
+              hydration: {
+                extractionArtifactId: artifact.artifactId,
+                extractionPayload,
+                briefingId,
+                normalizedText,
+                parsedFormat,
+              },
+            });
+            return;
+          }
+
+          // Fall through to Step 2.
+          // Do NOT set sourceExtractionArtifactId to this empty artifact — Step 2 should
+          // use recency-based ranking to find the most recent complete extraction artifact.
+          resolvedBriefingId = resolvedBriefingId ?? briefingId;
+        } else {
+          // Content artifact: extract hints for list-based ranking
+          const artifactBriefingId = typeof artifact.input.briefingId === 'string' ? artifact.input.briefingId.trim() || null : null;
+          const artifactExtractionArtifactId = typeof artifact.input.extractionArtifactId === 'string' ? artifact.input.extractionArtifactId.trim() || null : null;
+          resolvedBriefingId = resolvedBriefingId ?? artifactBriefingId;
+          sourceExtractionArtifactId = sourceExtractionArtifactId ?? artifactExtractionArtifactId;
+
+          if (!resolvedBriefingId && !sourceExtractionArtifactId) {
+            writeError(response, 400, 'bad_request', 'missing_extraction_reference');
+            return;
+          }
+        }
+      }
+      // If artifact not found, fall through to list-based ranking
+    }
+
+    // Step 2: list-based ranking — rank by sourceExtractionArtifactId match then recency
+    const candidates = await queries.artifacts.listArtifactsByUser(principal.user.id, {
+      type: 'extraction',
+      status: 'completed',
+      projectId,
+    });
+
+    if (candidates.length === 0) {
+      writeError(response, 404, 'not_found', 'No extraction artifact found for this project');
+      return;
+    }
+
+    const ranked = [...candidates].sort((a, b) => {
+      const aIsSource = sourceExtractionArtifactId != null && a.artifactId === sourceExtractionArtifactId ? 1 : 0;
+      const bIsSource = sourceExtractionArtifactId != null && b.artifactId === sourceExtractionArtifactId ? 1 : 0;
+      if (aIsSource !== bIsSource) {
+        return bIsSource - aIsSource;
+      }
+      return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+    });
+
+    const best = ranked[0]!;
+    const bestDetail = await queries.artifacts.getArtifactByIdForUser(principal.user.id, best.artifactId);
+    if (!bestDetail) {
+      writeError(response, 404, 'not_found', 'Extraction artifact detail not found');
+      return;
+    }
+
+    const briefingId = (typeof bestDetail.input.briefingId === 'string' && bestDetail.input.briefingId.trim())
+      ? bestDetail.input.briefingId.trim()
+      : bestDetail.artifactId;
+
+    const extractionPayload = parseExtractionContent(bestDetail.content);
+    const normalizedText = typeof bestDetail.input.briefingText === 'string' && bestDetail.input.briefingText.trim().length > 0
+      ? bestDetail.input.briefingText
+      : (typeof bestDetail.input.normalizedText === 'string' ? bestDetail.input.normalizedText : '');
+    const parsedFormat = parsedFormatFromInput(bestDetail.input);
+
+    console.debug('[auth-http] hydrate ranked extraction artifact resolved', {
+      sourceArtifactId,
+      sourceExtractionArtifactId,
+      resolvedBriefingId,
+      rankedCandidateCount: ranked.length,
+      selectedArtifactId: bestDetail.artifactId,
+      projectId,
+      briefingId,
+      normalizedTextLength: normalizedText.trim().length,
+      extractionPayloadKeys: Object.keys(extractionPayload).length,
+      parsedFormat,
+    });
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, {
+      hydration: {
+        extractionArtifactId: bestDetail.artifactId,
+        extractionPayload,
+        briefingId,
+        normalizedText,
+        parsedFormat,
+      },
+    });
+  };
+
+  type ToolOrchestrationRequestBody = {
+    projectId?: unknown;
+    toolKey?: unknown;
+    targetStep?: unknown;
+  };
+
+  const handleToolsOrchestrate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for tools orchestrate');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    let body: ToolOrchestrationRequestBody;
+    try {
+      body = await parseJsonBody<ToolOrchestrationRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
+    if (!projectId) {
+      writeError(response, 400, 'bad_request', 'projectId is required');
+      return;
+    }
+
+    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    if (!toolKey) {
+      writeError(response, 400, 'bad_request', 'toolKey is required');
+      return;
+    }
+
+    if (!isSupportedToolWorkflow(toolKey)) {
+      writeError(response, 400, 'bad_request', `Unsupported toolKey: ${toolKey}`);
+      return;
+    }
+
+    const targetStep = typeof body.targetStep === 'string' ? body.targetStep.trim() : '';
+    if (!targetStep) {
+      writeError(response, 400, 'bad_request', 'targetStep is required');
+      return;
+    }
+
+    // Query all completed artifacts for this user+project, filter by workflowType in memory.
+    const allCompleted = await queries.artifacts.listArtifactsByUser(principal.user.id, {
+      projectId,
+      status: 'completed',
+    });
+
+    const toolArtifacts = allCompleted.filter(
+      (a) => a.workflowType === toolKey && a.artifactType !== 'extraction',
+    );
+
+    // Fetch details to extract step keys (N+1 acceptable: max 3–5 artifacts per tool).
+    const completedArtifactsByStep: Record<string, string> = {};
+    for (const summary of toolArtifacts) {
+      const detail = await queries.artifacts.getArtifactByIdForUser(
+        principal.user.id,
+        summary.artifactId,
+      );
+      if (!detail) {
+        continue;
+      }
+
+      const step = extractStepFromArtifactInput(detail.input);
+      if (step && !(step in completedArtifactsByStep)) {
+        // Keep the most recent artifact per step (list is ordered updated_at DESC).
+        completedArtifactsByStep[step] = detail.artifactId;
+      }
+    }
+
+    const { stepDependencyArtifactIds, dependencyArtifactIdsByStep } = resolveStepDependencyIds(
+      toolKey,
+      targetStep,
+      completedArtifactsByStep,
+    );
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, {
+      orchestration: {
+        toolKey,
+        targetStep,
+        stepDependencyArtifactIds,
+        dependencyArtifactIdsByStep,
       },
     });
   };
@@ -1275,6 +1655,16 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/tools/briefs') {
         await handleToolsBriefUpload(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/tools/hydrate') {
+        await handleToolsHydrate(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/tools/orchestrate') {
+        await handleToolsOrchestrate(request, response);
         return { handled: true };
       }
 

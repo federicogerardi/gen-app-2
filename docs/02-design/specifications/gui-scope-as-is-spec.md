@@ -1,4 +1,19 @@
+---
+status: active
+version: 1.0
+date_created: 2026-04-24
+last-reviewed: 2026-05-04
+next-review-date: 2026-08-04
+owner: Frontend Platform Team
+type: replication-spec
+---
+
 # GUI Scope As-Is Replication Spec
+
+> ⚑ **DDD Reference**: This document covers the Frontend/UI bounded context scope and replication contract. For canonical domain terminology, see:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — `ToolPage` (DDD-004), `SupportedTool` (DDD-xxx), `CanonicalToolUiState` (DDD-006), `ExtractionContext` (DDD-013), `WorkflowRunMode` (DDD-005), `ToolStep` (DDD-028)
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend--ui-context) — Frontend/UI Context responsibilities
+> - [Tool Generation Flow Source Of Truth (Frontend)](./tool-generation-flow-source-of-truth-spec.md) — canonical state machine and state-to-action routing
 
 Versione: 1.0  
 Status: Active  
@@ -67,7 +82,7 @@ Ordine as-is navbar:
 
 1. Dashboard
 2. Progetti
-3. Tools (menu con HotLeadFunnel, NextLand)
+3. Tools (menu con HotLeadFunnel — `funnel-pages` ToolKey, NextLand — `nextland` ToolKey)
 4. Storico
 5. Admin (solo se ruolo admin)
 
@@ -137,9 +152,9 @@ Vincoli input:
 
 Contratto stati base:
 
-- `phase`: `idle | uploading | extracting | review | generating`
-- `intent`: `new | resume | regenerate`
-- `extractionLifecycle`: `idle | in_progress | completed_partial | completed_full | failed_hard`
+- `phase`: `idle | uploading | extracting | review | generating` — stati macchina interni upload; **non** corrispondono ai `CanonicalToolUiState` (DDD-006) che governano la UI (`draft-empty`, `draft-ready`, `running`, `completed`, ecc.); vedi [source-of-truth-spec](./tool-generation-flow-source-of-truth-spec.md) per la mappa canonica.
+- `intent`: `new | resume | regenerate` — mappa a `WorkflowRunMode` (DDD-005).
+- `extractionLifecycle`: `idle | in_progress | completed_partial | completed_full | failed_hard` — stati implementation-only (pattern DDD-022); termine di dominio canonico: `ExtractionContext` (DDD-013).
 
 ## 5.5 Modulo Tool Generation Engine (UI-Side)
 
@@ -157,7 +172,7 @@ Contratto stream minimo atteso:
 - evento `complete` con `content` finale e `artifactId`
 - evento `error` con `message`
 
-## 5.6 Modulo HotLeadFunnel (3 Step)
+## 5.6 Modulo HotLeadFunnel (3 Step) — ToolKey: `funnel-pages` (DDD-030)
 
 Step order obbligatorio:
 

@@ -40,6 +40,8 @@ export type FrontendStreamContext = {
   reconnectBaseDelayMs: number;
   reconnectMaxDelayMs: number;
   hasTerminal: boolean;
+  terminalCompletedStep: string | null;
+  terminalFailedStep: string | null;
   lastRequest: GenerationRequest | null;
   apiBaseUrl: string;
   checkpoints: ToolCheckpoint[];
@@ -62,6 +64,8 @@ type FrontendStreamEvent =
     artifactId: string | null;
     status: 'completed' | 'failed';
     reason: string | null;
+    completedStep?: string | null;
+    failedStep?: string | null;
   }
   | { type: 'STREAM_ERROR'; code: string; message: string; retryable: boolean }
   | { type: 'CANCEL' }
@@ -117,6 +121,8 @@ export const frontendStreamMachine = setup({
             artifactId: event.data.artifactId,
             status: event.data.status,
             reason: event.data.reason,
+            completedStep: event.data.completedStep ?? null,
+            failedStep: event.data.failedStep ?? null,
           });
         },
       }).catch((error: unknown) => {
@@ -210,6 +216,9 @@ export const frontendStreamMachine = setup({
         event.type === 'SSE_TERMINAL'
           ? (event.artifactId ?? context.artifactId)
           : context.artifactId,
+      terminalCompletedStep: ({ event }) =>
+        event.type === 'SSE_TERMINAL' ? (event.completedStep ?? null) : null,
+      terminalFailedStep: () => null,
     }),
     setTerminalFailure: assign({
       hasTerminal: () => true,
@@ -222,6 +231,9 @@ export const frontendStreamMachine = setup({
         event.type === 'SSE_TERMINAL'
           ? (event.artifactId ?? context.artifactId)
           : context.artifactId,
+      terminalCompletedStep: () => null,
+      terminalFailedStep: ({ event }) =>
+        event.type === 'SSE_TERMINAL' ? (event.failedStep ?? null) : null,
     }),
     setProtocolError: assign({
       hasTerminal: () => false,
@@ -249,6 +261,8 @@ export const frontendStreamMachine = setup({
       errorCode: () => null,
       errorMessage: () => null,
       reconnectAttempts: () => 0,
+      terminalCompletedStep: () => null,
+      terminalFailedStep: () => null,
       requestId: ({ context }) => context.lastRequest?.requestId ?? null,
     }),
     upsertCheckpoint: assign({
@@ -281,6 +295,8 @@ export const frontendStreamMachine = setup({
       errorMessage: null,
       reconnectAttempts: 0,
       hasTerminal: false,
+      terminalCompletedStep: null,
+      terminalFailedStep: null,
       lastRequest: null,
       checkpoints: [],
       extractionByProject: {},
@@ -309,6 +325,8 @@ export const frontendStreamMachine = setup({
     reconnectBaseDelayMs: input.reconnectBaseDelayMs ?? 500,
     reconnectMaxDelayMs: input.reconnectMaxDelayMs ?? 4000,
     hasTerminal: false,
+    terminalCompletedStep: null,
+    terminalFailedStep: null,
     lastRequest: null,
     apiBaseUrl: input.apiBaseUrl,
     checkpoints: [],

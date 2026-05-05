@@ -94,7 +94,7 @@ describe('ArtifactDetailPage', () => {
     expect(screen.getByText(appCopy.ui.actions.openArchive)).toBeInTheDocument();
   });
 
-  it('navigates with a clean query when clicking "Avvia di nuovo"', async () => {
+  it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
     artifactDetailBag.artifact = makeArtifact({
       toolKey: 'funnel-pages',
       workflowType: 'funnel-pages',
@@ -128,12 +128,14 @@ describe('ArtifactDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.relaunchPrimary }));
 
     const location = await screen.findByTestId('location-echo');
-    expect(location).toHaveTextContent('/tools/funnel-pages?intent=new&projectId=proj-1');
-    expect(location).not.toHaveTextContent('sourceArtifactId');
-    expect(location).not.toHaveTextContent('relaunchFromArtifactId');
-    expect(location).not.toHaveTextContent('tone=');
-    expect(location).not.toHaveTextContent('notes=');
-    expect(location).not.toHaveTextContent('briefingId=');
-    expect(location).not.toHaveTextContent('briefingFileName=');
+    expect(location).toHaveTextContent('/tools/funnel-pages?');
+    expect(location).toHaveTextContent('intent=regenerate');
+    expect(location).toHaveTextContent('projectId=proj-1');
+    expect(location).toHaveTextContent('sourceArtifactId=art-1');
+    expect(location).toHaveTextContent('briefingId=brief-legacy');
+    expect(location).toHaveTextContent('relaunchFromArtifactId=art-1');
+    expect(location).toHaveTextContent('tone=friendly');
+    expect(location).toHaveTextContent('notes=old-note');
+    expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
   });
 });

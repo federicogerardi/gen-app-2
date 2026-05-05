@@ -1,4 +1,18 @@
+---
+status: approved
+version: 2.1
+date_created: 2026-04-28
+last-reviewed: 2026-05-03
+next-review-date: 2026-08-03
+owner: Frontend Platform Team
+---
+
 # Frontend — Specifica as-is
+
+> ⚑ **DDD Reference**: This document describes the Frontend/UI bounded context architecture. For canonical domain terminology, see:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — frontend terms: `ToolPage`, `ReadinessSnapshot`, `SupportedTool`, `ToolStep`, `ExtractionContext`, `HydrationResult`
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md) — Frontend/UI Context section
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions DDD-004, DDD-006, DDD-028 (Frontend terms)
 
 **Data**: 2026-04-28  
 **Radice sorgente**: `frontend/src/`  
@@ -477,7 +491,6 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | `models` | `VITE_CAP_MODELS` | `GET /api/models` | Array vuoto |
 | `artifacts` | `VITE_CAP_ARTIFACTS` | `GET /api/artifacts`, `GET /api/artifacts/:id` | Store locale `GenerationArtifact[]` da `GenerationWorkspaceProvider` |
 | `toolsUpload` | `VITE_CAP_TOOLS_UPLOAD` | `POST /api/tools/briefs` | Disabilitato (process briefing non disponibile) |
-| `adminModels` | `VITE_CAP_ADMIN_MODELS` | `GET /api/admin/models` | Banner "Backend endpoint pending" |
 
 ### Comportamento fallback per modulo
 
@@ -486,7 +499,6 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | Projects list/detail | Mostra lista vuota; nessuna chiamata HTTP |
 | Artifacts archive | Filtra artifacts da store XState locale; nessuna chiamata HTTP |
 | Artifact detail | Cerca per `artifactId` tra artifacts locali; restituisce null se non trovato |
-| Admin models | Mostra pagina con banner warning; dati modelli non disponibili |
 | Admin users | Chiama sempre `/admin/users` (endpoint as-is disponibile); nessun fallback |
 | Tool upload | Upload/extraction disabilitati; nessuna chiamata HTTP verso `/api/tools/briefs` |
 

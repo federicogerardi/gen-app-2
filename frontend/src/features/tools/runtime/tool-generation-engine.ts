@@ -36,6 +36,7 @@ export const createStepRequest = (
   };
 };
 
+/** @deprecated use orchestrateToolStep via /api/tools/orchestrate (DDD-C-007) */
 export const getStepDependencies = (
   tool: SupportedTool,
   completedArtifactsByStep: Partial<Record<ToolStep, string>>,

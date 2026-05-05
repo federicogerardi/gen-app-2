@@ -1,5 +1,11 @@
 # ToolGenerationFlow: Unified Flow Component
 
+> ⚑ **DDD Reference**: This document describes the unified UI flow component. For the complete canonical Generation context flow, see:
+> - [Tool Generation Flow — Generation Context](./tool-generation-flow-generation-context.md) — complete DDD-grounded Mermaid diagrams and workflow specifications
+> - [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md) — domain terms
+> 
+> 📖 **UX & State Routing**: For detailed UX flow specification, form behavior, state-to-action mapping, and resume/regenerate logic, see [Tool Generation Flow Source Of Truth (Frontend)](./specifications/tool-generation-flow-source-of-truth-spec.md).
+
 ## Overview
 
 `ToolGenerationFlow` replaces the fragmented `ToolStatusCard` + `ToolStepCard[]` pattern with a **single, coherent flow representation** that guides users through the complete generation journey.

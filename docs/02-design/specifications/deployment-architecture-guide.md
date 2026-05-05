@@ -8,6 +8,10 @@ owner: Platform/DevOps
 
 # Deployment Architecture Guide
 
+> ⓘ **Operational Document** — This guide covers Railway deployment architecture, networking, and rollback procedures (orthogonal to DDD domain model). For domain terminology in this document, see canonical references:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — `GenerationRequest`, `Artifact`, `BackendStreamEvent`
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md) — context boundaries and integration points
+
 **Data**: 2026-05-01  
 **Revisione**: 2.1  
 **Scope**: Stato deploy Railway corrente, migrazione same-origin private-network e regole operative per evitare regressioni

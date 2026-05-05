@@ -1,4 +1,18 @@
+---
+status: closed
+date: 2026-04-28
+author: Code Review
+owner: Frontend Platform Team
+tags: [code-review, auth, role-coherence]
+---
+
 # Code Review: Auth Role Coherence (Frontend Admin vs Backend Auth)
+
+> ⚑ **DDD Reference**: This review concerns the Auth bounded context. Canonical terms:
+> - `AuthUserRole` (glossary) — Value Object; values: `admin`, `member`
+> - `AuthSessionPrincipal` (DDD-008) — canonical shared read model passed across Auth → other contexts
+> - See [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md#auth-context) and [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md#ddd-008)
+
 **Ready for Production**: Yes
 **Critical Issues**: 0
 

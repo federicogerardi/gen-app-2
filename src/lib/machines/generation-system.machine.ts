@@ -424,6 +424,8 @@ const normalizeToolWorkflowKey = (value: string | null | undefined): string | nu
     return null;
   }
 
+  // @deprecated-compat: 'hl_funnel' normalizzato a 'funnel-pages' (DDD-030).
+  // Rimuovere quando tutti i dati DB saranno migrati a 'funnel_pages'.
   if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
     return 'funnel-pages';
   }

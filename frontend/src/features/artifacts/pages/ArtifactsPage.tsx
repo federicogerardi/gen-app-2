@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -18,18 +18,31 @@ const defaultFilters: ArtifactQuery = {
   projectId: 'all',
 };
 
+const pageSize = 10;
+
 export const ArtifactsPage = () => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
   const [filters, setFilters] = useState<ArtifactQuery>(defaultFilters);
+  const [page, setPage] = useState(1);
   const artifactsQuery = useArtifactsQuery({
-    filters,
+    filters: {
+      ...filters,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    },
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
     localArtifacts: generation.artifacts,
   });
 
   const items = artifactsQuery.data;
+  const hasPreviousPage = page > 1;
+  const hasNextPage = items.length === pageSize;
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters.type, filters.status, filters.projectId, filters.from, filters.to]);
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
@@ -86,6 +99,24 @@ export const ArtifactsPage = () => {
           </Surface>
         ))}
       </ul>
+
+      <div className={uiPrimitives.clusterRow}>
+        <button
+          type="button"
+          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+          disabled={!hasPreviousPage || artifactsQuery.loading}
+        >
+          Previous
+        </button>
+        <span className={uiPrimitives.metaLine}>Page {page}</span>
+        <button
+          type="button"
+          onClick={() => setPage((prev) => prev + 1)}
+          disabled={!hasNextPage || artifactsQuery.loading}
+        >
+          Next
+        </button>
+      </div>
     </Surface>
   );
 };

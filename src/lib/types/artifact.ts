@@ -21,7 +21,7 @@ export const ARTIFACT_FAILURE_REASONS = [
 export type ArtifactFailureReason = (typeof ARTIFACT_FAILURE_REASONS)[number];
 
 /** Tool workflow identifier—maps to routes and determines artifact type. */
-export const TOOL_WORKFLOWS = ['meta_ads', 'funnel_pages', 'nextland', 'extraction'] as const;
+export const TOOL_WORKFLOWS = ['funnel_pages', 'nextland', 'extraction'] as const;
 export type ToolWorkflow = (typeof TOOL_WORKFLOWS)[number];
 
 /** Quota history event status—records the outcome of a generation attempt. */

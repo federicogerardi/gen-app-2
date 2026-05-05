@@ -8,10 +8,10 @@ import type {
 import type {
   IdempotencyDecision,
   LlmStreamAdapter,
-  PersistedArtifactStatus,
   UsageDecision,
 } from './generation.adapters';
 import { createSyntheticLlmStreamAdapter } from './generation.adapters';
+import type { ArtifactStatus } from '../types/artifact';
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import type {
   ArtifactDetail,
@@ -47,7 +47,7 @@ type StubIdempotencyRecord = {
 };
 
 type StubArtifactRecord = {
-  status: PersistedArtifactStatus;
+  status: ArtifactStatus;
   content: string;
   updatedAt: string;
 };
@@ -68,7 +68,7 @@ type StubProjectRecord = {
   updatedAt: string;
 };
 
-type StubArtifactQueryRecord = {
+export type StubArtifactQueryRecord = {
   artifactId: string;
   requestId: string;
   userId: string;
@@ -263,7 +263,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
   private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
 
   async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
-    return [...this.artifacts.values()]
+    const filtered = [...this.artifacts.values()]
       .filter((artifact) => {
         if (artifact.userId !== userId) {
           return false;
@@ -303,6 +303,11 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         createdAt: artifact.createdAt,
         updatedAt: artifact.updatedAt,
       }));
+
+    const offset = typeof filters.offset === 'number' ? filters.offset : 0;
+    const end = typeof filters.limit === 'number' ? offset + filters.limit : undefined;
+
+    return filtered.slice(offset, end);
   }
 
   async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {

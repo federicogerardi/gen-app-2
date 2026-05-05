@@ -12,16 +12,14 @@ import {
 type ArtifactHistoryPanelProps = {
   artifacts: GenerationArtifact[];
   onOpenProject: (projectId: string) => void;
-  onResumeFromArtifact: (artifact: GenerationArtifact) => void;
-  onRegenerateFromArtifact: (artifact: GenerationArtifact) => void;
+  onRelaunchFromArtifact: (artifact: GenerationArtifact) => void;
   relaunchDisabled: boolean;
 };
 
 export const ArtifactHistoryPanel = ({
   artifacts,
   onOpenProject,
-  onResumeFromArtifact,
-  onRegenerateFromArtifact,
+  onRelaunchFromArtifact,
   relaunchDisabled,
 }: ArtifactHistoryPanelProps) => {
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
@@ -151,17 +149,10 @@ export const ArtifactHistoryPanel = ({
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => onResumeFromArtifact(selectedArtifact)}
+                  onClick={() => onRelaunchFromArtifact(selectedArtifact)}
                   disabled={relaunchDisabled}
                 >
                   {appCopy.ui.actions.relaunchPrimary}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => onRegenerateFromArtifact(selectedArtifact)}
-                  disabled={relaunchDisabled}
-                >
-                  {appCopy.ui.actions.relaunchSecondary}
                 </Button>
               </div>
             </>

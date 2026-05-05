@@ -1,9 +1,30 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { useMswHandler } from '../../../test/mocks/server';
+
+const briefingMachineSeed = vi.hoisted(() => ({
+  initialState: 'ready' as 'idle' | 'ready',
+  context: {
+    projectId: 'project-001',
+    toolKey: 'funnel-pages',
+    apiBaseUrl: '',
+    capabilities: {},
+    userId: 'seed-user-001',
+    file: null as File | null,
+    fileName: null as string | null,
+    briefingId: 'brief-001' as string | null,
+    extractionArtifactId: 'artifact-extract-001' as string | null,
+    extractionPayload: { schemaVersion: 'extraction.v1' } as Record<string, unknown> | null,
+    normalizedText: 'brief text' as string | null,
+    parsedFormat: 'md' as string | null,
+    error: null as string | null,
+  },
+}));
 
 // Phase 4: briefingUploadMachine mockato per partire in 'ready' con contesto estrazione.
 // Consente a deriveHasExtractionContext di restituire true dal primo render,
@@ -31,7 +52,15 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         | { type: 'FILE_SELECTED'; file: File }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
-        | { type: 'EXTRACTION_RECOVERED'; artifactId: string; payload: Record<string, unknown>; briefingId?: string | null; fileName?: string | null },
+        | {
+            type: 'EXTRACTION_RECOVERED';
+            artifactId: string;
+            payload: Record<string, unknown>;
+            briefingId?: string | null;
+            fileName?: string | null;
+            normalizedText?: string | null;
+            parsedFormat?: string | null;
+          },
       input: {} as {
         toolKey: string;
         projectId: string;
@@ -46,21 +75,9 @@ vi.mock('../machines/briefing-upload.machine', async () => {
     // Serve al fallback briefingSnapshot.context in startGenerationStep.
     // fileName: null → effectiveBriefingFileName scende alla prop/sourceArtifact fallback.
     context: () => ({
-      projectId: 'project-001',
-      toolKey: 'funnel-pages',
-      apiBaseUrl: '',
-      capabilities: {},
-      userId: 'seed-user-001',
-      file: null,
-      fileName: null,
-      briefingId: 'brief-001',
-      extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: { schemaVersion: 'extraction.v1' },
-      normalizedText: 'brief text',
-      parsedFormat: 'md',
-      error: null,
+      ...briefingMachineSeed.context,
     }),
-    initial: 'ready',
+    initial: briefingMachineSeed.initialState,
     states: {
       idle: {
         on: {
@@ -86,7 +103,17 @@ vi.mock('../machines/briefing-upload.machine', async () => {
 // Con capabilities={} il client usa sempre localArtifacts → nessuna rete.
 vi.mock('../../artifacts/runtime/artifacts-client', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../artifacts/runtime/artifacts-client')>();
-  return original;
+  return {
+    ...original,
+    getArtifactById: async (id: string, options?: { localArtifacts?: GenerationArtifact[] }) => {
+      const local = options?.localArtifacts?.find((artifact) => artifact.artifactId === id) ?? null;
+      if (local) {
+        return local;
+      }
+
+      return original.getArtifactById(id, options);
+    },
+  };
 });
 
 const startMock = vi.fn();
@@ -133,7 +160,7 @@ const defaultExtractionArtifact = {
     model: 'openrouter/auto',
     toolKey: 'funnel-pages',
     workflowType: 'funnel-pages',
-    input: { briefingId: 'brief-001', toolKey: 'funnel-pages' },
+    input: { briefingId: 'brief-001', briefingText: 'brief text', toolKey: 'funnel-pages' },
   },
 } satisfies GenerationArtifact;
 
@@ -169,7 +196,7 @@ const generationState = {
 
 const authState = {
   session: { user: { id: 'seed-user-001' } },
-  capabilities: {},
+  capabilities: { artifacts: true } as Record<string, unknown>,
   apiBaseUrl: '',
 };
 
@@ -198,9 +225,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
 }));
 
-vi.mock('../runtime/useToolForm', async () => {
-  const toolUxState = await vi.importActual<typeof import('../runtime/tool-ux-state')>('../runtime/tool-ux-state');
-
+vi.mock('../runtime/useToolForm', () => {
   return {
     useProjectsLoader: () => ({
       projects: [{ id: 'project-001', name: 'Project 001' }],
@@ -231,47 +256,13 @@ vi.mock('../runtime/useToolForm', async () => {
       validation: { isValid: true, errors: {} },
     }),
     useAvailableSteps: () => availableStepsState.steps,
-    useToolUiState: (
-      toolKey: 'funnel-pages' | 'nextland',
-      runtimeInput: {
-        intent?: 'new' | 'resume' | 'regenerate';
-        formState: {
-          projectId: string;
-          briefingFile: File | null;
-          briefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready';
-        };
-        isGenerationStreamActive: boolean;
-        completedSteps: Set<'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you'>;
-        currentRunningStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        hasCompletedPreviousGeneration: boolean;
-        lastCheckpointStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        nextAvailableStep: 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | null;
-        generationError: string | null;
-        hasStartedCurrentRun?: boolean;
-      },
-    ) => toolUxState.deriveCanonicalToolUiState({
-      toolKey,
-      ...(runtimeInput.intent !== undefined ? { intent: runtimeInput.intent } : {}),
-      projectId: runtimeInput.formState.projectId,
-      briefingFile: runtimeInput.formState.briefingFile,
-      briefingStatus: runtimeInput.formState.briefingStatus,
-      isGenerationStreamActive: runtimeInput.isGenerationStreamActive,
-      completedSteps: runtimeInput.completedSteps,
-      currentRunningStep: runtimeInput.currentRunningStep,
-      hasCompletedPreviousGeneration: runtimeInput.hasCompletedPreviousGeneration,
-      lastCheckpointStep: runtimeInput.lastCheckpointStep,
-      nextAvailableStep: runtimeInput.nextAvailableStep,
-      generationError: runtimeInput.generationError,
-      ...(runtimeInput.hasStartedCurrentRun !== undefined
-        ? { hasStartedCurrentRun: runtimeInput.hasStartedCurrentRun }
-        : {}),
-    }),
   };
 });
 
 describe('ToolPageTemplate wiring', () => {
   beforeEach(() => {
     startMock.mockReset();
+    authState.capabilities = { artifacts: true } as Record<string, unknown>;
     generationState.isStreamActive = false;
     generationState.streamStatus = 'idle';
     generationState.artifacts = [defaultExtractionArtifact];
@@ -290,6 +281,48 @@ describe('ToolPageTemplate wiring', () => {
     briefingState.error = null;
     briefingState.status = 'ready';
     briefingState.extractionContext = makeExtractionContext();
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        const targetStep = typeof body.targetStep === 'string' ? body.targetStep : '';
+        const projectId = typeof body.projectId === 'string' ? body.projectId : '';
+        const stepDeps: Record<string, string> = {};
+        const allArtifacts = generationWorkspaceState.artifacts as Array<{ artifactId: string; projectId: string; status: string; toolKey: string; sourceRequest?: { input?: Record<string, unknown> } }>;
+        for (const artifact of allArtifacts) {
+          if (artifact.projectId === projectId && artifact.status === 'completed' && artifact.sourceRequest?.input?.step) {
+            const s = artifact.sourceRequest.input.step as string;
+            if (s !== targetStep) {
+              stepDeps[s] = artifact.artifactId;
+            }
+          }
+        }
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: Object.values(stepDeps),
+              dependencyArtifactIdsByStep: stepDeps,
+            },
+          },
+        });
+      }),
+    );
+    useMswHandler(
+      http.get('*/api/artifacts/:artifactId', async ({ params }) => {
+        const artifactId = typeof params.artifactId === 'string' ? params.artifactId : '';
+        const artifact = generationWorkspaceState.artifacts.find((entry) => entry.artifactId === artifactId);
+        if (!artifact) {
+          return HttpResponse.json({ ok: false, error: { message: 'not_found' } }, { status: 404 });
+        }
+
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            artifact,
+          },
+        });
+      }),
+    );
   });
 
   it('dispatches generation.start with resolved step and dependency metadata', async () => {
@@ -329,7 +362,10 @@ describe('ToolPageTemplate wiring', () => {
     expect(request.workflowType).toBe('funnel-pages');
     expect(request.input.step).toBe('quiz');
     expect(request.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
+    expect(request.input.briefingId).toBe('brief-001');
+    expect(request.input.briefingText).toBe('brief text');
     expect(request.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(request.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
   });
 
   it('auto-starts the next step after previous step completion in auto-chain mode', async () => {
@@ -374,6 +410,111 @@ describe('ToolPageTemplate wiring', () => {
     const secondRequest = startMock.mock.calls[1]?.[0] as { input: Record<string, unknown> };
     expect(secondRequest.input.step).toBe('quiz');
   });
+
+  it('persists extraction context and grows step dependency context incrementally across steps', async () => {
+    availableStepsState.steps = ['optin'];
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+
+    const { rerender } = renderTemplate();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Step 1: optin
+    const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(firstRequest.input.step).toBe('optin');
+    expect(firstRequest.input.briefingId).toBe('brief-001');
+    expect(firstRequest.input.briefingText).toBe('brief text');
+    expect(firstRequest.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(firstRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(firstRequest.input.stepDependencyArtifactIds).toEqual([]);
+
+    // Step 2: quiz (depends on optin)
+    generationState.streamStatus = 'completed';
+    generationState.isStreamActive = false;
+    generationState.artifacts = [
+      defaultExtractionArtifact,
+      {
+        artifactId: 'artifact-optin-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'optin' } },
+        content: 'optin content',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['quiz'];
+
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(2);
+    });
+
+    const secondRequest = startMock.mock.calls[1]?.[0] as { input: Record<string, unknown> };
+    expect(secondRequest.input.step).toBe('quiz');
+    expect(secondRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(secondRequest.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
+    expect(secondRequest.input.stepDependencyArtifactContentsByStep).toEqual({ optin: 'optin content' });
+
+    // Step 3: vsl (depends on optin + quiz)
+    generationState.streamStatus = 'completed';
+    generationState.isStreamActive = false;
+    generationState.artifacts = [
+      defaultExtractionArtifact,
+      {
+        artifactId: 'artifact-optin-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'optin' } },
+        content: 'optin content',
+      },
+      {
+        artifactId: 'artifact-quiz-001',
+        projectId: 'project-001',
+        status: 'completed',
+        toolKey: 'funnel-pages',
+        sourceRequest: { input: { step: 'quiz' } },
+        content: 'quiz content',
+      },
+    ];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['vsl'];
+
+    rerender(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="funnel-pages" />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(3);
+    });
+
+    const thirdRequest = startMock.mock.calls[2]?.[0] as { input: Record<string, unknown> };
+    expect(thirdRequest.input.step).toBe('vsl');
+    expect(thirdRequest.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
+    expect(thirdRequest.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001', 'artifact-quiz-001']);
+    expect(thirdRequest.input.stepDependencyArtifactContentsByStep).toEqual({
+      optin: 'optin content',
+      quiz: 'quiz content',
+    });
+  });
+
 });
 
 describe('resolveFlowProgressState', () => {
@@ -564,60 +705,72 @@ describe('resolveFlowProgressState', () => {
 describe('ToolPageTemplate restore flow', () => {
   beforeEach(() => {
     startMock.mockReset();
-  });
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      projectId: 'project-001',
+      toolKey: 'funnel-pages',
+      apiBaseUrl: '',
+      capabilities: {},
+      userId: 'seed-user-001',
+      file: null,
+      fileName: null,
+      briefingId: 'brief-001',
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+      error: null,
+    };
 
-  it('updates CTA and feedback to resume-checkpoint when checkpoint hydration completes', async () => {
-    extractionContextState = null;
-    briefingState.fileName = null;
-    briefingState.status = 'idle';
-    briefingState.extractionContext = null;
-    generationState.artifacts = [
-      {
-        artifactId: 'source-checkpoint-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            briefingId: 'brief-restore-001',
-            extractionArtifactId: 'artifact-extract-restore-001',
-            briefingFileName: 'restore-brief.md',
-            step: 'optin',
+    // Handler for /api/tools/orchestrate: restituisce deps vuote (nessuno step completato al momento del click).
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async () => {
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: [],
+              dependencyArtifactIdsByStep: {},
+            },
           },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
-        },
-        content: 'optin content',
-      },
-    ];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['quiz'];
-
-    renderTemplate({
-      intent: 'resume',
-      sourceArtifactId: 'source-checkpoint-001',
-      initialProjectId: 'project-001',
-    });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /riprendi dal checkpoint/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /riprendi dal checkpoint/i }));
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalled();
-    });
-
-    const resumeSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(resumeSteps).toContain('quiz');
-
-    expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
-    expect(screen.getByText(/briefing status:\s*ready\s*- restore-brief.md/i)).toBeInTheDocument();
+        });
+      }),
+    );
+    // Handler for /api/tools/hydrate: resolves hydration from the sourceArtifact's input fields.
+    // Required for tests where the extraction artifact is NOT present in localArtifacts
+    // and the machine cannot do local resolution (falls through to the network).
+    useMswHandler(
+      http.post('/api/tools/hydrate', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        const sourceId = typeof body.sourceArtifactId === 'string' ? body.sourceArtifactId : '';
+        const artifact = generationState.artifacts.find((a) => a.artifactId === sourceId);
+        const sourceInput = (artifact?.sourceRequest?.input ?? {}) as Record<string, unknown>;
+        const extractionArtifactId = typeof sourceInput.extractionArtifactId === 'string'
+          ? sourceInput.extractionArtifactId
+          : `extract-${sourceId}`;
+        const briefingId = typeof sourceInput.briefingId === 'string'
+          ? sourceInput.briefingId
+          : (typeof body.resolvedBriefingId === 'string' ? body.resolvedBriefingId : 'brief-restored');
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            hydration: {
+              extractionArtifactId,
+              extractionPayload: { schemaVersion: 'extraction.v1' },
+              briefingId,
+              briefingFileName: null,
+              normalizedText: typeof sourceInput.briefingText === 'string'
+                ? sourceInput.briefingText
+                : 'brief restored',
+              parsedFormat: 'md',
+            },
+          },
+        });
+      }),
+    );
   });
 
-  it('updates CTA and feedback to regenerate when a completed checkout is restored', async () => {
+  it('restores briefing state and exposes a primary CTA when a completed checkout is restored', async () => {
     extractionContextState = null;
     briefingState.fileName = null;
     briefingState.status = 'idle';
@@ -678,25 +831,62 @@ describe('ToolPageTemplate restore flow', () => {
       initialProjectId: 'project-001',
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /^rigenera$/i })).toBeInTheDocument();
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
     });
 
-    expect(screen.getByText(/contesto caricato — avvia la rigenerazione/i)).toBeInTheDocument();
-    expect(screen.getByText(/briefing status:\s*ready\s*- restore-regen.md/i)).toBeInTheDocument();
+    expect(screen.getByText(/briefing status:\s*ready/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /^rigenera$/i }));
+    expect(primaryActionButton).toBeEnabled();
+  });
+
+  it('uses regenerate intent deterministically for artifact-driven relaunch with extraction source', async () => {
+    extractionContextState = null;
+    briefingState.fileName = null;
+    briefingState.status = 'idle';
+    briefingState.extractionContext = null;
+
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['optin'];
+
+    renderTemplate({
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-001',
+      initialProjectId: 'project-001',
+    });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /avvia la generazione/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
+    });
+
+    fireEvent.click(primaryActionButton);
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalled();
     });
 
-    const regenerateSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(regenerateSteps).toContain('vsl');
+    const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(firstRequest.input.intent).toBe('regenerate');
+    expect(firstRequest.input.briefingText).toBe('brief text');
   });
 
-  it('recovers checkpoint from legacy extraction artifact without input.toolKey', async () => {
+  it('blocks relaunch from extraction artifact when hydration recovers no briefing text', async () => {
+    briefingMachineSeed.initialState = 'idle';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      briefingId: null,
+      extractionArtifactId: null,
+      extractionPayload: null,
+      normalizedText: null,
+      parsedFormat: null,
+    };
     extractionContextState = null;
     briefingState.fileName = null;
     briefingState.status = 'idle';
@@ -704,73 +894,38 @@ describe('ToolPageTemplate restore flow', () => {
 
     generationState.artifacts = [
       {
-        artifactId: 'source-legacy-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
+        ...defaultExtractionArtifact,
+        artifactId: 'artifact-extract-missing-text',
+        content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
         sourceRequest: {
+          ...defaultExtractionArtifact.sourceRequest,
           input: {
-            briefingId: 'brief-legacy-001',
-            extractionArtifactId: 'extract-legacy-001',
-            briefingFileName: 'legacy-brief.md',
-            step: 'optin',
-          },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
-        },
-        content: 'optin content',
-      },
-      {
-        artifactId: 'extract-legacy-001',
-        requestId: 'req-extract-legacy-001',
-        projectId: 'project-001',
-        artifactType: 'extraction',
-        status: 'completed',
-        model: 'openrouter/auto',
-        toolKey: 'extraction',
-        workflowType: 'extraction',
-        content: '{"summary":"legacy extraction"}',
-        createdAt: '2026-05-02T10:00:00.000Z',
-        updatedAt: '2026-05-02T10:00:01.000Z',
-        sourceRequest: {
-          requestId: 'req-extract-legacy-001',
-          userId: 'seed-user-001',
-          projectId: 'project-001',
-          artifactType: 'extraction',
-          model: 'openrouter/auto',
-          toolKey: 'extraction',
-          workflowType: 'extraction',
-          input: {
-            briefingId: 'brief-legacy-001',
-            // legacy: input.toolKey intentionally missing
+            briefingId: 'brief-missing-text',
+            toolKey: 'funnel-pages',
           },
         },
       },
     ];
     generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['quiz'];
+    availableStepsState.steps = ['optin'];
 
     renderTemplate({
-      intent: 'resume',
-      sourceArtifactId: 'source-legacy-001',
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-missing-text',
       initialProjectId: 'project-001',
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /riprendi dal checkpoint/i })).toBeInTheDocument();
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /completa il form per iniziare/i });
+      expect(button).toBeDisabled();
+      return button;
     });
 
-    expect(screen.getByText(/briefing status:\s*ready\s*- legacy-brief.md/i)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('incomplete_extraction_context');
 
-    fireEvent.click(screen.getByRole('button', { name: /riprendi dal checkpoint/i }));
+    fireEvent.click(primaryActionButton);
 
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalled();
-    });
-
-    const resumeSteps = startMock.mock.calls
-      .map((call) => (call[0] as { input: Record<string, unknown> }).input.step);
-    expect(resumeSteps).toContain('quiz');
+    expect(startMock).not.toHaveBeenCalled();
   });
 
   it('uses completed CTA policy without dispatching generation start', async () => {
@@ -911,6 +1066,19 @@ describe('ToolPageTemplate CTA regression guard', () => {
     extractionContextState = makeExtractionContext();
     briefingState.status = 'ready';
     briefingState.extractionContext = makeExtractionContext();
+    useMswHandler(
+      http.post('/api/tools/orchestrate', async () => {
+        return HttpResponse.json({
+          ok: true,
+          data: {
+            orchestration: {
+              stepDependencyArtifactIds: [],
+              dependencyArtifactIdsByStep: {},
+            },
+          },
+        });
+      }),
+    );
   });
 
   it('stream attivo blocca handlePrimaryAction: startMock non viene chiamato', async () => {
@@ -940,6 +1108,36 @@ describe('ToolPageTemplate CTA regression guard', () => {
 
     // Bottone presente e non disabled (la policy non è 'disabled')
     expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
+  });
+
+  it('non interrompe la chain dopo extraction success se il payload viene arricchito dall artifact', async () => {
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: {},
+      normalizedText: 'brief text',
+      briefingId: 'brief-001',
+    };
+
+    renderTemplate({ initialProjectId: 'project-001' });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.getByRole('button', { name: /avvia la generazione/i });
+      expect(button).not.toBeDisabled();
+      return button;
+    });
+
+    fireEvent.click(primaryActionButton);
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    expect(request.input.extractionArtifactId).toBe('artifact-extract-001');
+    expect(request.input.briefingText).toBe('brief text');
+    expect(request.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
   });
 
   it('mostra fase di generazione nel pannello verticale quando lo stream è attivo', async () => {

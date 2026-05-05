@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { runExtraction, uploadBrief } from './tools-client';
+import { orchestrateToolStep, runExtraction, uploadBrief } from './tools-client';
 import { GenerationTransportError } from '../../generation/runtime/generation-client';
 
 const streamGenerationMock = vi.fn();
@@ -102,6 +102,90 @@ describe('tools-client', () => {
     expect(result.artifactId).toBe('artifact-001');
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
+  });
+
+  it('runExtraction recovers payload from artifact detail when stream has no chunks', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    getArtifactByIdMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '{"fromDetail":true}',
+      status: 'completed',
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.artifactId).toBe('artifact-001');
+    expect(result.content).toBe('{"fromDetail":true}');
+    expect(result.payload).toEqual({ fromDetail: true });
+    expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('runExtraction parses fenced json chunk output into extraction payload', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: '```json\n{"payload":{"offer":"test","audience":"cold"}}\n```',
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
+  });
+
+  it('runExtraction falls back to sourceRequest.input.extractionPayload when artifact content is non-json', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    getArtifactByIdMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: 'extraction completed',
+      sourceRequest: {
+        input: {
+          extractionPayload: {
+            audience: 'warm',
+            tone: 'direct',
+          },
+        },
+      },
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({ audience: 'warm', tone: 'direct' });
   });
 
   describe('runExtraction — stream interruption recovery', () => {
@@ -287,5 +371,72 @@ describe('tools-client', () => {
     expect(result.artifactId).toBe('artifact-001');
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
+  });
+});
+
+describe('orchestrateToolStep', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns OrchestrationResult on success', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          orchestration: {
+            toolKey: 'funnel-pages',
+            targetStep: 'optin',
+            stepDependencyArtifactIds: [],
+            dependencyArtifactIdsByStep: {},
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await orchestrateToolStep('project-1', 'funnel-pages', 'optin', {
+      capabilities: { artifacts: true },
+    });
+
+    expect(result.toolKey).toBe('funnel-pages');
+    expect(result.targetStep).toBe('optin');
+    expect(result.stepDependencyArtifactIds).toEqual([]);
+    expect(result.dependencyArtifactIdsByStep).toEqual({});
+  });
+
+  it('returns OrchestrationResult with dependency artifacts when previous steps are completed', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          orchestration: {
+            toolKey: 'funnel-pages',
+            targetStep: 'quiz',
+            stepDependencyArtifactIds: ['art-optin-1'],
+            dependencyArtifactIdsByStep: { optin: 'art-optin-1' },
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await orchestrateToolStep('project-1', 'funnel-pages', 'quiz', {
+      capabilities: { artifacts: true },
+    });
+
+    expect(result.targetStep).toBe('quiz');
+    expect(result.stepDependencyArtifactIds).toEqual(['art-optin-1']);
+    expect(result.dependencyArtifactIdsByStep).toEqual({ optin: 'art-optin-1' });
+  });
+
+  it('throws when artifacts capability is disabled', async () => {
+    await expect(
+      orchestrateToolStep('project-1', 'funnel-pages', 'optin', {
+        capabilities: { artifacts: false },
+      }),
+    ).rejects.toThrow(/capability is disabled/i);
   });
 });

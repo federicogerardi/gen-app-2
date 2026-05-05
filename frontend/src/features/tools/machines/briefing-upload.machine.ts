@@ -43,6 +43,8 @@ type BriefingUploadEvent =
       payload: Record<string, unknown>;
       briefingId?: string | null;
       fileName?: string | null;
+      normalizedText?: string | null;
+      parsedFormat?: 'txt' | 'md' | 'docx' | null;
     }
   | { type: 'RESET' };
 
@@ -167,6 +169,8 @@ export const briefingUploadMachine = setup({
         extractionPayload: event.payload,
         briefingId: event.briefingId ?? context.briefingId,
         fileName: event.fileName ?? context.fileName,
+        normalizedText: event.normalizedText ?? context.normalizedText,
+        parsedFormat: event.parsedFormat ?? context.parsedFormat,
         error: null,
       };
     }),

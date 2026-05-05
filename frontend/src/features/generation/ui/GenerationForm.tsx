@@ -8,13 +8,17 @@ import {
   runExtraction,
   uploadBrief,
 } from '../../tools/runtime/tools-client';
+import {
+  generateRequestId,
+  isAllowedBriefingExtension,
+} from '../../../app/runtime/shared-utils';
 import type {
   ExtractionLifecycle,
   ToolIntent,
   ToolPhase,
 } from './tool-ux-state';
 import {
-  selectBestCheckpointForProject,
+  selectCheckpointForProject,
   shouldRequireBriefingForResume,
   sortCheckpointsForResume,
   type ToolCheckpoint,
@@ -50,19 +54,6 @@ type GenerationFormProps = {
   }) => void;
 };
 
-const randomId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `req-${Date.now()}`;
-};
-
-const hasAllowedBriefingExtension = (name: string): boolean => {
-  const normalized = name.toLowerCase();
-  return normalized.endsWith('.docx') || normalized.endsWith('.txt') || normalized.endsWith('.md');
-};
-
 export const GenerationForm = ({
   userId,
   toolsUploadEnabled,
@@ -84,8 +75,8 @@ export const GenerationForm = ({
   const [tone, setTone] = useState<string>(appCopy.editorial.generation.defaultTone);
   const [notes, setNotes] = useState('');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown');
-  const [workflowType, setWorkflowType] = useState('meta_ads');
-  const [toolKey, setToolKey] = useState('meta_ads');
+  const [workflowType, setWorkflowType] = useState('funnel_pages');
+  const [toolKey, setToolKey] = useState('funnel-pages');
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [intent, setIntent] = useState<ToolIntent>('new');
   const [hasCheckpoint, setHasCheckpoint] = useState(false);
@@ -101,14 +92,16 @@ export const GenerationForm = ({
   const extractionContext = getExtractionContext(projectId.trim());
 
   const hasProject = projectId.trim().length > 0;
-  const hasBriefing = briefingFileName !== null || extractionContext !== null;
-  const hasSourceArtifact = sourceArtifactId.trim().length > 0;
   const checkpointsForProject = sortCheckpointsForResume(
     checkpoints.filter((checkpoint) => checkpoint.projectId === projectId.trim()),
   );
-  const selectedCheckpoint = selectedCheckpointArtifactId
-    ? checkpointsForProject.find((checkpoint) => checkpoint.artifactId === selectedCheckpointArtifactId) ?? null
-    : selectBestCheckpointForProject(checkpointsForProject, projectId);
+  const hasBriefing = briefingFileName !== null || extractionContext !== null;
+  const hasSourceArtifact = sourceArtifactId.trim().length > 0;
+  const selectedCheckpoint = selectCheckpointForProject(
+    checkpoints,
+    projectId,
+    selectedCheckpointArtifactId || undefined,
+  );
   const checkpointHasExtractionContext = selectedCheckpoint?.extractionContextAvailable ?? false;
 
   useEffect(() => {
@@ -156,7 +149,7 @@ export const GenerationForm = ({
     event.preventDefault();
 
     const request: GenerationRequest = {
-      requestId: randomId(),
+      requestId: generateRequestId(),
       userId,
       projectId: projectId.trim(),
       artifactType,
@@ -201,7 +194,7 @@ export const GenerationForm = ({
       return;
     }
 
-    if (!hasAllowedBriefingExtension(file.name)) {
+    if (!isAllowedBriefingExtension(file.name)) {
       setBriefingFile(null);
       setBriefingFileName(null);
       setBriefingError('Formato briefing non supportato. Usa .docx, .txt o .md');

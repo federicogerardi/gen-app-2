@@ -1,5 +1,3 @@
-# Frontend Tool Pages — Unified Architecture Specification
-
 ---
 date_created: 2026-04-26
 date_updated: 2026-05-02
@@ -8,6 +6,13 @@ version: 2.0
 title: Frontend Tool Pages — Unified Architecture Specification
 tags: [architecture, tool-pages, unification, scalability, registry]
 ---
+
+# Frontend Tool Pages — Unified Architecture Specification
+
+> ⚑ **DDD Reference**: This document describes the Frontend/UI tool page architecture. For canonical domain terminology, see:
+> - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) — `ToolPage`, `ToolStep`, `ReadinessSnapshot`, `SupportedTool`, `CanonicalToolUiState`
+> - [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend--ui-context) — Frontend/UI Context and integration constraints
+> - [Tool Generation Flow — Generation Context](../tool-generation-flow-generation-context.md) — visual diagram with cross-context flow
 
 ## Executive Summary
 

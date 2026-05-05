@@ -48,12 +48,6 @@ export type BriefingUploadState = {
 };
 
 /**
- * Extracted briefing context from upload processor
- * @deprecated use ExtractionContext (DDD-007)
- */
-export type BriefingContext = ExtractionContext;
-
-/**
  * Tool form state that maps to step dependencies and generation
  */
 export type ToolFormState = {

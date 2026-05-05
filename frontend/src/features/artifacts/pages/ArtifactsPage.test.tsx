@@ -53,6 +53,31 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
 
 beforeEach(() => {
   authBag.capabilities = { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false };
+  workspaceBag.artifacts = [
+    {
+      artifactId: 'a1',
+      requestId: 'r1',
+      projectId: 'p1',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'gpt-4',
+      toolKey: null,
+      workflowType: null,
+      content: 'artifact content',
+      createdAt: '2026-04-27T10:00:00.000Z',
+      updatedAt: '2026-04-27T10:00:00.000Z',
+      sourceRequest: {
+        requestId: 'r1',
+        userId: 'u1',
+        projectId: 'p1',
+        artifactType: 'content',
+        model: 'gpt-4',
+        input: {},
+        toolKey: null,
+        workflowType: null,
+      },
+    },
+  ];
   useMswHandler(
     http.get('/api/artifacts', () => HttpResponse.json({ ok: true, data: { artifacts: [] } })),
   );
@@ -146,5 +171,113 @@ describe('ArtifactsPage', () => {
     await waitFor(() => {
       expect(requestCount).toBe(1);
     });
+  });
+
+  it('fetches 10 artifacts per page and requests the next offset', async () => {
+    authBag.capabilities = { projects: false, models: false, artifacts: true, toolsUpload: false, adminModels: false };
+    const seenQueries: string[] = [];
+
+    useMswHandler(
+      http.get('/api/artifacts', ({ request }) => {
+        const url = new URL(request.url);
+        const limit = Number(url.searchParams.get('limit') ?? '0');
+        const offset = Number(url.searchParams.get('offset') ?? '0');
+        seenQueries.push(`limit=${limit};offset=${offset}`);
+
+        const artifacts = Array.from({ length: limit }, (_, index) => {
+          const itemNumber = offset + index + 1;
+
+          return {
+            artifactId: `a${itemNumber}`,
+            requestId: `r${itemNumber}`,
+            projectId: 'p1',
+            artifactType: 'content',
+            status: 'completed',
+            model: 'gpt-4',
+            toolKey: null,
+            workflowType: null,
+            content: `artifact ${itemNumber}`,
+            createdAt: '2026-04-27T10:00:00.000Z',
+            updatedAt: `2026-04-27T10:00:${String(itemNumber).padStart(2, '0')}.000Z`,
+            sourceRequest: {
+              requestId: `r${itemNumber}`,
+              userId: 'u1',
+              projectId: 'p1',
+              artifactType: 'content',
+              model: 'gpt-4',
+              input: {},
+              toolKey: null,
+              workflowType: null,
+            },
+          };
+        });
+
+        return HttpResponse.json({ ok: true, data: { artifacts } });
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <ArtifactsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Page 1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(seenQueries).toEqual(['limit=10;offset=0']);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(seenQueries).toEqual(['limit=10;offset=0', 'limit=10;offset=10']);
+    });
+    expect(screen.getByText('Page 2')).toBeInTheDocument();
+  });
+
+  it('paginates local fallback artifacts in batches of 10', async () => {
+    workspaceBag.artifacts = Array.from({ length: 12 }, (_, index) => {
+      const itemNumber = index + 1;
+
+      return {
+        artifactId: `a${itemNumber}`,
+        requestId: `r${itemNumber}`,
+        projectId: 'p1',
+        artifactType: 'content' as const,
+        status: 'completed' as const,
+        model: 'gpt-4',
+        toolKey: null,
+        workflowType: null,
+        content: `artifact content ${itemNumber}`,
+        createdAt: '2026-04-27T10:00:00.000Z',
+        updatedAt: `2026-04-27T10:00:${String(itemNumber).padStart(2, '0')}.000Z`,
+        sourceRequest: {
+          requestId: `r${itemNumber}`,
+          userId: 'u1',
+          projectId: 'p1',
+          artifactType: 'content' as const,
+          model: 'gpt-4',
+          input: {},
+          toolKey: null,
+          workflowType: null,
+        },
+      };
+    });
+
+    render(
+      <MemoryRouter>
+        <ArtifactsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Page 1')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(10);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Page 2')).toBeInTheDocument();
+    });
+    expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(2);
   });
 });

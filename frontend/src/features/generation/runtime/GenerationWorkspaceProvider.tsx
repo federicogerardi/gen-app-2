@@ -57,6 +57,8 @@ type GenerationWorkspaceValue = {
   snapshot: ReturnType<typeof frontendStreamMachine.transition>;
   streamStatus: FrontendStreamStatus;
   isStreamActive: boolean;
+  terminalCompletedStep: string | null;
+  terminalFailedStep: string | null;
   checkpoints: ToolCheckpoint[];
   artifacts: GenerationArtifact[];
   focusedProjectId: string | null;
@@ -68,7 +70,7 @@ type GenerationWorkspaceValue = {
   retry: () => void;
   cancel: () => void;
   reset: () => void;
-  relaunch: (artifact: GenerationArtifact, mode: 'primary' | 'secondary') => void;
+  relaunch: (artifact: GenerationArtifact) => void;
   reloadArtifacts: () => void;
 };
 
@@ -216,6 +218,8 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       snapshot,
       streamStatus,
       isStreamActive: snapshot.matches('active'),
+      terminalCompletedStep: snapshot.context.terminalCompletedStep,
+      terminalFailedStep: snapshot.context.terminalFailedStep,
       checkpoints: snapshot.context.checkpoints,
       artifacts: mergedArtifacts,
       focusedProjectId,
@@ -236,8 +240,8 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       retry: () => send({ type: 'RETRY' }),
       cancel: () => send({ type: 'CANCEL' }),
       reset: () => send({ type: 'RESET' }),
-      relaunch: (artifact, mode) => {
-        const nextRequest = buildRelaunchRequest(artifact, mode);
+      relaunch: (artifact) => {
+        const nextRequest = buildRelaunchRequest(artifact);
         send({ type: 'REQUEST_START', request: nextRequest });
       },
       reloadArtifacts: reloadPersistedArtifacts,

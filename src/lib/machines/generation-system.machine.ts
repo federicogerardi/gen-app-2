@@ -141,6 +141,17 @@ const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
   };
 };
 
+const isEmptyStreamSuccess = (event: unknown): boolean => {
+  const output = getStreamDoneOutput(event);
+  if (!output || output.type !== 'STREAM_TERMINATED_SUCCESS') {
+    return false;
+  }
+
+  const content = typeof output.content === 'string' ? output.content : '';
+  const outputTokens = output.metrics?.outputTokens ?? 0;
+  return content.trim().length === 0 && outputTokens === 0;
+};
+
 const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
   (event as { output?: ExtractionDoneOutput }).output;
 
@@ -702,6 +713,8 @@ export const generationSystemMachine = setup({
       getUsageDoneOutput(event)?.type === 'USAGE_REJECTED',
     streamOutputIsFailure: ({ event }) =>
       getStreamDoneOutput(event)?.type === 'STREAM_TERMINATED_FAILURE',
+    streamOutputIsEmptySuccess: ({ context, event }) =>
+      context.routeType !== 'extraction' && isEmptyStreamSuccess(event),
     extractionOutputIsAccepted: ({ event }) =>
       getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
     toolOutputIsCompleted: ({ event }) =>
@@ -1080,6 +1093,20 @@ export const generationSystemMachine = setup({
               {
                 type: 'setFailureFromInvokeOutput',
                 params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+              },
+            ],
+          },
+          {
+            guard: 'streamOutputIsEmptySuccess',
+            target: 'persistingFailure',
+            actions: [
+              {
+                type: 'cacheStreamResult',
+                params: ({ event }) => getStreamResultParams(event),
+              },
+              {
+                type: 'setFailureFromInvokeOutput',
+                params: () => ({ reason: 'stream_empty_output' }),
               },
             ],
           },

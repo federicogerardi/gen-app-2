@@ -98,7 +98,7 @@ Non è richiesta la creazione di nuovi termini DDD per questo piano: tutti i pro
 | TASK-019 | **P4 — Hook useToolPage**: estrarre da `ToolPageTemplate.tsx` tutti gli hook XState, i `useEffect` di orchestrazione, la logica di source artifact resolution, la hydration context, e la logica auto-chain in un hook dedicato `frontend/src/features/tools/runtime/useToolPage.ts`. Il hook deve accettare le stesse props di `ToolPageTemplate` e restituire i valori necessari al rendering. `ToolPageTemplate` deve diventare un componente di sola presentazione che usa `useToolPage` e delega il rendering a `ToolGenerationFlowVertical` e `ToolActionButtons`. Target: `ToolPageTemplate.tsx` sotto le 200 righe dopo l'estrazione. | ✅ | 2026-05-05 |
 | TASK-020 | Eseguire `npm --prefix frontend run typecheck`, `npm --prefix frontend run test`, e smoke test manuale delle pagine funnel-pages e nextland. Registrare esito come gate G-4. | ✅ | 2026-05-05 |
 
-**Gate G-4** ✅ 2026-05-05: `ToolPageTemplate.tsx` = 162 righe (< 200); routing generato da `TOOL_ROUTES` (via `toolFormRegistry`); typecheck clean; 28 test file, 222 test verdi.
+| **Gate G-4** ✅ 2026-05-05: `ToolPageTemplate.tsx` = 162 righe (< 200); routing generato da `TOOL_ROUTES` (via `toolFormRegistry`); typecheck clean; 28 test file, 222 test verdi; smoke test manuale positivo su extraction + funnel-pages (`optin`, `quiz`, `vsl`).
 
 ---
 

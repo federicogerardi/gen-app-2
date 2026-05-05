@@ -113,6 +113,40 @@ test('backend session emits incremental chunk events while streaming', async () 
   assert.equal(result.content, 'hello world');
 });
 
+test('generation fails when stream completes with empty output', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  adapters.llm.streamText = async function* () {
+    yield {
+      type: 'completed',
+      usage: {
+        inputTokens: 10,
+        outputTokens: 0,
+        costUsd: 0.000001,
+      },
+    };
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-empty-output-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      input: { prompt: 'empty output case' },
+      workflowType: null,
+      idempotencyKey: 'idem-root-empty-output-001',
+      registrySnapshotRef: 'snapshot:root-empty-output',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error?.code, 'generation_failed');
+  assert.equal(result.error?.message, 'stream_empty_output');
+  assert.equal(result.content, '');
+});
+
 test('generation root failure path fails on usage rejection', async () => {
   const adapters = createInMemoryGenerationAdapters();
   const actor = createActor(generationSystemMachine, { input: { adapters } });

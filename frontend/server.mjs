@@ -8,8 +8,7 @@ import { fileURLToPath } from 'node:url';
 // ---------------------------------------------------------------------------
 // TASK-009: BACKEND_INTERNAL_URL — env server-side, non esposta nel bundle Vite.
 // Default locale: http://localhost:3000
-// Produzione Railway: http://<backend-service-name>.railway.internal:<backend-port>
-// Deploy corrente verificato: http://gen-app-2.railway.internal:8080
+// Produzione Railway: http://<backend-service>.railway.internal:<port>
 // Fail-fast in produzione se non impostata.
 // Normalizzazione: aggiunge http:// se manca il protocollo.
 // ---------------------------------------------------------------------------

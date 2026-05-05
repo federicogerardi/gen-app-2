@@ -28,8 +28,8 @@ Frontend (Railway service) -> Backend (Railway service) -> PostgreSQL + Redis
 
 Domini pubblici (esempio attuale):
 
-- Frontend: `https://frontend-production-19bf.up.railway.app`
-- Backend: `https://gen-app-2-production.up.railway.app`
+- Frontend: `https://<frontend-service>.up.railway.app`
+- Backend: `https://<backend-service>.up.railway.app`
 
 Note chiave:
 
@@ -77,9 +77,9 @@ Razionale: evitare double-build ad ogni restart Railway e mantenere il runtime d
 Impostare su backend Railway:
 
 ```bash
-FRONTEND_ORIGIN=https://frontend-production-19bf.up.railway.app
-CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app
-CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app
+FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
+CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app
+CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=none
 ```
@@ -87,8 +87,8 @@ AUTH_COOKIE_SAMESITE=none
 Per mantenere anche test locale frontend:
 
 ```bash
-CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app,http://localhost:5173
-CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app,http://localhost:5173
+CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app,http://localhost:5173
+CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app,http://localhost:5173
 ```
 
 Nota storica: nella baseline cross-origin `GOOGLE_REDIRECT_URI` restava sul dominio backend pubblico (`/auth/google/callback`). Questo non vale piu per la topologia same-origin corrente.
@@ -149,9 +149,9 @@ railway logs --follow
 Probe manuali:
 
 ```bash
-curl -i https://frontend-production-19bf.up.railway.app/health
-curl -i https://frontend-production-19bf.up.railway.app/
-curl -i https://gen-app-2-production.up.railway.app/health
+curl -i https://<frontend-service>.up.railway.app/health
+curl -i https://<frontend-service>.up.railway.app/
+curl -i https://<backend-service>.up.railway.app/health
 ```
 
 ---
@@ -167,15 +167,15 @@ Topologia adottata: **Variant B — Private-Network Same-Origin via `frontend/se
 Snapshot della configurazione cross-origin attiva prima della migrazione same-origin (da preservare come riferimento di rollback).
 
 ```
-Frontend pubblico: https://frontend-production-19bf.up.railway.app
-Backend pubblico:  https://gen-app-2-production.up.railway.app
+Frontend pubblico: https://<frontend-service>.up.railway.app
+Backend pubblico:  https://<backend-service>.up.railway.app
 
-CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app
-CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app
+CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app
+CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app
 AUTH_COOKIE_SAMESITE=none
 AUTH_COOKIE_SECURE=true
-FRONTEND_ORIGIN=https://frontend-production-19bf.up.railway.app
-GOOGLE_REDIRECT_URI=https://gen-app-2-production.up.railway.app/auth/google/callback
+FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
+GOOGLE_REDIRECT_URI=https://<backend-service>.up.railway.app/auth/google/callback
 ```
 
 **Rollback a cross-origin**: ripristinare i valori sopra nelle env Railway del backend, impostare `startCommand = "npm run start"` nel `frontend/railway.toml`, e verificare che `VITE_API_BASE_URL` sia vuota nella build frontend.
@@ -186,29 +186,29 @@ GOOGLE_REDIRECT_URI=https://gen-app-2-production.up.railway.app/auth/google/call
 
 ### Stato deploy verificato (2026-05-01)
 
-- frontend public host: `https://frontend-dev-33aa.up.railway.app`
-- backend internal host: `http://gen-app-2.railway.internal:8080`
-- backend public rollback host: `https://gen-app-2-production.up.railway.app`
-- verifica networking interno: `/debug/connectivity` -> `{"ok":true,"status":200,"backendUrl":"http://gen-app-2.railway.internal:8080"}`
+- frontend public host: `https://<frontend-service>.up.railway.app`
+- backend internal host: `http://<backend-service>.railway.internal:<port>`
+- backend public rollback host: `https://<backend-service>.up.railway.app`
+- verifica networking interno: `/debug/connectivity` -> `{"ok":true,"status":200,"backendUrl":"http://<backend-service>.railway.internal:<port>"}`
 
 ### Topologia target
 
 ```text
 Browser
-  └─► https://frontend-dev-33aa.up.railway.app/*
+  └─► https://<frontend-service>.up.railway.app/*
         └─► frontend/server.mjs  (Railway service — unico host pubblico)
               ├── GET /health          → risposta locale
-              ├── /auth/*              → proxy → http://gen-app-2.railway.internal:8080
-              ├── /generation/*        → proxy → http://gen-app-2.railway.internal:8080
-              ├── /api/*               → proxy → http://gen-app-2.railway.internal:8080
-              ├── /admin/users/*       → proxy → http://gen-app-2.railway.internal:8080
+              ├── /auth/*              → proxy → http://<backend-service>.railway.internal:<port>
+              ├── /generation/*        → proxy → http://<backend-service>.railway.internal:<port>
+              ├── /api/*               → proxy → http://<backend-service>.railway.internal:<port>
+              ├── /admin/users/*       → proxy → http://<backend-service>.railway.internal:<port>
               ├── asset statici        → dist/
               └── SPA fallback         → dist/index.html
 ```
 
 ### Prerequisiti bloccanti
 
-- `BACKEND_INTERNAL_URL` deve essere impostata nel servizio frontend Railway (`http://gen-app-2.railway.internal:8080` nel deploy corrente).
+- `BACKEND_INTERNAL_URL` deve essere impostata nel servizio frontend Railway (es. `http://<backend-service>.railway.internal:<port>`).
 - Il backend Railway deve avere private networking abilitato e rispondere su porta `8080` via hostname interno nel deploy corrente.
 - Verificare raggiungibilità con `/debug/connectivity` (endpoint temporaneo da rimuovere prima del go-live — vedi TASK-003).
 
@@ -225,7 +225,7 @@ Matching: `url.startsWith(prefix)` su prefissi esatti. Normalizzare trailing sla
 
 | Variabile | Default locale | Produzione Railway |
 |---|---|---|
-| `BACKEND_INTERNAL_URL` | `http://localhost:3000` | `http://gen-app-2.railway.internal:8080` |
+| `BACKEND_INTERNAL_URL` | `http://localhost:3000` | `http://<backend-service>.railway.internal:<port>` |
 | `NODE_ENV` | `development` | `production` |
 | `PORT` | `3000` | impostato da Railway |
 
@@ -234,12 +234,12 @@ Fail-fast: se `NODE_ENV=production` e `BACKEND_INTERNAL_URL` non è impostata, `
 ### Env backend (same-origin target)
 
 ```bash
-FRONTEND_ORIGIN=https://frontend-dev-33aa.up.railway.app
-CORS_ALLOWED_ORIGINS=https://frontend-dev-33aa.up.railway.app
-CSRF_TRUSTED_ORIGINS=https://frontend-dev-33aa.up.railway.app
+FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
+CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app
+CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=lax
-GOOGLE_REDIRECT_URI=https://frontend-dev-33aa.up.railway.app/auth/google/callback
+GOOGLE_REDIRECT_URI=https://<frontend-service>.up.railway.app/auth/google/callback
 ```
 
 **ATTENZIONE**: `GOOGLE_REDIRECT_URI` si sposta dall'host backend pubblico all'host frontend. Aggiornare anche negli **Authorized Redirect URIs** del client OAuth su Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (HTTP 400).
@@ -274,32 +274,32 @@ Correzione:
 
 ```bash
 # Healthcheck
-curl -i https://frontend-dev-33aa.up.railway.app/health
+curl -i https://<frontend-service>.up.railway.app/health
 
 # Sessione bootstrap (proxy attivo)
-curl -i https://frontend-dev-33aa.up.railway.app/auth/session
+curl -i https://<frontend-service>.up.railway.app/auth/session
 
 # Login (cookie-based auth via proxy)
-curl -i -X POST https://frontend-dev-33aa.up.railway.app/auth/login \
+curl -i -X POST https://<frontend-service>.up.railway.app/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"<test-user-email>","password":"<test-password>"}'
 
 # Logout
-curl -i -X POST https://frontend-dev-33aa.up.railway.app/auth/logout
+curl -i -X POST https://<frontend-service>.up.railway.app/auth/logout
 
 # CRUD principale - sessione autenticata richiesta
-curl -i https://frontend-dev-33aa.up.railway.app/api/projects
+curl -i https://<frontend-service>.up.railway.app/api/projects
 
 # SSE (POST, non GET)
-curl -i -X POST https://frontend-dev-33aa.up.railway.app/generation/stream \
+curl -i -X POST https://<frontend-service>.up.railway.app/generation/stream \
   -H 'Content-Type: application/json' \
   -d '{"projectId":"test"}'
 
 # OAuth bootstrap
-curl -i https://frontend-dev-33aa.up.railway.app/auth/google/start
+curl -i https://<frontend-service>.up.railway.app/auth/google/start
 
 # SPA fallback (non deve restituire 404)
-curl -i https://frontend-dev-33aa.up.railway.app/some/spa/route
+curl -i https://<frontend-service>.up.railway.app/some/spa/route
 ```
 
 Esiti attesi:
@@ -400,27 +400,27 @@ Eseguire in ordine. Il rollback riporta la topologia alla baseline cross-origin.
 Impostare sul servizio backend in Railway (`Variables`):
 
 ```bash
-FRONTEND_ORIGIN=https://frontend-production-19bf.up.railway.app
-CORS_ALLOWED_ORIGINS=https://frontend-production-19bf.up.railway.app
-CSRF_TRUSTED_ORIGINS=https://frontend-production-19bf.up.railway.app
+FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
+CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app
+CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=none
-GOOGLE_REDIRECT_URI=https://gen-app-2-production.up.railway.app/auth/google/callback
+GOOGLE_REDIRECT_URI=https://<backend-service>.up.railway.app/auth/google/callback
 ```
 
 ### Step 2 — Ripristino Google OAuth Redirect URI
 
 In Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`):
 
-- Aggiungere (o ripristinare): `https://gen-app-2-production.up.railway.app/auth/google/callback`
-- Rimuovere (o disabilitare): `https://frontend-dev-33aa.up.railway.app/auth/google/callback`
+- Aggiungere (o ripristinare): `https://<backend-service>.up.railway.app/auth/google/callback`
+- Rimuovere (o disabilitare): `https://<frontend-service>.up.railway.app/auth/google/callback`
 
 ### Step 3 — Ripristino build frontend (se il proxy causa problemi)
 
 Il frontend in topologia cross-origin deve avere `VITE_API_BASE_URL` impostata come build variable Railway per indirizzare le richieste al backend pubblico:
 
 ```bash
-VITE_API_BASE_URL=https://gen-app-2-production.up.railway.app
+VITE_API_BASE_URL=https://<backend-service>.up.railway.app
 ```
 
 Rimuovere `BACKEND_INTERNAL_URL` dalle env del servizio frontend Railway dopo il deploy.
@@ -429,21 +429,19 @@ Rimuovere `BACKEND_INTERNAL_URL` dalle env del servizio frontend Railway dopo il
 
 ```bash
 # Backend risponde sul proprio host pubblico
-curl -i https://gen-app-2-production.up.railway.app/health
+curl -i https://<backend-service>.up.railway.app/health
 
 # Cookie di sessione con SameSite=None
-curl -i -X POST https://gen-app-2-production.up.railway.app/auth/login \
+curl -i -X POST https://<backend-service>.up.railway.app/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"<test>","password":"<test>"}'
 # → Set-Cookie: ... SameSite=None; Secure
 
 # SPA carica
-curl -i https://frontend-production-19bf.up.railway.app/
-```
-
+curl -i https://<frontend-service>.up.railway.app/
 ### Gate di accettazione rollback
 
-- `GET https://gen-app-2-production.up.railway.app/health` → `200`
+- `GET https://<backend-service>.up.railway.app/health` → `200`
 - Login produce `Set-Cookie` con `SameSite=None; Secure`
 - No `redirect_uri_mismatch` OAuth su callback backend
 - Log backend mostrano richieste dal browser direttamente (IP pubblici, non IP internal Railway)

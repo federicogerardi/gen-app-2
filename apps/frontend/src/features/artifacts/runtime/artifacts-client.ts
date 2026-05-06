@@ -199,11 +199,14 @@ export const listArtifacts = async (
 
   if (!path) {
     const localList = applyQuery(options.localArtifacts ?? [], filters);
-    const filteredTotal = applyQuery(options.localArtifacts ?? [], {
-      ...filters,
-      limit: undefined,
-      offset: undefined,
-    }).length;
+    const unboundedFilters: ArtifactQuery = {
+      type: filters.type,
+      status: filters.status,
+      projectId: filters.projectId,
+      ...(filters.from ? { from: filters.from } : {}),
+      ...(filters.to ? { to: filters.to } : {}),
+    };
+    const filteredTotal = applyQuery(options.localArtifacts ?? [], unboundedFilters).length;
     return {
       artifacts: localList,
       totalResults: filteredTotal,

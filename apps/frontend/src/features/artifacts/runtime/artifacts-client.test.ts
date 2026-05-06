@@ -42,7 +42,8 @@ const allQuery = { type: 'all' as const, status: 'all' as const, projectId: 'all
 describe('artifacts-client – listArtifacts', () => {
   it('returns empty array from fallback when no localArtifacts', async () => {
     const result = await listArtifacts(allQuery, { capabilities: { artifacts: false } });
-    expect(result).toEqual([]);
+    expect(result.artifacts).toEqual([]);
+    expect(result.totalResults).toBe(0);
   });
 
   it('applies type filter on local fallback', async () => {
@@ -51,7 +52,8 @@ describe('artifacts-client – listArtifacts', () => {
       { ...allQuery, type: 'content' },
       { capabilities: { artifacts: false }, localArtifacts: local },
     );
-    expect(result.every((a) => a.artifactType === 'content')).toBe(true);
+    expect(result.artifacts.every((a) => a.artifactType === 'content')).toBe(true);
+    expect(result.totalResults).toBe(1);
   });
 
   it('applies status filter on local fallback', async () => {
@@ -60,8 +62,9 @@ describe('artifacts-client – listArtifacts', () => {
       { ...allQuery, status: 'completed' },
       { capabilities: { artifacts: false }, localArtifacts: local },
     );
-    expect(result).toHaveLength(1);
-    expect(result[0]?.status).toBe('completed');
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts[0]?.status).toBe('completed');
+    expect(result.totalResults).toBe(1);
   });
 
   it('applies projectId filter on local fallback', async () => {
@@ -70,7 +73,8 @@ describe('artifacts-client – listArtifacts', () => {
       { ...allQuery, projectId: 'p1' },
       { capabilities: { artifacts: false }, localArtifacts: local },
     );
-    expect(result.every((a) => a.projectId === 'p1')).toBe(true);
+    expect(result.artifacts.every((a) => a.projectId === 'p1')).toBe(true);
+    expect(result.totalResults).toBe(1);
   });
 
   it('fetches from API when capability enabled', async () => {
@@ -80,7 +84,8 @@ describe('artifacts-client – listArtifacts', () => {
       json: async () => ({ ok: true, data: { artifacts: api } }),
     } as Response);
     const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
-    expect(result).toEqual(api);
+    expect(result.artifacts).toEqual(api);
+    expect(result.totalResults).toBe(api.length);
   });
 
   it('maps toolKey from backend payload or request input when available', async () => {
@@ -123,9 +128,9 @@ describe('artifacts-client – listArtifacts', () => {
     } as Response);
 
     const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
-    expect(result[0]?.toolKey).toBe('funnel-pages');
-    expect(result[1]?.toolKey).toBe('nextland');
-    expect(result[1]?.sourceRequest.toolKey).toBe('nextland');
+    expect(result.artifacts[0]?.toolKey).toBe('funnel-pages');
+    expect(result.artifacts[1]?.toolKey).toBe('nextland');
+    expect(result.artifacts[1]?.sourceRequest.toolKey).toBe('nextland');
   });
 });
 

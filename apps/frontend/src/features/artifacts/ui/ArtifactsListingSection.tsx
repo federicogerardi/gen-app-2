@@ -54,7 +54,7 @@ export const ArtifactsListingSection = ({
   const projectsQuery = useProjectsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
-    enabled,
+    ...(enabled !== undefined ? { enabled } : {}),
   });
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
   const normalizedFixedProjectName = useMemo(() => {

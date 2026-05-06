@@ -195,7 +195,9 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       { type: 'all', status: 'all', projectId: 'all' },
       { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
     ).then((fetched) => {
-      setPersistedArtifacts(fetched.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+      setPersistedArtifacts(
+        fetched.artifacts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      );
     }).catch(() => {
       // silently ignore — dashboard will show in-memory artifacts as fallback
     });

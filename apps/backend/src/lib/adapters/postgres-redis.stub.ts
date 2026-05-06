@@ -262,6 +262,36 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
 export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
   private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
 
+  async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {
+    return [...this.artifacts.values()].filter((artifact) => {
+      if (artifact.userId !== userId) {
+        return false;
+      }
+
+      if (filters.type && artifact.artifactType !== filters.type) {
+        return false;
+      }
+
+      if (filters.status && artifact.status !== filters.status) {
+        return false;
+      }
+
+      if (filters.projectId && artifact.projectId !== filters.projectId) {
+        return false;
+      }
+
+      if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+        return false;
+      }
+
+      if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+        return false;
+      }
+
+      return true;
+    }).length;
+  }
+
   async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
     const filtered = [...this.artifacts.values()]
       .filter((artifact) => {

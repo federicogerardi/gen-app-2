@@ -31,6 +31,6 @@ RUN npm run build
 
 EXPOSE 3000
 
-# TASK-010b: CMD diretto a node server.mjs per evitare double-build ad ogni restart Railway.
-# railway.toml startCommand è allineato a "node server.mjs".
-CMD ["node", "server.mjs"]
+# Railway start command runs from /app. Keep CMD aligned with the explicit
+# monorepo path so local/container defaults behave the same way.
+CMD ["node", "apps/frontend/server.mjs"]

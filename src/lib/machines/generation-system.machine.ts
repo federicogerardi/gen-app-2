@@ -15,7 +15,7 @@ import type {
   WorkflowStepDescriptor,
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
-import { TOOL_WORKFLOW_REGISTRY, type ToolWorkflowPlan } from '../runtime/tool-workflow-registry';
+import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow, type ToolWorkflowPlan } from '../runtime/tool-workflow-registry';
 
 type GenerationSystemInput = {
   adapters: GenerationAdapters;
@@ -429,7 +429,7 @@ const resolveToolWorkflowPlan = (context: GenerationMachineContext): ToolWorkflo
   const normalizedToolKey = normalizeToolWorkflowKey(context.toolKey);
   const normalizedWorkflowType = normalizeToolWorkflowKey(context.workflowType);
   const key = normalizedToolKey ?? normalizedWorkflowType;
-  if (!key) {
+  if (!key || !isSupportedToolWorkflow(key)) {
     return null;
   }
 

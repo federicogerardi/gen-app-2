@@ -83,7 +83,7 @@ export const extractStepFromArtifactInput = (input: Record<string, unknown>): st
  * Exported so generation-system.machine.ts can import instead of defining locally.
  */
 export type ToolWorkflowPlan = {
-  toolKey: string;
+  toolKey: SupportedToolWorkflow;
   steps: WorkflowStepDescriptor[];
   dependencyGraph: Record<string, string[]>;
 };
@@ -93,7 +93,7 @@ export type ToolWorkflowPlan = {
  * Single source of truth for step ordering and dependency graphs in the backend.
  * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
  */
-export const TOOL_WORKFLOW_REGISTRY: Record<string, ToolWorkflowPlan> = {
+export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowPlan> = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
     steps: [

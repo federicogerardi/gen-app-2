@@ -15,6 +15,7 @@ import type {
   WorkflowStepDescriptor,
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
+import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow, type ToolWorkflowPlan } from '../runtime/tool-workflow-registry';
 
 type GenerationSystemInput = {
   adapters: GenerationAdapters;
@@ -138,6 +139,17 @@ const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
     outputTokens: output?.metrics?.outputTokens ?? 0,
     costUsd: output?.metrics?.costUsd ?? 0,
   };
+};
+
+const isEmptyStreamSuccess = (event: unknown): boolean => {
+  const output = getStreamDoneOutput(event);
+  if (!output || output.type !== 'STREAM_TERMINATED_SUCCESS') {
+    return false;
+  }
+
+  const content = typeof output.content === 'string' ? output.content : '';
+  const outputTokens = output.metrics?.outputTokens ?? 0;
+  return content.trim().length === 0 && outputTokens === 0;
 };
 
 const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
@@ -385,39 +397,6 @@ const normalizeValue = (value: string | null | undefined): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-type ToolWorkflowPlan = {
-  toolKey: string;
-  steps: WorkflowStepDescriptor[];
-  dependencyGraph: Record<string, string[]>;
-};
-
-const TOOL_WORKFLOW_REGISTRY: Record<string, ToolWorkflowPlan> = {
-  'funnel-pages': {
-    toolKey: 'funnel-pages',
-    steps: [
-      { key: 'optin', dependencies: [] },
-      { key: 'quiz', dependencies: ['optin'] },
-      { key: 'vsl', dependencies: ['optin', 'quiz'] },
-    ],
-    dependencyGraph: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
-  },
-  nextland: {
-    toolKey: 'nextland',
-    steps: [
-      { key: 'landing', dependencies: [] },
-      { key: 'thank_you', dependencies: ['landing'] },
-    ],
-    dependencyGraph: {
-      landing: [],
-      thank_you: ['landing'],
-    },
-  },
-};
-
 const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {
   const normalized = normalizeValue(value);
   if (!normalized) {
@@ -450,7 +429,7 @@ const resolveToolWorkflowPlan = (context: GenerationMachineContext): ToolWorkflo
   const normalizedToolKey = normalizeToolWorkflowKey(context.toolKey);
   const normalizedWorkflowType = normalizeToolWorkflowKey(context.workflowType);
   const key = normalizedToolKey ?? normalizedWorkflowType;
-  if (!key) {
+  if (!key || !isSupportedToolWorkflow(key)) {
     return null;
   }
 
@@ -734,6 +713,8 @@ export const generationSystemMachine = setup({
       getUsageDoneOutput(event)?.type === 'USAGE_REJECTED',
     streamOutputIsFailure: ({ event }) =>
       getStreamDoneOutput(event)?.type === 'STREAM_TERMINATED_FAILURE',
+    streamOutputIsEmptySuccess: ({ context, event }) =>
+      context.routeType !== 'extraction' && isEmptyStreamSuccess(event),
     extractionOutputIsAccepted: ({ event }) =>
       getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
     toolOutputIsCompleted: ({ event }) =>
@@ -1112,6 +1093,20 @@ export const generationSystemMachine = setup({
               {
                 type: 'setFailureFromInvokeOutput',
                 params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+              },
+            ],
+          },
+          {
+            guard: 'streamOutputIsEmptySuccess',
+            target: 'persistingFailure',
+            actions: [
+              {
+                type: 'cacheStreamResult',
+                params: ({ event }) => getStreamResultParams(event),
+              },
+              {
+                type: 'setFailureFromInvokeOutput',
+                params: () => ({ reason: 'stream_empty_output' }),
               },
             ],
           },

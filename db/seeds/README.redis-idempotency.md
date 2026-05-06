@@ -28,12 +28,12 @@ Run the seed script with:
 
 Required environment:
 
-- `UPSTASH_REDIS_URL`
+- `REDIS_URL`
 
 Upstash notes:
 
 - Use the TCP/TLS URL format (`rediss://...`) for ioredis scripts.
-- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are REST credentials and are not used by this seed script.
+- REST credentials are not used by this seed script.
 
 Optional overrides:
 

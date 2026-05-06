@@ -141,30 +141,6 @@ export const isAllowedBriefingExtension = (fileName: string): boolean => {
 };
 
 /**
- * Get completed artifact for a step (navigation helper)
- */
-export const getCompletedArtifactForStep = (
-  artifacts: Array<{
-    projectId: string;
-    status: string;
-    toolKey: string;
-    metadata?: { step?: string };
-  }>,
-  projectId: string,
-  toolKey: SupportedTool,
-  step: ToolStep,
-): string | null => {
-  const artifact = artifacts.find(
-    a =>
-      a.projectId === projectId
-      && a.status === 'completed'
-      && a.toolKey === toolKey
-      && a.metadata?.step === step,
-  );
-  return artifact?.metadata?.step === step ? 'found' : null; // Placeholder for actual extraction
-};
-
-/**
  * Calculate which steps can be generated based on dependencies
  */
 export const getAvailableSteps = (

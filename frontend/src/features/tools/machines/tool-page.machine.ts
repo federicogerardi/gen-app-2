@@ -150,6 +150,11 @@ const buildDefaultStepStatuses = (
   return Object.fromEntries(entries) as Record<ToolStep, ToolStepStatus>;
 };
 
+const TOOL_PAGE_MESSAGES = {
+  readyStatus: 'Pronto per la generazione',
+  waitingStatus: 'Seleziona un progetto e carica un brief per iniziare',
+} as const;
+
 const buildDefaultViewModel = (
   toolKey: SupportedTool,
   readiness: ReadinessSnapshot,
@@ -166,8 +171,8 @@ const buildDefaultViewModel = (
   stepStatuses: buildDefaultStepStatuses(toolKey),
   messages: {
     status: readiness.canStartFlow
-      ? 'Pronto per la generazione'
-      : 'Seleziona un progetto e carica un brief per iniziare',
+      ? TOOL_PAGE_MESSAGES.readyStatus
+      : TOOL_PAGE_MESSAGES.waitingStatus,
     error: null,
   },
 });

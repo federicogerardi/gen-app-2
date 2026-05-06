@@ -66,8 +66,14 @@ type ArtifactsResponse =
     data?: {
       artifacts?: BackendArtifact[];
       artifact?: BackendArtifact;
+      totalResults?: number;
     };
   };
+
+export type ListArtifactsResult = {
+  artifacts: GenerationArtifact[];
+  totalResults: number;
+};
 
 const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): GenerationArtifact[] => {
   const filtered = artifacts.filter((artifact) => {
@@ -187,12 +193,21 @@ const toQueryString = (filters: ArtifactQuery): string => {
 export const listArtifacts = async (
   filters: ArtifactQuery,
   options: ArtifactsClientOptions = {},
-): Promise<GenerationArtifact[]> => {
+): Promise<ListArtifactsResult> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
   const path = buildApiPaths(capabilities).artifacts.list;
 
   if (!path) {
-    return applyQuery(options.localArtifacts ?? [], filters);
+    const localList = applyQuery(options.localArtifacts ?? [], filters);
+    const filteredTotal = applyQuery(options.localArtifacts ?? [], {
+      ...filters,
+      limit: undefined,
+      offset: undefined,
+    }).length;
+    return {
+      artifacts: localList,
+      totalResults: filteredTotal,
+    };
   }
 
   try {
@@ -205,7 +220,11 @@ export const listArtifacts = async (
     );
 
     const list = Array.isArray(payload) ? payload : (payload.data?.artifacts ?? []);
-    return list.map(toGenerationArtifact);
+    const totalResults = Array.isArray(payload) ? list.length : (payload.data?.totalResults ?? 0);
+    return {
+      artifacts: list.map(toGenerationArtifact),
+      totalResults,
+    };
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to list artifacts (HTTP ${error.status ?? 'unknown'})`);

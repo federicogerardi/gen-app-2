@@ -7,7 +7,7 @@ import { useMswHandler } from '../../../test/mocks/server';
 import { ArtifactsPage } from './ArtifactsPage';
 
 const authBag = {
-  capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+  capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
 };
 
 const workspaceBag = {
@@ -53,7 +53,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
 }));
 
 beforeEach(() => {
-  authBag.capabilities = { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false };
+  authBag.capabilities = { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false };
   workspaceBag.artifacts = [
     {
       artifactId: 'a1',
@@ -79,9 +79,20 @@ beforeEach(() => {
       },
     },
   ];
-  useMswHandler(
-    http.get('/api/artifacts', () => HttpResponse.json({ ok: true, data: { artifacts: [] } })),
-  );
+  useMswHandler(http.get('/api/projects', () => HttpResponse.json({
+    ok: true,
+    data: {
+      projects: [
+        {
+          id: 'p1',
+          name: 'Project One',
+          description: 'Descrizione progetto',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+    },
+  })));
+  useMswHandler(http.get('/api/artifacts', () => HttpResponse.json({ ok: true, data: { artifacts: [], totalResults: 0 } })));
 });
 
 describe('ArtifactsPage', () => {
@@ -93,7 +104,7 @@ describe('ArtifactsPage', () => {
     );
 
     expect(await screen.findByText('content')).toBeInTheDocument();
-    expect(screen.getByText(/project: p1/i)).toBeInTheDocument();
+    expect(screen.getByText('Project One')).toBeInTheDocument();
   });
 
   it('shows load error when API request fails', async () => {
@@ -147,6 +158,7 @@ describe('ArtifactsPage', () => {
                 },
               },
             ],
+            totalResults: 1,
           },
         });
       }),
@@ -213,7 +225,7 @@ describe('ArtifactsPage', () => {
           };
         });
 
-        return HttpResponse.json({ ok: true, data: { artifacts } });
+        return HttpResponse.json({ ok: true, data: { artifacts, totalResults: 21 } });
       }),
     );
 
@@ -223,17 +235,19 @@ describe('ArtifactsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(`${appCopy.ui.labels.page} 1`)).toBeInTheDocument();
+    const page1Button = await screen.findByRole('button', { name: `${appCopy.ui.labels.page} 1` });
+    expect(page1Button).toHaveAttribute('aria-current', 'page');
     await waitFor(() => {
-      expect(seenQueries).toEqual(['limit=10;offset=0']);
+      expect(seenQueries).toEqual(['limit=11;offset=0']);
     });
 
     fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.nextPage }));
 
     await waitFor(() => {
-      expect(seenQueries).toEqual(['limit=10;offset=0', 'limit=10;offset=10']);
+      expect(seenQueries).toEqual(['limit=11;offset=0', 'limit=11;offset=10']);
     });
-    expect(screen.getByText(`${appCopy.ui.labels.page} 2`)).toBeInTheDocument();
+    const page2Button = screen.getByRole('button', { name: `${appCopy.ui.labels.page} 2` });
+    expect(page2Button).toHaveAttribute('aria-current', 'page');
   });
 
   it('paginates local fallback artifacts in batches of 10', async () => {
@@ -271,14 +285,18 @@ describe('ArtifactsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(`${appCopy.ui.labels.page} 1`)).toBeInTheDocument();
+    const page1Button = await screen.findByRole('button', { name: `${appCopy.ui.labels.page} 1` });
+    expect(page1Button).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: `${appCopy.ui.labels.page} 2` })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: `${appCopy.ui.labels.page} 3` })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(10);
 
     fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.nextPage }));
 
     await waitFor(() => {
-      expect(screen.getByText(`${appCopy.ui.labels.page} 2`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `${appCopy.ui.labels.page} 2` })).toHaveAttribute('aria-current', 'page');
     });
+    expect(screen.queryByRole('button', { name: `${appCopy.ui.labels.page} 3` })).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Apri dettaglio' })).toHaveLength(2);
   });
 });

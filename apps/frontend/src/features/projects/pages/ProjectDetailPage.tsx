@@ -46,6 +46,7 @@ export const ProjectDetailPage = () => {
             title={appCopy.editorial.projects.contextualArtifacts}
             emptyStateMessage={appCopy.ui.states.noProjectArtifacts}
             fixedProjectId={id}
+            fixedProjectName={project.name}
             enabled={id.length > 0}
           />
         </>

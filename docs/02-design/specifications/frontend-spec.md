@@ -481,6 +481,65 @@ Validazione minima per interventi che toccano UI o copy centralizzati:
 
 ---
 
+## API Response Contracts
+
+### `GET /api/artifacts` — List Artifacts with Pagination
+
+Query string:
+
+| Parametro | Tipo | Default | Descrizione |
+|---|---|---|---|
+| `type` | `string` | — | Filtra per `artifactType`: `'content'` \| `'extraction'` |
+| `status` | `string` | — | Filtra per `status`: `'generating'` \| `'completed'` \| `'failed'` |
+| `projectId` | `string` | — | Filtra per progetto (user-scoped) |
+| `from` | `string` (ISO 8601) | — | Filtra artifacts con `updated_at >= from` |
+| `to` | `string` (ISO 8601) | — | Filtra artifacts con `updated_at <= to` |
+| `limit` | `number` | — | Numero di risultati per pagina (es. `11` per +1 detection) |
+| `offset` | `number` | `0` | Offset per paginazione |
+
+Response (HTTP 200):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "artifacts": [
+      {
+        "artifactId": "art_abc123",
+        "requestId": "req_xyz789",
+        "projectId": "proj_123",
+        "artifactType": "content",
+        "status": "completed",
+        "model": "gpt-4",
+        "toolKey": "tool_name",
+        "workflowType": "standard",
+        "input": { /* structured input */ },
+        "content": "generated text or markdown",
+        "createdAt": "2026-05-07T10:00:00.000Z",
+        "updatedAt": "2026-05-07T10:05:00.000Z"
+      }
+      /* ... more artifacts ... */
+    ],
+    "totalResults": 42
+  }
+}
+```
+
+**Paginazione e determinismo**:
+
+- `totalResults` è il conteggio totale di artifacts che corrispondono ai filtri applicati, indipendentemente da `limit`/`offset`.
+- Consente al frontend di calcolare `totalPages = Math.ceil(totalResults / pageSize)` per renderizzare tutte le bolle di pagina deterministicamente dal primo render.
+- Se `limit > totalResults`, il payload contiene meno di `limit` risultati.
+- Strategia +1: se il frontend invia `limit = pageSize + 1`, può rilevare se esiste una pagina successiva comparando `artifacts.length > pageSize`, senza bisogno di un campo `hasNextPage` separato.
+
+**Fallback locale**:
+
+- Quando capability `artifacts` è disabilitato (`VITE_CAP_ARTIFACTS=false`), il frontend usa `GenerationArtifact[]` locali da `GenerationWorkspaceProvider`.
+- `totalResults` è calcolato applicando gli stessi filtri e contando i risultati completi (senza limit/offset).
+- La UI renderizza le bolle deterministicamente anche con il fallback, usando la stessa logica.
+
+---
+
 ## Backend capability matrix
 
 Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite `BackendCapabilities` (`frontend/src/app/runtime/backend-capabilities.ts`). Quando una capability non è disponibile, il modulo usa un adapter con fallback deterministico ai dati locali.

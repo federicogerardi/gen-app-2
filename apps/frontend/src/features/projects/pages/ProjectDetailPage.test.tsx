@@ -57,8 +57,25 @@ const renderPage = (projectId = 'p1') => render(
 );
 
 beforeEach(() => {
-  useMswHandler(
-    http.get('/api/projects/p1', () => HttpResponse.json({
+  useMswHandler(http.get('/api/projects', () => HttpResponse.json({
+    ok: true,
+    data: {
+      projects: [
+        {
+          id: 'p1',
+          name: 'Project One',
+          description: 'Descrizione progetto',
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+    },
+  })));
+  useMswHandler(http.get('/api/projects/:id', ({ params }) => {
+    if (params.id !== 'p1') {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    return HttpResponse.json({
       ok: true,
       data: {
         project: {
@@ -68,8 +85,8 @@ beforeEach(() => {
           updatedAt: '2026-04-27T10:00:00.000Z',
         },
       },
-    })),
-  );
+    });
+  }));
 });
 
 describe('ProjectDetailPage', () => {

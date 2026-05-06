@@ -814,9 +814,10 @@ export const createAuthHttpRuntime = (
     }
 
     const artifacts = await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
+    const totalResults = await queries.artifacts.countArtifactsByUser(principal.user.id, filters);
 
     await repositories.sessions.touchSession(principal.session.id, now());
-    writeSuccess(response, 200, { artifacts });
+    writeSuccess(response, 200, { artifacts, totalResults });
   };
 
   const handleToolsBriefUpload = async (

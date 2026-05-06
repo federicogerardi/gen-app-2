@@ -58,6 +58,7 @@ export interface ProjectQueryRepository {
 
 export interface ArtifactQueryRepository {
   listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
+  countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number>;
   getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null>;
 }
 

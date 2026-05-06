@@ -875,6 +875,45 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
   }
 
+  async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {
+    const where: string[] = ['user_id = $1'];
+    const params: unknown[] = [userId];
+
+    if (filters.type) {
+      params.push(filters.type);
+      where.push(`type = $${params.length}`);
+    }
+
+    if (filters.status) {
+      params.push(filters.status);
+      where.push(`status = $${params.length}`);
+    }
+
+    if (filters.projectId) {
+      params.push(filters.projectId);
+      where.push(`project_id = $${params.length}`);
+    }
+
+    if (filters.from) {
+      params.push(filters.from);
+      where.push(`updated_at >= $${params.length}::timestamptz`);
+    }
+
+    if (filters.to) {
+      params.push(filters.to);
+      where.push(`updated_at <= $${params.length}::timestamptz`);
+    }
+
+    const query = `
+      SELECT COUNT(*) as total
+      FROM ${this.artifactsTableName}
+      WHERE ${where.join(' AND ')}
+    `;
+
+    const result: QueryResult<{ total: string }> = await this.pg.query(query, params);
+    return parseInt(result.rows[0]?.total ?? '0', 10);
+  }
+
   async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
     const query = `
       SELECT

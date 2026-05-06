@@ -16,6 +16,7 @@ type UseArtifactsQueryOptions = {
 
 type UseArtifactsQueryResult = {
   data: GenerationArtifact[];
+  totalResults: number;
   loading: boolean;
   error: string | null;
   reload: () => void;
@@ -25,6 +26,7 @@ export const useArtifactsQuery = (
   options: UseArtifactsQueryOptions,
 ): UseArtifactsQueryResult => {
   const [data, setData] = useState<GenerationArtifact[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -45,6 +47,7 @@ export const useArtifactsQuery = (
   useEffect(() => {
     if (options.enabled === false) {
       setData([]);
+      setTotalResults(0);
       setLoading(false);
       setError(null);
       return;
@@ -55,7 +58,7 @@ export const useArtifactsQuery = (
 
     void (async () => {
       try {
-        const artifacts = await listArtifacts(options.filters, {
+        const result = await listArtifacts(options.filters, {
           apiBaseUrl: options.apiBaseUrl,
           capabilities: options.capabilities,
           localArtifacts: localArtifactsRef.current,
@@ -65,7 +68,8 @@ export const useArtifactsQuery = (
           return;
         }
 
-        setData(artifacts);
+        setData(result.artifacts);
+        setTotalResults(result.totalResults);
         setError(null);
       } catch (loadError) {
         if (cancelled) {
@@ -73,6 +77,7 @@ export const useArtifactsQuery = (
         }
 
         setData([]);
+        setTotalResults(0);
         setError(loadError instanceof Error ? loadError.message : 'Unable to load artifacts');
       } finally {
         if (!cancelled) {
@@ -94,6 +99,7 @@ export const useArtifactsQuery = (
 
   return {
     data,
+    totalResults,
     loading,
     error,
     reload,

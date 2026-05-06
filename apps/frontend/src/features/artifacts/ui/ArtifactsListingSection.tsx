@@ -1,24 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
+  cx,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
-  Surface,
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
+import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { type ArtifactQuery } from '../runtime/artifacts-client';
 
 const pageSize = 10;
+const queryPageSize = pageSize + 1;
 
 type ArtifactsListingSectionProps = {
   title: string;
   emptyStateMessage?: string;
   fixedProjectId?: string;
+  fixedProjectName?: string;
   enabled?: boolean;
   headingLevel?: 'h2' | 'h3';
 };
@@ -42,12 +45,26 @@ export const ArtifactsListingSection = ({
   title,
   emptyStateMessage,
   fixedProjectId,
+  fixedProjectName,
   enabled,
   headingLevel = 'h3',
 }: ArtifactsListingSectionProps) => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
+  const projectsQuery = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled,
+  });
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
+  const normalizedFixedProjectName = useMemo(() => {
+    if (typeof fixedProjectName !== 'string') {
+      return null;
+    }
+
+    const trimmed = fixedProjectName.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }, [fixedProjectName]);
   const [filters, setFilters] = useState<ArtifactQuery>(() => buildDefaultFilters(normalizedFixedProjectId));
   const [page, setPage] = useState(1);
 
@@ -67,7 +84,7 @@ export const ArtifactsListingSection = ({
     filters: {
       ...filters,
       projectId: normalizedFixedProjectId ?? filters.projectId,
-      limit: pageSize,
+      limit: queryPageSize,
       offset: (page - 1) * pageSize,
     },
     apiBaseUrl: auth.apiBaseUrl,
@@ -76,9 +93,25 @@ export const ArtifactsListingSection = ({
     ...(enabled !== undefined ? { enabled } : {}),
   });
 
-  const items = artifactsQuery.data;
+  const items = useMemo(
+    () => artifactsQuery.data.slice(0, pageSize),
+    [artifactsQuery.data],
+  );
+  const projectNameById = useMemo(() => {
+    return projectsQuery.data.reduce<Record<string, string>>((acc, project) => {
+      acc[project.id] = project.name;
+      return acc;
+    }, {});
+  }, [projectsQuery.data]);
+  const totalPages = useMemo(() => {
+    return artifactsQuery.totalResults === 0 ? 0 : Math.ceil(artifactsQuery.totalResults / pageSize);
+  }, [artifactsQuery.totalResults]);
   const hasPreviousPage = page > 1;
-  const hasNextPage = items.length === pageSize;
+  const hasNextPage = page < totalPages;
+  const pageNumbers = useMemo(
+    () => Array.from({ length: totalPages }, (_, index) => index + 1),
+    [totalPages],
+  );
 
   const HeadingTag = headingLevel;
 
@@ -131,29 +164,81 @@ export const ArtifactsListingSection = ({
       {!artifactsQuery.loading && items.length === 0 ? (
         <EmptyStateMessage>{emptyStateMessage ?? appCopy.ui.states.noArtifactsAvailable}</EmptyStateMessage>
       ) : (
-        <ul className={uiPrimitives.listClean}>
-          {items.map((artifact) => (
-            <Surface as="li" key={artifact.artifactId}>
-              <p><strong>{artifact.artifactType}</strong> | {artifact.status}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.project, artifact.projectId)}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(artifact.updatedAt).toLocaleString())}</p>
-              <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openDetail}</Link>
-            </Surface>
-          ))}
-        </ul>
+        <div className={uiPrimitives.artifactTableWrap}>
+          <table className={uiPrimitives.artifactTable}>
+            <thead>
+              <tr>
+                <th scope="col">{appCopy.ui.labels.type}</th>
+                <th scope="col">{appCopy.ui.labels.status}</th>
+                <th scope="col">{appCopy.ui.labels.project}</th>
+                <th scope="col">{appCopy.ui.meta.updated}</th>
+                <th scope="col">{appCopy.ui.actions.openDetail}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((artifact) => {
+                const resolvedProjectName =
+                  (normalizedFixedProjectId !== null && artifact.projectId === normalizedFixedProjectId
+                    ? normalizedFixedProjectName
+                    : null)
+                  ?? projectNameById[artifact.projectId]
+                  ?? 'Progetto non disponibile';
+
+                return (
+                  <tr key={artifact.artifactId}>
+                    <td><strong>{artifact.artifactType}</strong></td>
+                    <td>{artifact.status}</td>
+                    <td>{resolvedProjectName}</td>
+                    <td>{new Date(artifact.updatedAt).toLocaleString()}</td>
+                    <td>
+                      <Link
+                        to={`/artifacts/${artifact.artifactId}`}
+                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+                      >
+                        {appCopy.ui.actions.openDetail}
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <div className={uiPrimitives.clusterRow}>
+      <div className={cx(uiPrimitives.clusterRow, uiPrimitives.artifactTablePagination)}>
         <button
           type="button"
+          className={uiPrimitives.paginationControl}
           onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           disabled={!hasPreviousPage || artifactsQuery.loading}
         >
           {appCopy.ui.actions.previousPage}
         </button>
-        <span className={uiPrimitives.metaLine}>{appCopy.ui.labels.page} {page}</span>
+
+        <div className={uiPrimitives.clusterRow}>
+          {pageNumbers.map((pageNumber) => (
+            <button
+              key={pageNumber}
+              type="button"
+              className={cx(
+                uiPrimitives.paginationControl,
+                uiPrimitives.paginationPage,
+                pageNumber === page ? uiPrimitives.paginationPageActive : null,
+              )}
+              onClick={() => setPage(pageNumber)}
+              disabled={artifactsQuery.loading}
+              aria-current={pageNumber === page ? 'page' : undefined}
+              aria-label={`${appCopy.ui.labels.page} ${pageNumber}`}
+            >
+              {pageNumber}
+            </button>
+          ))}
+        </div>
+
         <button
           type="button"
+          className={uiPrimitives.paginationControl}
           onClick={() => setPage((prev) => prev + 1)}
           disabled={!hasNextPage || artifactsQuery.loading}
         >

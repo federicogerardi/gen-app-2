@@ -88,3 +88,26 @@ Regole operative approvate:
 - [Frontend Unification Replication Guide](../specifications/frontend-unification-replication-guide.md)
 - [Frontend Tool Pages Architecture](../specifications/frontend-tool-pages-architecture-spec.md)
 - [Refactor frontend deterministic unification plan (archived snapshot)](../../99-lifecycle/99-archive/planning/refactor-frontend-deterministic-unification-1-snapshot-2026-04-27.md)
+
+## Monorepo Boundary Addendum (2026-05-06)
+
+Decision addendum aligned with the workspace standardization plan:
+
+- Repository boundaries are now explicit and deterministic:
+	- deployable apps live under `apps/*` (`apps/backend`, `apps/frontend`)
+	- shared packages live under `packages/*` (`packages/contracts`, `packages/domain`, `packages/infra-db`)
+- Frontend data-access layer ownership remains in Frontend/UI context (`apps/frontend/src/app/runtime/*` and `apps/frontend/src/features/*/runtime/*`).
+- Contract authority is centralized in `packages/contracts` and consumed by both frontend and backend.
+- Database infra ownership is centralized in `packages/infra-db` and consumed by backend workspace scripts.
+
+Deterministic phase sequencing policy:
+
+- Phase execution is strictly ordered (1 -> 2 -> 3A -> 3B -> 3C -> 4).
+- Each gate requires machine-verifiable evidence under `plan/evidence/gate-00x/`.
+- No destructive move is allowed without a prior rollback plan and rollback reference.
+
+Rollback strategy policy:
+
+- Every gate must include `rollback.md` with deterministic commands and validation checks.
+- Every gate must include `rollback-ref.txt` containing a single rollback commit reference.
+- Compatibility scripts at repository root are intentionally temporary and removed only after release-cycle evidence confirms zero fallback usage.

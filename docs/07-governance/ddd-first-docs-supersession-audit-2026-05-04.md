@@ -1,7 +1,9 @@
 ---
-status: active
+status: approved
 version: 1.0
 date_created: 2026-05-04
+last-reviewed: 2026-05-04
+next-review-date: 2026-08-04
 owner: Domain Architecture
 type: governance
 ---

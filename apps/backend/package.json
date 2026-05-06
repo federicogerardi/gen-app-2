@@ -1,0 +1,34 @@
+{
+  "name": "@gen-app-2/backend",
+  "version": "1.0.0",
+  "description": "Backend generation system",
+  "type": "commonjs",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/lib/tests/*.test.ts",
+    "test:watch": "node --import tsx --test --watch src/lib/tests/*.test.ts",
+    "start:server": "tsx src/server.ts",
+    "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations",
+    "db:seed:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/seeds",
+    "db:seed:redis:minimal": "tsx ../../packages/infra-db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",
+    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict && npm run smoke:queries",
+    "smoke:idempotency": "tsx src/lib/adapters/postgres-redis.smoke.ts",
+    "smoke:conflict": "tsx src/lib/adapters/postgres-redis.conflict.smoke.ts",
+    "smoke:queries": "tsx src/lib/adapters/postgres-redis.query.smoke.ts",
+    "go": "npm run db:migrate:minimal && npm run db:seed:minimal && npm run typecheck && npm run test",
+    "go:smoke": "npm run go && npm run test:smoke"
+  },
+  "dependencies": {
+    "@gen-app-2/contracts": "*",
+    "ioredis": "^5.8.2",
+    "mammoth": "^1.12.0",
+    "pg": "^8.16.3",
+    "typescript": "^6.0.3",
+    "xstate": "^5.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/pg": "^8.15.6",
+    "tsx": "^4.20.6"
+  }
+}

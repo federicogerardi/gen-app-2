@@ -1,0 +1,17 @@
+{
+  "name": "@gen-app-2/contracts",
+  "version": "1.0.0",
+  "description": "Shared FE↔BE contract types for generation requests, stream events, and extraction context",
+  "type": "commonjs",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

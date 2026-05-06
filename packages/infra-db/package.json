@@ -1,0 +1,22 @@
+{
+  "name": "@gen-app-2/infra-db",
+  "version": "1.0.0",
+  "description": "Database migrations, seeds, and infra scripts",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "migrate:minimal": "tsx scripts/run-sql-dir.ts migrations",
+    "seed:minimal": "tsx scripts/run-sql-dir.ts seeds",
+    "seed:redis:minimal": "tsx seeds/20260424_000002_minimal_redis_idempotency_example.ts"
+  },
+  "dependencies": {
+    "ioredis": "^5.10.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/pg": "^8.15.6",
+    "tsx": "^4.20.6",
+    "typescript": "^6.0.3"
+  }
+}

@@ -3,9 +3,9 @@ builder = "DOCKERFILE"
 dockerfilePath = "apps/frontend/Dockerfile"
 
 [deploy]
-# Railway esegue lo start dal container root (/app), non dal WORKDIR finale del Dockerfile.
-# Usiamo quindi il path esplicito al server frontend dentro il monorepo copiato nell'immagine.
-startCommand = "node apps/frontend/server.mjs"
+# Il container frontend parte gia' con WORKDIR /app/apps/frontend.
+# Lo start command deve quindi restare relativo a quella directory.
+startCommand = "node server.mjs"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

@@ -3,10 +3,13 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY . .
+
+# Install from monorepo root so workspace deps (e.g. @gen-app-2/contracts)
+# are resolved locally instead of fetched from npm registry.
 RUN npm ci
 
-COPY . .
+WORKDIR /app/apps/frontend
 
 # Railway can provide this as a build-time variable.
 ARG VITE_API_BASE_URL=

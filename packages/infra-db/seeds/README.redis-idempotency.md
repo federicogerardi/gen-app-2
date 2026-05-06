@@ -1,46 +1,49 @@
-# Minimal Redis Seed For Idempotency Smoke Tests
+# Minimal Redis Seed For IdempotencyCoordinator Smoke Tests
 
-This workspace uses the following Redis lock key shape for idempotency conflicts:
+This seed supports deterministic smoke testing of IdempotencyCoordinator behavior.
 
-`generation:idempotency:lock:{userId}:{projectId}:{endpoint}:{idempotencyKey}`
+## Redis Lock Key Shape
 
-Default seed values:
+generation:idempotency:lock:{userId}:{projectId}:{endpoint}:{idempotencyKey}
 
-- `userId`: `seed-user-001`
-- `projectId`: `seed-project-001`
-- `endpoint`: `generation`
-- `idempotencyKey`: `seed-idempotency-001`
-- `requestId`: `seed-request-001`
+## Default Seed Values
 
-Expected key created by the seed script:
+- userId: seed-user-001
+- projectId: seed-project-001
+- endpoint: generation
+- idempotencyKey: seed-idempotency-001
+- requestId: seed-request-001
 
-`generation:idempotency:lock:seed-user-001:seed-project-001:generation:seed-idempotency-001`
+Expected key:
 
-Smoke test expectations:
+generation:idempotency:lock:seed-user-001:seed-project-001:generation:seed-idempotency-001
 
-- `claimed`: no Redis lock key exists and no matching SQL row exists in `request_idempotency`.
-- `conflict`: the Redis lock key exists, so `checkAndClaim(...)` should return `idempotency_conflict`.
-- `replay`: no Redis lock key is required; instead, a matching SQL row exists in `request_idempotency` with `status = 'completed'`, a non-null `artifact_id`, and persisted `content`.
+## Expected IdempotencyDecision Outcomes
 
-Run the seed script with:
+- claimed: no Redis lock key and no matching request_idempotency SQL row
+- conflict: lock key exists; claim attempt must return conflict outcome
+- replay: completed SQL row exists with artifact reference and persisted content
 
-`npm run db:seed:redis:minimal`
+## Run
 
-Required environment:
+```bash
+npm run db:seed:redis:minimal
+```
 
-- `REDIS_URL`
+## Required Environment
 
-Upstash notes:
+- REDIS_URL
 
-- Use the TCP/TLS URL format (`rediss://...`) for ioredis scripts.
-- REST credentials are not used by this seed script.
+## Upstash Note
 
-Optional overrides:
+Use the TCP/TLS connection URL (rediss://...) for ioredis-compatible scripts. REST credentials are not used by this seed.
 
-- `IDEMPOTENCY_REDIS_KEY_PREFIX`
-- `IDEMPOTENCY_SEED_USER_ID`
-- `IDEMPOTENCY_SEED_PROJECT_ID`
-- `IDEMPOTENCY_SEED_ENDPOINT`
-- `IDEMPOTENCY_SEED_KEY`
-- `IDEMPOTENCY_SEED_REQUEST_ID`
-- `IDEMPOTENCY_SEED_TTL_SECONDS`
+## Optional Overrides
+
+- IDEMPOTENCY_REDIS_KEY_PREFIX
+- IDEMPOTENCY_SEED_USER_ID
+- IDEMPOTENCY_SEED_PROJECT_ID
+- IDEMPOTENCY_SEED_ENDPOINT
+- IDEMPOTENCY_SEED_KEY
+- IDEMPOTENCY_SEED_REQUEST_ID
+- IDEMPOTENCY_SEED_TTL_SECONDS

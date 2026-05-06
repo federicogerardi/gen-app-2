@@ -1,94 +1,88 @@
-# Frontend Generation UI
+# apps/frontend
 
-Frontend React + XState v5 che consuma il backend as-is:
+Frontend/UI bounded context runtime.
 
-- stream POST /generation/stream con parser SSE start/chunk/terminal
-- auth cookie routes: /auth/login, /auth/logout, /auth/session
-- Google OAuth start link: /auth/google/start
+Package: gen-app-2-frontend
 
-## Variabili d'ambiente server-side (frontend/server.mjs)
+## Domain Role
 
-Queste variabili sono lette solo dal server Node (`server.mjs`) e **non** sono esposte nel bundle Vite:
+The frontend owns interaction and presentation authority through ToolPage.
 
-| Variabile | Obbligatoria | Default locale | Valore produzione Railway |
-|---|---|---|---|
-| `BACKEND_INTERNAL_URL` | Sì (produzione) | `http://localhost:3000` | `http://<backend-service-name>.railway.internal:<backend-port>` |
-| `PORT` | No | `3000` | Impostata automaticamente da Railway |
-| `NODE_ENV` | No | `development` | `production` |
+- Computes ReadinessSnapshot and ReadinessReasonCode.
+- Manages ToolStep progression for each SupportedTool.
+- Drives BriefingUpload and local StepHydration projection.
+- Consumes BackendStreamEvent from the backend.
 
-**Fail-fast**: se `NODE_ENV=production` e `BACKEND_INTERNAL_URL` non è impostata, il processo termina con `process.exit(1)` al bootstrap.
+The frontend does not own backend domain execution. It orchestrates user flow and sends canonical GenerationRequest payloads.
 
-Copiare `frontend/.env.example` in `frontend/.env.local` per lo sviluppo locale.
+UI is a projection, not a parliament.
 
-## Railway: Build vs Runtime variables
+<!-- bomberto-egg-03 cipher:reverse asrebs -->
 
-`VITE_*` viene letto da Vite al momento della build e viene incorporato nel bundle statico.
+## Runtime Surfaces
 
-- Impostare `VITE_CAP_PROJECTS`, `VITE_CAP_ARTIFACTS`, `VITE_CAP_TOOLS_UPLOAD`, `VITE_CAP_MODELS`, `VITE_CAP_ADMIN_MODELS` come **Build Variables** del servizio frontend Railway.
-- `BACKEND_INTERNAL_URL` resta una **Runtime Variable** del server Node (`server.mjs`).
+- src/: React + XState application
+- server.mjs: same-origin frontend runtime and proxy layer
+- vite.config.ts: build pipeline
 
-Esempio produzione: `BACKEND_INTERNAL_URL=http://<backend-service>.railway.internal:<port>`.
+## Backend Proxy Contract
 
-Se `VITE_CAP_PROJECTS` viene impostata solo a runtime, il frontend continuerà a vedere capability disabilitata nel bundle già buildato.
+server.mjs proxies these paths to BACKEND_INTERNAL_URL:
 
-## Avvio
+- /auth/*
+- /generation/*
+- /api/*
+- /admin/users/*
 
-1. Installazione dipendenze:
+The backend remains private from browser direct access.
 
-```bash
-npm --prefix frontend install
-```
+## Environment Variables
 
-2. Avvio dev server:
+Variables read by server.mjs only:
 
-```bash
-npm --prefix frontend run dev
-```
+| Variable | Required | Local default | Production intent |
+| --- | --- | --- | --- |
+| BACKEND_INTERNAL_URL | Yes in production | http://localhost:3000 | Railway private-network backend URL |
+| PORT | No | 3000 | Provided by platform |
+| NODE_ENV | No | development | production |
 
-3. Avvio server di produzione locale (con proxy verso backend locale):
+Fail-fast behavior: when NODE_ENV=production, missing BACKEND_INTERNAL_URL stops startup.
 
-```bash
-BACKEND_INTERNAL_URL=http://localhost:3000 node frontend/server.mjs
-```
+Build-time capability flags (Vite):
 
-Il server espone:
-- `GET /health` → risposta locale
-- `/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*` → proxy verso `BACKEND_INTERNAL_URL`
-- asset statici da `dist/`
-- SPA fallback `dist/index.html`
+- VITE_CAP_PROJECTS
+- VITE_CAP_ARTIFACTS
+- VITE_CAP_TOOLS_UPLOAD
+- VITE_CAP_MODELS
+- VITE_CAP_ADMIN_MODELS
 
-## Build
+Important: VITE_* values are build-time inputs, not runtime toggles.
 
-```bash
-npm --prefix frontend run build
-```
+## Local Development
 
-Produce `frontend/dist`. Su Railway il build avviene nel Dockerfile; `server.mjs` viene avviato direttamente con `node server.mjs`.
-
-## Capability Flags
-
-Il frontend usa flag runtime `VITE_CAP_*` per attivare/disattivare i moduli backend-dipendenti.
-
-Esempio `.env.local`:
+From repository root:
 
 ```bash
-VITE_CAP_PROJECTS=true
-VITE_CAP_ARTIFACTS=true
-VITE_CAP_TOOLS_UPLOAD=true
-
-# opzionali
-VITE_CAP_MODELS=false
-VITE_CAP_ADMIN_MODELS=false
+npm install
+npm --workspace apps/frontend run dev
 ```
 
-Note:
-
-- `VITE_CAP_TOOLS_UPLOAD=true` abilita il flusso upload/extraction dal form tool (endpoint `POST /api/tools/briefs`).
-- Se `VITE_CAP_TOOLS_UPLOAD=false`, il pulsante di processamento brief resta disabilitato e il frontend non chiama endpoint tools.
-
-## Verifica
+Local production-like server:
 
 ```bash
-npm --prefix frontend run typecheck
-npm --prefix frontend run test
+npm --workspace apps/frontend run build
+BACKEND_INTERNAL_URL=http://localhost:3000 node apps/frontend/server.mjs
 ```
+
+## Validation
+
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run test
+```
+
+## DDD References
+
+1. ../../docs/01-requirements/domain-ubiquitous-language-glossary.md
+2. ../../docs/02-design/domain-bounded-context-map.md
+3. ../../docs/07-governance/domain-naming-decision-log.md

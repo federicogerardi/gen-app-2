@@ -17,6 +17,7 @@ export const isSupportedToolWorkflow = (value: string): value is SupportedToolWo
 /**
  * Canonical dependency-graph plan for a ToolWorkflow.
  * Exported so generation-system.machine.ts can import instead of defining locally.
+ * `dependencyGraph` is always derived from `steps[*].dependencies` via `buildWorkflowPlan`.
  */
 export type ToolWorkflowPlan = {
   toolKey: SupportedToolWorkflow;
@@ -25,35 +26,35 @@ export type ToolWorkflowPlan = {
 };
 
 /**
+ * Builds a `ToolWorkflowPlan` from `toolKey` and `steps`, deriving `dependencyGraph`
+ * automatically from `steps[*].dependencies` so the two cannot diverge.
+ */
+const buildWorkflowPlan = (
+  toolKey: SupportedToolWorkflow,
+  steps: WorkflowStepDescriptor[],
+): ToolWorkflowPlan => ({
+  toolKey,
+  steps,
+  dependencyGraph: Object.fromEntries(steps.map((s) => [s.key, s.dependencies])),
+});
+
+/**
  * Registry of all supported ToolWorkflow plans.
  * Single source of truth for step ordering and dependency graphs in the backend.
  * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
+ *
+ * `dependencyGraph` is derived from `steps` by `buildWorkflowPlan` — do not add it manually.
  */
 export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowPlan> = {
-  'funnel-pages': {
-    toolKey: 'funnel-pages',
-    steps: [
-      { key: 'optin', dependencies: [] },
-      { key: 'quiz', dependencies: ['optin'] },
-      { key: 'vsl', dependencies: ['optin', 'quiz'] },
-    ],
-    dependencyGraph: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
-  },
-  nextland: {
-    toolKey: 'nextland',
-    steps: [
-      { key: 'landing', dependencies: [] },
-      { key: 'thank_you', dependencies: ['landing'] },
-    ],
-    dependencyGraph: {
-      landing: [],
-      thank_you: ['landing'],
-    },
-  },
+  'funnel-pages': buildWorkflowPlan('funnel-pages', [
+    { key: 'optin', dependencies: [] },
+    { key: 'quiz', dependencies: ['optin'] },
+    { key: 'vsl', dependencies: ['optin', 'quiz'] },
+  ]),
+  nextland: buildWorkflowPlan('nextland', [
+    { key: 'landing', dependencies: [] },
+    { key: 'thank_you', dependencies: ['landing'] },
+  ]),
 };
 
 /**

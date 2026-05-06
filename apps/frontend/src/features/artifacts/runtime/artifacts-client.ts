@@ -223,7 +223,9 @@ export const listArtifacts = async (
     );
 
     const list = Array.isArray(payload) ? payload : (payload.data?.artifacts ?? []);
-    const totalResults = Array.isArray(payload) ? list.length : (payload.data?.totalResults ?? 0);
+    const totalResults = Array.isArray(payload)
+      ? list.length
+      : (payload.data?.totalResults ?? list.length);
     return {
       artifacts: list.map(toGenerationArtifact),
       totalResults,

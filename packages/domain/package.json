@@ -1,0 +1,10 @@
+{
+  "name": "@gen-app-2/domain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "Shared domain package placeholder",
+  "scripts": {
+    "typecheck": "echo 'No sources yet'"
+  }
+}

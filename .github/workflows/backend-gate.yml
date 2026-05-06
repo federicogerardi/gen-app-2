@@ -5,20 +5,22 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
-      - 'db/**'
+      - 'apps/backend/**'
+      - 'packages/infra-db/**'
+      - 'packages/contracts/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'tsconfig.json'
+      - 'apps/backend/tsconfig.json'
   push:
     branches:
       - main
     paths:
-      - 'src/**'
-      - 'db/**'
+      - 'apps/backend/**'
+      - 'packages/infra-db/**'
+      - 'packages/contracts/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'tsconfig.json'
+      - 'apps/backend/tsconfig.json'
 
 jobs:
   backend-gate:
@@ -40,7 +42,7 @@ jobs:
         run: npm ci
 
       - name: TypeScript typecheck
-        run: npm run typecheck
+        run: npm --workspace apps/backend run typecheck
 
       - name: Run tests
-        run: npm run test
+        run: npm --workspace apps/backend run test

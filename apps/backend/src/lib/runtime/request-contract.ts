@@ -3,7 +3,7 @@ import type {
   RequestReceivedEvent,
   ValidationOkEvent,
 } from '../types/xstate';
-import type { OutputFormat } from '../types/artifact';
+import type { GenerationRequest, OutputFormat } from '@gen-app-2/contracts';
 import { resolveToolPrompt } from './tool-prompts';
 
 /**
@@ -13,23 +13,7 @@ import { resolveToolPrompt } from './tool-prompts';
  * Both types must remain structurally identical; validate with the type-parity guard.
  * DDD canonical term: GenerationRequest (DDD-002).
  */
-export type BackendGenerationRequest = {
-  requestId: string;
-  userId: string;
-  projectId: string;
-  artifactType: RequestReceivedEvent['artifactType'];
-  model: string;
-  input: Record<string, unknown>;
-  toolKey?: string | null;
-  workflowType?: string | null;
-  idempotencyKey?: string;
-  outputFormat?: OutputFormat;
-  registryVersion?: string;
-  registrySnapshotRef?: string;
-  briefingId?: string | null;
-  extractionArtifactId?: string | null;
-  stepDependencyArtifactIds?: string[] | null;
-};
+export type BackendGenerationRequest = GenerationRequest;
 
 const toOptionalId = (value: unknown): string | null => {
   if (typeof value !== 'string') {

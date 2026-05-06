@@ -32,7 +32,7 @@ XState v5 is the primary orchestration mechanism in both contexts. Actors map 1:
 
 ### Generation Context — backend actors
 
-Root: `GenerationSystem` (`src/lib/machines/generation-system.machine.ts`)
+Root: `GenerationSystem` (`apps/backend/src/lib/machines/generation-system.machine.ts`)
 
 | Actor (machine file) | Domain Service / Command | Responsibility |
 | --- | --- | --- |
@@ -46,7 +46,7 @@ Root: `GenerationSystem` (`src/lib/machines/generation-system.machine.ts`)
 
 ### Frontend/UI Context — frontend actors
 
-Root: `ToolPage` (`frontend/src/features/tools/machines/tool-page.machine.ts`)
+Root: `ToolPage` (`apps/frontend/src/features/tools/machines/tool-page.machine.ts`)
 
 | Actor (machine file) | Domain Service / Value Object | Responsibility |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ Root: `ToolPage` (`frontend/src/features/tools/machines/tool-page.machine.ts`)
 ```text
 Browser (React + XState — Frontend/UI context)
     -> HTTPS same-origin
-Frontend Runtime (Node — frontend/server.mjs)
+Frontend Runtime (Node — apps/frontend/server.mjs)
     -> static assets / SPA fallback
     -> HTTP proxy (Railway private network)
 Backend Runtime (Node + TypeScript — Generation, Auth, Usage/Quota contexts)
@@ -89,7 +89,7 @@ Backend Runtime (Node + TypeScript — Generation, Auth, Usage/Quota contexts)
     -> Redis       (IdempotencyKey claims, real-time MonthlyQuota enforcement)
 ```
 
-`frontend/server.mjs` proxies `/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*` to the backend over Railway private network. The backend is not directly reachable from the browser.
+`apps/frontend/server.mjs` proxies `/auth/*`, `/generation/*`, `/api/*`, `/admin/users/*` to the backend over Railway private network. The backend is not directly reachable from the browser.
 
 ---
 
@@ -97,15 +97,16 @@ Backend Runtime (Node + TypeScript — Generation, Auth, Usage/Quota contexts)
 
 | Path | Bounded Context | Contents |
 | --- | --- | --- |
-| `src/lib/machines/` | Generation | XState actors: `GenerationSystem` and all domain services |
-| `src/lib/adapters/` | Generation, Auth, Usage/Quota | Infrastructure adapters (PostgreSQL, Redis, LLM) |
-| `src/lib/runtime/` | Auth | HTTP/session runtime wiring |
-| `src/lib/types/` | all | Canonical TypeScript types for all bounded context value objects |
-| `frontend/src/features/tools/machines/` | Frontend/UI | `ToolPage`, `BriefingUpload`, `ToolFlow` actors |
-| `frontend/src/features/generation/` | Frontend/UI ↔ Generation | `frontendStreamMachine`, `GenerationRequest` contracts, `BackendStreamEvent`, `StepHydration` |
-| `frontend/src/features/generation/ui/` | Frontend/UI | `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags` |
-| `frontend/src/app/` | Frontend/UI | UI primitives, layout, providers |
-| `db/migrations/` | all | Evolutionary SQL schema (`artifacts`, `quota_history`, `projects`, `users`, `auth_sessions`) |
+| `apps/backend/src/lib/machines/` | Generation | XState actors: `GenerationSystem` and all domain services |
+| `apps/backend/src/lib/adapters/` | Generation, Auth, Usage/Quota | Infrastructure adapters (PostgreSQL, Redis, LLM) |
+| `apps/backend/src/lib/runtime/` | Auth | HTTP/session runtime wiring |
+| `apps/backend/src/lib/types/` | all | Canonical TypeScript types for all bounded context value objects |
+| `apps/frontend/src/features/tools/machines/` | Frontend/UI | `ToolPage`, `BriefingUpload`, `ToolFlow` actors |
+| `apps/frontend/src/features/generation/` | Frontend/UI ↔ Generation | `frontendStreamMachine`, `GenerationRequest` contracts, `BackendStreamEvent`, `StepHydration` |
+| `apps/frontend/src/features/generation/ui/` | Frontend/UI | `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags` |
+| `apps/frontend/src/app/` | Frontend/UI | UI primitives, layout, providers |
+| `packages/contracts/src/` | Generation ↔ Frontend/UI | Shared FE/BE contracts (`GenerationRequest`, `BackendStreamEvent`) |
+| `packages/infra-db/migrations/` | all | Evolutionary SQL schema (`artifacts`, `quota_history`, `projects`, `users`, `auth_sessions`) |
 | `docs/` | — | DDD references, specs, ADRs, governance, lifecycle archive |
 | `plan/` | — | Active implementation plans |
 
@@ -117,22 +118,22 @@ Backend:
 
 ```bash
 npm install
-npm run db:migrate:minimal
-npm run start:server
+npm --workspace apps/backend run db:migrate:minimal
+npm --workspace apps/backend run start:server
 ```
 
 Frontend (local dev — Vite):
 
 ```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
+npm install
+npm --workspace apps/frontend run dev
 ```
 
 Frontend (production local — server.mjs with proxy):
 
 ```bash
-npm --prefix frontend run build
-BACKEND_INTERNAL_URL=http://localhost:3000 node frontend/server.mjs
+npm --workspace apps/frontend run build
+BACKEND_INTERNAL_URL=http://localhost:3000 node apps/frontend/server.mjs
 ```
 
 ---

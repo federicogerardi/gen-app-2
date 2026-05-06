@@ -1,0 +1,127 @@
+/**
+ * Shared FE↔BE Contract Types
+ *
+ * This is the single authoritative source for cross-context generation contracts:
+ * - GenerationRequest: command to initiate a generation
+ * - BackendStreamEvent: SSE events during generation
+ * - Value Objects: ArtifactType, OutputFormat
+ *
+ * Both frontend and backend import exclusively from this package.
+ * Structural parity is enforced via compile-time guards.
+ *
+ * DDD canonical terms:
+ *   - GenerationRequest (DDD-002)
+ *   - BackendStreamEvent (DDD-009)
+ *   - ArtifactType (DDD-001 scope)
+ *   - OutputFormat (DDD-022 scope)
+ *
+ * References:
+ *   - DDD-023: @gen-app-2/contracts is the single authoritative FE source
+ *   - Frontend consumer: frontend/src/features/generation/contracts/backend-stream.ts
+ *   - Backend authority: src/lib/runtime/request-contract.ts, stream-contract.ts
+ */
+
+// =====================================================================
+// Value Objects
+// =====================================================================
+
+/**
+ * Canonical artifact type classifier.
+ * DDD-001: Artifact is the canonical term; ArtifactType determines output handling.
+ */
+export type ArtifactType = 'content' | 'seo' | 'code' | 'extraction';
+
+/**
+ * Output formatting contract for streamed response.
+ */
+export type OutputFormat = 'plain' | 'json' | 'markdown';
+
+// =====================================================================
+// Domain Commands
+// =====================================================================
+
+/**
+ * Canonical generation request command.
+ *
+ * Initiates a generation workflow. Carries request identity, user context, artifact metadata,
+ * and tool-specific routing information.
+ *
+ * DDD-002: GenerationRequest is the canonical term for the command that initiates generation.
+ * DDD-021: ExtractionContext (input.extractionPayload + briefingText) is mandatory at dispatch time.
+ *
+ * Fields:
+ *   - requestId: Unique identifier for deduplication and stream correlation
+ *   - userId: Authenticated user (from AuthSessionPrincipal)
+ *   - projectId: Scoping boundary for quota and artifact history
+ *   - artifactType: Determines output handling and agent selection (DDD-001)
+ *   - model: LLM model identifier
+ *   - input: Extraction context, tone, prompt, and tool-specific payloads
+ *   - toolKey: Tool orchestration identifier (DDD-025); kebab-case (e.g., "funnel-pages")
+ *   - workflowType: Artifact routing determinant (snake_case for DB compat; e.g., "funnel_pages")
+ *   - idempotencyKey: Optional deduplication token (DDD-019)
+ *   - outputFormat: Formatting contract for SSE stream (default: 'plain')
+ *   - registryVersion, registrySnapshotRef: Registry snapshot binding
+ *   - briefingId: Optional prior extraction artifact ID for multi-step context
+ *   - extractionArtifactId: Optional prior extraction artifact ID for context recovery
+ *   - stepDependencyArtifactIds: Prior step artifact IDs for multi-step workflow
+ */
+export type GenerationRequest = {
+  requestId: string;
+  userId: string;
+  projectId: string;
+  artifactType: ArtifactType;
+  model: string;
+  input: Record<string, unknown>;
+  toolKey?: string | null;
+  workflowType?: string | null;
+  idempotencyKey?: string;
+  outputFormat?: OutputFormat;
+  registryVersion?: string;
+  registrySnapshotRef?: string;
+  briefingId?: string | null;
+  extractionArtifactId?: string | null;
+  stepDependencyArtifactIds?: string[] | null;
+};
+
+// =====================================================================
+// Domain Events
+// =====================================================================
+
+/**
+ * Server-Sent Event emitted during generation.
+ *
+ * Types:
+ *   - start: Generation initiated, artifact created
+ *   - chunk: Incremental content token streamed
+ *   - terminal: Generation completed or failed
+ *
+ * DDD-009: BackendStreamEvent is the canonical term for SSE events.
+ * DDD-035, DDD-036: See domain events for step-level progression events (internal).
+ */
+export type BackendStreamEvent =
+  | {
+      event: 'start';
+      data: { requestId: string; artifactId: string };
+    }
+  | {
+      event: 'chunk';
+      data: { artifactId: string; chunk: string; sequence: number };
+    }
+  | {
+      event: 'terminal';
+      data: {
+        artifactId: string | null;
+        status: 'completed' | 'failed';
+        reason: string | null;
+        completedStep?: string | null;
+        failedStep?: string | null;
+      };
+    };
+
+/**
+ * Serialize a BackendStreamEvent for SSE wire transport.
+ */
+export const serializeSseEvent = (event: BackendStreamEvent): string => {
+  return `event: ${event.event}\ndata: ${JSON.stringify(event.data)}\n\n`;
+};
+

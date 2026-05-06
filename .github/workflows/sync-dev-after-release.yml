@@ -72,6 +72,15 @@ jobs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "reason=trees match and reset is safe" >> "$GITHUB_OUTPUT"
 
+      - name: Check compatibility scripts policy
+        run: |
+          set -euo pipefail
+          if grep -q '"backend:go"' package.json; then
+            echo "Compatibility scripts still present in package.json (expected until release-cycle evidence is complete)."
+          else
+            echo "Compatibility scripts not found in package.json."
+          fi
+
       - name: Skip sync
         if: steps.evaluate.outputs.skip == 'true'
         run: |

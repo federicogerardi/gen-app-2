@@ -15,7 +15,7 @@ owner: Frontend Platform Team
 > - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions DDD-004, DDD-006, DDD-028 (Frontend terms)
 
 **Data**: 2026-04-28  
-**Radice sorgente**: `frontend/src/`  
+**Radice sorgente**: `apps/frontend/src/`  
 **Stack**: React 19.2 + TypeScript + XState v5 + Vite
 
 ---
@@ -66,13 +66,13 @@ Fonte di verita visuale:
 
 ### Layer grafico condiviso
 
-- `frontend/src/app/ui/primitives.tsx` e la fonte canonica delle primitive React riusabili (`Surface`, `Shell`, `TopBar`, `Button`) e dei token di classe (`uiPrimitives`).
-- `frontend/src/styles.css` implementa i token CSS globali e gli alias `.ui-*` che danno forma visiva alle primitive.
+- `apps/frontend/src/app/ui/primitives.tsx` e la fonte canonica delle primitive React riusabili (`Surface`, `Shell`, `TopBar`, `Button`) e dei token di classe (`uiPrimitives`).
+- `apps/frontend/src/styles.css` implementa i token CSS globali e gli alias `.ui-*` che danno forma visiva alle primitive.
 - Le pagine non devono introdurre naming CSS ad hoc per pannelli, shell, navigation, card, meta line e action group se esiste gia un token nel registry UI.
 
 ### Layer copy condiviso
 
-- `frontend/src/app/copy/system.ts` e la fonte canonica di tutto il testo utente centralizzato.
+- `apps/frontend/src/app/copy/system.ts` e la fonte canonica di tutto il testo utente centralizzato.
 - Il modulo separa due domini:
   - `appCopy.ui`: microcopy operativo, label, CTA, stati, fallback error, option label, badge e navigation.
   - `appCopy.editorial`: tono di prodotto, headline, body copy e framing editoriale delle pagine.
@@ -86,9 +86,9 @@ Fonte di verita visuale:
 ### Delta sessione 2026-04-28
 
 - Tema UI:
-  - introdotto `ThemeProvider` (`frontend/src/app/providers/ThemeProvider.tsx`) con persistenza `localStorage` e fallback `prefers-color-scheme`.
-  - introdotto toggle tema icon-only (`frontend/src/app/ui/ThemeToggleButton.tsx`) in shell pubblica e autenticata.
-  - consolidato il tema dark tramite override token in `frontend/src/styles.css` (`:root[data-theme='dark']`).
+  - introdotto `ThemeProvider` (`apps/frontend/src/app/providers/ThemeProvider.tsx`) con persistenza `localStorage` e fallback `prefers-color-scheme`.
+  - introdotto toggle tema icon-only (`apps/frontend/src/app/ui/ThemeToggleButton.tsx`) in shell pubblica e autenticata.
+  - consolidato il tema dark tramite override token in `apps/frontend/src/styles.css` (`:root[data-theme='dark']`).
   - rimosse tutte le transizioni globali: switch tema immediato senza fading.
 
 - Artifact detail UX:
@@ -162,7 +162,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 ### Transport HTTP condiviso
 
-- `frontend/src/app/runtime/http-client.ts` e la fonte canonica per:
+- `apps/frontend/src/app/runtime/http-client.ts` e la fonte canonica per:
   - `joinApiPath()`
   - `requestJson()`
   - `requestVoid()`
@@ -172,13 +172,13 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 ### Registry endpoint condiviso
 
-- `frontend/src/app/runtime/api-paths.ts` e la fonte unica di verita per endpoint auth, generation, tools, projects, artifacts e admin.
+- `apps/frontend/src/app/runtime/api-paths.ts` e la fonte unica di verita per endpoint auth, generation, tools, projects, artifacts e admin.
 - Le pagine production non devono contenere endpoint hardcoded.
 - Il capability gating resta centralizzato in `api-paths.ts` e nei runtime client.
 
 ### Query hooks condivisi
 
-- `frontend/src/app/runtime/queries/` centralizza il pattern list/detail per pagine data-driven.
+- `apps/frontend/src/app/runtime/queries/` centralizza il pattern list/detail per pagine data-driven.
 - Hook attivi:
   - `useProjectsQuery`
   - `useProjectDetailQuery`
@@ -198,7 +198,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 ### Componenti shared per stati pagina
 
-- `frontend/src/app/ui/primitives.tsx` include ora componenti dedicati per uniformare gli stati standard di pagina:
+- `apps/frontend/src/app/ui/primitives.tsx` include ora componenti dedicati per uniformare gli stati standard di pagina:
   - `LoadingStateMessage`
   - `ErrorStateMessage`
   - `EmptyStateMessage`
@@ -206,7 +206,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 ### Debug HTTP opzionale
 
-- `frontend/src/app/runtime/http-client.ts` supporta debug opzionale per richieste fallite tramite `VITE_DEBUG_HTTP_CLIENT=true`.
+- `apps/frontend/src/app/runtime/http-client.ts` supporta debug opzionale per richieste fallite tramite `VITE_DEBUG_HTTP_CLIENT=true`.
 - Il debug logga solo metadati tecnici minimi:
   - metodo
   - URL
@@ -249,7 +249,7 @@ Per la procedura completa vedere [frontend-unification-replication-guide.md](./f
 
 ### Interventi di copy
 
-1. Prima cercare il testo in `frontend/src/app/copy/system.ts`.
+1. Prima cercare il testo in `apps/frontend/src/app/copy/system.ts`.
 2. Se il testo descrive una meccanica UI o uno stato di sistema, inserirlo in `appCopy.ui`.
 3. Se il testo definisce tono, posizionamento o narrativa di pagina, inserirlo in `appCopy.editorial`.
 4. Evitare stringhe utente hardcoded nei componenti, inclusi empty state, error fallback, CTA, intestazioni e option label ripetute.
@@ -542,7 +542,7 @@ Response (HTTP 200):
 
 ## Backend capability matrix
 
-Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite `BackendCapabilities` (`frontend/src/app/runtime/backend-capabilities.ts`). Quando una capability non è disponibile, il modulo usa un adapter con fallback deterministico ai dati locali.
+Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite `BackendCapabilities` (`apps/frontend/src/app/runtime/backend-capabilities.ts`). Quando una capability non è disponibile, il modulo usa un adapter con fallback deterministico ai dati locali.
 
 | Capability | Flag env (`VITE_CAP_*`) | Endpoint backend | Fallback locale |
 |---|---|---|---|

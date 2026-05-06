@@ -41,7 +41,6 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | 02-design | [frontend-spec](./02-design/specifications/frontend-spec.md) | Frontend Platform Team |
 | 03-development | [03-development](./03-development/) | Engineering Team |
 | 04-testing | [04-testing](./04-testing/) | QA + Engineering Team |
-| 05-ops | [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | Platform/DevOps |
 | 06-user | [06-user](./06-user/) | Product + UX |
 | 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist |
 | 07-governance | [ddd-first-docs-supersession-audit-2026-05-04](./07-governance/ddd-first-docs-supersession-audit-2026-05-04.md) | Domain Architecture |
@@ -55,7 +54,6 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-03 | 2026-08-03 |
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-03 | 2026-08-03 |
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
-| [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) | approved | 2026-05-01 | 2026-08-01 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 | [tools-generation-go-closure-2026-04-25](./99-lifecycle/99-archive/tools-generation-go-closure-2026-04-25.md) | archived | 2026-04-27 | N/A |
 
@@ -79,7 +77,6 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
-- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) (operational)
 
 **[Archived technical specs (DDD-superseded)](./99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/)**: XState machine specifications, checklists, and contracts (19 files) moved to archive 2026-05-04. All domain concepts captured in canonical UL glossary, BCM, and visual diagrams.
 
@@ -128,6 +125,7 @@ Indice operativo as-is ottimizzato per scansione AI: contenuto deduplicato, sezi
 
 ### Archive Buckets
 
+- [deployment-architecture-guide-snapshot-2026-05-07](./99-lifecycle/99-archive/deployment-architecture-guide-snapshot-2026-05-07.md) — Railway deployment architecture, private-network same-origin topology. Archived 2026-05-07; superseded by operational runbooks in active infrastructure documentation.
 - [xstate-system-as-is-2026-05-04](./99-lifecycle/99-archive/xstate-system-as-is-2026-05-04/) — XState technical specs (19 files) archived per DDD-first transition (2026-05-04)
 - [planning archive](./99-lifecycle/99-archive/planning/) — 14 piani completati/superseded
 - [code-review archive](./99-lifecycle/99-archive/code-review/) — [auth-role-coherence-review](./99-lifecycle/99-archive/code-review/2026-04-28-auth-role-coherence-review.md) (closed 2026-04-28)

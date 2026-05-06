@@ -37,11 +37,11 @@ tra Blocco A (rimozione meta_ads dall'enum) e tutti i test che usano meta_ads co
   è out-of-scope.
 - **REQ-005**: Tutte le occorrenze legacy rimosse devono essere sostituite con il termine
   canonico corrispondente, non semplicemente eliminate.
-- **CON-001**: Gli alias backward-compat in `src/lib/types/xstate.ts` e in
-  `src/lib/adapters/generation.adapters.ts` (Blocco E) NON devono essere rimossi prima che
+- **CON-001**: Gli alias backward-compat in `apps/backend/src/lib/types/xstate.ts` e in
+  `apps/backend/src/lib/adapters/generation.adapters.ts` (Blocco E) NON devono essere rimossi prima che
   sia confermato che nessun consumer esterno li usa. Removal target già fissato a 2026-Q3
   (DDD-016, DDD-017).
-- **CON-002**: Il prompt directory `src/lib/runtime/tool-prompts/hl_funnel/` non può essere
+- **CON-002**: Il prompt directory `apps/backend/src/lib/runtime/tool-prompts/hl_funnel/` non può essere
   rinominato senza aggiornare contestualmente i path in `tool-prompts/index.ts` e i test
   associati. La rinomina è opzionale e separata dalla normalizzazione delle stringhe di routing.
 - **GUD-001**: Seguire l'ordine dei blocchi: A → B → C → D → E. I Blocchi A e C possono
@@ -62,14 +62,14 @@ tra Blocco A (rimozione meta_ads dall'enum) e tutti i test che usano meta_ads co
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-A-001 | In `src/lib/types/artifact.ts` riga 24: rimuovere `'meta_ads'` dall'array `TOOL_WORKFLOWS`. La riga corrente è `export const TOOL_WORKFLOWS = ['meta_ads', 'funnel_pages', 'nextland', 'extraction'] as const;` → diventa `export const TOOL_WORKFLOWS = ['funnel_pages', 'nextland', 'extraction'] as const;`. Aggiornare il commento JSDoc per riflettere la rimozione. | | |
-| TASK-A-002 | In `frontend/src/features/generation/ui/GenerationForm.tsx` righe 78-79: sostituire `useState('meta_ads')` con `useState('funnel_pages')` per `workflowType` e `useState('funnel-pages')` per `toolKey`. Questo allinea il form console ai valori canonici attivi. | | |
-| TASK-A-003 | In `frontend/src/features/generation/ui/artifact-history.test.ts` righe 19-20, 31-32, 145-146, 149-150: sostituire tutte le fixture `toolKey: 'meta_ads'` e `workflowType: 'meta_ads'` con `toolKey: 'funnel-pages'` e `workflowType: 'funnel_pages'`. Verificare che i test che usano `buildToolEntryPathFromArtifact(unsupported, 'resume')` continuino ad attestare `null` (il fixture "unsupported" va aggiornato a usare un ToolKey senza route, per esempio `workflowType: 'extraction'`). | | |
-| TASK-A-004 | In `frontend/src/features/generation/ui/tool-checkpoints.test.ts` righe 17-18: sostituire `workflowType: 'meta_ads'` con `workflowType: 'funnel_pages'` e `toolKey: 'meta_ads'` con `toolKey: 'funnel-pages'`. | | |
-| TASK-A-005 | In `frontend/src/features/generation/ui/GenerationForm.test.tsx` riga 20: sostituire `toolKey: 'meta_ads'` con `toolKey: 'funnel-pages'`. | | |
+| TASK-A-001 | In `apps/backend/src/lib/types/artifact.ts` riga 24: rimuovere `'meta_ads'` dall'array `TOOL_WORKFLOWS`. La riga corrente è `export const TOOL_WORKFLOWS = ['meta_ads', 'funnel_pages', 'nextland', 'extraction'] as const;` → diventa `export const TOOL_WORKFLOWS = ['funnel_pages', 'nextland', 'extraction'] as const;`. Aggiornare il commento JSDoc per riflettere la rimozione. | | |
+| TASK-A-002 | In `apps/frontend/src/features/generation/ui/GenerationForm.tsx` righe 78-79: sostituire `useState('meta_ads')` con `useState('funnel_pages')` per `workflowType` e `useState('funnel-pages')` per `toolKey`. Questo allinea il form console ai valori canonici attivi. | | |
+| TASK-A-003 | In `apps/frontend/src/features/generation/ui/artifact-history.test.ts` righe 19-20, 31-32, 145-146, 149-150: sostituire tutte le fixture `toolKey: 'meta_ads'` e `workflowType: 'meta_ads'` con `toolKey: 'funnel-pages'` e `workflowType: 'funnel_pages'`. Verificare che i test che usano `buildToolEntryPathFromArtifact(unsupported, 'resume')` continuino ad attestare `null` (il fixture "unsupported" va aggiornato a usare un ToolKey senza route, per esempio `workflowType: 'extraction'`). | | |
+| TASK-A-004 | In `apps/frontend/src/features/generation/ui/tool-checkpoints.test.ts` righe 17-18: sostituire `workflowType: 'meta_ads'` con `workflowType: 'funnel_pages'` e `toolKey: 'meta_ads'` con `toolKey: 'funnel-pages'`. | | |
+| TASK-A-005 | In `apps/frontend/src/features/generation/ui/GenerationForm.test.tsx` riga 20: sostituire `toolKey: 'meta_ads'` con `toolKey: 'funnel-pages'`. | | |
 | TASK-A-006 | Eseguire `npm run typecheck` e `npm --prefix frontend run typecheck`. Verificare zero errori nuovi. Eseguire `npm --prefix frontend run test` e `npm run test` (o equivalente). Registrare la baseline. | | |
 
-**Gate A**: nessuna occorrenza di `meta_ads` in `src/` o `frontend/src/` eccetto nei file di
+**Gate A**: nessuna occorrenza di `meta_ads` in `apps/backend/src/` o `apps/frontend/src/` eccetto nei file di
 archive; typecheck pulito; test non in regressione rispetto alla baseline.
 
 ---
@@ -82,9 +82,9 @@ archive; typecheck pulito; test non in regressione rispetto alla baseline.
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-B-001 | In `frontend/src/features/tools/ui/ToolPageTemplate.tsx` riga 18: rimuovere l'import di `getStepDependencies` dalla lista importata da `'../runtime/tool-generation-engine'`. Mantenere gli altri import dalla stessa riga se presenti. | | |
+| TASK-B-001 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` riga 18: rimuovere l'import di `getStepDependencies` dalla lista importata da `'../runtime/tool-generation-engine'`. Mantenere gli altri import dalla stessa riga se presenti. | | |
 | TASK-B-002 | In `frontend/src/features/tools/ui/ToolPageTemplate.tsx`: individuare il blocco che inizia a riga 591 (`const dependencies = getStepDependencies(toolKey, completedArtifactsByStep, step);`). Sostituire questa chiamata sincrona con una chiamata asincrona a `orchestrateToolStep(normalizedProjectId, toolKey, step)` importata da `'../runtime/tools-client'`. La funzione circostante (handler di avvio generazione) deve diventare async oppure usare `.then()`. Gestire l'errore con fallback: se `orchestrateToolStep` fallisce, loggare l'errore e lanciare per impedire la generazione con dipendenze mancanti (no silent fallback a calcolo locale). | | |
-| TASK-B-003 | Aggiornare `frontend/src/features/tools/ui/ToolPageTemplate.tsx`: adattare la firma del handler che chiama `getStepDependencies` per usare `OrchestrationResult` (tipo già esportato da `tools-client.ts` riga 331). Il campo `stepDependencyArtifactIds` nel `GenerationRequest` deve essere popolato da `orchestrationResult.stepDependencyArtifactIds`; il campo `dependencyArtifactIdsByStep` deve essere popolato da `orchestrationResult.dependencyArtifactIdsByStep`. | | |
+| TASK-B-003 | Aggiornare `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`: adattare la firma del handler che chiama `getStepDependencies` per usare `OrchestrationResult` (tipo già esportato da `tools-client.ts` riga 331). Il campo `stepDependencyArtifactIds` nel `GenerationRequest` deve essere popolato da `orchestrationResult.stepDependencyArtifactIds`; il campo `dependencyArtifactIdsByStep` deve essere popolato da `orchestrationResult.dependencyArtifactIdsByStep`. | | |
 | TASK-B-004 | In `frontend/src/features/tools/runtime/tool-generation-engine.ts`: marcare `getStepDependencies` come `/** @deprecated use orchestrateToolStep via /api/tools/orchestrate (DDD-C-007) */`. NON rimuoverla in questa fase — potrebbe essere usata da test. | | |
 | TASK-B-005 | Verificare che il backend endpoint `/api/tools/orchestrate` sia già esposto con il body atteso `{ projectId, toolKey, targetStep }`. Leggere `src/lib/runtime/auth-http.ts` righe 1125 segg. e la route corrispondente in `src/server.ts` per confermare. Se il campo `projectId` non è usato nella logica backend attuale ma richiesto nel payload, assicurarsi che non generi errori (il BE ignora `projectId` oggi per la risoluzione step — questo è corretto). | | |
 | TASK-B-006 | Aggiornare o aggiungere test in `frontend/src/features/tools/runtime/tools-client.test.ts`: aggiungere un test case per `orchestrateToolStep` che mocki la risposta BE con `{ ok: true, data: { orchestration: { toolKey, targetStep, stepDependencyArtifactIds, dependencyArtifactIdsByStep } } }` e verifichi che la funzione restituisca correttamente `OrchestrationResult`. | | |

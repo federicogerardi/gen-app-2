@@ -11,16 +11,60 @@ import type { WorkflowStepDescriptor } from '../types/xstate';
 
 export type SupportedToolWorkflow = 'funnel-pages' | 'nextland';
 
-/**
- * Ordered step keys per ToolWorkflow. Mirrors frontend `toolStepOrder` in tool-flow.machine.ts.
- */
-export const toolWorkflowStepOrder: Record<SupportedToolWorkflow, string[]> = {
-  'funnel-pages': ['optin', 'quiz', 'vsl'],
-  nextland: ['landing', 'thank_you'],
-};
-
 export const isSupportedToolWorkflow = (value: string): value is SupportedToolWorkflow =>
   value === 'funnel-pages' || value === 'nextland';
+
+/**
+ * Canonical dependency-graph plan for a ToolWorkflow.
+ * Exported so generation-system.machine.ts can import instead of defining locally.
+ */
+export type ToolWorkflowPlan = {
+  toolKey: SupportedToolWorkflow;
+  steps: WorkflowStepDescriptor[];
+  dependencyGraph: Record<string, string[]>;
+};
+
+/**
+ * Registry of all supported ToolWorkflow plans.
+ * Single source of truth for step ordering and dependency graphs in the backend.
+ * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
+ */
+export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowPlan> = {
+  'funnel-pages': {
+    toolKey: 'funnel-pages',
+    steps: [
+      { key: 'optin', dependencies: [] },
+      { key: 'quiz', dependencies: ['optin'] },
+      { key: 'vsl', dependencies: ['optin', 'quiz'] },
+    ],
+    dependencyGraph: {
+      optin: [],
+      quiz: ['optin'],
+      vsl: ['optin', 'quiz'],
+    },
+  },
+  nextland: {
+    toolKey: 'nextland',
+    steps: [
+      { key: 'landing', dependencies: [] },
+      { key: 'thank_you', dependencies: ['landing'] },
+    ],
+    dependencyGraph: {
+      landing: [],
+      thank_you: ['landing'],
+    },
+  },
+};
+
+/**
+ * Ordered step keys per ToolWorkflow. Derived from `TOOL_WORKFLOW_REGISTRY` so step order
+ * cannot diverge between the registry and this lookup table.
+ */
+export const toolWorkflowStepOrder: Record<SupportedToolWorkflow, string[]> = Object.fromEntries(
+  (Object.entries(TOOL_WORKFLOW_REGISTRY) as [SupportedToolWorkflow, ToolWorkflowPlan][]).map(
+    ([key, plan]) => [key, plan.steps.map((s) => s.key)],
+  ),
+) as Record<SupportedToolWorkflow, string[]>;
 
 /**
  * Given a target step and a map of already-completed step → artifactId,
@@ -76,46 +120,4 @@ export const extractStepFromArtifactInput = (input: Record<string, unknown>): st
   }
 
   return null;
-};
-
-/**
- * Canonical dependency-graph plan for a ToolWorkflow.
- * Exported so generation-system.machine.ts can import instead of defining locally.
- */
-export type ToolWorkflowPlan = {
-  toolKey: SupportedToolWorkflow;
-  steps: WorkflowStepDescriptor[];
-  dependencyGraph: Record<string, string[]>;
-};
-
-/**
- * Registry of all supported ToolWorkflow plans.
- * Single source of truth for step ordering and dependency graphs in the backend.
- * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
- */
-export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowPlan> = {
-  'funnel-pages': {
-    toolKey: 'funnel-pages',
-    steps: [
-      { key: 'optin', dependencies: [] },
-      { key: 'quiz', dependencies: ['optin'] },
-      { key: 'vsl', dependencies: ['optin', 'quiz'] },
-    ],
-    dependencyGraph: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
-  },
-  nextland: {
-    toolKey: 'nextland',
-    steps: [
-      { key: 'landing', dependencies: [] },
-      { key: 'thank_you', dependencies: ['landing'] },
-    ],
-    dependencyGraph: {
-      landing: [],
-      thank_you: ['landing'],
-    },
-  },
 };

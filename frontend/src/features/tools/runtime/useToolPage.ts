@@ -244,7 +244,7 @@ export const useToolPage = ({
     return toolConfig.steps.includes(candidate) ? candidate : null;
   }, [sourceArtifact, toolConfig.steps]);
 
-  const currentRunningStep = useMemo(() => {
+  const streamingStep = useMemo(() => {
     if (!generation.isStreamActive) return null;
     const candidate = (
       generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
@@ -253,21 +253,7 @@ export const useToolPage = ({
     return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
   }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
 
-  const streamingStep = useMemo(() => {
-    if (!generation.isStreamActive) {
-      return null;
-    }
-
-    const candidate = (
-      generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
-    )?.step;
-
-    if (typeof candidate !== 'string') {
-      return null;
-    }
-
-    return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
-  }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
+  const currentRunningStep = streamingStep;
 
   useEffect(() => {
     if (!pausedCheckpointStep) return;

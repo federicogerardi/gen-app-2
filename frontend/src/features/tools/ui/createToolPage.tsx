@@ -4,13 +4,14 @@
  * Each produced component reads search params, delegates all rendering to ToolPageTemplate.
  */
 
+import type { FC } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { parseToolEntryParams } from '../runtime/tool-entry-params';
 import { ToolPageTemplate } from './ToolPageTemplate';
 
-export const createToolPage = (toolKey: SupportedTool): React.FC => {
-  const ToolPage: React.FC = () => {
+export const createToolPage = (toolKey: SupportedTool): FC => {
+  const ToolPage: FC = () => {
     const [searchParams] = useSearchParams();
     const params = parseToolEntryParams(searchParams);
 

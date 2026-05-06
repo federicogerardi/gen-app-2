@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import type { FC, LazyExoticComponent } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
@@ -21,7 +22,7 @@ const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminAct
 const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
 
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
-const toolPageComponents: Record<SupportedTool, React.LazyExoticComponent<React.FC>> = {
+const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
   nextland: NextlandToolPage,
 };

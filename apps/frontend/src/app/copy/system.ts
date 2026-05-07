@@ -19,7 +19,7 @@ export const appCopy = {
       projects: 'Projects',
       funnelPages: 'Funnel Pages',
       nextland: 'Nextland',
-      youtubeLfScript: 'Youtube LF Script',
+      youtubeLfScript: 'YouTube LF Script',
       artifacts: 'Artifacts',
       admin: 'Admin',
     },
@@ -258,7 +258,7 @@ export const appCopy = {
         defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
       },
       youtubeLfScript: {
-        title: 'Youtube LF Script Tool',
+        title: 'YouTube LF Script Tool',
         orderRule: 'Ordine step obbligatorio: pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure',
         defaultPrompt: 'Genera lo step Youtube LF Script richiesto con coerenza al brief estratto.',
       },

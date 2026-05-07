@@ -121,8 +121,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   'youtube-lf-script': {
     toolKey: 'youtube-lf-script',
-    displayName: 'Youtube LF Script',
-    defaultPrompt: 'Genera lo step Youtube LF Script richiesto con coerenza al brief estratto.',
+    displayName: 'YouTube LF Script',
+    defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
     steps: [
       'pre-script-analysis',

@@ -1,5 +1,5 @@
 /**
- * Youtube LF Script Tool Page
+ * YouTube LF Script Tool Page
  * Unified via ToolPageTemplate - minimal wrapper via createToolPage factory
  */
 

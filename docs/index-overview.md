@@ -82,10 +82,9 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 
 - Nessun piano attivo al momento (sanitized per publication scope as-is).
 
-### Frontend Supporting Docs
+### Active Runbooks
 
-- [debug-streaming](../apps/frontend/DEBUG-STREAMING.md)
-- [tool-form-architecture](../apps/frontend/TOOL-FORM-ARCHITECTURE.md)
+- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
 
 ## Archive Registry
 

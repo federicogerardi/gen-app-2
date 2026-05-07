@@ -620,7 +620,9 @@ export const useToolPage = ({
 
   const handlePrimaryAction = useCallback((): void => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      const lastArtifact = generation.artifacts[generation.artifacts.length - 1];
+      const lastArtifact = generation.artifacts.length > 0
+        ? generation.artifacts[generation.artifacts.length - 1]
+        : null;
       void navigate(lastArtifact ? `/artifacts/${lastArtifact.artifactId}` : '/artifacts');
       return;
     }

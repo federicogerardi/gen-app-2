@@ -339,6 +339,11 @@ const normalizeYoutubeExtractionField = (value: string): string | null => {
   return normalized;
 };
 
+/**
+ * Parses youtube-lf-script extraction markdown into canonical ExtractionContext fields.
+ * Deterministic normalization rule: each section resolves to a single value, taking the
+ * first non-empty bullet and ignoring subsequent bullets in the same section.
+ */
 const parseYoutubeExtractionMarkdown = (content: string): Record<string, unknown> => {
   if (!content.trim()) {
     return {};

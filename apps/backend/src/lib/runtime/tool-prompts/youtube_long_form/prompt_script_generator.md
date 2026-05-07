@@ -39,7 +39,7 @@ Evita:
 
 - Frasi brevi e dirette (max 20-25 parole per frase parlata)
 - [PAUSA] per enfasi o cambio di registro
-- [B-ROLL: descrizione] per indicare immagini di supporto consigliateVARIAZIONI
+- [B-ROLL: descrizione] per indicare immagini di supporto consigliate
 - [TITOLO SCHERMATA: testo] per indicare testo a schermo consigliato
 - Alternanza tra tesi, prova, esempio applicativo
 

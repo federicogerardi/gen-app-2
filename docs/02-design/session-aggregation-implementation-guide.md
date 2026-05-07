@@ -51,8 +51,11 @@ Key implementation points:
 ### Session-aware query (preferred)
 
 Use session endpoints for deterministic grouping:
+- `GET /api/tools/sessions`
 - `GET /api/tools/sessions/{sessionId}`
 - `GET /api/tools/sessions/{sessionId}/step/{stepKey}`
+
+DDD-051 alignment: the canonical aggregate-listing contract is `GET /api/tools/sessions` returning `SessionSummary[]` (`sessionId`, `projectId`, `toolKey`, `status`, `artifactCount`, `updatedAt`). During transition, Frontend may derive `SessionSummary` from artifact listing where backend endpoint rollout is pending. Session-listing primacy is treated as a UX implementation policy only, not as a domain invariant.
 
 Implementation points:
 - `apps/backend/src/lib/runtime/auth-http.ts`

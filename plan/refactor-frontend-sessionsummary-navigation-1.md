@@ -3,14 +3,15 @@ goal: Frontend Refactor Plan For SessionSummary Artifacts And Projects Navigatio
 version: 1.1
 date_created: 2026-05-07
 last_updated: 2026-05-08
+verified_date: 2026-05-08
 owner: Frontend Platform Team
-status: 'Planned'
+status: 'Completed'
 tags: [refactor, frontend, ddd, routing, navigation, contracts]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-green)
 
 This plan defines a deterministic frontend refactor to enforce DDD namespace separation between Artifact history and SessionSummary aggregate navigation. The implementation preserves backward compatibility during transition while making SessionSummary the canonical navigation source for project contextual history.
 
@@ -38,11 +39,11 @@ This plan defines a deterministic frontend refactor to enforce DDD namespace sep
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Update route declarations in `apps/frontend/src/app/routing/app-router.tsx` to add `/sessionsummary` and `/sessionsummary/:sessionId` while preserving `/artifacts` and `/artifacts/:artifactId`; remove session-overloaded resolution from artifact detail route guard. |  |  |
-| TASK-002 | Create `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.tsx` exporting `SessionSummaryListPage` and `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` exporting `SessionSummaryDetailPage`; extract session aggregate rendering previously hosted in `ArtifactsPage.tsx` into these two components. |  |  |
-| TASK-003 | Update `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` to link session entries to `/sessionsummary/${sessionId}` and artifact entries to `/artifacts/${artifactId}` only. |  |  |
-| TASK-004 | Refactor `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx` to resolve `artifactId` only; add helper `isLegacySessionRouteId(id: string): boolean` with regex `^sess_[A-Za-z0-9_-]+$`; when helper returns true, redirect to `/sessionsummary/${id}` before artifact fetch. |  |  |
-| TASK-005 | Update route tests in `apps/frontend/src/app/routing/app-router.test.tsx` to assert namespace split, legacy redirect behavior, and non-regression for artifact detail rendering. |  |  |
+| TASK-001 | Update route declarations in `apps/frontend/src/app/routing/app-router.tsx` to add `/sessionsummary` and `/sessionsummary/:sessionId` while preserving `/artifacts` and `/artifacts/:artifactId`; remove session-overloaded resolution from artifact detail route guard. | ✅ | 2026-05-08 |
+| TASK-002 | Create `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.tsx` exporting `SessionSummaryListPage` and `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` exporting `SessionSummaryDetailPage`; extract session aggregate rendering previously hosted in `ArtifactsPage.tsx` into these two components. | ✅ | 2026-05-08 |
+| TASK-003 | Update `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` to link session entries to `/sessionsummary/${sessionId}` and artifact entries to `/artifacts/${artifactId}` only. | ✅ | 2026-05-08 |
+| TASK-004 | Refactor `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx` to resolve `artifactId` only; add helper `isLegacySessionRouteId(id: string): boolean` with regex `^sess_[A-Za-z0-9_-]+$`; when helper returns true, redirect to `/sessionsummary/${id}` before artifact fetch. | ✅ | 2026-05-08 |
+| TASK-005 | Update route tests in `apps/frontend/src/app/routing/app-router.test.tsx` to assert namespace split, legacy redirect behavior, and non-regression for artifact detail rendering. | ✅ | 2026-05-08 |
 
 Completion Criteria (Phase 1):
 - `app-router.tsx` contains 4 canonical route entries: `/artifacts`, `/artifacts/:artifactId`, `/sessionsummary`, `/sessionsummary/:sessionId`.
@@ -56,11 +57,11 @@ Completion Criteria (Phase 1):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Extend `apps/frontend/src/app/runtime/api-paths.ts` with explicit path builder for `/api/tools/sessions` and `/api/tools/sessions/:sessionId` using existing naming conventions. |  |  |
-| TASK-007 | Update `apps/frontend/src/app/runtime/backend-capabilities.ts` to introduce dedicated SessionSummary capability flags (`sessionsList`, `sessionsDetail`) independent from Artifact capabilities. |  |  |
-| TASK-008 | Refactor `apps/frontend/src/features/tools/runtime/session-client.ts` so `listSessions` calls `apiPaths.tools.sessions.list` first, and fallback mapping from Artifact list runs only when `backendCapabilities.sessionsList !== true`; keep fallback in dedicated function `mapArtifactsToSessionSummaryFallback`. |  |  |
-| TASK-009 | Update `apps/frontend/src/app/runtime/queries/useSessionsQuery.ts` to use query key prefix `sessionsummary` for aggregates and remove reuse of artifact-history keys in session aggregate queries. |  |  |
-| TASK-010 | Update `apps/frontend/src/features/tools/runtime/useToolPage.ts` policy handling for `open-last-artifact` so destination is semantically correct (`/artifacts/:artifactId` when available; `/artifacts` only as explicit fallback). |  |  |
+| TASK-006 | Extend `apps/frontend/src/app/runtime/api-paths.ts` with explicit path builder for `/api/tools/sessions` and `/api/tools/sessions/:sessionId` using existing naming conventions. | ✅ | 2026-05-08 |
+| TASK-007 | Update `apps/frontend/src/app/runtime/backend-capabilities.ts` to introduce dedicated SessionSummary capability flags (`sessionsList`, `sessionsDetail`) independent from Artifact capabilities. | ✅ | 2026-05-08 |
+| TASK-008 | Refactor `apps/frontend/src/features/tools/runtime/session-client.ts` so `listSessions` calls `apiPaths.tools.sessions.list` first, and fallback mapping from Artifact list runs only when `backendCapabilities.sessionsList !== true`; keep fallback in dedicated function `mapArtifactsToSessionSummaryFallback`. | ✅ | 2026-05-08 |
+| TASK-009 | Update `apps/frontend/src/app/runtime/queries/useSessionsQuery.ts` to use query key prefix `sessionsummary` for aggregates and remove reuse of artifact-history keys in session aggregate queries. | ✅ | 2026-05-08 |
+| TASK-010 | Update `apps/frontend/src/features/tools/runtime/useToolPage.ts` policy handling for `open-last-artifact` so destination is semantically correct (`/artifacts/:artifactId` when available; `/artifacts` only as explicit fallback). | ✅ | 2026-05-08 |
 
 Completion Criteria (Phase 2):
 - `api-paths.ts` exports sessions list and detail path builders under tools namespace.
@@ -74,11 +75,11 @@ Completion Criteria (Phase 2):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Update navigation copy keys in `apps/frontend/src/app/copy/system.ts` to make SessionSummary aggregate labels primary and mark Artifact-context aliases as backward-compat where needed. |  |  |
-| TASK-012 | Update `apps/frontend/src/app/layouts/MainNavigation.tsx` to expose canonical SessionSummary archive entry and keep Artifact archive entry as separate non-aggregated history destination. |  |  |
-| TASK-013 | Update project pages `apps/frontend/src/features/projects/pages/ProjectsListPage.tsx` and `apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx` to ensure contextual history actions navigate via SessionSummary routes. |  |  |
-| TASK-014 | Update tests in `apps/frontend/src/features/projects/pages/ProjectDetailPage.test.tsx`, `apps/frontend/src/features/artifacts/pages/ArtifactsPage.test.tsx`, and `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` to assert new labels, route targets, and fallback semantics. |  |  |
-| TASK-015 | Execute verification commands exactly as `npm --workspace apps/frontend run typecheck` and `npm --workspace apps/frontend run test`; copy pass/fail output and command timestamps into PR checklist. |  |  |
+| TASK-011 | Update navigation copy keys in `apps/frontend/src/app/copy/system.ts` to make SessionSummary aggregate labels primary and mark Artifact-context aliases as backward-compat where needed. | ✅ | 2026-05-08 |
+| TASK-012 | Update `apps/frontend/src/app/layouts/MainNavigation.tsx` to expose canonical SessionSummary archive entry and keep Artifact archive entry as separate non-aggregated history destination. | ✅ | 2026-05-08 |
+| TASK-013 | Update project pages `apps/frontend/src/features/projects/pages/ProjectsListPage.tsx` and `apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx` to ensure contextual history actions navigate via SessionSummary routes. | ✅ | 2026-05-08 |
+| TASK-014 | Update tests in `apps/frontend/src/features/projects/pages/ProjectDetailPage.test.tsx`, `apps/frontend/src/features/artifacts/pages/ArtifactsPage.test.tsx`, and `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` to assert new labels, route targets, and fallback semantics. | ✅ | 2026-05-08 |
+| TASK-015 | Execute verification commands exactly as `npm --workspace apps/frontend run typecheck` and `npm --workspace apps/frontend run test`; copy pass/fail output and command timestamps into PR checklist. | ✅ | 2026-05-08 |
 
 Completion Criteria (Phase 3):
 - Main navigation shows distinct entries for SessionSummary archive and Artifact archive.

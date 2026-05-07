@@ -98,7 +98,7 @@ to assemble a valid GenerationRequest.
 
 For artifact-driven relaunch hydration, completeness requires:
 - non-empty briefing text recovered from the artifact briefingText source
-- structured extractionPayload recovered through canonical extraction fallbacks
+- a resolved extraction artifact identity (`extractionArtifactId` + `briefingId`), with extraction payload treated as optional passthrough at readiness stage
 
 A non-null HydrationResult alone is not sufficient.
 ```
@@ -158,8 +158,6 @@ Payload minimo `PROGRESS_SYNCED`:
   intent: 'new' | 'resume' | 'regenerate';
   sourceArtifact: GenerationArtifact | null;
   runRequestPrefix: string | null;
-  hasExtractionContext: boolean;
-  hasPrimaryTargetStep: boolean;
 }
 ```
 

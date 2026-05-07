@@ -24,6 +24,18 @@
 - Consistent visual hierarchy and information architecture
 - Better UX for understanding the generation process
 
+## Navigation Namespace Contract (DDD-052)
+
+`ToolGenerationFlow` must keep projections and navigation separated:
+
+| Navigation scope | Route namespace | Read model | API contract |
+|---|---|---|---|
+| Project contextual navigation | `/dashboard/projects/{projectId}` | `SessionSummary[]` filtered by `projectId` | `GET /api/tools/sessions?projectId={projectId}` |
+| Session aggregate archive/detail | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}` |
+| Artifact archive/detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` |
+
+The historical overload of `/artifacts/{id}` for session aggregate detail is deprecated and must not be treated as canonical behavior.
+
 ## Flow Phases
 
 ### Phase 1: Input Requirements
@@ -33,6 +45,7 @@
 - Briefing upload status
 - Prerequisites checklist
 - Feedback on what's needed to proceed
+- In project detail context, session history entry points are `SessionSummary`-based (not artifact-list-based)
 
 **Visual**: Checklist with status indicators (todo, active, done, error)
 

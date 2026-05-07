@@ -17,6 +17,7 @@ import {
   resolveStepDependencyIds,
   extractStepFromArtifactInput,
 } from './tool-workflow-registry';
+import { SessionQueryAdapter } from '../adapters/session-query.adapter';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -260,6 +261,29 @@ const normalizeMimeType = (value: unknown): string | null => {
 
   const normalized = value.trim().toLowerCase();
   return normalized.length > 0 ? normalized : null;
+};
+
+const normalizeSupportedToolKey = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
+    return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
+  }
+
+  // Fallback is safe: final acceptance is enforced by isSupportedToolWorkflow
+  // immediately in endpoint validation, so unknown normalized values are rejected.
+  return normalized.replaceAll('_', '-');
 };
 
 const sessionToResponseData = (principal: AuthSessionPrincipal): Record<string, unknown> => {
@@ -847,14 +871,25 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const query = parseRequestUrl(request).searchParams;
     const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
-    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const rawToolKeyFromBody = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const rawToolKeyFromQuery = query.get('toolKey')?.trim() ?? '';
+    const toolKeyFromBody = normalizeSupportedToolKey(rawToolKeyFromBody) ?? '';
+    const toolKeyFromQuery = normalizeSupportedToolKey(rawToolKeyFromQuery) ?? '';
+    const toolKey = toolKeyFromBody || toolKeyFromQuery;
+    const submittedToolKey = rawToolKeyFromBody || rawToolKeyFromQuery;
     const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
     const mimeType = normalizeMimeType(body.mimeType);
     const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
 
-    if (!projectId || !fileName || !contentBase64) {
-      writeError(response, 400, 'bad_request', 'projectId, fileName and contentBase64 are required');
+    if (!projectId || !fileName || !contentBase64 || !toolKey) {
+      writeError(response, 400, 'bad_request', 'projectId, toolKey, fileName and contentBase64 are required');
+      return;
+    }
+
+    if (!isSupportedToolWorkflow(toolKey)) {
+      writeError(response, 400, 'bad_request', `Unsupported toolKey: ${submittedToolKey} (normalized to: ${toolKey})`);
       return;
     }
 
@@ -1259,6 +1294,69 @@ export const createAuthHttpRuntime = (
         dependencyArtifactIdsByStep,
       },
     });
+  };
+
+  const handleToolsSessionArtifacts = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session artifacts');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    if (!group) {
+      writeError(response, 404, 'not_found', 'Session not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { session: group });
+  };
+
+  const handleToolsSessionStepArtifact = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+    stepKey: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session step artifact');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id);
+    if (!artifact) {
+      writeError(response, 404, 'not_found', 'Session step artifact not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { artifact });
   };
 
   const handleArtifactById = async (
@@ -1666,6 +1764,27 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/tools/orchestrate') {
         await handleToolsOrchestrate(request, response);
+        return { handled: true };
+      }
+
+      const toolSessionStepMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/);
+      if (toolSessionStepMatch) {
+        await handleToolsSessionStepArtifact(
+          request,
+          response,
+          decodeURIComponent(toolSessionStepMatch[1] ?? ''),
+          decodeURIComponent(toolSessionStepMatch[2] ?? ''),
+        );
+        return { handled: true };
+      }
+
+      const toolSessionMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)$/);
+      if (toolSessionMatch) {
+        await handleToolsSessionArtifacts(
+          request,
+          response,
+          decodeURIComponent(toolSessionMatch[1] ?? ''),
+        );
         return { handled: true };
       }
 

@@ -11,6 +11,7 @@ owner: Frontend Platform Team
 > ⚑ **DDD Reference**: This guide covers Frontend/UI bounded context infrastructure (data access layer). For canonical domain terminology, see:
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — `ExtractionContext` (DDD-013), `ToolPage` (DDD-004), `HydrationResult` (DDD-020)
 > - [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend--ui-context) — Frontend/UI Context, data access responsibilities
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — DDD-051, DDD-052 (SessionSummary listing and route namespace separation)
 > - [Frontend Data Access Layer ADR](../adr/frontend-data-access-layer-adr.md) — architectural decision backing this guide
 
 Data: 2026-04-27
@@ -86,9 +87,14 @@ Hook attivi:
 
 - `useProjectsQuery`
 - `useProjectDetailQuery`
+- `useSessionsQuery`
 - `useArtifactsQuery`
 - `useArtifactDetailQuery`
 - `useAdminUsersQuery`
+
+Session aggregation rule:
+- project contextual navigation must use `SessionSummary[]` filtered by `projectId`;
+- `artifacts` namespace remains non-aggregated history/detail only.
 
 Componenti shared per il rendering degli stati:
 
@@ -189,7 +195,7 @@ Metriche baseline post-unificazione:
 - endpoint hardcoded nelle pagine production: `0`
 - pattern `useEffect + IIFE async` nelle pagine target del refactor: `1`
 - shared page-state components disponibili nel layer UI comune: `3`
-- copertura page-level dei percorsi critici migrati: presente per projects list/detail e artifacts list/detail
+- copertura page-level dei percorsi critici migrati: presente per projects list/detail, sessions list/detail, and artifacts list/detail
 
 Ogni nuovo ciclo di refactor o feature deve preservare o migliorare questi valori.
 

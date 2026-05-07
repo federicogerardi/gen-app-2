@@ -1,10 +1,22 @@
-# Streaming Generator Debug Guide
+---
+status: approved
+version: 1.0
+last-reviewed: 2026-05-07
+next-review-date: 2026-08-07
+owner: Frontend Platform Team
+---
+
+# Streaming Generator Debug Runbook
+
+> DDD reference:
+> - [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) for canonical terms such as `BackendStreamEvent`, `ToolPage`, and `ReadinessSnapshot`.
+> - [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md#frontend--ui-context) for Frontend/UI context ownership and boundaries.
 
 Complete debugging infrastructure for multi-step LLM generation streaming with XState v5.
 
 ## Architecture
 
-### 1. **Stream Logger** (`src/features/generation/runtime/stream-logger.ts`)
+### 1. Stream Logger (`src/features/generation/runtime/stream-logger.ts`)
 
 Structured event logging with timing and filtering capabilities:
 
@@ -31,12 +43,13 @@ logger.getLogsByRequestId('req-1');        // By request
 logger.dump();                             // Console.table()
 ```
 
-**Typical Log Flow:**
+Typical log flow:
+
 ```
-REQUEST_SENT → STREAM_STARTED → CHUNK_* → STREAM_COMPLETED/FAILED → (RECONNECT attempts)
+REQUEST_SENT -> STREAM_STARTED -> CHUNK_* -> STREAM_COMPLETED/FAILED -> (RECONNECT attempts)
 ```
 
-### 2. **MSW Handlers** (`src/test/mocks/stream-handlers.ts`)
+### 2. MSW Handlers (`src/test/mocks/stream-handlers.ts`)
 
 Mock Service Worker handlers for different streaming scenarios:
 
@@ -49,7 +62,7 @@ streamHandlers.success
 // Failure + terminal_failed
 streamHandlers.failure
 
-// Sequence corruption (jump: 1→3)
+// Sequence corruption (jump: 1->3)
 streamHandlers.malformedSequence
 
 // Network timeout (no terminal event)
@@ -59,7 +72,8 @@ streamHandlers.timeout
 streamHandlers.networkError
 ```
 
-**Usage in tests:**
+Usage in tests:
+
 ```typescript
 import { useMswHandler } from './mocks/server';
 
@@ -68,27 +82,31 @@ beforeEach(() => {
 });
 ```
 
-### 3. **Test Suites**
+### 3. Test Suites
 
 #### Happy Path
+
 - Multi-step chunks processed in sequence
 - Content accumulation across steps
 - Logging progression with timestamps
 - Completion with all data preserved
 
 #### Failure Scenarios
-- **Terminal Failed**: LLM errors with reason messages
-- **Protocol Errors**: Non-retryable frame corruption
-- **Reconnect Exhaustion**: Exponential backoff timeout
-- **Partial Content**: Preserves what was received before failure
+
+- Terminal failed: LLM errors with reason messages
+- Protocol errors: Non-retryable frame corruption
+- Reconnect exhaustion: Exponential backoff timeout
+- Partial content: Preserves what was received before failure
 
 #### Edge Cases
-- Unicode/emoji in streaming content
+
+- Unicode and emoji in streaming content
 - Large payloads (>100KB chunks)
 - Terminal events with null artifactId
 - Context reset from terminal states
 
 #### Context Snapshots
+
 - State integrity verification
 - Error detail preservation
 - Terminal flag consistency
@@ -113,7 +131,7 @@ npm --prefix frontend run test -- --coverage src/features/generation/
 
 ### During Development
 
-- [ ] Verify sequence monotonicity (1→2→3, not 1→3)
+- [ ] Verify sequence monotonicity (1->2->3, not 1->3)
 - [ ] Track artifactId consistency across events
 - [ ] Check chunk content accumulation
 - [ ] Validate error codes and messages
@@ -143,23 +161,28 @@ onEvent: (event) => {
 ```
 
 Use browser DevTools:
-1. **Console**: Filter by `[Stream]` prefix
-2. **Network**: Monitor `/generation/stream` with chunked responses
-3. **Performance**: Check frame rate during streaming
-4. **XState Inspector**: Visualize state machine transitions (requires `@statelyai/xstate-inspector`)
+
+1. Console: Filter by `[Stream]` prefix
+2. Network: Monitor `/generation/stream` with chunked responses
+3. Performance: Check frame rate during streaming
+4. XState Inspector: Visualize state machine transitions (requires `@statelyai/xstate-inspector`)
 
 ## Common Issues
 
 ### Sequence Breach Detected
+
 Problem: `errorCode: 'protocol_error'`
-- Chunks skip sequence numbers (1→3)
+
+- Chunks skip sequence numbers (1->3)
 - Duplicate sequence numbers
 - Out-of-order delivery
 
 Solution: Check backend stream processor ordering.
 
 ### Reconnect Loop
+
 Problem: Repeated `RECONNECT_ATTEMPT_*` logs
+
 - Transient network errors
 - Backend temporarily unavailable
 - Exhaust after `maxReconnectAttempts` (default: 3)
@@ -167,7 +190,9 @@ Problem: Repeated `RECONNECT_ATTEMPT_*` logs
 Solution: Increase delays with `reconnectBaseDelayMs` and `reconnectMaxDelayMs`.
 
 ### Incomplete Content
+
 Problem: `terminal_failed` but partial content in context
+
 - Content is preserved before failure
 - Check `errorMessage` for LLM error reason
 - User can retry with `RETRY` event
@@ -189,7 +214,7 @@ type StreamLogEntry = {
 };
 ```
 
-## Integration with Monitoring
+## Integration With Monitoring
 
 Export logs for external analysis:
 
@@ -210,5 +235,5 @@ fetch('/api/debug/stream-logs', {
 
 ---
 
-**Last Updated**: 2026-04-25
-**Test Coverage**: 17 tests covering happy path, failures, and edge cases
+Last updated: 2026-04-25
+Test coverage: 17 tests covering happy path, failures, and edge cases

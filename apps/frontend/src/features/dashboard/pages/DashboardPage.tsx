@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import { toolFormRegistry } from '../../tools/runtime/tool-form-architecture';
 
 export const DashboardPage = () => {
   const generation = useGenerationWorkspace();
   const recentArtifacts = generation.artifacts.slice(0, 5);
   const artifactCount = generation.artifacts.length;
+  const toolsCount = Object.keys(toolFormRegistry).length;
   const completedCount = generation.artifacts.filter((a) => a.status === 'completed').length;
 
   return (
@@ -21,7 +23,7 @@ export const DashboardPage = () => {
           <p>{appCopy.editorial.dashboard.stats[0]}</p>
         </div>
         <div>
-          <h3>2</h3>
+          <h3>{toolsCount}</h3>
           <p>{appCopy.editorial.dashboard.stats[1]}</p>
         </div>
         <div>
@@ -43,6 +45,7 @@ export const DashboardPage = () => {
           <div className={uiPrimitives.actions}>
             <Link to="/tools/funnel-pages" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.funnelPages}</Link>
             <Link to="/tools/nextland" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.nextland}</Link>
+            <Link to="/tools/youtube-lf-script" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.youtubeLfScript}</Link>
           </div>
         </Surface>
 

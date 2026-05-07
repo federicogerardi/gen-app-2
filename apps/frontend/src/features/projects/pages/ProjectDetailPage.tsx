@@ -10,7 +10,7 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
-import { ArtifactsListingSection } from '../../artifacts/ui/ArtifactsListingSection';
+import { SessionsListingSection } from '../../artifacts/ui/SessionsListingSection';
 
 export const ProjectDetailPage = () => {
   const { id = '' } = useParams();
@@ -42,9 +42,9 @@ export const ProjectDetailPage = () => {
           <p>{project.description}</p>
           <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(project.updatedAt).toLocaleString())}</p>
 
-          <ArtifactsListingSection
-            title={appCopy.editorial.projects.contextualArtifacts}
-            emptyStateMessage={appCopy.ui.states.noProjectArtifacts}
+          <SessionsListingSection
+            title={appCopy.editorial.projects.contextualSessions}
+            emptyStateMessage={appCopy.editorial.sessions.emptyStateProject}
             fixedProjectId={id}
             fixedProjectName={project.name}
             enabled={id.length > 0}

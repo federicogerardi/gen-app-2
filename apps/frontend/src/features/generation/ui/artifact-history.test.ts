@@ -153,6 +153,20 @@ describe('artifact history', () => {
 
     const supportedPath = buildToolEntryPathFromArtifact(supported, 'regenerate');
     expect(supportedPath?.startsWith('/tools/funnel-pages?')).toBe(true);
+    const youtubeSupportedPath = buildToolEntryPathFromArtifact(
+      artifact({
+        artifactId: 'art-supported-youtube',
+        toolKey: 'youtube-lf-script',
+        workflowType: 'youtube_lf_script',
+        sourceRequest: {
+          ...request,
+          toolKey: 'youtube-lf-script',
+          workflowType: 'youtube_lf_script',
+        },
+      }),
+      'regenerate',
+    );
+    expect(youtubeSupportedPath?.startsWith('/tools/youtube-lf-script?')).toBe(true);
     expect(buildToolEntryPathFromArtifact(unsupported, 'resume')).toBeNull();
   });
 

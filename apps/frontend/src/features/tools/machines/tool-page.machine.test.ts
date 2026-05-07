@@ -26,7 +26,7 @@ vi.mock('./briefing-upload.machine', () => {
             parsedFormat?: 'txt' | 'md' | 'docx' | null;
           },
       input: {} as {
-        toolKey: 'funnel-pages' | 'nextland';
+        toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script';
         projectId: string;
         apiBaseUrl: string;
         capabilities: Record<string, unknown>;
@@ -120,6 +120,23 @@ const createToolPageActor = () => {
   const actor = createActor(toolPageMachine, {
     input: {
       toolKey: 'funnel-pages',
+      projectId: 'project-1',
+      model: 'openrouter/auto',
+      registrySnapshotRef: 'snapshot:default',
+      apiBaseUrl: '',
+      capabilities: { toolsUpload: true },
+      userId: 'user-1',
+    },
+  });
+
+  actor.start();
+  return actor;
+};
+
+const createYoutubeToolPageActor = () => {
+  const actor = createActor(toolPageMachine, {
+    input: {
+      toolKey: 'youtube-lf-script',
       projectId: 'project-1',
       model: 'openrouter/auto',
       registrySnapshotRef: 'snapshot:default',
@@ -432,6 +449,25 @@ describe('toolPageMachine', () => {
 
     expect(actor.getSnapshot().context.viewModel.readiness).toEqual(actor.getSnapshot().context.readiness);
     expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('disabled');
+  });
+
+  it('requires canonical extraction fields for youtube-lf-script readiness', () => {
+    const actor = createYoutubeToolPageActor();
+
+    actor.send({
+      type: 'BRIEFING_FILE_SELECTED',
+      file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(false);
   });
 
   it('blocks START_GENERATION when readiness is true but policy is not startable', () => {
@@ -1177,4 +1213,3 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(actor.getSnapshot().context.hydrationResult?.briefingId).toBe('brief_target');
   });
 });
-

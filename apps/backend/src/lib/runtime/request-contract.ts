@@ -75,6 +75,7 @@ export const buildRequestReceivedEvent = (
     workflowType: request.workflowType ?? null,
     artifactType: String(request.artifactType),
     stepKey: request.input.step,
+    extractionToolKey: request.input.toolKey,
   });
 
   const fallbackPrompt =
@@ -114,6 +115,7 @@ export const buildRequestReceivedEvent = (
     type: 'REQUEST_RECEIVED' as const,
     requestId: request.requestId,
     projectId: request.projectId,
+    sessionId: toOptionalId(request.sessionId),
     toolKey: request.toolKey ?? null,
     artifactType: request.artifactType,
     model: normalizeModelId(request.model),

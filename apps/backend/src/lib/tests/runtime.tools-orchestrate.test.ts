@@ -184,6 +184,38 @@ const QUIZ_ARTIFACT: StubArtifactQueryRecord = {
   updatedAt: '2026-05-04T09:15:00.000Z',
 };
 
+const YOUTUBE_PRE_SCRIPT_ANALYSIS_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-youtube-pre-script-analysis-001',
+  requestId: 'req-youtube-pre-script-analysis-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'youtube-lf-script',
+  input: { toolWorkflow: { stepKey: 'pre-script-analysis' }, step: 'pre-script-analysis' },
+  content: '{"analysis":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:00:00.000Z',
+  updatedAt: '2026-05-04T09:05:00.000Z',
+};
+
+const YOUTUBE_PACKAGING_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-youtube-packaging-001',
+  requestId: 'req-youtube-packaging-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'youtube-lf-script',
+  input: { toolWorkflow: { stepKey: 'packaging' }, step: 'packaging' },
+  content: '{"packaging":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:10:00.000Z',
+  updatedAt: '2026-05-04T09:15:00.000Z',
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -317,4 +349,31 @@ test('/api/tools/orchestrate returns 405 for GET request', async () => {
   await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
 
   assert.equal(res.statusCode, 405);
+});
+
+test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  artifactStub.seed([YOUTUBE_PRE_SCRIPT_ANALYSIS_ARTIFACT, YOUTUBE_PACKAGING_ARTIFACT]);
+  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId: 'project-orch-001',
+    toolKey: 'youtube-lf-script',
+    targetStep: 'intro-structure',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.equal(orch.toolKey, 'youtube-lf-script');
+  assert.deepEqual(orch.stepDependencyArtifactIds, [
+    'art-youtube-pre-script-analysis-001',
+    'art-youtube-packaging-001',
+  ]);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    'pre-script-analysis': 'art-youtube-pre-script-analysis-001',
+    packaging: 'art-youtube-packaging-001',
+  });
 });

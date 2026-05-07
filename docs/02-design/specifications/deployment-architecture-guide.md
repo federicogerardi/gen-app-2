@@ -290,6 +290,19 @@ curl -i -X POST https://<frontend-service>.up.railway.app/auth/logout
 # CRUD principale - sessione autenticata richiesta
 curl -i https://<frontend-service>.up.railway.app/api/projects
 
+# SessionSummary listing (canonical aggregate listing target)
+curl -i "https://<frontend-service>.up.railway.app/api/tools/sessions?projectId=<project-id>"
+
+# Session aggregate detail
+curl -i https://<frontend-service>.up.railway.app/api/tools/sessions/<session-id>
+
+# Session aggregate step detail
+curl -i https://<frontend-service>.up.railway.app/api/tools/sessions/<session-id>/step/<step-key>
+
+# Artifact archive/detail (non-aggregated history)
+curl -i "https://<frontend-service>.up.railway.app/api/artifacts?projectId=<project-id>"
+curl -i https://<frontend-service>.up.railway.app/api/artifacts/<artifact-id>
+
 # SSE (POST, non GET)
 curl -i -X POST https://<frontend-service>.up.railway.app/generation/stream \
   -H 'Content-Type: application/json' \
@@ -308,9 +321,22 @@ Esiti attesi:
 - `/auth/login` -> risposta backend coerente con header `Set-Cookie`; cookie `HttpOnly`, `Secure`, `SameSite=Lax`
 - `/auth/logout` -> `204` oppure risposta coerente del backend, senza `502`
 - `/api/projects` -> risposta backend coerente con sessione valida
+- `/api/tools/sessions*` -> risposta coerente per listing/detail session aggregates (session-scoped data)
+- `/api/artifacts*` -> risposta coerente per non-aggregated artifact history/detail (artifact-scoped data)
 - `/generation/stream` -> stream SSE aperto senza buffering anomalo
 - `/auth/google/start` -> redirect OAuth senza `redirect_uri_mismatch`
 - route SPA -> `200`, non `404`
+
+### API namespace determinism gate (DDD-052)
+
+Proxy same-origin must preserve backend API semantics without namespace overlap:
+
+- `projects` scope: `/api/projects*`
+- `session aggregate` scope: `/api/tools/sessions*`
+- `artifact history/detail` scope: `/api/artifacts*`
+
+Operational rule:
+- Deployment/proxy changes must not reintroduce endpoint or route ambiguity where artifact endpoints are used as session aggregate endpoints.
 
 ### Rischi operativi
 

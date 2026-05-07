@@ -12,7 +12,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm --workspace apps/backend run start:server & npm --workspace apps/frontend run dev",
+    "dev": "set -a && . ./.env.local && set +a && npm --workspace apps/backend run start:server & npm --workspace apps/frontend run dev",
     "build": "npm --workspace apps/backend run typecheck && npm --workspace apps/frontend run build",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

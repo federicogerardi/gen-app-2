@@ -77,6 +77,10 @@ export type StubArtifactQueryRecord = {
   status: ArtifactSummary['status'];
   model: string;
   workflowType: string | null;
+  sessionId?: string | null;
+  stepKey?: string | null;
+  artifactRole?: 'step' | 'final' | null;
+  runMode?: 'new' | 'resume' | 'regenerate' | null;
   input: Record<string, unknown>;
   content: string;
   failureReason: string | null;
@@ -330,6 +334,10 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         status: artifact.status,
         model: artifact.model,
         workflowType: artifact.workflowType,
+        sessionId: artifact.sessionId ?? null,
+        stepKey: artifact.stepKey ?? null,
+        artifactRole: artifact.artifactRole ?? null,
+        runMode: artifact.runMode ?? null,
         createdAt: artifact.createdAt,
         updatedAt: artifact.updatedAt,
       }));
@@ -355,6 +363,10 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       status: artifact.status,
       model: artifact.model,
       workflowType: artifact.workflowType,
+      sessionId: artifact.sessionId ?? null,
+      stepKey: artifact.stepKey ?? null,
+      artifactRole: artifact.artifactRole ?? null,
+      runMode: artifact.runMode ?? null,
       input: artifact.input,
       content: artifact.content,
       failureReason: artifact.failureReason,

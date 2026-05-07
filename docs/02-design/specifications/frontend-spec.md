@@ -12,7 +12,7 @@ owner: Frontend Platform Team
 > ⚑ **DDD Reference**: This document describes the Frontend/UI bounded context architecture. For canonical domain terminology, see:
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — frontend terms: `ToolPage`, `ReadinessSnapshot`, `SupportedTool`, `ToolStep`, `ExtractionContext`, `HydrationResult`
 > - [Domain Bounded Context Map](../domain-bounded-context-map.md) — Frontend/UI Context section
-> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions DDD-004, DDD-006, DDD-028 (Frontend terms)
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions DDD-004, DDD-006, DDD-028, DDD-051, DDD-052 (Frontend terms)
 
 **Data**: 2026-04-28  
 **Radice sorgente**: `apps/frontend/src/`  
@@ -182,6 +182,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 - Hook attivi:
   - `useProjectsQuery`
   - `useProjectDetailQuery`
+  - `useSessionsQuery`
   - `useArtifactsQuery`
   - `useArtifactDetailQuery`
   - `useAdminUsersQuery`
@@ -194,7 +195,23 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 ### Adozione corrente
 
 - `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage` e `AdminUsersPage` usano i query hooks condivisi.
+- `ProjectDetailPage` usa `SessionsListingSection` con sorgente `SessionSummary[]` filtrata per `projectId`.
 - Il pattern `useEffect + IIFE async` e stato eliminato da queste pagine e resta confinato ai punti dove la logica e ancora specifica (ad esempio `GenerationConsolePage`).
+
+### SessionSummary / Artifacts / Projects Navigation Contract (DDD-051, DDD-052)
+
+The frontend must keep route semantics and data contracts separated by domain projection.
+
+| UI scope | Route namespace | Canonical read model | Canonical backend contract | Notes |
+|---|---|---|---|---|
+| Project contextual history | `/dashboard/projects/{projectId}` | `SessionSummary[]` filtered by `projectId` | `GET /api/tools/sessions?projectId={projectId}` | Project detail navigation is session-first, not artifact-list-first. |
+| Session archive and session detail | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}` | Canonical aggregate namespace for `GenerationSession` projections. |
+| Artifact archive and artifact detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` | Non-aggregated history and single-generation detail only. |
+
+Current implementation evidence (transitional):
+- Router still exposes `/artifacts` and `/artifacts/:id` for archive/detail navigation (`apps/frontend/src/app/routing/app-router.tsx:101-108`).
+- Project contextual section already fetches sessions (`apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx:12-49`).
+- Session listing currently derives `SessionSummary` from artifacts while canonical list endpoint rollout is pending (`apps/frontend/src/features/tools/runtime/session-client.ts:70-119`).
 
 ### Componenti shared per stati pagina
 
@@ -538,6 +555,41 @@ Response (HTTP 200):
 - `totalResults` è calcolato applicando gli stessi filtri e contando i risultati completi (senza limit/offset).
 - La UI renderizza le bolle deterministicamente anche con il fallback, usando la stessa logica.
 
+### `GET /api/tools/sessions` — List SessionSummary (Canonical Target)
+
+Query string:
+
+| Parametro | Tipo | Default | Descrizione |
+|---|---|---|---|
+| `projectId` | `string` | — | Optional project-scoped filter for contextual project navigation |
+| `limit` | `number` | — | Optional page size |
+| `offset` | `number` | `0` | Optional offset for pagination |
+
+Response (HTTP 200):
+
+```json
+{
+  "ok": true,
+  "data": {
+    "sessions": [
+      {
+        "sessionId": "sess_123",
+        "projectId": "proj_123",
+        "toolKey": "funnel-pages",
+        "status": "completed",
+        "artifactCount": 3,
+        "updatedAt": "2026-05-07T10:05:00.000Z"
+      }
+    ],
+    "totalResults": 1
+  }
+}
+```
+
+Rollout status:
+- Canonical contract is approved in DDD-051.
+- Frontend currently supports a transitional derivation path (`SessionSummary` from artifact listing) until backend list endpoint rollout is completed.
+
 ---
 
 ## Backend capability matrix
@@ -548,7 +600,7 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 |---|---|---|---|
 | `projects` | `VITE_CAP_PROJECTS` | `GET /api/projects`, `GET /api/projects/:id`, `POST /api/projects` | Lista vuota (nessun mock) |
 | `models` | `VITE_CAP_MODELS` | `GET /api/models` | Array vuoto |
-| `artifacts` | `VITE_CAP_ARTIFACTS` | `GET /api/artifacts`, `GET /api/artifacts/:id` | Store locale `GenerationArtifact[]` da `GenerationWorkspaceProvider` |
+| `artifacts` | `VITE_CAP_ARTIFACTS` | `GET /api/artifacts`, `GET /api/artifacts/:id`, `GET /api/tools/sessions/:sessionId`, `GET /api/tools/sessions/:sessionId/step/:stepKey` | Store locale `GenerationArtifact[]` da `GenerationWorkspaceProvider`; transitional `SessionSummary` derivation from artifacts |
 | `toolsUpload` | `VITE_CAP_TOOLS_UPLOAD` | `POST /api/tools/briefs` | Disabilitato (process briefing non disponibile) |
 
 ### Comportamento fallback per modulo
@@ -556,6 +608,7 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | Modulo | Comportamento senza capability |
 |---|---|
 | Projects list/detail | Mostra lista vuota; nessuna chiamata HTTP |
+| Project contextual sessions (`SessionSummary`) | Deriva session summary da artifacts locali filtrati per `projectId` |
 | Artifacts archive | Filtra artifacts da store XState locale; nessuna chiamata HTTP |
 | Artifact detail | Cerca per `artifactId` tra artifacts locali; restituisce null se non trovato |
 | Admin users | Chiama sempre `/admin/users` (endpoint as-is disponibile); nessun fallback |
@@ -570,12 +623,16 @@ Ogni modulo frontend dichiara la propria dipendenza da endpoint backend tramite 
 | `GET /auth/session` | Lettura sessione corrente |
 | `GET /auth/google/start` | OAuth Google start |
 | `POST /generation/stream` | Stream SSE generazione (`start/chunk/terminal`) |
+| `GET /api/tools/sessions/:sessionId` | Session aggregate detail (`SessionArtifactGroup`) |
+| `GET /api/tools/sessions/:sessionId/step/:stepKey` | Step artifact detail inside a session aggregate |
 | `GET /admin/users` | Lista utenti admin |
 | `GET /admin/users/:id` | Dettaglio utente admin |
 
 ### Stato implementazione cutover (2026-04-25)
 
 - Backend `/api/projects*` e `/api/artifacts*` è implementato nel runtime HTTP con protezione sessione e filtro user-scoped.
+- Backend `/api/tools/sessions/:sessionId` e `/api/tools/sessions/:sessionId/step/:stepKey` è implementato per session aggregate detail.
+- Backend `GET /api/tools/sessions` resta il target canonico di rollout per aggregate listing (DDD-051).
 - Frontend `projects-client` e `artifacts-client` è stato allineato a:
   - branch live quando capability è `true`
   - fallback deterministico quando capability è `false`

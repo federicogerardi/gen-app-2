@@ -13,6 +13,7 @@ import {
   belongsToTool,
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
+  collectCompletedStepsBySession,
   collectCompletedStepsByTool,
   extractArtifactStep,
   readExtractionPayloadFromArtifact,
@@ -107,7 +108,27 @@ const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hy
     && hydrationResult.normalizedText.trim().length > 0;
 };
 
+const YOUTUBE_REQUIRED_EXTRACTION_FIELDS = [
+  'knowledge_content',
+  'avatar',
+  'pain_point',
+  'offer',
+  'proof',
+] as const;
+
+const hasRequiredYoutubeExtractionFields = (payload: Record<string, unknown> | null | undefined): boolean => {
+  if (!payload) {
+    return false;
+  }
+
+  return YOUTUBE_REQUIRED_EXTRACTION_FIELDS.every((field) => {
+    const value = payload[field];
+    return typeof value === 'string' && value.trim().length > 0;
+  });
+};
+
 const hasCompleteBriefingContext = (
+  toolKey: SupportedTool,
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
 ): boolean => {
   const snapshot = briefingActorRef?.getSnapshot();
@@ -115,9 +136,18 @@ const hasCompleteBriefingContext = (
     return false;
   }
 
-  return (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+  const hasCoreContext = (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
     && (snapshot.context.briefingId?.trim().length ?? 0) > 0
     && (snapshot.context.normalizedText?.trim().length ?? 0) > 0;
+  if (!hasCoreContext) {
+    return false;
+  }
+
+  if (toolKey !== 'youtube-lf-script') {
+    return true;
+  }
+
+  return hasRequiredYoutubeExtractionFields(snapshot.context.extractionPayload);
 };
 
 const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
@@ -333,14 +363,19 @@ const readNormalizedBriefingText = (input: Record<string, unknown> | undefined):
 
 // Phase 3: readiness derivata interamente da context macchina
 const deriveHasExtractionContext = (
+  toolKey: SupportedTool,
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
   if (hasCompleteHydrationResult(hydrationResult)) {
-    return true;
+    if (toolKey !== 'youtube-lf-script') {
+      return true;
+    }
+
+    return hasRequiredYoutubeExtractionFields(hydrationResult.extractionPayload);
   }
 
-  return hasCompleteBriefingContext(briefingActorRef);
+  return hasCompleteBriefingContext(toolKey, briefingActorRef);
 };
 
 const deriveHasPrimaryTargetStep = (toolKey: SupportedTool): boolean => {
@@ -452,10 +487,16 @@ export const resolveFlowProgressState = (
   artifacts: GenerationArtifact[],
   toolKey: SupportedTool,
   projectId: string,
+  sessionId: string | null,
   intent: 'new' | 'resume' | 'regenerate',
   sourceArtifact: GenerationArtifact | null,
   runRequestPrefix: string | null,
 ): ToolPageProgressState => {
+  // context.sessionId is a frontend-generated UUID for the *current* machine session.
+  // Historical artifacts from previous sessions carry a different sessionId, so we must
+  // NOT filter historicalCompletedSteps by it — use tool-scoped collection instead.
+  // Session-scoped filtering applies only to artifacts explicitly loaded via the session endpoint.
+  void sessionId;
   const historicalCompletedSteps = collectCompletedStepsByTool(artifacts, toolKey, projectId);
   const historicalLatestArtifactByStep = buildLatestArtifactByStep(artifacts, toolKey, projectId);
   const restoredCheckpointState = resolveRestoredCheckpointState(artifacts, toolKey, sourceArtifact);
@@ -518,6 +559,7 @@ export const resolveFlowProgressState = (
 
 export type ToolPageContext = {
   toolKey: SupportedTool;
+  sessionId: string;
   projectId: string;
   model: string;
   registrySnapshotRef: string;
@@ -538,6 +580,7 @@ export type ToolPageContext = {
 
 type ToolPageInput = {
   toolKey: SupportedTool;
+  sessionId?: string;
   projectId: string;
   model: string;
   registrySnapshotRef: string;
@@ -576,6 +619,14 @@ export type ToolPageEvent =
     sourceExtractionArtifactId?: string | null;
     localArtifacts?: GenerationArtifact[];
   };
+
+const createSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
 
 export const toolPageMachine = setup({
   types: {
@@ -757,13 +808,18 @@ export const toolPageMachine = setup({
         event.artifacts,
         context.toolKey,
         context.projectId,
+        context.sessionId,
         event.intent,
         event.sourceArtifact,
         event.runRequestPrefix,
       );
 
       // Phase 3: readiness derivata interamente da context macchina, non da input UI.
-      const hasExtractionContext = deriveHasExtractionContext(context.briefingActorRef, context.hydrationResult);
+      const hasExtractionContext = deriveHasExtractionContext(
+        context.toolKey,
+        context.briefingActorRef,
+        context.hydrationResult,
+      );
       const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
       const readiness = buildReadinessSnapshot(context.projectId, hasExtractionContext, hasPrimaryTargetStep);
 
@@ -854,6 +910,7 @@ export const toolPageMachine = setup({
   id: 'toolPageMachine',
   context: ({ input }) => ({
     toolKey: input.toolKey,
+    sessionId: input.sessionId ?? createSessionId(),
     projectId: input.projectId,
     model: input.model,
     registrySnapshotRef: input.registrySnapshotRef,

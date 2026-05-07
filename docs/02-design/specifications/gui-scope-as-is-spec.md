@@ -52,7 +52,7 @@ Out of scope:
 
 I seguenti vincoli sono non negoziabili per l'equivalenza funzionale:
 
-1. Navigazione projects-first: progetto come contenitore primario, storico artefatti come vista trasversale secondaria.
+1. Navigazione projects-first: progetto come contenitore primario, with project contextual navigation served by `SessionSummary`; artifact history remains trasversale secondaria.
 2. Tool workflow guidato: setup -> briefing -> extraction -> generation step-based con stato visibile.
 3. Generazione robusta: retry automatico su errori retryable e messaggistica stato in UI.
 4. Resume/regenerate: possibilita di recuperare checkpoint da artifact gia presenti.
@@ -69,9 +69,11 @@ I seguenti vincoli sono non negoziabili per l'equivalenza funzionale:
 | `/dashboard` | Hub operativo project-first | Workspace overview |
 | `/dashboard/projects` | Lista progetti utente | Workspace index |
 | `/dashboard/projects/new` | Creazione progetto | Creation flow |
-| `/dashboard/projects/:id` | Dettaglio progetto + artifact contestuali | Context workspace |
+| `/dashboard/projects/:id` | Dettaglio progetto + session summary contestuali | Context workspace |
 | `/tools/funnel-pages` | Tool workflow 3 step (optin/quiz/vsl) | Guided generation |
 | `/tools/nextland` | Tool workflow 2 step (landing/thank_you) | Guided generation |
+| `/sessionsummary` | Archivio sessioni aggregate | Session archive view |
+| `/sessionsummary/:sessionId` | Dettaglio sessione aggregata | Session inspection |
 | `/artifacts` | Storico personale trasversale | Archive/audit view |
 | `/artifacts/:id` | Dettaglio artifact + relaunch actions | Artifact inspection |
 | `/admin` | Superficie amministrativa (solo role admin) | Admin control plane |
@@ -130,11 +132,11 @@ Comportamenti minimi:
 Responsabilita:
 
 - lista completa progetti utente
-- dettaglio progetto con artifact del contesto
+- dettaglio progetto con session summary del contesto
 
 Comportamenti minimi:
 
-- in dettaglio progetto, ogni artifact espone almeno: tipo, stato, modello, data, link dettaglio
+- in dettaglio progetto, ogni `SessionSummary` espone almeno: sessionId, toolKey, status, artifactCount, updatedAt e link dettaglio sessione
 - pulsanti ponte verso storico globale e lista progetti
 
 ## 5.4 Modulo Tool Setup Comune
@@ -203,7 +205,7 @@ Endpoint GUI dipendenti:
 
 Responsabilita:
 
-- recuperare artifact recenti progetto (`/api/artifacts?projectId=...&limit=100`)
+- recuperare session summary progetto (`/api/tools/sessions?projectId=...`)
 - riallineare extraction context e step completati/parziali
 
 Regole as-is:
@@ -312,6 +314,9 @@ Endpoint necessari alla replica:
 
 - `/api/projects` (lista progetti)
 - `/api/models` (lista modelli disponibili)
+- `/api/tools/sessions` (session summary listing, optional `projectId` filter)
+- `/api/tools/sessions/:sessionId` (session aggregate detail)
+- `/api/tools/sessions/:sessionId/step/:stepKey` (session step artifact detail)
 - `/api/artifacts` (lista/filter/checkpoint)
 - `/api/tools/funnel-pages/upload`
 - `/api/tools/funnel-pages/generate`
@@ -330,6 +335,6 @@ Una replica GUI e considerata equivalente quando:
 1. la mappa route e la gerarchia navigazione rispecchiano il modello projects-first.
 2. i due tool supportano setup/upload/extraction/generation/resume/regenerate.
 3. la generazione e sequenziale per step con dipendenze inter-step rispettate.
-4. storico e dettaglio artifact supportano recupero, audit e relaunch.
+4. project detail usa `SessionSummary` (non artifact list) per la navigazione contestuale; storico e dettaglio artifact restano nel namespace `artifacts`.
 5. l'admin e segregato per ruolo e mantiene funzioni di controllo utenti/modelli.
 6. contratti di stato, errore e retry rispettano questo documento.

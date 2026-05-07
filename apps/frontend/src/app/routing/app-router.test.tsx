@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
 import { createAppRouter } from './app-router';
 
 // Minimal stubs for route smoke tests

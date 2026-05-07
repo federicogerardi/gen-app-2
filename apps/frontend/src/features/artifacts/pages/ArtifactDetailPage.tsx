@@ -17,10 +17,11 @@ import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorks
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { Copy, Check } from 'lucide-react';
+import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
-export const isLegacySessionRouteId = (id: string): boolean => /^sess_[A-Za-z0-9_-]+$/.test(id);
+export const isLegacySessionRouteId = (id: string): boolean => isSessionSummaryId(id);
 
 export const ArtifactDetailPage = () => {
   const { artifactId = '' } = useParams();

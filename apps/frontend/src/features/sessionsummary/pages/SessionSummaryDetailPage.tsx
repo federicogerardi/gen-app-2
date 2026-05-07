@@ -15,6 +15,7 @@ import {
   type SessionArtifactGroup,
 } from '../../tools/runtime/session-client';
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
+import { asSupportedTool } from '../runtime/session-summary-domain';
 
 type PageState =
   | { phase: 'loading' }
@@ -102,9 +103,7 @@ export const SessionSummaryDetailPage = () => {
   }
 
   const group = pageState.group;
-  const effectiveToolKey = (group.toolKey === 'funnel-pages' || group.toolKey === 'nextland' || group.toolKey === 'youtube-lf-script')
-    ? group.toolKey
-    : null;
+  const effectiveToolKey = asSupportedTool(group.toolKey);
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>

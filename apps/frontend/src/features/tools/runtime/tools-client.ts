@@ -249,10 +249,22 @@ export const runExtraction = async (
     }
   }
 
+  const parsedPayload = parseExtractionArtifactContent(content);
+  if (Object.keys(parsedPayload).length === 0) {
+    const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
+    if (recovered) {
+      return {
+        artifactId: recovered.artifactId,
+        content,
+        payload: resolveExtractionPayloadFromArtifact(recovered),
+      };
+    }
+  }
+
   return {
     artifactId,
     content,
-    payload: parseExtractionArtifactContent(content),
+    payload: parsedPayload,
   };
 };
 

@@ -8,6 +8,9 @@ const PROMPT_FILE_BY_KEY = {
   'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
   'nextland:landing': 'src/lib/runtime/tool-prompts/nextland/prompt_landing_generator.md',
   'nextland:thank_you': 'src/lib/runtime/tool-prompts/nextland/prompt_thank_you_generator.md',
+  'youtube-long-form:hook': 'src/lib/runtime/tool-prompts/youtube_long_form/prompt_hook_generator.md',
+  'youtube-long-form:script': 'src/lib/runtime/tool-prompts/youtube_long_form/prompt_script_generator.md',
+  'youtube-long-form:description': 'src/lib/runtime/tool-prompts/youtube_long_form/prompt_description_generator.md',
 } as const;
 
 const promptCache = new Map<string, string>();

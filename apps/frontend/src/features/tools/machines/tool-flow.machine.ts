@@ -1,7 +1,7 @@
 import { assign, setup } from 'xstate';
 
-export type SupportedTool = 'funnel-pages' | 'nextland';
-export type ToolStep = 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you';
+export type SupportedTool = 'funnel-pages' | 'nextland' | 'youtube-long-form';
+export type ToolStep = 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you' | 'hook' | 'script' | 'description';
 export type ToolStepStatus = 'idle' | 'running' | 'done' | 'error';
 
 export type ToolFlowContext = {
@@ -29,6 +29,7 @@ type ToolFlowEvent =
 export const toolStepOrder: Record<SupportedTool, ToolStep[]> = {
   'funnel-pages': ['optin', 'quiz', 'vsl'],
   nextland: ['landing', 'thank_you'],
+  'youtube-long-form': ['hook', 'script', 'description'],
 };
 
 const initialStatus: Record<ToolStep, ToolStepStatus> = {
@@ -37,6 +38,9 @@ const initialStatus: Record<ToolStep, ToolStepStatus> = {
   vsl: 'idle',
   landing: 'idle',
   thank_you: 'idle',
+  hook: 'idle',
+  script: 'idle',
+  description: 'idle',
 };
 
 const initialRetries: Record<ToolStep, number> = {
@@ -45,6 +49,9 @@ const initialRetries: Record<ToolStep, number> = {
   vsl: 0,
   landing: 0,
   thank_you: 0,
+  hook: 0,
+  script: 0,
+  description: 0,
 };
 
 export const toolFlowMachine = setup({

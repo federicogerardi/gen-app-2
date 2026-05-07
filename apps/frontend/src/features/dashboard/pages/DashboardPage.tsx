@@ -43,6 +43,7 @@ export const DashboardPage = () => {
           <div className={uiPrimitives.actions}>
             <Link to="/tools/funnel-pages" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.funnelPages}</Link>
             <Link to="/tools/nextland" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.nextland}</Link>
+            <Link to="/tools/youtube-long-form" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.youtubeLongForm}</Link>
           </div>
         </Surface>
 

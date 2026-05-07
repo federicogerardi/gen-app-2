@@ -19,6 +19,7 @@ export const appCopy = {
       projects: 'Projects',
       funnelPages: 'Funnel Pages',
       nextland: 'Nextland',
+      youtubeLongForm: 'YouTube Long Form',
       artifacts: 'Artifacts',
       admin: 'Admin',
     },
@@ -256,6 +257,11 @@ export const appCopy = {
         orderRule: 'Ordine step obbligatorio: landing -> thank_you',
         defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
       },
+      youtubeLongForm: {
+        title: 'YouTube Long Form Tool',
+        orderRule: 'Ordine step obbligatorio: hook -> script -> description',
+        defaultPrompt: 'Genera lo step YouTube Long Form richiesto con coerenza al brief estratto.',
+      },
     },
   },
 } as const;
@@ -265,6 +271,7 @@ export const appNavigation = [
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
+  { to: '/tools/youtube-long-form', label: appCopy.ui.navigation.youtubeLongForm, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },
 ] as const;

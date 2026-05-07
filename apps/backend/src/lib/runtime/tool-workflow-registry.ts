@@ -9,10 +9,10 @@
 
 import type { WorkflowStepDescriptor } from '../types/xstate';
 
-export type SupportedToolWorkflow = 'funnel-pages' | 'nextland';
+export type SupportedToolWorkflow = 'funnel-pages' | 'nextland' | 'youtube-long-form';
 
 export const isSupportedToolWorkflow = (value: string): value is SupportedToolWorkflow =>
-  value === 'funnel-pages' || value === 'nextland';
+  value === 'funnel-pages' || value === 'nextland' || value === 'youtube-long-form';
 
 /**
  * Canonical dependency-graph plan for a ToolWorkflow.
@@ -54,6 +54,11 @@ export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowP
   nextland: buildWorkflowPlan('nextland', [
     { key: 'landing', dependencies: [] },
     { key: 'thank_you', dependencies: ['landing'] },
+  ]),
+  'youtube-long-form': buildWorkflowPlan('youtube-long-form', [
+    { key: 'hook', dependencies: [] },
+    { key: 'script', dependencies: ['hook'] },
+    { key: 'description', dependencies: ['hook', 'script'] },
   ]),
 };
 

@@ -119,6 +119,21 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'youtube-long-form': {
+    toolKey: 'youtube-long-form',
+    displayName: 'YouTube Long Form',
+    defaultPrompt: 'Genera lo step YouTube Long Form richiesto con coerenza al brief estratto.',
+    defaultModel: 'openrouter/auto',
+    steps: ['hook', 'script', 'description'] as const,
+    stepDependencies: {
+      hook: [],
+      script: ['hook'],
+      description: ['hook', 'script'],
+    },
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 /**
@@ -203,6 +218,23 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Thank You Page',
       description: 'Post-conversion thank you page',
       expectedOutputFormat: 'HTML thank you page',
+    },
+  },
+  'youtube-long-form': {
+    hook: {
+      displayName: 'Hook & Title',
+      description: 'Opening hook, title variants, thumbnail concept and 60-second intro script',
+      expectedOutputFormat: 'Structured hook package with title, thumbnail concept, and opening script',
+    },
+    script: {
+      displayName: 'Video Script',
+      description: 'Full long-form video script with sections, transitions and CTA',
+      expectedOutputFormat: 'Complete recitable script with production notes',
+    },
+    description: {
+      displayName: 'YouTube Description',
+      description: 'SEO-optimised YouTube description with timestamps, links and hashtags',
+      expectedOutputFormat: 'Formatted description with keyword analysis and hashtags',
     },
   },
 };

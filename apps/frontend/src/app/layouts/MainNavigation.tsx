@@ -4,6 +4,7 @@ import {
   FolderOpen,
   Zap,
   Map,
+  Clapperboard,
   Archive,
   Settings,
   ChevronLeft,
@@ -31,6 +32,7 @@ const navIcons: Record<string, NavIcon> = {
   '/dashboard/projects': FolderOpen,
   '/tools/funnel-pages': Zap,
   '/tools/nextland': Map,
+  '/tools/youtube-long-form': Clapperboard,
   '/artifacts': Archive,
   '/admin': Settings,
 };

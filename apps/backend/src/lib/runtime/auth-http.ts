@@ -18,6 +18,7 @@ import {
   extractStepFromArtifactInput,
 } from './tool-workflow-registry';
 import { SessionQueryAdapter } from '../adapters/session-query.adapter';
+import type { SessionListEntry } from '../adapters/session-query.adapter';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -1296,6 +1297,36 @@ export const createAuthHttpRuntime = (
     });
   };
 
+  const handleToolsSessionsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for sessions list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    const projectIdParam = url.searchParams.get('projectId');
+    const projectId = projectIdParam && projectIdParam.trim().length > 0 ? projectIdParam.trim() : null;
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const sessions: SessionListEntry[] = await adapter.fetchSessionsList(principal.user.id, projectId);
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { sessions });
+  };
+
   const handleToolsSessionArtifacts = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1764,6 +1795,11 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/tools/orchestrate') {
         await handleToolsOrchestrate(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/tools/sessions') {
+        await handleToolsSessionsList(request, response);
         return { handled: true };
       }
 

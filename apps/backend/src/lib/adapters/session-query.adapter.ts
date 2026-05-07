@@ -22,6 +22,15 @@ export type SessionArtifactGroup = {
   artifacts: SessionArtifactEntry[];
 };
 
+export type SessionListEntry = {
+  sessionId: string;
+  projectId: string;
+  toolKey: string | null;
+  status: 'generating' | 'completed' | 'failed';
+  artifactCount: number;
+  updatedAt: string;
+};
+
 const readToolWorkflow = (input: Record<string, unknown>): Record<string, unknown> => {
   const candidate = input.toolWorkflow;
   if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
@@ -69,19 +78,13 @@ export class SessionQueryAdapter {
       return null;
     }
 
-    const summaries = await this.artifactQueries.listArtifactsByUser(userId, {});
-    const inSession = summaries.filter((artifact) => artifact.sessionId === normalizedSessionId);
+    const details = await this.artifactQueries.listArtifactDetailsBySession(userId, normalizedSessionId);
 
-    if (inSession.length === 0) {
+    if (details.length === 0) {
       return null;
     }
 
-    const details = await Promise.all(
-      inSession.map(async (summary) => this.artifactQueries.getArtifactByIdForUser(userId, summary.artifactId)),
-    );
-
     const artifacts: SessionArtifactEntry[] = details
-      .filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== null)
       .map((artifact) => {
         const toolWorkflow = readToolWorkflow(artifact.input);
         const stepFromInput = readString(toolWorkflow.stepKey) ?? readString(artifact.input.step);
@@ -114,6 +117,67 @@ export class SessionQueryAdapter {
       status: deriveGroupStatus(artifacts),
       artifacts,
     };
+  }
+
+  async fetchSessionsList(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+    const filters: import('../types/artifacts').ArtifactListFilters = {};
+    if (projectId) {
+      filters.projectId = projectId;
+    }
+
+    const summaries = await this.artifactQueries.listArtifactsByUser(userId, filters);
+
+    const bySession = new Map<string, {
+      projectId: string;
+      toolKey: string | null;
+      status: 'generating' | 'completed' | 'failed';
+      count: number;
+      updatedAtMs: number;
+    }>();
+
+    for (const artifact of summaries) {
+      const sessionId = readString(artifact.sessionId ?? null);
+      if (!sessionId) {
+        continue;
+      }
+
+      const artifactUpdatedAtMs = Date.parse(artifact.updatedAt);
+      const existing = bySession.get(sessionId);
+      if (existing) {
+        existing.count += 1;
+        if (artifactUpdatedAtMs > existing.updatedAtMs) {
+          existing.updatedAtMs = artifactUpdatedAtMs;
+        }
+        // Escalate status only when needed (generating > failed > completed)
+        if (artifact.status === 'generating') {
+          existing.status = 'generating';
+        } else if (artifact.status === 'failed' && existing.status !== 'generating') {
+          existing.status = 'failed';
+        }
+      } else {
+        bySession.set(sessionId, {
+          projectId: artifact.projectId,
+          toolKey: readString(artifact.workflowType ?? null),
+          status: artifact.status,
+          count: 1,
+          updatedAtMs: artifactUpdatedAtMs,
+        });
+      }
+    }
+
+    const entries: SessionListEntry[] = [];
+    for (const [sessionId, data] of bySession) {
+      entries.push({
+        sessionId,
+        projectId: data.projectId,
+        toolKey: data.toolKey,
+        status: data.status,
+        artifactCount: data.count,
+        updatedAt: new Date(data.updatedAtMs).toISOString(),
+      });
+    }
+
+    return entries.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }
 
   async fetchStepArtifact(

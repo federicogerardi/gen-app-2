@@ -1051,6 +1051,35 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     const row = result.rows[0];
     return row ? mapArtifactRowToDetail(row) : null;
   }
+
+  async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
+    const query = `
+      SELECT
+        id,
+        request_id,
+        user_id,
+        project_id,
+        type,
+        status,
+        model,
+        workflow_type,
+        session_id,
+        step_key,
+        artifact_role,
+        run_mode,
+        input_json,
+        content,
+        failure_reason,
+        created_at,
+        updated_at
+      FROM ${this.artifactsTableName}
+      WHERE user_id = $1 AND session_id = $2
+      ORDER BY updated_at ASC, id ASC
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, sessionId]);
+    return result.rows.map((row) => mapArtifactRowToDetail(row));
+  }
 }
 
 export const createPostgresRedisProductionDependencies = (

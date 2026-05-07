@@ -375,6 +375,31 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     };
   }
 
+  async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
+    return [...this.artifacts.values()]
+      .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .map((artifact) => ({
+        artifactId: artifact.artifactId,
+        requestId: artifact.requestId,
+        userId: artifact.userId,
+        projectId: artifact.projectId,
+        artifactType: artifact.artifactType,
+        status: artifact.status,
+        model: artifact.model,
+        workflowType: artifact.workflowType,
+        sessionId: artifact.sessionId ?? null,
+        stepKey: artifact.stepKey ?? null,
+        artifactRole: artifact.artifactRole ?? null,
+        runMode: artifact.runMode ?? null,
+        input: artifact.input,
+        content: artifact.content,
+        failureReason: artifact.failureReason,
+        createdAt: artifact.createdAt,
+        updatedAt: artifact.updatedAt,
+      }));
+  }
+
   seed(records: StubArtifactQueryRecord[]): void {
     records.forEach((record) => this.artifacts.set(record.artifactId, record));
   }

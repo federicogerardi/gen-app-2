@@ -20,6 +20,7 @@ export const appCopy = {
       funnelPages: 'Funnel Pages',
       nextland: 'Nextland',
       youtubeLfScript: 'YouTube LF Script',
+      sessionSummary: 'SessionSummary',
       artifacts: 'Artifacts',
       admin: 'Admin',
     },
@@ -284,6 +285,7 @@ export const appNavigation = [
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
   { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
+  { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },
 ] as const;

@@ -17,6 +17,8 @@ const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
+const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
+const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
@@ -101,8 +103,16 @@ export const createAppRouter = () => createBrowserRouter([
         element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
       },
       {
-        path: '/artifacts/:id',
+        path: '/artifacts/:artifactId',
         element: <Suspense fallback={<PageLoader />}><ArtifactDetailPage /></Suspense>,
+      },
+      {
+        path: '/sessionsummary',
+        element: <Suspense fallback={<PageLoader />}><SessionSummaryListPage /></Suspense>,
+      },
+      {
+        path: '/sessionsummary/:sessionId',
+        element: <Suspense fallback={<PageLoader />}><SessionSummaryDetailPage /></Suspense>,
       },
       {
         path: '/admin',

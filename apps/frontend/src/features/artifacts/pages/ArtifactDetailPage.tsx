@@ -4,7 +4,6 @@ import remarkGfm from 'remark-gfm';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Copy, Check } from 'lucide-react';
 import {
   Button,
   EmptyStateMessage,
@@ -16,164 +15,46 @@ import {
 } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
-import {
-  buildToolEntryPathFromArtifact,
-} from '../../generation/ui/artifact-history';
-import {
-  getSessionArtifacts,
-  type SessionArtifactGroup,
-} from '../../tools/runtime/session-client';
-import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
+import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
+import { Copy, Check } from 'lucide-react';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
-type PageState =
-  | { phase: 'loading' }
-  | { phase: 'session'; group: SessionArtifactGroup }
-  | { phase: 'legacy' }
-  | { phase: 'error'; message: string }
-  | { phase: 'not-found' };
+export const isLegacySessionRouteId = (id: string): boolean => /^sess_[A-Za-z0-9_-]+$/.test(id);
 
 export const ArtifactDetailPage = () => {
-  const { id = '' } = useParams();
+  const { artifactId = '' } = useParams();
   const navigate = useNavigate();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
 
-  const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
-
-  // Session-first: try to load id as sessionId. On 404 fall through to artifact.
   useEffect(() => {
-    if (!id) {
-      setPageState({ phase: 'not-found' });
-      return;
+    if (isLegacySessionRouteId(artifactId)) {
+      navigate(`/sessionsummary/${artifactId}`, { replace: true });
     }
+  }, [artifactId, navigate]);
 
-    let cancelled = false;
-    setPageState({ phase: 'loading' });
-
-    void (async () => {
-      try {
-        const group = await getSessionArtifacts(id, {
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
-        });
-        if (!cancelled) {
-          setPageState({ phase: 'session', group });
-        }
-      } catch (sessionError) {
-        if (cancelled) {
-          return;
-        }
-
-        const message = sessionError instanceof Error ? sessionError.message : '';
-
-        if (message === 'Unauthorized session access') {
-          navigate('/');
-          return;
-        }
-
-        // Session not found — fall through to legacy artifact view
-        if (!cancelled) {
-          setPageState({ phase: 'legacy' });
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [id, auth.apiBaseUrl, auth.capabilities, navigate]);
-
-  // Legacy artifact load — active only when pageState.phase === 'legacy'
-  const isLegacyPhase = pageState.phase === 'legacy';
   const artifactQuery = useArtifactDetailQuery({
-    artifactId: id,
+    artifactId,
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
     localArtifacts: generation.artifacts,
-    enabled: isLegacyPhase && id.length > 0,
+    enabled: artifactId.length > 0,
   });
 
-  // If the legacy artifact has a sessionId, redirect to session detail
-  useEffect(() => {
-    if (!isLegacyPhase) {
-      return;
-    }
-
-    const artifact = artifactQuery.data;
-    if (!artifact) {
-      return;
-    }
-
-    const sessionId = artifact.sessionId?.trim() ?? '';
-    if (sessionId.length > 0) {
-      navigate(`/artifacts/${sessionId}`, { replace: true });
-    }
-  }, [isLegacyPhase, artifactQuery.data, navigate]);
-
-  // --- Session view ---
-  if (pageState.phase === 'session') {
-    const group = pageState.group;
-    const effectiveToolKey = (group.toolKey === 'funnel-pages' || group.toolKey === 'nextland' || group.toolKey === 'youtube-lf-script')
-      ? group.toolKey
-      : null;
-
-    return (
-      <Surface as="section" className={uiPrimitives.stack}>
-        <TopBar>
-          <h2>{appCopy.editorial.sessions.detailTitle}</h2>
-          <Link to="/artifacts" className={uiPrimitives.inlineLink}>
-            {appCopy.ui.actions.openSessionArchive}
-          </Link>
-        </TopBar>
-
-        <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.sessionId, group.sessionId)}</p>
-        <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, group.status)}</p>
-
-        <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
-      </Surface>
-    );
-  }
-
-  // --- Loading state ---
-  if (pageState.phase === 'loading') {
-    return (
-      <Surface as="section" className={uiPrimitives.stack}>
-        <h2>{appCopy.editorial.sessions.detailTitle}</h2>
-        <LoadingStateMessage>{appCopy.editorial.sessions.loadingState}</LoadingStateMessage>
-      </Surface>
-    );
-  }
-
-  // --- Not found ---
-  if (pageState.phase === 'not-found') {
-    return (
-      <Surface as="section" className={uiPrimitives.stack}>
-        <h2>{appCopy.editorial.sessions.detailTitle}</h2>
-        <EmptyStateMessage>{appCopy.editorial.sessions.notFound}</EmptyStateMessage>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
-          {appCopy.ui.actions.openSessionArchive}
-        </Link>
-      </Surface>
-    );
-  }
-
-  // --- Error ---
-  if (pageState.phase === 'error') {
-    return (
-      <Surface as="section" className={uiPrimitives.stack}>
-        <h2>{appCopy.editorial.sessions.detailTitle}</h2>
-        <ErrorStateMessage>{pageState.message}</ErrorStateMessage>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
-          {appCopy.ui.actions.openSessionArchive}
-        </Link>
-      </Surface>
-    );
-  }
-
-  // --- Legacy artifact view (phase === 'legacy') ---
   const artifact = artifactQuery.data;
+
+  if (!artifactId) {
+    return (
+      <Surface as="section" className={uiPrimitives.stack}>
+        <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
+        <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
+        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+          {appCopy.ui.actions.openArchive}
+        </Link>
+      </Surface>
+    );
+  }
 
   if (!artifact) {
     return (
@@ -187,7 +68,7 @@ export const ArtifactDetailPage = () => {
           <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
         ) : null}
         <Link to="/artifacts" className={uiPrimitives.inlineLink}>
-          {appCopy.ui.actions.openSessionArchive}
+          {appCopy.ui.actions.openArchive}
         </Link>
       </Surface>
     );
@@ -196,7 +77,6 @@ export const ArtifactDetailPage = () => {
   return <LegacyArtifactView artifact={artifact} />;
 };
 
-// Inline sub-component for legacy single-artifact display
 const LegacyArtifactView = ({
   artifact,
 }: {
@@ -247,7 +127,7 @@ const LegacyArtifactView = ({
       <TopBar>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
         <Link to="/artifacts" className={uiPrimitives.inlineLink}>
-          {appCopy.ui.actions.openSessionArchive}
+          {appCopy.ui.actions.openArchive}
         </Link>
       </TopBar>
 

@@ -146,7 +146,7 @@ export const SessionsListingSection = ({
                     <td>{new Date(session.updatedAt).toLocaleString()}</td>
                     <td>
                       <Link
-                        to={`/artifacts/${session.sessionId}`}
+                        to={`/sessionsummary/${session.sessionId}`}
                         className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
                       >
                         {appCopy.ui.actions.openDetail}

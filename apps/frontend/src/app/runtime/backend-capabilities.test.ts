@@ -24,6 +24,8 @@ describe('backend-capabilities', () => {
     expect(result.projects).toBe(true);
     expect(result.artifacts).toBe(false);
     expect(result.models).toBe(false);
+    expect(result.sessionsList).toBe(false);
+    expect(result.sessionsDetail).toBe(false);
   });
 
   it('resolveBackendCapabilities supports full override', () => {
@@ -31,6 +33,8 @@ describe('backend-capabilities', () => {
       projects: true,
       models: true,
       artifacts: true,
+      sessionsList: true,
+      sessionsDetail: true,
       toolsUpload: true,
     };
     const result = resolveBackendCapabilities(all);

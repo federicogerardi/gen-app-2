@@ -32,6 +32,7 @@ export const useSessionsQuery = (options: UseSessionsQueryOptions): UseSessionsQ
   const projectIdKey = options.projectId ?? '';
   const apiBaseUrl = options.apiBaseUrl;
   const capabilitiesKey = JSON.stringify(options.capabilities);
+  const sessionsQueryKey = `sessionsummary:${projectIdKey}:${apiBaseUrl}:${capabilitiesKey}`;
   const enabledRef = useRef(options.enabled);
   enabledRef.current = options.enabled;
 
@@ -78,7 +79,7 @@ export const useSessionsQuery = (options: UseSessionsQueryOptions): UseSessionsQ
     return () => {
       cancelled = true;
     };
-  }, [projectIdKey, apiBaseUrl, capabilitiesKey, reloadToken]);
+  }, [sessionsQueryKey, projectIdKey, apiBaseUrl, capabilitiesKey, reloadToken]);
 
   return { data, loading, error, reload };
 };

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { createAppRouter } from './app-router';
 
 // Minimal stubs for route smoke tests
@@ -15,12 +16,12 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
     logout: vi.fn(),
     refresh: vi.fn(),
   }),
-  AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AuthSessionProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
-  GenerationWorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  GenerationWorkspaceProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../layouts/AuthenticatedShell', () => ({
@@ -32,7 +33,7 @@ vi.mock('../layouts/PublicShell', () => ({
 }));
 
 vi.mock('../../features/admin/routing/admin-guard', () => ({
-  AdminGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AdminGuard: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
@@ -60,6 +61,14 @@ vi.mock('../../features/artifacts/pages/ArtifactDetailPage', () => ({
   ArtifactDetailPage: () => <div data-testid="artifact-detail-page">Artifact detail loaded</div>,
 }));
 
+vi.mock('../../features/sessionsummary/pages/SessionSummaryListPage', () => ({
+  SessionSummaryListPage: () => <div data-testid="sessionsummary-list">SessionSummary list loaded</div>,
+}));
+
+vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
+  SessionSummaryDetailPage: () => <div data-testid="sessionsummary-detail">SessionSummary detail loaded</div>,
+}));
+
 const PlaceholderPage = ({ label }: { label: string }) => <div data-testid="page">{label}</div>;
 
 describe('app router – smoke', () => {
@@ -79,6 +88,7 @@ describe('app router – smoke', () => {
     ['/tools/funnel-pages', 'FunnelPages'],
     ['/tools/nextland', 'Nextland'],
     ['/tools/youtube-lf-script', 'YoutubeLfScript'],
+    ['/sessionsummary', 'SessionSummary'],
     ['/artifacts', 'Artifacts'],
     ['/admin', 'Admin'],
   ])('renders placeholder at %s', (path, label) => {
@@ -126,6 +136,16 @@ describe('app router – integration', () => {
     fireEvent.click(openDetailLink);
 
     expect(await screen.findByTestId('artifact-detail-page')).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('renders session summary detail route at /sessionsummary/:sessionId', async () => {
+    window.history.pushState({}, '', '/sessionsummary/sess_demo');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByTestId('sessionsummary-detail')).toBeInTheDocument();
     router.dispose();
   });
 });

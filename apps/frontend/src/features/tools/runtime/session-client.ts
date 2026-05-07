@@ -51,6 +51,13 @@ type SessionResponse = {
   };
 };
 
+type SessionsListResponse = {
+  ok?: boolean;
+  data?: {
+    sessions?: SessionSummary[];
+  };
+};
+
 const normalizeSessionId = (value: string | null | undefined): string | null => {
   if (typeof value !== 'string') {
     return null;
@@ -74,25 +81,10 @@ const deriveSessionStatus = (
   return 'completed';
 };
 
-export const listSessions = async (
-  query: { projectId?: string } = {},
-  options: SessionClientOptions = {},
-): Promise<SessionSummary[]> => {
-  const result = await listArtifacts(
-    {
-      type: 'all',
-      status: 'all',
-      projectId: query.projectId && query.projectId.trim().length > 0 ? query.projectId.trim() : 'all',
-    },
-    {
-      ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
-      ...(options.capabilities ? { capabilities: options.capabilities } : {}),
-    },
-  );
-
+export const mapArtifactsToSessionSummaryFallback = (artifacts: Awaited<ReturnType<typeof listArtifacts>>['artifacts']): SessionSummary[] => {
   const bySession = new Map<string, SessionSummary>();
 
-  for (const artifact of result.artifacts) {
+  for (const artifact of artifacts) {
     const sessionId = normalizeSessionId(artifact.sessionId ?? null);
     if (!sessionId) {
       continue;
@@ -124,20 +116,61 @@ export const listSessions = async (
   return [...bySession.values()].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 };
 
+export const listSessions = async (
+  query: { projectId?: string } = {},
+  options: SessionClientOptions = {},
+): Promise<SessionSummary[]> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const apiPaths = buildApiPaths(capabilities);
+  const listPath = apiPaths.tools.sessions.list;
+  const normalizedProjectId = query.projectId && query.projectId.trim().length > 0 ? query.projectId.trim() : null;
+
+  if (capabilities.sessionsList && listPath) {
+    const searchParams = new URLSearchParams();
+    if (normalizedProjectId) {
+      searchParams.set('projectId', normalizedProjectId);
+    }
+    const queryString = searchParams.toString();
+    const endpoint = `${listPath}${queryString.length > 0 ? `?${queryString}` : ''}`;
+    const payload = await requestJson<SessionsListResponse>(
+      joinApiPath(options.apiBaseUrl ?? '', endpoint),
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    );
+    return (payload.data?.sessions ?? []).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  }
+
+  const result = await listArtifacts(
+    {
+      type: 'all',
+      status: 'all',
+      projectId: normalizedProjectId ?? 'all',
+    },
+    {
+      ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
+      ...(options.capabilities ? { capabilities: options.capabilities } : {}),
+    },
+  );
+
+  return mapArtifactsToSessionSummaryFallback(result.artifacts);
+};
+
 export const getSessionArtifacts = async (
   sessionId: string,
   options: SessionClientOptions = {},
 ): Promise<SessionArtifactGroup> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
-  const base = buildApiPaths(capabilities).artifacts.list;
+  const sessionPath = buildApiPaths(capabilities).tools.sessions.byId(encodeURIComponent(sessionId));
 
-  if (!base) {
-    throw new Error('Session endpoint unavailable: artifacts capability disabled');
+  if (!sessionPath) {
+    throw new Error('Session endpoint unavailable: sessions detail capability disabled');
   }
 
   try {
     const payload = await requestJson<SessionResponse>(
-      joinApiPath(options.apiBaseUrl ?? '', `/api/tools/sessions/${encodeURIComponent(sessionId)}`),
+      joinApiPath(options.apiBaseUrl ?? '', sessionPath),
       {
         method: 'GET',
         credentials: 'include',

@@ -1,11 +1,11 @@
 import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
-import { SessionsListingSection } from '../ui/SessionsListingSection';
+import { ArtifactsListingSection } from '../ui/ArtifactsListingSection';
 
 export const ArtifactsPage = () => {
   return (
     <Surface as="section" className={uiPrimitives.stack}>
-      <SessionsListingSection title={appCopy.editorial.sessions.archiveTitle} headingLevel="h2" />
+      <ArtifactsListingSection title={appCopy.editorial.artifacts.archiveTitle} headingLevel="h2" />
     </Surface>
   );
 };

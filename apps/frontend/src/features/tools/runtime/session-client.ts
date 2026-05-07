@@ -165,7 +165,7 @@ export const getSessionArtifacts = async (
   const sessionPath = buildApiPaths(capabilities).tools.sessions.byId(encodeURIComponent(sessionId));
 
   if (!sessionPath) {
-    throw new Error('Session endpoint unavailable: sessions detail capability disabled');
+    throw new Error('Session endpoint unavailable: enable sessionsDetail capability or upgrade backend support');
   }
 
   try {

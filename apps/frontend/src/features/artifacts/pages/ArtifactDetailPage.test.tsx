@@ -2,7 +2,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { ArtifactDetailPage, isLegacySessionRouteId } from './ArtifactDetailPage';
+import { ArtifactDetailPage, isSessionSummaryRouteId } from './ArtifactDetailPage';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
@@ -78,8 +78,8 @@ describe('ArtifactDetailPage', () => {
   });
 
   it('detects legacy session route ids', () => {
-    expect(isLegacySessionRouteId('sess_demo')).toBe(true);
-    expect(isLegacySessionRouteId('art-1')).toBe(false);
+    expect(isSessionSummaryRouteId('sess_demo')).toBe(true);
+    expect(isSessionSummaryRouteId('art-1')).toBe(false);
   });
 
   it('shows "Artifact non trovato" for missing artifact', () => {

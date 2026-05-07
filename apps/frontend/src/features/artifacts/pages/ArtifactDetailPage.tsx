@@ -21,7 +21,7 @@ import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
-export const isLegacySessionRouteId = (id: string): boolean => isSessionSummaryId(id);
+export const isSessionSummaryRouteId = (id: string): boolean => isSessionSummaryId(id);
 
 export const ArtifactDetailPage = () => {
   const { artifactId = '' } = useParams();
@@ -30,7 +30,7 @@ export const ArtifactDetailPage = () => {
   const generation = useGenerationWorkspace();
 
   useEffect(() => {
-    if (isLegacySessionRouteId(artifactId)) {
+    if (isSessionSummaryRouteId(artifactId)) {
       navigate(`/sessionsummary/${artifactId}`, { replace: true });
     }
   }, [artifactId, navigate]);

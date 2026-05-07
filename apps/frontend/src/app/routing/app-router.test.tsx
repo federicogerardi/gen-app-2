@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type * as React from 'react';
 import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
 import { createAppRouter } from './app-router';
 
@@ -16,12 +16,12 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
     logout: vi.fn(),
     refresh: vi.fn(),
   }),
-  AuthSessionProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
-  GenerationWorkspaceProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  GenerationWorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../layouts/AuthenticatedShell', () => ({
@@ -33,7 +33,7 @@ vi.mock('../layouts/PublicShell', () => ({
 }));
 
 vi.mock('../../features/admin/routing/admin-guard', () => ({
-  AdminGuard: ({ children }: { children: ReactNode }) => <>{children}</>,
+  AdminGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({

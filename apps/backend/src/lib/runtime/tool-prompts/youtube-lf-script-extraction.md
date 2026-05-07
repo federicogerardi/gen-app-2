@@ -65,11 +65,6 @@
 - In `Proof`, include only evidence that is explicitly stated in the briefing.
 - In `Missing / Unclear`, list only gaps that can block or weaken downstream prompt quality.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ## **INPUT RICHIESTO**
 
 Per generare lo script, fornisci:

@@ -29,11 +29,6 @@ Use exactly these sections:
 - Include Context -> Application -> Dilemma -> Framing structure for each core point.
 - Define at least one rehook pattern every 20-25 seconds of perceived flow.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 3: STRUTTURA BODY**
 
 **ORDINE DEI PUNTI (Critico per la retention):**
@@ -86,4 +81,3 @@ Pattern "Tease": "Tieni a mente questo concetto perché tornerà alla fine in mo
 Pattern "Question": "Ma qui sorge una domanda: come fai a \[problema\]? È esattamente quello che vediamo ora..."
 
 ---
-

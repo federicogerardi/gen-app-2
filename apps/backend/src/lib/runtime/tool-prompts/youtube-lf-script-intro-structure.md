@@ -30,11 +30,6 @@ Use exactly these sections:
 - Keep proprietary method naming generic (curiosity preservation).
 - Preserve second-person focus ("tu/il tuo") and concise pacing.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 2: STRUTTURA INTRO (OBIETTIVO: 1:30-2:00 MASSIMO)**
 
 **REGOLA CRITICA: L'INTRO NON È IL POSTO PER ESEMPI LUNGHI O STORIE ESTESE**
@@ -76,4 +71,3 @@ L'intro deve attraversare questi 4 checkpoint psicologici:
 * \[ \] Ho mantenuto il nome del sistema/metodologia generico per creare curiosità?
 
 ---
-

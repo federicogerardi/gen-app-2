@@ -260,7 +260,7 @@ export const appCopy = {
       youtubeLfScript: {
         title: 'YouTube LF Script Tool',
         orderRule: 'Ordine step obbligatorio: pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure',
-        defaultPrompt: 'Genera lo step Youtube LF Script richiesto con coerenza al brief estratto.',
+        defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
       },
     },
   },

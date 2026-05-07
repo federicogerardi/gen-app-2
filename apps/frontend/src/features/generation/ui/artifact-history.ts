@@ -100,7 +100,7 @@ export const resolveToolRouteFromArtifact = (artifact: GenerationArtifact): stri
     return '/tools/nextland';
   }
 
-  if (candidates.includes('youtube-lf-script') || candidates.includes('youtube_lf_script')) {
+  if (candidates.includes('youtube-lf-script')) {
     return '/tools/youtube-lf-script';
   }
 

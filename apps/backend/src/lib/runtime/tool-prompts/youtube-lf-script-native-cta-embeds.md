@@ -28,11 +28,6 @@ Use exactly these sections:
 - Keep one soft CTA early and one soft CTA after strongest value point.
 - Avoid aggressive pitch tone; preserve educational flow.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 4: NATIVE CTA EMBEDS**
 
 **NON fare:** Fermarti a metà video per un pitch di 2 minuti **FARE:** Integrare CTA come soluzione naturale al pain point appena discusso
@@ -50,4 +45,3 @@ OPZIONE B \- Complessità \+ Acceleratore: "So che questo può sembrare molto da
 * CTA finale: nell'outro
 
 ---
-

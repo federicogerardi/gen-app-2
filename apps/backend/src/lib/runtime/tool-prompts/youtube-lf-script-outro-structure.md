@@ -29,11 +29,6 @@ Use exactly these sections:
 - Final CTA must align with offer and purchase-process complexity.
 - Keep urgency credible and non-hype.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 5: STRUTTURA OUTRO**
 
 **CLOSE THE LOOP:** "Ok, ricapitoliamo velocemente quello che abbiamo visto: \[Punto 1 in una frase\] \[Punto 2 in una frase\] \[Punto 3 in una frase\]..."
@@ -43,4 +38,3 @@ Use exactly these sections:
 **CTA FINALE:** "Se vuoi \[benefit specifico\], \[descrizione offerta\] \- trovi il link in descrizione. \[Micro-tease per prossimo video se appropriato\]"
 
 ---
-

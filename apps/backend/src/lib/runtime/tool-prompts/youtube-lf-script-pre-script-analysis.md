@@ -28,11 +28,6 @@ Use exactly these sections:
 - Keep all decisions reusable by downstream steps.
 - If data is missing, declare explicit assumption under `Strategic Risks`.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 0: ANALISI PRE-SCRIPT**
 
 Prima di iniziare lo script, rispondi a queste domande:
@@ -53,4 +48,3 @@ Prima di iniziare lo script, rispondi a queste domande:
 * Il tuo "plan of attack": \[La tua metodologia/framework in X passi\]
 
 ---
-

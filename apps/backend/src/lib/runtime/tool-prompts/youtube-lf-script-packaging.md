@@ -28,11 +28,6 @@ Use exactly these sections:
 - Ensure curiosity gap without clickbait mismatch.
 - Keep coherence with avatar, offer, and contrarian angle from previous step.
 
-# Source Excerpt
-
-- Master document: /home/federico/Scaricati/PROMPT_ GENERATORE DI SCRIPT YOUTUBE LONG-FORM AD ALTA CONVERSIONE.md
-- Extraction date: 2026-05-07
-
 ### **FASE 1: PACKAGING**
 
 **TITOLO:**
@@ -48,4 +43,3 @@ Use exactly these sections:
 * Espressione facciale coerente con il tono del titolo
 
 ---
-

@@ -73,6 +73,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
+- [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
 
 ### Design ADR
 

@@ -114,6 +114,10 @@ type ArtifactRow = {
   status: string;
   model: string;
   workflow_type: string | null;
+  session_id?: string | null;
+  step_key?: string | null;
+  artifact_role?: string | null;
+  run_mode?: string | null;
   input_json: Record<string, unknown> | null;
   content: string;
   failure_reason: string | null;
@@ -177,6 +181,50 @@ const normalizeToolWorkflowInputJson = (
       artifactRole,
       dependencyArtifactIds,
     },
+  };
+};
+
+const extractToolWorkflowColumns = (
+  normalizedInputJson: Record<string, unknown>,
+  sessionId: string | undefined,
+): {
+  sessionId: string | null;
+  stepKey: string | null;
+  artifactRole: 'step' | 'final' | null;
+  runMode: 'new' | 'resume' | 'regenerate' | null;
+} => {
+  const toolWorkflow =
+    normalizedInputJson.toolWorkflow
+    && typeof normalizedInputJson.toolWorkflow === 'object'
+    && !Array.isArray(normalizedInputJson.toolWorkflow)
+      ? (normalizedInputJson.toolWorkflow as Record<string, unknown>)
+      : {};
+
+  const stepKey = typeof toolWorkflow.stepKey === 'string' && toolWorkflow.stepKey.trim().length > 0
+    ? toolWorkflow.stepKey.trim()
+    : null;
+
+  const artifactRole = toolWorkflow.artifactRole === 'step' || toolWorkflow.artifactRole === 'final'
+    ? toolWorkflow.artifactRole
+    : null;
+
+  const runMode = toolWorkflow.runMode === 'new' || toolWorkflow.runMode === 'resume' || toolWorkflow.runMode === 'regenerate'
+    ? toolWorkflow.runMode
+    : null;
+
+  const workflowSessionId = typeof toolWorkflow.sessionId === 'string' && toolWorkflow.sessionId.trim().length > 0
+    ? toolWorkflow.sessionId.trim()
+    : null;
+
+  const explicitSessionId = typeof sessionId === 'string' && sessionId.trim().length > 0
+    ? sessionId.trim()
+    : null;
+
+  return {
+    sessionId: explicitSessionId ?? workflowSessionId,
+    stepKey,
+    artifactRole,
+    runMode,
   };
 };
 
@@ -489,6 +537,9 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
   }
 
   async flushProgress(input: PersistenceBatchInput, _sequence: number): Promise<void> {
+    const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
+    const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
+
     const query = `
       INSERT INTO ${this.artifactsTableName}
         (
@@ -498,6 +549,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           project_id,
           type,
           workflow_type,
+          session_id,
+          step_key,
+          artifact_role,
+          run_mode,
           model,
           input_json,
           status,
@@ -512,7 +567,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           streamed_at
         )
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'generating', $9, $10, $11, $12, $13, $14, NOW(), NOW(), NOW())
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'generating', $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
       ON CONFLICT (id)
       DO UPDATE SET
         content = EXCLUDED.content,
@@ -523,6 +578,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         model = EXCLUDED.model,
         user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
         project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
+        session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
+        step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
+        artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
+        run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
         updated_at = NOW(),
         streamed_at = NOW(),
         registry_version = EXCLUDED.registry_version,
@@ -541,8 +600,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
       input.projectId ?? null,
       input.artifactType,
       input.workflowType,
+      toolWorkflowColumns.sessionId,
+      toolWorkflowColumns.stepKey,
+      toolWorkflowColumns.artifactRole,
+      toolWorkflowColumns.runMode,
       input.model ?? 'unknown',
-      JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
+      JSON.stringify(normalizedInputJson),
       input.contentBuffer,
       input.inputTokens ?? 0,
       input.outputTokens ?? 0,
@@ -554,6 +617,9 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
 
   async finalizeSuccess(input: PersistenceBatchInput): Promise<void> {
     await withTransaction(this.pg, async (client) => {
+      const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
+      const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
+
       const query = `
         INSERT INTO ${this.artifactsTableName}
           (
@@ -563,6 +629,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             project_id,
             type,
             workflow_type,
+            session_id,
+            step_key,
+            artifact_role,
+            run_mode,
             model,
             input_json,
             status,
@@ -577,7 +647,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             completed_at
           )
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'completed', $9, $10, $11, $12, $13, $14, NOW(), NOW(), NOW())
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'completed', $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
         ON CONFLICT (id)
         DO UPDATE SET
           status = 'completed',
@@ -589,6 +659,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           model = EXCLUDED.model,
           user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
           project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
+          session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
+          step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
+          artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
+          run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
           updated_at = NOW(),
           completed_at = NOW(),
           failure_reason = NULL,
@@ -604,8 +678,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         input.projectId ?? null,
         input.artifactType,
         input.workflowType,
+        toolWorkflowColumns.sessionId,
+        toolWorkflowColumns.stepKey,
+        toolWorkflowColumns.artifactRole,
+        toolWorkflowColumns.runMode,
         input.model ?? 'unknown',
-        JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
+        JSON.stringify(normalizedInputJson),
         input.contentBuffer,
         input.inputTokens ?? 0,
         input.outputTokens ?? 0,
@@ -650,6 +728,9 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
 
   async finalizeFailure(input: PersistenceBatchInput, reason: string): Promise<void> {
     await withTransaction(this.pg, async (client) => {
+      const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
+      const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
+
       const query = `
         INSERT INTO ${this.artifactsTableName}
           (
@@ -659,6 +740,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             project_id,
             type,
             workflow_type,
+            session_id,
+            step_key,
+            artifact_role,
+            run_mode,
             model,
             input_json,
             status,
@@ -673,7 +758,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             updated_at
           )
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'failed', $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'failed', $13, $14, $15, $16, $17, $18, $19, NOW(), NOW())
         ON CONFLICT (id)
         DO UPDATE SET
           status = 'failed',
@@ -685,6 +770,10 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           model = EXCLUDED.model,
           user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
           project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
+          session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
+          step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
+          artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
+          run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
           failure_reason = EXCLUDED.failure_reason,
           updated_at = NOW(),
           registry_version = EXCLUDED.registry_version,
@@ -698,8 +787,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         input.projectId ?? null,
         input.artifactType,
         input.workflowType,
+        toolWorkflowColumns.sessionId,
+        toolWorkflowColumns.stepKey,
+        toolWorkflowColumns.artifactRole,
+        toolWorkflowColumns.runMode,
         input.model ?? 'unknown',
-        JSON.stringify(normalizeToolWorkflowInputJson(input.inputJson, input.workflowType)),
+        JSON.stringify(normalizedInputJson),
         input.contentBuffer,
         input.inputTokens ?? 0,
         input.outputTokens ?? 0,
@@ -871,6 +964,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         status,
         model,
         workflow_type,
+        session_id,
+        step_key,
+        artifact_role,
+        run_mode,
         input_json,
         content,
         failure_reason,
@@ -936,6 +1033,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         status,
         model,
         workflow_type,
+        session_id,
+        step_key,
+        artifact_role,
+        run_mode,
         input_json,
         content,
         failure_reason,

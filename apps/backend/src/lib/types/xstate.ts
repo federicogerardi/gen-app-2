@@ -49,6 +49,7 @@ export interface GenerationSystemContext {
   requestId: string;
   userId: string | null;
   projectId: string | null;
+  sessionId: string | null;
   toolKey: RegistryBackedToolKey | null;
   registryVersion: RegistryVersion | null;
   registrySnapshotRef: RegistrySnapshotRef | null;
@@ -146,6 +147,7 @@ export type PersistenceBatchInput = RequestRegistrySelector & {
   artifactType: RegistryBackedArtifactType;
   workflowType: RegistryBackedWorkflowType;
   contentBuffer: string;
+  sessionId?: string;
   userId?: string;
   projectId?: string;
   model?: string;
@@ -183,6 +185,7 @@ export type RequestReceivedEvent = RequestRegistrySelector & {
   type: 'REQUEST_RECEIVED';
   requestId: string;
   projectId: string;
+  sessionId?: string | null;
   toolKey: RegistryBackedToolKey | null;
   artifactType: RegistryBackedArtifactType;
   model: string;

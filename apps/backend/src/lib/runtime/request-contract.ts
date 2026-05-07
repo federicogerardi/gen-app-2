@@ -115,6 +115,7 @@ export const buildRequestReceivedEvent = (
     type: 'REQUEST_RECEIVED' as const,
     requestId: request.requestId,
     projectId: request.projectId,
+    sessionId: toOptionalId(request.sessionId),
     toolKey: request.toolKey ?? null,
     artifactType: request.artifactType,
     model: normalizeModelId(request.model),

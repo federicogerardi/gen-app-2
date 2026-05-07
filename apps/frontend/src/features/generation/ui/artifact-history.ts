@@ -8,6 +8,10 @@ export type GenerationArtifact = {
   artifactId: string;
   requestId: string;
   projectId: string;
+  sessionId?: string | null;
+  stepKey?: string | null;
+  artifactRole?: 'step' | 'final' | null;
+  runMode?: 'new' | 'resume' | 'regenerate' | null;
   artifactType: ArtifactType;
   status: ArtifactLifecycleStatus;
   model: string;

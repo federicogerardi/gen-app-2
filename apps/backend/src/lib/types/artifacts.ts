@@ -18,6 +18,10 @@ export type ArtifactSummary = {
   status: ArtifactStatus;
   model: string;
   workflowType: string | null;
+  sessionId?: string | null;
+  stepKey?: string | null;
+  artifactRole?: 'step' | 'final' | null;
+  runMode?: 'new' | 'resume' | 'regenerate' | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,6 +42,10 @@ type ArtifactRow = {
   status: string;
   model: string;
   workflow_type: string | null;
+  session_id?: string | null;
+  step_key?: string | null;
+  artifact_role?: string | null;
+  run_mode?: string | null;
   input_json: Record<string, unknown> | null;
   content: string;
   failure_reason: string | null;
@@ -74,6 +82,16 @@ export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
     status: toArtifactStatus(row.status),
     model: row.model,
     workflowType: row.workflow_type,
+    sessionId: row.session_id ?? null,
+    stepKey: row.step_key ?? null,
+    artifactRole:
+      row.artifact_role === 'step' || row.artifact_role === 'final'
+        ? row.artifact_role
+        : null,
+    runMode:
+      row.run_mode === 'new' || row.run_mode === 'resume' || row.run_mode === 'regenerate'
+        ? row.run_mode
+        : null,
     createdAt: toIso(row.created_at),
     updatedAt: toIso(row.updated_at),
   };

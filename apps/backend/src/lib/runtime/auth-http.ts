@@ -17,6 +17,7 @@ import {
   resolveStepDependencyIds,
   extractStepFromArtifactInput,
 } from './tool-workflow-registry';
+import { SessionQueryAdapter } from '../adapters/session-query.adapter';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -1295,6 +1296,69 @@ export const createAuthHttpRuntime = (
     });
   };
 
+  const handleToolsSessionArtifacts = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session artifacts');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    if (!group) {
+      writeError(response, 404, 'not_found', 'Session not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { session: group });
+  };
+
+  const handleToolsSessionStepArtifact = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+    stepKey: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session step artifact');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id);
+    if (!artifact) {
+      writeError(response, 404, 'not_found', 'Session step artifact not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { artifact });
+  };
+
   const handleArtifactById = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1700,6 +1764,27 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/tools/orchestrate') {
         await handleToolsOrchestrate(request, response);
+        return { handled: true };
+      }
+
+      const toolSessionStepMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/);
+      if (toolSessionStepMatch) {
+        await handleToolsSessionStepArtifact(
+          request,
+          response,
+          decodeURIComponent(toolSessionStepMatch[1] ?? ''),
+          decodeURIComponent(toolSessionStepMatch[2] ?? ''),
+        );
+        return { handled: true };
+      }
+
+      const toolSessionMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)$/);
+      if (toolSessionMatch) {
+        await handleToolsSessionArtifacts(
+          request,
+          response,
+          decodeURIComponent(toolSessionMatch[1] ?? ''),
+        );
         return { handled: true };
       }
 

@@ -174,6 +174,10 @@ const defaultMapGenerationRequest = (
     workflowType: typeof payload.workflowType === 'string' ? payload.workflowType : null,
   };
 
+  if (typeof payload.sessionId === 'string' && payload.sessionId.trim().length > 0) {
+    request.sessionId = payload.sessionId;
+  }
+
   if (typeof payload.idempotencyKey === 'string') {
     request.idempotencyKey = payload.idempotencyKey;
   }

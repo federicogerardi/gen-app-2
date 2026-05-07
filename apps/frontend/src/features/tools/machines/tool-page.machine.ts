@@ -13,6 +13,7 @@ import {
   belongsToTool,
   buildLatestArtifactByStep,
   collectCompletedRunSteps,
+  collectCompletedStepsBySession,
   collectCompletedStepsByTool,
   extractArtifactStep,
   readExtractionPayloadFromArtifact,
@@ -486,10 +487,16 @@ export const resolveFlowProgressState = (
   artifacts: GenerationArtifact[],
   toolKey: SupportedTool,
   projectId: string,
+  sessionId: string | null,
   intent: 'new' | 'resume' | 'regenerate',
   sourceArtifact: GenerationArtifact | null,
   runRequestPrefix: string | null,
 ): ToolPageProgressState => {
+  // context.sessionId is a frontend-generated UUID for the *current* machine session.
+  // Historical artifacts from previous sessions carry a different sessionId, so we must
+  // NOT filter historicalCompletedSteps by it — use tool-scoped collection instead.
+  // Session-scoped filtering applies only to artifacts explicitly loaded via the session endpoint.
+  void sessionId;
   const historicalCompletedSteps = collectCompletedStepsByTool(artifacts, toolKey, projectId);
   const historicalLatestArtifactByStep = buildLatestArtifactByStep(artifacts, toolKey, projectId);
   const restoredCheckpointState = resolveRestoredCheckpointState(artifacts, toolKey, sourceArtifact);
@@ -552,6 +559,7 @@ export const resolveFlowProgressState = (
 
 export type ToolPageContext = {
   toolKey: SupportedTool;
+  sessionId: string;
   projectId: string;
   model: string;
   registrySnapshotRef: string;
@@ -572,6 +580,7 @@ export type ToolPageContext = {
 
 type ToolPageInput = {
   toolKey: SupportedTool;
+  sessionId?: string;
   projectId: string;
   model: string;
   registrySnapshotRef: string;
@@ -610,6 +619,14 @@ export type ToolPageEvent =
     sourceExtractionArtifactId?: string | null;
     localArtifacts?: GenerationArtifact[];
   };
+
+const createSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
 
 export const toolPageMachine = setup({
   types: {
@@ -791,6 +808,7 @@ export const toolPageMachine = setup({
         event.artifacts,
         context.toolKey,
         context.projectId,
+        context.sessionId,
         event.intent,
         event.sourceArtifact,
         event.runRequestPrefix,
@@ -892,6 +910,7 @@ export const toolPageMachine = setup({
   id: 'toolPageMachine',
   context: ({ input }) => ({
     toolKey: input.toolKey,
+    sessionId: input.sessionId ?? createSessionId(),
     projectId: input.projectId,
     model: input.model,
     registrySnapshotRef: input.registrySnapshotRef,

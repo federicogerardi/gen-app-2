@@ -84,6 +84,7 @@ type ToolDoneOutput =
 type CacheRequestMetaParams = {
   requestId: string;
   projectId: string;
+  sessionId: string | null;
   toolKey: string | null;
   artifactType: string;
   workflowType: RegistryBackedWorkflowType;
@@ -598,6 +599,7 @@ const buildToolWorkflowPersistenceMetadata = (
   }
 
   return {
+    sessionId: context.sessionId,
     toolKey: plan?.toolKey ?? context.toolKey,
     workflowType: context.workflowType,
     runMode: resolveWorkflowRunMode(context),
@@ -647,6 +649,7 @@ export const generationSystemMachine = setup({
     cacheRequestMeta: assign({
       requestId: (_, params: CacheRequestMetaParams) => params.requestId,
       projectId: (_, params: CacheRequestMetaParams) => params.projectId,
+      sessionId: (_, params: CacheRequestMetaParams) => params.sessionId,
       toolKey: (_, params: CacheRequestMetaParams) => params.toolKey,
       artifactType: (_, params: CacheRequestMetaParams) => params.artifactType,
       workflowType: (_, params: CacheRequestMetaParams) => params.workflowType,
@@ -878,6 +881,7 @@ export const generationSystemMachine = setup({
     requestId: '',
     userId: null,
     projectId: null,
+    sessionId: null,
     toolKey: null,
     registryVersion: null,
     registrySnapshotRef: null,
@@ -913,6 +917,7 @@ export const generationSystemMachine = setup({
               params: ({ event, context }) => ({
                 requestId: event.requestId,
                 projectId: event.projectId,
+                sessionId: toOptionalString(event.sessionId),
                 toolKey: event.toolKey,
                 artifactType: event.artifactType,
                 workflowType: event.workflowType ?? null,
@@ -1234,6 +1239,7 @@ export const generationSystemMachine = setup({
           artifactType: toPersistenceArtifactType(context),
           workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
+          ...(context.sessionId ? { sessionId: context.sessionId } : {}),
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
@@ -1273,6 +1279,7 @@ export const generationSystemMachine = setup({
           artifactType: toPersistenceArtifactType(context),
           workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
+          ...(context.sessionId ? { sessionId: context.sessionId } : {}),
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,

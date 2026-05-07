@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createActor } from 'xstate';
 import { toolFlowMachine } from './tool-flow.machine';
 
-const startActor = (tool: 'funnel-pages' | 'nextland', maxRetries = 3) => {
+const startActor = (tool: 'funnel-pages' | 'nextland' | 'youtube-lf-script', maxRetries = 3) => {
   const actor = createActor(toolFlowMachine, { input: { tool, maxRetries } });
   actor.start();
   return actor;
@@ -101,5 +101,19 @@ describe('toolFlowMachine – nextland', () => {
     // still running on landing
     expect(actor.getSnapshot().context.stepStatus.landing).toBe('running');
     expect(actor.getSnapshot().value).toBe('running');
+  });
+});
+
+describe('toolFlowMachine – youtube-lf-script', () => {
+  it('completes full canonical sequence', () => {
+    const actor = startActor('youtube-lf-script');
+    actor.send({ type: 'START' });
+    actor.send({ type: 'STEP_DONE', step: 'pre-script-analysis' });
+    actor.send({ type: 'STEP_DONE', step: 'packaging' });
+    actor.send({ type: 'STEP_DONE', step: 'intro-structure' });
+    actor.send({ type: 'STEP_DONE', step: 'body-structure' });
+    actor.send({ type: 'STEP_DONE', step: 'native-cta-embeds' });
+    actor.send({ type: 'STEP_DONE', step: 'outro-structure' });
+    expect(actor.getSnapshot().value).toBe('done');
   });
 });

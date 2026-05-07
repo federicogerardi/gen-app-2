@@ -689,3 +689,89 @@ test('generation root executes Nextland step chain with dependency metadata and 
   assert.deepEqual(thankYouWorkflow.dependsOnSteps, ['landing']);
   assert.deepEqual(thankYouWorkflow.dependencyArtifactIds, [landing.artifactId]);
 });
+
+test('generation root executes Youtube LF Script chain with final artifact on outro-structure', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const persistedInputsByRequestId = new Map<string, Record<string, unknown>>();
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedInputsByRequestId.set(input.requestId, (input.inputJson ?? {}) as Record<string, unknown>);
+    await originalFinalizeSuccess(input);
+  };
+
+  const preScriptAnalysis = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-youtube-pre-script-analysis-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'youtube-lf-script',
+      workflowType: 'youtube-lf-script',
+      briefingId: 'briefing-youtube-001',
+      extractionArtifactId: 'artifact-extraction-youtube-001',
+      input: { step: 'pre-script-analysis', intent: 'new' },
+      idempotencyKey: 'idem-root-youtube-pre-script-analysis-001',
+      registrySnapshotRef: 'snapshot:root-youtube',
+    },
+    adapters,
+  );
+
+  const packaging = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-youtube-packaging-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'youtube-lf-script',
+      workflowType: 'youtube-lf-script',
+      briefingId: 'briefing-youtube-001',
+      extractionArtifactId: 'artifact-extraction-youtube-001',
+      stepDependencyArtifactIds: [preScriptAnalysis.artifactId ?? ''],
+      input: { step: 'packaging', intent: 'new' },
+      idempotencyKey: 'idem-root-youtube-packaging-001',
+      registrySnapshotRef: 'snapshot:root-youtube',
+    },
+    adapters,
+  );
+
+  const outro = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-youtube-outro-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'youtube-lf-script',
+      workflowType: 'youtube-lf-script',
+      briefingId: 'briefing-youtube-001',
+      extractionArtifactId: 'artifact-extraction-youtube-001',
+      stepDependencyArtifactIds: [preScriptAnalysis.artifactId ?? '', packaging.artifactId ?? ''],
+      input: { step: 'outro-structure', intent: 'new' },
+      idempotencyKey: 'idem-root-youtube-outro-001',
+      registrySnapshotRef: 'snapshot:root-youtube',
+    },
+    adapters,
+  );
+
+  assert.equal(preScriptAnalysis.status, 'completed');
+  assert.equal(packaging.status, 'completed');
+  assert.equal(outro.status, 'completed');
+
+  const preScriptAnalysisInputJson = persistedInputsByRequestId.get('req-root-youtube-pre-script-analysis-001') ?? {};
+  const packagingInputJson = persistedInputsByRequestId.get('req-root-youtube-packaging-001') ?? {};
+  const outroInputJson = persistedInputsByRequestId.get('req-root-youtube-outro-001') ?? {};
+
+  const preScriptAnalysisWorkflow = (preScriptAnalysisInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+  const packagingWorkflow = (packagingInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+  const outroWorkflow = (outroInputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+
+  assert.equal(preScriptAnalysisWorkflow.stepKey, 'pre-script-analysis');
+  assert.equal(preScriptAnalysisWorkflow.artifactRole, 'step');
+  assert.equal(packagingWorkflow.stepKey, 'packaging');
+  assert.equal(packagingWorkflow.artifactRole, 'step');
+  assert.equal(outroWorkflow.stepKey, 'outro-structure');
+  assert.equal(outroWorkflow.artifactRole, 'final');
+});

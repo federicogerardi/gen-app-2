@@ -75,6 +75,7 @@ export const buildRequestReceivedEvent = (
     workflowType: request.workflowType ?? null,
     artifactType: String(request.artifactType),
     stepKey: request.input.step,
+    extractionToolKey: request.input.toolKey,
   });
 
   const fallbackPrompt =

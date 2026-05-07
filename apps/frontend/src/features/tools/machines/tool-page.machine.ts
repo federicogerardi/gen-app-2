@@ -107,7 +107,27 @@ const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hy
     && hydrationResult.normalizedText.trim().length > 0;
 };
 
+const YOUTUBE_REQUIRED_EXTRACTION_FIELDS = [
+  'knowledge_content',
+  'avatar',
+  'pain_point',
+  'offer',
+  'proof',
+] as const;
+
+const hasRequiredYoutubeExtractionFields = (payload: Record<string, unknown> | null | undefined): boolean => {
+  if (!payload) {
+    return false;
+  }
+
+  return YOUTUBE_REQUIRED_EXTRACTION_FIELDS.every((field) => {
+    const value = payload[field];
+    return typeof value === 'string' && value.trim().length > 0;
+  });
+};
+
 const hasCompleteBriefingContext = (
+  toolKey: SupportedTool,
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
 ): boolean => {
   const snapshot = briefingActorRef?.getSnapshot();
@@ -115,9 +135,18 @@ const hasCompleteBriefingContext = (
     return false;
   }
 
-  return (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+  const hasCoreContext = (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
     && (snapshot.context.briefingId?.trim().length ?? 0) > 0
     && (snapshot.context.normalizedText?.trim().length ?? 0) > 0;
+  if (!hasCoreContext) {
+    return false;
+  }
+
+  if (toolKey !== 'youtube-lf-script') {
+    return true;
+  }
+
+  return hasRequiredYoutubeExtractionFields(snapshot.context.extractionPayload);
 };
 
 const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
@@ -333,14 +362,19 @@ const readNormalizedBriefingText = (input: Record<string, unknown> | undefined):
 
 // Phase 3: readiness derivata interamente da context macchina
 const deriveHasExtractionContext = (
+  toolKey: SupportedTool,
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
   if (hasCompleteHydrationResult(hydrationResult)) {
-    return true;
+    if (toolKey !== 'youtube-lf-script') {
+      return true;
+    }
+
+    return hasRequiredYoutubeExtractionFields(hydrationResult.extractionPayload);
   }
 
-  return hasCompleteBriefingContext(briefingActorRef);
+  return hasCompleteBriefingContext(toolKey, briefingActorRef);
 };
 
 const deriveHasPrimaryTargetStep = (toolKey: SupportedTool): boolean => {
@@ -763,7 +797,11 @@ export const toolPageMachine = setup({
       );
 
       // Phase 3: readiness derivata interamente da context macchina, non da input UI.
-      const hasExtractionContext = deriveHasExtractionContext(context.briefingActorRef, context.hydrationResult);
+      const hasExtractionContext = deriveHasExtractionContext(
+        context.toolKey,
+        context.briefingActorRef,
+        context.hydrationResult,
+      );
       const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
       const readiness = buildReadinessSnapshot(context.projectId, hasExtractionContext, hasPrimaryTargetStep);
 

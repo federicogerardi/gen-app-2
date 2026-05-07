@@ -31,6 +31,7 @@ const navIcons: Record<string, NavIcon> = {
   '/dashboard/projects': FolderOpen,
   '/tools/funnel-pages': Zap,
   '/tools/nextland': Map,
+  '/tools/youtube-lf-script': Map,
   '/artifacts': Archive,
   '/admin': Settings,
 };

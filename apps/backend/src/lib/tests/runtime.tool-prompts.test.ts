@@ -61,3 +61,36 @@ test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter
 
   assert.equal(event.model, 'openrouter/auto');
 });
+
+test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'youtube-lf-script',
+    workflowType: 'youtube-lf-script',
+    artifactType: 'content',
+    stepKey: 'pre-script-analysis',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /youtube-lf-script-pre-script-analysis\.md$/);
+  assert.match(resolved.prompt, /Step Key/i);
+});
+
+test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-youtube-extraction-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'extraction',
+    model: 'openrouter/auto',
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    input: {
+      toolKey: 'youtube-lf-script',
+      briefingText: 'Brief testo',
+    },
+    registrySnapshotRef: 'snapshot:youtube-extraction',
+  });
+
+  const input = event.input as Record<string, unknown>;
+  assert.match(String(input.resolvedPromptSource), /youtube-lf-script-extraction\.md$/);
+});

@@ -126,8 +126,15 @@ const normalizeToolWorkflowInputJson = (
   workflowType: string | null,
 ): Record<string, unknown> => {
   const base = inputJson ?? {};
-  const normalizedWorkflowType = (workflowType ?? '').trim().toLowerCase();
-  if (normalizedWorkflowType !== 'funnel-pages' && normalizedWorkflowType !== 'nextland') {
+  const rawWorkflowType = (workflowType ?? '').trim().toLowerCase();
+  const normalizedWorkflowType = rawWorkflowType === 'youtube_lf_script'
+    ? 'youtube-lf-script'
+    : rawWorkflowType;
+  if (
+    normalizedWorkflowType !== 'funnel-pages'
+    && normalizedWorkflowType !== 'nextland'
+    && normalizedWorkflowType !== 'youtube-lf-script'
+  ) {
     return base;
   }
 
@@ -154,7 +161,11 @@ const normalizeToolWorkflowInputJson = (
       return currentStep === 'vsl' ? 'final' : 'step';
     }
 
-    return currentStep === 'thank_you' ? 'final' : 'step';
+    if (normalizedWorkflowType === 'nextland') {
+      return currentStep === 'thank_you' ? 'final' : 'step';
+    }
+
+    return currentStep === 'outro-structure' ? 'final' : 'step';
   })();
 
   return {

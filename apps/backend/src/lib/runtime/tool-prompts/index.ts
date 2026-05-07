@@ -3,11 +3,18 @@ import path from 'node:path';
 
 const PROMPT_FILE_BY_KEY = {
   extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
+  'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script-extraction.md',
   'funnel-pages:optin': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md',
   'funnel-pages:quiz': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md',
   'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
   'nextland:landing': 'src/lib/runtime/tool-prompts/nextland/prompt_landing_generator.md',
   'nextland:thank_you': 'src/lib/runtime/tool-prompts/nextland/prompt_thank_you_generator.md',
+  'youtube-lf-script:pre-script-analysis': 'src/lib/runtime/tool-prompts/youtube-lf-script-pre-script-analysis.md',
+  'youtube-lf-script:packaging': 'src/lib/runtime/tool-prompts/youtube-lf-script-packaging.md',
+  'youtube-lf-script:intro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-intro-structure.md',
+  'youtube-lf-script:body-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-body-structure.md',
+  'youtube-lf-script:native-cta-embeds': 'src/lib/runtime/tool-prompts/youtube-lf-script-native-cta-embeds.md',
+  'youtube-lf-script:outro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-outro-structure.md',
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -26,6 +33,10 @@ const normalizeToolKey = (value: string | null | undefined): string | null => {
   // Rimuovere quando tutti i dati DB saranno migrati a 'funnel_pages'.
   if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
     return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script' || normalized === 'youtube-lf-script') {
+    return 'youtube-lf-script';
   }
 
   if (normalized === 'thank-you' || normalized === 'thankyou') {
@@ -73,11 +84,18 @@ const resolvePromptFilePath = (input: {
   workflowType?: string | null;
   artifactType?: string;
   stepKey?: unknown;
+  extractionToolKey?: unknown;
 }): string | null => {
   const toolKey = normalizeToolKey(input.toolKey ?? input.workflowType ?? null);
   const artifactType = normalizeToolKey(input.artifactType ?? null);
+  const extractionToolKey = normalizeToolKey(
+    typeof input.extractionToolKey === 'string' ? input.extractionToolKey : null,
+  );
 
   if (toolKey === 'extraction' || artifactType === 'extraction') {
+    if (extractionToolKey === 'youtube-lf-script') {
+      return PROMPT_FILE_BY_KEY['youtube-lf-script:extraction'];
+    }
     return PROMPT_FILE_BY_KEY.extraction;
   }
 
@@ -105,6 +123,7 @@ export const resolveToolPrompt = (input: {
   workflowType?: string | null;
   artifactType?: string;
   stepKey?: unknown;
+  extractionToolKey?: unknown;
 }): ResolvedToolPrompt | null => {
   const filePath = resolvePromptFilePath(input);
   if (!filePath) {

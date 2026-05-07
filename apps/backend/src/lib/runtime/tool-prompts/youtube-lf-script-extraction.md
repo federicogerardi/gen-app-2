@@ -56,7 +56,7 @@
 - ...
 
 ## Required Fields Checklist
-- Checklist campi prioritari (required): knowledge_content, avatar, pain_point, purchase_process_type, offer, proof, tone, target_duration_minutes, proprietary_methodology_disclosure.
+- Checklist campi prioritari (required for readiness): knowledge_content, avatar, pain_point, offer, proof.
 
 ## Regole specifiche
 
@@ -83,4 +83,3 @@ Per generare lo script, fornisci:
 7. **TONO:** Formale/informale, tecnico/accessibile  
 8. **DURATA TARGET:** Quanti minuti circa  
 9. **METODOLOGIA PROPRIETARIA:** Se hai un sistema/framework con nome specifico, vuoi svelarlo subito o mantenere curiosità?
-

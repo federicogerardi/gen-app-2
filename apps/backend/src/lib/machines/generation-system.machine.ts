@@ -376,6 +376,8 @@ const parseYoutubeExtractionMarkdown = (content: string): Record<string, unknown
 
     const current = extractedFields[currentField];
     if (current !== undefined && current !== null) {
+      // Deterministic normalization policy: keep only the first non-empty bullet
+      // for each canonical section to avoid ambiguous multi-value merges.
       continue;
     }
 

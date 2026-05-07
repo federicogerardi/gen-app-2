@@ -847,14 +847,17 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const query = parseRequestUrl(request).searchParams;
     const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
-    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const toolKeyFromBody = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const toolKeyFromQuery = query.get('toolKey')?.trim() ?? '';
+    const toolKey = toolKeyFromBody || toolKeyFromQuery;
     const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
     const mimeType = normalizeMimeType(body.mimeType);
     const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
 
-    if (!projectId || !fileName || !contentBase64) {
-      writeError(response, 400, 'bad_request', 'projectId, fileName and contentBase64 are required');
+    if (!projectId || !fileName || !contentBase64 || !toolKey) {
+      writeError(response, 400, 'bad_request', 'projectId, toolKey, fileName and contentBase64 are required');
       return;
     }
 

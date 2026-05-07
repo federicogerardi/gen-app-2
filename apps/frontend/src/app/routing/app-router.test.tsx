@@ -78,6 +78,7 @@ describe('app router – smoke', () => {
     ['/dashboard/projects/new', 'NewProject'],
     ['/tools/funnel-pages', 'FunnelPages'],
     ['/tools/nextland', 'Nextland'],
+    ['/tools/youtube-lf-script', 'YoutubeLfScript'],
     ['/artifacts', 'Artifacts'],
     ['/admin', 'Admin'],
   ])('renders placeholder at %s', (path, label) => {

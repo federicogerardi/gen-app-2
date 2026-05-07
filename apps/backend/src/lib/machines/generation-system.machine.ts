@@ -309,9 +309,97 @@ const buildExtractionStructuredPayload = (
   };
 };
 
-const parseExtractionContent = (content: string): Record<string, unknown> => {
+const YOUTUBE_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
+  'knowledge content': 'knowledge_content',
+  avatar: 'avatar',
+  'pain point': 'pain_point',
+  'purchase process type': 'purchase_process_type',
+  offer: 'offer',
+  proof: 'proof',
+  tone: 'tone',
+  'target duration minutes': 'target_duration_minutes',
+  'proprietary methodology disclosure': 'proprietary_methodology_disclosure',
+};
+
+const MISSING_EXTRACTION_VALUE_MARKERS = new Set([
+  'non emerso dal documento.',
+  'non emerso dal documento',
+]);
+
+const normalizeYoutubeExtractionField = (value: string): string | null => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (MISSING_EXTRACTION_VALUE_MARKERS.has(normalized.toLowerCase())) {
+    return null;
+  }
+
+  return normalized;
+};
+
+const parseYoutubeExtractionMarkdown = (content: string): Record<string, unknown> => {
+  if (!content.trim()) {
+    return {};
+  }
+
+  const rows = content.split(/\r?\n/);
+  const extractedFields: Record<string, string | null> = {};
+  let currentField: string | null = null;
+
+  for (const row of rows) {
+    const headingMatch = row.match(/^##\s+(.+?)\s*$/);
+    if (headingMatch) {
+      const headingLabel = headingMatch[1];
+      if (!headingLabel) {
+        currentField = null;
+        continue;
+      }
+      const heading = headingLabel.trim().toLowerCase();
+      currentField = YOUTUBE_EXTRACTION_SECTION_BY_HEADING[heading] ?? null;
+      continue;
+    }
+
+    if (!currentField) {
+      continue;
+    }
+
+    const bulletMatch = row.match(/^\s*-\s*(.+?)\s*$/);
+    if (!bulletMatch) {
+      continue;
+    }
+    const bulletValue = bulletMatch[1];
+    if (!bulletValue) {
+      continue;
+    }
+
+    const current = extractedFields[currentField];
+    if (current !== undefined && current !== null) {
+      continue;
+    }
+
+    extractedFields[currentField] = normalizeYoutubeExtractionField(bulletValue);
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const field of Object.values(YOUTUBE_EXTRACTION_SECTION_BY_HEADING)) {
+    result[field] = extractedFields[field] ?? null;
+  }
+  return result;
+};
+
+const parseExtractionContent = (
+  content: string,
+  extractionToolKey: string | null | undefined,
+): Record<string, unknown> => {
   if (!content) {
     return {};
+  }
+
+  const normalizedExtractionToolKey = normalizeToolWorkflowKey(extractionToolKey);
+  if (normalizedExtractionToolKey === 'youtube-lf-script') {
+    return parseYoutubeExtractionMarkdown(content);
   }
 
   try {
@@ -360,7 +448,7 @@ const toPersistenceInputJson = (
     };
   }
 
-  const extractionPayload = parseExtractionContent(context.contentBuffer);
+  const extractionPayload = parseExtractionContent(context.contentBuffer, toOptionalString(context.requestInput.toolKey));
   return {
     ...context.requestInput,
     extraction: {
@@ -407,6 +495,10 @@ const normalizeToolWorkflowKey = (value: string | null | undefined): string | nu
   // Rimuovere quando tutti i dati DB saranno migrati a 'funnel_pages'.
   if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
     return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
   }
 
   return normalized;

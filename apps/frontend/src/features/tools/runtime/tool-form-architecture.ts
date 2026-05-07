@@ -119,6 +119,31 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'youtube-lf-script': {
+    toolKey: 'youtube-lf-script',
+    displayName: 'Youtube LF Script',
+    defaultPrompt: 'Genera lo step Youtube LF Script richiesto con coerenza al brief estratto.',
+    defaultModel: 'openrouter/auto',
+    steps: [
+      'pre-script-analysis',
+      'packaging',
+      'intro-structure',
+      'body-structure',
+      'native-cta-embeds',
+      'outro-structure',
+    ] as const,
+    stepDependencies: {
+      'pre-script-analysis': [],
+      packaging: ['pre-script-analysis'],
+      'intro-structure': ['packaging'],
+      'body-structure': ['intro-structure'],
+      'native-cta-embeds': ['body-structure'],
+      'outro-structure': ['native-cta-embeds'],
+    },
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 /**
@@ -203,6 +228,38 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Thank You Page',
       description: 'Post-conversion thank you page',
       expectedOutputFormat: 'HTML thank you page',
+    },
+  },
+  'youtube-lf-script': {
+    'pre-script-analysis': {
+      displayName: 'Pre-Script Analysis',
+      description: 'Strategic business and positioning analysis before script drafting',
+      expectedOutputFormat: 'Structured markdown analysis',
+    },
+    packaging: {
+      displayName: 'Packaging',
+      description: 'Title strategy and visual hooks aligned with positioning',
+      expectedOutputFormat: 'Markdown with title candidates and recommended angle',
+    },
+    'intro-structure': {
+      displayName: 'Intro Structure',
+      description: 'Retention-first intro flow with trust and contrarian setup',
+      expectedOutputFormat: 'Markdown intro checkpoint structure',
+    },
+    'body-structure': {
+      displayName: 'Body Structure',
+      description: 'Core narrative flow with value loops and rehook cadence',
+      expectedOutputFormat: 'Markdown body block framework',
+    },
+    'native-cta-embeds': {
+      displayName: 'Native CTA Embeds',
+      description: 'Contextual CTA placements integrated into educational flow',
+      expectedOutputFormat: 'Markdown CTA placement plan',
+    },
+    'outro-structure': {
+      displayName: 'Outro Structure',
+      description: 'Final recap, gap closure, and CTA finale',
+      expectedOutputFormat: 'Markdown outro framework',
     },
   },
 };

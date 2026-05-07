@@ -21,7 +21,7 @@ export const DashboardPage = () => {
           <p>{appCopy.editorial.dashboard.stats[0]}</p>
         </div>
         <div>
-          <h3>2</h3>
+          <h3>3</h3>
           <p>{appCopy.editorial.dashboard.stats[1]}</p>
         </div>
         <div>
@@ -43,6 +43,7 @@ export const DashboardPage = () => {
           <div className={uiPrimitives.actions}>
             <Link to="/tools/funnel-pages" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.funnelPages}</Link>
             <Link to="/tools/nextland" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.nextland}</Link>
+            <Link to="/tools/youtube-lf-script" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.youtubeLfScript}</Link>
           </div>
         </Surface>
 

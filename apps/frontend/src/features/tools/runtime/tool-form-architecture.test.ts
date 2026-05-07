@@ -14,4 +14,10 @@ describe('getAvailableSteps', () => {
     expect(getAvailableSteps('nextland', new Set(['landing']))).toEqual(['thank_you']);
     expect(getAvailableSteps('nextland', new Set(['landing', 'thank_you']))).toEqual([]);
   });
+
+  it('returns only incomplete steps for youtube-lf-script', () => {
+    expect(getAvailableSteps('youtube-lf-script', new Set())).toEqual(['pre-script-analysis']);
+    expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis']))).toEqual(['packaging']);
+    expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis', 'packaging']))).toEqual(['intro-structure']);
+  });
 });

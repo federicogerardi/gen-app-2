@@ -620,7 +620,10 @@ export const useToolPage = ({
 
   const handlePrimaryAction = useCallback((): void => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      void navigate('/artifacts');
+      const lastArtifact = generation.artifacts.length > 0
+        ? generation.artifacts[generation.artifacts.length - 1]
+        : null;
+      void navigate(lastArtifact ? `/artifacts/${lastArtifact.artifactId}` : '/artifacts');
       return;
     }
     if (!readinessSnapshot.canStartFlow) return;
@@ -635,6 +638,7 @@ export const useToolPage = ({
     toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
   }, [
     generation.isStreamActive,
+    generation.artifacts,
     machineViewModel.primaryActionPolicy,
     navigate,
     primaryTargetStep,

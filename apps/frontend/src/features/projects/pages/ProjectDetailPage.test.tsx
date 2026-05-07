@@ -40,7 +40,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false },
+    capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false },
   }),
 }));
 
@@ -87,14 +87,29 @@ beforeEach(() => {
       },
     });
   }));
+  useMswHandler(http.get('/api/tools/sessions', () => HttpResponse.json({
+    ok: true,
+    data: {
+      sessions: [
+        {
+          sessionId: 'sess_demo',
+          projectId: 'p1',
+          toolKey: 'funnel-pages',
+          status: 'completed',
+          artifactCount: 1,
+          updatedAt: '2026-04-27T10:00:00.000Z',
+        },
+      ],
+    },
+  })));
 });
 
 describe('ProjectDetailPage', () => {
-  it('renders project detail and contextual artifacts', async () => {
+  it('renders project detail and contextual sessions', async () => {
     renderPage();
 
     expect(await screen.findByText('Project One')).toBeInTheDocument();
-    expect(screen.getByText(appCopy.editorial.projects.contextualArtifacts)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.editorial.projects.contextualSessions)).toBeInTheDocument();
     expect(await screen.findByText(appCopy.ui.actions.openDetail)).toBeInTheDocument();
   });
 

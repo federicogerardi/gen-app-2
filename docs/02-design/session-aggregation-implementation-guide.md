@@ -57,6 +57,8 @@ Use session endpoints for deterministic grouping:
 
 DDD-051 alignment: the canonical aggregate-listing contract is `GET /api/tools/sessions` returning `SessionSummary[]` (`sessionId`, `projectId`, `toolKey`, `status`, `artifactCount`, `updatedAt`). During transition, Frontend may derive `SessionSummary` from artifact listing where backend endpoint rollout is pending. Session-listing primacy is treated as a UX implementation policy only, not as a domain invariant.
 
+DDD-052 alignment: route and endpoint ownership must remain separated — session aggregate navigation uses `sessionsummary` frontend namespace and `/api/tools/sessions*` backend contracts; artifact history/detail remains under `artifacts` frontend namespace and `/api/artifacts*` backend contracts.
+
 Implementation points:
 - `apps/backend/src/lib/runtime/auth-http.ts`
 - `apps/backend/src/lib/adapters/session-query.adapter.ts`

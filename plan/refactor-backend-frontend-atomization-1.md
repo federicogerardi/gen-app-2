@@ -4,7 +4,7 @@ version: 1.0
 date_created: 2026-05-08
 last_updated: 2026-05-08
 owner: Platform Engineering
-status: Planned
+status: 'Planned'
 tags: [refactor, architecture, ddd, backend, frontend, deduplication]
 ---
 

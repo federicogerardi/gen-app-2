@@ -5,6 +5,11 @@ import {
   handleGenerationRequestAsNodeSse,
   type BackendGenerationRequest,
 } from './index';
+import {
+  getHeaderValue,
+  normalizePath,
+  writeJson,
+} from './http-utils';
 import type {
   HandleAuthHttpRequestResult,
 } from './auth-http';
@@ -46,36 +51,6 @@ export type NodeRuntimeServerOptions = {
     payload: Record<string, unknown>,
     request: IncomingMessage,
   ) => BackendGenerationRequest;
-};
-
-const normalizePath = (url: string | undefined): string => {
-  if (!url) {
-    return '/';
-  }
-
-  return url.split('?')[0] || '/';
-};
-
-const writeJson = (
-  response: ServerResponse,
-  statusCode: number,
-  payload: Record<string, unknown>,
-): void => {
-  response.statusCode = statusCode;
-  response.setHeader('Content-Type', 'application/json; charset=utf-8');
-  response.end(JSON.stringify(payload));
-};
-
-const getHeaderValue = (value: string | string[] | undefined): string | null => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value) && value[0]) {
-    return value[0];
-  }
-
-  return null;
 };
 
 const normalizeOrigin = (origin: string): string => {

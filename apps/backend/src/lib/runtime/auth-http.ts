@@ -38,6 +38,7 @@ import {
   type PasswordHashRuntime,
   type SessionCookieRuntime,
 } from './auth-contract';
+import { normalizePath } from './http-utils';
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
@@ -132,14 +133,6 @@ type ToolHydrateRequestBody = {
 
 const AUTH_USER_ROLE_SET = new Set<AuthUserRole>(['admin', 'member']);
 const AUTH_USER_STATUS_SET = new Set<AuthUserStatus>(['active', 'disabled', 'pending_password_reset']);
-
-const normalizePath = (url: string | undefined): string => {
-  if (!url || url.length === 0) {
-    return '/';
-  }
-
-  return url.split('?')[0] || '/';
-};
 
 const parseRequestUrl = (request: IncomingMessage): URL => {
   return new URL(request.url ?? '/', 'http://localhost');

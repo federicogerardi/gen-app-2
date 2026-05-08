@@ -1,7 +1,18 @@
 import { assign, setup } from 'xstate';
 
-export type SupportedTool = 'funnel-pages' | 'nextland';
-export type ToolStep = 'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you';
+export type SupportedTool = 'funnel-pages' | 'nextland' | 'youtube-lf-script';
+export type ToolStep =
+  | 'optin'
+  | 'quiz'
+  | 'vsl'
+  | 'landing'
+  | 'thank_you'
+  | 'pre-script-analysis'
+  | 'packaging'
+  | 'intro-structure'
+  | 'body-structure'
+  | 'native-cta-embeds'
+  | 'outro-structure';
 export type ToolStepStatus = 'idle' | 'running' | 'done' | 'error';
 
 export type ToolFlowContext = {
@@ -29,6 +40,14 @@ type ToolFlowEvent =
 export const toolStepOrder: Record<SupportedTool, ToolStep[]> = {
   'funnel-pages': ['optin', 'quiz', 'vsl'],
   nextland: ['landing', 'thank_you'],
+  'youtube-lf-script': [
+    'pre-script-analysis',
+    'packaging',
+    'intro-structure',
+    'body-structure',
+    'native-cta-embeds',
+    'outro-structure',
+  ],
 };
 
 const initialStatus: Record<ToolStep, ToolStepStatus> = {
@@ -37,6 +56,12 @@ const initialStatus: Record<ToolStep, ToolStepStatus> = {
   vsl: 'idle',
   landing: 'idle',
   thank_you: 'idle',
+  'pre-script-analysis': 'idle',
+  packaging: 'idle',
+  'intro-structure': 'idle',
+  'body-structure': 'idle',
+  'native-cta-embeds': 'idle',
+  'outro-structure': 'idle',
 };
 
 const initialRetries: Record<ToolStep, number> = {
@@ -45,6 +70,12 @@ const initialRetries: Record<ToolStep, number> = {
   vsl: 0,
   landing: 0,
   thank_you: 0,
+  'pre-script-analysis': 0,
+  packaging: 0,
+  'intro-structure': 0,
+  'body-structure': 0,
+  'native-cta-embeds': 0,
+  'outro-structure': 0,
 };
 
 export const toolFlowMachine = setup({

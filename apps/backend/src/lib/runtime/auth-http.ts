@@ -1,7 +1,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
+import type { Pool } from 'pg';
 import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../adapters';
+import {
+  listEnabledModels,
+  listAllModels,
+  createModel,
+  updateModel,
+  deleteModel,
+} from '../adapters/llm-model.adapter';
+import type { LlmModelStatus } from '../types/llm-model';
 import type {
   AuthSessionPrincipal,
   AuthUserRole,
@@ -17,6 +26,8 @@ import {
   resolveStepDependencyIds,
   extractStepFromArtifactInput,
 } from './tool-workflow-registry';
+import { SessionQueryAdapter } from '../adapters/session-query.adapter';
+import type { SessionListEntry } from '../adapters/session-query.adapter';
 import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
@@ -60,6 +71,7 @@ export type AuthHttpResponseBody = AuthHttpSuccessBody | AuthHttpErrorBody;
 export type AuthHttpRuntimeOptions = {
   repositories: AuthRepositoryBundle;
   queryRepositories?: UserQueryRepositoryBundle;
+  db?: Pool;
   sessionCookies?: SessionCookieRuntime;
   passwordHashing?: PasswordHashRuntime;
   googleOAuth?: GoogleOAuthRuntime | null;
@@ -262,6 +274,29 @@ const normalizeMimeType = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const normalizeSupportedToolKey = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
+    return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
+  }
+
+  // Fallback is safe: final acceptance is enforced by isSupportedToolWorkflow
+  // immediately in endpoint validation, so unknown normalized values are rejected.
+  return normalized.replaceAll('_', '-');
+};
+
 const sessionToResponseData = (principal: AuthSessionPrincipal): Record<string, unknown> => {
   return {
     authenticated: true,
@@ -317,6 +352,7 @@ export const createAuthHttpRuntime = (
 } => {
   const repositories = options.repositories;
   const queryRepositories = options.queryRepositories;
+  const db = options.db ?? null;
   const now = options.now ?? (() => new Date());
   const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
   const googleOAuthStateTtlMs = options.googleOAuthStateTtlMs ?? 10 * 60 * 1000;
@@ -847,14 +883,25 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const query = parseRequestUrl(request).searchParams;
     const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
-    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const rawToolKeyFromBody = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
+    const rawToolKeyFromQuery = query.get('toolKey')?.trim() ?? '';
+    const toolKeyFromBody = normalizeSupportedToolKey(rawToolKeyFromBody) ?? '';
+    const toolKeyFromQuery = normalizeSupportedToolKey(rawToolKeyFromQuery) ?? '';
+    const toolKey = toolKeyFromBody || toolKeyFromQuery;
+    const submittedToolKey = rawToolKeyFromBody || rawToolKeyFromQuery;
     const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
     const mimeType = normalizeMimeType(body.mimeType);
     const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
 
-    if (!projectId || !fileName || !contentBase64) {
-      writeError(response, 400, 'bad_request', 'projectId, fileName and contentBase64 are required');
+    if (!projectId || !fileName || !contentBase64 || !toolKey) {
+      writeError(response, 400, 'bad_request', 'projectId, toolKey, fileName and contentBase64 are required');
+      return;
+    }
+
+    if (!isSupportedToolWorkflow(toolKey)) {
+      writeError(response, 400, 'bad_request', `Unsupported toolKey: ${submittedToolKey} (normalized to: ${toolKey})`);
       return;
     }
 
@@ -1261,6 +1308,99 @@ export const createAuthHttpRuntime = (
     });
   };
 
+  const handleToolsSessionsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for sessions list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    const projectIdParam = url.searchParams.get('projectId');
+    const projectId = projectIdParam && projectIdParam.trim().length > 0 ? projectIdParam.trim() : null;
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const sessions: SessionListEntry[] = await adapter.fetchSessionsList(principal.user.id, projectId);
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { sessions });
+  };
+
+  const handleToolsSessionArtifacts = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session artifacts');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    if (!group) {
+      writeError(response, 404, 'not_found', 'Session not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { session: group });
+  };
+
+  const handleToolsSessionStepArtifact = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+    stepKey: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session step artifact');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id);
+    if (!artifact) {
+      writeError(response, 404, 'not_found', 'Session step artifact not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { artifact });
+  };
+
   const handleArtifactById = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1290,6 +1430,241 @@ export const createAuthHttpRuntime = (
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, { artifact });
   };
+
+  // ── LlmModelCatalog handlers ─────────────────────────────────────────────
+
+  const LLM_MODEL_KEY_REGEX = /^[a-zA-Z0-9/_\-.]+$/;
+
+  const requireDb = (response: ServerResponse): Pool | null => {
+    if (!db) {
+      writeError(response, 503, 'service_unavailable', 'Model catalog is not configured');
+      return null;
+    }
+    return db;
+  };
+
+  const handleModelsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for models list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const models = await listEnabledModels(pool);
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { models });
+  };
+
+  const handleAdminModelsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for admin models list');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const models = await listAllModels(pool);
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { models });
+  };
+
+  const handleAdminModelsCreate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for admin model create');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await parseJsonBody<Record<string, unknown>>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const key = typeof body.key === 'string' ? body.key.trim() : '';
+    const label = typeof body.label === 'string' ? body.label.trim() : '';
+    const status = typeof body.status === 'string' ? body.status.trim() : 'enabled';
+    const sortOrder = typeof body.sortOrder === 'number' ? body.sortOrder : undefined;
+    const isDefault = typeof body.isDefault === 'boolean' ? body.isDefault : false;
+
+    if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
+      writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
+      return;
+    }
+
+    if (!label || label.length > 256) {
+      writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
+      return;
+    }
+
+    if (status !== 'enabled' && status !== 'disabled') {
+      writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
+      return;
+    }
+
+    const model = await createModel(pool, {
+      key,
+      label,
+      status: status as LlmModelStatus,
+      isDefault,
+      ...(sortOrder !== undefined ? { sortOrder } : {}),
+    });
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 201, { model });
+  };
+
+  const handleAdminModelsUpdate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    modelId: string,
+  ): Promise<void> => {
+    if (request.method !== 'PUT') {
+      writeError(response, 405, 'method_not_allowed', 'Use PUT for admin model update');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await parseJsonBody<Record<string, unknown>>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const payload: Partial<{ key: string; label: string; status: LlmModelStatus; isDefault: boolean; sortOrder: number }> = {};
+
+    if (body.key !== undefined) {
+      const key = typeof body.key === 'string' ? body.key.trim() : '';
+      if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
+        writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
+        return;
+      }
+      payload.key = key;
+    }
+
+    if (body.label !== undefined) {
+      const label = typeof body.label === 'string' ? body.label.trim() : '';
+      if (!label || label.length > 256) {
+        writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
+        return;
+      }
+      payload.label = label;
+    }
+
+    if (body.status !== undefined) {
+      const status = typeof body.status === 'string' ? body.status.trim() : '';
+      if (status !== 'enabled' && status !== 'disabled') {
+        writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
+        return;
+      }
+      payload.status = status as LlmModelStatus;
+    }
+
+    if (body.sortOrder !== undefined) {
+      if (typeof body.sortOrder !== 'number') {
+        writeError(response, 400, 'bad_request', 'sortOrder must be a number');
+        return;
+      }
+      payload.sortOrder = body.sortOrder;
+    }
+
+    if (body.isDefault !== undefined) {
+      if (typeof body.isDefault !== 'boolean') {
+        writeError(response, 400, 'bad_request', 'isDefault must be a boolean');
+        return;
+      }
+      payload.isDefault = body.isDefault;
+    }
+
+    const model = await updateModel(pool, modelId, payload);
+    if (!model) {
+      writeError(response, 404, 'not_found', 'Model not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { model });
+  };
+
+  const handleAdminModelsDelete = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    modelId: string,
+  ): Promise<void> => {
+    if (request.method !== 'DELETE') {
+      writeError(response, 405, 'method_not_allowed', 'Use DELETE for admin model delete');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const deleted = await deleteModel(pool, modelId);
+    if (!deleted) {
+      writeError(response, 404, 'not_found', 'Model not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    response.statusCode = 204;
+    response.end('');
+  };
+
+  // ── end LlmModelCatalog handlers ─────────────────────────────────────────
 
   const handleAdminListUsers = async (
     request: IncomingMessage,
@@ -1628,6 +2003,44 @@ export const createAuthHttpRuntime = (
         return { handled: true };
       }
 
+      if (path === '/api/admin/models') {
+        if (request.method === 'GET') {
+          await handleAdminModelsList(request, response);
+          return { handled: true };
+        }
+
+        if (request.method === 'POST') {
+          await handleAdminModelsCreate(request, response);
+          return { handled: true };
+        }
+
+        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/admin/models');
+        return { handled: true };
+      }
+
+      const adminModelMatch = path.match(/^\/api\/admin\/models\/([^/]+)$/);
+      if (adminModelMatch) {
+        const modelId = decodeURIComponent(adminModelMatch[1] ?? '');
+
+        if (request.method === 'PUT') {
+          await handleAdminModelsUpdate(request, response, modelId);
+          return { handled: true };
+        }
+
+        if (request.method === 'DELETE') {
+          await handleAdminModelsDelete(request, response, modelId);
+          return { handled: true };
+        }
+
+        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/admin/models/:id');
+        return { handled: true };
+      }
+
+      if (path === '/api/models') {
+        await handleModelsList(request, response);
+        return { handled: true };
+      }
+
       if (path === '/api/projects') {
         if (request.method === 'GET') {
           await handleProjectsList(request, response);
@@ -1666,6 +2079,32 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/tools/orchestrate') {
         await handleToolsOrchestrate(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/tools/sessions') {
+        await handleToolsSessionsList(request, response);
+        return { handled: true };
+      }
+
+      const toolSessionStepMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/);
+      if (toolSessionStepMatch) {
+        await handleToolsSessionStepArtifact(
+          request,
+          response,
+          decodeURIComponent(toolSessionStepMatch[1] ?? ''),
+          decodeURIComponent(toolSessionStepMatch[2] ?? ''),
+        );
+        return { handled: true };
+      }
+
+      const toolSessionMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)$/);
+      if (toolSessionMatch) {
+        await handleToolsSessionArtifacts(
+          request,
+          response,
+          decodeURIComponent(toolSessionMatch[1] ?? ''),
+        );
         return { handled: true };
       }
 

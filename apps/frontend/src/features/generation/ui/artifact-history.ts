@@ -8,6 +8,10 @@ export type GenerationArtifact = {
   artifactId: string;
   requestId: string;
   projectId: string;
+  sessionId?: string | null;
+  stepKey?: string | null;
+  artifactRole?: 'step' | 'final' | null;
+  runMode?: 'new' | 'resume' | 'regenerate' | null;
   artifactType: ArtifactType;
   status: ArtifactLifecycleStatus;
   model: string;
@@ -98,6 +102,10 @@ export const resolveToolRouteFromArtifact = (artifact: GenerationArtifact): stri
 
   if (candidates.includes('nextland')) {
     return '/tools/nextland';
+  }
+
+  if (candidates.includes('youtube-lf-script')) {
+    return '/tools/youtube-lf-script';
   }
 
   return null;

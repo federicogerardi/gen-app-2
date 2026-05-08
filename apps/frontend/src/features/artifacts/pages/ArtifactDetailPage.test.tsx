@@ -2,7 +2,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { ArtifactDetailPage } from './ArtifactDetailPage';
+import { ArtifactDetailPage, isSessionSummaryRouteId } from './ArtifactDetailPage';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
@@ -11,7 +11,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, adminModels: false },
+    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
   }),
 }));
 
@@ -54,6 +54,15 @@ vi.mock('../../../app/runtime/queries/useArtifactDetailQuery', () => ({
   }),
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'proj-1', name: 'Project Apollo', description: '', updatedAt: '2026-04-24T00:00:00.000Z' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [makeArtifact()], isStreamActive: false }),
 }));
@@ -65,16 +74,21 @@ const LocationEcho = () => {
 
 const renderPage = (artifactId = 'art-1') =>
   render(
-    <MemoryRouter initialEntries={[`/artifacts/${artifactId}`]}>
-      <Routes>
-        <Route path="/artifacts/:id" element={<ArtifactDetailPage />} />
-      </Routes>
-    </MemoryRouter>,
+      <MemoryRouter initialEntries={[`/artifacts/${artifactId}`]}>
+        <Routes>
+          <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
   );
 
 describe('ArtifactDetailPage', () => {
   beforeEach(() => {
     artifactDetailBag.artifact = makeArtifact();
+  });
+
+  it('detects legacy session route ids', () => {
+    expect(isSessionSummaryRouteId('sess_demo')).toBe(true);
+    expect(isSessionSummaryRouteId('art-1')).toBe(false);
   });
 
   it('shows "Artifact non trovato" for missing artifact', () => {
@@ -92,6 +106,21 @@ describe('ArtifactDetailPage', () => {
   it('renders back link to artifacts archive', () => {
     renderPage('art-1');
     expect(screen.getByText(appCopy.ui.actions.openArchive)).toBeInTheDocument();
+  });
+
+  it('shows step name, generating tool name, and a human-readable completed date', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      stepKey: 'intro-structure',
+      toolKey: 'funnel-pages',
+      completedAt: '2026-05-08T11:22:33.000Z',
+    });
+
+    renderPage('art-1');
+
+    expect(screen.getByRole('heading', { name: 'Intro Structure' })).toBeInTheDocument();
+    expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
+    expect(screen.queryByText('2026-05-08T11:22:33.000Z')).not.toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
   it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
@@ -119,7 +148,7 @@ describe('ArtifactDetailPage', () => {
     render(
       <MemoryRouter initialEntries={['/artifacts/art-1']}>
         <Routes>
-          <Route path="/artifacts/:id" element={<ArtifactDetailPage />} />
+          <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
           <Route path="/tools/funnel-pages" element={<LocationEcho />} />
         </Routes>
       </MemoryRouter>,
@@ -137,5 +166,18 @@ describe('ArtifactDetailPage', () => {
     expect(location).toHaveTextContent('tone=friendly');
     expect(location).toHaveTextContent('notes=old-note');
     expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
+  });
+
+  it('redirects legacy session-style artifact ids to /sessionsummary/:sessionId', async () => {
+    render(
+      <MemoryRouter initialEntries={['/artifacts/sess_demo']}>
+        <Routes>
+          <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
+          <Route path="/sessionsummary/:sessionId" element={<LocationEcho />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId('location-echo')).toHaveTextContent('/sessionsummary/sess_demo');
   });
 });

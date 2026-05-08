@@ -37,6 +37,28 @@ describe('buildApiPaths', () => {
     });
   });
 
+  describe('tools.sessions — capabilities: sessionsList/sessionsDetail', () => {
+    it('returns list path when sessionsList is enabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsList: true }));
+      expect(paths.tools.sessions.list).toBe('/api/tools/sessions');
+    });
+
+    it('returns null list path when sessionsList is disabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsList: false }));
+      expect(paths.tools.sessions.list).toBeNull();
+    });
+
+    it('returns detail path when sessionsDetail is enabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsDetail: true }));
+      expect(paths.tools.sessions.byId('sess_demo')).toBe('/api/tools/sessions/sess_demo');
+    });
+
+    it('returns null detail path when sessionsDetail is disabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsDetail: false }));
+      expect(paths.tools.sessions.byId('sess_demo')).toBeNull();
+    });
+  });
+
   describe('projects — capability: projects', () => {
     it('returns list path when projects is enabled', () => {
       const paths = buildApiPaths(resolveBackendCapabilities({ projects: true }));

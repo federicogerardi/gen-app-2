@@ -171,6 +171,8 @@ describe('tools-client', () => {
       options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
     });
 
+    getArtifactByIdMock.mockResolvedValue(null);
+
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
@@ -181,6 +183,59 @@ describe('tools-client', () => {
     });
 
     expect(result.payload).toEqual({});
+    expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('runExtraction recovers payload from artifact detail when streamed extraction content is markdown', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: '## Knowledge Content\n- Offer strategy\n\n## Avatar\n- Founder',
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    getArtifactByIdMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: 'markdown extraction output',
+      sourceRequest: {
+        input: {
+          extraction: {
+            payload: {
+              knowledge_content: 'Offer strategy',
+              avatar: 'Founder',
+              pain_point: 'No predictable growth',
+              offer: 'Consulting',
+              proof: '20 case studies',
+            },
+          },
+        },
+      },
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter:auto',
+      toolKey: 'youtube-lf-script',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.artifactId).toBe('artifact-001');
+    expect(result.payload).toEqual({
+      knowledge_content: 'Offer strategy',
+      avatar: 'Founder',
+      pain_point: 'No predictable growth',
+      offer: 'Consulting',
+      proof: '20 case studies',
+    });
+    expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
   });
 
   it('runExtraction falls back to sourceRequest.input.extractionPayload when artifact content is non-json', async () => {

@@ -35,20 +35,3 @@ export const createStepRequest = (
     },
   };
 };
-
-/** @deprecated use orchestrateToolStep via /api/tools/orchestrate (DDD-C-007) */
-export const getStepDependencies = (
-  tool: SupportedTool,
-  completedArtifactsByStep: Partial<Record<ToolStep, string>>,
-  step: ToolStep,
-): Record<string, string> => {
-  const order = toolStepOrder[tool];
-  const stepIndex = order.indexOf(step);
-
-  const entries = order
-    .slice(0, Math.max(0, stepIndex))
-    .map((prevStep) => [prevStep, completedArtifactsByStep[prevStep]])
-    .filter((item): item is [ToolStep, string] => typeof item[1] === 'string');
-
-  return Object.fromEntries(entries);
-};

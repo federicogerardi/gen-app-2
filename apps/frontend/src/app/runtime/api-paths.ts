@@ -14,6 +14,10 @@ export type ApiPaths = {
     briefs: string | null;
     hydrate: string | null;
     orchestrate: string | null;
+    sessions: {
+      list: string | null;
+      byId: (sessionId: string) => string | null;
+    };
   };
   projects: {
     list: string | null;
@@ -43,6 +47,10 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     briefs: capabilities.toolsUpload ? '/api/tools/briefs' : null,
     hydrate: capabilities.artifacts ? '/api/tools/hydrate' : null,
     orchestrate: capabilities.artifacts ? '/api/tools/orchestrate' : null,
+    sessions: {
+      list: capabilities.sessionsList ? '/api/tools/sessions' : null,
+      byId: (sessionId: string) => (capabilities.sessionsDetail ? `/api/tools/sessions/${sessionId}` : null),
+    },
   },
   projects: {
     list: capabilities.projects ? '/api/projects' : null,

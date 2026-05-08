@@ -42,6 +42,14 @@ export interface UseToolPageProps {
 const isEmptyPayload = (payload: Record<string, unknown>): boolean =>
   Object.keys(payload).length === 0;
 
+const createSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export const useToolPage = ({
   toolKey,
   sourceArtifactId,
@@ -64,6 +72,7 @@ export const useToolPage = ({
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
+  const sessionIdRef = useRef<string>(createSessionId());
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const wasStreamActiveRef = useRef(false);
@@ -74,6 +83,7 @@ export const useToolPage = ({
   const [toolPageSnapshot, toolPageSend] = useMachine(toolPageMachine, {
     input: {
       toolKey,
+      sessionId: sessionIdRef.current,
       projectId: generation.focusedProjectId ?? initialProjectId ?? '',
       model: toolConfig.defaultModel,
       registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
@@ -418,6 +428,7 @@ export const useToolPage = ({
         requestId: runPrefix,
         userId: auth.session.user.id,
         projectId: normalizedProjectId,
+        sessionId: sessionIdRef.current,
         artifactType: 'content',
         model: formState.model,
         outputFormat: 'markdown',
@@ -609,7 +620,10 @@ export const useToolPage = ({
 
   const handlePrimaryAction = useCallback((): void => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      void navigate('/artifacts');
+      const lastArtifact = generation.artifacts.length > 0
+        ? generation.artifacts[generation.artifacts.length - 1]
+        : null;
+      void navigate(lastArtifact ? `/artifacts/${lastArtifact.artifactId}` : '/artifacts');
       return;
     }
     if (!readinessSnapshot.canStartFlow) return;
@@ -624,6 +638,7 @@ export const useToolPage = ({
     toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
   }, [
     generation.isStreamActive,
+    generation.artifacts,
     machineViewModel.primaryActionPolicy,
     navigate,
     primaryTargetStep,

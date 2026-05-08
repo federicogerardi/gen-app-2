@@ -178,6 +178,11 @@ export const collectCompletedStepsByTool = (
   toolKey: SupportedTool,
   projectId: string,
 ): Set<ToolStep> => {
+  // Deprecated compatibility path.
+  if (typeof window !== 'undefined' && import.meta.env.PROD) {
+    console.warn('[step-hydration] collectCompletedStepsByTool is deprecated; use collectCompletedStepsBySession(sessionId).');
+  }
+
   if (!projectId.trim()) {
     return new Set();
   }
@@ -189,16 +194,52 @@ export const collectCompletedStepsByTool = (
   );
 };
 
+export const collectCompletedStepsBySession = (
+  artifacts: GenerationArtifact[],
+  toolKey: SupportedTool,
+  projectId: string,
+  sessionId: string,
+): Set<ToolStep> => {
+  const normalizedProjectId = projectId.trim();
+  const normalizedSessionId = sessionId.trim();
+  if (!normalizedProjectId || !normalizedSessionId) {
+    return new Set();
+  }
+
+  return new Set(
+    filterArtifactsForStep(artifacts, { projectId: normalizedProjectId, toolKey, status: 'completed' })
+      .filter((artifact) => artifact.sessionId === normalizedSessionId)
+      .map(extractArtifactStep)
+      .filter((step): step is ToolStep => step !== null),
+  );
+};
+
 export const buildLatestArtifactByStep = (
   artifacts: GenerationArtifact[],
   toolKey: SupportedTool,
   projectId: string,
+  sessionId?: string,
 ): Partial<Record<ToolStep, GenerationArtifact>> => {
   if (!projectId.trim()) {
     return {};
   }
 
+  const normalizedSessionId = sessionId?.trim() ?? '';
+
   const sorted = [...filterArtifactsForStep(artifacts, { projectId, toolKey })]
+    .filter((artifact) => {
+      if (!normalizedSessionId) {
+        return true;
+      }
+
+      if (artifact.sessionId === normalizedSessionId) {
+        return true;
+      }
+
+      // Backward-compatible fallback: if no artifacts are session-tagged yet,
+      // keep historical behavior and allow legacy rows.
+      return artifact.sessionId === null || artifact.sessionId === undefined;
+    })
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 
   return sorted.reduce<Partial<Record<ToolStep, GenerationArtifact>>>((acc, artifact) => {

@@ -12,6 +12,7 @@ tags: [architecture, tool-pages, unification, scalability, registry]
 > ⚑ **DDD Reference**: This document describes the Frontend/UI tool page architecture. For canonical domain terminology, see:
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) — `ToolPage`, `ToolStep`, `ReadinessSnapshot`, `SupportedTool`, `CanonicalToolUiState`
 > - [Domain Bounded Context Map](../domain-bounded-context-map.md#frontend--ui-context) — Frontend/UI Context and integration constraints
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — DDD-051, DDD-052 for SessionSummary/Artifacts route and listing boundaries
 > - [Tool Generation Flow — Generation Context](../tool-generation-flow-generation-context.md) — visual diagram with cross-context flow
 
 ## Executive Summary
@@ -32,6 +33,21 @@ Questo documento specifica l'architettura **unificata e scalabile** per le pagin
 ---
 
 ## 1. Architecture Overview
+
+### 1.0 SessionSummary / Artifacts / Projects Boundary (DDD-051, DDD-052)
+
+Tool pages must preserve deterministic navigation and projection boundaries:
+
+| Concern | Canonical FE namespace | Canonical read model | Backend contract |
+|---|---|---|---|
+| Project contextual history | `/dashboard/projects/{projectId}` | `SessionSummary[]` filtered by project | `GET /api/tools/sessions?projectId={projectId}` |
+| Session aggregate navigation | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}` |
+| Artifact history + single generation detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` |
+
+Implementation notes:
+- Do not treat `/artifacts/{id}` as a session aggregate route.
+- Project detail navigation is session-first and must not regress to non-aggregated artifact list semantics.
+- Transitional implementations may keep session-summary derivation from artifacts while backend list rollout is in progress.
 
 ### 1.1 Componenti Chiave
 

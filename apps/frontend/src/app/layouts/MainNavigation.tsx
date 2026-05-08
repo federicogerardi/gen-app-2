@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom';
+import type { ComponentType } from 'react';
 import {
   LayoutDashboard,
   FolderOpen,
   Zap,
   Map,
+  Clapperboard,
   Archive,
   Settings,
   ChevronLeft,
@@ -15,7 +17,7 @@ import { appCopy, appNavigation } from '../copy/system';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
 import './MainNavigation.css';
 
-type NavIcon = React.ComponentType<{ size: number; className?: string }>;
+type NavIcon = ComponentType<{ size: number; className?: string }>;
 
 type MainNavigationProps = {
   isCollapsed: boolean;
@@ -31,6 +33,8 @@ const navIcons: Record<string, NavIcon> = {
   '/dashboard/projects': FolderOpen,
   '/tools/funnel-pages': Zap,
   '/tools/nextland': Map,
+  '/tools/youtube-lf-script': Clapperboard,
+  '/sessionsummary': Archive,
   '/artifacts': Archive,
   '/admin': Settings,
 };

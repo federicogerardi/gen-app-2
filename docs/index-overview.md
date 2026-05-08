@@ -68,11 +68,13 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [frontend-spec](./02-design/specifications/frontend-spec.md) — **Start here for Frontend architecture (DDD-aligned)**
 - [frontend-unification-replication-guide](./02-design/specifications/frontend-unification-replication-guide.md)
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
+- [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md) — **UI naming and page archetype governance**
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
+- [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
 
 ### Design ADR
 
@@ -82,10 +84,9 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 
 - Nessun piano attivo al momento (sanitized per publication scope as-is).
 
-### Frontend Supporting Docs
+### Active Runbooks
 
-- [debug-streaming](../apps/frontend/DEBUG-STREAMING.md)
-- [tool-form-architecture](../apps/frontend/TOOL-FORM-ARCHITECTURE.md)
+- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
 
 ## Archive Registry
 

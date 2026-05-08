@@ -9,10 +9,10 @@
 
 import type { WorkflowStepDescriptor } from '../types/xstate';
 
-export type SupportedToolWorkflow = 'funnel-pages' | 'nextland';
+export type SupportedToolWorkflow = 'funnel-pages' | 'nextland' | 'youtube-lf-script';
 
 export const isSupportedToolWorkflow = (value: string): value is SupportedToolWorkflow =>
-  value === 'funnel-pages' || value === 'nextland';
+  value === 'funnel-pages' || value === 'nextland' || value === 'youtube-lf-script';
 
 /**
  * Canonical dependency-graph plan for a ToolWorkflow.
@@ -54,6 +54,14 @@ export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowP
   nextland: buildWorkflowPlan('nextland', [
     { key: 'landing', dependencies: [] },
     { key: 'thank_you', dependencies: ['landing'] },
+  ]),
+  'youtube-lf-script': buildWorkflowPlan('youtube-lf-script', [
+    { key: 'pre-script-analysis', dependencies: [] },
+    { key: 'packaging', dependencies: ['pre-script-analysis'] },
+    { key: 'intro-structure', dependencies: ['packaging'] },
+    { key: 'body-structure', dependencies: ['intro-structure'] },
+    { key: 'native-cta-embeds', dependencies: ['body-structure'] },
+    { key: 'outro-structure', dependencies: ['native-cta-embeds'] },
   ]),
 };
 

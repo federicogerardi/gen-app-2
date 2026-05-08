@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { appCopy, formatMeta } from '../../../app/copy/system';
-import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { appCopy } from '../../../app/copy/system';
+import { EmptyStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 
 export const AdminActivityPage = () => {
@@ -14,19 +14,37 @@ export const AdminActivityPage = () => {
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
-      <h2>{appCopy.editorial.admin.activityTitle}</h2>
-      <p className={uiPrimitives.metaLine}>{appCopy.editorial.admin.activityBody}</p>
+      <TopBar>
+        <h2>{appCopy.editorial.admin.activityTitle}</h2>
+        <p className={uiPrimitives.metaLine}>{appCopy.editorial.admin.activityBody}</p>
+      </TopBar>
 
-      <ul className={uiPrimitives.listClean}>
-        {feed.map((item) => (
-          <Surface as="li" key={item.artifactId}>
-            <p><strong>{item.projectId}</strong></p>
-            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifact, item.artifactId)}</p>
-            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, item.status)}</p>
-            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(item.updatedAt).toLocaleString())}</p>
-          </Surface>
-        ))}
-      </ul>
+      {feed.length === 0
+        ? <EmptyStateMessage>Nessuna attività recente.</EmptyStateMessage>
+        : (
+          <div className={uiPrimitives.artifactTableWrap}>
+            <table className={uiPrimitives.artifactTable}>
+              <thead>
+                <tr>
+                  <th scope="col">Project</th>
+                  <th scope="col">Artifact</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Aggiornato</th>
+                </tr>
+              </thead>
+              <tbody>
+                {feed.map((item) => (
+                  <tr key={item.artifactId}>
+                    <td><strong>{item.projectId}</strong></td>
+                    <td><span className={uiPrimitives.metaLine}>{item.artifactId}</span></td>
+                    <td><span className={uiPrimitives.metaLine}>{item.status}</span></td>
+                    <td><span className={uiPrimitives.metaLine}>{new Date(item.updatedAt).toLocaleString()}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
     </Surface>
   );
 };

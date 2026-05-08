@@ -13,6 +13,8 @@ This diagram represents the canonical flow of a multi-step Tool execution in the
 
 All domain terms are canonical as of 2026-05-04 (DDD-026 through DDD-037).
 
+Session aggregation and route namespace separation are canonical as of DDD-051 and DDD-052.
+
 > 📖 **Frontend UI Representation**: See [ToolGenerationFlow: Unified Flow Component](./tool-generation-flow.md) for the Frontend UI implementation of this flow. For detailed UX state routing and form behavior, see [Tool Generation Flow Source Of Truth (Frontend)](./specifications/tool-generation-flow-source-of-truth-spec.md).
 
 ---
@@ -195,6 +197,9 @@ graph TB
 | **ArtifactRole** (DDD-033) | Value Object | Classification: 'step' (intermediate, feeds dependents) or 'final' (complete output) |
 | **ToolWorkflowPersistenceMetadata** (DDD-034) | Value Object | Persistence contract: metadata embedded in artifact input.toolWorkflow for hydration |
 | **Artifact** (DDD-001) | Entity | Persisted output of a generation; carries type, role, metrics, idempotency cache |
+| **GenerationSession** (DDD-048) | Aggregate Root | Groups all artifacts produced in one multi-step tool execution |
+| **SessionSummary** (DDD-051) | Value Object | Aggregate-list projection consumed by frontend for session archive and project contextual navigation |
+| **SessionArtifactGroup** (DDD-049) | Value Object | Session detail projection for ordered step artifact display |
 | **BackendStreamEvent** (DDD-009) | Domain Event | SSE wire event: start, chunk, terminal; crosses FE/BE boundary |
 
 ---
@@ -207,6 +212,23 @@ graph TB
 4. **Idempotency**: Each `GenerationRequest` maps to a unique `IdempotencyKey` scoped to `(userId, projectId, endpoint)`; duplicate requests return the cached artifact without re-running.
 5. **Quota Enforcement**: `ClaimUsage` atomically decrements quota before `StreamTransport` begins; if quota is exhausted, the generation is rejected before any artifact is produced.
 6. **No Cross-Tool Steps**: A `WorkflowStep` belongs to exactly one `Tool` and cannot be reused across different Tools in a single generation request (though step definitions may be shared in the registry).
+7. **Namespace Separation**: aggregate session projections (`SessionSummary`, `SessionArtifactGroup`) map to `/api/tools/sessions*` and frontend `sessionsummary` routes, while non-aggregated artifact history/detail maps to `/api/artifacts*` and frontend `artifacts` routes.
+
+---
+
+## Frontend Projection Contract (SessionSummary / Artifacts / Projects)
+
+Cross-context contract for FE navigation:
+
+| UI concern | FE route namespace | Generation projection | Backend endpoint |
+|---|---|---|---|
+| Project contextual history | `/dashboard/projects/{projectId}` | `SessionSummary[]` filtered by project | `GET /api/tools/sessions?projectId={projectId}` |
+| Session aggregate archive/detail | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}` |
+| Artifact archive/detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` |
+
+Implementation rollout note:
+- Session detail endpoints are already exposed in backend runtime.
+- Session list endpoint (`GET /api/tools/sessions`) remains the canonical target while transitional FE derivation from artifact listing is temporarily allowed.
 
 ---
 

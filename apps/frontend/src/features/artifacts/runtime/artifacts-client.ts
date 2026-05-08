@@ -28,6 +28,14 @@ type BackendArtifact = {
   artifactId: string;
   requestId: string;
   projectId: string;
+  sessionId?: string | null;
+  session_id?: string | null;
+  stepKey?: string | null;
+  step_key?: string | null;
+  artifactRole?: 'step' | 'final' | null;
+  artifact_role?: 'step' | 'final' | null;
+  runMode?: 'new' | 'resume' | 'regenerate' | null;
+  run_mode?: 'new' | 'resume' | 'regenerate' | null;
   artifactType: GenerationArtifact['artifactType'];
   status: GenerationArtifact['status'];
   model: string;
@@ -136,10 +144,19 @@ const readDiagnosticString = (a: string | null | undefined, b: string | null | u
 const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => {
   const toolKey = readToolKey(artifact);
 
+  const sessionId = readDiagnosticString(artifact.sessionId, artifact.session_id);
+  const stepKey = readDiagnosticString(artifact.stepKey, artifact.step_key);
+  const artifactRole = artifact.artifactRole ?? artifact.artifact_role ?? null;
+  const runMode = artifact.runMode ?? artifact.run_mode ?? null;
+
   return {
     artifactId: artifact.artifactId,
     requestId: artifact.requestId,
     projectId: artifact.projectId,
+    sessionId,
+    stepKey,
+    artifactRole,
+    runMode,
     artifactType: artifact.artifactType,
     status: artifact.status,
     model: artifact.model,

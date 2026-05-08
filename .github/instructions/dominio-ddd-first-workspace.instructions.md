@@ -16,6 +16,16 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
   3. `docs/07-governance/domain-naming-decision-log.md` — 17 approved naming decisions, deprecated terms, backward-compat aliases
 - If one or more references are missing, stop non-DDD edits and bootstrap them via the DDD agent workflow first.
 
+## Mandatory GUI Governance Gate (Frontend/UI Interventions)
+- This gate is mandatory whenever the intervention touches GUI code or GUI documentation, including files under `apps/frontend/src/**`, `frontend/src/**`, and UI docs under `docs/02-design/specifications/**`.
+- Before proposing or applying GUI changes, read and apply:
+  - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
+- Enforce these constraints during GUI work:
+  1. Classify each touched screen into one canonical archetype: `Tool Workspace Page` or `Data Table View`.
+  2. Reuse canonical UI terms from the spec in analysis, PR notes, and updated docs.
+  3. If the screen is tabular, align behavior and composition with the `Data Table View` + canonical table standard.
+  4. If the screen diverges from the canonical archetype, treat it as drift and document convergence in the same change.
+
 ## Code Analysis Gate
 - Before analyzing TypeScript/React code, identify which bounded context owns the file being analyzed.
 - Map every domain concept in the file to a canonical term in the glossary before proposing changes.

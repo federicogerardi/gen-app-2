@@ -84,6 +84,7 @@ type ToolDoneOutput =
 type CacheRequestMetaParams = {
   requestId: string;
   projectId: string;
+  sessionId: string | null;
   toolKey: string | null;
   artifactType: string;
   workflowType: RegistryBackedWorkflowType;
@@ -309,9 +310,104 @@ const buildExtractionStructuredPayload = (
   };
 };
 
-const parseExtractionContent = (content: string): Record<string, unknown> => {
+const YOUTUBE_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
+  'knowledge content': 'knowledge_content',
+  avatar: 'avatar',
+  'pain point': 'pain_point',
+  'purchase process type': 'purchase_process_type',
+  offer: 'offer',
+  proof: 'proof',
+  tone: 'tone',
+  'target duration minutes': 'target_duration_minutes',
+  'proprietary methodology disclosure': 'proprietary_methodology_disclosure',
+};
+
+const MISSING_EXTRACTION_VALUE_MARKERS = new Set([
+  'non emerso dal documento.',
+  'non emerso dal documento',
+]);
+
+const normalizeYoutubeExtractionField = (value: string): string | null => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (MISSING_EXTRACTION_VALUE_MARKERS.has(normalized.toLowerCase())) {
+    return null;
+  }
+
+  return normalized;
+};
+
+/**
+ * Parses youtube-lf-script extraction markdown into canonical ExtractionContext fields.
+ * Deterministic normalization rule: each section resolves to a single value, taking the
+ * first non-empty bullet and ignoring subsequent bullets in the same section.
+ */
+const parseYoutubeExtractionMarkdown = (content: string): Record<string, unknown> => {
+  if (!content.trim()) {
+    return {};
+  }
+
+  const rows = content.split(/\r?\n/);
+  const extractedFields: Record<string, string | null> = {};
+  let currentField: string | null = null;
+
+  for (const row of rows) {
+    const headingMatch = row.match(/^##\s+(.+?)\s*$/);
+    if (headingMatch) {
+      const headingLabel = headingMatch[1];
+      if (!headingLabel) {
+        currentField = null;
+        continue;
+      }
+      const heading = headingLabel.trim().toLowerCase();
+      currentField = YOUTUBE_EXTRACTION_SECTION_BY_HEADING[heading] ?? null;
+      continue;
+    }
+
+    if (!currentField) {
+      continue;
+    }
+
+    const bulletMatch = row.match(/^\s*-\s*(.+?)\s*$/);
+    if (!bulletMatch) {
+      continue;
+    }
+    const bulletValue = bulletMatch[1];
+    if (!bulletValue) {
+      continue;
+    }
+
+    const current = extractedFields[currentField];
+    if (current !== undefined && current !== null) {
+      // Deterministic normalization policy: keep only the first non-empty bullet
+      // for each canonical section to avoid ambiguous multi-value merges.
+      continue;
+    }
+
+    extractedFields[currentField] = normalizeYoutubeExtractionField(bulletValue);
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const field of Object.values(YOUTUBE_EXTRACTION_SECTION_BY_HEADING)) {
+    result[field] = extractedFields[field] ?? null;
+  }
+  return result;
+};
+
+const parseExtractionContent = (
+  content: string,
+  extractionToolKey: string | null | undefined,
+): Record<string, unknown> => {
   if (!content) {
     return {};
+  }
+
+  const normalizedExtractionToolKey = normalizeToolWorkflowKey(extractionToolKey);
+  if (normalizedExtractionToolKey === 'youtube-lf-script') {
+    return parseYoutubeExtractionMarkdown(content);
   }
 
   try {
@@ -360,7 +456,7 @@ const toPersistenceInputJson = (
     };
   }
 
-  const extractionPayload = parseExtractionContent(context.contentBuffer);
+  const extractionPayload = parseExtractionContent(context.contentBuffer, toOptionalString(context.requestInput.toolKey));
   return {
     ...context.requestInput,
     extraction: {
@@ -407,6 +503,10 @@ const normalizeToolWorkflowKey = (value: string | null | undefined): string | nu
   // Rimuovere quando tutti i dati DB saranno migrati a 'funnel_pages'.
   if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
     return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
   }
 
   return normalized;
@@ -499,6 +599,7 @@ const buildToolWorkflowPersistenceMetadata = (
   }
 
   return {
+    sessionId: context.sessionId,
     toolKey: plan?.toolKey ?? context.toolKey,
     workflowType: context.workflowType,
     runMode: resolveWorkflowRunMode(context),
@@ -548,6 +649,7 @@ export const generationSystemMachine = setup({
     cacheRequestMeta: assign({
       requestId: (_, params: CacheRequestMetaParams) => params.requestId,
       projectId: (_, params: CacheRequestMetaParams) => params.projectId,
+      sessionId: (_, params: CacheRequestMetaParams) => params.sessionId,
       toolKey: (_, params: CacheRequestMetaParams) => params.toolKey,
       artifactType: (_, params: CacheRequestMetaParams) => params.artifactType,
       workflowType: (_, params: CacheRequestMetaParams) => params.workflowType,
@@ -779,6 +881,7 @@ export const generationSystemMachine = setup({
     requestId: '',
     userId: null,
     projectId: null,
+    sessionId: null,
     toolKey: null,
     registryVersion: null,
     registrySnapshotRef: null,
@@ -814,6 +917,7 @@ export const generationSystemMachine = setup({
               params: ({ event, context }) => ({
                 requestId: event.requestId,
                 projectId: event.projectId,
+                sessionId: toOptionalString(event.sessionId),
                 toolKey: event.toolKey,
                 artifactType: event.artifactType,
                 workflowType: event.workflowType ?? null,
@@ -1135,6 +1239,7 @@ export const generationSystemMachine = setup({
           artifactType: toPersistenceArtifactType(context),
           workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
+          ...(context.sessionId ? { sessionId: context.sessionId } : {}),
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,
@@ -1174,6 +1279,7 @@ export const generationSystemMachine = setup({
           artifactType: toPersistenceArtifactType(context),
           workflowType: toPersistenceWorkflowType(context),
           contentBuffer: context.contentBuffer,
+          ...(context.sessionId ? { sessionId: context.sessionId } : {}),
           ...(context.userId ? { userId: context.userId } : {}),
           ...(context.projectId ? { projectId: context.projectId } : {}),
           model: context.model,

@@ -3,10 +3,13 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
+import { useEffect, useRef } from 'react';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
+import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 
@@ -24,6 +27,12 @@ interface ToolPageTemplateProps {
 }
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
+  const auth = useAuthSession();
+  const { data: modelOptions } = useModelsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+  });
+
   const {
     toolConfig,
     formState,
@@ -49,6 +58,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleBriefingReset,
     navigate,
   } = useToolPage(props);
+
+  // Auto-select the catalog default model when the list first loads.
+  // Only fires once (tracked by ref) and only if the current model matches
+  // the static fallback set at form initialization.
+  const defaultAppliedRef = useRef(false);
+  useEffect(() => {
+    if (defaultAppliedRef.current || modelOptions.length === 0) return;
+    const catalogDefault = modelOptions.find((o) => o.isDefault);
+    if (catalogDefault && formState.model !== catalogDefault.key) {
+      setFormState((prev) => ({ ...prev, model: catalogDefault.key }));
+    }
+    defaultAppliedRef.current = true;
+  // Run only when modelOptions first becomes non-empty.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelOptions]);
 
   return (
     <section className="ui-tool-page-template">
@@ -80,12 +104,18 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
                 <label>
                   <span>Model</span>
-                  <input
-                    type="text"
+                  <select
                     value={formState.model}
                     onChange={(e) => setFormState({ ...formState, model: e.target.value })}
-                    placeholder="e.g., openrouter/auto"
-                  />
+                  >
+                    {modelOptions.length === 0 ? (
+                      <option value={formState.model}>{formState.model || 'No models available'}</option>
+                    ) : (
+                      modelOptions.map((o) => (
+                        <option key={o.key} value={o.key}>{o.label}</option>
+                      ))
+                    )}
+                  </select>
                 </label>
               </div>
 

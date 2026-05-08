@@ -618,6 +618,7 @@ describe('resolveFlowProgressState', () => {
       artifacts,
       'funnel-pages',
       'project-001',
+      null,
       'regenerate',
       sourceArtifact,
       null,
@@ -683,6 +684,7 @@ describe('resolveFlowProgressState', () => {
       artifacts,
       'funnel-pages',
       'project-001',
+      null,
       'resume',
       sourceArtifact,
       'resume-run',
@@ -976,7 +978,7 @@ describe('ToolPageTemplate restore flow', () => {
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it('completed CTA navigates to artifacts archive instead of a single artifact detail', async () => {
+  it('completed CTA navigates to last artifact detail when available', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -1025,7 +1027,7 @@ describe('ToolPageTemplate restore flow', () => {
             element={<ToolPageTemplate toolKey="funnel-pages" intent="new" initialProjectId="project-001" sourceArtifactId={null} />}
           />
           <Route path="/artifacts" element={<div>Artifacts archive page</div>} />
-          <Route path="/artifacts/:id" element={<div>Artifact detail page</div>} />
+          <Route path="/artifacts/:artifactId" element={<div>Artifact detail page</div>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -1036,8 +1038,8 @@ describe('ToolPageTemplate restore flow', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
 
-    expect(await screen.findByText('Artifacts archive page')).toBeInTheDocument();
-    expect(screen.queryByText('Artifact detail page')).toBeNull();
+    expect(await screen.findByText('Artifact detail page')).toBeInTheDocument();
+    expect(screen.queryByText('Artifacts archive page')).toBeNull();
     expect(startMock).not.toHaveBeenCalled();
   });
 });

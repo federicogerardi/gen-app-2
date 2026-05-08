@@ -1544,7 +1544,7 @@ export const createAuthHttpRuntime = (
       label,
       status: status as LlmModelStatus,
       isDefault,
-      sortOrder,
+      ...(sortOrder !== undefined ? { sortOrder } : {}),
     });
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 201, { model });

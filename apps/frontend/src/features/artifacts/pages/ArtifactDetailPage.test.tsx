@@ -118,7 +118,7 @@ describe('ArtifactDetailPage', () => {
     renderPage('art-1');
 
     expect(screen.getByRole('heading', { name: 'Intro Structure' })).toBeInTheDocument();
-    expect(screen.getByText('Funnel Pages')).toBeInTheDocument();
+    expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
     expect(screen.queryByText('2026-05-08T11:22:33.000Z')).not.toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });

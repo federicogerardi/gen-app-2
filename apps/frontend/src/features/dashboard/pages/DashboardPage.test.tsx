@@ -26,7 +26,7 @@ describe('DashboardPage', () => {
 
   it('renders shortcut links to tools', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getAllByText(/funnel pages/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/hotlead funnel/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/nextland/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/youtube lf script/i).length).toBeGreaterThan(0);
   });

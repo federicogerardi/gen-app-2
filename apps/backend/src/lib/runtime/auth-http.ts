@@ -2039,12 +2039,12 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/admin/models') {
         if (request.method === 'GET') {
-          await adminHandlers.handleAdminModels.list(request, response);
+          await adminHandlers.handleAdminModelsList(request, response);
           return { handled: true };
         }
 
         if (request.method === 'POST') {
-          await adminHandlers.handleAdminModels.create(request, response);
+          await adminHandlers.handleAdminModelsCreate(request, response);
           return { handled: true };
         }
 
@@ -2057,12 +2057,12 @@ export const createAuthHttpRuntime = (
         const modelId = decodeURIComponent(adminModelMatch[1] ?? '');
 
         if (request.method === 'PUT') {
-          await adminHandlers.handleAdminModels.update(request, response, modelId);
+          await adminHandlers.handleAdminModelsUpdate(request, response, modelId);
           return { handled: true };
         }
 
         if (request.method === 'DELETE') {
-          await adminHandlers.handleAdminModels.remove(request, response, modelId);
+          await adminHandlers.handleAdminModelsDelete(request, response, modelId);
           return { handled: true };
         }
 

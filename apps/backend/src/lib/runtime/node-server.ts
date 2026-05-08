@@ -64,10 +64,6 @@ const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boole
 
   const normalizedOrigin = normalizeOrigin(origin);
   return allowedOrigins.some((candidate) => {
-    if (candidate === '*') {
-      return true;
-    }
-
     return normalizeOrigin(candidate) === normalizedOrigin;
   });
 };
@@ -77,6 +73,7 @@ const applyCorsHeaders = (
   response: ServerResponse,
   cors: NonNullable<NodeRuntimeServerOptions['cors']>,
 ): void => {
+  const allowCredentials = cors.allowCredentials ?? true;
   const requestOrigin = getHeaderValue(request.headers.origin as string | string[] | undefined);
   if (!isOriginAllowed(requestOrigin, cors.allowedOrigins)) {
     return;
@@ -85,7 +82,7 @@ const applyCorsHeaders = (
   response.setHeader('Access-Control-Allow-Origin', requestOrigin as string);
   response.setHeader('Vary', 'Origin');
 
-  if (cors.allowCredentials ?? true) {
+  if (allowCredentials) {
     response.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
@@ -200,6 +197,10 @@ const parseGenerationRequest = async (
 export const createNodeRuntimeRequestHandler = (
   options: NodeRuntimeServerOptions,
 ): ((request: IncomingMessage, response: ServerResponse) => Promise<void>) => {
+  if ((options.cors?.allowCredentials ?? true) && options.cors?.allowedOrigins.includes('*')) {
+    throw new Error('Invalid CORS configuration: allowedOrigins cannot include "*" when credentials are enabled');
+  }
+
   const generationRoutePath = options.generationRoutePath ?? '/generation/stream';
   const csrfEnabled = options.csrf?.enabled ?? true;
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];

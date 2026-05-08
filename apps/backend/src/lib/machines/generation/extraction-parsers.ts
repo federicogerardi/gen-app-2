@@ -119,18 +119,18 @@ type BuildExtractionStructuredPayloadContext = {
 };
 
 export const buildExtractionStructuredPayload = (
-  context: BuildExtractionStructuredPayloadContext,
+  input: BuildExtractionStructuredPayloadContext,
 ): Record<string, unknown> => {
-  const briefingId = toOptionalString(context.requestInput.briefingId);
+  const briefingId = toOptionalString(input.requestInput.briefingId);
   const extractionArtifactId =
-    toOptionalString(context.requestInput.extractionArtifactId) ?? context.artifactId;
+    toOptionalString(input.requestInput.extractionArtifactId) ?? input.artifactId;
   const stepDependencyArtifactIds = [
-    ...new Set(toStringArray(context.requestInput.stepDependencyArtifactIds)),
+    ...new Set(toStringArray(input.requestInput.stepDependencyArtifactIds)),
   ];
   const briefText =
-    toOptionalString(context.requestInput.briefingText)
-    ?? toOptionalString(context.requestInput.normalizedText)
-    ?? toOptionalString(context.requestInput.prompt)
+    toOptionalString(input.requestInput.briefingText)
+    ?? toOptionalString(input.requestInput.normalizedText)
+    ?? toOptionalString(input.requestInput.prompt)
     ?? '';
   const summary = briefText
     ? briefText.split(/\s+/).slice(0, 60).join(' ')
@@ -138,8 +138,8 @@ export const buildExtractionStructuredPayload = (
 
   const fields: Record<string, string | null> = {
     briefing_summary: summary,
-    primary_tone: toOptionalString(context.requestInput.tone),
-    target_tool: context.toolKey,
+    primary_tone: toOptionalString(input.requestInput.tone),
+    target_tool: input.toolKey,
   };
 
   const missingFields = Object.entries(fields)
@@ -148,10 +148,10 @@ export const buildExtractionStructuredPayload = (
 
   return {
     schemaVersion: 'extraction.v1',
-    requestId: context.requestId,
-    projectId: context.projectId,
-    toolKey: context.toolKey,
-    artifactId: context.artifactId,
+    requestId: input.requestId,
+    projectId: input.projectId,
+    toolKey: input.toolKey,
+    artifactId: input.artifactId,
     briefingId,
     extractionArtifactId,
     stepDependencyArtifactIds,
@@ -160,7 +160,7 @@ export const buildExtractionStructuredPayload = (
     meta: {
       charCount: briefText.length,
       wordCount: countWords(briefText),
-      generatedAt: context.runtimeNow().toISOString(),
+      generatedAt: input.runtimeNow().toISOString(),
     },
   };
 };

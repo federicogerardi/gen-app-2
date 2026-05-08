@@ -11,7 +11,7 @@ export const normalizePath = (url: string | undefined): string => {
 export const writeJson = (
   response: ServerResponse,
   statusCode: number,
-  payload: unknown,
+  payload: Record<string, unknown>,
 ): void => {
   response.statusCode = statusCode;
   response.setHeader('Content-Type', 'application/json; charset=utf-8');

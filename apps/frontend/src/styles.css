@@ -496,6 +496,7 @@ button,
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
   color: var(--button-primary-fg);
   background: linear-gradient(135deg, var(--brand-strong), var(--workspace-blue) 54%, var(--brand-bright));
@@ -1431,6 +1432,56 @@ button:disabled,
   border-radius: var(--radius-button);
   border: 1px solid var(--border-subtle);
   background: var(--surface-glass);
+}
+
+.ui-admin-users-toolbar {
+  padding: var(--space-1-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+}
+
+.ui-admin-user-table-actions {
+  justify-content: flex-start;
+  gap: var(--space-1);
+}
+
+.ui-admin-models-table-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.ui-dashboard-zero-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.ui-dashboard-zero-state-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.ui-dashboard-zero-state-inner h2 {
+  font-size: clamp(1.9rem, 3.2vw, 2.5rem);
+  line-height: 1.12;
+}
+
+.ui-dashboard-zero-state-inner > p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.ui-dashboard-zero-state-inner > .ui-button {
+  margin-top: var(--space-1);
 }
 
 .dashboard-card,

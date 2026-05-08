@@ -92,7 +92,7 @@ export type ToolFormSubmitData = {
 export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
-    displayName: 'Funnel Pages',
+    displayName: 'Hotlead Funnel',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
     steps: ['optin', 'quiz', 'vsl'] as const,

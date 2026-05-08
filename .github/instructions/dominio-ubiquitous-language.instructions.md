@@ -18,6 +18,14 @@ description: "Instruction for maintaining a consistent Ubiquitous Language acros
 | 2 | `docs/02-design/domain-bounded-context-map.md` | Bounded context ownership and translation rules |
 | 3 | `docs/07-governance/domain-naming-decision-log.md` | Approved decisions, deprecated aliases, DDD-NNN log |
 
+## Canonical GUI Governance Reference (Mandatory For GUI Work)
+
+| File | Role |
+| --- | --- |
+| `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` | Canonical UI vocabulary, page archetypes (`Tool Workspace Page`, `Data Table View`), and table convergence rules |
+
+Apply this reference whenever the intervention touches GUI code or GUI-facing docs (for example React components, page layouts, table/list pages, design-system documentation).
+
 ## Canonical Bounded Contexts (gen-app-2)
 - **Generation** — artifact lifecycle, XState actors, stream/persistence pipeline
 - **Auth** — user identity, sessions, roles, OAuth
@@ -46,6 +54,8 @@ description: "Instruction for maintaining a consistent Ubiquitous Language acros
 - If synonyms exist, keep one canonical term and list others as aliases in the glossary `Aliases And Deprecated Terms` table.
 - Prefer domain terms over technical implementation jargon in user-facing docs.
 - Mark uncertain terms as `provisional` until confirmed by DDD analysis.
+- For GUI interventions, map each page to one UI archetype from `frontend-ui-ubiquitous-language-spec.md` before changing layout or naming.
+- For GUI table pages, enforce `Data Table View` composition and canonical table behavior from `frontend-ui-ubiquitous-language-spec.md`.
 
 ## Required Output Conventions
 - Write final domain artifacts in English.

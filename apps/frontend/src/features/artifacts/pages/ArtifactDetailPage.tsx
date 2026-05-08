@@ -26,7 +26,7 @@ export const isSessionSummaryRouteId = (id: string): boolean => isSessionSummary
 
 const toolDisplayName = (toolKey: string | null): string => {
   if (!toolKey) return 'Tool non disponibile';
-  if (toolKey === 'funnel-pages') return 'Funnel Pages';
+  if (toolKey === 'funnel-pages') return 'Hotlead Funnel';
   if (toolKey === 'nextland') return 'Nextland';
   if (toolKey === 'youtube-lf-script') return 'YouTube LF Script';
   return toolKey;

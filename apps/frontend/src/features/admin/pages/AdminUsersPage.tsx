@@ -1,8 +1,10 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, Fragment, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
   Button,
+  cx,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -85,6 +87,7 @@ export const AdminUsersPage = () => {
   const users = usersQuery.data;
   const error = usersQuery.error;
   const [createForm, setCreateForm] = useState<AdminUserFormState>(() => createEmptyUserForm());
+  const [showCreateForm, setShowCreateForm] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<AdminUserFormState>(() => createEmptyUserForm());
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -186,221 +189,267 @@ export const AdminUsersPage = () => {
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
         <h2>{appCopy.editorial.admin.usersTitle}</h2>
-        <p className={uiPrimitives.metaLine}>Create, aggiorna e disabilita account workspace.</p>
+        <p className={uiPrimitives.metaLine}>Gestione utenti in formato Data Table View.</p>
       </TopBar>
 
-      <p className={uiPrimitives.metaLine}>
-        <a href="/admin/models">→ Gestione modelli LLM</a>
-      </p>
-      <Surface as="form" className="ui-admin-user-form" onSubmit={handleCreateSubmit}>
-        <div className="ui-admin-user-form-headline">
-          <h3>Nuovo utente</h3>
-          <p className={uiPrimitives.metaLine}>Provisioning rapido per accessi admin e member.</p>
-        </div>
-
-        <div className="ui-admin-user-form-grid">
-          <label>
-            Email
-            <input
-              name="email"
-              type="email"
-              value={createForm.email}
-              onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
-              required
-            />
-          </label>
-
-          <label>
-            Role
-            <select
-              name="role"
-              value={createForm.role}
-              onChange={(event) => setCreateForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
-            >
-              {ADMIN_USER_ROLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Status
-            <select
-              name="status"
-              value={createForm.status}
-              onChange={(event) => setCreateForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
-            >
-              {ADMIN_USER_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Monthly quota
-            <input
-              name="monthlyQuota"
-              type="number"
-              min="0"
-              step="1"
-              value={createForm.monthlyQuota}
-              onChange={(event) => setCreateForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
-            />
-          </label>
-        </div>
-
-        <label>
-          Password iniziale
-          <input
-            name="password"
-            type="password"
-            value={createForm.password}
-            onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
-          />
-        </label>
-
+      <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
+        <p className={uiPrimitives.metaLine}>Provisioning rapido, aggiornamento ruoli e disabilitazione account.</p>
         <div className={uiPrimitives.actions}>
-          <Button type="submit" disabled={busyAction === 'create'}>
-            {busyAction === 'create' ? 'Creazione...' : 'Crea utente'}
-          </Button>
           <Button
             type="button"
             onClick={() => {
-              setCreateForm(createEmptyUserForm());
+              setShowCreateForm((current) => !current);
               resetFeedback();
             }}
             disabled={busyAction === 'create'}
           >
-            {appCopy.ui.actions.reset}
+            {showCreateForm ? 'Nascondi form' : 'Nuovo utente'}
           </Button>
+          <Button
+            type="button"
+            onClick={() => usersQuery.reload()}
+            disabled={usersQuery.loading || busyAction !== null}
+          >
+            Aggiorna tabella
+          </Button>
+          <Link to="/admin/models" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
+            Gestione modelli LLM
+          </Link>
         </div>
-      </Surface>
+      </div>
+
+      {showCreateForm ? (
+        <Surface as="form" className="ui-admin-user-form" onSubmit={handleCreateSubmit}>
+          <div className="ui-admin-user-form-headline">
+            <h3>Nuovo utente</h3>
+            <p className={uiPrimitives.metaLine}>Aggiungi un account con ruolo e quota iniziale.</p>
+          </div>
+
+          <div className="ui-admin-user-form-grid">
+            <label>
+              Email
+              <input
+                name="email"
+                type="email"
+                value={createForm.email}
+                onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
+                required
+              />
+            </label>
+
+            <label>
+              Role
+              <select
+                name="role"
+                value={createForm.role}
+                onChange={(event) => setCreateForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
+              >
+                {ADMIN_USER_ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Status
+              <select
+                name="status"
+                value={createForm.status}
+                onChange={(event) => setCreateForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
+              >
+                {ADMIN_USER_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Monthly quota
+              <input
+                name="monthlyQuota"
+                type="number"
+                min="0"
+                step="1"
+                value={createForm.monthlyQuota}
+                onChange={(event) => setCreateForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
+              />
+            </label>
+          </div>
+
+          <label>
+            Password iniziale
+            <input
+              name="password"
+              type="password"
+              value={createForm.password}
+              onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
+            />
+          </label>
+
+          <div className={uiPrimitives.actions}>
+            <Button type="submit" disabled={busyAction === 'create'}>
+              {busyAction === 'create' ? 'Creazione...' : 'Crea utente'}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setCreateForm(createEmptyUserForm());
+                resetFeedback();
+              }}
+              disabled={busyAction === 'create'}
+            >
+              {appCopy.ui.actions.reset}
+            </Button>
+          </div>
+        </Surface>
+      ) : null}
 
       {usersQuery.loading ? <LoadingStateMessage>Caricamento utenti...</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
       {mutationError ? <ErrorStateMessage>{mutationError}</ErrorStateMessage> : null}
       {feedbackMessage ? <LoadingStateMessage>{feedbackMessage}</LoadingStateMessage> : null}
+
       {!error && !usersQuery.loading && users.length === 0 ? <EmptyStateMessage>Nessun utente disponibile.</EmptyStateMessage> : null}
-      <ul className={uiPrimitives.listClean}>
-        {users.map((user) => (
-          <Surface as="li" key={user.id} className="ui-admin-user-card">
-            {editingUserId === user.id ? (
-              <form className="ui-admin-user-form" onSubmit={(event) => handleUpdateSubmit(event, user.id)}>
-                <div className="ui-admin-user-form-headline">
-                  <h3>Modifica utente</h3>
-                  <p className={uiPrimitives.metaLine}>{user.id}</p>
-                </div>
 
-                <div className="ui-admin-user-form-grid">
-                  <label>
-                    Email
-                    <input
-                      name={`email-${user.id}`}
-                      type="email"
-                      value={editForm.email}
-                      onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
-                      required
-                    />
-                  </label>
+      {!error && users.length > 0 ? (
+        <div className={uiPrimitives.artifactTableWrap}>
+          <table className={uiPrimitives.artifactTable}>
+            <thead>
+              <tr>
+                <th scope="col">Email</th>
+                <th scope="col">Role</th>
+                <th scope="col">Status</th>
+                <th scope="col">Monthly quota</th>
+                <th scope="col">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <Fragment key={user.id}>
+                  <tr>
+                    <td>
+                      <strong>{user.email}</strong>
+                      <p className={uiPrimitives.metaLine}>{user.id}</p>
+                    </td>
+                    <td>{formatMeta(appCopy.ui.meta.role, user.role)}</td>
+                    <td>{formatMeta(appCopy.ui.meta.status, user.status)}</td>
+                    <td>{typeof user.monthlyQuota === 'number' ? user.monthlyQuota : '-'}</td>
+                    <td>
+                      <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
+                        <button
+                          type="button"
+                          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+                          onClick={() => startEditingUser(user)}
+                        >
+                          Modifica
+                        </button>
+                        <button
+                          type="button"
+                          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+                          onClick={() => void handleDeleteUser(user.id)}
+                          disabled={busyAction === `delete:${user.id}` || user.status === 'disabled'}
+                        >
+                          {busyAction === `delete:${user.id}` ? 'Disabilitazione...' : 'Disabilita'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
 
-                  <label>
-                    Role
-                    <select
-                      name={`role-${user.id}`}
-                      value={editForm.role}
-                      onChange={(event) => setEditForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
-                    >
-                      {ADMIN_USER_ROLE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                  {editingUserId === user.id ? (
+                    <tr>
+                      <td colSpan={5}>
+                        <form className="ui-admin-user-form" onSubmit={(event) => handleUpdateSubmit(event, user.id)}>
+                          <div className="ui-admin-user-form-headline">
+                            <h3>Modifica utente</h3>
+                            <p className={uiPrimitives.metaLine}>{user.id}</p>
+                          </div>
 
-                  <label>
-                    Status
-                    <select
-                      name={`status-${user.id}`}
-                      value={editForm.status}
-                      onChange={(event) => setEditForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
-                    >
-                      {ADMIN_USER_STATUS_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </label>
+                          <div className="ui-admin-user-form-grid">
+                            <label>
+                              Email
+                              <input
+                                name={`email-${user.id}`}
+                                type="email"
+                                value={editForm.email}
+                                onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
+                                required
+                              />
+                            </label>
 
-                  <label>
-                    Monthly quota
-                    <input
-                      name={`quota-${user.id}`}
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={editForm.monthlyQuota}
-                      onChange={(event) => setEditForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
-                    />
-                  </label>
-                </div>
+                            <label>
+                              Role
+                              <select
+                                name={`role-${user.id}`}
+                                value={editForm.role}
+                                onChange={(event) => setEditForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
+                              >
+                                {ADMIN_USER_ROLE_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </label>
 
-                <label>
-                  Nuova password
-                  <input
-                    name={`password-${user.id}`}
-                    type="password"
-                    value={editForm.password}
-                    onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
-                  />
-                </label>
+                            <label>
+                              Status
+                              <select
+                                name={`status-${user.id}`}
+                                value={editForm.status}
+                                onChange={(event) => setEditForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
+                              >
+                                {ADMIN_USER_STATUS_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                              </select>
+                            </label>
 
-                <div className={uiPrimitives.actions}>
-                  <Button type="submit" disabled={busyAction === `update:${user.id}`}>
-                    {busyAction === `update:${user.id}` ? 'Salvataggio...' : 'Salva'}
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={busyAction === `update:${user.id}`}
-                    onClick={() => {
-                      setEditingUserId(null);
-                      setEditForm(createEmptyUserForm());
-                    }}
-                  >
-                    {appCopy.ui.actions.cancel}
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="ui-admin-user-summary">
-                  <div>
-                    <p><strong>{user.email}</strong></p>
-                    <p className={uiPrimitives.metaLine}>{user.id}</p>
-                  </div>
-                  <div className="ui-admin-user-kpis">
-                    <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.role, user.role)}</p>
-                    <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, user.status)}</p>
-                    {typeof user.monthlyQuota === 'number'
-                      ? <p className={uiPrimitives.metaLine}>{formatMeta('quota', user.monthlyQuota)}</p>
-                      : null}
-                  </div>
-                </div>
+                            <label>
+                              Monthly quota
+                              <input
+                                name={`quota-${user.id}`}
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={editForm.monthlyQuota}
+                                onChange={(event) => setEditForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
+                              />
+                            </label>
+                          </div>
 
-                <div className={uiPrimitives.actions}>
-                  <Button type="button" onClick={() => startEditingUser(user)}>
-                    Modifica
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => void handleDeleteUser(user.id)}
-                    disabled={busyAction === `delete:${user.id}` || user.status === 'disabled'}
-                  >
-                    {busyAction === `delete:${user.id}` ? 'Disabilitazione...' : 'Disabilita'}
-                  </Button>
-                </div>
-              </>
-            )}
-          </Surface>
-        ))}
-      </ul>
+                          <label>
+                            Nuova password
+                            <input
+                              name={`password-${user.id}`}
+                              type="password"
+                              value={editForm.password}
+                              onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
+                            />
+                          </label>
+
+                          <div className={uiPrimitives.actions}>
+                            <Button type="submit" disabled={busyAction === `update:${user.id}`}>
+                              {busyAction === `update:${user.id}` ? 'Salvataggio...' : 'Salva'}
+                            </Button>
+                            <Button
+                              type="button"
+                              disabled={busyAction === `update:${user.id}`}
+                              onClick={() => {
+                                setEditingUserId(null);
+                                setEditForm(createEmptyUserForm());
+                              }}
+                            >
+                              {appCopy.ui.actions.cancel}
+                            </Button>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </Surface>
   );
 };

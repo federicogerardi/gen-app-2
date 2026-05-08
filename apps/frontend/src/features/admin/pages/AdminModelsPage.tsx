@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import {
   Button,
+  cx,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -253,34 +254,35 @@ export const AdminModelsPage = () => {
                     </span>
                   </td>
                   <td>{model.isDefault ? '★' : null}</td>
-                  <td>
-                    <div className={uiPrimitives.actions}>
+                  <td className="ui-admin-models-table-actions">
                       {!model.isDefault ? (
-                        <Button
+                        <button
                           type="button"
+                          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
                           disabled={busyAction === `default:${model.id}`}
                           onClick={() => void handleSetDefault(model)}
                         >
                           {busyAction === `default:${model.id}` ? '...' : 'Set default'}
-                        </Button>
+                        </button>
                       ) : null}
-                      <Button
+                      <button
                         type="button"
+                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
                         disabled={busyAction === `toggle:${model.id}`}
                         onClick={() => void handleToggleStatus(model)}
                       >
                         {busyAction === `toggle:${model.id}`
                           ? '...'
                           : model.status === 'enabled' ? 'Disabilita' : 'Abilita'}
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
+                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
                         disabled={busyAction === `delete:${model.id}` || model.isDefault}
                         onClick={() => void handleDelete(model)}
                       >
                         {busyAction === `delete:${model.id}` ? 'Eliminazione...' : 'Elimina'}
-                      </Button>
-                    </div>
+                      </button>
                   </td>
                 </tr>
               ))}

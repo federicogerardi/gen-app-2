@@ -96,6 +96,79 @@ Mandatory alignment points for every new or refactored table:
    - loading, empty, error, success share same structural positions
 5. Responsiveness
    - mobile fallback strategy must be explicitly defined (horizontal scroll or condensed row layout)
+6. **Row-level action affordances — Button CTA prohibition**
+   - `<Button>` components (styled CTA buttons with primary/secondary visual weight) are **prohibited inside table cells** (`<td>`).
+   - **Canonical pattern**: the `/artifacts` listing (`ArtifactsListingSection`) is the reference implementation. Row-level actions must use the **bordered-chip link** pattern: `className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}` on an `<a>`, `<Link>`, or `<button type="button">` element. This produces a compact uppercase chip (11 px, border, transparent background, hover fill) that maintains tabular density.
+   - For navigational actions (open detail, view): use React Router `<Link>` with the above classes.
+   - For mutation actions (edit, disable, delete, toggle): use `<button type="button">` with the same classes plus `disabled` attribute and `aria-label` when the label alone is insufficient for screen-reader context.
+   - `ui-inline-link` alone (with `→` arrow) is appropriate for primary row navigation where the chip acts as a call-to-action. `ui-artifact-table-action-link` compounds onto `ui-inline-link` to reduce padding and suppress the arrow — use it for secondary or destructive actions.
+   - Rationale: button CTA weight breaks the visual rhythm of the table scan line, inflates row height, and conflicts with the tabular density expected in a Data Table View. Bordered chips preserve density and visual hierarchy: cell content reads first, action affordance reads second.
+   - Inline edit forms that expand below a row (e.g., full-row `<td colSpan>`) are exempt from this rule — they are a form context, not a table cell action affordance.
+   - Destructive confirmation must be surfaced as a modal or inline warning, not a differently-styled button inside the row.
+
+## 4b. CTA Governance — Canonical Decision Matrix
+
+Every call-to-action in the frontend must resolve to exactly one of these three canonical patterns. No custom CTA CSS is permitted when a canonical pattern covers the context.
+
+### Decision rule (apply in order)
+
+```
+Is the CTA inside a <td>?
+  YES → Bordered-chip pattern (Section 4.6)
+  NO  → Is the CTA a primary page/section action (hero, toolbar, form submit)?
+    YES → ui-button pattern
+    NO  → Is the CTA an inline navigational hint inside body text or a card?
+      YES → inlineLink pattern
+      NO  → Flag as ambiguous — resolve against this matrix before writing code
+```
+
+### Pattern A — `ui-button` (primary CTA)
+
+Use when: the action is the primary intent of the current page section (form submit, zero-state call-to-action, toolbar primary action, auth entry point).
+
+Implementation:
+- `<button type="submit|button" className={uiPrimitives.button}>` for mutations and submits
+- `<Link to="..." className={uiPrimitives.button}>` for navigational primary CTAs (e.g. zero-state "Crea il tuo primo progetto")
+- Never introduce custom CSS properties (`background`, `border-radius`, `font-size`, `font-weight`, `letter-spacing`) that override the canonical `ui-button` token. All visual properties are owned by `.ui-button` in `styles.css`.
+
+Prohibited:
+- custom `background: var(--link-fg)` or other one-off background on a `<Link>`
+- `border-radius: var(--radius-card)` on a button element (must use `var(--radius-button)`)
+- `font-weight: 600` or `font-size: 0.9375rem` overrides on a button element
+
+### Pattern B — `inlineLink` (inline navigational affordance)
+
+Use when: the action is a secondary navigational link embedded in body text, a TopBar, a card footer, or a list item.
+
+Implementation:
+- `<Link to="..." className={uiPrimitives.inlineLink}>` — renders as `ui-inline-link` with optional `→` arrow
+- `<a href="..." className={uiPrimitives.inlineLink}>` for external links
+
+Prohibited:
+- using `inlineLink` as a replacement for a primary CTA (use `ui-button`)
+- using `inlineLink` inside `<td>` without the `artifactTableActionLink` compound (use Section 4.6)
+
+### Pattern C — Bordered-chip (table row action)
+
+Use when: the action lives inside a `<td>` in any Data Table View.
+
+Implementation: see Section 4.6 — `cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)`
+
+### Zero-state and hero CTA — additional rule
+
+A zero-state screen (empty data condition, onboarding entry) must use **Pattern A (`ui-button`)** for its single primary CTA. The `<Link className={uiPrimitives.button}>` form is canonical for zero-state navigational CTAs. No additional class or inline style is permitted on the element.
+
+### Anti-patterns (reject in review)
+
+| Anti-pattern | Canonical replacement |
+| --- | --- |
+| `<a>` or `<Link>` with custom `background`, `padding`, `border-radius`, `font-weight` | `className={uiPrimitives.button}` |
+| `<Button>` inside `<td>` | `cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)` |
+| Any element with `border-radius: var(--radius-card)` that is a button/CTA | Replace with `var(--radius-button)` via `uiPrimitives.button` |
+| `inlineLink` alone in a `<td>` | Add `artifactTableActionLink` compound |
+| A `<div className={uiPrimitives.actions}>` wrapper inside a `<td>` | Remove wrapper, render bordered-chips side by side in the cell |
+
+---
 
 ## 5. Drift Register (Current)
 
@@ -103,7 +176,16 @@ Mandatory alignment points for every new or refactored table:
 
 - Admin Models diverges from the Data Table View baseline in layout and interaction semantics.
 
-### 5.2 Required convergence target
+### 5.2 Resolved drift
+
+| Page | Archetype declared | Drift resolved | Date |
+| --- | --- | --- | --- |
+| Admin Users (`/admin/users`) | Data Table View | Card-list → table with toolbar, bordered-chip row actions, inline edit row | 2026-05-08 |
+| Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
+| Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
+| Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
+
+### 5.3 Required convergence target
 
 - Admin Models must adopt Data Table View archetype and table standard from Section 4.
 - Tool Workspace Page remains the visual and compositional reference for generation-oriented flows.

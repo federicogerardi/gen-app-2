@@ -17,10 +17,10 @@ export const appCopy = {
     navigation: {
       dashboard: 'Dashboard',
       projects: 'Projects',
-      funnelPages: 'Funnel Pages',
+      funnelPages: 'Hotlead Funnel',
       nextland: 'Nextland',
       youtubeLfScript: 'YouTube LF Script',
-      sessionSummary: 'SessionSummary',
+      sessionSummary: 'Sessions',
       artifacts: 'Artifacts',
       admin: 'Admin',
     },
@@ -39,6 +39,7 @@ export const appCopy = {
       openContextProject: 'Apri progetto di contesto',
       newProject: 'Nuovo progetto',
       createProject: 'Crea progetto',
+      createFirstProject: 'Crea il tuo primo progetto',
       retry: 'Riprova',
       cancel: 'Cancella',
       reset: 'Ricomincia',
@@ -206,6 +207,12 @@ export const appCopy = {
       eyebrow: 'Overview',
       headline: 'Ogni sprint creativo, ordinato come un newsroom board.',
       body: 'Monitora la pipeline di produzione, passa da un tool all\'altro e tieni vicini gli artifact che servono davvero alla prossima review.',
+      zeroState: {
+        eyebrow: 'Benvenuto',
+        headline: 'Tutto inizia con un progetto.',
+        body: 'Un progetto è il contesto in cui organizzi brief, generazioni e output. Creane uno adesso per iniziare a lavorare con i tool di generazione.',
+        cta: 'Crea il tuo primo progetto',
+      },
       stats: [
         'artefatti nel workspace',
         'tool disponibili per la generazione',
@@ -261,7 +268,7 @@ export const appCopy = {
     },
     tools: {
       funnelPages: {
-        title: 'Funnel Pages Tool',
+        title: 'Hotlead Funnel Tool',
         orderRule: 'Ordine step obbligatorio: optin -> quiz -> vsl',
         defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
       },

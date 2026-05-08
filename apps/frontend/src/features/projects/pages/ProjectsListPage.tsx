@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
+  cx,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -29,21 +30,42 @@ export const ProjectsListPage = () => {
       </TopBar>
 
       {projectsQuery.loading ? <LoadingStateMessage>{appCopy.ui.states.loadingProjects}</LoadingStateMessage> : null}
-
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
+      {!error && !projectsQuery.loading && projects.length === 0
+        ? <EmptyStateMessage>{appCopy.ui.states.noProjectsAvailable}</EmptyStateMessage>
+        : null}
 
-      {!error && projects.length === 0 ? <EmptyStateMessage>{appCopy.ui.states.noProjectsAvailable}</EmptyStateMessage> : null}
-
-      <ul className={uiPrimitives.listClean}>
-        {projects.map((project) => (
-          <Surface as="li" key={project.id}>
-            <h3>{project.name}</h3>
-            <p>{project.description}</p>
-            <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(project.updatedAt).toLocaleString())}</p>
-            <Link to={`/dashboard/projects/${project.id}`} className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openDetail}</Link>
-          </Surface>
-        ))}
-      </ul>
+      {!error && projects.length > 0 ? (
+        <div className={uiPrimitives.artifactTableWrap}>
+          <table className={uiPrimitives.artifactTable}>
+            <thead>
+              <tr>
+                <th scope="col">{appCopy.ui.labels.project ?? 'Progetto'}</th>
+                <th scope="col">Descrizione</th>
+                <th scope="col">{appCopy.ui.meta.updated}</th>
+                <th scope="col">{appCopy.ui.actions.openDetail}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id}>
+                  <td><strong>{project.name}</strong></td>
+                  <td>{project.description}</td>
+                  <td><span className={uiPrimitives.metaLine}>{new Date(project.updatedAt).toLocaleString()}</span></td>
+                  <td>
+                    <Link
+                      to={`/dashboard/projects/${project.id}`}
+                      className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+                    >
+                      {appCopy.ui.actions.openDetail}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
     </Surface>
   );
 };

@@ -34,6 +34,11 @@ Ambito non coperto:
 - logica runtime/machine/backend
 - contratti API e persistence
 
+Governance complementare obbligatoria:
+
+- Per vocabolario UI e archetipi pagina canonici, usare anche `frontend-ui-ubiquitous-language-spec.md`.
+- Questa guida resta la fonte di verita visuale (token, componenti, look and feel); lo UI UL spec governa naming e composizione cross-page.
+
 ## 2. Visione visiva (Precision-Creative)
 
 La GUI deve comunicare velocita, affidabilita tecnica e supporto creativo.

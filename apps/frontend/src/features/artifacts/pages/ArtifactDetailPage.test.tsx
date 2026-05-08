@@ -54,6 +54,15 @@ vi.mock('../../../app/runtime/queries/useArtifactDetailQuery', () => ({
   }),
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'proj-1', name: 'Project Apollo', description: '', updatedAt: '2026-04-24T00:00:00.000Z' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [makeArtifact()], isStreamActive: false }),
 }));
@@ -97,6 +106,21 @@ describe('ArtifactDetailPage', () => {
   it('renders back link to artifacts archive', () => {
     renderPage('art-1');
     expect(screen.getByText(appCopy.ui.actions.openArchive)).toBeInTheDocument();
+  });
+
+  it('shows step name, generating tool name, and a human-readable completed date', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      stepKey: 'intro-structure',
+      toolKey: 'funnel-pages',
+      completedAt: '2026-05-08T11:22:33.000Z',
+    });
+
+    renderPage('art-1');
+
+    expect(screen.getByRole('heading', { name: 'Intro Structure' })).toBeInTheDocument();
+    expect(screen.getByText('Funnel Pages')).toBeInTheDocument();
+    expect(screen.queryByText('2026-05-08T11:22:33.000Z')).not.toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
   it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {

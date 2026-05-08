@@ -6,6 +6,7 @@
 import type { ToolStep } from '../machines/tool-flow.machine';
 import type { ProjectSummary } from '../../projects/runtime/projects-client';
 import type { ToolFormConfig } from '../runtime/tool-form-architecture';
+import type { LlmModelOption } from '../runtime/models-client';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
 
@@ -78,6 +79,7 @@ export const BriefingUpload = ({
 type GenerationInputsProps = {
   model: string;
   onModelChange: (model: string) => void;
+  modelOptions: LlmModelOption[];
   registrySnapshotRef: string;
   onRegistryRefChange: (ref: string) => void;
   disabled: boolean;
@@ -86,6 +88,7 @@ type GenerationInputsProps = {
 export const GenerationInputs = ({
   model,
   onModelChange,
+  modelOptions,
   registrySnapshotRef,
   onRegistryRefChange,
   disabled,
@@ -93,7 +96,15 @@ export const GenerationInputs = ({
   <>
     <label>
       {appCopy.ui.labels.model}
-      <input value={model} onChange={e => onModelChange(e.target.value)} disabled={disabled} />
+      <select value={model} onChange={e => onModelChange(e.target.value)} disabled={disabled}>
+        {modelOptions.length === 0 ? (
+          <option value={model} disabled>{model || 'No models available'}</option>
+        ) : (
+          modelOptions.map(o => (
+            <option key={o.key} value={o.key}>{o.label}</option>
+          ))
+        )}
+      </select>
     </label>
 
     <label>

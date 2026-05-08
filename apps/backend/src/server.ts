@@ -7,6 +7,7 @@ import {
   PostgresProjectQueryRepository,
   createPostgresRedisProductionGenerationAdapters,
 } from './lib/adapters';
+import { listEnabledModels } from './lib/adapters/llm-model.adapter';
 import {
   createAuthHttpRuntime,
   createDefaultSessionCookieRuntime,
@@ -83,6 +84,26 @@ const run = async (): Promise<void> => {
     redis,
   });
 
+  // Short-lived in-memory cache for enabled model keys (TTL 60s). Mitigates RISK-002.
+  let modelKeyCacheTimestamp = 0;
+  let modelKeyCache: Set<string> = new Set();
+  const MODEL_CACHE_TTL_MS = 60_000;
+
+  const checkModelAvailability = async (modelKey: string): Promise<boolean> => {
+    const nowMs = Date.now();
+    if (nowMs - modelKeyCacheTimestamp > MODEL_CACHE_TTL_MS) {
+      try {
+        const enabled = await listEnabledModels(pg);
+        modelKeyCache = new Set(enabled.map((m) => m.key));
+        modelKeyCacheTimestamp = nowMs;
+      } catch {
+        // On DB error, fall through to permissive mode to avoid blocking generation.
+        return true;
+      }
+    }
+    return modelKeyCache.has(modelKey);
+  };
+
   const authRepositories = createAuthProductionRepositories({ pg });
   const authRuntime = createAuthHttpRuntime({
     repositories: authRepositories,
@@ -90,6 +111,7 @@ const run = async (): Promise<void> => {
       projects: new PostgresProjectQueryRepository(pg),
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
+    db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
   });
@@ -97,6 +119,7 @@ const run = async (): Promise<void> => {
   const server = createNodeRuntimeServer({
     generationAdapters,
     authRuntime,
+    checkModelAvailability,
     generationRoutePath: process.env.GENERATION_ROUTE_PATH ?? '/generation/stream',
     cors: {
       allowedOrigins: corsAllowedOrigins,

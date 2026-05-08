@@ -189,6 +189,9 @@ export const AdminUsersPage = () => {
         <p className={uiPrimitives.metaLine}>Create, aggiorna e disabilita account workspace.</p>
       </TopBar>
 
+      <p className={uiPrimitives.metaLine}>
+        <a href="/admin/models">→ Gestione modelli LLM</a>
+      </p>
       <Surface as="form" className="ui-admin-user-form" onSubmit={handleCreateSubmit}>
         <div className="ui-admin-user-form-headline">
           <h3>Nuovo utente</h3>

@@ -54,7 +54,7 @@ export type OutputFormat = 'plain' | 'json' | 'markdown';
  *   - userId: Authenticated user (from AuthSessionPrincipal)
  *   - projectId: Scoping boundary for quota and artifact history
  *   - artifactType: Determines output handling and agent selection (DDD-001)
- *   - model: LLM model identifier
+ *   - model: LlmModelId — must match the key of an enabled LlmModel in the LlmModelCatalog. Default: 'openrouter/auto'. See DDD-056.
  *   - input: Extraction context, tone, prompt, and tool-specific payloads
  *   - toolKey: Tool orchestration identifier (DDD-025); kebab-case (e.g., "funnel-pages")
  *   - workflowType: Artifact routing determinant (snake_case for DB compat; e.g., "funnel_pages")
@@ -73,6 +73,7 @@ export type GenerationRequest = {
   // at tool-page load; identifies all requests for one session.
   sessionId?: string;
   artifactType: ArtifactType;
+  // LlmModelId — see DDD-056
   model: string;
   input: Record<string, unknown>;
   toolKey?: string | null;

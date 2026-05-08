@@ -1,7 +1,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
+import type { Pool } from 'pg';
 import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../adapters';
+import {
+  listEnabledModels,
+  listAllModels,
+  createModel,
+  updateModel,
+  deleteModel,
+} from '../adapters/llm-model.adapter';
+import type { LlmModelStatus } from '../types/llm-model';
 import type {
   AuthSessionPrincipal,
   AuthUserRole,
@@ -62,6 +71,7 @@ export type AuthHttpResponseBody = AuthHttpSuccessBody | AuthHttpErrorBody;
 export type AuthHttpRuntimeOptions = {
   repositories: AuthRepositoryBundle;
   queryRepositories?: UserQueryRepositoryBundle;
+  db?: Pool;
   sessionCookies?: SessionCookieRuntime;
   passwordHashing?: PasswordHashRuntime;
   googleOAuth?: GoogleOAuthRuntime | null;
@@ -342,6 +352,7 @@ export const createAuthHttpRuntime = (
 } => {
   const repositories = options.repositories;
   const queryRepositories = options.queryRepositories;
+  const db = options.db ?? null;
   const now = options.now ?? (() => new Date());
   const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
   const googleOAuthStateTtlMs = options.googleOAuthStateTtlMs ?? 10 * 60 * 1000;
@@ -1420,6 +1431,241 @@ export const createAuthHttpRuntime = (
     writeSuccess(response, 200, { artifact });
   };
 
+  // ── LlmModelCatalog handlers ─────────────────────────────────────────────
+
+  const LLM_MODEL_KEY_REGEX = /^[a-zA-Z0-9/_\-.]+$/;
+
+  const requireDb = (response: ServerResponse): Pool | null => {
+    if (!db) {
+      writeError(response, 503, 'service_unavailable', 'Model catalog is not configured');
+      return null;
+    }
+    return db;
+  };
+
+  const handleModelsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for models list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const models = await listEnabledModels(pool);
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { models });
+  };
+
+  const handleAdminModelsList = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for admin models list');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const models = await listAllModels(pool);
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { models });
+  };
+
+  const handleAdminModelsCreate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for admin model create');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await parseJsonBody<Record<string, unknown>>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const key = typeof body.key === 'string' ? body.key.trim() : '';
+    const label = typeof body.label === 'string' ? body.label.trim() : '';
+    const status = typeof body.status === 'string' ? body.status.trim() : 'enabled';
+    const sortOrder = typeof body.sortOrder === 'number' ? body.sortOrder : undefined;
+    const isDefault = typeof body.isDefault === 'boolean' ? body.isDefault : false;
+
+    if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
+      writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
+      return;
+    }
+
+    if (!label || label.length > 256) {
+      writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
+      return;
+    }
+
+    if (status !== 'enabled' && status !== 'disabled') {
+      writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
+      return;
+    }
+
+    const model = await createModel(pool, {
+      key,
+      label,
+      status: status as LlmModelStatus,
+      isDefault,
+      sortOrder,
+    });
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 201, { model });
+  };
+
+  const handleAdminModelsUpdate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    modelId: string,
+  ): Promise<void> => {
+    if (request.method !== 'PUT') {
+      writeError(response, 405, 'method_not_allowed', 'Use PUT for admin model update');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = await parseJsonBody<Record<string, unknown>>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const payload: Partial<{ key: string; label: string; status: LlmModelStatus; isDefault: boolean; sortOrder: number }> = {};
+
+    if (body.key !== undefined) {
+      const key = typeof body.key === 'string' ? body.key.trim() : '';
+      if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
+        writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
+        return;
+      }
+      payload.key = key;
+    }
+
+    if (body.label !== undefined) {
+      const label = typeof body.label === 'string' ? body.label.trim() : '';
+      if (!label || label.length > 256) {
+        writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
+        return;
+      }
+      payload.label = label;
+    }
+
+    if (body.status !== undefined) {
+      const status = typeof body.status === 'string' ? body.status.trim() : '';
+      if (status !== 'enabled' && status !== 'disabled') {
+        writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
+        return;
+      }
+      payload.status = status as LlmModelStatus;
+    }
+
+    if (body.sortOrder !== undefined) {
+      if (typeof body.sortOrder !== 'number') {
+        writeError(response, 400, 'bad_request', 'sortOrder must be a number');
+        return;
+      }
+      payload.sortOrder = body.sortOrder;
+    }
+
+    if (body.isDefault !== undefined) {
+      if (typeof body.isDefault !== 'boolean') {
+        writeError(response, 400, 'bad_request', 'isDefault must be a boolean');
+        return;
+      }
+      payload.isDefault = body.isDefault;
+    }
+
+    const model = await updateModel(pool, modelId, payload);
+    if (!model) {
+      writeError(response, 404, 'not_found', 'Model not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { model });
+  };
+
+  const handleAdminModelsDelete = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    modelId: string,
+  ): Promise<void> => {
+    if (request.method !== 'DELETE') {
+      writeError(response, 405, 'method_not_allowed', 'Use DELETE for admin model delete');
+      return;
+    }
+
+    const principal = await requireAdminPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const deleted = await deleteModel(pool, modelId);
+    if (!deleted) {
+      writeError(response, 404, 'not_found', 'Model not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    response.statusCode = 204;
+    response.end('');
+  };
+
+  // ── end LlmModelCatalog handlers ─────────────────────────────────────────
+
   const handleAdminListUsers = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1754,6 +2000,44 @@ export const createAuthHttpRuntime = (
         }
 
         writeError(response, 405, 'method_not_allowed', 'Method not allowed for /admin/users/:id');
+        return { handled: true };
+      }
+
+      if (path === '/api/admin/models') {
+        if (request.method === 'GET') {
+          await handleAdminModelsList(request, response);
+          return { handled: true };
+        }
+
+        if (request.method === 'POST') {
+          await handleAdminModelsCreate(request, response);
+          return { handled: true };
+        }
+
+        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/admin/models');
+        return { handled: true };
+      }
+
+      const adminModelMatch = path.match(/^\/api\/admin\/models\/([^/]+)$/);
+      if (adminModelMatch) {
+        const modelId = decodeURIComponent(adminModelMatch[1] ?? '');
+
+        if (request.method === 'PUT') {
+          await handleAdminModelsUpdate(request, response, modelId);
+          return { handled: true };
+        }
+
+        if (request.method === 'DELETE') {
+          await handleAdminModelsDelete(request, response, modelId);
+          return { handled: true };
+        }
+
+        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/admin/models/:id');
+        return { handled: true };
+      }
+
+      if (path === '/api/models') {
+        await handleModelsList(request, response);
         return { handled: true };
       }
 

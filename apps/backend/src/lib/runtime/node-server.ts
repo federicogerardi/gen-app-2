@@ -22,6 +22,13 @@ export type NodeRuntimeServerOptions = {
   generationAdapters: GenerationAdapters;
   authRuntime: AuthHttpRequestHandler;
   generationRoutePath?: string;
+  /**
+   * Optional async function that checks whether a given LlmModelId is available.
+   * Returns true if the model key exists in the enabled LlmModelCatalog, false otherwise.
+   * When not provided, all model keys are accepted (legacy permissive behaviour).
+   * DDD-055: LlmModelCatalog validation gate; DDD-056: LlmModelId.
+   */
+  checkModelAvailability?: (modelKey: string) => Promise<boolean>;
   cors?: {
     allowedOrigins: string[];
     allowCredentials?: boolean;
@@ -321,10 +328,25 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
+    // TASK-010: LlmModelCatalog model availability check (DDD-055, DDD-056).
+    // Dispatches MODEL_AVAILABLE / MODEL_UNAVAILABLE logic from requestGatewayMachine.
+    if (options.checkModelAvailability) {
+      const isAvailable = await options.checkModelAvailability(generationRequest.model);
+      if (!isAvailable) {
+        writeJson(response, 400, {
+          ok: false,
+          error: {
+            code: 'bad_request',
+            message: 'model_unavailable',
+          },
+        });
+        return;
+      }
+    }
+
     try {
       await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
-    } catch {
-      if (!response.writableEnded && !response.destroyed) {
+    } catch {      if (!response.writableEnded && !response.destroyed) {
         response.statusCode = 500;
         response.end();
       }

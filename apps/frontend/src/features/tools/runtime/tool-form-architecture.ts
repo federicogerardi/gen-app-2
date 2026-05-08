@@ -53,6 +53,7 @@ export type BriefingUploadState = {
 export type ToolFormState = {
   projectId: string;
   model: string;
+  tone: string;
   registrySnapshotRef: string;
   briefingFile: File | null;
   briefingFileName: string | null;
@@ -76,6 +77,7 @@ export type ToolFormValidation = {
 export type ToolFormSubmitData = {
   projectId: string;
   model: string;
+  tone: string;
   registrySnapshotRef: string;
   briefingId: string;
   briefingFileName: string;

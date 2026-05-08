@@ -54,17 +54,53 @@ type BackendArtifact = {
   completedAt?: string | null;
 };
 
+const normalizeToolKeyCandidate = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (normalized === 'extraction') {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages') {
+    return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
+  }
+
+  if (normalized === 'youtube-long-form') {
+    return 'youtube-lf-script';
+  }
+
+  if (normalized === 'youtube_long_form') {
+    return 'youtube-lf-script';
+  }
+
+  return normalized;
+};
+
 const readToolKey = (artifact: BackendArtifact): string | null => {
-  if (typeof artifact.toolKey === 'string' && artifact.toolKey.trim().length > 0) {
-    return artifact.toolKey.trim();
-  }
+  const input = artifact.input;
+  const toolWorkflowInput =
+    input && typeof input['toolWorkflow'] === 'object' && input['toolWorkflow'] !== null
+      ? (input['toolWorkflow'] as Record<string, unknown>)
+      : null;
 
-  const inputToolKey = artifact.input?.['toolKey'];
-  if (typeof inputToolKey === 'string' && inputToolKey.trim().length > 0) {
-    return inputToolKey.trim();
-  }
-
-  return null;
+  return (
+    normalizeToolKeyCandidate(artifact.toolKey) ??
+    normalizeToolKeyCandidate(input?.['toolKey']) ??
+    normalizeToolKeyCandidate(toolWorkflowInput?.['toolKey']) ??
+    normalizeToolKeyCandidate(toolWorkflowInput?.['workflowType']) ??
+    normalizeToolKeyCandidate(artifact.workflowType)
+  );
 };
 
 type ArtifactsResponse =

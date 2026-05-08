@@ -114,10 +114,30 @@ export const SessionSummaryDetailPage = () => {
         </Link>
       </TopBar>
 
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.sessionId, group.sessionId)}</p>
-      <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, group.status)}</p>
+      <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/CollectionPage">
+        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto sessione">
+          <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
+        </section>
 
-      <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
+        <aside className="ui-artifact-secondary-panel" aria-label="Contesto sessione">
+          <section className="ui-artifact-overview" aria-label="Panoramica sessione">
+            <div className="ui-artifact-overview-main">
+              <div className="ui-artifact-overview-heading-row">
+                <h3 className="ui-artifact-overview-title">{appCopy.editorial.sessions.detailTitle}</h3>
+                <span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>{group.status}</span>
+              </div>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.sessionId, group.sessionId)}</p>
+              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, group.status)}</p>
+            </div>
+
+            <div className="ui-artifact-overview-actions">
+              <Link to="/sessionsummary" className={uiPrimitives.button}>
+                {appCopy.ui.actions.openSessionArchive}
+              </Link>
+            </div>
+          </section>
+        </aside>
+      </div>
     </Surface>
   );
 };

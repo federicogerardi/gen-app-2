@@ -78,6 +78,37 @@ Rule:
 - if a page is primarily a list/detail index, it must adopt Data Table View composition
 - card-only list views are allowed only when data is not tabular
 
+#### 3.2.1 Artifact Detail companion layout (`/artifacts/{artifactId}`)
+
+`/artifacts/{artifactId}` is governed as the detail companion of the Artifact History `Data Table View`, not as a standalone archetype.
+
+Canonical composition:
+
+- asymmetric two-column detail layout: primary `Content Panel` + secondary `Context Sidebar`
+- `Content Panel` remains visually dominant and owns the artifact content preview plus the `Markdown` / `Raw` / `Copy content` toolbar
+- `Context Sidebar` owns step context, session/navigation actions, and technical metadata
+- sidebar heading row must render `Step Title` first and the artifact lifecycle status as a compact bordered status tag adjacent to it
+- the status tag must display the persisted lifecycle value in lowercase (`generating`, `completed`, `failed`) and use state color tokens instead of neutral styling
+- tool and project context must render on one compact metadata line in the order `Tool Display Name - Project Name`
+- the primary sidebar navigation CTA is `Apri sessione` when the artifact exposes `sessionId`; legacy artifacts without `sessionId` must keep the CTA slot visible as a disabled button with explicit copy `Sessione non disponibile.`
+- avoid nested cards inside the detail layout; separation must come from panel composition, token spacing, and lightweight dividers rather than stacked boxed surfaces
+- desktop spacing between `Content Panel` and `Context Sidebar` must use canonical spacing tokens from the design system, not one-off pixel gaps
+
+#### 3.2.2 Session Summary Detail companion layout (`/sessionsummary/{sessionId}`)
+
+`/sessionsummary/{sessionId}` is governed as the aggregate-detail companion of `Data Table View` listing pages that expose `SessionSummary` rows.
+
+Canonical composition:
+
+- asymmetric two-column detail layout: primary `Content Panel` + secondary `Context Sidebar`
+- `Content Panel` owns session step navigation and artifact content preview
+- session step navigation must be rendered as `Session Step Tabs` (step selector), visually distinct from content-mode controls
+- content-mode controls remain the canonical `Markdown` / `Raw` / `Copy content` set, shared with `/artifacts/{artifactId}` through the same preview pattern
+- `Context Sidebar` owns aggregate metadata (`sessionId`, session status) and primary navigation CTA back to session archive
+- sidebar heading row must render aggregate title first and the lifecycle status tag adjacent to it
+- status tag must display persisted lifecycle values in lowercase (`generating`, `completed`, `failed`) and use state color tokens
+- avoid nested cards inside the detail layout; preserve hierarchy through panel composition and token-based spacing
+
 ## 4. Canonical Table Standard (Artifact Baseline)
 
 The Artifact table is the standard for table ergonomics and visual rhythm.
@@ -185,6 +216,8 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
 | Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
+| Artifact Detail (`/artifacts/{artifactId}`) | Data Table View companion | Primary content panel + context sidebar; session-first CTA; lowercase bordered status tag beside step title; legacy session CTA disabled with explicit copy; nested-card drift removed | 2026-05-09 |
+| Session Summary Detail (`/sessionsummary/{sessionId}`) | Data Table View companion | Primary content panel + context sidebar; distinct Session Step Tabs for step selection; shared Markdown/Raw/Copy preview pattern aligned with artifact detail | 2026-05-09 |
 | Tool Workspace Flow Panel (`/tools/*`) | Tool Workspace Page | Converged duplicated flow components to `ToolGenerationFlowVertical`; no archetype or UL term change | 2026-05-08 |
 
 ### 5.3 Required convergence target

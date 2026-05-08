@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
 import {
   sortByCanonicalStepOrder,
@@ -72,7 +71,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
 
   if (sortedArtifacts.length === 0) {
     return (
-      <section className="ui-artifact-content-wrapper">
+      <section className="ui-session-artifact-panel">
         <p className={uiPrimitives.metaLine}>Session: {group.sessionId}</p>
         <p className={uiPrimitives.metaLine}>No step artifacts found for this session.</p>
       </section>
@@ -84,37 +83,39 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
   }
 
   return (
-    <section className="ui-artifact-content-wrapper">
-      <div className="ui-artifact-toolbar">
-        <div className="ui-artifact-toolbar-tabs" role="tablist" aria-label="Session steps">
-          {sortedArtifacts.map((artifact) => {
-            const isActive = artifact.artifactId === selected.artifactId;
-            return (
-              <button
-                key={artifact.artifactId}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={`ui-view-tab${isActive ? ' is-active' : ''}`}
-                onClick={() => setSelectedArtifactId(artifact.artifactId)}
-              >
-                {toDisplayStep(artifact)}
-              </button>
-            );
-          })}
-        </div>
+    <section className="ui-session-artifact-panel">
+      <div className="ui-session-step-tabs" role="tablist" aria-label="Session steps">
+        {sortedArtifacts.map((artifact) => {
+          const isActive = artifact.artifactId === selected.artifactId;
+          return (
+            <button
+              key={artifact.artifactId}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`ui-session-step-tab${isActive ? ' is-active' : ''}`}
+              onClick={() => setSelectedArtifactId(artifact.artifactId)}
+            >
+              {toDisplayStep(artifact)}
+            </button>
+          );
+        })}
       </div>
 
-      <p className={uiPrimitives.metaLine}>Session: {group.sessionId}</p>
-      <p className={uiPrimitives.metaLine}>Role: {toRoleLabel(selected.artifactRole)}</p>
-      <p className={uiPrimitives.metaLine}>Status: {selected.status}</p>
+      <div className="ui-session-artifact-summary">
+        <p className={uiPrimitives.metaLine}>Session: {group.sessionId}</p>
+        <p className={uiPrimitives.metaLine}>Role: {toRoleLabel(selected.artifactRole)}</p>
+        <p className={uiPrimitives.metaLine}>Status: {selected.status}</p>
+      </div>
       {selected.failureReason ? (
         <p className={uiPrimitives.error}>Failure reason: {selected.failureReason}</p>
       ) : null}
 
-      <div className="ui-artifact-markdown" role="tabpanel" aria-label="Selected session artifact">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{selected.content || ''}</ReactMarkdown>
-      </div>
+      <ArtifactContentPreview
+        content={selected.content}
+        toolbarLabel="Modalita visualizzazione contenuto artifact di sessione"
+        panelLabel="Selected session artifact"
+      />
     </section>
   );
 };

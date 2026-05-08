@@ -136,6 +136,53 @@ describe('artifacts-client – listArtifacts', () => {
     expect(result.artifacts[1]?.toolKey).toBe('nextland');
     expect(result.artifacts[1]?.sourceRequest.toolKey).toBe('nextland');
   });
+
+  it('maps toolKey from workflow metadata fallback when explicit toolKey is missing', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          artifacts: [
+            {
+              artifactId: 'a3',
+              requestId: 'r3',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              workflowType: 'funnel_pages',
+              input: {
+                toolWorkflow: {
+                  toolKey: 'funnel-pages',
+                },
+              },
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+            {
+              artifactId: 'a4',
+              requestId: 'r4',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              workflowType: 'youtube_lf_script',
+              input: {},
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    } as Response);
+
+    const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
+    expect(result.artifacts[0]?.toolKey).toBe('funnel-pages');
+    expect(result.artifacts[1]?.toolKey).toBe('youtube-lf-script');
+  });
 });
 
 describe('artifacts-client – getArtifactById', () => {

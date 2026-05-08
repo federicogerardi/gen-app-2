@@ -75,6 +75,7 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
   const [formState, setFormState] = useState<ToolFormState>({
     projectId: prefillProjectId ?? '',
     model: config.defaultModel,
+    tone: 'Professional',
     registrySnapshotRef: config.defaults.registrySnapshotRef,
     briefingFile: null,
     briefingFileName: null,

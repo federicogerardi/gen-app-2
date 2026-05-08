@@ -36,7 +36,7 @@ export const appCopy = {
       backToList: 'Torna alla lista',
       openDetail: 'Apri dettaglio',
       openArtifact: 'Apri artifact',
-      openContextProject: 'Apri progetto di contesto',
+      openContextProject: 'Apri progetto',
       newProject: 'Nuovo progetto',
       createProject: 'Crea progetto',
       createFirstProject: 'Crea il tuo primo progetto',

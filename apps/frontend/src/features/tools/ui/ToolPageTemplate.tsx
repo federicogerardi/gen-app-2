@@ -13,6 +13,13 @@ import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 
+const toneProfileOptions = [
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Casual', label: 'Casual' },
+  { value: 'Formal', label: 'Formal' },
+  { value: 'Technical', label: 'Technical' },
+] as const;
+
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
   sourceArtifactId?: string | null;
@@ -85,7 +92,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             </header>
 
             <form className="ui-tool-form">
-              <div className="ui-tool-form-row">
+              <div className="ui-tool-form-row ui-tool-form-row--triple">
                 <label>
                   <span>Project</span>
                   <select
@@ -115,6 +122,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         <option key={o.key} value={o.key}>{o.label}</option>
                       ))
                     )}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Tone</span>
+                  <select
+                    value={formState.tone}
+                    onChange={(e) => setFormState({ ...formState, tone: e.target.value })}
+                    disabled={isStreamActive}
+                  >
+                    {toneProfileOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>

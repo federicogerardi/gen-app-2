@@ -42,6 +42,8 @@ export interface UseToolPageProps {
 const isEmptyPayload = (payload: Record<string, unknown>): boolean =>
   Object.keys(payload).length === 0;
 
+const TONE_PROFILE_DEFAULT = 'Professional';
+
 const createSessionId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -79,6 +81,7 @@ export const useToolPage = ({
   const previousProjectIdRef = useRef<string>(
     (generation.focusedProjectId ?? initialProjectId ?? '').trim(),
   );
+  const tonePrefillDoneRef = useRef(false);
 
   const [toolPageSnapshot, toolPageSend] = useMachine(toolPageMachine, {
     input: {
@@ -220,10 +223,39 @@ export const useToolPage = ({
     briefingStatus === 'ready' || machineHydrationResult !== null ? 'ready' : briefingStatus
   ) as 'idle' | 'uploading' | 'extracting' | 'ready';
 
-  const resolvedTone = relaunchTone ?? readInputField(sourceArtifact, 'tone') ?? '';
   const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact, 'notes') ?? '';
   const resolvedRelaunchSource =
     relaunchFromArtifactId ?? sourceArtifactId ?? sourceArtifact?.artifactId ?? null;
+
+  useEffect(() => {
+    if (tonePrefillDoneRef.current) {
+      return;
+    }
+
+    if (relaunchTone !== null && relaunchTone !== undefined) {
+      setFormState((prev) => ({
+        ...prev,
+        tone: relaunchTone || TONE_PROFILE_DEFAULT,
+      }));
+      tonePrefillDoneRef.current = true;
+      return;
+    }
+
+    const hasArtifactDrivenEntry = (sourceArtifactId?.trim().length ?? 0) > 0;
+    if (hasArtifactDrivenEntry && sourceArtifact === null) {
+      return;
+    }
+
+    const sourceTone = readInputField(sourceArtifact, 'tone');
+    if (sourceTone) {
+      setFormState((prev) => ({
+        ...prev,
+        tone: sourceTone,
+      }));
+    }
+
+    tonePrefillDoneRef.current = true;
+  }, [relaunchTone, setFormState, sourceArtifact, sourceArtifactId]);
 
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
@@ -437,7 +469,7 @@ export const useToolPage = ({
         registrySnapshotRef: formState.registrySnapshotRef,
         input: {
           intent: runtimeIntent,
-          tone: resolvedTone,
+          tone: formState.tone || TONE_PROFILE_DEFAULT,
           notes: resolvedNotes,
           relaunchFromArtifactId: resolvedRelaunchSource,
           sourceArtifactId: sourceArtifactId ?? null,
@@ -505,6 +537,7 @@ export const useToolPage = ({
       briefingSnapshot.context,
       effectiveBriefingFileName,
       formState.model,
+      formState.tone,
       formState.registrySnapshotRef,
       generation,
       intent,
@@ -518,7 +551,6 @@ export const useToolPage = ({
       resolvedBriefingId,
       resolvedNotes,
       resolvedRelaunchSource,
-      resolvedTone,
       resolveRuntimeIntent,
       sourceArtifact,
       sourceArtifactId,

@@ -79,6 +79,7 @@ const mocks = vi.hoisted(() => {
   const formState = {
     projectId: 'project-001',
     model: 'openrouter/auto',
+    tone: 'Professional',
     registrySnapshotRef: 'snapshot:default',
     briefingFile: null,
     briefingFileName: null,

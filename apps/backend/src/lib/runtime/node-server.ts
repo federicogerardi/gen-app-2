@@ -15,6 +15,8 @@ import type {
 } from './auth-http';
 
 const MAX_BODY_SIZE_BYTES = 256 * 1024;
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
+const DEFAULT_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With'];
 
 export type AuthHttpRequestHandler = {
   handleRequest(
@@ -57,9 +59,17 @@ const normalizeOrigin = (origin: string): string => {
   return origin.trim().replace(/\/$/, '');
 };
 
+const hasWildcardOrigin = (allowedOrigins: string[]): boolean => {
+  return allowedOrigins.includes('*');
+};
+
 const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boolean => {
   if (!origin) {
     return false;
+  }
+
+  if (hasWildcardOrigin(allowedOrigins)) {
+    return true;
   }
 
   const normalizedOrigin = normalizeOrigin(origin);
@@ -74,6 +84,14 @@ const applyCorsHeaders = (
   cors: NonNullable<NodeRuntimeServerOptions['cors']>,
 ): void => {
   const allowCredentials = cors.allowCredentials ?? true;
+  if (!allowCredentials && hasWildcardOrigin(cors.allowedOrigins)) {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+    response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
+    response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
+    return;
+  }
+
   const requestOrigin = getHeaderValue(request.headers.origin as string | string[] | undefined);
   if (!isOriginAllowed(requestOrigin, cors.allowedOrigins)) {
     return;
@@ -86,8 +104,8 @@ const applyCorsHeaders = (
     response.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
-  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']).join(', '));
-  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? ['Content-Type', 'Authorization', 'X-Requested-With']).join(', '));
+  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
   response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
 };
 
@@ -197,7 +215,10 @@ const parseGenerationRequest = async (
 export const createNodeRuntimeRequestHandler = (
   options: NodeRuntimeServerOptions,
 ): ((request: IncomingMessage, response: ServerResponse) => Promise<void>) => {
-  if ((options.cors?.allowCredentials ?? true) && options.cors?.allowedOrigins.includes('*')) {
+  if (
+    (options.cors?.allowCredentials ?? true)
+    && (options.cors?.allowedOrigins ? hasWildcardOrigin(options.cors.allowedOrigins) : false)
+  ) {
     throw new Error('Invalid CORS configuration: allowedOrigins cannot include "*" when credentials are enabled');
   }
 

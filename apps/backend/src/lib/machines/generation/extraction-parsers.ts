@@ -100,7 +100,7 @@ export const parseExtractionContent = (
 
   try {
     const parsed = JSON.parse(content) as unknown;
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }
     return {};

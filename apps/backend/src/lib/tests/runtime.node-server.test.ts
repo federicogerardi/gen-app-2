@@ -217,6 +217,37 @@ test('node runtime dispatcher handles CORS preflight for allowed origin', async 
   assert.equal(response.getHeader('access-control-allow-credentials'), 'true');
 });
 
+test('node runtime dispatcher supports wildcard CORS when credentials are disabled', async () => {
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: createInMemoryGenerationAdapters(),
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    cors: {
+      allowedOrigins: ['*'],
+      allowCredentials: false,
+    },
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'OPTIONS',
+    url: '/generation/stream',
+    headers: { origin: 'https://any.example.com' },
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 204);
+  assert.equal(response.getHeader('access-control-allow-origin'), '*');
+  assert.equal(response.getHeader('access-control-allow-credentials'), undefined);
+});
+
 test('node runtime dispatcher blocks CSRF for unsafe method with untrusted origin', async () => {
   const requestHandler = createNodeRuntimeRequestHandler({
     generationAdapters: createInMemoryGenerationAdapters(),
@@ -260,4 +291,21 @@ test('node runtime dispatcher blocks CSRF for unsafe method with untrusted origi
   assert.equal(response.statusCode, 403);
   const body = response.jsonBody();
   assert.equal(body.ok, false);
+});
+
+test('node runtime request handler rejects wildcard origins when credentials are enabled', () => {
+  assert.throws(() => {
+    createNodeRuntimeRequestHandler({
+      generationAdapters: createInMemoryGenerationAdapters(),
+      authRuntime: createAuthHttpRuntime({
+        repositories: createAuthStubRepositories(),
+        passwordHashing: createDefaultPasswordHashRuntime(),
+        sessionCookies: createDefaultSessionCookieRuntime(),
+      }),
+      cors: {
+        allowedOrigins: ['*'],
+        allowCredentials: true,
+      },
+    });
+  }, /Invalid CORS configuration/);
 });

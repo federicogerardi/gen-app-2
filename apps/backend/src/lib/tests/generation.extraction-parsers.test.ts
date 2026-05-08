@@ -35,6 +35,9 @@ test('parseExtractionContent uses markdown parser for youtube-lf-script and fall
   const fromJson = parseExtractionContent('{"foo":"bar"}', 'funnel-pages');
   assert.deepEqual(fromJson, { foo: 'bar' });
 
+  const fromArray = parseExtractionContent('["foo","bar"]', 'funnel-pages');
+  assert.deepEqual(fromArray, {});
+
   const fromInvalid = parseExtractionContent('not-json', 'funnel-pages');
   assert.deepEqual(fromInvalid, {});
 });

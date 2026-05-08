@@ -1,14 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const FRONTEND_SRC_ROOT = path.resolve(__dirname, '../../../..');
+const resolveFrontendSrcRoot = (): string => {
+  if (import.meta.url.startsWith('file:')) {
+    const testDir = path.dirname(fileURLToPath(import.meta.url));
+    return path.resolve(testDir, '../../..');
+  }
+
+  const cwdSrc = path.resolve(process.cwd(), 'src');
+  if (fs.existsSync(cwdSrc)) {
+    return cwdSrc;
+  }
+
+  return path.resolve(process.cwd(), 'apps/frontend/src');
+};
+
+const FRONTEND_SRC_ROOT = resolveFrontendSrcRoot();
+const SKIP_DIRS = new Set(['node_modules', 'dist', '.vite', 'coverage', '.git']);
 
 const walkFiles = (dir: string): string[] => {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files: string[] = [];
 
   for (const entry of entries) {
+    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) {
+      continue;
+    }
+
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...walkFiles(fullPath));

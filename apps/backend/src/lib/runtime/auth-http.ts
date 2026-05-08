@@ -39,6 +39,10 @@ import {
   type SessionCookieRuntime,
 } from './auth-contract';
 import { normalizePath } from './http-utils';
+import { createAuthHandlers } from './auth-http/auth-handlers';
+import { createProjectsHandlers } from './auth-http/projects-handlers';
+import { createToolsHandlers } from './auth-http/tools-handlers';
+import { createAdminHandlers } from './auth-http/admin-handlers';
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
@@ -1925,6 +1929,43 @@ export const createAuthHttpRuntime = (
     response.end('');
   };
 
+  const authHandlers = createAuthHandlers({
+    handleLogin,
+    handleLogout,
+    handleSession,
+    handleGoogleOAuthStart,
+    handleGoogleOAuthCallback,
+  });
+
+  const projectsHandlers = createProjectsHandlers({
+    handleProjectsList,
+    handleProjectsCreate,
+    handleProjectById,
+    handleArtifactsList,
+    handleArtifactById,
+  });
+
+  const toolsHandlers = createToolsHandlers({
+    handleToolsBriefUpload,
+    handleToolsHydrate,
+    handleToolsOrchestrate,
+    handleToolsSessionsList,
+    handleToolsSessionArtifacts,
+    handleToolsSessionStepArtifact,
+  });
+
+  const adminHandlers = createAdminHandlers({
+    handleAdminModelsList,
+    handleAdminModelsCreate,
+    handleAdminModelsUpdate,
+    handleAdminModelsDelete,
+    handleAdminListUsers,
+    handleAdminCreateUser,
+    handleAdminGetUser,
+    handleAdminUpdateUser,
+    handleAdminDeleteUser,
+  });
+
   return {
     async handleRequest(
       request: IncomingMessage,
@@ -1934,38 +1975,38 @@ export const createAuthHttpRuntime = (
       try {
 
       if (path === '/auth/login') {
-        await handleLogin(request, response);
+        await authHandlers.handleLogin(request, response);
         return { handled: true };
       }
 
       if (path === '/auth/logout') {
-        await handleLogout(request, response);
+        await authHandlers.handleLogout(request, response);
         return { handled: true };
       }
 
       if (path === '/auth/session') {
-        await handleSession(request, response);
+        await authHandlers.handleSession(request, response);
         return { handled: true };
       }
 
       if (path === '/auth/google/start') {
-        await handleGoogleOAuthStart(request, response);
+        await authHandlers.handleGoogleOAuthStart(request, response);
         return { handled: true };
       }
 
       if (path === '/auth/google/callback') {
-        await handleGoogleOAuthCallback(request, response);
+        await authHandlers.handleGoogleOAuthCallback(request, response);
         return { handled: true };
       }
 
       if (path === '/admin/users') {
         if (request.method === 'GET') {
-          await handleAdminListUsers(request, response);
+          await adminHandlers.handleAdminListUsers(request, response);
           return { handled: true };
         }
 
         if (request.method === 'POST') {
-          await handleAdminCreateUser(request, response);
+          await adminHandlers.handleAdminCreateUser(request, response);
           return { handled: true };
         }
 
@@ -1978,17 +2019,17 @@ export const createAuthHttpRuntime = (
         const userId = decodeURIComponent(adminUserMatch[1] ?? '');
 
         if (request.method === 'GET') {
-          await handleAdminGetUser(request, response, userId);
+          await adminHandlers.handleAdminGetUser(request, response, userId);
           return { handled: true };
         }
 
         if (request.method === 'PATCH') {
-          await handleAdminUpdateUser(request, response, userId);
+          await adminHandlers.handleAdminUpdateUser(request, response, userId);
           return { handled: true };
         }
 
         if (request.method === 'DELETE') {
-          await handleAdminDeleteUser(request, response, userId);
+          await adminHandlers.handleAdminDeleteUser(request, response, userId);
           return { handled: true };
         }
 
@@ -1998,12 +2039,12 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/admin/models') {
         if (request.method === 'GET') {
-          await handleAdminModelsList(request, response);
+          await adminHandlers.handleAdminModels.list(request, response);
           return { handled: true };
         }
 
         if (request.method === 'POST') {
-          await handleAdminModelsCreate(request, response);
+          await adminHandlers.handleAdminModels.create(request, response);
           return { handled: true };
         }
 
@@ -2016,12 +2057,12 @@ export const createAuthHttpRuntime = (
         const modelId = decodeURIComponent(adminModelMatch[1] ?? '');
 
         if (request.method === 'PUT') {
-          await handleAdminModelsUpdate(request, response, modelId);
+          await adminHandlers.handleAdminModels.update(request, response, modelId);
           return { handled: true };
         }
 
         if (request.method === 'DELETE') {
-          await handleAdminModelsDelete(request, response, modelId);
+          await adminHandlers.handleAdminModels.remove(request, response, modelId);
           return { handled: true };
         }
 
@@ -2036,12 +2077,12 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/projects') {
         if (request.method === 'GET') {
-          await handleProjectsList(request, response);
+          await projectsHandlers.handleProjectsList(request, response);
           return { handled: true };
         }
 
         if (request.method === 'POST') {
-          await handleProjectsCreate(request, response);
+          await projectsHandlers.handleProjectsCreate(request, response);
           return { handled: true };
         }
 
@@ -2051,38 +2092,38 @@ export const createAuthHttpRuntime = (
 
       const projectMatch = path.match(/^\/api\/projects\/([^/]+)$/);
       if (projectMatch) {
-        await handleProjectById(request, response, decodeURIComponent(projectMatch[1] ?? ''));
+        await projectsHandlers.handleProjectById(request, response, decodeURIComponent(projectMatch[1] ?? ''));
         return { handled: true };
       }
 
       if (path === '/api/artifacts') {
-        await handleArtifactsList(request, response);
+        await projectsHandlers.handleArtifactsList(request, response);
         return { handled: true };
       }
 
       if (path === '/api/tools/briefs') {
-        await handleToolsBriefUpload(request, response);
+        await toolsHandlers.handleToolsBriefUpload(request, response);
         return { handled: true };
       }
 
       if (path === '/api/tools/hydrate') {
-        await handleToolsHydrate(request, response);
+        await toolsHandlers.handleToolsHydrate(request, response);
         return { handled: true };
       }
 
       if (path === '/api/tools/orchestrate') {
-        await handleToolsOrchestrate(request, response);
+        await toolsHandlers.handleToolsOrchestrate(request, response);
         return { handled: true };
       }
 
       if (path === '/api/tools/sessions') {
-        await handleToolsSessionsList(request, response);
+        await toolsHandlers.handleToolsSessionsList(request, response);
         return { handled: true };
       }
 
       const toolSessionStepMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/);
       if (toolSessionStepMatch) {
-        await handleToolsSessionStepArtifact(
+        await toolsHandlers.handleToolsSessionStepArtifact(
           request,
           response,
           decodeURIComponent(toolSessionStepMatch[1] ?? ''),
@@ -2093,7 +2134,7 @@ export const createAuthHttpRuntime = (
 
       const toolSessionMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)$/);
       if (toolSessionMatch) {
-        await handleToolsSessionArtifacts(
+        await toolsHandlers.handleToolsSessionArtifacts(
           request,
           response,
           decodeURIComponent(toolSessionMatch[1] ?? ''),
@@ -2103,7 +2144,7 @@ export const createAuthHttpRuntime = (
 
       const artifactMatch = path.match(/^\/api\/artifacts\/([^/]+)$/);
       if (artifactMatch) {
-        await handleArtifactById(request, response, decodeURIComponent(artifactMatch[1] ?? ''));
+        await projectsHandlers.handleArtifactById(request, response, decodeURIComponent(artifactMatch[1] ?? ''));
         return { handled: true };
       }
 

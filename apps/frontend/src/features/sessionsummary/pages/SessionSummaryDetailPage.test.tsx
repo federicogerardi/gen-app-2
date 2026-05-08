@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { ReactElement } from 'react';
 import { appCopy } from '../../../app/copy/system';
 
 const mocks = vi.hoisted(() => ({
@@ -50,7 +51,7 @@ vi.mock('../../generation/ui/SessionArtifactTabs', () => ({
   SessionArtifactTabs: () => <div data-testid="session-artifact-tabs">SessionArtifactTabs</div>,
 }));
 
-const renderPage = (SessionSummaryDetailPage: () => JSX.Element) =>
+const renderPage = (SessionSummaryDetailPage: () => ReactElement) =>
   render(
     <MemoryRouter initialEntries={['/sessionsummary/sess_demo']}>
       <Routes>

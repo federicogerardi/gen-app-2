@@ -5,11 +5,18 @@ import {
   handleGenerationRequestAsNodeSse,
   type BackendGenerationRequest,
 } from './index';
+import {
+  getHeaderValue,
+  normalizePath,
+  writeJson,
+} from './http-utils';
 import type {
   HandleAuthHttpRequestResult,
 } from './auth-http';
 
 const MAX_BODY_SIZE_BYTES = 256 * 1024;
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
+const DEFAULT_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With'];
 
 export type AuthHttpRequestHandler = {
   handleRequest(
@@ -48,38 +55,12 @@ export type NodeRuntimeServerOptions = {
   ) => BackendGenerationRequest;
 };
 
-const normalizePath = (url: string | undefined): string => {
-  if (!url) {
-    return '/';
-  }
-
-  return url.split('?')[0] || '/';
-};
-
-const writeJson = (
-  response: ServerResponse,
-  statusCode: number,
-  payload: Record<string, unknown>,
-): void => {
-  response.statusCode = statusCode;
-  response.setHeader('Content-Type', 'application/json; charset=utf-8');
-  response.end(JSON.stringify(payload));
-};
-
-const getHeaderValue = (value: string | string[] | undefined): string | null => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value) && value[0]) {
-    return value[0];
-  }
-
-  return null;
-};
-
 const normalizeOrigin = (origin: string): string => {
   return origin.trim().replace(/\/$/, '');
+};
+
+const hasWildcardOrigin = (allowedOrigins: string[]): boolean => {
+  return allowedOrigins.includes('*');
 };
 
 const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boolean => {
@@ -87,12 +68,12 @@ const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boole
     return false;
   }
 
+  if (hasWildcardOrigin(allowedOrigins)) {
+    return true;
+  }
+
   const normalizedOrigin = normalizeOrigin(origin);
   return allowedOrigins.some((candidate) => {
-    if (candidate === '*') {
-      return true;
-    }
-
     return normalizeOrigin(candidate) === normalizedOrigin;
   });
 };
@@ -102,6 +83,15 @@ const applyCorsHeaders = (
   response: ServerResponse,
   cors: NonNullable<NodeRuntimeServerOptions['cors']>,
 ): void => {
+  const allowCredentials = cors.allowCredentials ?? true;
+  if (!allowCredentials && hasWildcardOrigin(cors.allowedOrigins)) {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+    response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
+    response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
+    return;
+  }
+
   const requestOrigin = getHeaderValue(request.headers.origin as string | string[] | undefined);
   if (!isOriginAllowed(requestOrigin, cors.allowedOrigins)) {
     return;
@@ -110,12 +100,12 @@ const applyCorsHeaders = (
   response.setHeader('Access-Control-Allow-Origin', requestOrigin as string);
   response.setHeader('Vary', 'Origin');
 
-  if (cors.allowCredentials ?? true) {
+  if (allowCredentials) {
     response.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
-  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']).join(', '));
-  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? ['Content-Type', 'Authorization', 'X-Requested-With']).join(', '));
+  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
   response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
 };
 
@@ -225,6 +215,13 @@ const parseGenerationRequest = async (
 export const createNodeRuntimeRequestHandler = (
   options: NodeRuntimeServerOptions,
 ): ((request: IncomingMessage, response: ServerResponse) => Promise<void>) => {
+  if (
+    (options.cors?.allowCredentials ?? true)
+    && (options.cors?.allowedOrigins ? hasWildcardOrigin(options.cors.allowedOrigins) : false)
+  ) {
+    throw new Error('Invalid CORS configuration: allowedOrigins cannot include "*" when credentials are enabled');
+  }
+
   const generationRoutePath = options.generationRoutePath ?? '/generation/stream';
   const csrfEnabled = options.csrf?.enabled ?? true;
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];

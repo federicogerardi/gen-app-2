@@ -1267,38 +1267,104 @@ button:disabled,
   gap: var(--space-2);
 }
 
+.ui-session-step-tabs-shell {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .ui-session-step-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-1);
-  padding-bottom: var(--space-1);
-  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ui-session-step-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-session-step-control {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  outline: none;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  transition: color 0.14s ease;
+}
+
+.ui-session-step-control:hover,
+.ui-session-step-control:active,
+.ui-session-step-control:focus,
+.ui-session-step-control:focus-visible {
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.ui-session-step-control:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ui-session-step-scroll {
+  width: 28px;
+  height: 28px;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-family: var(--font-family-ui);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.ui-session-step-scroll:hover:not(:disabled) {
+  background: transparent;
+  color: var(--link-fg-hover);
+}
+
+.ui-session-step-scroll:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .ui-session-step-tab {
+  flex: 0 0 auto;
   font-size: 0.75rem;
   font-family: var(--font-family-ui);
   padding: var(--space-1) var(--space-1-5);
-  border-radius: var(--radius-button);
-  border: 1px solid transparent;
-  background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
   line-height: 1.4;
   display: inline-flex;
   align-items: center;
+  box-shadow: none;
 }
 
 .ui-session-step-tab:hover {
-  background: var(--surface-raised);
-  border-color: var(--border-subtle);
+  background: transparent;
   color: var(--text-primary);
 }
 
 .ui-session-step-tab.is-active {
-  background: var(--surface-raised);
-  border-color: var(--border-strong);
+  background: transparent;
   color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .ui-session-artifact-summary {

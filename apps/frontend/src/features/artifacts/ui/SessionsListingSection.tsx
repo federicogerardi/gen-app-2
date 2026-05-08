@@ -58,10 +58,15 @@ export const SessionsListingSection = ({
   const auth = useAuthSession();
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
 
+  // Skip projects query when fixedProjectName is already provided for all items
+  const projectsQueryEnabled = fixedProjectName === undefined
+    ? (enabled !== undefined ? enabled : undefined)
+    : false;
+
   const projectsQuery = useProjectsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
-    ...(enabled !== undefined ? { enabled } : {}),
+    ...(projectsQueryEnabled !== undefined ? { enabled: projectsQueryEnabled } : {}),
   });
 
   const sessionsQuery = useSessionsQuery({

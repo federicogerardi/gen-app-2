@@ -1,4 +1,5 @@
 import type { ArtifactQueryRepository } from './postgres-redis.interfaces';
+import type { SessionListEntry } from '../types/artifacts';
 
 export type SessionArtifactEntry = {
   artifactId: string;
@@ -22,14 +23,7 @@ export type SessionArtifactGroup = {
   artifacts: SessionArtifactEntry[];
 };
 
-export type SessionListEntry = {
-  sessionId: string;
-  projectId: string;
-  toolKey: string | null;
-  status: 'generating' | 'completed' | 'failed';
-  artifactCount: number;
-  updatedAt: string;
-};
+export type { SessionListEntry };
 
 const readToolWorkflow = (input: Record<string, unknown>): Record<string, unknown> => {
   const candidate = input.toolWorkflow;
@@ -120,64 +114,7 @@ export class SessionQueryAdapter {
   }
 
   async fetchSessionsList(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
-    const filters: import('../types/artifacts').ArtifactListFilters = {};
-    if (projectId) {
-      filters.projectId = projectId;
-    }
-
-    const summaries = await this.artifactQueries.listArtifactsByUser(userId, filters);
-
-    const bySession = new Map<string, {
-      projectId: string;
-      toolKey: string | null;
-      status: 'generating' | 'completed' | 'failed';
-      count: number;
-      updatedAtMs: number;
-    }>();
-
-    for (const artifact of summaries) {
-      const sessionId = readString(artifact.sessionId ?? null);
-      if (!sessionId) {
-        continue;
-      }
-
-      const artifactUpdatedAtMs = Date.parse(artifact.updatedAt);
-      const existing = bySession.get(sessionId);
-      if (existing) {
-        existing.count += 1;
-        if (artifactUpdatedAtMs > existing.updatedAtMs) {
-          existing.updatedAtMs = artifactUpdatedAtMs;
-        }
-        // Escalate status only when needed (generating > failed > completed)
-        if (artifact.status === 'generating') {
-          existing.status = 'generating';
-        } else if (artifact.status === 'failed' && existing.status !== 'generating') {
-          existing.status = 'failed';
-        }
-      } else {
-        bySession.set(sessionId, {
-          projectId: artifact.projectId,
-          toolKey: readString(artifact.workflowType ?? null),
-          status: artifact.status,
-          count: 1,
-          updatedAtMs: artifactUpdatedAtMs,
-        });
-      }
-    }
-
-    const entries: SessionListEntry[] = [];
-    for (const [sessionId, data] of bySession) {
-      entries.push({
-        sessionId,
-        projectId: data.projectId,
-        toolKey: data.toolKey,
-        status: data.status,
-        artifactCount: data.count,
-        updatedAt: new Date(data.updatedAtMs).toISOString(),
-      });
-    }
-
-    return entries.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+    return this.artifactQueries.listSessionSummaries(userId, projectId);
   }
 
   async fetchStepArtifact(

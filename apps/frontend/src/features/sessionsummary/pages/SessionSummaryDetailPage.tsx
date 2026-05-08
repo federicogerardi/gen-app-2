@@ -114,7 +114,7 @@ export const SessionSummaryDetailPage = () => {
         </Link>
       </TopBar>
 
-      <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/CollectionPage">
+      <div className="ui-artifact-page-layout">
         <section className="ui-artifact-primary-panel" aria-label="Preview contenuto sessione">
           <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
         </section>

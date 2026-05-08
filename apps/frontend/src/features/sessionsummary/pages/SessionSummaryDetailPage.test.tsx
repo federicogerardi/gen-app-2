@@ -2,10 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { SessionSummaryDetailPage } from './SessionSummaryDetailPage';
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
+const mocks = vi.hoisted(() => ({
+  authSession: {
     session: null,
     loading: false,
     error: null,
@@ -18,10 +17,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
       sessionsDetail: false,
       toolsUpload: false,
     },
-  }),
-}));
-
-vi.mock('../../tools/runtime/session-client', () => ({
+  },
   getSessionArtifacts: vi.fn(async () => ({
     sessionId: 'sess_demo',
     toolKey: 'funnel-pages',
@@ -32,8 +28,8 @@ vi.mock('../../tools/runtime/session-client', () => ({
         requestId: 'r-1',
         projectId: 'p-1',
         stepKey: 'optin',
-        artifactRole: 'step',
-        status: 'completed',
+        artifactRole: 'step' as const,
+        status: 'completed' as const,
         content: 'artifact content',
         updatedAt: '2026-05-09T10:00:00.000Z',
         failureReason: null,
@@ -42,11 +38,19 @@ vi.mock('../../tools/runtime/session-client', () => ({
   })),
 }));
 
+vi.mock('../../../app/providers/AuthSessionProvider', () => ({
+  useAuthSession: () => mocks.authSession,
+}));
+
+vi.mock('../../tools/runtime/session-client', () => ({
+  getSessionArtifacts: mocks.getSessionArtifacts,
+}));
+
 vi.mock('../../generation/ui/SessionArtifactTabs', () => ({
   SessionArtifactTabs: () => <div data-testid="session-artifact-tabs">SessionArtifactTabs</div>,
 }));
 
-const renderPage = () =>
+const renderPage = (SessionSummaryDetailPage: () => JSX.Element) =>
   render(
     <MemoryRouter initialEntries={['/sessionsummary/sess_demo']}>
       <Routes>
@@ -57,14 +61,19 @@ const renderPage = () =>
 
 describe('SessionSummaryDetailPage', () => {
   it('renders primary/sidebar layout with session metadata and step content panel', async () => {
-    renderPage();
+    const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
+    renderPage(SessionSummaryDetailPage);
 
-    expect(await screen.findByRole('heading', { name: appCopy.editorial.sessions.detailTitle })).toBeInTheDocument();
+    expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: appCopy.editorial.sessions.detailTitle })).toHaveLength(2);
     expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
     expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
     expect(screen.getByText('completed')).toBeInTheDocument();
     expect(screen.getByText(/sessionId: sess_demo/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
-    expect(screen.getByTestId('session-artifact-tabs')).toBeInTheDocument();
+    const archiveLinks = screen.getAllByRole('link', { name: appCopy.ui.actions.openSessionArchive });
+    expect(archiveLinks).toHaveLength(2);
+    archiveLinks.forEach((link) => {
+      expect(link).toHaveAttribute('href', '/sessionsummary');
+    });
   });
 });

@@ -59,6 +59,7 @@ Composition:
 - single primary action policy derived from canonical state
 - secondary actions rendered only through policy flags
 - no extra wrapper containers that dilute panel hierarchy
+- component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
 
 ### 3.2 Data Table View (reference archetype)
 
@@ -184,6 +185,7 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
 | Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
+| Tool Workspace Flow Panel (`/tools/*`) | Tool Workspace Page | Converged duplicated flow components to `ToolGenerationFlowVertical`; no archetype or UL term change | 2026-05-08 |
 
 ### 5.3 Required convergence target
 

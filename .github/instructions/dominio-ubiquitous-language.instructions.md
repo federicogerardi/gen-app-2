@@ -56,6 +56,7 @@ Apply this reference whenever the intervention touches GUI code or GUI-facing do
 - Mark uncertain terms as `provisional` until confirmed by DDD analysis.
 - For GUI interventions, map each page to one UI archetype from `frontend-ui-ubiquitous-language-spec.md` before changing layout or naming.
 - For GUI table pages, enforce `Data Table View` composition and canonical table behavior from `frontend-ui-ubiquitous-language-spec.md`.
+- For refactor-only interventions, keep terminology unchanged: if a new domain term is needed at implementation time, stop the change and register a `DDD-NNN` entry in `docs/07-governance/domain-naming-decision-log.md` before propagation.
 
 ## Required Output Conventions
 - Write final domain artifacts in English.

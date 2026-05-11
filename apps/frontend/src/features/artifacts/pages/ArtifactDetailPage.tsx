@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -219,25 +219,24 @@ const LegacyArtifactView = ({
 
             <div className="ui-artifact-overview-actions">
               {sessionPath ? (
-                <Button component={Link} to={sessionPath} variant="contained">
+                <PrimaryCtaButton component={Link} to={sessionPath}>
                   Apri sessione
-                </Button>
+                </PrimaryCtaButton>
               ) : (
-                <Button type="button" variant="contained" disabled>
+                <PrimaryCtaButton type="button" disabled>
                   {appCopy.ui.session.unavailable}
-                </Button>
+                </PrimaryCtaButton>
               )}
-              <Button
+              <SecondaryCtaButton
                 component={Link}
                 to={restartPath ?? '#'}
                 disabled={relaunchDisabled}
-                variant="outlined"
               >
                 {appCopy.ui.actions.relaunchPrimary}
-              </Button>
-              <Button type="button" disabled={!isDeleteEnabled} variant="text">
+              </SecondaryCtaButton>
+              <SoftCtaButton type="button" disabled={!isDeleteEnabled}>
                 {appCopy.ui.actions.deleteUiOnly}
-              </Button>
+              </SoftCtaButton>
             </div>
           </section>
 

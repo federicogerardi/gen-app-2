@@ -5,7 +5,8 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
-import { toolFormRegistry } from '../../tools/runtime/tool-form-architecture';
+import { getEnabledToolKeys } from '../../tools/runtime/tool-form-architecture';
+import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { AppButton } from '../../../components/AppButton';
 import { AppCard } from '../../../components/AppCard';
 
@@ -20,8 +21,15 @@ export const DashboardPage = () => {
 
   const recentArtifacts = generation.artifacts.slice(0, 5);
   const artifactCount = generation.artifacts.length;
-  const toolsCount = Object.keys(toolFormRegistry).length;
+  const enabledToolKeys = getEnabledToolKeys();
+  const toolsCount = enabledToolKeys.length;
   const completedCount = generation.artifacts.filter((a) => a.status === 'completed').length;
+  const toolShortcutsCatalog: Array<{ toolKey: SupportedTool; to: string; label: string }> = [
+    { toolKey: 'funnel-pages', to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages },
+    { toolKey: 'nextland', to: '/tools/nextland', label: appCopy.ui.navigation.nextland },
+    { toolKey: 'youtube-lf-script', to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript },
+  ];
+  const toolShortcuts = toolShortcutsCatalog.filter((item) => enabledToolKeys.includes(item.toolKey));
 
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';
@@ -77,21 +85,13 @@ export const DashboardPage = () => {
         <AppCard title={appCopy.editorial.dashboard.cards.tools.title}>
           <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-            <Link to="/tools/funnel-pages" style={{ textDecoration: 'none' }}>
-              <AppButton size="small">
-                {appCopy.ui.navigation.funnelPages}
-              </AppButton>
-            </Link>
-            <Link to="/tools/nextland" style={{ textDecoration: 'none' }}>
-              <AppButton size="small">
-                {appCopy.ui.navigation.nextland}
-              </AppButton>
-            </Link>
-            <Link to="/tools/youtube-lf-script" style={{ textDecoration: 'none' }}>
-              <AppButton size="small">
-                {appCopy.ui.navigation.youtubeLfScript}
-              </AppButton>
-            </Link>
+            {toolShortcuts.map((shortcut) => (
+              <Link key={shortcut.toolKey} to={shortcut.to} style={{ textDecoration: 'none' }}>
+                <AppButton size="small">
+                  {shortcut.label}
+                </AppButton>
+              </Link>
+            ))}
           </div>
         </AppCard>
 

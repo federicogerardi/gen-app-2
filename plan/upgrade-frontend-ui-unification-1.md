@@ -68,6 +68,8 @@ Questo piano mira a unificare e semplificare la GUI dell’applicazione frontend
 | TASK-022 | Migra CTA di GenerationForm a MUI mantenendo invariata l’orchestrazione runtime                 | ✅        | 2026-05-11 |
 | TASK-023 | Migra CTA/controlli nei componenti Generation panel a MUI senza cambiare semantica stream/state | ✅        | 2026-05-11 |
 | TASK-024 | Sweep finale pagine: rimozione residui controlli non-MUI fuori dal perimetro tabellare          | ✅        | 2026-05-11 |
+| TASK-025 | Completa PR-1 refactor listing: estrazione `ListingTableSection` e migrazione `ArtifactsListingSection` + `SessionsListingSection` con `PaginationBlockControls` condiviso | ✅        | 2026-05-11 |
+| TASK-026 | Completa PR-2 refactor CTA/upload: introduzione `UploadFieldButton` e `CtaButtons` con migrazione call site (`ToolPageTemplate`, `ToolActionButtons`, `ArtifactDetailPage`, `GenerationStreamPanel`) | ✅        | 2026-05-11 |
 | TASK-014 | Aggiorna la documentazione onboarding per i nuovi pattern UI e form                          | ✅        | 2026-05-11 |
 | TASK-015 | Prepara esempi minimi di utilizzo dei nuovi componenti in una sezione “cookbook”             | ✅        | 2026-05-11 |
 | TASK-016 | Esegui audit accessibilità con strumenti automatici (axe, Lighthouse)                        | ✅        | 2026-05-11 |

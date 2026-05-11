@@ -2,15 +2,15 @@
 goal: Refactor frontend in 2 safe PRs by extracting ListingTableSection first, then Upload and CTA wrappers
 version: 1.0
 date_created: 2026-05-11
-last_updated: 2026-05-11
+last_updated: 2026-05-12
 owner: Frontend Platform Team
-status: 'Planned'
+status: 'Completed'
 tags: [refactor, frontend, ui, listing, upload, cta, safety]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines a deterministic two-PR refactor sequence with low regression risk. PR-1 extracts a reusable ListingTableSection pattern from existing Artifact and Session listings. PR-2 standardizes Upload and CTA rendering via wrappers while preserving current domain behavior and route semantics.
 
@@ -37,11 +37,11 @@ This plan defines a deterministic two-PR refactor sequence with low regression r
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Create `apps/frontend/src/app/ui/ListingTableSection.tsx` that renders title, loading/error/empty states, table scaffold, and optional pagination slot; expose deterministic props (`title`, `headingLevel`, `loading`, `error`, `isEmpty`, `emptyMessage`, `columns`, `rows`, `renderCell`, `paginationNode`). |  |  |
-| TASK-002 | In `apps/frontend/src/features/artifacts/ui/ArtifactsListingSection.tsx`, replace duplicated table-state markup with `ListingTableSection`; keep existing data selection logic (`items`, `projectNameById`, filters) unchanged. |  |  |
-| TASK-003 | In `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`, replace duplicated table-state markup with `ListingTableSection`; keep existing session-specific labels (`statusLabel`, `toolLabel`) unchanged. |  |  |
-| TASK-004 | Keep `apps/frontend/src/app/ui/PaginationBlockControls.tsx` as pagination implementation and pass it via `paginationNode` to the new listing component in both call sites. |  |  |
-| TASK-005 | Add/adjust tests for listing rendering parity in `apps/frontend/src/features/artifacts/pages/ArtifactsPage.test.tsx` and `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx` to assert headings, table headers, and detail-link routes remain unchanged. |  |  |
+| TASK-001 | Create `apps/frontend/src/app/ui/ListingTableSection.tsx` that renders title, loading/error/empty states, table scaffold, and optional pagination slot; expose deterministic props (`title`, `headingLevel`, `loading`, `error`, `isEmpty`, `emptyMessage`, `columns`, `rows`, `renderCell`, `paginationNode`). | ✅ | 2026-05-11 |
+| TASK-002 | In `apps/frontend/src/features/artifacts/ui/ArtifactsListingSection.tsx`, replace duplicated table-state markup with `ListingTableSection`; keep existing data selection logic (`items`, `projectNameById`, filters) unchanged. | ✅ | 2026-05-11 |
+| TASK-003 | In `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`, replace duplicated table-state markup with `ListingTableSection`; keep existing session-specific labels (`statusLabel`, `toolLabel`) unchanged. | ✅ | 2026-05-11 |
+| TASK-004 | Keep `apps/frontend/src/app/ui/PaginationBlockControls.tsx` as pagination implementation and pass it via `paginationNode` to the new listing component in both call sites. | ✅ | 2026-05-11 |
+| TASK-005 | Add/adjust tests for listing rendering parity in `apps/frontend/src/features/artifacts/pages/ArtifactsPage.test.tsx` and `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx` to assert headings, table headers, and detail-link routes remain unchanged. | ✅ | 2026-05-11 |
 
 ### Implementation Phase 2
 
@@ -49,11 +49,11 @@ This plan defines a deterministic two-PR refactor sequence with low regression r
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Create `apps/frontend/src/app/ui/UploadFieldButton.tsx` wrapper for file upload CTA with deterministic props (`label`, `disabled`, `accept`, `onFileSelected`, `icon`, `fullWidth`, `minHeight`) and internal `<input type="file" hidden>`. |  |  |
-| TASK-007 | Replace upload button block in `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` with `UploadFieldButton` while preserving `handleBriefingFileSelected` and `handleBriefingReset` behavior. |  |  |
-| TASK-008 | Create CTA wrappers in `apps/frontend/src/app/ui/CtaButtons.tsx`: `PrimaryCtaButton`, `SecondaryCtaButton`, `SoftCtaButton`; map wrappers deterministically to MUI variants and approved style tokens. |  |  |
-| TASK-009 | Migrate CTA call sites with highest duplication first: `apps/frontend/src/features/tools/ui/ToolActionButtons.tsx`, `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`, `apps/frontend/src/features/generation/ui/GenerationStreamPanel.tsx`. |  |  |
-| TASK-010 | Add/adjust snapshot tests in `apps/frontend/src/features/tools/ui/ToolActionButtons.snapshot.test.tsx` and targeted behavior tests in `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` to verify labels, disabled states, and routes are unchanged. |  |  |
+| TASK-006 | Create `apps/frontend/src/app/ui/UploadFieldButton.tsx` wrapper for file upload CTA with deterministic props (`label`, `disabled`, `accept`, `onFileSelected`, `icon`, `fullWidth`, `minHeight`) and internal `<input type="file" hidden>`. | ✅ | 2026-05-11 |
+| TASK-007 | Replace upload button block in `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` with `UploadFieldButton` while preserving `handleBriefingFileSelected` and `handleBriefingReset` behavior. | ✅ | 2026-05-11 |
+| TASK-008 | Create CTA wrappers in `apps/frontend/src/app/ui/CtaButtons.tsx`: `PrimaryCtaButton`, `SecondaryCtaButton`, `SoftCtaButton`; map wrappers deterministically to MUI variants and approved style tokens. | ✅ | 2026-05-11 |
+| TASK-009 | Migrate CTA call sites with highest duplication first: `apps/frontend/src/features/tools/ui/ToolActionButtons.tsx`, `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`, `apps/frontend/src/features/generation/ui/GenerationStreamPanel.tsx`. | ✅ | 2026-05-11 |
+| TASK-010 | Add/adjust snapshot tests in `apps/frontend/src/features/tools/ui/ToolActionButtons.snapshot.test.tsx` and targeted behavior tests in `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` to verify labels, disabled states, and routes are unchanged. | ✅ | 2026-05-11 |
 
 ### Implementation Phase 3
 
@@ -61,10 +61,10 @@ This plan defines a deterministic two-PR refactor sequence with low regression r
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Run `npm --workspace apps/frontend run typecheck` after each PR and store pass/fail result in PR description checklist. |  |  |
-| TASK-012 | Run focused tests for touched areas (`Artifacts`, `SessionsSummary`, `ToolActionButtons`, `ArtifactDetail`) and capture pass/fail matrix per PR. |  |  |
-| TASK-013 | Execute visual sanity check for light/dark states of listing tables, upload button, and CTA wrappers; record screenshots in PR comments. |  |  |
-| TASK-014 | Update plan tracking table in `plan/upgrade-frontend-ui-unification-1.md` by adding completion notes for the two-PR refactor sequence. |  |  |
+| TASK-011 | Run `npm --workspace apps/frontend run typecheck` after each PR and store pass/fail result in PR description checklist. | ✅ | 2026-05-11 |
+| TASK-012 | Run focused tests for touched areas (`Artifacts`, `SessionsSummary`, `ToolActionButtons`, `ArtifactDetail`) and capture pass/fail matrix per PR. | ✅ | 2026-05-11 |
+| TASK-013 | Execute visual sanity check for light/dark states of listing tables, upload button, and CTA wrappers; record screenshots in PR comments. | ✅ | 2026-05-12 |
+| TASK-014 | Update plan tracking table in `plan/upgrade-frontend-ui-unification-1.md` by adding completion notes for the two-PR refactor sequence. | ✅ | 2026-05-11 |
 
 ## 3. Alternatives
 

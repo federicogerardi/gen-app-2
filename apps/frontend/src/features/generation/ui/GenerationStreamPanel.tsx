@@ -1,6 +1,6 @@
 import type { FrontendStreamStatus } from '../machines/frontend-stream.machine';
-import { Button } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
+import { PrimaryCtaButton, SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 
 type GenerationStreamPanelProps = {
@@ -65,15 +65,15 @@ export const GenerationStreamPanel = ({
       <pre aria-live="polite">{content.length > 0 ? content : appCopy.ui.states.noChunkReceived}</pre>
 
       <div className={uiPrimitives.actions}>
-        <Button type="button" variant="outlined" onClick={onRetry} disabled={!canRetry}>
+        <SecondaryCtaButton type="button" onClick={onRetry} disabled={!canRetry}>
           {appCopy.ui.actions.retry}
-        </Button>
-        <Button type="button" variant="outlined" onClick={onCancel} disabled={!canCancel}>
+        </SecondaryCtaButton>
+        <SecondaryCtaButton type="button" onClick={onCancel} disabled={!canCancel}>
           {appCopy.ui.actions.cancel}
-        </Button>
-        <Button type="button" variant="contained" onClick={onReset}>
+        </SecondaryCtaButton>
+        <PrimaryCtaButton type="button" onClick={onReset}>
           {appCopy.ui.actions.reset}
-        </Button>
+        </PrimaryCtaButton>
       </div>
     </Surface>
   );

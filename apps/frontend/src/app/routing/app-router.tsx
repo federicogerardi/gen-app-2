@@ -4,7 +4,7 @@ import type { FC, LazyExoticComponent } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
-import { toolFormRegistry } from '../../features/tools/runtime/tool-form-architecture';
+import { getEnabledToolKeys } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 
 // Lazy load page components for code splitting
@@ -35,7 +35,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
  * Data-driven route table for tool pages.
  * Adding a new SupportedTool only requires entries in toolFormRegistry and toolPageComponents.
  */
-const TOOL_ROUTES = (Object.keys(toolFormRegistry) as SupportedTool[]).map((toolKey) => ({
+const TOOL_ROUTES = getEnabledToolKeys().map((toolKey) => ({
   toolKey,
   path: `/tools/${toolKey}`,
   component: toolPageComponents[toolKey],

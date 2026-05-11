@@ -7,9 +7,10 @@ import { useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, MenuItem, TextField } from '@mui/material';
+import { MenuItem, TextField } from '@mui/material';
 import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
@@ -222,30 +223,20 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 control={control}
                 render={({ field }) => (
                   <div>
-                    <Button
-                      component="label"
-                      variant="outlined"
-                      startIcon={<Upload size={16} aria-hidden="true" />}
-                      fullWidth
-                      sx={{ minHeight: 56, whiteSpace: 'nowrap' }}
+                    <UploadFieldButton
+                      label="Briefing File"
                       disabled={!formState.projectId.trim() || isStreamActive}
-                    >
-                      Briefing File
-                      <input
-                        type="file"
-                        hidden
-                        accept=".docx,.txt,.md"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          field.onChange(file);
-                          if (file) {
-                            handleBriefingFileSelected(file);
-                          } else {
-                            handleBriefingReset();
-                          }
-                        }}
-                      />
-                    </Button>
+                      icon={<Upload size={16} aria-hidden="true" />}
+                      accept=".docx,.txt,.md"
+                      onFileSelected={(file) => {
+                        field.onChange(file);
+                        if (file) {
+                          handleBriefingFileSelected(file);
+                        } else {
+                          handleBriefingReset();
+                        }
+                      }}
+                    />
                     {errors.briefingFile ? <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span> : null}
                   </div>
                 )}
@@ -300,9 +291,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
               errorMessage={machineViewModel.messages.error}
-              onViewArtifact={(artifactId) => {
-                void navigate(`/artifacts/${artifactId}`);
-              }}
             />
           </section>
         </div>

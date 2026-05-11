@@ -3,7 +3,7 @@
  * Renders primary action + secondary action options based on UI derivation
  */
 
-import { Button } from '@mui/material';
+import { PrimaryCtaButton, SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import type { PrimaryActionPolicy, SecondaryActionFlags } from '../runtime/tool-ux-state';
 import { derivePrimaryActionLabel } from '../runtime/tool-ux-state';
 
@@ -32,62 +32,57 @@ export const ToolActionButtons = ({
 
   return (
     <div className="ui-tool-action-buttons">
-      <Button
+      <PrimaryCtaButton
         type="button"
         onClick={onPrimaryAction}
         disabled={primaryLabel.disabled || isLoading}
         title={primaryLabel.tooltip}
-        variant="contained"
       >
         {isLoading ? 'In elaborazione...' : primaryLabel.label}
-      </Button>
+      </PrimaryCtaButton>
 
       <div className="ui-tool-secondary-actions">
         {secondaryFlags.canRetry && onRetry && (
-          <Button
+          <SecondaryCtaButton
             type="button"
             onClick={onRetry}
             disabled={isLoading}
             title="Riprova questo step"
-            variant="outlined"
           >
             Riprova
-          </Button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canSkipStep && onSkipStep && (
-          <Button
+          <SecondaryCtaButton
             type="button"
             onClick={onSkipStep}
             disabled={isLoading}
             title="Salta allo step successivo"
-            variant="outlined"
           >
             Salta step
-          </Button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canCancelGeneration && onCancelGeneration && (
-          <Button
+          <SecondaryCtaButton
             type="button"
             onClick={onCancelGeneration}
             title="Interrompi la generazione in corso"
-            variant="outlined"
           >
             Annulla
-          </Button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canOpenPreviousArtifact && onOpenPreviousArtifact && (
-          <Button
+          <SecondaryCtaButton
             type="button"
             onClick={onOpenPreviousArtifact}
             disabled={isLoading}
             title="Visualizza il risultato dello step precedente"
-            variant="outlined"
           >
             Artefatto precedente
-          </Button>
+          </SecondaryCtaButton>
         )}
       </div>
     </div>

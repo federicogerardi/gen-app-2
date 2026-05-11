@@ -4,11 +4,9 @@ import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
   cx,
-  EmptyStateMessage,
-  ErrorStateMessage,
-  LoadingStateMessage,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
@@ -96,78 +94,59 @@ export const SessionsListingSection = ({
     () => allItems.slice((page - 1) * pageSize, page * pageSize),
     [allItems, page],
   );
-
-  const HeadingTag = headingLevel;
+  const columns = useMemo<ListingTableColumn[]>(() => [
+    { key: 'tool', header: 'Tool' },
+    { key: 'status', header: appCopy.ui.labels.status },
+    { key: 'project', header: appCopy.ui.labels.project },
+    { key: 'output', header: 'Output' },
+    { key: 'updated', header: appCopy.ui.meta.updated },
+    { key: 'openDetail', header: appCopy.ui.actions.openDetail },
+  ], []);
 
   return (
-    <section className={uiPrimitives.stack}>
-      <HeadingTag>{title}</HeadingTag>
+    <ListingTableSection
+      title={title}
+      headingLevel={headingLevel}
+      loading={sessionsQuery.loading}
+      error={sessionsQuery.error}
+      isEmpty={items.length === 0}
+      emptyMessage={emptyStateMessage ?? appCopy.editorial.sessions.emptyState}
+      columns={columns}
+      rows={items}
+      rowKey={(session) => session.sessionId}
+      renderCell={(session, columnKey) => {
+        const resolvedProjectName =
+          (normalizedFixedProjectId !== null && session.projectId === normalizedFixedProjectId
+            ? fixedProjectName
+            : null)
+          ?? projectNameById[session.projectId]
+          ?? 'Progetto non disponibile';
 
-      {sessionsQuery.loading ? (
-        <LoadingStateMessage>{appCopy.editorial.sessions.loadingState}</LoadingStateMessage>
-      ) : null}
-      {sessionsQuery.error ? <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage> : null}
+        if (columnKey === 'tool') return <strong>{toolLabel(session.toolKey)}</strong>;
+        if (columnKey === 'status') return statusLabel(session.status);
+        if (columnKey === 'project') return resolvedProjectName;
+        if (columnKey === 'output') return `${session.artifactCount} ${appCopy.editorial.sessions.artifactCountLabel}`;
+        if (columnKey === 'updated') return new Date(session.updatedAt).toLocaleString();
 
-      {!sessionsQuery.loading && items.length === 0 ? (
-        <EmptyStateMessage>
-          {emptyStateMessage ?? appCopy.editorial.sessions.emptyState}
-        </EmptyStateMessage>
-      ) : (
-        <div className={uiPrimitives.artifactTableWrap}>
-          <table className={uiPrimitives.artifactTable}>
-            <thead>
-              <tr>
-                <th scope="col">Tool</th>
-                <th scope="col">{appCopy.ui.labels.status}</th>
-                <th scope="col">{appCopy.ui.labels.project}</th>
-                <th scope="col">Output</th>
-                <th scope="col">{appCopy.ui.meta.updated}</th>
-                <th scope="col">{appCopy.ui.actions.openDetail}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((session) => {
-                const resolvedProjectName =
-                  (normalizedFixedProjectId !== null && session.projectId === normalizedFixedProjectId
-                    ? fixedProjectName
-                    : null)
-                  ?? projectNameById[session.projectId]
-                  ?? 'Progetto non disponibile';
-
-                return (
-                  <tr key={session.sessionId}>
-                    <td><strong>{toolLabel(session.toolKey)}</strong></td>
-                    <td>{statusLabel(session.status)}</td>
-                    <td>{resolvedProjectName}</td>
-                    <td>
-                      {session.artifactCount}{' '}
-                      {appCopy.editorial.sessions.artifactCountLabel}
-                    </td>
-                    <td>{new Date(session.updatedAt).toLocaleString()}</td>
-                    <td>
-                      <Link
-                        to={`/sessionsummary/${session.sessionId}`}
-                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                      >
-                        {appCopy.ui.actions.openDetail}
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {totalPages > 1 ? (
-        <PaginationBlockControls
-          page={page}
-          totalPages={totalPages}
-          isLoading={sessionsQuery.loading}
-          onPageChange={setPage}
-        />
-      ) : null}
-    </section>
+        return (
+          <Link
+            to={`/sessionsummary/${session.sessionId}`}
+            className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+          >
+            {appCopy.ui.actions.openDetail}
+          </Link>
+        );
+      }}
+      paginationNode={totalPages > 1
+        ? (
+          <PaginationBlockControls
+            page={page}
+            totalPages={totalPages}
+            isLoading={sessionsQuery.loading}
+            onPageChange={setPage}
+          />
+        )
+        : null}
+    />
   );
 };

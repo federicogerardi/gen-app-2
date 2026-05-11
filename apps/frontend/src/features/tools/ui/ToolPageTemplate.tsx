@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button, MenuItem, TextField } from '@mui/material';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
@@ -137,26 +138,26 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   name="projectId"
                   control={control}
                   render={({ field }) => (
-                    <label>
-                      <span>Project</span>
-                      <select
-                        {...field}
-                        disabled={projectsLoading || isStreamActive}
-                        onChange={e => {
-                          field.onChange(e);
-                          setFormState(prev => ({ ...prev, projectId: e.target.value }));
-                        }}
-                        value={formState.projectId}
-                      >
-                        <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.projectId && <span className={uiPrimitives.error}>{errors.projectId.message as string}</span>}
-                    </label>
+                    <TextField
+                      select
+                      label="Project"
+                      disabled={projectsLoading || isStreamActive}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, projectId: e.target.value }));
+                      }}
+                      value={formState.projectId}
+                      error={!!errors.projectId}
+                      helperText={errors.projectId?.message as string | undefined}
+                      fullWidth
+                    >
+                      <MenuItem value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</MenuItem>
+                      {projects.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {p.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   )}
                 />
 
@@ -164,26 +165,26 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   name="model"
                   control={control}
                   render={({ field }) => (
-                    <label>
-                      <span>Model</span>
-                      <select
-                        {...field}
-                        onChange={e => {
-                          field.onChange(e);
-                          setFormState(prev => ({ ...prev, model: e.target.value }));
-                        }}
-                        value={formState.model}
-                      >
-                        {modelOptions.length === 0 ? (
-                          <option value={formState.model}>{formState.model || 'No models available'}</option>
-                        ) : (
-                          modelOptions.map((o) => (
-                            <option key={o.key} value={o.key}>{o.label}</option>
-                          ))
-                        )}
-                      </select>
-                      {errors.model && <span className={uiPrimitives.error}>{errors.model.message as string}</span>}
-                    </label>
+                    <TextField
+                      select
+                      label="Model"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, model: e.target.value }));
+                      }}
+                      value={formState.model}
+                      error={!!errors.model}
+                      helperText={errors.model?.message as string | undefined}
+                      fullWidth
+                    >
+                      {modelOptions.length === 0 ? (
+                        <MenuItem value={formState.model}>{formState.model || 'No models available'}</MenuItem>
+                      ) : (
+                        modelOptions.map((o) => (
+                          <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+                        ))
+                      )}
+                    </TextField>
                   )}
                 />
 
@@ -191,25 +192,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   name="tone"
                   control={control}
                   render={({ field }) => (
-                    <label>
-                      <span>Tone</span>
-                      <select
-                        {...field}
-                        disabled={isStreamActive}
-                        onChange={e => {
-                          field.onChange(e);
-                          setFormState(prev => ({ ...prev, tone: e.target.value }));
-                        }}
-                        value={formState.tone}
-                      >
-                        {toneProfileOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.tone && <span className={uiPrimitives.error}>{errors.tone.message as string}</span>}
-                    </label>
+                    <TextField
+                      select
+                      label="Tone"
+                      disabled={isStreamActive}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, tone: e.target.value }));
+                      }}
+                      value={formState.tone}
+                      error={!!errors.tone}
+                      helperText={errors.tone?.message as string | undefined}
+                      fullWidth
+                    >
+                      {toneProfileOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   )}
                 />
               </div>
@@ -218,24 +219,30 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 name="briefingFile"
                 control={control}
                 render={({ field }) => (
-                  <label>
-                    <span>Briefing File</span>
-                    <input
-                      type="file"
-                      accept=".docx,.txt,.md"
+                  <div>
+                    <Button
+                      component="label"
+                      variant="outlined"
                       disabled={!formState.projectId.trim() || isStreamActive}
-                      onChange={e => {
-                        const file = e.target.files?.[0];
-                        field.onChange(file);
-                        if (file) {
-                          handleBriefingFileSelected(file);
-                        } else {
-                          handleBriefingReset();
-                        }
-                      }}
-                    />
-                    {errors.briefingFile && <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span>}
-                  </label>
+                    >
+                      Briefing File
+                      <input
+                        type="file"
+                        hidden
+                        accept=".docx,.txt,.md"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          field.onChange(file);
+                          if (file) {
+                            handleBriefingFileSelected(file);
+                          } else {
+                            handleBriefingReset();
+                          }
+                        }}
+                      />
+                    </Button>
+                    {errors.briefingFile ? <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span> : null}
+                  </div>
                 )}
               />
 

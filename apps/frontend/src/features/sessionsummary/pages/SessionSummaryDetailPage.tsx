@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Button } from '@mui/material';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -131,9 +132,9 @@ export const SessionSummaryDetailPage = () => {
             </div>
 
             <div className="ui-artifact-overview-actions">
-              <Link to="/sessionsummary" className={uiPrimitives.button}>
+              <Button component={Link} to="/sessionsummary" variant="contained">
                 {appCopy.ui.actions.openSessionArchive}
-              </Link>
+              </Button>
             </div>
           </section>
         </aside>

@@ -3,7 +3,7 @@
  * Renders primary action + secondary action options based on UI derivation
  */
 
-import { Button, uiPrimitives } from '../../../app/ui/primitives';
+import { Button } from '@mui/material';
 import type { PrimaryActionPolicy, SecondaryActionFlags } from '../runtime/tool-ux-state';
 import { derivePrimaryActionLabel } from '../runtime/tool-ux-state';
 
@@ -32,63 +32,63 @@ export const ToolActionButtons = ({
 
   return (
     <div className="ui-tool-action-buttons">
-      {/* Primary action button */}
       <Button
+        type="button"
         onClick={onPrimaryAction}
         disabled={primaryLabel.disabled || isLoading}
-        className={`ui-button-primary${isLoading ? ' is-loading' : ''}`}
         title={primaryLabel.tooltip}
+        variant="contained"
       >
         {isLoading ? 'In elaborazione...' : primaryLabel.label}
       </Button>
 
-      {/* Secondary actions */}
       <div className="ui-tool-secondary-actions">
         {secondaryFlags.canRetry && onRetry && (
-          <button
+          <Button
             type="button"
             onClick={onRetry}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Riprova questo step"
+            variant="outlined"
           >
             Riprova
-          </button>
+          </Button>
         )}
 
         {secondaryFlags.canSkipStep && onSkipStep && (
-          <button
+          <Button
             type="button"
             onClick={onSkipStep}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Salta allo step successivo"
+            variant="outlined"
           >
             Salta step
-          </button>
+          </Button>
         )}
 
         {secondaryFlags.canCancelGeneration && onCancelGeneration && (
-          <button
+          <Button
             type="button"
             onClick={onCancelGeneration}
-            className={`${uiPrimitives.button} ui-button-secondary`}
             title="Interrompi la generazione in corso"
+            variant="outlined"
+            color="error"
           >
             Annulla
-          </button>
+          </Button>
         )}
 
         {secondaryFlags.canOpenPreviousArtifact && onOpenPreviousArtifact && (
-          <button
+          <Button
             type="button"
             onClick={onOpenPreviousArtifact}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Visualizza il risultato dello step precedente"
+            variant="outlined"
           >
             Artefatto precedente
-          </button>
+          </Button>
         )}
       </div>
     </div>

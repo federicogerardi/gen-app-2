@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Button } from '@mui/material';
 import { appCopy, formatMeta } from '../../../app/copy/system';
-import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 import {
   filterArtifacts,
   type ArtifactFilters,
@@ -141,14 +142,15 @@ export const ArtifactHistoryPanel = ({
               <pre className={uiPrimitives.artifactContent}>{selectedArtifact.content || 'Contenuto non disponibile.'}</pre>
 
               <div className={uiPrimitives.actions}>
-                <Button type="button" onClick={() => setSelectedArtifactId(null)}>
+                <Button type="button" variant="outlined" onClick={() => setSelectedArtifactId(null)}>
                   {appCopy.ui.actions.historyBack}
                 </Button>
-                <Button type="button" onClick={() => onOpenProject(selectedArtifact.projectId)}>
+                <Button type="button" variant="outlined" onClick={() => onOpenProject(selectedArtifact.projectId)}>
                   {appCopy.ui.actions.openContextProject}
                 </Button>
                 <Button
                   type="button"
+                  variant="contained"
                   onClick={() => onRelaunchFromArtifact(selectedArtifact)}
                   disabled={relaunchDisabled}
                 >

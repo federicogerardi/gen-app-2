@@ -1,7 +1,10 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { TextField, MenuItem, Button as MuiButton } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import {
-  Button,
   cx,
   EmptyStateMessage,
   ErrorStateMessage,
@@ -22,13 +25,13 @@ type AdminLlmModel = {
   sortOrder: number | null;
 };
 
-type CreateFormState = {
-  key: string;
-  label: string;
-  status: 'enabled' | 'disabled';
-};
+const createModelSchema = z.object({
+  key: z.string().min(1, 'Key richiesta'),
+  label: z.string().min(1, 'Label richiesta'),
+  status: z.enum(['enabled', 'disabled']),
+});
 
-const createEmptyForm = (): CreateFormState => ({ key: '', label: '', status: 'enabled' });
+type CreateModelFormValues = z.infer<typeof createModelSchema>;
 
 const useAdminModelsQuery = (apiBaseUrl: string) => {
   const [data, setData] = useState<AdminLlmModel[]>([]);
@@ -74,12 +77,20 @@ export const AdminModelsPage = () => {
   const auth = useAuthSession();
   const { data: models, loading, error, reload } = useAdminModelsQuery(auth.apiBaseUrl);
 
-  const [form, setForm] = useState<CreateFormState>(createEmptyForm);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<'create' | `default:${string}` | `toggle:${string}` | `delete:${string}` | null>(null);
 
-  const handleCreateSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateModelFormValues>({
+    resolver: zodResolver(createModelSchema),
+    defaultValues: { key: '', label: '', status: 'enabled' },
+  });
+
+  const handleCreateSubmit = async (data: CreateModelFormValues) => {
     setMutationError(null);
     setBusyAction('create');
 
@@ -88,9 +99,9 @@ export const AdminModelsPage = () => {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: form.key.trim(), label: form.label.trim(), status: form.status }),
+        body: JSON.stringify({ key: data.key.trim(), label: data.label.trim(), status: data.status }),
       });
-      setForm(createEmptyForm());
+      reset();
       reload();
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Failed to create model');
@@ -168,59 +179,57 @@ export const AdminModelsPage = () => {
         <p className={uiPrimitives.metaLine}>Gestisci il catalogo dei modelli LLM disponibili.</p>
       </TopBar>
 
-      <Surface as="form" onSubmit={handleCreateSubmit} className="ui-admin-user-form">
+      <Surface as="form" onSubmit={handleSubmit(handleCreateSubmit)} className="ui-admin-user-form">
         <div className="ui-admin-user-form-headline">
           <h3>Nuovo modello</h3>
           <p className={uiPrimitives.metaLine}>Aggiungi un modello al catalogo.</p>
         </div>
 
         <div className="ui-admin-user-form-grid">
-          <label>
-            Key
-            <input
-              name="key"
-              value={form.key}
-              onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
-              placeholder="es. openrouter/auto"
-              required
-            />
-          </label>
+          <TextField
+            label="Key"
+            {...register('key')}
+            placeholder="es. openrouter/auto"
+            error={!!errors.key}
+            helperText={errors.key?.message}
+            fullWidth
+            required
+          />
 
-          <label>
-            Label
-            <input
-              name="label"
-              value={form.label}
-              onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder="Nome visualizzato"
-              required
-            />
-          </label>
+          <TextField
+            label="Label"
+            {...register('label')}
+            placeholder="Nome visualizzato"
+            error={!!errors.label}
+            helperText={errors.label?.message}
+            fullWidth
+            required
+          />
 
-          <label>
-            Status
-            <select
-              name="status"
-              value={form.status}
-              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as 'enabled' | 'disabled' }))}
-            >
-              <option value="enabled">Enabled</option>
-              <option value="disabled">Disabled</option>
-            </select>
-          </label>
+          <TextField
+            select
+            label="Status"
+            defaultValue="enabled"
+            {...register('status')}
+            fullWidth
+          >
+            <MenuItem value="enabled">Enabled</MenuItem>
+            <MenuItem value="disabled">Disabled</MenuItem>
+          </TextField>
         </div>
 
         <div className={uiPrimitives.actions}>
-          <Button type="submit" disabled={busyAction === 'create'}>
+          <MuiButton type="submit" variant="contained" disabled={busyAction === 'create'}>
             {busyAction === 'create' ? 'Creazione...' : 'Crea modello'}
-          </Button>
-          <Button
+          </MuiButton>
+          <MuiButton
             type="button"
+            variant="outlined"
             disabled={busyAction === 'create'}
-            onClick={() => { setForm(createEmptyForm()); setMutationError(null); }}
+            onClick={() => { reset(); setMutationError(null); }}
           >
             {appCopy.ui.actions.reset}
-          </Button>
+          </MuiButton>
         </div>
       </Surface>
 

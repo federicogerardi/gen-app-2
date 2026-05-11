@@ -1,9 +1,12 @@
-import { FormEvent, Fragment, useState } from 'react';
+import { Fragment, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button as MuiButton, MenuItem, TextField } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
-  Button,
   cx,
   EmptyStateMessage,
   ErrorStateMessage,
@@ -32,7 +35,22 @@ const ADMIN_USER_STATUS_OPTIONS = [
   { value: 'disabled', label: 'Disabled' },
 ] as const;
 
-type AdminUserFormState = {
+const adminUserFormSchema = z.object({
+  email: z.string().email('Email non valida'),
+  role: z.enum(['member', 'admin']),
+  status: z.enum(['active', 'pending_password_reset', 'disabled']),
+  password: z.string().optional(),
+  monthlyQuota: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value || !value.trim()) return true;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0;
+    }, 'La quota mensile deve essere un numero >= 0'),
+});
+
+type AdminUserFormValues = {
   email: string;
   role: AuthUserRole;
   status: AuthUserStatus;
@@ -40,7 +58,7 @@ type AdminUserFormState = {
   monthlyQuota: string;
 };
 
-const createEmptyUserForm = (): AdminUserFormState => ({
+const createEmptyUserForm = (): AdminUserFormValues => ({
   email: '',
   role: 'member',
   status: 'active',
@@ -48,7 +66,7 @@ const createEmptyUserForm = (): AdminUserFormState => ({
   monthlyQuota: '',
 });
 
-const createEditUserForm = (user: AdminUser): AdminUserFormState => ({
+const createEditUserForm = (user: AdminUser): AdminUserFormValues => ({
   email: user.email,
   role: user.role,
   status: user.status,
@@ -65,18 +83,6 @@ const parseOptionalNumber = (value: string): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-const parseRoleInput = (value: string): AuthUserRole => {
-  return value === 'admin' ? 'admin' : 'member';
-};
-
-const parseStatusInput = (value: string): AuthUserStatus => {
-  if (value === 'disabled' || value === 'pending_password_reset') {
-    return value;
-  }
-
-  return 'active';
-};
-
 export const AdminUsersPage = () => {
   const auth = useAuthSession();
   const usersQuery = useAdminUsersQuery({
@@ -86,38 +92,55 @@ export const AdminUsersPage = () => {
 
   const users = usersQuery.data;
   const error = usersQuery.error;
-  const [createForm, setCreateForm] = useState<AdminUserFormState>(() => createEmptyUserForm());
   const [showCreateForm, setShowCreateForm] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<AdminUserFormState>(() => createEmptyUserForm());
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<'create' | `update:${string}` | `delete:${string}` | null>(null);
+
+  const {
+    register: registerCreate,
+    handleSubmit: handleCreateFormSubmit,
+    reset: resetCreateForm,
+    formState: { errors: createErrors },
+  } = useForm<AdminUserFormValues>({
+    resolver: zodResolver(adminUserFormSchema) as any,
+    defaultValues: createEmptyUserForm(),
+  });
+
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditFormSubmit,
+    reset: resetEditForm,
+    formState: { errors: editErrors },
+  } = useForm<AdminUserFormValues>({
+    resolver: zodResolver(adminUserFormSchema) as any,
+    defaultValues: createEmptyUserForm(),
+  });
 
   const resetFeedback = () => {
     setMutationError(null);
     setFeedbackMessage(null);
   };
 
-  const handleCreateSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleCreateSubmit = async (data: AdminUserFormValues) => {
     resetFeedback();
     setBusyAction('create');
 
     try {
-      const monthlyQuota = parseOptionalNumber(createForm.monthlyQuota);
+      const monthlyQuota = parseOptionalNumber(data.monthlyQuota);
       await createAdminUser({
-        email: createForm.email.trim(),
-        role: createForm.role,
-        status: createForm.status,
-        ...(createForm.password ? { password: createForm.password } : {}),
+        email: data.email.trim(),
+        role: data.role,
+        status: data.status,
+        ...(data.password ? { password: data.password } : {}),
         ...(monthlyQuota !== undefined ? { monthlyQuota } : {}),
       }, {
         apiBaseUrl: auth.apiBaseUrl,
         capabilities: auth.capabilities,
       });
 
-      setCreateForm(createEmptyUserForm());
+      resetCreateForm(createEmptyUserForm());
       setFeedbackMessage('Utente creato.');
       usersQuery.reload();
     } catch (createError) {
@@ -130,21 +153,20 @@ export const AdminUsersPage = () => {
   const startEditingUser = (user: AdminUser) => {
     resetFeedback();
     setEditingUserId(user.id);
-    setEditForm(createEditUserForm(user));
+    resetEditForm(createEditUserForm(user));
   };
 
-  const handleUpdateSubmit = async (event: FormEvent<HTMLFormElement>, userId: string) => {
-    event.preventDefault();
+  const handleUpdateSubmit = async (data: AdminUserFormValues, userId: string) => {
     resetFeedback();
     setBusyAction(`update:${userId}`);
 
     try {
-      const monthlyQuota = parseOptionalNumber(editForm.monthlyQuota);
+      const monthlyQuota = parseOptionalNumber(data.monthlyQuota);
       await updateAdminUser(userId, {
-        email: editForm.email.trim(),
-        role: editForm.role,
-        status: editForm.status,
-        ...(editForm.password ? { password: editForm.password } : {}),
+        email: data.email.trim(),
+        role: data.role,
+        status: data.status,
+        ...(data.password ? { password: data.password } : {}),
         ...(monthlyQuota !== undefined ? { monthlyQuota } : {}),
       }, {
         apiBaseUrl: auth.apiBaseUrl,
@@ -152,7 +174,7 @@ export const AdminUsersPage = () => {
       });
 
       setEditingUserId(null);
-      setEditForm(createEmptyUserForm());
+      resetEditForm(createEmptyUserForm());
       setFeedbackMessage('Utente aggiornato.');
       usersQuery.reload();
     } catch (updateError) {
@@ -174,7 +196,7 @@ export const AdminUsersPage = () => {
 
       if (editingUserId === userId) {
         setEditingUserId(null);
-        setEditForm(createEmptyUserForm());
+        resetEditForm(createEmptyUserForm());
       }
       setFeedbackMessage('Utente disabilitato.');
       usersQuery.reload();
@@ -195,23 +217,25 @@ export const AdminUsersPage = () => {
       <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
         <p className={uiPrimitives.metaLine}>Provisioning rapido, aggiornamento ruoli e disabilitazione account.</p>
         <div className={uiPrimitives.actions}>
-          <Button
+          <MuiButton
             type="button"
             onClick={() => {
               setShowCreateForm((current) => !current);
               resetFeedback();
             }}
             disabled={busyAction === 'create'}
+            variant="outlined"
           >
             {showCreateForm ? 'Nascondi form' : 'Nuovo utente'}
-          </Button>
-          <Button
+          </MuiButton>
+          <MuiButton
             type="button"
             onClick={() => usersQuery.reload()}
             disabled={usersQuery.loading || busyAction !== null}
+            variant="outlined"
           >
             Aggiorna tabella
-          </Button>
+          </MuiButton>
           <Link to="/admin/models" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
             Gestione modelli LLM
           </Link>
@@ -219,87 +243,86 @@ export const AdminUsersPage = () => {
       </div>
 
       {showCreateForm ? (
-        <Surface as="form" className="ui-admin-user-form" onSubmit={handleCreateSubmit}>
+        <Surface as="form" className="ui-admin-user-form" onSubmit={handleCreateFormSubmit((data) => void handleCreateSubmit(data))}>
           <div className="ui-admin-user-form-headline">
             <h3>Nuovo utente</h3>
             <p className={uiPrimitives.metaLine}>Aggiungi un account con ruolo e quota iniziale.</p>
           </div>
 
           <div className="ui-admin-user-form-grid">
-            <label>
-              Email
-              <input
-                name="email"
-                type="email"
-                value={createForm.email}
-                onChange={(event) => setCreateForm((current) => ({ ...current, email: event.target.value }))}
-                required
-              />
-            </label>
+            <TextField
+              label="Email"
+              type="email"
+              {...registerCreate('email')}
+              error={!!createErrors.email}
+              helperText={createErrors.email?.message}
+              fullWidth
+              required
+            />
 
-            <label>
-              Role
-              <select
-                name="role"
-                value={createForm.role}
-                onChange={(event) => setCreateForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
-              >
-                {ADMIN_USER_ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
+            <TextField
+              select
+              label="Role"
+              defaultValue="member"
+              {...registerCreate('role')}
+              error={!!createErrors.role}
+              helperText={createErrors.role?.message}
+              fullWidth
+            >
+              {ADMIN_USER_ROLE_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
 
-            <label>
-              Status
-              <select
-                name="status"
-                value={createForm.status}
-                onChange={(event) => setCreateForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
-              >
-                {ADMIN_USER_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
+            <TextField
+              select
+              label="Status"
+              defaultValue="active"
+              {...registerCreate('status')}
+              error={!!createErrors.status}
+              helperText={createErrors.status?.message}
+              fullWidth
+            >
+              {ADMIN_USER_STATUS_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
 
-            <label>
-              Monthly quota
-              <input
-                name="monthlyQuota"
-                type="number"
-                min="0"
-                step="1"
-                value={createForm.monthlyQuota}
-                onChange={(event) => setCreateForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
-              />
-            </label>
+            <TextField
+              label="Monthly quota"
+              type="number"
+              slotProps={{ htmlInput: { min: 0, step: 1 } }}
+              {...registerCreate('monthlyQuota')}
+              error={!!createErrors.monthlyQuota}
+              helperText={createErrors.monthlyQuota?.message}
+              fullWidth
+            />
           </div>
 
-          <label>
-            Password iniziale
-            <input
-              name="password"
-              type="password"
-              value={createForm.password}
-              onChange={(event) => setCreateForm((current) => ({ ...current, password: event.target.value }))}
-            />
-          </label>
+          <TextField
+            label="Password iniziale"
+            type="password"
+            {...registerCreate('password')}
+            error={!!createErrors.password}
+            helperText={createErrors.password?.message}
+            fullWidth
+          />
 
           <div className={uiPrimitives.actions}>
-            <Button type="submit" disabled={busyAction === 'create'}>
+            <MuiButton type="submit" variant="contained" disabled={busyAction === 'create'}>
               {busyAction === 'create' ? 'Creazione...' : 'Crea utente'}
-            </Button>
-            <Button
+            </MuiButton>
+            <MuiButton
               type="button"
               onClick={() => {
-                setCreateForm(createEmptyUserForm());
+                resetCreateForm(createEmptyUserForm());
                 resetFeedback();
               }}
               disabled={busyAction === 'create'}
+              variant="outlined"
             >
               {appCopy.ui.actions.reset}
-            </Button>
+            </MuiButton>
           </div>
         </Surface>
       ) : null}
@@ -358,87 +381,86 @@ export const AdminUsersPage = () => {
                   {editingUserId === user.id ? (
                     <tr>
                       <td colSpan={5}>
-                        <form className="ui-admin-user-form" onSubmit={(event) => handleUpdateSubmit(event, user.id)}>
+                        <form className="ui-admin-user-form" onSubmit={handleEditFormSubmit((data) => void handleUpdateSubmit(data, user.id))}>
                           <div className="ui-admin-user-form-headline">
                             <h3>Modifica utente</h3>
                             <p className={uiPrimitives.metaLine}>{user.id}</p>
                           </div>
 
                           <div className="ui-admin-user-form-grid">
-                            <label>
-                              Email
-                              <input
-                                name={`email-${user.id}`}
-                                type="email"
-                                value={editForm.email}
-                                onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
-                                required
-                              />
-                            </label>
+                            <TextField
+                              label="Email"
+                              type="email"
+                              {...registerEdit('email')}
+                              error={!!editErrors.email}
+                              helperText={editErrors.email?.message}
+                              fullWidth
+                              required
+                            />
 
-                            <label>
-                              Role
-                              <select
-                                name={`role-${user.id}`}
-                                value={editForm.role}
-                                onChange={(event) => setEditForm((current) => ({ ...current, role: parseRoleInput(event.target.value) }))}
-                              >
-                                {ADMIN_USER_ROLE_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                              </select>
-                            </label>
+                            <TextField
+                              select
+                              label="Role"
+                              defaultValue="member"
+                              {...registerEdit('role')}
+                              error={!!editErrors.role}
+                              helperText={editErrors.role?.message}
+                              fullWidth
+                            >
+                              {ADMIN_USER_ROLE_OPTIONS.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                              ))}
+                            </TextField>
 
-                            <label>
-                              Status
-                              <select
-                                name={`status-${user.id}`}
-                                value={editForm.status}
-                                onChange={(event) => setEditForm((current) => ({ ...current, status: parseStatusInput(event.target.value) }))}
-                              >
-                                {ADMIN_USER_STATUS_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                              </select>
-                            </label>
+                            <TextField
+                              select
+                              label="Status"
+                              defaultValue="active"
+                              {...registerEdit('status')}
+                              error={!!editErrors.status}
+                              helperText={editErrors.status?.message}
+                              fullWidth
+                            >
+                              {ADMIN_USER_STATUS_OPTIONS.map((option) => (
+                                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                              ))}
+                            </TextField>
 
-                            <label>
-                              Monthly quota
-                              <input
-                                name={`quota-${user.id}`}
-                                type="number"
-                                min="0"
-                                step="1"
-                                value={editForm.monthlyQuota}
-                                onChange={(event) => setEditForm((current) => ({ ...current, monthlyQuota: event.target.value }))}
-                              />
-                            </label>
+                            <TextField
+                              label="Monthly quota"
+                              type="number"
+                              slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                              {...registerEdit('monthlyQuota')}
+                              error={!!editErrors.monthlyQuota}
+                              helperText={editErrors.monthlyQuota?.message}
+                              fullWidth
+                            />
                           </div>
 
-                          <label>
-                            Nuova password
-                            <input
-                              name={`password-${user.id}`}
-                              type="password"
-                              value={editForm.password}
-                              onChange={(event) => setEditForm((current) => ({ ...current, password: event.target.value }))}
-                            />
-                          </label>
+                          <TextField
+                            label="Nuova password"
+                            type="password"
+                            {...registerEdit('password')}
+                            error={!!editErrors.password}
+                            helperText={editErrors.password?.message}
+                            fullWidth
+                          />
 
                           <div className={uiPrimitives.actions}>
-                            <Button type="submit" disabled={busyAction === `update:${user.id}`}>
+                            <MuiButton type="submit" variant="contained" disabled={busyAction === `update:${user.id}`}>
                               {busyAction === `update:${user.id}` ? 'Salvataggio...' : 'Salva'}
-                            </Button>
-                            <Button
+                            </MuiButton>
+                            <MuiButton
                               type="button"
                               disabled={busyAction === `update:${user.id}`}
+                              variant="outlined"
                               onClick={() => {
                                 setEditingUserId(null);
-                                setEditForm(createEmptyUserForm());
+                                resetEditForm(createEmptyUserForm());
                               }}
                             >
                               {appCopy.ui.actions.cancel}
-                            </Button>
+                            </MuiButton>
                           </div>
                         </form>
                       </td>

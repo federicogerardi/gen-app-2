@@ -33,9 +33,11 @@ export const DashboardPage = () => {
           <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.zeroState.eyebrow}</p>
           <h2>{appCopy.editorial.dashboard.zeroState.headline}</h2>
           <p>{appCopy.editorial.dashboard.zeroState.body}</p>
-          <AppButton component={Link} to="/dashboard/projects/new">
-            {appCopy.editorial.dashboard.zeroState.cta}
-          </AppButton>
+          <Link to="/dashboard/projects/new" style={{ textDecoration: 'none' }}>
+            <AppButton>
+              {appCopy.editorial.dashboard.zeroState.cta}
+            </AppButton>
+          </Link>
         </div>
       </Surface>
     );
@@ -65,23 +67,31 @@ export const DashboardPage = () => {
       <section className={uiPrimitives.dashboardGrid}>
         <AppCard title={appCopy.editorial.dashboard.cards.projects.title}>
           <p>{appCopy.editorial.dashboard.cards.projects.body}</p>
-          <AppButton component={Link} to="/dashboard/projects" sx={{ mt: 1 }}>
-            {appCopy.ui.actions.openProjects}
-          </AppButton>
+          <Link to="/dashboard/projects" style={{ textDecoration: 'none' }}>
+            <AppButton sx={{ mt: 1 }}>
+              {appCopy.ui.actions.openProjects}
+            </AppButton>
+          </Link>
         </AppCard>
 
         <AppCard title={appCopy.editorial.dashboard.cards.tools.title}>
           <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-            <AppButton component={Link} to="/tools/funnel-pages" color="secondary" size="small">
-              {appCopy.ui.navigation.funnelPages}
-            </AppButton>
-            <AppButton component={Link} to="/tools/nextland" color="secondary" size="small">
-              {appCopy.ui.navigation.nextland}
-            </AppButton>
-            <AppButton component={Link} to="/tools/youtube-lf-script" color="secondary" size="small">
-              {appCopy.ui.navigation.youtubeLfScript}
-            </AppButton>
+            <Link to="/tools/funnel-pages" style={{ textDecoration: 'none' }}>
+              <AppButton color="secondary" size="small">
+                {appCopy.ui.navigation.funnelPages}
+              </AppButton>
+            </Link>
+            <Link to="/tools/nextland" style={{ textDecoration: 'none' }}>
+              <AppButton color="secondary" size="small">
+                {appCopy.ui.navigation.nextland}
+              </AppButton>
+            </Link>
+            <Link to="/tools/youtube-lf-script" style={{ textDecoration: 'none' }}>
+              <AppButton color="secondary" size="small">
+                {appCopy.ui.navigation.youtubeLfScript}
+              </AppButton>
+            </Link>
           </div>
         </AppCard>
 
@@ -92,9 +102,11 @@ export const DashboardPage = () => {
             <ul className={uiPrimitives.listClean}>
               {recentArtifacts.map((artifact) => (
                 <li key={artifact.artifactId}>
-                  <AppButton component={Link} to={`/artifacts/${artifact.artifactId}`} color="inherit" size="small">
-                    {artifact.artifactType} · {new Date(artifact.updatedAt).toLocaleDateString('it-IT')}
-                  </AppButton>
+                  <Link to={`/artifacts/${artifact.artifactId}`} style={{ textDecoration: 'none' }}>
+                    <AppButton color="inherit" size="small">
+                      {artifact.artifactType} · {new Date(artifact.updatedAt).toLocaleDateString('it-IT')}
+                    </AppButton>
+                  </Link>
                 </li>
               ))}
             </ul>

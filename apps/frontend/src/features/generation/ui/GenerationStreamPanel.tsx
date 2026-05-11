@@ -1,6 +1,7 @@
 import type { FrontendStreamStatus } from '../machines/frontend-stream.machine';
+import { Button } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
-import { Button, Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
 
 type GenerationStreamPanelProps = {
   status: FrontendStreamStatus;
@@ -64,13 +65,13 @@ export const GenerationStreamPanel = ({
       <pre aria-live="polite">{content.length > 0 ? content : appCopy.ui.states.noChunkReceived}</pre>
 
       <div className={uiPrimitives.actions}>
-        <Button type="button" onClick={onRetry} disabled={!canRetry}>
+        <Button type="button" variant="outlined" onClick={onRetry} disabled={!canRetry}>
           {appCopy.ui.actions.retry}
         </Button>
-        <Button type="button" onClick={onCancel} disabled={!canCancel}>
+        <Button type="button" variant="outlined" onClick={onCancel} disabled={!canCancel}>
           {appCopy.ui.actions.cancel}
         </Button>
-        <Button type="button" onClick={onReset}>
+        <Button type="button" variant="contained" onClick={onReset}>
           {appCopy.ui.actions.reset}
         </Button>
       </div>

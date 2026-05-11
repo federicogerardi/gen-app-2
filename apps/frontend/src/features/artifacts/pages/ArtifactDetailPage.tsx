@@ -1,9 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Button } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
-  Button,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -220,11 +220,11 @@ const LegacyArtifactView = ({
 
             <div className="ui-artifact-overview-actions">
               {sessionPath ? (
-                <Link to={sessionPath} className={uiPrimitives.button}>
+                <Button component={Link} to={sessionPath} variant="contained">
                   Apri sessione
-                </Link>
+                </Button>
               ) : (
-                <Button type="button" disabled>
+                <Button type="button" variant="contained" disabled>
                   {appCopy.ui.session.unavailable}
                 </Button>
               )}
@@ -236,10 +236,11 @@ const LegacyArtifactView = ({
                   }
                 }}
                 disabled={relaunchDisabled}
+                variant="outlined"
               >
                 {appCopy.ui.actions.relaunchPrimary}
               </Button>
-              <Button type="button" disabled={!isDeleteEnabled}>
+              <Button type="button" disabled={!isDeleteEnabled} variant="outlined" color="error">
                 {appCopy.ui.actions.deleteUiOnly}
               </Button>
             </div>

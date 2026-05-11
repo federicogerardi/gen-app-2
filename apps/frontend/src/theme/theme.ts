@@ -1,23 +1,28 @@
 import { createTheme } from '@mui/material/styles';
 
-// Tema centrale: personalizza palette, tipografia, spaziature secondo le linee guida del progetto
+// Tema centrale MUI v9+ con CSS Variables.
+// Supporta light/dark color schemes sincronizzati con MUI ThemeProvider.
 const theme = createTheme({
-  palette: {
-    mode: 'light', // supporto dark mode: 'dark'
-    primary: {
-      main: '#1976d2',
+  cssVariables: true,
+  colorSchemes: {
+    light: {
+      palette: {
+        primary: { main: '#1976d2' },
+        secondary: { main: '#9c27b0' },
+        background: { default: '#f5f5f5', paper: '#fff' },
+      },
     },
-    secondary: {
-      main: '#9c27b0',
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#fff',
+    dark: {
+      palette: {
+        primary: { main: '#3b82f6' },
+        secondary: { main: '#9c27b0' },
+        background: { default: '#08111f', paper: '#0f172a' },
+      },
     },
   },
   typography: {
     fontFamily: 'Roboto, Arial, sans-serif',
   },
-});
+} as const);
 
 export default theme;

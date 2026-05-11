@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
+import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -12,6 +13,8 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
+import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import {
   getSessionArtifacts,
   type SessionArtifactGroup,
@@ -26,6 +29,17 @@ const formatToolName = (toolKey: string | null): string => {
   return toolKey ?? 'Tool non disponibile';
 };
 
+const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
+  const finalizedArtifacts = group.artifacts.filter((artifact) => artifact.artifactRole === 'final');
+  const candidateArtifacts = finalizedArtifacts.length > 0 ? finalizedArtifacts : group.artifacts;
+
+  const latestArtifact = [...candidateArtifacts].sort(
+    (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+  )[0];
+
+  return latestArtifact?.artifactId ?? null;
+};
+
 type PageState =
   | { phase: 'loading' }
   | { phase: 'session'; group: SessionArtifactGroup }
@@ -36,12 +50,30 @@ export const SessionSummaryDetailPage = () => {
   const { sessionId = '' } = useParams();
   const navigate = useNavigate();
   const auth = useAuthSession();
+  const generation = useGenerationWorkspace();
   const projectsQuery = useProjectsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
     enabled: sessionId.length > 0,
   });
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
+  const sessionGroup = pageState.phase === 'session' ? pageState.group : null;
+  const relaunchSourceArtifactId = useMemo(
+    () => (sessionGroup ? resolveRelaunchSourceArtifactId(sessionGroup) : null),
+    [sessionGroup],
+  );
+  const relaunchArtifactQuery = useArtifactDetailQuery({
+    artifactId: relaunchSourceArtifactId ?? '',
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    localArtifacts: generation.artifacts,
+    enabled: sessionGroup !== null && relaunchSourceArtifactId !== null,
+  });
+  const relaunchPath = useMemo(
+    () => (relaunchArtifactQuery.data ? buildToolEntryPathFromArtifact(relaunchArtifactQuery.data, 'regenerate') : null),
+    [relaunchArtifactQuery.data],
+  );
+  const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
 
   useEffect(() => {
     if (!sessionId) {
@@ -150,9 +182,9 @@ export const SessionSummaryDetailPage = () => {
             </div>
 
             <div className="ui-artifact-overview-actions">
-              <Button component={Link} to="/sessionsummary" variant="contained">
-                {appCopy.ui.actions.openSessionArchive}
-              </Button>
+              <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
+                Rilancia
+              </SecondaryCtaButton>
             </div>
           </section>
         </aside>

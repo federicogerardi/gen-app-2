@@ -4,6 +4,9 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
@@ -66,19 +69,41 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     navigate,
   } = useToolPage(props);
 
-  // Auto-select the catalog default model when the list first loads.
-  // Only fires once (tracked by ref) and only if the current model matches
-  // the static fallback set at form initialization.
+  // Zod schema per validazione form tool page
+  const toolFormSchema = z.object({
+    projectId: z.string().min(1, 'Project richiesto'),
+    model: z.string().min(1, 'Model richiesto'),
+    tone: z.string().min(1, 'Tone richiesto'),
+    briefingFile: z.any().optional(),
+  });
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(toolFormSchema),
+    defaultValues: {
+      projectId: formState.projectId,
+      model: formState.model,
+      tone: formState.tone,
+      briefingFile: undefined,
+    },
+    mode: 'onChange',
+  });
+
+  // Auto-select the catalog default model quando la lista si popola
   const defaultAppliedRef = useRef(false);
   useEffect(() => {
     if (defaultAppliedRef.current || modelOptions.length === 0) return;
     const catalogDefault = modelOptions.find((o) => o.isDefault);
     if (catalogDefault && formState.model !== catalogDefault.key) {
       setFormState((prev) => ({ ...prev, model: catalogDefault.key }));
+      setValue('model', catalogDefault.key);
     }
     defaultAppliedRef.current = true;
-  // Run only when modelOptions first becomes non-empty.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelOptions]);
 
   return (
@@ -91,72 +116,128 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               <p className={uiPrimitives.metaLine}>{toolConfig.displayName} configuration and generation</p>
             </header>
 
-            <form className="ui-tool-form">
+            <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
+              // Aggiorna lo stato del form globale e chiama la logica esistente
+              setFormState((prev) => ({
+                ...prev,
+                projectId: data.projectId,
+                model: data.model,
+                tone: data.tone,
+              }));
+              // Se c'è un file briefing, gestiscilo
+              if (data.briefingFile instanceof File) {
+                handleBriefingFileSelected(data.briefingFile);
+              }
+              // Esegui azione primaria (es. submit XState)
+              handlePrimaryAction();
+            })}>
+
               <div className="ui-tool-form-row ui-tool-form-row--triple">
-                <label>
-                  <span>Project</span>
-                  <select
-                    value={formState.projectId}
-                    onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
-                    disabled={projectsLoading || isStreamActive}
-                  >
-                    <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Controller
+                  name="projectId"
+                  control={control}
+                  render={({ field }) => (
+                    <label>
+                      <span>Project</span>
+                      <select
+                        {...field}
+                        disabled={projectsLoading || isStreamActive}
+                        onChange={e => {
+                          field.onChange(e);
+                          setFormState(prev => ({ ...prev, projectId: e.target.value }));
+                        }}
+                        value={formState.projectId}
+                      >
+                        <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
+                        {projects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.projectId && <span className={uiPrimitives.error}>{errors.projectId.message as string}</span>}
+                    </label>
+                  )}
+                />
 
-                <label>
-                  <span>Model</span>
-                  <select
-                    value={formState.model}
-                    onChange={(e) => setFormState({ ...formState, model: e.target.value })}
-                  >
-                    {modelOptions.length === 0 ? (
-                      <option value={formState.model}>{formState.model || 'No models available'}</option>
-                    ) : (
-                      modelOptions.map((o) => (
-                        <option key={o.key} value={o.key}>{o.label}</option>
-                      ))
-                    )}
-                  </select>
-                </label>
+                <Controller
+                  name="model"
+                  control={control}
+                  render={({ field }) => (
+                    <label>
+                      <span>Model</span>
+                      <select
+                        {...field}
+                        onChange={e => {
+                          field.onChange(e);
+                          setFormState(prev => ({ ...prev, model: e.target.value }));
+                        }}
+                        value={formState.model}
+                      >
+                        {modelOptions.length === 0 ? (
+                          <option value={formState.model}>{formState.model || 'No models available'}</option>
+                        ) : (
+                          modelOptions.map((o) => (
+                            <option key={o.key} value={o.key}>{o.label}</option>
+                          ))
+                        )}
+                      </select>
+                      {errors.model && <span className={uiPrimitives.error}>{errors.model.message as string}</span>}
+                    </label>
+                  )}
+                />
 
-                <label>
-                  <span>Tone</span>
-                  <select
-                    value={formState.tone}
-                    onChange={(e) => setFormState({ ...formState, tone: e.target.value })}
-                    disabled={isStreamActive}
-                  >
-                    {toneProfileOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Controller
+                  name="tone"
+                  control={control}
+                  render={({ field }) => (
+                    <label>
+                      <span>Tone</span>
+                      <select
+                        {...field}
+                        disabled={isStreamActive}
+                        onChange={e => {
+                          field.onChange(e);
+                          setFormState(prev => ({ ...prev, tone: e.target.value }));
+                        }}
+                        value={formState.tone}
+                      >
+                        {toneProfileOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.tone && <span className={uiPrimitives.error}>{errors.tone.message as string}</span>}
+                    </label>
+                  )}
+                />
               </div>
 
-              <label>
-                <span>Briefing File</span>
-                <input
-                  type="file"
-                  accept=".docx,.txt,.md"
-                  disabled={!formState.projectId.trim() || isStreamActive}
-                  onChange={(e) => {
-                    const selectedFile = e.target.files?.[0] ?? null;
-                    if (selectedFile) {
-                      handleBriefingFileSelected(selectedFile);
-                    } else {
-                      handleBriefingReset();
-                    }
-                  }}
-                />
-              </label>
+              <Controller
+                name="briefingFile"
+                control={control}
+                render={({ field }) => (
+                  <label>
+                    <span>Briefing File</span>
+                    <input
+                      type="file"
+                      accept=".docx,.txt,.md"
+                      disabled={!formState.projectId.trim() || isStreamActive}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        field.onChange(file);
+                        if (file) {
+                          handleBriefingFileSelected(file);
+                        } else {
+                          handleBriefingReset();
+                        }
+                      }}
+                    />
+                    {errors.briefingFile && <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span>}
+                  </label>
+                )}
+              />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
@@ -171,7 +252,18 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   ...machineViewModel.secondaryActionFlags,
                   canCancelGeneration: isGenerating,
                 }}
-                onPrimaryAction={handlePrimaryAction}
+                onPrimaryAction={handleSubmit((data) => {
+                  setFormState((prev) => ({
+                    ...prev,
+                    projectId: data.projectId,
+                    model: data.model,
+                    tone: data.tone,
+                  }));
+                  if (data.briefingFile instanceof File) {
+                    handleBriefingFileSelected(data.briefingFile);
+                  }
+                  handlePrimaryAction();
+                })}
                 onCancelGeneration={handleCancelGeneration}
                 isLoading={isGenerating}
               />

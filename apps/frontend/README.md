@@ -1,3 +1,4 @@
+
 # apps/frontend
 
 Frontend/UI bounded context runtime.
@@ -19,9 +20,17 @@ UI is a projection, not a parliament.
 
 <!-- bomberto-egg-03 cipher:reverse asrebs -->
 
+## UI Architecture & Design System
+
+- Tutti i nuovi componenti e layout sono basati su **MUI (Material UI)** per garantire coerenza visiva e accessibilità.
+- Il tema centrale è definito in `src/theme/theme.ts` e fornito globalmente tramite `ThemeProvider` in `main.tsx`.
+- La normalizzazione CSS e la gestione dark/light mode sono gestite tramite `CssBaseline` e la palette del tema MUI.
+- Tutti i form sono gestiti tramite **React Hook Form** e validati con **Zod**.
+
 ## Runtime Surfaces
 
 - src/: React + XState application
+- src/theme/: tema centrale MUI
 - server.mjs: same-origin frontend runtime and proxy layer
 - vite.config.ts: build pipeline
 

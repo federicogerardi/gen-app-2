@@ -867,28 +867,39 @@ export const generationSystemMachine = setup({
       },
     },
     toolGenerationFlow: {
+      // In 'new' mode, by-pass toolWorkflowMachine and stream directly to avoid orchestration gap.
+      // In 'resume'/'regenerate' mode, use toolWorkflowMachine to coordinate multi-step progression.
       entry: ['ensureArtifactId'],
+      always: [
+        {
+          guard: ({ context }) => resolveWorkflowRunMode(context) === 'new',
+          target: 'streaming',
+        },
+      ],
       invoke: {
         id: 'toolActor',
         src: 'invokeToolWorkflow',
         input: ({ context }) => {
           const plan = resolveToolWorkflowPlan(context);
           const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+          const runMode = resolveWorkflowRunMode(context);
 
           return {
             requestId: context.requestId,
             toolKey: plan?.toolKey ?? context.toolKey ?? 'workflow',
             workflowType: context.workflowType ?? 'generic',
-            runMode: resolveWorkflowRunMode(context),
+            runMode,
             steps: [stepDescriptor],
             dependencyGraph: {
               [stepDescriptor.key]: plan?.dependencyGraph[stepDescriptor.key] ?? stepDescriptor.dependencies,
             },
-            bootstrap: {
-              stepKey: stepDescriptor.key,
-              output: context.syntheticResponse,
-              artifactId: context.artifactId ?? context.artifactIdFactory(),
-            },
+            ...(runMode === 'new' ? {} : {
+              bootstrap: {
+                stepKey: stepDescriptor.key,
+                output: context.syntheticResponse,
+                artifactId: context.artifactId ?? context.artifactIdFactory(),
+              },
+            }),
             ...getRegistrySelector(context),
           };
         },

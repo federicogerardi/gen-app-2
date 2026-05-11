@@ -1,3 +1,4 @@
+
 import { Link, useSearchParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -5,6 +6,8 @@ import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery'
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { toolFormRegistry } from '../../tools/runtime/tool-form-architecture';
+import { AppButton } from '../../../components/AppButton';
+import { AppCard } from '../../../components/AppCard';
 
 export const DashboardPage = () => {
   const auth = useAuthSession();
@@ -30,9 +33,9 @@ export const DashboardPage = () => {
           <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.zeroState.eyebrow}</p>
           <h2>{appCopy.editorial.dashboard.zeroState.headline}</h2>
           <p>{appCopy.editorial.dashboard.zeroState.body}</p>
-          <Link to="/dashboard/projects/new" className={uiPrimitives.button}>
+          <AppButton component={Link} to="/dashboard/projects/new">
             {appCopy.editorial.dashboard.zeroState.cta}
-          </Link>
+          </AppButton>
         </div>
       </Surface>
     );
@@ -60,38 +63,43 @@ export const DashboardPage = () => {
       </TopBar>
 
       <section className={uiPrimitives.dashboardGrid}>
-        <Surface as="article" className={uiPrimitives.dashboardCard}>
-          <h3>{appCopy.editorial.dashboard.cards.projects.title}</h3>
+        <AppCard title={appCopy.editorial.dashboard.cards.projects.title}>
           <p>{appCopy.editorial.dashboard.cards.projects.body}</p>
-          <Link to="/dashboard/projects" className={uiPrimitives.inlineLink}>{appCopy.ui.actions.openProjects}</Link>
-        </Surface>
+          <AppButton component={Link} to="/dashboard/projects" sx={{ mt: 1 }}>
+            {appCopy.ui.actions.openProjects}
+          </AppButton>
+        </AppCard>
 
-        <Surface as="article" className={uiPrimitives.dashboardCard}>
-          <h3>{appCopy.editorial.dashboard.cards.tools.title}</h3>
+        <AppCard title={appCopy.editorial.dashboard.cards.tools.title}>
           <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
-          <div className={uiPrimitives.actions}>
-            <Link to="/tools/funnel-pages" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.funnelPages}</Link>
-            <Link to="/tools/nextland" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.nextland}</Link>
-            <Link to="/tools/youtube-lf-script" className={uiPrimitives.inlineLink}>{appCopy.ui.navigation.youtubeLfScript}</Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            <AppButton component={Link} to="/tools/funnel-pages" color="secondary" size="small">
+              {appCopy.ui.navigation.funnelPages}
+            </AppButton>
+            <AppButton component={Link} to="/tools/nextland" color="secondary" size="small">
+              {appCopy.ui.navigation.nextland}
+            </AppButton>
+            <AppButton component={Link} to="/tools/youtube-lf-script" color="secondary" size="small">
+              {appCopy.ui.navigation.youtubeLfScript}
+            </AppButton>
           </div>
-        </Surface>
+        </AppCard>
 
-        <Surface as="article" className={uiPrimitives.dashboardCard}>
-          <h3>{appCopy.editorial.dashboard.cards.recentArtifacts.title}</h3>
+        <AppCard title={appCopy.editorial.dashboard.cards.recentArtifacts.title}>
           {recentArtifacts.length === 0 ? (
             <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactsAvailable}</p>
           ) : (
             <ul className={uiPrimitives.listClean}>
               {recentArtifacts.map((artifact) => (
                 <li key={artifact.artifactId}>
-                  <Link to={`/artifacts/${artifact.artifactId}`} className={uiPrimitives.inlineLink}>
+                  <AppButton component={Link} to={`/artifacts/${artifact.artifactId}`} color="inherit" size="small">
                     {artifact.artifactType} · {new Date(artifact.updatedAt).toLocaleDateString('it-IT')}
-                  </Link>
+                  </AppButton>
                 </li>
               ))}
             </ul>
           )}
-        </Surface>
+        </AppCard>
       </section>
     </Surface>
   );

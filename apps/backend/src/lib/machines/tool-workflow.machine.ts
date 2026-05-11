@@ -1,4 +1,4 @@
-import { assign, setup } from 'xstate';
+import { assign, enqueueActions, setup } from 'xstate';
 
 import type {
   ToolWorkflowEvent,
@@ -126,6 +126,12 @@ export const toolWorkflowMachine = setup({
     cacheUnlockedStep: assign({
       lastUnlockedStep: ({ event }) => ('stepKey' in event ? event.stepKey : null),
     }),
+    autoStartFirstStep: enqueueActions(({ enqueue, context }) => {
+      const firstIdleStep = context.stepStates.find(s => s.status === 'idle');
+      if (firstIdleStep) {
+        enqueue.raise({ type: 'STEP_START', stepKey: firstIdleStep.key });
+      }
+    }),
   },
 }).createMachine({
   id: 'toolWorkflowMachine',
@@ -142,6 +148,7 @@ export const toolWorkflowMachine = setup({
   },
   states: {
     running: {
+      entry: 'autoStartFirstStep',
       on: {
         STEP_START: {
           guard: 'dependenciesSatisfied',

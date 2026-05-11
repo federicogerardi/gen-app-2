@@ -51,6 +51,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
+    dispatchError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -247,6 +248,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
+
+              {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
               <p className={uiPrimitives.metaLine}>
                 Briefing status: {effectiveBriefingStatus}

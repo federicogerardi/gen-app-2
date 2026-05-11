@@ -72,6 +72,7 @@ export const useToolPage = ({
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
   const sessionIdRef = useRef<string>(createSessionId());
@@ -119,6 +120,10 @@ export const useToolPage = ({
         : 'idle';
   const briefingError = briefingSnapshot.context.error;
   const briefingFileNameFromActor = briefingSnapshot.context.fileName;
+  const normalizedProjectId = formState.projectId.trim();
+  const workspaceExtractionContext = normalizedProjectId
+    ? generation.getExtractionContext(normalizedProjectId)
+    : null;
 
   // 1. One-shot prefill from route params
   useEffect(() => {
@@ -132,6 +137,49 @@ export const useToolPage = ({
     generation.setFocusedProjectId(nextProjectId);
     initialPrefillDoneRef.current = true;
   }, [generation, initialProjectId, setFormState]);
+
+  useEffect(() => {
+    if (!briefingSnapshot.matches('ready')) return;
+    if (!normalizedProjectId) return;
+
+    const briefingIdFromActor = briefingSnapshot.context.briefingId?.trim() ?? '';
+    const extractionArtifactIdFromActor = briefingSnapshot.context.extractionArtifactId?.trim() ?? '';
+    const normalizedTextFromActor = briefingSnapshot.context.normalizedText?.trim() ?? '';
+    const extractionPayloadFromActor = briefingSnapshot.context.extractionPayload ?? {};
+    const parsedFormatFromActor = briefingSnapshot.context.parsedFormat;
+
+    if (
+      briefingIdFromActor.length === 0 ||
+      extractionArtifactIdFromActor.length === 0 ||
+      normalizedTextFromActor.length === 0 ||
+      parsedFormatFromActor === null
+    ) {
+      return;
+    }
+
+    const isWorkspaceContextCurrent =
+      workspaceExtractionContext !== null
+      && workspaceExtractionContext.projectId === normalizedProjectId
+      && workspaceExtractionContext.briefingId === briefingIdFromActor
+      && workspaceExtractionContext.extractionArtifactId === extractionArtifactIdFromActor
+      && workspaceExtractionContext.normalizedText === normalizedTextFromActor
+      && workspaceExtractionContext.parsedFormat === parsedFormatFromActor
+      && JSON.stringify(workspaceExtractionContext.extractionPayload) === JSON.stringify(extractionPayloadFromActor);
+
+    if (isWorkspaceContextCurrent) {
+      return;
+    }
+
+    generation.upsertExtractionContext({
+      projectId: normalizedProjectId,
+      briefingId: briefingIdFromActor,
+      extractionArtifactId: extractionArtifactIdFromActor,
+      extractionPayload: extractionPayloadFromActor,
+      normalizedText: normalizedTextFromActor,
+      parsedFormat: parsedFormatFromActor,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [briefingSnapshot, generation, normalizedProjectId, workspaceExtractionContext]);
 
   // 2. Resolve source artifact for relaunch intent
   useEffect(() => {
@@ -163,8 +211,6 @@ export const useToolPage = ({
       cancelled = true;
     };
   }, [generation.artifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
-
-  const normalizedProjectId = formState.projectId.trim();
 
   // 3. Hydrate extraction context from source artifact
   useEffect(() => {
@@ -396,6 +442,14 @@ export const useToolPage = ({
                 : briefingContextText,
           };
         }
+        if (workspaceExtractionContext !== null) {
+          return {
+            extractionArtifactId: workspaceExtractionContext.extractionArtifactId,
+            extractionPayload: workspaceExtractionContext.extractionPayload,
+            briefingId: workspaceExtractionContext.briefingId,
+            briefingText: workspaceExtractionContext.normalizedText,
+          };
+        }
         if (hasSourceArtifact) return null;
         const bc = briefingSnapshot.context;
         if (bc.extractionArtifactId && bc.briefingId) {
@@ -544,6 +598,7 @@ export const useToolPage = ({
       machineHydrationResult,
       machineViewModel.primaryActionPolicy,
       normalizedProjectId,
+      workspaceExtractionContext,
       nextAvailableStep,
       pausedCheckpointStep,
       primaryTargetStep,
@@ -564,9 +619,18 @@ export const useToolPage = ({
   useEffect(() => {
     const pending = toolPageSnapshot.context.pendingStepStart;
     if (!pending) return;
+    const capturedStep = pending.step;
     currentRunPrefixRef.current = pending.runRequestPrefix;
-    void startGenerationStep(pending.step);
+    // Clear pendingStepStart before the async call to prevent re-entry
     toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
+    void (async () => {
+      const success = await startGenerationStep(capturedStep);
+      if (!success) {
+        // Reset machine to configuring and surface error to user
+        setDispatchError('Impossibile avviare la generazione. Controlla la connessione e riprova.');
+        toolPageSend({ type: 'CANCEL_GENERATION' });
+      }
+    })();
   }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
 
   // 8. Bridge: stream terminal → machine STEP_DONE/STEP_FAILED
@@ -593,15 +657,7 @@ export const useToolPage = ({
       const inferredStep = (
         generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
       )?.step;
-      if (
-        typeof inferredStep === 'string' &&
-        toolConfig.steps.includes(inferredStep as ToolStep)
-      ) {
-        if (import.meta.env.DEV) {
-          console.warn('[useToolPage] inferring step from lastRequest (TASK-026 pending)', {
-            inferredStep,
-          });
-        }
+      if (typeof inferredStep === 'string' && toolConfig.steps.includes(inferredStep as ToolStep)) {
         toolPageSend({ type: 'STEP_DONE', step: inferredStep as ToolStep });
       }
     }
@@ -665,6 +721,7 @@ export const useToolPage = ({
 
     const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
     toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
@@ -713,6 +770,7 @@ export const useToolPage = ({
     projectsLoading,
     // Briefing
     briefingError,
+    dispatchError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     // Machine

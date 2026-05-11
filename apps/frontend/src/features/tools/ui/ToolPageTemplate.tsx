@@ -8,6 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, MenuItem, TextField } from '@mui/material';
+import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
@@ -224,6 +225,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <Button
                       component="label"
                       variant="outlined"
+                      startIcon={<Upload size={16} aria-hidden="true" />}
+                      fullWidth
+                      sx={{ minHeight: 56, whiteSpace: 'nowrap' }}
                       disabled={!formState.projectId.trim() || isStreamActive}
                     >
                       Briefing File
@@ -250,11 +254,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
               {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
-
-              <p className={uiPrimitives.metaLine}>
-                Briefing status: {effectiveBriefingStatus}
-                {effectiveBriefingFileName ? ` - ${effectiveBriefingFileName}` : ''}
-              </p>
 
               <ToolActionButtons
                 primaryPolicy={machineViewModel.primaryActionPolicy}

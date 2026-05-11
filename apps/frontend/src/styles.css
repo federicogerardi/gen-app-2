@@ -1567,7 +1567,7 @@ button:not(.MuiButton-root):not([class]):disabled,
   gap: var(--space-2);
 }
 
-.ui-tool-form label {
+.ui-tool-form label:not(.MuiButton-root) {
   display: grid;
   gap: var(--space-micro);
 }

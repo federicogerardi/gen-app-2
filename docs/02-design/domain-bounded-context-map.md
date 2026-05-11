@@ -80,13 +80,13 @@ owner: Domain Architecture
 - `toolFlowMachine` — step-by-step generation flow
 - `frontendStreamMachine` — SSE stream consumer
 
-**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`, `LlmModelSelector`  
+**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `ToolAvailabilityStatus`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`, `LlmModelSelector`  
 **Key Domain Services**: `BriefingUpload`  
 **Client-Side Projections**: `StepHydration` (projects BE-owned `WorkflowStep` state into FE context; does not own domain logic — see DDD-028)
 
 **Architecture boundary**: Frontend owns interaction and display only. Step ordering authority is BE (`toolWorkflowStepOrder`, `resolveStepDependencyIds`). Step dependency resolution at dispatch time should route through `/api/tools/orchestrate` (BE endpoint). See DDD-C-007 for the current code-level drift.
 
-**Organizing concept**: `SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term.
+**Organizing concept**: `SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolAvailabilityStatus` governs whether a `SupportedTool` is exposed in navigation, dashboard shortcuts, and generated tool routes without changing identity. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term.
 
 ---
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, IconButton } from '@mui/material';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
 import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
@@ -111,47 +112,48 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
   return (
     <section className="ui-session-artifact-panel">
       <div className="ui-session-step-tabs-shell">
-        <button
-          type="button"
+        <IconButton
           className="ui-session-step-control ui-session-step-scroll"
           aria-label="Scroll session steps left"
           onClick={() => {
             tabsScrollerRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
           }}
           disabled={!canScrollLeft}
+          size="small"
         >
           &lt;
-        </button>
+        </IconButton>
 
         <div ref={tabsScrollerRef} className="ui-session-step-tabs" role="tablist" aria-label="Session steps">
           {sortedArtifacts.map((artifact) => {
             const isActive = artifact.artifactId === selected.artifactId;
             return (
-              <button
+              <Button
                 key={artifact.artifactId}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
                 className={`ui-session-step-control ui-session-step-tab${isActive ? ' is-active' : ''}`}
                 onClick={() => setSelectedArtifactId(artifact.artifactId)}
+                variant="text"
               >
                 {toDisplayStep(artifact)}
-              </button>
+              </Button>
             );
           })}
         </div>
 
-        <button
-          type="button"
+        <IconButton
           className="ui-session-step-control ui-session-step-scroll"
           aria-label="Scroll session steps right"
           onClick={() => {
             tabsScrollerRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
           }}
           disabled={!canScrollRight}
+          size="small"
         >
           &gt;
-        </button>
+        </IconButton>
       </div>
 
       <ArtifactContentPreview

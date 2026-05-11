@@ -923,7 +923,7 @@ describe('ToolPageTemplate restore flow', () => {
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it('uses completed CTA policy without dispatching generation start', async () => {
+  it('uses completed CTA policy without exposing a Visualizza button', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -971,15 +971,13 @@ describe('ToolPageTemplate restore flow', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /visualizza i risultati/i })).not.toBeInTheDocument();
     });
-
-    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
 
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it('completed CTA navigates to last artifact detail when available', async () => {
+  it('completed flow keeps the user on the tool page', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -1034,12 +1032,10 @@ describe('ToolPageTemplate restore flow', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /visualizza i risultati/i })).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
-
-    expect(await screen.findByText('Artifact detail page')).toBeInTheDocument();
+    expect(screen.queryByText('Artifact detail page')).toBeNull();
     expect(screen.queryByText('Artifacts archive page')).toBeNull();
     expect(startMock).not.toHaveBeenCalled();
   });

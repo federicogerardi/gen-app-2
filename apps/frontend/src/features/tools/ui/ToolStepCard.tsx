@@ -4,6 +4,7 @@
  */
 
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { Button } from '@mui/material';
 import type { ToolStep, ToolStepStatus, SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 
@@ -71,13 +72,14 @@ export const ToolStepCard = ({
       {/* Actions */}
       <div className="ui-tool-step-actions">
         {artifactId && onViewArtifact && status === 'done' && (
-          <button
-            className={uiPrimitives.button}
+          <Button
+            type="button"
+            variant="outlined"
             onClick={onViewArtifact}
             title="Apri l'artefatto completo"
           >
             Visualizza
-          </button>
+          </Button>
         )}
         {status === 'error' && (
           <p className={uiPrimitives.error}>Generazione non riuscita per questo step.</p>

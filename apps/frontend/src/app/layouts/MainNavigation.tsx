@@ -14,6 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { appCopy, appNavigation } from '../copy/system';
+import { isToolEnabled } from '../../features/tools/runtime/tool-form-architecture';
+import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
 import './MainNavigation.css';
 
@@ -48,7 +50,9 @@ export const MainNavigation = ({
   onLogout,
 }: MainNavigationProps) => {
   const visibleItems = appNavigation.filter(
-    (item) => !('adminOnly' in item && item.adminOnly) || isAdmin,
+    (item) => (!('adminOnly' in item && item.adminOnly) || isAdmin)
+      && (!item.to.startsWith('/tools/')
+      || isToolEnabled(item.to.replace('/tools/', '') as SupportedTool)),
   );
 
   return (

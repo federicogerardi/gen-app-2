@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
-  Button,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -152,7 +152,6 @@ const LegacyArtifactView = ({
   artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>;
   projectName: string | null;
 }) => {
-  const navigate = useNavigate();
   const generation = useGenerationWorkspace();
   const restartPath = useMemo(
     () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
@@ -220,28 +219,24 @@ const LegacyArtifactView = ({
 
             <div className="ui-artifact-overview-actions">
               {sessionPath ? (
-                <Link to={sessionPath} className={uiPrimitives.button}>
+                <PrimaryCtaButton component={Link} to={sessionPath}>
                   Apri sessione
-                </Link>
+                </PrimaryCtaButton>
               ) : (
-                <Button type="button" disabled>
+                <PrimaryCtaButton type="button" disabled>
                   {appCopy.ui.session.unavailable}
-                </Button>
+                </PrimaryCtaButton>
               )}
-              <Button
-                type="button"
-                onClick={() => {
-                  if (restartPath) {
-                    navigate(restartPath);
-                  }
-                }}
+              <SecondaryCtaButton
+                component={Link}
+                to={restartPath ?? '#'}
                 disabled={relaunchDisabled}
               >
                 {appCopy.ui.actions.relaunchPrimary}
-              </Button>
-              <Button type="button" disabled={!isDeleteEnabled}>
+              </SecondaryCtaButton>
+              <SoftCtaButton type="button" disabled={!isDeleteEnabled}>
                 {appCopy.ui.actions.deleteUiOnly}
-              </Button>
+              </SoftCtaButton>
             </div>
           </section>
 

@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 date_created: 2026-04-28
-last-reviewed: 2026-05-04
-next-review-date: 2026-08-04
+last-reviewed: 2026-05-11
+next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: design-system-guide
 ---
@@ -14,7 +14,7 @@ type: design-system-guide
 
 Data: 2026-04-28  
 Status: Active  
-Versione: 1.2
+Versione: 1.3
 
 ## 1. Ruolo del documento
 
@@ -60,9 +60,17 @@ Keyword di riferimento:
 
 Nota aggiornamento 2026-04-28:
 
-- il sistema token supporta esplicitamente tema light + dark tramite override su `:root[data-theme='dark']` in `frontend/src/styles.css`.
-- il cambio tema e gestito da `ThemeProvider` con toggle icon-only in shell pubblica/autenticata.
-- per coerenza UX, il cambio tema avviene senza transizioni CSS globali.
+- il sistema token supporta esplicitamente tema light + dark tramite override su `:root[data-theme='dark']` in `apps/frontend/src/styles.css`.
+- il cambio tema avviene senza transizioni CSS globali per coerenza UX.
+
+Nota aggiornamento 2026-05-11 — MUI Theming Engine (v9):
+
+- il sistema di theming è ora unificato e gestito interamente da MUI v9 tramite `cssVariables: true` + `colorSchemes: { light, dark }` in `apps/frontend/src/theme/theme.ts`.
+- MUI scrive automaticamente le CSS custom properties sul selettore `[data-theme="%s"]`, allineandosi al selettore già presente in `styles.css`.
+- il custom `ThemeProvider` applicativo è stato rimosso; l'unico provider attivo è `ThemeProvider` di `@mui/material` con `defaultMode="system"` in `App.tsx`.
+- il toggle tema usa `useColorScheme` da `@mui/material` (hook nativo MUI v9); non espone più `useTheme` custom.
+- la preferenza utente è persistita da MUI in `localStorage`; non è necessaria logica custom di storage.
+- i CSS custom properties legacy in `styles.css` rimangono invariati: MUI li sincronizza tramite il `colorSchemeSelector`.
 
 ## 3.1 Colori
 
@@ -152,9 +160,10 @@ Il UI kit deve usare le primitive condivise e i token di classe centralizzati.
 
 Riferimenti implementativi:
 
-- frontend/src/app/ui/primitives.tsx
-- frontend/src/styles.css
-- frontend/src/app/copy/system.ts
+- `apps/frontend/src/app/ui/primitives.tsx` — token classi CSS condivisi
+- `apps/frontend/src/styles.css` — CSS custom properties e override dark mode
+- `apps/frontend/src/theme/theme.ts` — definizione tema MUI (CSS vars + colorSchemes)
+- `apps/frontend/src/app/copy/system.ts` — copy centralizzato
 
 Componenti core:
 
@@ -166,7 +175,7 @@ Componenti core:
 - Input/select/textarea/file input
 - Status line/meta line/error
 - Card stato e card step tool
-- Theme toggle icon-only (header utility action)
+- Theme toggle icon-only (header utility action) — usa `useColorScheme` da `@mui/material`
 - Artifact content toolbar (tabs `Markdown`/`Raw` + azione copy)
 
 Regole di composizione:
@@ -174,6 +183,36 @@ Regole di composizione:
 - prima si riusa un componente/token esistente
 - se manca, si introduce token condiviso prima dell'uso locale
 - vietato introdurre naming CSS locale non generalizzabile
+
+## 5.1 Standard contrasto button (light/dark)
+
+Questo standard e vincolante per tutte le CTA (`Button` MUI e `.ui-button`) in tema chiaro e scuro.
+
+Token canonici:
+
+- primary background (light): `#2563EB` (`Workspace Blue`)
+- primary text (light): `#F8FAFC`
+- primary background (dark): `#3B82F6`
+- primary text (dark): `#EFF6FF`
+- outlined/text foreground (light): `#2563EB` o `#0F172A` in base al contesto
+- outlined/text foreground (dark): `#93C5FD` o `#E5EDF8` in base al contesto
+- destructive foreground/border: `#B42318` solo per stati di errore/alert critici
+
+Regole operative:
+
+- nessun selettore CSS globale su `button` puo sovrascrivere i componenti MUI (`.MuiButton-root`)
+- i bottoni MUI devono mantenere il contrasto nativo del tema per varianti `contained`, `outlined`, `text`
+- ogni CTA deve garantire contrasto minimo WCAG AA (4.5:1) tra testo e sfondo nel tema attivo
+- `variant="text"` e obbligatoria per azioni secondarie non implementate o non distruttive nella sidebar (evita bordi fuorvianti)
+- `color="error"` non va usato per CTA operative standard (retry/cancel/relaunch): e riservato a error state e alert critici
+
+Matrice canonica per variante:
+
+| Variante | Tema chiaro | Tema scuro | Uso canonico |
+| --- | --- | --- | --- |
+| `contained` | sfondo `#2563EB`, testo `#F8FAFC` | sfondo `#3B82F6`, testo `#EFF6FF` | CTA primaria di pagina/sezione |
+| `outlined` | bordo+testo primario con contrasto AA su superficie chiara | bordo+testo primario con contrasto AA su superficie scura | CTA secondaria operativa |
+| `text` | testo primario/link senza bordo | testo primario/link senza bordo | azione secondaria leggera, fallback non distruttivo |
 
 ## 6. Stati visuali e feedback
 
@@ -236,9 +275,10 @@ In caso di conflitto tra documenti:
 
 ## 10. Checklist rapida per PR frontend GUI
 
-- usa token esistenti
+- usa token esistenti (CSS custom properties da `styles.css` o palette MUI da `theme.ts`)
 - non introduce classi locali ridondanti
 - rispetta layout canonico a 2 colonne
 - mantiene coerenza stato/feedback
+- non introduce provider tema custom; usa esclusivamente `useColorScheme` per leggere/modificare il tema
 - passa typecheck e test
 - aggiorna documentazione se modifica regole canoniche

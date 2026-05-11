@@ -4,11 +4,10 @@ import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import {
   cx,
-  EmptyStateMessage,
-  ErrorStateMessage,
-  LoadingStateMessage,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
+import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -106,145 +105,97 @@ export const ArtifactsListingSection = ({
   const totalPages = useMemo(() => {
     return artifactsQuery.totalResults === 0 ? 0 : Math.ceil(artifactsQuery.totalResults / pageSize);
   }, [artifactsQuery.totalResults]);
-  const hasPreviousPage = page > 1;
-  const hasNextPage = page < totalPages;
-  const pageNumbers = useMemo(
-    () => Array.from({ length: totalPages }, (_, index) => index + 1),
-    [totalPages],
+  const columns = useMemo<ListingTableColumn[]>(() => [
+    { key: 'type', header: appCopy.ui.labels.type },
+    { key: 'status', header: appCopy.ui.labels.status },
+    { key: 'project', header: appCopy.ui.labels.project },
+    { key: 'updated', header: appCopy.ui.meta.updated },
+    { key: 'openDetail', header: appCopy.ui.actions.openDetail },
+  ], []);
+
+  const filtersNode = (
+    <div className={uiPrimitives.artifactFilters}>
+      <label>
+        {appCopy.ui.labels.type}
+        <select
+          value={filters.type}
+          onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value as ArtifactQuery['type'] }))}
+        >
+          {appCopy.ui.options.artifactTypes.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        {appCopy.ui.labels.status}
+        <select
+          value={filters.status}
+          onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ArtifactQuery['status'] }))}
+        >
+          {appCopy.ui.options.artifactStatuses.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        {appCopy.ui.labels.project}
+        <input
+          value={(normalizedFixedProjectId ?? filters.projectId) === 'all' ? '' : (normalizedFixedProjectId ?? filters.projectId)}
+          onChange={(event) => {
+            const value = event.target.value.trim();
+            setFilters((prev) => ({ ...prev, projectId: value.length > 0 ? value : 'all' }));
+          }}
+          placeholder={appCopy.ui.placeholders.projectId}
+          disabled={normalizedFixedProjectId !== null}
+        />
+      </label>
+    </div>
   );
 
-  const HeadingTag = headingLevel;
-
   return (
-    <section className={uiPrimitives.stack}>
-      <HeadingTag>{title}</HeadingTag>
+    <ListingTableSection
+      title={title}
+      headingLevel={headingLevel}
+      loading={artifactsQuery.loading}
+      error={artifactsQuery.error}
+      isEmpty={items.length === 0}
+      emptyMessage={emptyStateMessage ?? appCopy.ui.states.noArtifactsAvailable}
+      columns={columns}
+      rows={items}
+      rowKey={(artifact) => artifact.artifactId}
+      renderCell={(artifact, columnKey) => {
+        const resolvedProjectName =
+          (normalizedFixedProjectId !== null && artifact.projectId === normalizedFixedProjectId
+            ? normalizedFixedProjectName
+            : null)
+          ?? projectNameById[artifact.projectId]
+          ?? 'Progetto non disponibile';
 
-      {artifactsQuery.loading ? <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage> : null}
-      {artifactsQuery.error ? <ErrorStateMessage>{artifactsQuery.error}</ErrorStateMessage> : null}
+        if (columnKey === 'type') return <strong>{artifact.artifactType}</strong>;
+        if (columnKey === 'status') return artifact.status;
+        if (columnKey === 'project') return resolvedProjectName;
+        if (columnKey === 'updated') return new Date(artifact.updatedAt).toLocaleString();
 
-      <div className={uiPrimitives.artifactFilters}>
-        <label>
-          {appCopy.ui.labels.type}
-          <select
-            value={filters.type}
-            onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value as ArtifactQuery['type'] }))}
+        return (
+          <Link
+            to={`/artifacts/${artifact.artifactId}`}
+            className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
           >
-            {appCopy.ui.options.artifactTypes.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          {appCopy.ui.labels.status}
-          <select
-            value={filters.status}
-            onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value as ArtifactQuery['status'] }))}
-          >
-            {appCopy.ui.options.artifactStatuses.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          {appCopy.ui.labels.project}
-          <input
-            value={(normalizedFixedProjectId ?? filters.projectId) === 'all' ? '' : (normalizedFixedProjectId ?? filters.projectId)}
-            onChange={(event) => {
-              const value = event.target.value.trim();
-              setFilters((prev) => ({ ...prev, projectId: value.length > 0 ? value : 'all' }));
-            }}
-            placeholder={appCopy.ui.placeholders.projectId}
-            disabled={normalizedFixedProjectId !== null}
-          />
-        </label>
-      </div>
-
-      {!artifactsQuery.loading && items.length === 0 ? (
-        <EmptyStateMessage>{emptyStateMessage ?? appCopy.ui.states.noArtifactsAvailable}</EmptyStateMessage>
-      ) : (
-        <div className={uiPrimitives.artifactTableWrap}>
-          <table className={uiPrimitives.artifactTable}>
-            <thead>
-              <tr>
-                <th scope="col">{appCopy.ui.labels.type}</th>
-                <th scope="col">{appCopy.ui.labels.status}</th>
-                <th scope="col">{appCopy.ui.labels.project}</th>
-                <th scope="col">{appCopy.ui.meta.updated}</th>
-                <th scope="col">{appCopy.ui.actions.openDetail}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((artifact) => {
-                const resolvedProjectName =
-                  (normalizedFixedProjectId !== null && artifact.projectId === normalizedFixedProjectId
-                    ? normalizedFixedProjectName
-                    : null)
-                  ?? projectNameById[artifact.projectId]
-                  ?? 'Progetto non disponibile';
-
-                return (
-                  <tr key={artifact.artifactId}>
-                    <td><strong>{artifact.artifactType}</strong></td>
-                    <td>{artifact.status}</td>
-                    <td>{resolvedProjectName}</td>
-                    <td>{new Date(artifact.updatedAt).toLocaleString()}</td>
-                    <td>
-                      <Link
-                        to={`/artifacts/${artifact.artifactId}`}
-                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                      >
-                        {appCopy.ui.actions.openDetail}
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            {appCopy.ui.actions.openDetail}
+          </Link>
+        );
+      }}
+      toolbarNode={filtersNode}
+      paginationNode={(
+        <PaginationBlockControls
+          page={page}
+          totalPages={totalPages}
+          isLoading={artifactsQuery.loading}
+          onPageChange={setPage}
+        />
       )}
-
-      <div className={cx(uiPrimitives.clusterRow, uiPrimitives.artifactTablePagination)}>
-        <button
-          type="button"
-          className={uiPrimitives.paginationControl}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          disabled={!hasPreviousPage || artifactsQuery.loading}
-        >
-          {appCopy.ui.actions.previousPage}
-        </button>
-
-        <div className={uiPrimitives.clusterRow}>
-          {pageNumbers.map((pageNumber) => (
-            <button
-              key={pageNumber}
-              type="button"
-              className={cx(
-                uiPrimitives.paginationControl,
-                uiPrimitives.paginationPage,
-                pageNumber === page ? uiPrimitives.paginationPageActive : null,
-              )}
-              onClick={() => setPage(pageNumber)}
-              disabled={artifactsQuery.loading}
-              aria-current={pageNumber === page ? 'page' : undefined}
-              aria-label={`${appCopy.ui.labels.page} ${pageNumber}`}
-            >
-              {pageNumber}
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className={uiPrimitives.paginationControl}
-          onClick={() => setPage((prev) => prev + 1)}
-          disabled={!hasNextPage || artifactsQuery.loading}
-        >
-          {appCopy.ui.actions.nextPage}
-        </button>
-      </div>
-    </section>
+    />
   );
 };

@@ -211,7 +211,7 @@ describe('ArtifactDetailPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.relaunchPrimary }));
+    fireEvent.click(screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary }));
 
     const location = await screen.findByTestId('location-echo');
     expect(location).toHaveTextContent('/tools/funnel-pages?');

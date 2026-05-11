@@ -23,7 +23,7 @@ UI is a projection, not a parliament.
 ## UI Architecture & Design System
 
 - Tutti i nuovi componenti e layout sono basati su **MUI (Material UI)** per garantire coerenza visiva e accessibilità.
-- Il tema centrale è definito in `src/theme/theme.ts` e fornito globalmente tramite `ThemeProvider` in `main.tsx`.
+- Il tema centrale è definito in `apps/frontend/src/theme/theme.ts` e fornito globalmente tramite `ThemeProvider` in `App.tsx`.
 - La normalizzazione CSS e la gestione dark/light mode sono gestite tramite `CssBaseline` e la palette del tema MUI.
 - Tutti i form sono gestiti tramite **React Hook Form** e validati con **Zod**.
 

@@ -110,6 +110,20 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelOptions]);
 
+  // Sync external formState changes (e.g. route prefills from useToolPage) into RHF
+  // so that handleSubmit always sees up-to-date values.
+  useEffect(() => {
+    setValue('projectId', formState.projectId);
+  }, [formState.projectId, setValue]);
+
+  useEffect(() => {
+    setValue('model', formState.model);
+  }, [formState.model, setValue]);
+
+  useEffect(() => {
+    setValue('tone', formState.tone);
+  }, [formState.tone, setValue]);
+
   return (
     <section className="ui-tool-page-template">
       <div className={uiPrimitives.stack}>
@@ -149,7 +163,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, projectId: e.target.value }));
                       }}
-                      value={formState.projectId}
+                      value={field.value}
                       error={!!errors.projectId}
                       helperText={errors.projectId?.message as string | undefined}
                       fullWidth
@@ -175,13 +189,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, model: e.target.value }));
                       }}
-                      value={formState.model}
+                      value={field.value}
                       error={!!errors.model}
                       helperText={errors.model?.message as string | undefined}
                       fullWidth
                     >
                       {modelOptions.length === 0 ? (
-                        <MenuItem value={formState.model}>{formState.model || 'No models available'}</MenuItem>
+                        <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
                       ) : (
                         modelOptions.map((o) => (
                           <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
@@ -203,7 +217,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, tone: e.target.value }));
                       }}
-                      value={formState.tone}
+                      value={field.value}
                       error={!!errors.tone}
                       helperText={errors.tone?.message as string | undefined}
                       fullWidth

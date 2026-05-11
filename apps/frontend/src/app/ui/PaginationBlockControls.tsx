@@ -64,10 +64,10 @@ export const PaginationBlockControls = ({
           }}
           disabled={previousBlockDisabled}
           aria-disabled={previousBlockDisabled}
-          aria-label="Mostra le 10 pagine precedenti"
-          title="Mostra le 10 pagine precedenti"
+          aria-label={`Mostra le ${maxVisiblePages} pagine precedenti`}
+          title={`Mostra le ${maxVisiblePages} pagine precedenti`}
         >
-          -10
+          -{maxVisiblePages}
         </button>
 
         {pageNumbers.map((pageNumber) => (
@@ -97,10 +97,10 @@ export const PaginationBlockControls = ({
           }}
           disabled={nextBlockDisabled}
           aria-disabled={nextBlockDisabled}
-          aria-label="Mostra le 10 pagine successive"
-          title="Mostra le 10 pagine successive"
+          aria-label={`Mostra le ${maxVisiblePages} pagine successive`}
+          title={`Mostra le ${maxVisiblePages} pagine successive`}
         >
-          +10
+          +{maxVisiblePages}
         </button>
       </div>
 

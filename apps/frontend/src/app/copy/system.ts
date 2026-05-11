@@ -200,7 +200,7 @@ export const appCopy = {
       pendingAccess: 'Accesso in corso...',
     },
     header: {
-      headline: 'Arsenal Stratego',
+      headline: 'Stratego Flow',
     },
     dashboard: {
       headline: 'La tua strategia di crescita, protetta.',

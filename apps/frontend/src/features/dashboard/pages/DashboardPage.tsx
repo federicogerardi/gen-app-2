@@ -32,15 +32,8 @@ export const DashboardPage = () => {
   });
 
   const artifactCount = generation.artifacts.length;
-  const enabledToolKeys = getEnabledToolKeys();
-  const toolsCount = enabledToolKeys.length;
-  const completedCount = generation.artifacts.filter((a) => a.status === 'completed').length;
-  const toolShortcutsCatalog: Array<{ toolKey: SupportedTool; to: string; label: string }> = [
-    { toolKey: 'funnel-pages', to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages },
-    { toolKey: 'nextland', to: '/tools/nextland', label: appCopy.ui.navigation.nextland },
-    { toolKey: 'youtube-lf-script', to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript },
-  ];
-  const toolShortcuts = toolShortcutsCatalog.filter((item) => enabledToolKeys.includes(item.toolKey));
+  const projectsCount = projectsQuery.data.length;
+  const sessionsCount = sessionsQuery.data.length;
 
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';
@@ -66,45 +59,56 @@ export const DashboardPage = () => {
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
-      <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.eyebrow}</p>
       <h2>{appCopy.editorial.dashboard.headline}</h2>
       <p>{appCopy.editorial.dashboard.body}</p>
 
       <TopBar as="section" className={uiPrimitives.surface}>
-        <div>
-          <h3>{artifactCount}</h3>
-          <p>{appCopy.editorial.dashboard.stats[0]}</p>
+        <div style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2.5rem', fontWeight: 700, margin: '0 0 4px 0', lineHeight: 1 }}>
+            {projectsCount}
+          </h3>
+          <p style={{ fontSize: '0.875rem', margin: '0', fontWeight: 500, opacity: 0.8 }}>
+            {appCopy.editorial.dashboard.stats[0]}
+          </p>
         </div>
-        <div>
-          <h3>{toolsCount}</h3>
-          <p>{appCopy.editorial.dashboard.stats[1]}</p>
+        <div style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2.5rem', fontWeight: 700, margin: '0 0 4px 0', lineHeight: 1 }}>
+            {sessionsCount}
+          </h3>
+          <p style={{ fontSize: '0.875rem', margin: '0', fontWeight: 500, opacity: 0.8 }}>
+            {appCopy.editorial.dashboard.stats[1]}
+          </p>
         </div>
-        <div>
-          <h3>{completedCount}</h3>
-          <p>{appCopy.editorial.dashboard.stats[2]}</p>
+        <div style={{ textAlign: 'center' }}>
+          <h3 style={{ fontSize: '2.5rem', fontWeight: 700, margin: '0 0 4px 0', lineHeight: 1 }}>
+            {artifactCount}
+          </h3>
+          <p style={{ fontSize: '0.875rem', margin: '0', fontWeight: 500, opacity: 0.8 }}>
+            {appCopy.editorial.dashboard.stats[2]}
+          </p>
         </div>
       </TopBar>
 
       <section className={uiPrimitives.dashboardGrid}>
         <AppCard title={appCopy.editorial.dashboard.cards.projects.title}>
-          <p>{appCopy.editorial.dashboard.cards.projects.body}</p>
-          <Link to="/dashboard/projects" style={{ textDecoration: 'none' }}>
-            <AppButton sx={{ mt: 1 }}>
-              {appCopy.ui.actions.openProjects}
-            </AppButton>
-          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+            <p>{appCopy.editorial.dashboard.cards.projects.body}</p>
+            <Link to="/dashboard/projects" style={{ textDecoration: 'none' }}>
+              <AppButton sx={{ mt: 2, width: '100%' }}>
+                {appCopy.ui.actions.openProjects}
+              </AppButton>
+            </Link>
+          </div>
         </AppCard>
 
         <AppCard title={appCopy.editorial.dashboard.cards.tools.title}>
-          <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-            {toolShortcuts.map((shortcut) => (
-              <Link key={shortcut.toolKey} to={shortcut.to} style={{ textDecoration: 'none' }}>
-                <AppButton size="small">
-                  {shortcut.label}
-                </AppButton>
-              </Link>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
+            <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
+            <Link to="/tools/funnel-pages" style={{ textDecoration: 'none' }}>
+              <AppButton sx={{ mt: 2, width: '100%' }}>
+                {appCopy.ui.navigation.funnelPages}
+              </AppButton>
+            </Link>
           </div>
         </AppCard>
 

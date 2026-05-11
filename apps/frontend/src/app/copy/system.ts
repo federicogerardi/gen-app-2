@@ -200,13 +200,11 @@ export const appCopy = {
       pendingAccess: 'Accesso in corso...',
     },
     header: {
-      eyebrow: 'Editorial growth cockpit',
-      headline: 'Campaign Operating System',
+      headline: 'Arsenal Stratego',
     },
     dashboard: {
-      eyebrow: 'Overview',
-      headline: 'Ogni sprint creativo, ordinato come un newsroom board.',
-      body: 'Monitora la pipeline di produzione, passa da un tool all\'altro e tieni vicini gli artifact che servono davvero alla prossima review.',
+      headline: 'La tua strategia di crescita, protetta.',
+      body: 'Ogni progetto è trattato come se il budget fosse nostro. Dalla definizione della strategia all\'esecuzione, proteggiamo ogni euro e otteniamo risultati concreti.',
       zeroState: {
         eyebrow: 'Benvenuto',
         headline: 'Tutto inizia con un progetto.',
@@ -214,21 +212,21 @@ export const appCopy = {
         cta: 'Crea il tuo primo progetto',
       },
       stats: [
-        'artefatti nel workspace',
-        'tool disponibili per la generazione',
-        'artefatti completati con successo',
+        'Strategie protette',
+        'Generazioni eseguite',
+        'Risultati prodotti',
       ],
       cards: {
         projects: {
-          title: 'Projects',
-          body: 'Apri i contesti attivi, prepara nuovi brief e mantieni allineati team, target e deliverable.',
+          title: 'Le tue strategie',
+          body: 'Ogni progetto è uno spazio dove definisci la strategia e proteggi il tuo investimento. Strategie pensate per moltiplicare i risultati.',
         },
         tools: {
-          title: 'Tools',
-          body: 'Dai forma a funnel e pagine con flussi guidati pensati per produzione rapida e handoff pulito.',
+          title: 'Generazione per la tua strategia',
+          body: 'Hotlead Funnel per generare lead e moltiplicare i risultati. Lo strumento giusto, secondo la tua strategia.',
         },
           recentSessions: {
-            title: 'Recent Sessions',
+            title: 'La tua storia di risultati',
         },
       },
     },

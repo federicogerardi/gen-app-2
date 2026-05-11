@@ -276,7 +276,7 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~400–58
 File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~710–745)
 
 ```
-if (primaryActionPolicy === 'open-last-artifact') → navigate to /artifacts/{lastArtifactId}
+if (primaryActionPolicy === 'open-last-artifact') → navigate to /sessionsummary/{sessionIdRef.current}
 else:
   guard: !readinessSnapshot.canStartFlow → no-op
   guard: generation.isStreamActive → no-op

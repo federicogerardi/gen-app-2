@@ -1,7 +1,8 @@
 import { createTheme } from '@mui/material/styles';
 
 // Tema centrale MUI v9+ con CSS Variables.
-// Supporta light/dark color schemes sincronizzati con MUI ThemeProvider.
+// colorSchemeSelector sincronizza MUI con i CSS custom properties legacy
+// che usano il selettore :root[data-theme='dark'] in styles.css.
 const theme = createTheme({
   cssVariables: true,
   colorSchemes: {
@@ -20,9 +21,11 @@ const theme = createTheme({
       },
     },
   },
+  // @ts-expect-error colorSchemeSelector is valid at runtime for CssVarsTheme but missing from createTheme overload types
+  colorSchemeSelector: '[data-theme="%s"]',
   typography: {
     fontFamily: 'Roboto, Arial, sans-serif',
   },
-} as const);
+});
 
 export default theme;

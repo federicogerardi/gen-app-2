@@ -227,8 +227,8 @@ export const appCopy = {
           title: 'Tools',
           body: 'Dai forma a funnel e pagine con flussi guidati pensati per produzione rapida e handoff pulito.',
         },
-        recentArtifacts: {
-          title: 'Recent Artifacts',
+          recentSessions: {
+            title: 'Recent Sessions',
         },
       },
     },
@@ -293,6 +293,6 @@ export const appNavigation = [
   { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
-  { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false },
+  { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },
 ] as const;

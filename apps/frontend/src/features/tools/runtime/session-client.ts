@@ -40,6 +40,7 @@ export type SessionSummary = {
   toolKey: string | null;
   status: 'generating' | 'completed' | 'failed';
   artifactCount: number;
+  createdAt?: string;
   updatedAt: string;
 };
 
@@ -81,6 +82,10 @@ const deriveSessionStatus = (
   return 'completed';
 };
 
+const getSessionSortTimestamp = (session: Pick<SessionSummary, 'createdAt' | 'updatedAt'>): number => {
+  return Date.parse(session.createdAt ?? session.updatedAt);
+};
+
 export const mapArtifactsToSessionSummaryFallback = (artifacts: Awaited<ReturnType<typeof listArtifacts>>['artifacts']): SessionSummary[] => {
   const bySession = new Map<string, SessionSummary>();
 
@@ -98,6 +103,7 @@ export const mapArtifactsToSessionSummaryFallback = (artifacts: Awaited<ReturnTy
         toolKey: artifact.toolKey ?? null,
         status: artifact.status,
         artifactCount: 1,
+        createdAt: artifact.createdAt,
         updatedAt: artifact.updatedAt,
       });
       continue;
@@ -107,13 +113,16 @@ export const mapArtifactsToSessionSummaryFallback = (artifacts: Awaited<ReturnTy
       ...current,
       status: deriveSessionStatus([current.status, artifact.status]),
       artifactCount: current.artifactCount + 1,
+      createdAt: Date.parse(artifact.createdAt) < Date.parse(current.createdAt ?? artifact.createdAt)
+        ? artifact.createdAt
+        : current.createdAt ?? artifact.createdAt,
       updatedAt: Date.parse(artifact.updatedAt) > Date.parse(current.updatedAt)
         ? artifact.updatedAt
         : current.updatedAt,
     });
   }
 
-  return [...bySession.values()].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  return [...bySession.values()].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a));
 };
 
 export const listSessions = async (
@@ -139,7 +148,7 @@ export const listSessions = async (
         credentials: 'include',
       },
     );
-    return (payload.data?.sessions ?? []).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+    return (payload.data?.sessions ?? []).sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a));
   }
 
   const result = await listArtifacts(

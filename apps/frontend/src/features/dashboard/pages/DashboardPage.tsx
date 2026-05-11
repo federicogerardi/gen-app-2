@@ -3,12 +3,20 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
+import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getEnabledToolKeys } from '../../tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { AppButton } from '../../../components/AppButton';
 import { AppCard } from '../../../components/AppCard';
+
+const formatSessionToolName = (toolKey: string | null): string => {
+  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
+  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
+  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
+  return toolKey ?? 'Tool non disponibile';
+};
 
 export const DashboardPage = () => {
   const auth = useAuthSession();
@@ -18,8 +26,11 @@ export const DashboardPage = () => {
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
   });
+  const sessionsQuery = useSessionsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+  });
 
-  const recentArtifacts = generation.artifacts.slice(0, 5);
   const artifactCount = generation.artifacts.length;
   const enabledToolKeys = getEnabledToolKeys();
   const toolsCount = enabledToolKeys.length;
@@ -33,6 +44,8 @@ export const DashboardPage = () => {
 
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';
+  const projectNameById = new Map(projectsQuery.data.map((project) => [project.id, project.name]));
+  const recentSessions = sessionsQuery.data.slice(0, 5);
 
   if (hasNoProjects || previewZeroState) {
     return (
@@ -95,20 +108,29 @@ export const DashboardPage = () => {
           </div>
         </AppCard>
 
-        <AppCard title={appCopy.editorial.dashboard.cards.recentArtifacts.title}>
-          {recentArtifacts.length === 0 ? (
-            <p className={uiPrimitives.metaLine}>{appCopy.ui.states.noArtifactsAvailable}</p>
+        <AppCard title={appCopy.editorial.dashboard.cards.recentSessions.title}>
+          {sessionsQuery.loading ? (
+            <p className={uiPrimitives.metaLine}>Caricamento sessioni...</p>
+          ) : sessionsQuery.error ? (
+            <p className={uiPrimitives.error}>{sessionsQuery.error}</p>
+          ) : recentSessions.length === 0 ? (
+            <p className={uiPrimitives.metaLine}>{appCopy.editorial.sessions.emptyState}</p>
           ) : (
             <ul className={uiPrimitives.listClean}>
-              {recentArtifacts.map((artifact) => (
-                <li key={artifact.artifactId}>
-                  <Link to={`/artifacts/${artifact.artifactId}`} style={{ textDecoration: 'none' }}>
+              {recentSessions.map((session) => {
+                const projectName = projectNameById.get(session.projectId) ?? `Project ${session.projectId}`;
+                const createdAt = new Date(session.createdAt ?? session.updatedAt).toLocaleDateString('it-IT');
+
+                return (
+                  <li key={session.sessionId}>
+                    <Link to={`/sessionsummary/${session.sessionId}`} style={{ textDecoration: 'none' }}>
                     <AppButton color="inherit" size="small">
-                      {artifact.artifactType} · {new Date(artifact.updatedAt).toLocaleDateString('it-IT')}
+                        {projectName} · {formatSessionToolName(session.toolKey)} · {createdAt}
                     </AppButton>
-                  </Link>
-                </li>
-              ))}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </AppCard>

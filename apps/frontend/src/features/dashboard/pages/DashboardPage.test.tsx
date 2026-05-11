@@ -1,8 +1,20 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { DashboardPage } from './DashboardPage';
+
+const sessionsQueryState = vi.hoisted(() => ({
+  data: [] as Array<{ sessionId: string; projectId: string; toolKey: string | null; createdAt?: string; updatedAt: string }>,
+  loading: false,
+  error: null as string | null,
+}));
+
+const projectsQueryState = vi.hoisted(() => ({
+  data: [{ id: 'p1', name: 'Project One', description: '', updatedAt: '2026-05-12T10:00:00.000Z' }],
+  loading: false,
+  error: null as string | null,
+}));
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -10,7 +22,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     loading: false,
     error: null,
     apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
+    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false, sessionsList: true },
   }),
 }));
 
@@ -18,7 +30,24 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => projectsQueryState,
+}));
+
+vi.mock('../../../app/runtime/queries/useSessionsQuery', () => ({
+  useSessionsQuery: () => sessionsQueryState,
+}));
+
 describe('DashboardPage', () => {
+  beforeEach(() => {
+    sessionsQueryState.data = [];
+    sessionsQueryState.loading = false;
+    sessionsQueryState.error = null;
+    projectsQueryState.data = [{ id: 'p1', name: 'Project One', description: '', updatedAt: '2026-05-12T10:00:00.000Z' }];
+    projectsQueryState.loading = false;
+    projectsQueryState.error = null;
+  });
+
   it('renders dashboard heading', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
     expect(screen.getByRole('heading', { name: appCopy.editorial.dashboard.headline })).toBeInTheDocument();
@@ -31,22 +60,32 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText(/youtube lf script/i).length).toBeGreaterThan(0);
   });
 
-  it('shows empty state when no recent artifacts', () => {
+  it('shows empty state when no recent sessions', () => {
+    sessionsQueryState.data = [];
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getByText(appCopy.ui.states.noArtifactsAvailable)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.editorial.sessions.emptyState)).toBeInTheDocument();
+  });
+
+  it('renders recent sessions with project, tool, and creation date', () => {
+    sessionsQueryState.data = [
+      {
+        sessionId: 'sess-1',
+        projectId: 'p1',
+        toolKey: 'funnel-pages',
+        createdAt: '2026-05-12T10:00:00.000Z',
+        updatedAt: '2026-05-12T10:00:00.000Z',
+      },
+    ];
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(screen.getByText(appCopy.editorial.dashboard.cards.recentSessions.title)).toBeInTheDocument();
+    expect(screen.getByText(/Project One/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Hotlead Funnel/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/12\/05\/2026/i)).toBeInTheDocument();
   });
 
   it('renders artifact links when artifacts present', () => {
-    vi.doMock('../../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
-      useGenerationWorkspace: () => ({
-        artifacts: [{
-          artifactId: 'a1', artifactType: 'funnel-pages', status: 'completed',
-          projectId: 'p1', requestId: 'r1', model: 'm', toolKey: null,
-          workflowType: null, content: '', createdAt: '', updatedAt: '', sourceRequest: {},
-        }],
-        isStreamActive: false,
-      }),
-    }));
     // Primary render with empty mocked list already asserts no-crash
   });
 });

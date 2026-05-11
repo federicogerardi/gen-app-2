@@ -43,6 +43,15 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => mocks.authSession,
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'p-1', name: 'Project One', description: '', updatedAt: '2026-05-09T10:00:00.000Z' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../../tools/runtime/session-client', () => ({
   getSessionArtifacts: mocks.getSessionArtifacts,
 }));
@@ -66,7 +75,7 @@ describe('SessionSummaryDetailPage', () => {
     renderPage(SessionSummaryDetailPage);
 
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: appCopy.editorial.sessions.detailTitle })).toHaveLength(2);
+    expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(2);
     expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
     expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
     expect(screen.getByText('completed')).toBeInTheDocument();

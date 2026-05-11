@@ -3,6 +3,7 @@ import { Button } from '@mui/material';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -18,6 +19,13 @@ import {
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
 
+const formatToolName = (toolKey: string | null): string => {
+  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
+  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
+  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
+  return toolKey ?? 'Tool non disponibile';
+};
+
 type PageState =
   | { phase: 'loading' }
   | { phase: 'session'; group: SessionArtifactGroup }
@@ -28,6 +36,11 @@ export const SessionSummaryDetailPage = () => {
   const { sessionId = '' } = useParams();
   const navigate = useNavigate();
   const auth = useAuthSession();
+  const projectsQuery = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: sessionId.length > 0,
+  });
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
 
   useEffect(() => {
@@ -105,11 +118,16 @@ export const SessionSummaryDetailPage = () => {
 
   const group = pageState.group;
   const effectiveToolKey = asSupportedTool(group.toolKey);
+  const projectId = group.artifacts[0]?.projectId ?? null;
+  const projectName = projectId
+    ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `Project ${projectId}`
+    : 'Project non disponibile';
+  const detailTitle = `${projectName} - ${formatToolName(group.toolKey)}`;
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
-        <h2>{appCopy.editorial.sessions.detailTitle}</h2>
+        <h2>{detailTitle}</h2>
         <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
@@ -124,7 +142,7 @@ export const SessionSummaryDetailPage = () => {
           <section className="ui-artifact-overview" aria-label="Panoramica sessione">
             <div className="ui-artifact-overview-main">
               <div className="ui-artifact-overview-heading-row">
-                <h3 className="ui-artifact-overview-title">{appCopy.editorial.sessions.detailTitle}</h3>
+                <h3 className="ui-artifact-overview-title">{detailTitle}</h3>
                 <span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>{group.status}</span>
               </div>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.sessionId, group.sessionId)}</p>

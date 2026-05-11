@@ -39,11 +39,10 @@ const statusLabel = (status: SessionSummary['status']): string => {
 };
 
 const toolLabel = (toolKey: string | null): string => {
-  if (!toolKey) return '—';
-  if (toolKey === 'funnel-pages') return 'Funnel Pages';
-  if (toolKey === 'nextland') return 'Nextland';
-  if (toolKey === 'youtube-lf-script') return 'YouTube LF Script';
-  return toolKey;
+  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
+  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
+  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
+  return toolKey ?? '—';
 };
 
 export const SessionsListingSection = ({

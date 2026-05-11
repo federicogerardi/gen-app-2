@@ -8,15 +8,13 @@ const theme = createTheme({
   colorSchemes: {
     light: {
       palette: {
-        primary: { main: '#1976d2' },
-        secondary: { main: '#9c27b0' },
-        background: { default: '#f5f5f5', paper: '#fff' },
+        primary: { main: '#2563EB' },
+        background: { default: '#F6F8FB', paper: '#fff' },
       },
     },
     dark: {
       palette: {
         primary: { main: '#3b82f6' },
-        secondary: { main: '#9c27b0' },
         background: { default: '#08111f', paper: '#0f172a' },
       },
     },

@@ -9,6 +9,7 @@ import {
   LoadingStateMessage,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -106,12 +107,6 @@ export const ArtifactsListingSection = ({
   const totalPages = useMemo(() => {
     return artifactsQuery.totalResults === 0 ? 0 : Math.ceil(artifactsQuery.totalResults / pageSize);
   }, [artifactsQuery.totalResults]);
-  const hasPreviousPage = page > 1;
-  const hasNextPage = page < totalPages;
-  const pageNumbers = useMemo(
-    () => Array.from({ length: totalPages }, (_, index) => index + 1),
-    [totalPages],
-  );
 
   const HeadingTag = headingLevel;
 
@@ -206,45 +201,12 @@ export const ArtifactsListingSection = ({
         </div>
       )}
 
-      <div className={cx(uiPrimitives.clusterRow, uiPrimitives.artifactTablePagination)}>
-        <button
-          type="button"
-          className={uiPrimitives.paginationControl}
-          onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-          disabled={!hasPreviousPage || artifactsQuery.loading}
-        >
-          {appCopy.ui.actions.previousPage}
-        </button>
-
-        <div className={uiPrimitives.clusterRow}>
-          {pageNumbers.map((pageNumber) => (
-            <button
-              key={pageNumber}
-              type="button"
-              className={cx(
-                uiPrimitives.paginationControl,
-                uiPrimitives.paginationPage,
-                pageNumber === page ? uiPrimitives.paginationPageActive : null,
-              )}
-              onClick={() => setPage(pageNumber)}
-              disabled={artifactsQuery.loading}
-              aria-current={pageNumber === page ? 'page' : undefined}
-              aria-label={`${appCopy.ui.labels.page} ${pageNumber}`}
-            >
-              {pageNumber}
-            </button>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          className={uiPrimitives.paginationControl}
-          onClick={() => setPage((prev) => prev + 1)}
-          disabled={!hasNextPage || artifactsQuery.loading}
-        >
-          {appCopy.ui.actions.nextPage}
-        </button>
-      </div>
+      <PaginationBlockControls
+        page={page}
+        totalPages={totalPages}
+        isLoading={artifactsQuery.loading}
+        onPageChange={setPage}
+      />
     </section>
   );
 };

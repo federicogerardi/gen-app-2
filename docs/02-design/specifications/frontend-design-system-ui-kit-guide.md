@@ -184,6 +184,36 @@ Regole di composizione:
 - se manca, si introduce token condiviso prima dell'uso locale
 - vietato introdurre naming CSS locale non generalizzabile
 
+## 5.1 Standard contrasto button (light/dark)
+
+Questo standard e vincolante per tutte le CTA (`Button` MUI e `.ui-button`) in tema chiaro e scuro.
+
+Token canonici:
+
+- primary background (light): `#2563EB` (`Workspace Blue`)
+- primary text (light): `#F8FAFC`
+- primary background (dark): `#3B82F6`
+- primary text (dark): `#EFF6FF`
+- outlined/text foreground (light): `#2563EB` o `#0F172A` in base al contesto
+- outlined/text foreground (dark): `#93C5FD` o `#E5EDF8` in base al contesto
+- destructive foreground/border: `#B42318` solo per stati di errore/alert critici
+
+Regole operative:
+
+- nessun selettore CSS globale su `button` puo sovrascrivere i componenti MUI (`.MuiButton-root`)
+- i bottoni MUI devono mantenere il contrasto nativo del tema per varianti `contained`, `outlined`, `text`
+- ogni CTA deve garantire contrasto minimo WCAG AA (4.5:1) tra testo e sfondo nel tema attivo
+- `variant="text"` e obbligatoria per azioni secondarie non implementate o non distruttive nella sidebar (evita bordi fuorvianti)
+- `color="error"` non va usato per CTA operative standard (retry/cancel/relaunch): e riservato a error state e alert critici
+
+Matrice canonica per variante:
+
+| Variante | Tema chiaro | Tema scuro | Uso canonico |
+| --- | --- | --- | --- |
+| `contained` | sfondo `#2563EB`, testo `#F8FAFC` | sfondo `#3B82F6`, testo `#EFF6FF` | CTA primaria di pagina/sezione |
+| `outlined` | bordo+testo primario con contrasto AA su superficie chiara | bordo+testo primario con contrasto AA su superficie scura | CTA secondaria operativa |
+| `text` | testo primario/link senza bordo | testo primario/link senza bordo | azione secondaria leggera, fallback non distruttivo |
+
 ## 6. Stati visuali e feedback
 
 Stati minimi obbligatori:

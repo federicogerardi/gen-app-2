@@ -9,6 +9,7 @@ import {
   LoadingStateMessage,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import type { SessionSummary } from '../../tools/runtime/session-client';
@@ -95,12 +96,6 @@ export const SessionsListingSection = ({
     () => allItems.slice((page - 1) * pageSize, page * pageSize),
     [allItems, page],
   );
-  const hasPreviousPage = page > 1;
-  const hasNextPage = page < totalPages;
-  const pageNumbers = useMemo(
-    () => Array.from({ length: totalPages }, (_, i) => i + 1),
-    [totalPages],
-  );
 
   const HeadingTag = headingLevel;
 
@@ -166,42 +161,12 @@ export const SessionsListingSection = ({
       )}
 
       {totalPages > 1 ? (
-        <div className={cx(uiPrimitives.clusterRow, uiPrimitives.artifactTablePagination)}>
-          <button
-            type="button"
-            className={uiPrimitives.paginationControl}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={!hasPreviousPage}
-          >
-            {appCopy.ui.actions.previousPage}
-          </button>
-          <div className={uiPrimitives.clusterRow}>
-            {pageNumbers.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={cx(
-                  uiPrimitives.paginationControl,
-                  uiPrimitives.paginationPage,
-                  n === page ? uiPrimitives.paginationPageActive : null,
-                )}
-                onClick={() => setPage(n)}
-                aria-current={n === page ? 'page' : undefined}
-                aria-label={`${appCopy.ui.labels.page} ${n}`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className={uiPrimitives.paginationControl}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={!hasNextPage}
-          >
-            {appCopy.ui.actions.nextPage}
-          </button>
-        </div>
+        <PaginationBlockControls
+          page={page}
+          totalPages={totalPages}
+          isLoading={sessionsQuery.loading}
+          onPageChange={setPage}
+        />
       ) : null}
     </section>
   );

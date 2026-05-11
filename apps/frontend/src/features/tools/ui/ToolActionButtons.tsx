@@ -73,7 +73,6 @@ export const ToolActionButtons = ({
             onClick={onCancelGeneration}
             title="Interrompi la generazione in corso"
             variant="outlined"
-            color="error"
           >
             Annulla
           </Button>

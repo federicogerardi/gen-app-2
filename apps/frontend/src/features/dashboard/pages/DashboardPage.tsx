@@ -78,17 +78,17 @@ export const DashboardPage = () => {
           <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
             <Link to="/tools/funnel-pages" style={{ textDecoration: 'none' }}>
-              <AppButton color="secondary" size="small">
+              <AppButton size="small">
                 {appCopy.ui.navigation.funnelPages}
               </AppButton>
             </Link>
             <Link to="/tools/nextland" style={{ textDecoration: 'none' }}>
-              <AppButton color="secondary" size="small">
+              <AppButton size="small">
                 {appCopy.ui.navigation.nextland}
               </AppButton>
             </Link>
             <Link to="/tools/youtube-lf-script" style={{ textDecoration: 'none' }}>
-              <AppButton color="secondary" size="small">
+              <AppButton size="small">
                 {appCopy.ui.navigation.youtubeLfScript}
               </AppButton>
             </Link>

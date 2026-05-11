@@ -288,10 +288,10 @@ export const appCopy = {
 
 export const appNavigation = [
   { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true },
-  { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
   { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
+  { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },

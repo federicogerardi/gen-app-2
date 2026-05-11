@@ -152,7 +152,6 @@ const LegacyArtifactView = ({
   artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>;
   projectName: string | null;
 }) => {
-  const navigate = useNavigate();
   const generation = useGenerationWorkspace();
   const restartPath = useMemo(
     () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
@@ -229,18 +228,14 @@ const LegacyArtifactView = ({
                 </Button>
               )}
               <Button
-                type="button"
-                onClick={() => {
-                  if (restartPath) {
-                    navigate(restartPath);
-                  }
-                }}
+                component={Link}
+                to={restartPath ?? '#'}
                 disabled={relaunchDisabled}
                 variant="outlined"
               >
                 {appCopy.ui.actions.relaunchPrimary}
               </Button>
-              <Button type="button" disabled={!isDeleteEnabled} variant="outlined" color="error">
+              <Button type="button" disabled={!isDeleteEnabled} variant="text">
                 {appCopy.ui.actions.deleteUiOnly}
               </Button>
             </div>

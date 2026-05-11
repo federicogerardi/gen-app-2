@@ -27,6 +27,7 @@
   --text-muted: #475569;
   --text-soft: #334155;
   --text-inverse: #f8fafc;
+  --text-secondary: var(--text-muted);
 
   --page-bg-top: #f9fbff;
   --page-bg-bottom: #f3f6fb;
@@ -38,11 +39,14 @@
   --surface-gradient-start: rgba(255, 255, 255, 0.96);
   --surface-gradient-end: rgba(248, 251, 255, 0.96);
   --surface-accent: rgba(37, 99, 235, 0.08);
+  --surface-raised: var(--surface-steel);
+  --surface-muted: var(--surface-steel);
 
   --control-bg: rgba(255, 255, 255, 0.95);
   --control-file-bg: rgba(37, 99, 235, 0.1);
   --control-file-fg: #1d4ed8;
   --focus-ring: rgba(37, 99, 235, 0.2);
+  --control-border: var(--border-subtle);
 
   --button-primary-fg: #f8fafc;
   --button-primary-shadow: 0 12px 22px rgba(37, 99, 235, 0.26);
@@ -91,6 +95,7 @@
   --radius-card: 12px;
   --radius-button: 8px;
   --radius-chip: 999px;
+  --radius-badge: var(--radius-chip);
 
   --space-micro: 4px;
   --space-hairline: 1px;
@@ -123,6 +128,7 @@
   --text-muted: #94a3b8;
   --text-soft: #cbd5e1;
   --text-inverse: #08111f;
+  --text-secondary: var(--text-muted);
 
   --page-bg-top: #08111f;
   --page-bg-bottom: #0f1b31;
@@ -134,11 +140,14 @@
   --surface-gradient-start: rgba(15, 23, 42, 0.96);
   --surface-gradient-end: rgba(18, 30, 52, 0.96);
   --surface-accent: rgba(59, 130, 246, 0.14);
+  --surface-raised: var(--surface-steel);
+  --surface-muted: var(--surface-steel);
 
   --control-bg: rgba(15, 23, 42, 0.88);
   --control-file-bg: rgba(59, 130, 246, 0.18);
   --control-file-fg: #dbeafe;
   --focus-ring: rgba(59, 130, 246, 0.28);
+  --control-border: var(--border-subtle);
 
   --button-primary-fg: #eff6ff;
   --button-primary-shadow: 0 12px 24px rgba(2, 6, 23, 0.36);
@@ -486,7 +495,7 @@ textarea {
   min-height: 88px;
 }
 
-button,
+button:not(.MuiButton-root):not([class]),
 .ui-button {
   border: 1px solid transparent;
   border-radius: var(--radius-button);
@@ -503,14 +512,14 @@ button,
   box-shadow: var(--button-primary-shadow);
 }
 
-button:hover,
+button:not(.MuiButton-root):not([class]):hover,
 .ui-button:hover {
   transform: translateY(-2px);
   box-shadow: var(--button-primary-shadow-hover);
   filter: saturate(1.04);
 }
 
-button:disabled,
+button:not(.MuiButton-root):not([class]):disabled,
 .ui-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
@@ -522,14 +531,19 @@ button:disabled,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 40px;
-  block-size: 40px;
+  inline-size: 44px;
+  block-size: 44px;
   padding: 0;
   color: var(--text-primary);
   background: var(--surface-glass);
   border: 1px solid var(--border-subtle);
   box-shadow: none;
   text-transform: none;
+}
+
+.ui-theme-toggle svg {
+  inline-size: 18px;
+  block-size: 18px;
 }
 
 .ui-theme-toggle:hover {
@@ -1008,7 +1022,12 @@ button:disabled,
   background: var(--surface-base);
   box-shadow: none;
   border-radius: var(--radius-chip);
+  padding: var(--space-1) var(--space-1-5);
+  font-family: var(--font-family-ui);
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.04em;
+  text-transform: none;
 }
 
 .ui-pagination-control:hover {
@@ -1225,6 +1244,9 @@ button:disabled,
 .ui-view-tab {
   font-size: 0.75rem;
   font-family: var(--font-family-ui);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
   padding: var(--space-micro) var(--space-1);
   border-radius: var(--radius-badge);
   border: 1px solid var(--control-border);

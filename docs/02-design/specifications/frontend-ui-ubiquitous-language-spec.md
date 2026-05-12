@@ -44,7 +44,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Table Toolbar | Header actions for filtering/sorting/search/reload/export actions. | Artifact list table top action zone | Controls row, actions header |
 | Table Empty State | Standard no-data rendering with reason and next action. | Shared empty-state pattern | No results message |
 | Table Error State | Standard error rendering with retry affordance. | Shared error-state pattern | Load error block |
-| Dispatch Error | Inline error message rendered adjacent to the primary CTA when `startGenerationStep` returns `false`. Distinct from briefing extraction errors (Setup Panel) and stream errors (Workflow Panel). Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. See DDD-061. | `ToolPageTemplate` area below primary CTA | Step error, stream error, briefing error |
+| Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false` and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. See DDD-061. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-060. | `useToolPage` effect #2b | — |
 
 ## 3. Canonical Page Archetypes
@@ -62,7 +62,7 @@ Composition:
 - secondary actions rendered only through policy flags
 - no extra wrapper containers that dilute panel hierarchy
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
-- **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2).
+- **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
 - **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-060).
 
 ### 3.2 Data Table View (reference archetype)

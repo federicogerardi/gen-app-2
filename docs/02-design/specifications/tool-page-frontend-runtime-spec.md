@@ -201,8 +201,15 @@ generation.upsertExtractionContext({ ... });
 ### Effect #8 — Bridge: stream terminal → machine STEP_DONE/STEP_FAILED (lines ~605–645)
 
 **Purpose**: When a generation stream ends, map the terminal event to the appropriate machine event.
+If the stream terminates with `failed` but the terminal payload does not expose `failedStep`, infer the step from `generation.snapshot.context.lastRequest.input.step` so the page can surface a concrete step failure instead of remaining in `generating`.
 **Pattern**: tracks `wasStreamActiveRef`; fires once when `isStreamActive` transitions from `true` to `false`.
 **Deps**: `[generation.isStreamActive, generation.terminalCompletedStep, generation.terminalFailedStep, generation.streamStatus, generation.snapshot, toolConfig.steps, toolPageSend]`
+
+**Failure handling**:
+1. Prefer `generation.terminalCompletedStep` when available and valid for the current tool
+2. Otherwise, on `generation.streamStatus === 'failed'`, infer the step from `generation.snapshot.context.lastRequest.input.step` when it matches a configured `ToolStep`
+3. Emit `STEP_FAILED` with the inferred or explicit step, set the local `DispatchError`, disable auto-chain, clear the current run prefix, and call `CANCEL_GENERATION` so the machine exits `generating` instead of staying pending
+4. If the failed terminal has neither `terminalFailedStep` nor a valid inferred step, still call `CANCEL_GENERATION` after setting `DispatchError` so the UI can unblock deterministically
 
 ### Effect #9 — Auto-chain (lines ~650–685)
 
@@ -258,7 +265,9 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~400–58
 
 ## 6. CANCEL_GENERATION Recovery Path
 
-**Trigger**: effect #7 calls `toolPageSend({ type: 'CANCEL_GENERATION' })` when `startGenerationStep` returns `false`.
+**Triggers**:
+- effect #7 calls `toolPageSend({ type: 'CANCEL_GENERATION' })` when `startGenerationStep` returns `false`
+- effect #8 calls `toolPageSend({ type: 'CANCEL_GENERATION' })` when the stream terminates as `failed` and the page must exit `generating` even if no explicit `failedStep` is present
 
 **Machine handling** (`tool-page.machine.ts`): in `generating` state, `CANCEL_GENERATION` executes:
 1. `cancelToolFlow` action → sends cancellation to `toolFlowMachine`

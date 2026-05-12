@@ -142,10 +142,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 model: data.model,
                 tone: data.tone,
               }));
-              // Se c'è un file briefing, gestiscilo
-              if (data.briefingFile instanceof File) {
-                handleBriefingFileSelected(data.briefingFile);
-              }
               // Esegui azione primaria (es. submit XState)
               handlePrimaryAction();
             })}>

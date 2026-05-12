@@ -49,6 +49,7 @@ import type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
+import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 
 const nowDate = (runtime?: ProductionAdapterRuntime): Date =>
   runtime?.now?.() ?? new Date();
@@ -1127,7 +1128,7 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return result.rows.map((row): SessionListEntry => ({
       sessionId: row.session_id,
       projectId: row.project_id ?? '',
-      toolKey: row.workflow_type ?? null,
+      toolKey: normalizeToolWorkflowKey(row.workflow_type),
       status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
       artifactCount: parseInt(row.artifact_count, 10),
       updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.updated_at.toISOString(),

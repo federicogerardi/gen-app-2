@@ -23,30 +23,44 @@ export const ArtifactContentPreview = ({
   const markdownRef = useRef<HTMLDivElement>(null);
 
   const resolvedContent = content ?? '';
+  const setCopiedState = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyAsPlainText = () => {
+    navigator.clipboard.writeText(resolvedContent).then(() => {
+      setCopiedState();
+    }).catch(() => {});
+  };
 
   const handleCopy = () => {
-    if (viewMode === 'markdown' && markdownRef.current) {
-      const html = markdownRef.current.innerHTML;
-      const item = new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([resolvedContent], { type: 'text/plain' }),
-      });
-      navigator.clipboard.write([item]).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(() => {
-        navigator.clipboard.writeText(resolvedContent).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }).catch(() => {});
-      });
+    if (!navigator.clipboard) {
       return;
     }
 
-    navigator.clipboard.writeText(resolvedContent).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }).catch(() => {});
+    if (viewMode === 'markdown' && markdownRef.current) {
+      if (typeof ClipboardItem !== 'undefined' && typeof navigator.clipboard.write === 'function') {
+        try {
+          const html = markdownRef.current.innerHTML;
+          const item = new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([resolvedContent], { type: 'text/plain' }),
+          });
+          navigator.clipboard.write([item]).then(() => {
+            setCopiedState();
+          }).catch(() => {
+            copyAsPlainText();
+          });
+          return;
+        } catch {
+          copyAsPlainText();
+          return;
+        }
+      }
+    }
+
+    copyAsPlainText();
   };
 
   return (

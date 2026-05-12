@@ -14,9 +14,9 @@
     "test": "vitest run",
     "test:forms": "vitest run src/features/auth/ui/LoginForm.test.tsx src/features/generation/ui/GenerationForm.test.tsx",
     "test:visual": "vitest run src/features/tools/ui/ToolActionButtons.snapshot.test.tsx",
-    "audit:a11y:axe": "npx -y @axe-core/cli http://127.0.0.1:4173 --exit",
-    "audit:a11y:lighthouse": "npx -y @lhci/cli autorun --config=./lighthouserc.json",
-    "audit:a11y": "npm run build:static && npx -y start-server-and-test 'vite preview --host 127.0.0.1 --port 4173' http://127.0.0.1:4173 'npm run audit:a11y:axe && npm run audit:a11y:lighthouse'",
+    "audit:a11y:axe": "npx --yes --package @axe-core/cli@4.11.3 axe http://127.0.0.1:4173 --exit",
+    "audit:a11y:lighthouse": "npx --yes --package @lhci/cli@0.15.1 lhci autorun --config=./lighthouserc.json",
+    "audit:a11y": "npm run build:static && npx --yes --package start-server-and-test@3.0.4 start-server-and-test 'vite preview --host 127.0.0.1 --port 4173' http://127.0.0.1:4173 'npm run audit:a11y:axe && npm run audit:a11y:lighthouse'",
     "frontend:test:ci": "tsc -p tsconfig.json --noEmit && vitest run"
   },
   "dependencies": {

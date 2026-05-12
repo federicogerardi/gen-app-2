@@ -6,7 +6,20 @@ import { fileURLToPath } from 'node:url';
 const resolveFrontendSrcRoot = (): string => {
   if (import.meta.url.startsWith('file:')) {
     const testDir = path.dirname(fileURLToPath(import.meta.url));
-    return path.resolve(testDir, '../../..');
+    let currentDir = testDir;
+    while (true) {
+      const appRootMarker = path.join(currentDir, 'App.tsx');
+      const mainMarker = path.join(currentDir, 'main.tsx');
+      if (fs.existsSync(appRootMarker) && fs.existsSync(mainMarker)) {
+        return currentDir;
+      }
+
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) {
+        break;
+      }
+      currentDir = parentDir;
+    }
   }
 
   const cwdSrc = path.resolve(process.cwd(), 'src');

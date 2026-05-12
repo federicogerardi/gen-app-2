@@ -1,5 +1,3 @@
-const TELEMETRY_ENDPOINT = '/api/frontend/telemetry';
-
 type MonitoringProvider = 'none' | 'console' | 'sentry' | 'logrocket';
 
 const normalizeProvider = (value: string | undefined): MonitoringProvider => {
@@ -12,9 +10,20 @@ const normalizeProvider = (value: string | undefined): MonitoringProvider => {
   return 'none';
 };
 
-const postTelemetry = async (payload: Record<string, unknown>): Promise<void> => {
+const resolveTelemetryEndpoint = (value: string | undefined): string | null => {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized;
+};
+
+const postTelemetry = async (
+  endpoint: string,
+  payload: Record<string, unknown>,
+): Promise<void> => {
   try {
-    await fetch(TELEMETRY_ENDPOINT, {
+    await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -27,9 +36,9 @@ const postTelemetry = async (payload: Record<string, unknown>): Promise<void> =>
   }
 };
 
-const registerWindowTelemetry = (provider: MonitoringProvider): void => {
+const registerWindowTelemetry = (provider: MonitoringProvider, endpoint: string): void => {
   window.addEventListener('error', (event) => {
-    void postTelemetry({
+    void postTelemetry(endpoint, {
       kind: 'window.error',
       provider,
       message: event.message,
@@ -40,7 +49,7 @@ const registerWindowTelemetry = (provider: MonitoringProvider): void => {
   });
 
   window.addEventListener('unhandledrejection', (event) => {
-    void postTelemetry({
+    void postTelemetry(endpoint, {
       kind: 'window.unhandledrejection',
       provider,
       reason: String(event.reason),
@@ -50,15 +59,18 @@ const registerWindowTelemetry = (provider: MonitoringProvider): void => {
 
 export const initializeMonitoring = (): void => {
   const provider = normalizeProvider(import.meta.env.VITE_MONITORING_PROVIDER);
+  const telemetryEndpoint = resolveTelemetryEndpoint(import.meta.env.VITE_MONITORING_ENDPOINT);
 
   if (provider === 'none') {
     return;
   }
 
-  registerWindowTelemetry(provider);
+  if (telemetryEndpoint) {
+    registerWindowTelemetry(provider, telemetryEndpoint);
+  }
 
   if (provider === 'console') {
     // Minimal local visibility for rollout checks.
-    console.info('[monitoring] console provider enabled');
+    console.info(`[monitoring] console provider enabled telemetry=${telemetryEndpoint ? 'on' : 'off'}`);
   }
 };

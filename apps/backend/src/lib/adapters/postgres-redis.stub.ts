@@ -35,6 +35,7 @@ import type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
+import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 
 type StubQuotaBucket = {
   limit: number;
@@ -429,7 +430,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       } else {
         bySession.set(sessionId, {
           projectId: artifact.projectId,
-          toolKey: artifact.workflowType ?? null,
+          toolKey: normalizeToolWorkflowKey(artifact.workflowType),
           status: artifact.status,
           count: 1,
           updatedAtMs,

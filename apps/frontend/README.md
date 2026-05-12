@@ -73,6 +73,7 @@ Additional frontend rollout/quality flags (Vite build-time):
 | --- | --- | --- |
 | VITE_UI_ROLLOUT_MODE | mui | Progressive UI rollout mode (`mui` or `legacy`) exposed as `data-ui-rollout-mode` on `<html>` |
 | VITE_MONITORING_PROVIDER | none | Frontend monitoring bootstrap provider (`none`, `console`, `sentry`, `logrocket`) |
+| VITE_MONITORING_ENDPOINT | _(unset)_ | Optional telemetry endpoint used by monitoring bootstrap for `window.error` / `unhandledrejection`; when unset no telemetry POST is sent |
 
 ## Onboarding: Canonical UI Patterns
 
@@ -144,7 +145,7 @@ Monitoring baseline:
 
 1. Set `VITE_MONITORING_PROVIDER=console` in pre-production for rollout smoke checks.
 2. Optionally route the provider value to external SDK wiring (`sentry` or `logrocket`) through bootstrap hooks.
-3. Frontend runtime sends best-effort telemetry for `window.error` and `unhandledrejection` to `/api/frontend/telemetry`.
+3. Frontend runtime sends best-effort telemetry for `window.error` and `unhandledrejection` only when `VITE_MONITORING_ENDPOINT` is configured.
 
 Rollback plan:
 

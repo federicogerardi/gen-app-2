@@ -131,6 +131,7 @@ const run = async (): Promise<void> => {
     generationAdapters,
     authRuntime,
     checkModelAvailability,
+    debugGenerationLogs: parseBooleanEnv(process.env.GENERATION_DEBUG_LOGS, false),
     generationRoutePath: process.env.GENERATION_ROUTE_PATH ?? '/generation/stream',
     cors: {
       allowedOrigins: corsAllowedOrigins,

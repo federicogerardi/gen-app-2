@@ -29,6 +29,7 @@ export type NodeRuntimeServerOptions = {
   generationAdapters: GenerationAdapters;
   authRuntime: AuthHttpRequestHandler;
   generationRoutePath?: string;
+  debugGenerationLogs?: boolean;
   /**
    * Optional async function that checks whether a given LlmModelId is available.
    * Returns true if the model key exists in the enabled LlmModelCatalog, false otherwise.
@@ -265,6 +266,7 @@ export const createNodeRuntimeRequestHandler = (
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];
   const csrfExcludePaths = options.csrf?.excludePaths ?? ['/auth/login', '/auth/google/start', '/auth/google/callback'];
   const csrfTrustedOrigins = options.csrf?.trustedOrigins ?? options.cors?.allowedOrigins ?? [];
+  const debugGenerationLogs = options.debugGenerationLogs ?? false;
 
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const path = normalizePath(request.url);
@@ -387,40 +389,44 @@ export const createNodeRuntimeRequestHandler = (
     const normalizedModel = normalizeModelForDebug(generationRequest.model);
     const correlationId = createCorrelationId(generationRequest.requestId);
 
-    console.info(
-      [
-        '[gen][request]',
-        `corr=${correlationId}`,
-        `requestId=${generationRequest.requestId}`,
-        `sessionId=${toDebugString(generationRequest.sessionId)}`,
-        `projectId=${generationRequest.projectId}`,
-        `toolKey=${toDebugString(generationRequest.toolKey)}`,
-        `workflowType=${toDebugString(generationRequest.workflowType)}`,
-        `artifactType=${generationRequest.artifactType}`,
-        `step=${step}`,
-        `modelRaw=${generationRequest.model}`,
-        `modelNormalized=${normalizedModel}`,
-        `tone=${tone}`,
-        `briefingTextLen=${briefingTextLength}`,
-        `extractionPayloadKeys=${extractionPayloadKeys}`,
-        `dependencyCount=${dependencyCount}`,
-      ].join(' '),
-    );
+    if (debugGenerationLogs) {
+      console.info(
+        [
+          '[gen][request]',
+          `corr=${correlationId}`,
+          `requestId=${generationRequest.requestId}`,
+          `sessionId=${toDebugString(generationRequest.sessionId)}`,
+          `projectId=${generationRequest.projectId}`,
+          `toolKey=${toDebugString(generationRequest.toolKey)}`,
+          `workflowType=${toDebugString(generationRequest.workflowType)}`,
+          `artifactType=${generationRequest.artifactType}`,
+          `step=${step}`,
+          `modelRaw=${generationRequest.model}`,
+          `modelNormalized=${normalizedModel}`,
+          `tone=${tone}`,
+          `briefingTextLen=${briefingTextLength}`,
+          `extractionPayloadKeys=${extractionPayloadKeys}`,
+          `dependencyCount=${dependencyCount}`,
+        ].join(' '),
+      );
+    }
 
     // TASK-010: LlmModelCatalog model availability check (DDD-055, DDD-056).
     // Dispatches MODEL_AVAILABLE / MODEL_UNAVAILABLE logic from requestGatewayMachine.
     if (options.checkModelAvailability) {
       const isAvailable = await options.checkModelAvailability(generationRequest.model, correlationId);
-      console.info(
-        [
-          '[gen][model-check]',
-          `corr=${correlationId}`,
-          `requestId=${generationRequest.requestId}`,
-          `modelRaw=${generationRequest.model}`,
-          `modelNormalized=${normalizedModel}`,
-          `available=${isAvailable}`,
-        ].join(' '),
-      );
+      if (debugGenerationLogs) {
+        console.info(
+          [
+            '[gen][model-check]',
+            `corr=${correlationId}`,
+            `requestId=${generationRequest.requestId}`,
+            `modelRaw=${generationRequest.model}`,
+            `modelNormalized=${normalizedModel}`,
+            `available=${isAvailable}`,
+          ].join(' '),
+        );
+      }
       if (!isAvailable) {
         writeJson(response, 400, {
           ok: false,

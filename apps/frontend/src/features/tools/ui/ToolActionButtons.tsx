@@ -34,6 +34,7 @@ export const ToolActionButtons = ({
     <div className="ui-tool-action-buttons">
       <PrimaryCtaButton
         type="button"
+        data-testid="primary-cta-btn"
         onClick={onPrimaryAction}
         disabled={primaryLabel.disabled || isLoading}
         title={primaryLabel.tooltip}

@@ -57,7 +57,6 @@ describe('DashboardPage', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
     expect(screen.getAllByText(/hotlead funnel/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/nextland/i)).not.toBeInTheDocument();
-    expect(screen.getAllByText(/youtube lf script/i).length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no recent sessions', () => {

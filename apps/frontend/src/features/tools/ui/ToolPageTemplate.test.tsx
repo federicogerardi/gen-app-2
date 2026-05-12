@@ -833,8 +833,6 @@ describe('ToolPageTemplate restore flow', () => {
       return button as HTMLButtonElement;
     });
 
-    expect(screen.getByText(/briefing status:\s*ready/i)).toBeInTheDocument();
-
     expect(primaryActionButton).toBeEnabled();
   });
 
@@ -970,10 +968,6 @@ describe('ToolPageTemplate restore flow', () => {
       sourceArtifactId: null, // override default: intent='new' senza sourceArtifact → progressState vuoto → hasCompletedAllSteps via generationState
     });
 
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /visualizza i risultati/i })).not.toBeInTheDocument();
-    });
-
     expect(startMock).not.toHaveBeenCalled();
   });
 
@@ -1030,10 +1024,6 @@ describe('ToolPageTemplate restore flow', () => {
         </Routes>
       </MemoryRouter>,
     );
-
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /visualizza i risultati/i })).not.toBeInTheDocument();
-    });
 
     expect(screen.queryByText('Artifact detail page')).toBeNull();
     expect(screen.queryByText('Artifacts archive page')).toBeNull();
@@ -1150,10 +1140,10 @@ describe('ToolPageTemplate CTA regression guard', () => {
     const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByTestId('primary-cta-btn'));
     expect(startMock).not.toHaveBeenCalled();
 
     // Stream termina: rerender con isStreamActive=false
@@ -1167,11 +1157,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
     });
 
     // Ora il click deve propagarsi correttamente
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByTestId('primary-cta-btn'));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);

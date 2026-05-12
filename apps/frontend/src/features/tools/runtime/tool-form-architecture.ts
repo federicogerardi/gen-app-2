@@ -12,6 +12,7 @@ import type { ExtractionContext } from '../../generation/machines/frontend-strea
  */
 export type ToolFormConfig = {
   toolKey: SupportedTool;
+  status: 'enabled' | 'disabled';
   displayName: string;
   
   // Tool-specific prompts
@@ -53,6 +54,7 @@ export type BriefingUploadState = {
 export type ToolFormState = {
   projectId: string;
   model: string;
+  tone: string;
   registrySnapshotRef: string;
   briefingFile: File | null;
   briefingFileName: string | null;
@@ -76,6 +78,7 @@ export type ToolFormValidation = {
 export type ToolFormSubmitData = {
   projectId: string;
   model: string;
+  tone: string;
   registrySnapshotRef: string;
   briefingId: string;
   briefingFileName: string;
@@ -92,6 +95,7 @@ export type ToolFormSubmitData = {
 export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
+    status: 'enabled',
     displayName: 'Hotlead Funnel',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -107,6 +111,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   nextland: {
     toolKey: 'nextland',
+    status: 'disabled',
     displayName: 'Nextland',
     defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -121,6 +126,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   'youtube-lf-script': {
     toolKey: 'youtube-lf-script',
+    status: 'enabled',
     displayName: 'YouTube LF Script',
     defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -144,6 +150,14 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+};
+
+export const getEnabledToolKeys = (): SupportedTool[] => {
+  return (Object.keys(toolFormRegistry) as SupportedTool[]).filter((toolKey) => toolFormRegistry[toolKey].status === 'enabled');
+};
+
+export const isToolEnabled = (toolKey: SupportedTool): boolean => {
+  return toolFormRegistry[toolKey].status === 'enabled';
 };
 
 /**

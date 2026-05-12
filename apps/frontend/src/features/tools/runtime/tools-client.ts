@@ -165,7 +165,7 @@ export const runExtraction = async (
     toolKey: 'extraction',
     workflowType: 'extraction',
     input: {
-      tone: input.tone ?? 'analitico',
+      tone: 'analitico',
       notes: input.notes ?? '',
       toolKey: input.toolKey,
       briefingId: input.briefingId,

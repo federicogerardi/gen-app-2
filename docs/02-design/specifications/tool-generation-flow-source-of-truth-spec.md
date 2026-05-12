@@ -55,6 +55,7 @@ Ownership:
 - progress state per step
 - readiness snapshot con reason codes
 - decisioni di abilitazione start generation
+- on terminal stream failure without a recoverable `failedStep`, the terminal bridge must still force the page out of `generating` by driving `STEP_FAILED` when possible and `CANCEL_GENERATION` as the unblock path
 
 2. `briefingUploadMachine`
 - upload/extraction lifecycle (`idle|uploading|extracting|ready`)
@@ -175,6 +176,7 @@ Invarianti:
 2. transizione `configuring -> generating` ammessa solo con `readiness.canStartFlow = true`
 3. `CANCEL_GENERATION` deve riportare a `configuring` senza side effects residui attivi
 4. `RESET` deve azzerare progress/readiness e ricreare subtree child actor
+5. `STEP_FAILED` può essere emesso anche come derivazione del terminal stream bridge quando il backend termina in `failed` ma non espone un `failedStep` recuperabile
 
 ## 7. Decision Table (Readiness)
 

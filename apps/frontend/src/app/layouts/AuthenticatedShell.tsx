@@ -25,7 +25,6 @@ export const AuthenticatedShell = () => {
     <Shell as="main" className={uiPrimitives.shellAuth}>
       <Surface as="header" className={uiPrimitives.authHeader}>
         <div>
-          <p className={uiPrimitives.metaLine}>{appCopy.editorial.header.eyebrow}</p>
           <h1>{appCopy.editorial.header.headline}</h1>
           <p>{auth.session.user.email} ({auth.session.user.role})</p>
         </div>

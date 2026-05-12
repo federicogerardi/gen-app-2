@@ -17,6 +17,7 @@ import type {
   ArtifactDetail,
   ArtifactListFilters,
   ArtifactSummary,
+  SessionListEntry,
 } from '../types/artifacts';
 import type {
   CreateProjectInput,
@@ -34,6 +35,7 @@ import type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
+import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 
 type StubQuotaBucket = {
   limit: number;
@@ -398,6 +400,54 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         createdAt: artifact.createdAt,
         updatedAt: artifact.updatedAt,
       }));
+  }
+
+  async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+    const bySession = new Map<string, {
+      projectId: string;
+      toolKey: string | null;
+      status: 'generating' | 'completed' | 'failed';
+      count: number;
+      updatedAtMs: number;
+    }>();
+
+    for (const artifact of this.artifacts.values()) {
+      if (artifact.userId !== userId) continue;
+      const sessionId = artifact.sessionId?.trim();
+      if (!sessionId) continue;
+      if (projectId && artifact.projectId !== projectId) continue;
+
+      const updatedAtMs = Date.parse(artifact.updatedAt);
+      const existing = bySession.get(sessionId);
+      if (existing) {
+        existing.count += 1;
+        if (updatedAtMs > existing.updatedAtMs) existing.updatedAtMs = updatedAtMs;
+        if (artifact.status === 'generating') {
+          existing.status = 'generating';
+        } else if (artifact.status === 'failed' && existing.status !== 'generating') {
+          existing.status = 'failed';
+        }
+      } else {
+        bySession.set(sessionId, {
+          projectId: artifact.projectId,
+          toolKey: normalizeToolWorkflowKey(artifact.workflowType),
+          status: artifact.status,
+          count: 1,
+          updatedAtMs,
+        });
+      }
+    }
+
+    return [...bySession.entries()]
+      .map(([sessionId, data]) => ({
+        sessionId,
+        projectId: data.projectId,
+        toolKey: data.toolKey,
+        status: data.status,
+        artifactCount: data.count,
+        updatedAt: new Date(data.updatedAtMs).toISOString(),
+      }))
+      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }
 
   seed(records: StubArtifactQueryRecord[]): void {

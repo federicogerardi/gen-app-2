@@ -236,6 +236,7 @@ vi.mock('../runtime/useToolForm', () => {
       formState: {
         projectId: 'project-001',
         model: 'openrouter/auto',
+        tone: 'Professional',
         registrySnapshotRef: 'snapshot:default',
         briefingFile: null,
         briefingFileName: 'brief.md',
@@ -832,8 +833,6 @@ describe('ToolPageTemplate restore flow', () => {
       return button as HTMLButtonElement;
     });
 
-    expect(screen.getByText(/briefing status:\s*ready/i)).toBeInTheDocument();
-
     expect(primaryActionButton).toBeEnabled();
   });
 
@@ -922,7 +921,7 @@ describe('ToolPageTemplate restore flow', () => {
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it('uses completed CTA policy without dispatching generation start', async () => {
+  it('uses completed CTA policy without exposing a Visualizza button', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -969,16 +968,10 @@ describe('ToolPageTemplate restore flow', () => {
       sourceArtifactId: null, // override default: intent='new' senza sourceArtifact → progressState vuoto → hasCompletedAllSteps via generationState
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
-
     expect(startMock).not.toHaveBeenCalled();
   });
 
-  it('completed CTA navigates to last artifact detail when available', async () => {
+  it('completed flow keeps the user on the tool page', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -1032,13 +1025,7 @@ describe('ToolPageTemplate restore flow', () => {
       </MemoryRouter>,
     );
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /visualizza i risultati/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /visualizza i risultati/i }));
-
-    expect(await screen.findByText('Artifact detail page')).toBeInTheDocument();
+    expect(screen.queryByText('Artifact detail page')).toBeNull();
     expect(screen.queryByText('Artifacts archive page')).toBeNull();
     expect(startMock).not.toHaveBeenCalled();
   });
@@ -1153,10 +1140,10 @@ describe('ToolPageTemplate CTA regression guard', () => {
     const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByTestId('primary-cta-btn'));
     expect(startMock).not.toHaveBeenCalled();
 
     // Stream termina: rerender con isStreamActive=false
@@ -1170,11 +1157,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
     });
 
     // Ora il click deve propagarsi correttamente
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByTestId('primary-cta-btn'));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);

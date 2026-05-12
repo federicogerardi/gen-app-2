@@ -5,11 +5,18 @@ import {
   handleGenerationRequestAsNodeSse,
   type BackendGenerationRequest,
 } from './index';
+import {
+  getHeaderValue,
+  normalizePath,
+  writeJson,
+} from './http-utils';
 import type {
   HandleAuthHttpRequestResult,
 } from './auth-http';
 
 const MAX_BODY_SIZE_BYTES = 256 * 1024;
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
+const DEFAULT_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With'];
 
 export type AuthHttpRequestHandler = {
   handleRequest(
@@ -22,13 +29,14 @@ export type NodeRuntimeServerOptions = {
   generationAdapters: GenerationAdapters;
   authRuntime: AuthHttpRequestHandler;
   generationRoutePath?: string;
+  debugGenerationLogs?: boolean;
   /**
    * Optional async function that checks whether a given LlmModelId is available.
    * Returns true if the model key exists in the enabled LlmModelCatalog, false otherwise.
    * When not provided, all model keys are accepted (legacy permissive behaviour).
    * DDD-055: LlmModelCatalog validation gate; DDD-056: LlmModelId.
    */
-  checkModelAvailability?: (modelKey: string) => Promise<boolean>;
+  checkModelAvailability?: (modelKey: string, correlationId?: string) => Promise<boolean>;
   cors?: {
     allowedOrigins: string[];
     allowCredentials?: boolean;
@@ -48,38 +56,12 @@ export type NodeRuntimeServerOptions = {
   ) => BackendGenerationRequest;
 };
 
-const normalizePath = (url: string | undefined): string => {
-  if (!url) {
-    return '/';
-  }
-
-  return url.split('?')[0] || '/';
-};
-
-const writeJson = (
-  response: ServerResponse,
-  statusCode: number,
-  payload: Record<string, unknown>,
-): void => {
-  response.statusCode = statusCode;
-  response.setHeader('Content-Type', 'application/json; charset=utf-8');
-  response.end(JSON.stringify(payload));
-};
-
-const getHeaderValue = (value: string | string[] | undefined): string | null => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (Array.isArray(value) && value[0]) {
-    return value[0];
-  }
-
-  return null;
-};
-
 const normalizeOrigin = (origin: string): string => {
   return origin.trim().replace(/\/$/, '');
+};
+
+const hasWildcardOrigin = (allowedOrigins: string[]): boolean => {
+  return allowedOrigins.includes('*');
 };
 
 const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boolean => {
@@ -87,12 +69,12 @@ const isOriginAllowed = (origin: string | null, allowedOrigins: string[]): boole
     return false;
   }
 
+  if (hasWildcardOrigin(allowedOrigins)) {
+    return true;
+  }
+
   const normalizedOrigin = normalizeOrigin(origin);
   return allowedOrigins.some((candidate) => {
-    if (candidate === '*') {
-      return true;
-    }
-
     return normalizeOrigin(candidate) === normalizedOrigin;
   });
 };
@@ -102,6 +84,15 @@ const applyCorsHeaders = (
   response: ServerResponse,
   cors: NonNullable<NodeRuntimeServerOptions['cors']>,
 ): void => {
+  const allowCredentials = cors.allowCredentials ?? true;
+  if (!allowCredentials && hasWildcardOrigin(cors.allowedOrigins)) {
+    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+    response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
+    response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
+    return;
+  }
+
   const requestOrigin = getHeaderValue(request.headers.origin as string | string[] | undefined);
   if (!isOriginAllowed(requestOrigin, cors.allowedOrigins)) {
     return;
@@ -110,12 +101,12 @@ const applyCorsHeaders = (
   response.setHeader('Access-Control-Allow-Origin', requestOrigin as string);
   response.setHeader('Vary', 'Origin');
 
-  if (cors.allowCredentials ?? true) {
+  if (allowCredentials) {
     response.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
-  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']).join(', '));
-  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? ['Content-Type', 'Authorization', 'X-Requested-With']).join(', '));
+  response.setHeader('Access-Control-Allow-Methods', (cors.allowMethods ?? DEFAULT_CORS_METHODS).join(', '));
+  response.setHeader('Access-Control-Allow-Headers', (cors.allowHeaders ?? DEFAULT_CORS_HEADERS).join(', '));
   response.setHeader('Access-Control-Max-Age', String(cors.maxAgeSeconds ?? 600));
 };
 
@@ -166,6 +157,44 @@ const requireObjectField = (payload: Record<string, unknown>, field: string): Re
 
   return value as Record<string, unknown>;
 };
+
+const normalizeModelForDebug = (value: string): string => {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  if (normalized === 'auto') {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}`;
+    }
+  }
+
+  return normalized;
+};
+
+const toDebugString = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  return '-';
+};
+
+const createCorrelationId = (requestId: string): string => `run:${requestId}`;
 
 const defaultMapGenerationRequest = (
   payload: Record<string, unknown>,
@@ -225,11 +254,19 @@ const parseGenerationRequest = async (
 export const createNodeRuntimeRequestHandler = (
   options: NodeRuntimeServerOptions,
 ): ((request: IncomingMessage, response: ServerResponse) => Promise<void>) => {
+  if (
+    (options.cors?.allowCredentials ?? true)
+    && (options.cors?.allowedOrigins ? hasWildcardOrigin(options.cors.allowedOrigins) : false)
+  ) {
+    throw new Error('Invalid CORS configuration: allowedOrigins cannot include "*" when credentials are enabled');
+  }
+
   const generationRoutePath = options.generationRoutePath ?? '/generation/stream';
   const csrfEnabled = options.csrf?.enabled ?? true;
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];
   const csrfExcludePaths = options.csrf?.excludePaths ?? ['/auth/login', '/auth/google/start', '/auth/google/callback'];
   const csrfTrustedOrigins = options.csrf?.trustedOrigins ?? options.cors?.allowedOrigins ?? [];
+  const debugGenerationLogs = options.debugGenerationLogs ?? false;
 
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const path = normalizePath(request.url);
@@ -328,10 +365,68 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
+    const step =
+      typeof generationRequest.input.step === 'string' && generationRequest.input.step.trim().length > 0
+        ? generationRequest.input.step.trim()
+        : '-';
+    const tone =
+      typeof generationRequest.input.tone === 'string' && generationRequest.input.tone.trim().length > 0
+        ? generationRequest.input.tone.trim()
+        : '-';
+    const briefingTextLength =
+      typeof generationRequest.input.briefingText === 'string'
+        ? generationRequest.input.briefingText.length
+        : 0;
+    const extractionPayloadKeys =
+      generationRequest.input.extractionPayload
+      && typeof generationRequest.input.extractionPayload === 'object'
+      && !Array.isArray(generationRequest.input.extractionPayload)
+        ? Object.keys(generationRequest.input.extractionPayload as Record<string, unknown>).length
+        : 0;
+    const dependencyCount = Array.isArray(generationRequest.input.stepDependencyArtifactIds)
+      ? generationRequest.input.stepDependencyArtifactIds.length
+      : 0;
+    const normalizedModel = normalizeModelForDebug(generationRequest.model);
+    const correlationId = createCorrelationId(generationRequest.requestId);
+
+    if (debugGenerationLogs) {
+      console.info(
+        [
+          '[gen][request]',
+          `corr=${correlationId}`,
+          `requestId=${generationRequest.requestId}`,
+          `sessionId=${toDebugString(generationRequest.sessionId)}`,
+          `projectId=${generationRequest.projectId}`,
+          `toolKey=${toDebugString(generationRequest.toolKey)}`,
+          `workflowType=${toDebugString(generationRequest.workflowType)}`,
+          `artifactType=${generationRequest.artifactType}`,
+          `step=${step}`,
+          `modelRaw=${generationRequest.model}`,
+          `modelNormalized=${normalizedModel}`,
+          `tone=${tone}`,
+          `briefingTextLen=${briefingTextLength}`,
+          `extractionPayloadKeys=${extractionPayloadKeys}`,
+          `dependencyCount=${dependencyCount}`,
+        ].join(' '),
+      );
+    }
+
     // TASK-010: LlmModelCatalog model availability check (DDD-055, DDD-056).
     // Dispatches MODEL_AVAILABLE / MODEL_UNAVAILABLE logic from requestGatewayMachine.
     if (options.checkModelAvailability) {
-      const isAvailable = await options.checkModelAvailability(generationRequest.model);
+      const isAvailable = await options.checkModelAvailability(generationRequest.model, correlationId);
+      if (debugGenerationLogs) {
+        console.info(
+          [
+            '[gen][model-check]',
+            `corr=${correlationId}`,
+            `requestId=${generationRequest.requestId}`,
+            `modelRaw=${generationRequest.model}`,
+            `modelNormalized=${normalizedModel}`,
+            `available=${isAvailable}`,
+          ].join(' '),
+        );
+      }
       if (!isAvailable) {
         writeJson(response, 400, {
           ok: false,
@@ -346,7 +441,22 @@ export const createNodeRuntimeRequestHandler = (
 
     try {
       await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
-    } catch {      if (!response.writableEnded && !response.destroyed) {
+    } catch (error) {
+      console.error(
+        [
+          '[gen][stream-error]',
+          `corr=${correlationId}`,
+          `requestId=${generationRequest.requestId}`,
+          `toolKey=${toDebugString(generationRequest.toolKey)}`,
+          `workflowType=${toDebugString(generationRequest.workflowType)}`,
+          `step=${step}`,
+          `modelRaw=${generationRequest.model}`,
+          `modelNormalized=${normalizedModel}`,
+          `tone=${tone}`,
+        ].join(' '),
+        error,
+      );
+      if (!response.writableEnded && !response.destroyed) {
         response.statusCode = 500;
         response.end();
       }

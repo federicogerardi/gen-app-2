@@ -4,7 +4,13 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { MenuItem, TextField } from '@mui/material';
+import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
@@ -12,6 +18,13 @@ import { useToolPage } from '../runtime/useToolPage';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
+
+const toneProfileOptions = [
+  { value: 'Professional', label: 'Professional' },
+  { value: 'Casual', label: 'Casual' },
+  { value: 'Formal', label: 'Formal' },
+  { value: 'Technical', label: 'Technical' },
+] as const;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -40,6 +53,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
+    dispatchError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -59,20 +73,56 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     navigate,
   } = useToolPage(props);
 
-  // Auto-select the catalog default model when the list first loads.
-  // Only fires once (tracked by ref) and only if the current model matches
-  // the static fallback set at form initialization.
+  // Zod schema per validazione form tool page
+  const toolFormSchema = z.object({
+    projectId: z.string().min(1, 'Project richiesto'),
+    model: z.string().min(1, 'Model richiesto'),
+    tone: z.string().min(1, 'Tone richiesto'),
+    briefingFile: z.any().optional(),
+  });
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(toolFormSchema),
+    defaultValues: {
+      projectId: formState.projectId,
+      model: formState.model,
+      tone: formState.tone,
+      briefingFile: undefined,
+    },
+    mode: 'onChange',
+  });
+
+  // Auto-select the catalog default model quando la lista si popola
   const defaultAppliedRef = useRef(false);
   useEffect(() => {
     if (defaultAppliedRef.current || modelOptions.length === 0) return;
     const catalogDefault = modelOptions.find((o) => o.isDefault);
     if (catalogDefault && formState.model !== catalogDefault.key) {
       setFormState((prev) => ({ ...prev, model: catalogDefault.key }));
+      setValue('model', catalogDefault.key);
     }
     defaultAppliedRef.current = true;
-  // Run only when modelOptions first becomes non-empty.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelOptions]);
+
+  // Sync external formState changes (e.g. route prefills from useToolPage) into RHF
+  // so that handleSubmit always sees up-to-date values.
+  useEffect(() => {
+    setValue('projectId', formState.projectId);
+  }, [formState.projectId, setValue]);
+
+  useEffect(() => {
+    setValue('model', formState.model);
+  }, [formState.model, setValue]);
+
+  useEffect(() => {
+    setValue('tone', formState.tone);
+  }, [formState.tone, setValue]);
 
   return (
     <section className="ui-tool-page-template">
@@ -84,64 +134,127 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               <p className={uiPrimitives.metaLine}>{toolConfig.displayName} configuration and generation</p>
             </header>
 
-            <form className="ui-tool-form">
-              <div className="ui-tool-form-row">
-                <label>
-                  <span>Project</span>
-                  <select
-                    value={formState.projectId}
-                    onChange={(e) => setFormState({ ...formState, projectId: e.target.value })}
-                    disabled={projectsLoading || isStreamActive}
-                  >
-                    <option value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+            <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
+              // Aggiorna lo stato del form globale e chiama la logica esistente
+              setFormState((prev) => ({
+                ...prev,
+                projectId: data.projectId,
+                model: data.model,
+                tone: data.tone,
+              }));
+              // Esegui azione primaria (es. submit XState)
+              handlePrimaryAction();
+            })}>
 
-                <label>
-                  <span>Model</span>
-                  <select
-                    value={formState.model}
-                    onChange={(e) => setFormState({ ...formState, model: e.target.value })}
-                  >
-                    {modelOptions.length === 0 ? (
-                      <option value={formState.model}>{formState.model || 'No models available'}</option>
-                    ) : (
-                      modelOptions.map((o) => (
-                        <option key={o.key} value={o.key}>{o.label}</option>
-                      ))
-                    )}
-                  </select>
-                </label>
+              <div className="ui-tool-form-row ui-tool-form-row--triple">
+                <Controller
+                  name="projectId"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Project"
+                      disabled={projectsLoading || isStreamActive}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, projectId: e.target.value }));
+                      }}
+                      value={field.value}
+                      error={!!errors.projectId}
+                      helperText={errors.projectId?.message as string | undefined}
+                      fullWidth
+                    >
+                      <MenuItem value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</MenuItem>
+                      {projects.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {p.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+
+                <Controller
+                  name="model"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Model"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, model: e.target.value }));
+                      }}
+                      value={field.value}
+                      error={!!errors.model}
+                      helperText={errors.model?.message as string | undefined}
+                      fullWidth
+                    >
+                      {modelOptions.length === 0 ? (
+                        <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
+                      ) : (
+                        modelOptions.map((o) => (
+                          <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+                        ))
+                      )}
+                    </TextField>
+                  )}
+                />
+
+                <Controller
+                  name="tone"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      label="Tone"
+                      disabled={isStreamActive}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setFormState((prev) => ({ ...prev, tone: e.target.value }));
+                      }}
+                      value={field.value}
+                      error={!!errors.tone}
+                      helperText={errors.tone?.message as string | undefined}
+                      fullWidth
+                    >
+                      {toneProfileOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
               </div>
 
-              <label>
-                <span>Briefing File</span>
-                <input
-                  type="file"
-                  accept=".docx,.txt,.md"
-                  disabled={!formState.projectId.trim() || isStreamActive}
-                  onChange={(e) => {
-                    const selectedFile = e.target.files?.[0] ?? null;
-                    if (selectedFile) {
-                      handleBriefingFileSelected(selectedFile);
-                    } else {
-                      handleBriefingReset();
-                    }
-                  }}
-                />
-              </label>
+              <Controller
+                name="briefingFile"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <UploadFieldButton
+                      label="Briefing File"
+                      disabled={!formState.projectId.trim() || isStreamActive}
+                      icon={<Upload size={16} aria-hidden="true" />}
+                      accept=".docx,.txt,.md"
+                      onFileSelected={(file) => {
+                        field.onChange(file);
+                        if (file) {
+                          handleBriefingFileSelected(file);
+                        } else {
+                          handleBriefingReset();
+                        }
+                      }}
+                    />
+                    {errors.briefingFile ? <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span> : null}
+                  </div>
+                )}
+              />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
-              <p className={uiPrimitives.metaLine}>
-                Briefing status: {effectiveBriefingStatus}
-                {effectiveBriefingFileName ? ` - ${effectiveBriefingFileName}` : ''}
-              </p>
+              {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
               <ToolActionButtons
                 primaryPolicy={machineViewModel.primaryActionPolicy}
@@ -149,7 +262,18 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   ...machineViewModel.secondaryActionFlags,
                   canCancelGeneration: isGenerating,
                 }}
-                onPrimaryAction={handlePrimaryAction}
+                onPrimaryAction={handleSubmit((data) => {
+                  setFormState((prev) => ({
+                    ...prev,
+                    projectId: data.projectId,
+                    model: data.model,
+                    tone: data.tone,
+                  }));
+                  if (data.briefingFile instanceof File) {
+                    handleBriefingFileSelected(data.briefingFile);
+                  }
+                  handlePrimaryAction();
+                })}
                 onCancelGeneration={handleCancelGeneration}
                 isLoading={isGenerating}
               />
@@ -177,9 +301,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               completedStepsCount={completedStepsForFlow.size}
               totalStepsCount={toolConfig.steps.length}
               errorMessage={machineViewModel.messages.error}
-              onViewArtifact={(artifactId) => {
-                void navigate(`/artifacts/${artifactId}`);
-              }}
             />
           </section>
         </div>

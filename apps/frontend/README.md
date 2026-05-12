@@ -1,3 +1,4 @@
+
 # apps/frontend
 
 Frontend/UI bounded context runtime.
@@ -19,9 +20,17 @@ UI is a projection, not a parliament.
 
 <!-- bomberto-egg-03 cipher:reverse asrebs -->
 
+## UI Architecture & Design System
+
+- Tutti i nuovi componenti e layout sono basati su **MUI (Material UI)** per garantire coerenza visiva e accessibilità.
+- Il tema centrale è definito in `apps/frontend/src/theme/theme.ts` e fornito globalmente tramite `ThemeProvider` in `App.tsx`.
+- La normalizzazione CSS e la gestione dark/light mode sono gestite tramite `CssBaseline` e la palette del tema MUI.
+- Tutti i form sono gestiti tramite **React Hook Form** e validati con **Zod**.
+
 ## Runtime Surfaces
 
 - src/: React + XState application
+- src/theme/: tema centrale MUI
 - server.mjs: same-origin frontend runtime and proxy layer
 - vite.config.ts: build pipeline
 
@@ -58,6 +67,92 @@ Build-time capability flags (Vite):
 
 Important: VITE_* values are build-time inputs, not runtime toggles.
 
+Additional frontend rollout/quality flags (Vite build-time):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| VITE_UI_ROLLOUT_MODE | mui | Progressive UI rollout mode (`mui` or `legacy`) exposed as `data-ui-rollout-mode` on `<html>` |
+| VITE_MONITORING_PROVIDER | none | Frontend monitoring bootstrap provider (`none`, `console`, `sentry`, `logrocket`) |
+| VITE_MONITORING_ENDPOINT | _(unset)_ | Optional telemetry endpoint used by monitoring bootstrap for `window.error` / `unhandledrejection`; when unset no telemetry POST is sent |
+
+## Onboarding: Canonical UI Patterns
+
+All new frontend UI code must follow these rules:
+
+1. Use MUI components as default UI primitives (`Button`, `TextField`, `MenuItem`, etc.).
+2. Keep Tool Workspace Page behavior state-driven: setup controls are form UI, primary action remains a `GenerationRequest` orchestration action.
+3. For CRUD forms, use React Hook Form + Zod validation.
+4. For tabular pages, keep row actions aligned with Data Table View governance (no MUI button CTAs inside `<td>`).
+
+Canonical references:
+
+1. `../../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
+2. `../../docs/02-design/specifications/frontend-design-system-ui-kit-guide.md`
+3. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
+
+## Cookbook: Minimal Examples
+
+### 1) MUI unified theme + color scheme toggle
+
+```tsx
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import theme from './theme/theme';
+
+export const AppShell = ({ children }: { children: React.ReactNode }) => (
+	<ThemeProvider theme={theme} defaultMode="system">
+		<CssBaseline />
+		{children}
+	</ThemeProvider>
+);
+```
+
+### 2) RHF + Zod form validation
+
+```tsx
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const schema = z.object({
+	email: z.string().email('Email non valida'),
+});
+
+type FormData = z.infer<typeof schema>;
+
+const form = useForm<FormData>({
+	resolver: zodResolver(schema),
+	defaultValues: { email: '' },
+});
+```
+
+### 3) Data Table row action pattern (canonical)
+
+```tsx
+<Link className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)} to={`/artifacts/${artifactId}`}>
+	Apri
+</Link>
+```
+
+## Rollout, Monitoring, Rollback
+
+Progressive rollout:
+
+1. Keep `VITE_UI_ROLLOUT_MODE=mui` as default.
+2. For emergency containment, build with `VITE_UI_ROLLOUT_MODE=legacy` and redeploy.
+3. Verify `<html data-ui-rollout-mode="...">` in browser runtime.
+
+Monitoring baseline:
+
+1. Set `VITE_MONITORING_PROVIDER=console` in pre-production for rollout smoke checks.
+2. Optionally route the provider value to external SDK wiring (`sentry` or `logrocket`) through bootstrap hooks.
+3. Frontend runtime sends best-effort telemetry for `window.error` and `unhandledrejection` only when `VITE_MONITORING_ENDPOINT` is configured.
+
+Rollback plan:
+
+1. Rebuild with `VITE_UI_ROLLOUT_MODE=legacy`.
+2. Redeploy frontend service only.
+3. Run CI quality gates (`typecheck`, `test`, `test:forms`, `test:visual`, `audit:a11y`) before promoting again.
+
 ## Local Development
 
 From repository root:
@@ -79,6 +174,9 @@ BACKEND_INTERNAL_URL=http://localhost:3000 node apps/frontend/server.mjs
 ```bash
 npm --workspace apps/frontend run typecheck
 npm --workspace apps/frontend run test
+npm --workspace apps/frontend run test:forms
+npm --workspace apps/frontend run test:visual
+npm --workspace apps/frontend run audit:a11y
 ```
 
 ## DDD References

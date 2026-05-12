@@ -169,15 +169,15 @@ describe('AdminUsersPage', () => {
   });
 
   it('creates a new admin user and refreshes the list', async () => {
-    render(
+    const { container } = render(
       <MemoryRouter>
         <AdminUsersPage />
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'new-member@test.com' } });
-    fireEvent.change(screen.getByLabelText('Password iniziale'), { target: { value: 'Secret-123' } });
-    fireEvent.change(screen.getByLabelText('Monthly quota'), { target: { value: '200' } });
+    fireEvent.change(container.querySelector('input[type="email"]')!, { target: { value: 'new-member@test.com' } });
+    fireEvent.change(container.querySelector('input[type="password"]')!, { target: { value: 'Secret-123' } });
+    fireEvent.change(container.querySelector('input[name="monthlyQuota"]')!, { target: { value: '200' } });
     fireEvent.click(screen.getByRole('button', { name: 'Crea utente' }));
 
     expect(await screen.findByText('new-member@test.com')).toBeInTheDocument();
@@ -199,8 +199,8 @@ describe('AdminUsersPage', () => {
       throw new Error('Edit form not found');
     }
 
-    fireEvent.change(within(editForm).getByLabelText('Email'), { target: { value: 'alice-admin@test.com' } });
-    fireEvent.change(within(editForm).getByLabelText('Role'), { target: { value: 'admin' } });
+    fireEvent.change(editForm.querySelector('input[type="email"]')!, { target: { value: 'alice-admin@test.com' } });
+    fireEvent.change(editForm.querySelector('input[name="role"]')!, { target: { value: 'admin' } });
     fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
 
     expect(await screen.findByText('alice-admin@test.com')).toBeInTheDocument();

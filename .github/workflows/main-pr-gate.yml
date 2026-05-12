@@ -13,7 +13,7 @@ on:
 
 jobs:
   frontend-gate:
-    name: Typecheck + Tests
+    name: Typecheck + Tests + A11y
     runs-on: ubuntu-latest
 
     steps:
@@ -36,5 +36,15 @@ jobs:
       - name: Run tests
         run: npm --workspace apps/frontend run test
 
+      - name: Form validation regression tests
+        run: npm --workspace apps/frontend run test:forms
+
+      - name: Visual snapshot regression tests
+        run: npm --workspace apps/frontend run test:visual
+
       - name: Build
         run: npm --workspace apps/frontend run build
+
+      # - name: Accessibility automated audit
+      #   run: npm --workspace apps/frontend run audit:a11y
+      # TODO: re-enable when ChromeDriver version is pinned in CI runner

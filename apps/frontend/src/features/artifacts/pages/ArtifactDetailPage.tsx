@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
-  Button,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
@@ -17,8 +15,8 @@ import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorks
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
-import { Copy, Check } from 'lucide-react';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
+import { ArtifactContentPreview } from '../ui/ArtifactContentPreview';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
@@ -30,6 +28,45 @@ const toolDisplayName = (toolKey: string | null): string => {
   if (toolKey === 'nextland') return 'Nextland';
   if (toolKey === 'youtube-lf-script') return 'YouTube LF Script';
   return toolKey;
+};
+
+const normalizeToolFromWorkflowType = (workflowType: string | null | undefined): string | null => {
+  if (typeof workflowType !== 'string') {
+    return null;
+  }
+
+  const normalized = workflowType.trim();
+  if (normalized.length === 0 || normalized === 'extraction') {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages') {
+    return 'funnel-pages';
+  }
+
+  if (normalized === 'youtube_lf_script') {
+    return 'youtube-lf-script';
+  }
+
+  if (normalized === 'youtube_long_form' || normalized === 'youtube-long-form') {
+    return 'youtube-lf-script';
+  }
+
+  return normalized;
+};
+
+const resolveArtifactToolKey = (artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>): string | null => {
+  const sourceRequestTool =
+    typeof artifact.sourceRequest.toolKey === 'string' ? artifact.sourceRequest.toolKey.trim() : '';
+
+  return (
+    (typeof artifact.toolKey === 'string' && artifact.toolKey.trim().length > 0
+      ? artifact.toolKey.trim()
+      : null) ??
+    (sourceRequestTool.length > 0 ? sourceRequestTool : null) ??
+    normalizeToolFromWorkflowType(artifact.workflowType) ??
+    normalizeToolFromWorkflowType(artifact.sourceRequest.workflowType)
+  );
 };
 
 const toHumanReadableDate = (isoLike: string): string => {
@@ -115,37 +152,7 @@ const LegacyArtifactView = ({
   artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>;
   projectName: string | null;
 }) => {
-  const navigate = useNavigate();
   const generation = useGenerationWorkspace();
-  const [copied, setCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<'markdown' | 'raw'>('markdown');
-  const markdownRef = useRef<HTMLDivElement>(null);
-
-  const handleCopy = () => {
-    const rawText = artifact.content ?? '';
-    if (viewMode === 'markdown' && markdownRef.current) {
-      const html = markdownRef.current.innerHTML;
-      const item = new ClipboardItem({
-        'text/html': new Blob([html], { type: 'text/html' }),
-        'text/plain': new Blob([rawText], { type: 'text/plain' }),
-      });
-      navigator.clipboard.write([item]).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(() => {
-        navigator.clipboard.writeText(rawText).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        }).catch(() => {});
-      });
-    } else {
-      navigator.clipboard.writeText(rawText).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(() => {});
-    }
-  };
-
   const restartPath = useMemo(
     () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
     [artifact],
@@ -153,14 +160,6 @@ const LegacyArtifactView = ({
   const relaunchDisabled = useMemo(
     () => generation.isStreamActive || !restartPath,
     [generation.isStreamActive, restartPath],
-  );
-  const artifactTypeLabel = useMemo(
-    () => appCopy.ui.options.artifactTypes.find((option) => option.value === artifact.artifactType)?.label ?? artifact.artifactType,
-    [artifact.artifactType],
-  );
-  const artifactStatusLabel = useMemo(
-    () => appCopy.ui.options.artifactStatuses.find((option) => option.value === artifact.status)?.label ?? artifact.status,
-    [artifact.status],
   );
   const stepTitle = useMemo(() => {
     const normalized = artifact.stepKey?.trim();
@@ -177,8 +176,21 @@ const LegacyArtifactView = ({
   const completedAtRaw = artifact.completedAt ?? artifact.updatedAt;
   const completedAtHumanReadable = useMemo(() => toHumanReadableDate(completedAtRaw), [completedAtRaw]);
   const resolvedProjectName = projectName ?? `Progetto ${artifact.projectId}`;
-  const toolName = useMemo(() => toolDisplayName(artifact.toolKey), [artifact.toolKey]);
-  const toolLabel = artifact.toolKey ?? '-';
+  const sessionPath = useMemo(() => {
+    const sessionId = artifact.sessionId?.trim();
+    return sessionId ? `/sessionsummary/${sessionId}` : null;
+  }, [artifact.sessionId]);
+  const resolvedToolKey = useMemo(() => resolveArtifactToolKey(artifact), [artifact]);
+  const toolName = useMemo(() => toolDisplayName(resolvedToolKey), [resolvedToolKey]);
+  const toneLabel = useMemo(() => {
+    const tone = artifact.sourceRequest.input?.tone;
+    if (typeof tone !== 'string') {
+      return '-';
+    }
+
+    const normalized = tone.trim();
+    return normalized.length > 0 ? normalized : '-';
+  }, [artifact.sourceRequest.input]);
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>
@@ -189,94 +201,63 @@ const LegacyArtifactView = ({
         </Link>
       </TopBar>
 
-      <section className="ui-artifact-overview" aria-label="Panoramica artifact">
-        <div className="ui-artifact-overview-main">
-          <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
-          <p className={uiPrimitives.metaLine}>{toolName}</p>
-          <p className={uiPrimitives.metaLine}>
-            {resolvedProjectName} · {artifactTypeLabel} · {artifactStatusLabel}
-          </p>
-          <p className={uiPrimitives.metaLine}>{completedAtHumanReadable}</p>
-          <Link to={`/dashboard/projects/${artifact.projectId}`} className={uiPrimitives.inlineLink}>
-            {appCopy.ui.actions.openContextProject}
-          </Link>
-        </div>
+      <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/DigitalDocument">
+        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto artifact">
+          <ArtifactContentPreview content={artifact.content} />
+        </section>
 
-        <div className={uiPrimitives.actions}>
-          <Button
-            type="button"
-            onClick={() => {
-              if (restartPath) {
-                navigate(restartPath);
-              }
-            }}
-            disabled={relaunchDisabled}
-          >
-            {appCopy.ui.actions.relaunchPrimary}
-          </Button>
-          <Button type="button" disabled={!isDeleteEnabled}>
-            {appCopy.ui.actions.deleteUiOnly}
-          </Button>
-        </div>
-      </section>
+        <aside className="ui-artifact-secondary-panel" aria-label="Contesto e azioni artifact">
+          <section className="ui-artifact-overview" aria-label="Panoramica artifact">
+            <div className="ui-artifact-overview-main">
+              <div className="ui-artifact-overview-heading-row">
+                <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
+                <span className={`ui-runtime-badge ui-artifact-status-tag is-${artifact.status}`}>{artifact.status}</span>
+              </div>
+              <p className={uiPrimitives.metaLine}>{`${toolName} - ${resolvedProjectName}`}</p>
+              <p className={uiPrimitives.metaLine}>{completedAtHumanReadable}</p>
+            </div>
 
-      <div className="ui-artifact-content-wrapper">
-        <div className="ui-artifact-toolbar">
-          <div className="ui-artifact-toolbar-tabs">
-            <button
-              type="button"
-              className={`ui-view-tab${viewMode === 'markdown' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('markdown')}
-            >
-              {appCopy.ui.actions.viewMarkdown}
-            </button>
-            <button
-              type="button"
-              className={`ui-view-tab${viewMode === 'raw' ? ' is-active' : ''}`}
-              onClick={() => setViewMode('raw')}
-            >
-              {appCopy.ui.actions.viewRaw}
-            </button>
-          </div>
-          <button
-            type="button"
-            className={`ui-view-tab ui-view-tab--icon${copied ? ' is-active' : ''}`}
-            onClick={handleCopy}
-            aria-label={copied ? appCopy.ui.actions.copied : appCopy.ui.actions.copyContent}
-            title={copied ? appCopy.ui.actions.copied : appCopy.ui.actions.copyContent}
-            disabled={!artifact.content}
-          >
-            {copied ? <Check size={13} /> : <Copy size={13} />}
-          </button>
-        </div>
-        {viewMode === 'markdown' ? (
-          <div className="ui-artifact-markdown" ref={markdownRef}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {artifact.content || ''}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <pre className={uiPrimitives.artifactContent}>{artifact.content || 'Contenuto non disponibile.'}</pre>
-        )}
+            <div className="ui-artifact-overview-actions">
+              {sessionPath ? (
+                <PrimaryCtaButton component={Link} to={sessionPath}>
+                  Apri sessione
+                </PrimaryCtaButton>
+              ) : (
+                <PrimaryCtaButton type="button" disabled>
+                  {appCopy.ui.session.unavailable}
+                </PrimaryCtaButton>
+              )}
+              <SecondaryCtaButton
+                component={Link}
+                to={restartPath ?? '#'}
+                disabled={relaunchDisabled}
+              >
+                {appCopy.ui.actions.relaunchPrimary}
+              </SecondaryCtaButton>
+              <SoftCtaButton type="button" disabled={!isDeleteEnabled}>
+                {appCopy.ui.actions.deleteUiOnly}
+              </SoftCtaButton>
+            </div>
+          </section>
+
+          <details className="ui-artifact-accessory">
+            <summary>Dettagli tecnici</summary>
+            {toneLabel !== '-' ? <meta itemProp="keywords" content={`tone:${toneLabel}`} /> : null}
+            <dl className="ui-artifact-metadata">
+              <dt>{appCopy.ui.meta.artifactId}</dt>
+              <dd itemProp="identifier">{artifact.artifactId}</dd>
+              <dt>{appCopy.ui.labels.model}</dt>
+              <dd>{modelLabel}</dd>
+              <dt>{appCopy.ui.labels.toneOptional}</dt>
+              <dd>{toneLabel}</dd>
+            </dl>
+          </details>
+
+          {!isDeleteEnabled ? (
+            <p className={uiPrimitives.metaLine}>{appCopy.ui.states.artifactDeleteDisabled}</p>
+          ) : null}
+        </aside>
       </div>
-
-      <details className="ui-artifact-accessory" itemScope itemType="https://schema.org/DigitalDocument">
-        <summary>Dettagli tecnici</summary>
-        <dl className="ui-artifact-metadata">
-          <dt>{appCopy.ui.labels.projectId}</dt>
-          <dd itemProp="identifier">{artifact.projectId}</dd>
-          <dt>{appCopy.ui.meta.artifactId}</dt>
-          <dd>{artifact.artifactId}</dd>
-          <dt>{appCopy.ui.labels.model}</dt>
-          <dd>{modelLabel}</dd>
-          <dt>{appCopy.ui.labels.toolKey}</dt>
-          <dd>{toolLabel}</dd>
-        </dl>
-      </details>
-
-      {!isDeleteEnabled ? (
-        <p className={uiPrimitives.metaLine}>{appCopy.ui.states.artifactDeleteDisabled}</p>
-      ) : null}
     </Surface>
   );
 };

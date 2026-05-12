@@ -70,6 +70,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
 - [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md) — **UI naming and page archetype governance**
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
+- [tool-page-frontend-runtime-spec](./02-design/specifications/tool-page-frontend-runtime-spec.md) — **AI-first deterministic reference for Tool Page runtime (useToolPage, machines, ExtractionContextBridge, DispatchError)**
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)

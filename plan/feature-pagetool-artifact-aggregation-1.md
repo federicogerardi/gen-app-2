@@ -3,7 +3,7 @@ version: 1.3
 date_created: 2026-05-07
 last_updated: 2026-05-07
 owner: Gen-App-2 Domain Architecture & Backend
-status: 'Implemented (Phase 1-5 complete; rollout governance follow-ups pending)'
+status: 'In progress'
 tags: ['feature', 'architecture', 'ddd', 'multi-step-workflows', 'pagetool']
 go_review_date: 2026-05-07
 go_decision: 'Conditional GO — Architectural sound, operationally incomplete. Execute after 7-action prep (10d effort).'
@@ -554,7 +554,7 @@ GO STATUS: ✅ APPROVED FOR EXECUTION
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
 
 This plan addresses critical gaps in the PageTool multi-artifact display workflow. Currently, consecutive steps of a multi-step tool (e.g., `youtube-lf-script` with 6 steps) each generate separate artifacts; the frontend correlates them via heuristic join (projectId + toolKey + createdAt proximity), which is non-deterministic and fails under concurrent execution. This plan introduces:
 

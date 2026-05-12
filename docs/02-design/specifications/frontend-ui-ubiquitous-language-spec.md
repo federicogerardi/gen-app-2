@@ -1,8 +1,8 @@
 ---
-status: proposed
-version: 1.0
+status: active
+version: 1.1
 date_created: 2026-05-08
-last-reviewed: 2026-05-08
+last-reviewed: 2026-05-11
 next-review-date: 2026-06-08
 owner: Frontend Platform Team
 type: ui-governance-spec
@@ -44,6 +44,8 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Table Toolbar | Header actions for filtering/sorting/search/reload/export actions. | Artifact list table top action zone | Controls row, actions header |
 | Table Empty State | Standard no-data rendering with reason and next action. | Shared empty-state pattern | No results message |
 | Table Error State | Standard error rendering with retry affordance. | Shared error-state pattern | Load error block |
+| Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false` and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. See DDD-061. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
+| Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-060. | `useToolPage` effect #2b | — |
 
 ## 3. Canonical Page Archetypes
 
@@ -59,6 +61,9 @@ Composition:
 - single primary action policy derived from canonical state
 - secondary actions rendered only through policy flags
 - no extra wrapper containers that dilute panel hierarchy
+- component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
+- **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
+- **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-060).
 
 ### 3.2 Data Table View (reference archetype)
 
@@ -76,6 +81,37 @@ Rule:
 
 - if a page is primarily a list/detail index, it must adopt Data Table View composition
 - card-only list views are allowed only when data is not tabular
+
+#### 3.2.1 Artifact Detail companion layout (`/artifacts/{artifactId}`)
+
+`/artifacts/{artifactId}` is governed as the detail companion of the Artifact History `Data Table View`, not as a standalone archetype.
+
+Canonical composition:
+
+- asymmetric two-column detail layout: primary `Content Panel` + secondary `Context Sidebar`
+- `Content Panel` remains visually dominant and owns the artifact content preview plus the `Markdown` / `Raw` / `Copy content` toolbar
+- `Context Sidebar` owns step context, session/navigation actions, and technical metadata
+- sidebar heading row must render `Step Title` first and the artifact lifecycle status as a compact bordered status tag adjacent to it
+- the status tag must display the persisted lifecycle value in lowercase (`generating`, `completed`, `failed`) and use state color tokens instead of neutral styling
+- tool and project context must render on one compact metadata line in the order `Tool Display Name - Project Name`
+- the primary sidebar navigation CTA is `Apri sessione` when the artifact exposes `sessionId`; legacy artifacts without `sessionId` must keep the CTA slot visible as a disabled button with explicit copy `Sessione non disponibile.`
+- avoid nested cards inside the detail layout; separation must come from panel composition, token spacing, and lightweight dividers rather than stacked boxed surfaces
+- desktop spacing between `Content Panel` and `Context Sidebar` must use canonical spacing tokens from the design system, not one-off pixel gaps
+
+#### 3.2.2 Session Summary Detail companion layout (`/sessionsummary/{sessionId}`)
+
+`/sessionsummary/{sessionId}` is governed as the aggregate-detail companion of `Data Table View` listing pages that expose `SessionSummary` rows.
+
+Canonical composition:
+
+- asymmetric two-column detail layout: primary `Content Panel` + secondary `Context Sidebar`
+- `Content Panel` owns session step navigation and artifact content preview
+- session step navigation must be rendered as `Session Step Tabs` (step selector), visually distinct from content-mode controls
+- content-mode controls remain the canonical `Markdown` / `Raw` / `Copy content` set, shared with `/artifacts/{artifactId}` through the same preview pattern
+- `Context Sidebar` owns aggregate metadata (`sessionId`, session status) and primary navigation CTA back to session archive
+- sidebar heading row must render aggregate title first and the lifecycle status tag adjacent to it
+- status tag must display persisted lifecycle values in lowercase (`generating`, `completed`, `failed`) and use state color tokens
+- avoid nested cards inside the detail layout; preserve hierarchy through panel composition and token-based spacing
 
 ## 4. Canonical Table Standard (Artifact Baseline)
 
@@ -184,6 +220,9 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
 | Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
+| Artifact Detail (`/artifacts/{artifactId}`) | Data Table View companion | Primary content panel + context sidebar; session-first CTA; lowercase bordered status tag beside step title; legacy session CTA disabled with explicit copy; nested-card drift removed | 2026-05-09 |
+| Session Summary Detail (`/sessionsummary/{sessionId}`) | Data Table View companion | Primary content panel + context sidebar; distinct Session Step Tabs for step selection; shared Markdown/Raw/Copy preview pattern aligned with artifact detail | 2026-05-09 |
+| Tool Workspace Flow Panel (`/tools/*`) | Tool Workspace Page | Converged duplicated flow components to `ToolGenerationFlowVertical`; no archetype or UL term change | 2026-05-08 |
 
 ### 5.3 Required convergence target
 

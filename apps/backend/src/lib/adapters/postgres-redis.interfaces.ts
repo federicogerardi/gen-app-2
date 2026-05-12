@@ -2,6 +2,7 @@ import type {
   ArtifactDetail,
   ArtifactListFilters,
   ArtifactSummary,
+  SessionListEntry,
 } from '../types/artifacts';
 import type {
   IdempotencyCoordinatorInput,
@@ -61,6 +62,7 @@ export interface ArtifactQueryRepository {
   countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number>;
   getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null>;
   listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]>;
+  listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]>;
 }
 
 export interface PostgresRedisAdapterDependencies {

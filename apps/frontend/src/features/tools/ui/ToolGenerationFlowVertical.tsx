@@ -27,7 +27,6 @@ export interface ToolGenerationFlowVerticalProps {
   completedStepsCount: number;
   totalStepsCount: number;
   errorMessage: string | null;
-  onViewArtifact?: (artifactId: string) => void;
 }
 
 // ─── derivation helpers ──────────────────────────────────────────────────────
@@ -120,10 +119,9 @@ const ReqItem = ({ status, text, detail, activeLabel }: ReqItemProps) => {
 
 interface StepRowProps {
   step: FlowStepProgress;
-  onViewArtifact?: ((id: string) => void) | undefined;
 }
 
-const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
+const StepRow = ({ step }: StepRowProps) => {
   const isSpinning = step.status === 'running';
   const badge = step.status;
 
@@ -135,15 +133,6 @@ const StepRow = ({ step, onViewArtifact }: StepRowProps) => {
       <span className="ui-fv-step-name">{step.displayName}</span>
       {step.status === 'running' && (
         <span className="ui-fv-status-label">In esecuzione</span>
-      )}
-      {step.status === 'done' && step.artifactId && onViewArtifact && (
-        <button
-          type="button"
-          className="ui-fv-step-action"
-          onClick={() => onViewArtifact(step.artifactId!)}
-        >
-          Visualizza
-        </button>
       )}
       {step.status === 'error' && (
         <span className="ui-fv-step-error-label">Errore</span>
@@ -165,7 +154,6 @@ export const ToolGenerationFlowVertical = ({
   completedStepsCount,
   totalStepsCount,
   errorMessage,
-  onViewArtifact,
 }: ToolGenerationFlowVerticalProps) => {
   const phase = derivePhase(canonicalState);
   const whereLabel = WHERE_LABEL[canonicalState];
@@ -292,11 +280,7 @@ export const ToolGenerationFlowVertical = ({
             <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
-                <StepRow
-                  key={step.step}
-                  step={step}
-                  onViewArtifact={onViewArtifact}
-                />
+                <StepRow key={step.step} step={step} />
               ))}
             </ul>
           </div>
@@ -315,11 +299,7 @@ export const ToolGenerationFlowVertical = ({
             <Label>Step di generazione</Label>
             <ul className="ui-fv-steps">
               {steps.map((step) => (
-                <StepRow
-                  key={step.step}
-                  step={step}
-                  onViewArtifact={onViewArtifact}
-                />
+                <StepRow key={step.step} step={step} />
               ))}
             </ul>
           </div>

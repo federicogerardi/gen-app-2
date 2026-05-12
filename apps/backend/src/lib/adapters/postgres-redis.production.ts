@@ -8,6 +8,7 @@ import {
   type ArtifactDetail,
   type ArtifactListFilters,
   type ArtifactSummary,
+  type SessionListEntry,
 } from '../types/artifacts';
 import {
   mapProjectRowToDetail,
@@ -48,6 +49,7 @@ import type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
+import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 
 const nowDate = (runtime?: ProductionAdapterRuntime): Date =>
   runtime?.now?.() ?? new Date();
@@ -1079,6 +1081,58 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, sessionId]);
     return result.rows.map((row) => mapArtifactRowToDetail(row));
+  }
+
+  async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+    const where: string[] = [
+      'user_id = $1',
+      "session_id IS NOT NULL",
+      "session_id <> ''",
+    ];
+    const params: unknown[] = [userId];
+
+    if (projectId) {
+      params.push(projectId);
+      where.push(`project_id = $${params.length}`);
+    }
+
+    type SessionRow = {
+      session_id: string;
+      project_id: string | null;
+      workflow_type: string | null;
+      artifact_count: string;
+      updated_at: Date | string;
+      status: string;
+    };
+
+    const query = `
+      SELECT
+        session_id,
+        project_id,
+        workflow_type,
+        COUNT(*) AS artifact_count,
+        MAX(updated_at) AS updated_at,
+        CASE
+          WHEN BOOL_OR(status = 'generating') THEN 'generating'
+          WHEN BOOL_OR(status = 'failed') THEN 'failed'
+          ELSE 'completed'
+        END AS status
+      FROM ${this.artifactsTableName}
+      WHERE ${where.join(' AND ')}
+      GROUP BY session_id, project_id, workflow_type
+      ORDER BY MAX(updated_at) DESC
+      LIMIT 500
+    `;
+
+    const result: QueryResult<SessionRow> = await this.pg.query(query, params);
+    return result.rows.map((row): SessionListEntry => ({
+      sessionId: row.session_id,
+      projectId: row.project_id ?? '',
+      toolKey: normalizeToolWorkflowKey(row.workflow_type),
+      status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
+      artifactCount: parseInt(row.artifact_count, 10),
+      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.updated_at.toISOString(),
+    }));
   }
 }
 

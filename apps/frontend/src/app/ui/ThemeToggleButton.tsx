@@ -1,11 +1,15 @@
 import { MoonStar, SunMedium } from 'lucide-react';
+import { useColorScheme } from '@mui/material';
 import { appCopy } from '../copy/system';
-import { useTheme } from '../providers/ThemeProvider';
 import { Button, cx, uiPrimitives } from './primitives';
 
 export const ThemeToggleButton = () => {
-  const { theme, toggleTheme } = useTheme();
-  const isDarkTheme = theme === 'dark';
+  const { mode, setMode } = useColorScheme();
+  const isDarkTheme = mode === 'dark';
+
+  const toggleTheme = () => {
+    setMode(isDarkTheme ? 'light' : 'dark');
+  };
 
   return (
     <Button

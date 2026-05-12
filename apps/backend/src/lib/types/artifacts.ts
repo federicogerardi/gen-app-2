@@ -26,6 +26,15 @@ export type ArtifactSummary = {
   updatedAt: string;
 };
 
+export type SessionListEntry = {
+  sessionId: string;
+  projectId: string;
+  toolKey: string | null;
+  status: 'generating' | 'completed' | 'failed';
+  artifactCount: number;
+  updatedAt: string;
+};
+
 export type ArtifactDetail = ArtifactSummary & {
   userId: string | null;
   input: Record<string, unknown>;

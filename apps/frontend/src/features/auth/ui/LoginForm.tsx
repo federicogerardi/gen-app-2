@@ -1,6 +1,10 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button as MuiButton, TextField } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
-import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type LoginFormProps = {
   onSubmit: (email: string, password: string) => Promise<void>;
@@ -8,20 +12,37 @@ type LoginFormProps = {
   externalError?: string | null;
 };
 
+const loginSchema = z.object({
+  email: z.string().email('Email non valida'),
+  password: z.string().min(1, 'Password richiesta'),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: LoginFormProps) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const handleLoginSubmit = async (data: LoginFormValues): Promise<void> => {
     setPending(true);
     setError(null);
 
     try {
-      await onSubmit(email, password);
-      setPassword('');
+      await onSubmit(data.email, data.password);
+      reset({ email: data.email, password: '' });
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : appCopy.ui.fallbackErrors.loginFailed);
     } finally {
@@ -31,32 +52,32 @@ export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: Log
 
   return (
     <Surface as="section" className={uiPrimitives.loginPanel}>
-      <form className={uiPrimitives.grid} onSubmit={handleSubmit}>
-        <label>
-          {appCopy.ui.labels.email}
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </label>
+      <form className={uiPrimitives.grid} noValidate onSubmit={handleSubmit((data) => void handleLoginSubmit(data))}>
+        <TextField
+          label={appCopy.ui.labels.email}
+          type="email"
+          required
+          {...register('email')}
+          error={!!errors.email}
+          helperText={errors.email?.message}
+          fullWidth
+        />
 
-        <label>
-          {appCopy.ui.labels.password}
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
+        <TextField
+          label={appCopy.ui.labels.password}
+          type="password"
+          required
+          {...register('password')}
+          error={!!errors.password}
+          helperText={errors.password?.message}
+          fullWidth
+        />
 
         {error || externalError ? <p className={uiPrimitives.error}>{error ?? externalError}</p> : null}
 
-        <Button type="submit" disabled={pending}>
+        <MuiButton type="submit" variant="contained" disabled={pending}>
           {pending ? appCopy.editorial.auth.pendingAccess : appCopy.ui.actions.enterWorkspace}
-        </Button>
+        </MuiButton>
       </form>
 
       <a className={uiPrimitives.oauthLink} href={oauthStartUrl}>

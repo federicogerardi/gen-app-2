@@ -89,19 +89,30 @@ const run = async (): Promise<void> => {
   let modelKeyCache: Set<string> = new Set();
   const MODEL_CACHE_TTL_MS = 60_000;
 
-  const checkModelAvailability = async (modelKey: string): Promise<boolean> => {
+  const checkModelAvailability = async (modelKey: string, correlationId: string = '-'): Promise<boolean> => {
     const nowMs = Date.now();
     if (nowMs - modelKeyCacheTimestamp > MODEL_CACHE_TTL_MS) {
       try {
         const enabled = await listEnabledModels(pg);
         modelKeyCache = new Set(enabled.map((m) => m.key));
         modelKeyCacheTimestamp = nowMs;
+        console.info(
+          `[gen][model-cache] corr=${correlationId} refreshed enabledCount=${enabled.length} sample=${enabled
+            .slice(0, 10)
+            .map((m) => m.key)
+            .join(',')}`,
+        );
       } catch {
         // On DB error, fall through to permissive mode to avoid blocking generation.
+        console.warn(
+          `[gen][model-cache] corr=${correlationId} refresh_failed modelKey=${modelKey} fallback=permissive`,
+        );
         return true;
       }
     }
-    return modelKeyCache.has(modelKey);
+    const available = modelKeyCache.has(modelKey);
+    console.info(`[gen][model-cache] corr=${correlationId} check modelKey=${modelKey} available=${available}`);
+    return available;
   };
 
   const authRepositories = createAuthProductionRepositories({ pg });
@@ -120,6 +131,7 @@ const run = async (): Promise<void> => {
     generationAdapters,
     authRuntime,
     checkModelAvailability,
+    debugGenerationLogs: parseBooleanEnv(process.env.GENERATION_DEBUG_LOGS, false),
     generationRoutePath: process.env.GENERATION_ROUTE_PATH ?? '/generation/stream',
     cors: {
       allowedOrigins: corsAllowedOrigins,

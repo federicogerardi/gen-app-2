@@ -3,7 +3,7 @@
  * Renders primary action + secondary action options based on UI derivation
  */
 
-import { Button, uiPrimitives } from '../../../app/ui/primitives';
+import { PrimaryCtaButton, SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import type { PrimaryActionPolicy, SecondaryActionFlags } from '../runtime/tool-ux-state';
 import { derivePrimaryActionLabel } from '../runtime/tool-ux-state';
 
@@ -32,63 +32,58 @@ export const ToolActionButtons = ({
 
   return (
     <div className="ui-tool-action-buttons">
-      {/* Primary action button */}
-      <Button
+      <PrimaryCtaButton
+        type="button"
+        data-testid="primary-cta-btn"
         onClick={onPrimaryAction}
         disabled={primaryLabel.disabled || isLoading}
-        className={`ui-button-primary${isLoading ? ' is-loading' : ''}`}
         title={primaryLabel.tooltip}
       >
         {isLoading ? 'In elaborazione...' : primaryLabel.label}
-      </Button>
+      </PrimaryCtaButton>
 
-      {/* Secondary actions */}
       <div className="ui-tool-secondary-actions">
         {secondaryFlags.canRetry && onRetry && (
-          <button
+          <SecondaryCtaButton
             type="button"
             onClick={onRetry}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Riprova questo step"
           >
             Riprova
-          </button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canSkipStep && onSkipStep && (
-          <button
+          <SecondaryCtaButton
             type="button"
             onClick={onSkipStep}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Salta allo step successivo"
           >
             Salta step
-          </button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canCancelGeneration && onCancelGeneration && (
-          <button
+          <SecondaryCtaButton
             type="button"
             onClick={onCancelGeneration}
-            className={`${uiPrimitives.button} ui-button-secondary`}
             title="Interrompi la generazione in corso"
           >
             Annulla
-          </button>
+          </SecondaryCtaButton>
         )}
 
         {secondaryFlags.canOpenPreviousArtifact && onOpenPreviousArtifact && (
-          <button
+          <SecondaryCtaButton
             type="button"
             onClick={onOpenPreviousArtifact}
             disabled={isLoading}
-            className={uiPrimitives.button}
             title="Visualizza il risultato dello step precedente"
           >
             Artefatto precedente
-          </button>
+          </SecondaryCtaButton>
         )}
       </div>
     </div>

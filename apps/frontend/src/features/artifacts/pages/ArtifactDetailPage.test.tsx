@@ -118,9 +118,66 @@ describe('ArtifactDetailPage', () => {
     renderPage('art-1');
 
     expect(screen.getByRole('heading', { name: 'Intro Structure' })).toBeInTheDocument();
-    expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
+    expect(screen.getByText(/Hotlead Funnel - Project Apollo/)).toBeInTheDocument();
     expect(screen.queryByText('2026-05-08T11:22:33.000Z')).not.toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
+  });
+
+  it('shows tool from workflowType fallback when toolKey is missing', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      toolKey: null,
+      workflowType: 'funnel_pages',
+      sourceRequest: {
+        requestId: 'req-1',
+        userId: 'user-1',
+        projectId: 'proj-1',
+        artifactType: 'content',
+        model: 'gpt-4',
+        input: {},
+        toolKey: null,
+        workflowType: 'funnel_pages',
+      },
+    });
+
+    renderPage('art-1');
+    expect(screen.getByText(/Hotlead Funnel - Project Apollo/)).toBeInTheDocument();
+  });
+
+  it('shows tone metadata in technical details when tone is present', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      sourceRequest: {
+        requestId: 'req-1',
+        userId: 'user-1',
+        projectId: 'proj-1',
+        artifactType: 'content',
+        model: 'gpt-4',
+        input: { tone: 'Professional' },
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel-pages',
+      },
+    });
+
+    renderPage('art-1');
+    expect(screen.getByText(appCopy.ui.labels.toneOptional)).toBeInTheDocument();
+    expect(screen.getByText('Professional')).toBeInTheDocument();
+  });
+
+  it('links to session detail when artifact has a sessionId', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      sessionId: 'sess_demo',
+    });
+
+    renderPage('art-1');
+    expect(screen.getByRole('link', { name: 'Apri sessione' })).toHaveAttribute('href', '/sessionsummary/sess_demo');
+  });
+
+  it('shows a disabled session CTA with explicit copy when sessionId is missing', () => {
+    artifactDetailBag.artifact = makeArtifact({
+      sessionId: null,
+    });
+
+    renderPage('art-1');
+    expect(screen.getByRole('button', { name: appCopy.ui.session.unavailable })).toBeDisabled();
   });
 
   it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
@@ -154,7 +211,7 @@ describe('ArtifactDetailPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.relaunchPrimary }));
+    fireEvent.click(screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary }));
 
     const location = await screen.findByTestId('location-echo');
     expect(location).toHaveTextContent('/tools/funnel-pages?');

@@ -56,8 +56,11 @@ button.nav-item {
   text-align: left;
   border: none;
   background: transparent;
+  color: var(--text-muted);
   box-shadow: none;
   font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .nav-items {

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Button as MuiButton } from '@mui/material';
 import type {
   ArtifactType,
   GenerationRequest,
@@ -25,7 +26,7 @@ import {
 } from './tool-checkpoints';
 import type { ExtractionContext } from '../runtime/GenerationWorkspaceProvider';
 import { appCopy } from '../../../app/copy/system';
-import { Button, Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 type GenerationFormProps = {
   userId: string;
@@ -356,12 +357,12 @@ export const GenerationForm = ({
             Brief: {selectedCheckpoint.extractionContextAvailable ? 'disponibile' : 'non disponibile'}
           </p>
           <div className={uiPrimitives.actions}>
-            <Button type="button" onClick={() => applyCheckpoint('resume')} disabled={disabled}>
+            <MuiButton type="button" variant="outlined" onClick={() => applyCheckpoint('resume')} disabled={disabled}>
               {appCopy.ui.actions.useCheckpointResume}
-            </Button>
-            <Button type="button" onClick={() => applyCheckpoint('regenerate')} disabled={disabled}>
+            </MuiButton>
+            <MuiButton type="button" variant="outlined" onClick={() => applyCheckpoint('regenerate')} disabled={disabled}>
               {appCopy.ui.actions.useCheckpointRegenerate}
-            </Button>
+            </MuiButton>
           </div>
         </div>
       ) : null}
@@ -407,8 +408,9 @@ export const GenerationForm = ({
         />
       </label>
 
-      <Button
+      <MuiButton
         type="button"
+        variant="outlined"
         onClick={() => {
           void processBriefing();
         }}
@@ -421,7 +423,7 @@ export const GenerationForm = ({
         }
       >
         {appCopy.ui.actions.processBriefing}
-      </Button>
+      </MuiButton>
 
       {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
       {!toolsUploadEnabled ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.toolsUploadDisabled}</p> : null}
@@ -494,7 +496,9 @@ export const GenerationForm = ({
         />
       </label>
 
-      <button type="submit" disabled={!canStartGeneration}>{appCopy.ui.actions.startGeneration}</button>
+      <MuiButton type="submit" variant="contained" disabled={!canStartGeneration}>
+        {appCopy.ui.actions.startGeneration}
+      </MuiButton>
     </Surface>
   );
 };

@@ -16,6 +16,9 @@ import type {
 } from '../types/xstate';
 import type { OutputFormat } from '../types/artifact';
 import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow, type ToolWorkflowPlan } from '../runtime/tool-workflow-registry';
+import { normalizeStepKey, normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
+import { buildExtractionStructuredPayload, parseExtractionContent } from './generation/extraction-parsers';
+import { normalizeValue, toOptionalString, toStringArray, toStringRecord } from './generation/request-normalizers';
 
 type GenerationSystemInput = {
   adapters: GenerationAdapters;
@@ -212,214 +215,6 @@ const defaultResponseBuilder = (request: RequestReceivedEvent): string => {
   return `Generated output for request ${request.requestId}`;
 };
 
-const toOptionalString = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const toStringArray = (value: unknown): string[] => {
-  if (Array.isArray(value)) {
-    return value
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.values(value)
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
-  }
-
-  return [];
-};
-
-const toStringRecord = (value: unknown): Record<string, string> => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-
-  return Object.entries(value).reduce<Record<string, string>>((acc, [key, entry]) => {
-    if (typeof entry !== 'string') {
-      return acc;
-    }
-
-    const normalized = entry.trim();
-    if (!normalized) {
-      return acc;
-    }
-
-    acc[key] = normalized;
-    return acc;
-  }, {});
-};
-
-const countWords = (value: string): number => {
-  return value.split(/\s+/).filter((token) => token.length > 0).length;
-};
-
-const buildExtractionStructuredPayload = (
-  context: GenerationMachineContext,
-): Record<string, unknown> => {
-  const briefingId = toOptionalString(context.requestInput.briefingId);
-  const extractionArtifactId =
-    toOptionalString(context.requestInput.extractionArtifactId) ?? context.artifactId;
-  const stepDependencyArtifactIds = [
-    ...new Set(toStringArray(context.requestInput.stepDependencyArtifactIds)),
-  ];
-  const briefText =
-    toOptionalString(context.requestInput.briefingText)
-    ?? toOptionalString(context.requestInput.normalizedText)
-    ?? toOptionalString(context.requestInput.prompt)
-    ?? '';
-  const summary = briefText
-    ? briefText.split(/\s+/).slice(0, 60).join(' ')
-    : null;
-
-  const fields: Record<string, string | null> = {
-    briefing_summary: summary,
-    primary_tone: toOptionalString(context.requestInput.tone),
-    target_tool: context.toolKey,
-  };
-
-  const missingFields = Object.entries(fields)
-    .filter(([, value]) => value === null)
-    .map(([key]) => key);
-
-  return {
-    schemaVersion: 'extraction.v1',
-    requestId: context.requestId,
-    projectId: context.projectId,
-    toolKey: context.toolKey,
-    artifactId: context.artifactId,
-    briefingId,
-    extractionArtifactId,
-    stepDependencyArtifactIds,
-    fields,
-    missingFields,
-    meta: {
-      charCount: briefText.length,
-      wordCount: countWords(briefText),
-      generatedAt: context.runtimeNow().toISOString(),
-    },
-  };
-};
-
-const YOUTUBE_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
-  'knowledge content': 'knowledge_content',
-  avatar: 'avatar',
-  'pain point': 'pain_point',
-  'purchase process type': 'purchase_process_type',
-  offer: 'offer',
-  proof: 'proof',
-  tone: 'tone',
-  'target duration minutes': 'target_duration_minutes',
-  'proprietary methodology disclosure': 'proprietary_methodology_disclosure',
-};
-
-const MISSING_EXTRACTION_VALUE_MARKERS = new Set([
-  'non emerso dal documento.',
-  'non emerso dal documento',
-]);
-
-const normalizeYoutubeExtractionField = (value: string): string | null => {
-  const normalized = value.trim();
-  if (!normalized) {
-    return null;
-  }
-
-  if (MISSING_EXTRACTION_VALUE_MARKERS.has(normalized.toLowerCase())) {
-    return null;
-  }
-
-  return normalized;
-};
-
-/**
- * Parses youtube-lf-script extraction markdown into canonical ExtractionContext fields.
- * Deterministic normalization rule: each section resolves to a single value, taking the
- * first non-empty bullet and ignoring subsequent bullets in the same section.
- */
-const parseYoutubeExtractionMarkdown = (content: string): Record<string, unknown> => {
-  if (!content.trim()) {
-    return {};
-  }
-
-  const rows = content.split(/\r?\n/);
-  const extractedFields: Record<string, string | null> = {};
-  let currentField: string | null = null;
-
-  for (const row of rows) {
-    const headingMatch = row.match(/^##\s+(.+?)\s*$/);
-    if (headingMatch) {
-      const headingLabel = headingMatch[1];
-      if (!headingLabel) {
-        currentField = null;
-        continue;
-      }
-      const heading = headingLabel.trim().toLowerCase();
-      currentField = YOUTUBE_EXTRACTION_SECTION_BY_HEADING[heading] ?? null;
-      continue;
-    }
-
-    if (!currentField) {
-      continue;
-    }
-
-    const bulletMatch = row.match(/^\s*-\s*(.+?)\s*$/);
-    if (!bulletMatch) {
-      continue;
-    }
-    const bulletValue = bulletMatch[1];
-    if (!bulletValue) {
-      continue;
-    }
-
-    const current = extractedFields[currentField];
-    if (current !== undefined && current !== null) {
-      // Deterministic normalization policy: keep only the first non-empty bullet
-      // for each canonical section to avoid ambiguous multi-value merges.
-      continue;
-    }
-
-    extractedFields[currentField] = normalizeYoutubeExtractionField(bulletValue);
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const field of Object.values(YOUTUBE_EXTRACTION_SECTION_BY_HEADING)) {
-    result[field] = extractedFields[field] ?? null;
-  }
-  return result;
-};
-
-const parseExtractionContent = (
-  content: string,
-  extractionToolKey: string | null | undefined,
-): Record<string, unknown> => {
-  if (!content) {
-    return {};
-  }
-
-  const normalizedExtractionToolKey = normalizeToolWorkflowKey(extractionToolKey);
-  if (normalizedExtractionToolKey === 'youtube-lf-script') {
-    return parseYoutubeExtractionMarkdown(content);
-  }
-
-  try {
-    const parsed = JSON.parse(content) as unknown;
-    if (parsed && typeof parsed === 'object') {
-      return parsed as Record<string, unknown>;
-    }
-    return {};
-  } catch {
-    return {};
-  }
-};
 
 const toPersistenceArtifactType = (
   context: GenerationMachineContext,
@@ -483,46 +278,6 @@ const getRegistrySelector = (context: GenerationMachineContext) => {
   return {
     registrySnapshotRef,
   };
-};
-
-const normalizeValue = (value: string | null | undefined): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const normalized = value.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {
-  const normalized = normalizeValue(value);
-  if (!normalized) {
-    return null;
-  }
-
-  // @deprecated-compat: 'hl_funnel' normalizzato a 'funnel-pages' (DDD-030).
-  // Rimuovere quando tutti i dati DB saranno migrati a 'funnel_pages'.
-  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
-    return 'funnel-pages';
-  }
-
-  if (normalized === 'youtube_lf_script') {
-    return 'youtube-lf-script';
-  }
-
-  return normalized;
-};
-
-const normalizeStepKey = (value: unknown): string | null => {
-  const normalized = normalizeValue(toOptionalString(value));
-  if (!normalized) {
-    return null;
-  }
-
-  if (normalized === 'thank-you' || normalized === 'thankyou') {
-    return 'thank_you';
-  }
-
-  return normalized;
 };
 
 const resolveToolWorkflowPlan = (context: GenerationMachineContext): ToolWorkflowPlan | null => {
@@ -1112,28 +867,39 @@ export const generationSystemMachine = setup({
       },
     },
     toolGenerationFlow: {
+      // In 'new' mode, by-pass toolWorkflowMachine and stream directly to avoid orchestration gap.
+      // In 'resume'/'regenerate' mode, use toolWorkflowMachine to coordinate multi-step progression.
       entry: ['ensureArtifactId'],
+      always: [
+        {
+          guard: ({ context }) => resolveWorkflowRunMode(context) === 'new',
+          target: 'streaming',
+        },
+      ],
       invoke: {
         id: 'toolActor',
         src: 'invokeToolWorkflow',
         input: ({ context }) => {
           const plan = resolveToolWorkflowPlan(context);
           const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+          const runMode = resolveWorkflowRunMode(context);
 
           return {
             requestId: context.requestId,
             toolKey: plan?.toolKey ?? context.toolKey ?? 'workflow',
             workflowType: context.workflowType ?? 'generic',
-            runMode: resolveWorkflowRunMode(context),
+            runMode,
             steps: [stepDescriptor],
             dependencyGraph: {
               [stepDescriptor.key]: plan?.dependencyGraph[stepDescriptor.key] ?? stepDescriptor.dependencies,
             },
-            bootstrap: {
-              stepKey: stepDescriptor.key,
-              output: context.syntheticResponse,
-              artifactId: context.artifactId ?? context.artifactIdFactory(),
-            },
+            ...(runMode === 'new' ? {} : {
+              bootstrap: {
+                stepKey: stepDescriptor.key,
+                output: context.syntheticResponse,
+                artifactId: context.artifactId ?? context.artifactIdFactory(),
+              },
+            }),
             ...getRegistrySelector(context),
           };
         },

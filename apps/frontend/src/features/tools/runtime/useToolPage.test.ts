@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useToolPage } from './useToolPage';
 
@@ -58,6 +58,7 @@ const mocks = vi.hoisted(() => {
     snapshot: {
       context: {
         lastRequest: null as { input?: Record<string, unknown> } | null,
+        errorMessage: null as string | null,
       },
     },
     isStreamActive: false,
@@ -79,6 +80,7 @@ const mocks = vi.hoisted(() => {
   const formState = {
     projectId: 'project-001',
     model: 'openrouter/auto',
+    tone: 'Professional',
     registrySnapshotRef: 'snapshot:default',
     briefingFile: null,
     briefingFileName: null,
@@ -170,6 +172,7 @@ beforeEach(() => {
 
   mocks.generation.isStreamActive = false;
   mocks.generation.snapshot.context.lastRequest = null;
+  mocks.generation.snapshot.context.errorMessage = null;
   mocks.generation.streamStatus = 'idle';
 
   mocks.useMachine.mockImplementation(() => [mocks.machineSnapshot, mocks.send]);
@@ -244,5 +247,96 @@ describe('useToolPage', () => {
     expect('toolPageSend' in result.current).toBe(false);
     expect('generationSnapshot' in result.current).toBe(false);
     expect('progressState' in result.current).toBe(false);
+  });
+
+  it('normalizes model legacy provider format before dispatch', async () => {
+    mocks.formState.model = 'openrouter:auto';
+    mocks.formState.tone = 'Professional';
+    mocks.machineSnapshot.context.hydrationResult = {
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      briefingId: 'brief-001',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    };
+    mocks.machineSnapshot.context.pendingStepStart = {
+      step: 'optin',
+      runRequestPrefix: 'run-001',
+    };
+
+    renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    await waitFor(() => {
+      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+    });
+
+    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+      model: string;
+      input: { tone: string };
+    };
+
+    expect(request.model).toBe('openrouter/auto');
+    expect(request.input.tone).toBe('Professional');
+  });
+
+  it('falls back to canonical defaults for empty model and non-canonical tone', async () => {
+    mocks.formState.model = '   ';
+    mocks.formState.tone = 'warm and playful';
+    mocks.machineSnapshot.context.hydrationResult = {
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      briefingId: 'brief-001',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    };
+    mocks.machineSnapshot.context.pendingStepStart = {
+      step: 'optin',
+      runRequestPrefix: 'run-002',
+    };
+
+    renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    await waitFor(() => {
+      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+    });
+
+    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+      model: string;
+      input: { tone: string };
+    };
+
+    expect(request.model).toBe('openrouter/auto');
+    expect(request.input.tone).toBe('Professional');
+  });
+
+  it('declares failure and cancels run when terminal failed has no failedStep', async () => {
+    mocks.generation.isStreamActive = true;
+    mocks.generation.streamStatus = 'idle';
+    mocks.generation.snapshot.context.lastRequest = {
+      input: { step: 'optin' },
+    };
+
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    act(() => {
+      mocks.generation.isStreamActive = false;
+      mocks.generation.streamStatus = 'failed';
+      mocks.generation.terminalFailedStep = null;
+      mocks.generation.snapshot.context.errorMessage = 'terminal_failed:402';
+    });
+
+    rerender();
+
+    await waitFor(() => {
+      expect(mocks.send).toHaveBeenCalledWith({ type: 'CANCEL_GENERATION' });
+    });
+
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'STEP_FAILED',
+        step: 'optin',
+      }),
+    );
+    expect(result.current.dispatchError).toContain('terminal_failed:402');
   });
 });

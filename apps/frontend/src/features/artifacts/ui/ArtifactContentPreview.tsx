@@ -54,6 +54,9 @@ export const ArtifactContentPreview = ({
           });
           return;
         } catch {
+          if (import.meta.env.DEV) {
+            console.debug('[artifact-copy] rich clipboard unavailable');
+          }
           copyAsPlainText();
           return;
         }

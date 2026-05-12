@@ -7,7 +7,8 @@ const resolveFrontendSrcRoot = (): string => {
   if (import.meta.url.startsWith('file:')) {
     const testDir = path.dirname(fileURLToPath(import.meta.url));
     let currentDir = testDir;
-    while (true) {
+    const maxSearchDepth = 20;
+    for (let depth = 0; depth < maxSearchDepth; depth += 1) {
       const appRootMarker = path.join(currentDir, 'App.tsx');
       const mainMarker = path.join(currentDir, 'main.tsx');
       if (fs.existsSync(appRootMarker) && fs.existsSync(mainMarker)) {

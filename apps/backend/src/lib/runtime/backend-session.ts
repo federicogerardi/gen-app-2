@@ -31,6 +31,32 @@ export const runBackendGenerationSession = async (
   adapters: GenerationAdapters,
   options: RunBackendGenerationSessionOptions = {},
 ): Promise<BackendSessionResult> => {
+  const requestedStep =
+    typeof request.input.step === 'string' && request.input.step.trim().length > 0
+      ? request.input.step.trim()
+      : '-';
+  const requestedTone =
+    typeof request.input.tone === 'string' && request.input.tone.trim().length > 0
+      ? request.input.tone.trim()
+      : '-';
+  const correlationId = `run:${request.requestId}`;
+
+  console.info(
+    [
+      '[gen][session-start]',
+      `corr=${correlationId}`,
+      `requestId=${request.requestId}`,
+      `projectId=${request.projectId}`,
+      `sessionId=${request.sessionId ?? '-'}`,
+      `toolKey=${request.toolKey ?? '-'}`,
+      `workflowType=${request.workflowType ?? '-'}`,
+      `artifactType=${request.artifactType}`,
+      `step=${requestedStep}`,
+      `model=${request.model}`,
+      `tone=${requestedTone}`,
+    ].join(' '),
+  );
+
   const actor = createActor(generationSystemMachine, {
     input: { adapters },
   });
@@ -190,6 +216,21 @@ export const runBackendGenerationSession = async (
   const error = status === 'failed'
     ? mapFailureReasonToBackendError(doneSnapshot.context.failureReason)
     : null;
+
+  console.info(
+    [
+      '[gen][session-terminal]',
+      `corr=${correlationId}`,
+      `requestId=${request.requestId}`,
+      `status=${status}`,
+      `artifactId=${doneSnapshot.context.artifactId ?? '-'}`,
+      `failureReason=${doneSnapshot.context.failureReason ?? '-'}`,
+      `contentLen=${doneSnapshot.context.contentBuffer.length}`,
+      `step=${requestedStep}`,
+      `model=${request.model}`,
+      `tone=${requestedTone}`,
+    ].join(' '),
+  );
 
   emitStreamEvent({
     event: 'terminal',

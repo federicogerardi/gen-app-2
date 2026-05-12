@@ -35,7 +35,7 @@ export type NodeRuntimeServerOptions = {
    * When not provided, all model keys are accepted (legacy permissive behaviour).
    * DDD-055: LlmModelCatalog validation gate; DDD-056: LlmModelId.
    */
-  checkModelAvailability?: (modelKey: string) => Promise<boolean>;
+  checkModelAvailability?: (modelKey: string, correlationId?: string) => Promise<boolean>;
   cors?: {
     allowedOrigins: string[];
     allowCredentials?: boolean;
@@ -156,6 +156,44 @@ const requireObjectField = (payload: Record<string, unknown>, field: string): Re
 
   return value as Record<string, unknown>;
 };
+
+const normalizeModelForDebug = (value: string): string => {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  if (normalized === 'auto') {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}`;
+    }
+  }
+
+  return normalized;
+};
+
+const toDebugString = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+
+  return '-';
+};
+
+const createCorrelationId = (requestId: string): string => `run:${requestId}`;
 
 const defaultMapGenerationRequest = (
   payload: Record<string, unknown>,
@@ -325,10 +363,64 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
+    const step =
+      typeof generationRequest.input.step === 'string' && generationRequest.input.step.trim().length > 0
+        ? generationRequest.input.step.trim()
+        : '-';
+    const tone =
+      typeof generationRequest.input.tone === 'string' && generationRequest.input.tone.trim().length > 0
+        ? generationRequest.input.tone.trim()
+        : '-';
+    const briefingTextLength =
+      typeof generationRequest.input.briefingText === 'string'
+        ? generationRequest.input.briefingText.length
+        : 0;
+    const extractionPayloadKeys =
+      generationRequest.input.extractionPayload
+      && typeof generationRequest.input.extractionPayload === 'object'
+      && !Array.isArray(generationRequest.input.extractionPayload)
+        ? Object.keys(generationRequest.input.extractionPayload as Record<string, unknown>).length
+        : 0;
+    const dependencyCount = Array.isArray(generationRequest.input.stepDependencyArtifactIds)
+      ? generationRequest.input.stepDependencyArtifactIds.length
+      : 0;
+    const normalizedModel = normalizeModelForDebug(generationRequest.model);
+    const correlationId = createCorrelationId(generationRequest.requestId);
+
+    console.info(
+      [
+        '[gen][request]',
+        `corr=${correlationId}`,
+        `requestId=${generationRequest.requestId}`,
+        `sessionId=${toDebugString(generationRequest.sessionId)}`,
+        `projectId=${generationRequest.projectId}`,
+        `toolKey=${toDebugString(generationRequest.toolKey)}`,
+        `workflowType=${toDebugString(generationRequest.workflowType)}`,
+        `artifactType=${generationRequest.artifactType}`,
+        `step=${step}`,
+        `modelRaw=${generationRequest.model}`,
+        `modelNormalized=${normalizedModel}`,
+        `tone=${tone}`,
+        `briefingTextLen=${briefingTextLength}`,
+        `extractionPayloadKeys=${extractionPayloadKeys}`,
+        `dependencyCount=${dependencyCount}`,
+      ].join(' '),
+    );
+
     // TASK-010: LlmModelCatalog model availability check (DDD-055, DDD-056).
     // Dispatches MODEL_AVAILABLE / MODEL_UNAVAILABLE logic from requestGatewayMachine.
     if (options.checkModelAvailability) {
-      const isAvailable = await options.checkModelAvailability(generationRequest.model);
+      const isAvailable = await options.checkModelAvailability(generationRequest.model, correlationId);
+      console.info(
+        [
+          '[gen][model-check]',
+          `corr=${correlationId}`,
+          `requestId=${generationRequest.requestId}`,
+          `modelRaw=${generationRequest.model}`,
+          `modelNormalized=${normalizedModel}`,
+          `available=${isAvailable}`,
+        ].join(' '),
+      );
       if (!isAvailable) {
         writeJson(response, 400, {
           ok: false,
@@ -343,7 +435,22 @@ export const createNodeRuntimeRequestHandler = (
 
     try {
       await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
-    } catch {      if (!response.writableEnded && !response.destroyed) {
+    } catch (error) {
+      console.error(
+        [
+          '[gen][stream-error]',
+          `corr=${correlationId}`,
+          `requestId=${generationRequest.requestId}`,
+          `toolKey=${toDebugString(generationRequest.toolKey)}`,
+          `workflowType=${toDebugString(generationRequest.workflowType)}`,
+          `step=${step}`,
+          `modelRaw=${generationRequest.model}`,
+          `modelNormalized=${normalizedModel}`,
+          `tone=${tone}`,
+        ].join(' '),
+        error,
+      );
+      if (!response.writableEnded && !response.destroyed) {
         response.statusCode = 500;
         response.end();
       }

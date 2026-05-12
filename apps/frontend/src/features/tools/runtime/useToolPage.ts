@@ -43,6 +43,37 @@ const isEmptyPayload = (payload: Record<string, unknown>): boolean =>
   Object.keys(payload).length === 0;
 
 const TONE_PROFILE_DEFAULT = 'Professional';
+const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
+
+const normalizeModelForPayload = (model: string, fallbackModel: string): string => {
+  const normalized = model.trim();
+  if (normalized.length === 0) {
+    return fallbackModel;
+  }
+
+  if (normalized.includes('/')) {
+    return normalized;
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}`;
+    }
+  }
+
+  return normalized;
+};
+
+const normalizeToneProfile = (tone: string, fallbackTone: string = TONE_PROFILE_DEFAULT): string => {
+  const normalized = tone.trim().toLowerCase();
+  if (normalized.length === 0) {
+    return fallbackTone;
+  }
+
+  const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
+  return match ?? fallbackTone;
+};
 
 const createSessionId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -281,7 +312,7 @@ export const useToolPage = ({
     if (relaunchTone !== null && relaunchTone !== undefined) {
       setFormState((prev) => ({
         ...prev,
-        tone: relaunchTone || TONE_PROFILE_DEFAULT,
+        tone: normalizeToneProfile(relaunchTone),
       }));
       tonePrefillDoneRef.current = true;
       return;
@@ -296,7 +327,7 @@ export const useToolPage = ({
     if (sourceTone) {
       setFormState((prev) => ({
         ...prev,
-        tone: sourceTone,
+        tone: normalizeToneProfile(sourceTone),
       }));
     }
 
@@ -502,6 +533,8 @@ export const useToolPage = ({
       const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
       currentRunPrefixRef.current = runPrefix;
       const runtimeIntent = resolveRuntimeIntent();
+      const normalizedModel = normalizeModelForPayload(formState.model, toolConfig.defaultModel);
+      const normalizedTone = normalizeToneProfile(formState.tone);
       toolPageSend({
         type: 'PROGRESS_SYNCED',
         artifacts: generation.artifacts,
@@ -516,14 +549,14 @@ export const useToolPage = ({
         projectId: normalizedProjectId,
         sessionId: sessionIdRef.current,
         artifactType: 'content',
-        model: formState.model,
+        model: normalizedModel,
         outputFormat: 'markdown',
         toolKey,
         workflowType: toolKey,
         registrySnapshotRef: formState.registrySnapshotRef,
         input: {
           intent: runtimeIntent,
-          tone: formState.tone || TONE_PROFILE_DEFAULT,
+          tone: normalizedTone,
           notes: resolvedNotes,
           relaunchFromArtifactId: resolvedRelaunchSource,
           sourceArtifactId: sourceArtifactId ?? null,
@@ -644,15 +677,34 @@ export const useToolPage = ({
 
     const completedStep = generation.terminalCompletedStep;
     const failedStep = generation.terminalFailedStep;
+    const inferredStepFromLastRequest = (
+      generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
+    )?.step;
+    const normalizedFailedStep =
+      typeof failedStep === 'string' && toolConfig.steps.includes(failedStep as ToolStep)
+        ? (failedStep as ToolStep)
+        : typeof inferredStepFromLastRequest === 'string' && toolConfig.steps.includes(inferredStepFromLastRequest as ToolStep)
+          ? (inferredStepFromLastRequest as ToolStep)
+          : null;
 
     if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
       toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
-    } else if (failedStep && toolConfig.steps.includes(failedStep as ToolStep)) {
-      toolPageSend({
-        type: 'STEP_FAILED',
-        step: failedStep as ToolStep,
-        message: 'Generazione fallita',
-      });
+    } else if (generation.streamStatus === 'failed') {
+      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'Generazione fallita';
+
+      if (normalizedFailedStep) {
+        toolPageSend({
+          type: 'STEP_FAILED',
+          step: normalizedFailedStep,
+          message: streamErrorMessage,
+        });
+      }
+
+      // Force exit from generating state so the UI does not remain stuck in pending.
+      setDispatchError(streamErrorMessage);
+      setIsAutoChainEnabled(false);
+      currentRunPrefixRef.current = null;
+      toolPageSend({ type: 'CANCEL_GENERATION' });
     } else if (!completedStep && !failedStep && generation.streamStatus === 'completed') {
       const inferredStep = (
         generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined

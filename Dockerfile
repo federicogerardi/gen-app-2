@@ -4,8 +4,13 @@ WORKDIR /app
 
 # Copy all package files for workspace resolution
 COPY package.json package-lock.json ./
-COPY apps/*/package.json apps/
-COPY packages/*/package.json packages/
+
+# Copy workspace package.json and lock files
+COPY apps/backend/package.json apps/backend/package-lock.json ./apps/backend/
+COPY apps/frontend/package.json apps/frontend/package-lock.json ./apps/frontend/
+COPY packages/contracts/package.json ./packages/contracts/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/infra-db/package.json ./packages/infra-db/
 
 # Install all workspace dependencies
 RUN npm ci --workspaces --include-workspace-root

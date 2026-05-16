@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listEnabledModels,
@@ -19,16 +20,17 @@ type UseModelsQueryResult = {
 };
 
 export const useModelsQuery = (options: UseModelsQueryOptions): UseModelsQueryResult => {
-  const capabilitiesKey = JSON.stringify(options.capabilities);
+  const dependencyKey = JSON.stringify([options.apiBaseUrl, options.capabilities]);
+  const query = useCallback(() => listEnabledModels({
+    apiBaseUrl: options.apiBaseUrl,
+    capabilities: options.capabilities as BackendCapabilities,
+  }), [options.apiBaseUrl, options.capabilities]);
 
   return useAsyncQuery<LlmModelOption[]>({
     enabled: options.enabled ?? true,
     emptyData: [],
     errorMessage: 'Unable to load models',
-    dependencies: [options.apiBaseUrl, capabilitiesKey],
-    query: () => listEnabledModels({
-      apiBaseUrl: options.apiBaseUrl,
-      capabilities: options.capabilities as BackendCapabilities,
-    }),
+    dependencyKey,
+    query,
   });
 };

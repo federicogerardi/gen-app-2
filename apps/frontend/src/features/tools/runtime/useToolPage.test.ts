@@ -139,7 +139,12 @@ vi.mock('../runtime/tool-form-architecture', () => ({
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
-  useProjectsQuery: () => ({ data: [{ id: 'project-001', name: 'Project 001' }], loading: false }),
+  useProjectsQuery: () => ({
+    data: [{ id: 'project-001', name: 'Project 001' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
 }));
 
 vi.mock('../runtime/useToolForm', () => ({

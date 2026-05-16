@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listSessions,
@@ -21,16 +22,17 @@ type UseSessionsQueryResult = {
 
 export const useSessionsQuery = (options: UseSessionsQueryOptions): UseSessionsQueryResult => {
   const projectIdKey = options.projectId ?? '';
-  const capabilitiesKey = JSON.stringify(options.capabilities);
+  const dependencyKey = JSON.stringify([projectIdKey, options.apiBaseUrl, options.capabilities]);
+  const query = useCallback(() => listSessions(
+    projectIdKey ? { projectId: projectIdKey } : {},
+    { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities as BackendCapabilities },
+  ), [projectIdKey, options.apiBaseUrl, options.capabilities]);
 
   return useAsyncQuery<SessionSummary[]>({
     enabled: options.enabled ?? true,
     emptyData: [],
     errorMessage: 'Unable to load sessions',
-    dependencies: [projectIdKey, options.apiBaseUrl, capabilitiesKey],
-    query: () => listSessions(
-      projectIdKey ? { projectId: projectIdKey } : {},
-      { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities as BackendCapabilities },
-    ),
+    dependencyKey,
+    query,
   });
 };

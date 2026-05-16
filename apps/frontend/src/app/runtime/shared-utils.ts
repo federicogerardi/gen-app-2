@@ -25,7 +25,13 @@ export const generateSessionId = (): string => {
     return crypto.randomUUID();
   }
 
-  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    const suffix = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    return `sess_${Date.now().toString(36)}_${suffix}`;
+  }
+
+  return `sess_${Date.now().toString(36)}`;
 };
 
 /**

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { getProjectById, type ProjectSummary } from '../../../features/projects/runtime/projects-client';
 import { useAsyncQuery } from './useAsyncQuery';
@@ -19,14 +20,16 @@ type UseProjectDetailQueryResult = {
 export const useProjectDetailQuery = (
   options: UseProjectDetailQueryOptions,
 ): UseProjectDetailQueryResult => {
+  const query = useCallback(() => getProjectById(options.projectId, {
+    apiBaseUrl: options.apiBaseUrl,
+    capabilities: options.capabilities,
+  }), [options.projectId, options.apiBaseUrl, options.capabilities]);
+
   return useAsyncQuery<ProjectSummary | null>({
     enabled: options.enabled !== false && options.projectId.length > 0,
     emptyData: null,
     errorMessage: 'Unable to load project detail',
-    dependencies: [options.projectId, options.apiBaseUrl, options.capabilities],
-    query: () => getProjectById(options.projectId, {
-      apiBaseUrl: options.apiBaseUrl,
-      capabilities: options.capabilities,
-    }),
+    dependencyKey: JSON.stringify([options.projectId, options.apiBaseUrl, options.capabilities]),
+    query,
   });
 };

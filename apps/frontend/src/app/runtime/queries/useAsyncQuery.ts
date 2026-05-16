@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseAsyncQueryOptions<TData> = {
   enabled?: boolean;
   emptyData: TData;
   errorMessage: string;
-  dependencies: readonly unknown[];
+  dependencyKey: string;
   query: () => Promise<TData>;
 };
 
@@ -27,13 +27,20 @@ export const useAsyncQuery = <TData>({
   enabled = true,
   emptyData,
   errorMessage,
-  dependencies,
+  dependencyKey,
   query,
 }: UseAsyncQueryOptions<TData>): UseAsyncQueryResult<TData> => {
   const [data, setData] = useState<TData>(emptyData);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const emptyDataRef = useRef(emptyData);
+  const errorMessageRef = useRef(errorMessage);
+  const queryRef = useRef(query);
+
+  emptyDataRef.current = emptyData;
+  errorMessageRef.current = errorMessage;
+  queryRef.current = query;
 
   const reload = useCallback(() => {
     setReloadToken((prev) => prev + 1);
@@ -41,7 +48,7 @@ export const useAsyncQuery = <TData>({
 
   useEffect(() => {
     if (!enabled) {
-      setData(emptyData);
+      setData(emptyDataRef.current);
       setLoading(false);
       setError(null);
       return;
@@ -52,7 +59,7 @@ export const useAsyncQuery = <TData>({
 
     void (async () => {
       try {
-        const nextData = await query();
+        const nextData = await queryRef.current();
 
         if (cancelled) {
           return;
@@ -65,8 +72,8 @@ export const useAsyncQuery = <TData>({
           return;
         }
 
-        setData(emptyData);
-        setError(readErrorMessage(queryError, errorMessage));
+        setData(emptyDataRef.current);
+        setError(readErrorMessage(queryError, errorMessageRef.current));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -77,8 +84,7 @@ export const useAsyncQuery = <TData>({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- callers provide dependency keys explicitly
-  }, [enabled, reloadToken, ...dependencies]);
+  }, [dependencyKey, enabled, reloadToken]);
 
   return {
     data,

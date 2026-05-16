@@ -232,6 +232,7 @@ vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
     data: [{ id: 'project-001', name: 'Project 001' }],
     loading: false,
     error: null,
+    reload: vi.fn(),
   }),
 }));
 

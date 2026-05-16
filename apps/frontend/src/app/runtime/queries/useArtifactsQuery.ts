@@ -38,11 +38,12 @@ export const useArtifactsQuery = (
 
   // Serialize filters so that inline object literals don't trigger the effect on every render.
   const filtersKey = JSON.stringify(options.filters);
-  const query = useCallback(() => listArtifacts(options.filters, {
+  const filters = options.filters;
+  const query = useCallback(() => listArtifacts(filters, {
     apiBaseUrl: options.apiBaseUrl,
     capabilities: options.capabilities,
     localArtifacts: localArtifactsRef.current,
-  }), [options.filters, options.apiBaseUrl, options.capabilities]);
+  }), [filtersKey, options.apiBaseUrl, options.capabilities]);
   const queryState = useAsyncQuery<ArtifactQueryData>({
     enabled: options.enabled ?? true,
     emptyData: {

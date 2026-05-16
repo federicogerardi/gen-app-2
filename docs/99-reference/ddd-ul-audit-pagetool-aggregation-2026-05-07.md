@@ -1,6 +1,6 @@
 ---
 audit_type: DDD/UL Conformance Verification
-plan: feature-pagetool-artifact-aggregation-1.md
+plan: feature-pagetool-artifact-aggregation-plan-1.md
 date: 2026-05-07
 auditor: Domain Architecture Review (AI)
 status: Findings Reported
@@ -10,7 +10,7 @@ status: Findings Reported
 
 ## Executive Summary
 
-The implementation plan `feature-pagetool-artifact-aggregation-1.md` has been audited against canonical DDD/UL references:
+The implementation plan `feature-pagetool-artifact-aggregation-plan-1.md` has been audited against canonical DDD/UL references:
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md` (39 canonical terms)
 - `docs/02-design/domain-bounded-context-map.md` (4 bounded contexts)
 - `docs/07-governance/domain-naming-decision-log.md` (46 approved decisions + 7 open conflicts)
@@ -350,7 +350,7 @@ Add section: "DDD Conformance & Terminology"
 
 ## 9. Conclusion
 
-The implementation plan `feature-pagetool-artifact-aggregation-1.md` is **CONFORMANT WITH DDD/UL STANDARDS** and ready for Phase 1 (DDD documentation) initiation.
+The implementation plan `feature-pagetool-artifact-aggregation-plan-1.md` is **CONFORMANT WITH DDD/UL STANDARDS** and ready for Phase 1 (DDD documentation) initiation.
 
 **Immediate Actions**:
 1. ✅ Proceed with Phase 1 as planned.

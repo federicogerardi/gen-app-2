@@ -4,13 +4,15 @@ version: 1.0
 date_created: 2026-05-11
 last_updated: 2026-05-12
 owner: Frontend Platform Team
-status: 'Completed'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [refactor, frontend, ui, listing, upload, cta, safety]
 ---
 
 # Introduction
 
-![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This plan defines a deterministic two-PR refactor sequence with low regression risk. PR-1 extracts a reusable ListingTableSection pattern from existing Artifact and Session listings. PR-2 standardizes Upload and CTA rendering via wrappers while preserving current domain behavior and route semantics.
 
@@ -64,7 +66,7 @@ This plan defines a deterministic two-PR refactor sequence with low regression r
 | TASK-011 | Run `npm --workspace apps/frontend run typecheck` after each PR and store pass/fail result in PR description checklist. | ✅ | 2026-05-11 |
 | TASK-012 | Run focused tests for touched areas (`Artifacts`, `SessionsSummary`, `ToolActionButtons`, `ArtifactDetail`) and capture pass/fail matrix per PR. | ✅ | 2026-05-11 |
 | TASK-013 | Execute visual sanity check for light/dark states of listing tables, upload button, and CTA wrappers; record screenshots in PR comments. | ✅ | 2026-05-12 |
-| TASK-014 | Update plan tracking table in `plan/upgrade-frontend-ui-unification-1.md` by adding completion notes for the two-PR refactor sequence. | ✅ | 2026-05-11 |
+| TASK-014 | Update plan tracking table in `upgrade-frontend-ui-unification-plan-1.md` by adding completion notes for the two-PR refactor sequence. | ✅ | 2026-05-11 |
 
 ## 3. Alternatives
 
@@ -115,4 +117,4 @@ This plan defines a deterministic two-PR refactor sequence with low regression r
 
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/frontend-design-system-ui-kit-guide.md`
-- `plan/upgrade-frontend-ui-unification-1.md`
+- `upgrade-frontend-ui-unification-plan-1.md`

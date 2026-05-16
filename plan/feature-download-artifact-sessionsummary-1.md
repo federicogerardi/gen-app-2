@@ -2,15 +2,17 @@
 goal: Deterministic Download Capability For Artifact And SessionSummary Detail Views
 version: 1.0
 date_created: 2026-05-09
-last_updated: 2026-05-09
+last_updated: 2026-05-16
 owner: Backend + Frontend Platform
-status: 'Planned'
+status: draft
+last-reviewed: 2026-05-16
+next-review-date: 2026-06-15
 tags: [feature, backend, frontend, download, sessionsummary, artifacts]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Draft](https://img.shields.io/badge/status-Draft-lightgrey)
 
 This plan implements backend-first download endpoints and frontend integration for detail viewers with deterministic behavior: single Artifact download in `/artifacts/{artifactId}` and aggregated step download in `/sessionsummary/{sessionId}`. Output formats are `md`, `docx`, and `txt`.
 

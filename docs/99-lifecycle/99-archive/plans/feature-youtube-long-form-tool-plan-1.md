@@ -2,15 +2,17 @@
 goal: "Implement Youtube LF Script (youtube-lf-script) tool for gen-app-2 with canonical 6-step workflow, specialized brief extraction, and complete multi-tool registry integration"
 version: "1.0"
 date_created: "2026-05-07"
-last_updated: "2026-05-07"
+last_updated: "2026-05-16"
 owner: "dev-team"
-status: 'Planned'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: ['feature', 'architecture', 'tool-integration', 'ddd', 'multi-step-generation']
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This implementation plan provides a deterministic, fully executable roadmap for integrating the Youtube LF Script Generator tool (ToolKey: `youtube-lf-script`) into the gen-app-2 multi-tool generation system. The plan follows the registry-driven architecture established by existing tools (funnel-pages, nextland) and maintains DDD discipline through canonical naming decisions, bounded context mapping, and test-driven validation.
 

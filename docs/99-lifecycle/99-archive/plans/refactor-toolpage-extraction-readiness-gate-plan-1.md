@@ -4,13 +4,15 @@ version: 1.0
 date_created: 2026-05-16
 last_updated: 2026-05-16
 owner: Frontend Platform Team
-status: 'Completed'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [refactor, frontend, backend, xstate, readiness, extraction, bug]
 ---
 
 # Introduction
 
-![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This plan defines a deterministic refactor that blocks Tool Workspace Page readiness when extraction completes with semantically invalid output (for example empty or non-actionable extraction payload), and requires a new valid brief upload before generation can start.
 

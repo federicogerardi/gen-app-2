@@ -2,15 +2,17 @@
 goal: Execution-Ready Refactor Plan for Backend and Frontend Atomization and Deduplication
 version: 2.0
 date_created: 2026-05-08
-last_updated: 2026-05-08
+last_updated: 2026-05-16
 owner: Platform Engineering
-status: 'Planned'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [refactor, architecture, backend, frontend, ddd, execution-ready]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This document is the execution-ready version of the atomization refactor. Every task contains exact commands and binary verification criteria to allow deterministic execution by AI agents or humans.
 
@@ -156,4 +158,4 @@ This document is the execution-ready version of the atomization refactor. Every 
 [Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
 [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
 [Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-[Baseline Plan v1](./refactor-backend-frontend-atomization-1.md)
+[Baseline Plan v1](./refactor-backend-frontend-atomization-plan-1.md)

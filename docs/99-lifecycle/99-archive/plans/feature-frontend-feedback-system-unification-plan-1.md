@@ -4,13 +4,15 @@ version: 1.1
 date_created: 2026-05-16
 last_updated: 2026-05-16
 owner: Frontend Platform Team
-status: 'Completed'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [feature, frontend, architecture, ui-governance, ddd]
 ---
 
 # Introduction
 
-![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This plan defines the deterministic implementation path to unify all frontend user feedback into the canonical channel model: `inline-action`, `page-state`, and `global`, while preserving DDD terminology and UI governance constraints.
 
@@ -150,7 +152,7 @@ This plan defines the deterministic implementation path to unify all frontend us
 - `docs/02-design/domain-bounded-context-map.md`
 - `docs/07-governance/domain-naming-decision-log.md`
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-- `plan/upgrade-frontend-ui-unification-1.md`
+- `upgrade-frontend-ui-unification-plan-1.md`
 
 ## 8b. Context7 Evidence Applied (2026-05-16)
 

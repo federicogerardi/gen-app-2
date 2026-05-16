@@ -5,13 +5,15 @@ date_created: 2026-05-07
 last_updated: 2026-05-08
 verified_date: 2026-05-08
 owner: Frontend Platform Team
-status: 'Completed'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [refactor, frontend, ddd, routing, navigation, contracts]
 ---
 
 # Introduction
 
-![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This plan defines a deterministic frontend refactor to enforce DDD namespace separation between Artifact history and SessionSummary aggregate navigation. The implementation preserves backward compatibility during transition while making SessionSummary the canonical navigation source for project contextual history.
 
@@ -147,4 +149,4 @@ Completion Criteria (Phase 3):
 - docs/07-governance/domain-naming-decision-log.md
 - docs/02-design/specifications/frontend-spec.md
 - docs/02-design/tool-generation-flow.md
-- plan/feature-pagetool-artifact-aggregation-1.md
+- docs/99-lifecycle/99-archive/plans/feature-pagetool-artifact-aggregation-plan-1.md

@@ -1,14 +1,18 @@
+---
 goal: Implement GenerationSession aggregate and multi-artifact session display for PageTool, with queryable session grouping and artifact role isolation at the database and domain level.
-version: 1.3
+version: 1.4
 date_created: 2026-05-07
-last_updated: 2026-05-07
+last_updated: 2026-05-16
 owner: Gen-App-2 Domain Architecture & Backend
-status: 'In progress'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: ['feature', 'architecture', 'ddd', 'multi-step-workflows', 'pagetool']
 go_review_date: 2026-05-07
 go_decision: 'Conditional GO — Architectural sound, operationally incomplete. Execute after 7-action prep (10d effort).'
 estimated_effort: '~8 developer-weeks implementation + 10d prep = 12 weeks total'
 estimated_timeline: 'Prep: 10d (2026-05-07 to 2026-05-17). Execution: 18d (Phase 1-5) = ~5 weeks total, can parallelize to 4 weeks with 4 developers'
+---
 
 # 🔴 EXECUTIVE GO REVIEW (2026-05-07)
 
@@ -554,7 +558,7 @@ GO STATUS: ✅ APPROVED FOR EXECUTION
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 This plan addresses critical gaps in the PageTool multi-artifact display workflow. Currently, consecutive steps of a multi-step tool (e.g., `youtube-lf-script` with 6 steps) each generate separate artifacts; the frontend correlates them via heuristic join (projectId + toolKey + createdAt proximity), which is non-deterministic and fails under concurrent execution. This plan introduces:
 

@@ -2,13 +2,16 @@
 goal: Unificazione e semplificazione della GUI tramite adozione di librerie per design system, temi e validazione form
 version: 2.0
 date_created: 2026-05-09
-status: 'Completed'
+owner: Frontend Platform Team
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: [upgrade, frontend, ui, design-system, theming, validation]
 ---
 
 # Introduction
 
-![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 Questo piano mira a unificare e semplificare la GUI dell’applicazione frontend adottando librerie mature per design system/UI kit (MUI), gestione centralizzata dei temi (ThemeProvider MUI), e validazione/form (React Hook Form + Zod). L’obiettivo è eliminare componenti custom ridondanti, garantire coerenza visiva e velocizzare lo sviluppo.
 

@@ -2,15 +2,17 @@
 goal: LLM Model Catalog — Admin CRUD + Frontend Model Selector
 version: 1.0
 date_created: 2026-05-08
-last_updated: 2026-05-08
+last_updated: 2026-05-16
 owner: Domain Architecture
-status: 'Planned'
+status: archived
+last-reviewed: 2026-05-16
+next-review-date: 2027-05-16
 tags: feature, architecture, migration, admin
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Archived](https://img.shields.io/badge/status-Archived-lightgrey)
 
 Introduce a database-managed `LlmModelCatalog` that replaces the current free-text `<input>` for model selection with a constrained `LlmModelSelector` `<select>` populated from `GET /api/models`. Administrators can manage the catalog (enable/disable/create/delete entries) via a dedicated admin CRUD panel. The canonical domain terms are established in DDD-053..DDD-057.
 

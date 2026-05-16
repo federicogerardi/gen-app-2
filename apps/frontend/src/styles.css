@@ -1847,13 +1847,42 @@ button:not(.MuiButton-root):not([class]):disabled,
   right: var(--space-2);
   bottom: var(--space-2);
   z-index: 1100;
-  display: grid;
-  justify-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: var(--space-1);
 }
 
 .ui-news-sticky__launcher {
-  min-width: 124px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-strong), var(--workspace-blue) 54%, var(--brand-bright));
+  color: var(--button-primary-fg);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--button-primary-shadow);
+  transition: background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+  margin-top: auto;
+}
+
+.ui-news-sticky__launcher:hover {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: var(--button-primary-shadow-hover);
+  filter: saturate(1.04);
+}
+
+.ui-news-sticky__launcher:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.ui-news-sticky__launcher:active {
+  transform: scale(0.96);
 }
 
 .ui-news-sticky__panel {
@@ -1871,6 +1900,49 @@ button:not(.MuiButton-root):not([class]):disabled,
 
 .ui-news-sticky__header h3 {
   margin: 0;
+}
+
+.ui-news-sticky__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.ui-news-sticky__header-content {
+  flex: 1;
+}
+
+.ui-news-sticky__close-form {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.ui-news-sticky__close-form:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-accent);
+}
+
+.ui-news-sticky__close-form:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.ui-news-sticky__close-form:active {
+  transform: scale(0.92);
 }
 
 .ui-news-sticky__list {
@@ -1935,6 +2007,27 @@ button:not(.MuiButton-root):not([class]):disabled,
 
 .ui-news-sticky__form textarea {
   resize: vertical;
+}
+
+.ui-news-sticky__form-toggle,
+.ui-news-sticky__form-submit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ui-news-sticky__form-toggle {
+  min-width: 48px;
+}
+
+.ui-news-sticky__form-toggle > span {
+  display: block;
+}
+
+.ui-news-sticky__form-submit > span {
+  display: block;
 }
 
 ul {

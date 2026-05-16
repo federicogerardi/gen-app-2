@@ -90,7 +90,7 @@ describe('FeedbackNewsSticky', () => {
   it('loads published changelog and submits a report from sticky panel', async () => {
     render(<FeedbackNewsSticky />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'News' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apri news' }));
     expect(await screen.findByText('Nuovo runtime changelog')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Invia segnalazione' }));

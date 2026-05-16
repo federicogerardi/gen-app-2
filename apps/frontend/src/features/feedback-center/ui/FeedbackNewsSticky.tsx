@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { Bell, X, Send } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
@@ -124,21 +125,36 @@ export const FeedbackNewsSticky = () => {
 
   return (
     <aside className={cx('ui-news-sticky', isPanelOpen && 'is-open')} aria-label="News sticky panel">
-      <button
-        type="button"
-        className={cx(uiPrimitives.button, 'ui-news-sticky__launcher')}
-        onClick={() => setIsPanelOpen((prev) => !prev)}
-        aria-expanded={isPanelOpen}
-        aria-controls="news-sticky-panel"
-      >
-        {isPanelOpen ? 'Chiudi news' : 'News'}
-      </button>
-
       {isPanelOpen ? (
         <section id="news-sticky-panel" className="ui-news-sticky__panel" aria-live="polite">
           <header className="ui-news-sticky__header">
-            <h3>News</h3>
-            <p className={uiPrimitives.metaLine}>Changelog pubblicato dagli admin.</p>
+            <div className="ui-news-sticky__header-content">
+              {isFormOpen ? (
+                <>
+                  <h3>Segnala un problema</h3>
+                  <p className={uiPrimitives.metaLine}>Aiutaci a migliorare la piattaforma.</p>
+                </>
+              ) : (
+                <>
+                  <h3>News</h3>
+                  <p className={uiPrimitives.metaLine}>Changelog pubblicato dagli admin.</p>
+                </>
+              )}
+            </div>
+            {isFormOpen && (
+              <button
+                type="button"
+                className="ui-news-sticky__close-form"
+                onClick={() => {
+                  setIsFormOpen(false);
+                  resetForm();
+                }}
+                aria-label="Chiudi modulo feedback"
+                title="Chiudi modulo"
+              >
+                <X size={16} strokeWidth={2.5} />
+              </button>
+            )}
           </header>
 
           {changelogQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento changelog...</p> : null}
@@ -146,7 +162,7 @@ export const FeedbackNewsSticky = () => {
             <p className={uiPrimitives.error} role="alert">{changelogQuery.error}</p>
           ) : null}
 
-          {!changelogQuery.loading && !changelogQuery.error ? (
+          {!isFormOpen && !changelogQuery.loading && !changelogQuery.error ? (
             <ul className="ui-news-sticky__list">
               {visibleChangelog.length === 0 ? (
                 <li>
@@ -164,18 +180,21 @@ export const FeedbackNewsSticky = () => {
             </ul>
           ) : null}
 
-          <div className={uiPrimitives.actions}>
-            <button
-              type="button"
-              className={uiPrimitives.button}
-              onClick={() => {
-                setIsFormOpen((prev) => !prev);
-                setFormError(null);
-              }}
-            >
-              {isFormOpen ? 'Chiudi modulo' : 'Invia segnalazione'}
-            </button>
-          </div>
+          {!isFormOpen && (
+            <div className={uiPrimitives.actions}>
+              <button
+                type="button"
+                className={cx(uiPrimitives.button, 'ui-news-sticky__form-toggle')}
+                onClick={() => {
+                  setIsFormOpen((prev) => !prev);
+                  setFormError(null);
+                }}
+              >
+                <Send size={18} strokeWidth={1.5} />
+                <span>Invia segnalazione</span>
+              </button>
+            </div>
+          )}
 
           {isFormOpen ? (
             <form className="ui-news-sticky__form" onSubmit={(event) => void handleSubmitReport(event)}>
@@ -217,25 +236,27 @@ export const FeedbackNewsSticky = () => {
               {formError ? <p className={uiPrimitives.error} role="alert">{formError}</p> : null}
 
               <div className={uiPrimitives.actions}>
-                <button type="submit" className={uiPrimitives.button} disabled={isSubmitting}>
-                  {isSubmitting ? 'Invio in corso...' : 'Invia'}
-                </button>
-                <button
-                  type="button"
-                  className={uiPrimitives.inlineLink}
-                  onClick={() => {
-                    setIsFormOpen(false);
-                    resetForm();
-                  }}
-                  disabled={isSubmitting}
-                >
-                  Annulla
+                <button type="submit" className={cx(uiPrimitives.button, 'ui-news-sticky__form-submit')} disabled={isSubmitting}>
+                  <Send size={16} strokeWidth={1.5} />
+                  <span>{isSubmitting ? 'Invio in corso...' : 'Invia'}</span>
                 </button>
               </div>
             </form>
           ) : null}
         </section>
       ) : null}
+
+      <button
+        type="button"
+        className="ui-news-sticky__launcher"
+        onClick={() => setIsPanelOpen((prev) => !prev)}
+        aria-expanded={isPanelOpen}
+        aria-controls="news-sticky-panel"
+        aria-label={isPanelOpen ? 'Chiudi news' : 'Apri news'}
+        title={isPanelOpen ? 'Chiudi news' : 'Apri news'}
+      >
+        <Bell size={20} strokeWidth={1.5} />
+      </button>
     </aside>
   );
 };

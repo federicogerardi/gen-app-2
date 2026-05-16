@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-05-16
 last_updated: 2026-05-16
 owner: Frontend Platform Team + Backend Platform Team
-status: In progress
+status: Completed
 tags: [feature, frontend, backend, admin, changelog, reporting, ddd]
 ---
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan implements the Admin Changelog and User Reporting feature from terminology-governed specification to runtime delivery, including canonical domain naming, persistence, API contracts, frontend orchestration with XState, and deterministic validation. The plan is now implementation-ready with Context7-backed technical constraints.
 
@@ -80,7 +80,7 @@ Exit Gate - Phase 1 (GO/NO-GO):
 | TASK-006 | In `apps/backend/src/lib/runtime/auth-http.ts`, add route matchers and handlers for all six endpoints in REQ-API, preserving matcher order to prevent broader patterns from capturing admin subpaths. | ✅ | 2026-05-16 |
 | TASK-007 | Extend `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` with typed handlers: `handleAdminCreateChangelog`, `handleAdminListUserReports`, `handleAdminUpdateUserReport`, `handleAdminPublishUserReportIssue`, reusing `requireSessionPrincipal` and admin-role enforcement. | ✅ | 2026-05-16 |
 | TASK-008 | Add user-scope handlers in `apps/backend/src/lib/runtime/auth-http` surface for `handleCreateUserReport` and `handleListPublishedChangelog`; enforce member/admin access and output normalization. | ✅ | 2026-05-16 |
-| TASK-009 | Implement deterministic category normalization function `normalizeUserReportCategory(input: string): 'issue' | 'feature-request' | 'other' | null` in `apps/backend/src/lib/runtime` and call it only at request boundary before persistence. | ✅ | 2026-05-16 |
+| TASK-009 | Implement deterministic category normalization function `normalizeUserReportCategory(input: string): 'issue' \| 'feature-request' \| 'other' \| null` in `apps/backend/src/lib/runtime` and call it only at request boundary before persistence. | ✅ | 2026-05-16 |
 | TASK-010 | Implement issue publication policy function `canPublishIssue(principalRole, reportCategory): boolean` and use it in both backend command guard and response error mapping for rejected requests. | ✅ | 2026-05-16 |
 | TASK-011 | Implement GitHub integration adapter in `apps/backend/src/lib/runtime/integrations` with method `publishIssueForUserReport(report): Promise<{ repository: string; issueNumber: number; issueUrl: string }>` and transactional rollback behavior on failure. Enforce Context7 API contract: `POST /repos/{owner}/{repo}/issues`, `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version`, required `title`, optional `body`, explicit mapping of `201` success and provider errors (`401/403/404/422/429/5xx`) to deterministic domain errors. Prefer `@octokit/rest` (or equivalent typed client) for request typing and response normalization. | ✅ | 2026-05-16 |
 | TASK-011A | Add GitHub integration configuration contract in backend runtime (for example `apps/backend/src/lib/runtime/integrations/github-config.ts`): required env vars for token, owner, repo, optional API base URL, explicit startup validation, and fail-fast error when config is incomplete. | ✅ | 2026-05-16 |
@@ -97,18 +97,23 @@ Exit Gate - Phase 2 (GO/NO-GO):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-012 | Create machine file `apps/frontend/src/features/feedback-center/machines/feedback-center.machine.ts` implementing `feedbackCenterMachine` states/events/guards exactly as section 6 in spec, including explicit `ACK_SUCCESS` and `RESET_TO_IDLE` transitions with `reenter: true`. Use XState v5 canonical pattern `setup({ guards, actors }).createMachine(...)` and `fromPromise` for all async invokes. |  |  |
-| TASK-013 | Create API client module `apps/frontend/src/features/feedback-center/runtime/feedback-center-client.ts` with functions `submitUserReport`, `listAdminUserReports`, `updateUserReportStatus`, `publishUserReportIssue`, `createProductChangelog`, `listPublishedProductChangelog`, each returning discriminated success/failure results. |  |  |
-| TASK-014 | Create admin changelog listing page `apps/frontend/src/features/admin/pages/AdminChangelogPage.tsx` as canonical `Data Table View` with deterministic `loading`, `empty`, `error` states and publish actions gated by admin role. |  |  |
-| TASK-015 | Create admin report inbox page `apps/frontend/src/features/admin/pages/AdminUserReportsPage.tsx` as canonical `Data Table View` with row actions for triage/close and conditional issue publication only for category `issue`. |  |  |
-| TASK-016 | Create user submission page `apps/frontend/src/features/feedback-center/pages/UserReportSubmissionPage.tsx` as canonical `Tool Workspace Page` composition with Setup Panel + Workflow Panel and `FeedbackChannel`-mapped messages. Implement report form as controlled React inputs (`value` + synchronous `onChange`) and keep effect usage limited to external synchronization. |  |  |
-| TASK-017 | Update frontend routing in `apps/frontend/src/app/routing/app-router.tsx` and navigation/copy in `apps/frontend/src/app/copy/system.ts` to expose routes and labels for changelog and reporting feature. |  |  |
-| TASK-018 | Integrate backend capability flags and path builders in `apps/frontend/src/app/runtime/backend-capabilities.ts` and `apps/frontend/src/app/runtime/api-paths.ts` for feature endpoints with deterministic capability-off behavior. |  |  |
+| TASK-012 | Create machine file `apps/frontend/src/features/feedback-center/machines/feedback-center.machine.ts` implementing `feedbackCenterMachine` states/events/guards exactly as section 6 in spec, including explicit `ACK_SUCCESS` and `RESET_TO_IDLE` transitions with `reenter: true`. Use XState v5 canonical pattern `setup({ guards, actors }).createMachine(...)` and `fromPromise` for all async invokes. | ✅ | 2026-05-16 |
+| TASK-013 | Create API client module `apps/frontend/src/features/feedback-center/runtime/feedback-center-client.ts` with functions `submitUserReport`, `listAdminUserReports`, `updateUserReportStatus`, `publishUserReportIssue`, `createProductChangelog`, `listPublishedProductChangelog`, each returning discriminated success/failure results. | ✅ | 2026-05-16 |
+| TASK-014 | Create admin changelog listing page `apps/frontend/src/features/admin/pages/AdminChangelogPage.tsx` as canonical `Data Table View` with deterministic `loading`, `empty`, `error` states and publish actions gated by admin role. | ✅ | 2026-05-16 |
+| TASK-015 | Create admin report inbox page `apps/frontend/src/features/admin/pages/AdminUserReportsPage.tsx` as canonical `Data Table View` with row actions for triage/close and conditional issue publication only for category `issue`. | ✅ | 2026-05-16 |
+| TASK-016 | Create user submission page `apps/frontend/src/features/feedback-center/pages/UserReportSubmissionPage.tsx` as canonical `Tool Workspace Page` composition with Setup Panel + Workflow Panel and `FeedbackChannel`-mapped messages. Implement report form as controlled React inputs (`value` + synchronous `onChange`) and keep effect usage limited to external synchronization. | ✅ | 2026-05-16 |
+| TASK-017 | Update frontend routing in `apps/frontend/src/app/routing/app-router.tsx` and navigation/copy in `apps/frontend/src/app/copy/system.ts` to expose routes and labels for changelog and reporting feature. | ✅ | 2026-05-16 |
+| TASK-018 | Integrate backend capability flags and path builders in `apps/frontend/src/app/runtime/backend-capabilities.ts` and `apps/frontend/src/app/runtime/api-paths.ts` for feature endpoints with deterministic capability-off behavior. | ✅ | 2026-05-16 |
 
 Exit Gate - Phase 3 (GO/NO-GO):
 - **GATE-007**: Frontend routes render correctly for admin and member roles with canonical page archetypes.
 - **GATE-008**: `feedbackCenterMachine` transitions match spec table for success/failure/recovery branches.
 - **GATE-009**: UI feedback channel behavior is verified (`inline-action`, `page-state`, `global`) without cross-channel drift.
+
+Gate Status - Phase 3:
+- **GATE-007**: GO (validated 2026-05-16)
+- **GATE-008**: GO (validated 2026-05-16)
+- **GATE-009**: GO (validated 2026-05-16)
 
 ### Implementation Phase 4
 
@@ -116,17 +121,22 @@ Exit Gate - Phase 3 (GO/NO-GO):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-019 | Add backend tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` for endpoint authorization, validation, successful writes, category normalization, and issue publication policy rejection paths. |  |  |
-| TASK-020 | Add backend transactional tests in `apps/backend/src/lib/tests` verifying publish-issue atomicity: success writes link + status update, failure rolls back both mutations. |  |  |
-| TASK-021 | Add frontend machine tests in `apps/frontend/src/features/feedback-center/machines/feedback-center.machine.test.ts` covering all states in section 6.9 transition table and explicit `ACK_SUCCESS`/`RESET_TO_IDLE` behavior. |  |  |
-| TASK-022 | Add frontend page tests for `AdminChangelogPage`, `AdminUserReportsPage`, and `UserReportSubmissionPage` verifying channel-mapped copy rendering and action gating by role/category. |  |  |
-| TASK-023 | Run deterministic validation commands: `npm --prefix apps/backend test`, `npm --prefix apps/frontend test`, `npm --prefix apps/frontend typecheck`, `npm --prefix apps/backend typecheck`; record pass/fail in plan update. |  |  |
-| TASK-024 | Run DDD governance check by verifying canonical terms appear consistently in updated docs and code: `ProductChangelog`, `ProductChangelogStatus`, `UserReport`, `UserReportCategory`, `UserReportStatus`, `GitHubIssueLink`, `IssuePublicationPolicy`. |  |  |
+| TASK-019 | Add backend tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` for endpoint authorization, validation, successful writes, category normalization, and issue publication policy rejection paths. | ✅ | 2026-05-16 |
+| TASK-020 | Add backend transactional tests in `apps/backend/src/lib/tests` verifying publish-issue atomicity: success writes link + status update, failure rolls back both mutations. | ✅ | 2026-05-16 |
+| TASK-021 | Add frontend machine tests in `apps/frontend/src/features/feedback-center/machines/feedback-center.machine.test.ts` covering all states in section 6.9 transition table and explicit `ACK_SUCCESS`/`RESET_TO_IDLE` behavior. | ✅ | 2026-05-16 |
+| TASK-022 | Add frontend page tests for `AdminChangelogPage`, `AdminUserReportsPage`, and `UserReportSubmissionPage` verifying channel-mapped copy rendering and action gating by role/category. | ✅ | 2026-05-16 |
+| TASK-023 | Run deterministic validation commands: `npm --prefix apps/backend test`, `npm --prefix apps/frontend test`, `npm --prefix apps/frontend typecheck`, `npm --prefix apps/backend typecheck`; record pass/fail in plan update. | ✅ | 2026-05-16 |
+| TASK-024 | Run DDD governance check by verifying canonical terms appear consistently in updated docs and code: `ProductChangelog`, `ProductChangelogStatus`, `UserReport`, `UserReportCategory`, `UserReportStatus`, `GitHubIssueLink`, `IssuePublicationPolicy`. | ✅ | 2026-05-16 |
 
 Exit Gate - Phase 4 (GO/NO-GO):
 - **GATE-010**: All listed backend/frontend tests pass in CI-equivalent local runs.
 - **GATE-011**: DDD terminology audit passes with no non-canonical synonyms introduced.
 - **GATE-012**: Final implementation report includes pass/fail evidence for TASK-023 commands.
+
+Gate Status - Phase 4:
+- **GATE-010**: GO (validated 2026-05-16)
+- **GATE-011**: GO (validated 2026-05-16)
+- **GATE-012**: GO (validated 2026-05-16)
 
 ## 3. Alternatives
 

@@ -56,7 +56,8 @@ const formatDateTime = (value: string): string => {
 };
 
 const canPublishIssue = (report: UserReportDto): boolean => {
-  return report.category === 'issue' && (report.status === 'submitted' || report.status === 'triaged');
+  const categoryEligibleForGithubPublish = report.category === 'issue' || report.category === 'feature-request';
+  return categoryEligibleForGithubPublish && (report.status === 'submitted' || report.status === 'triaged');
 };
 
 export const AdminUserReportsPage = () => {

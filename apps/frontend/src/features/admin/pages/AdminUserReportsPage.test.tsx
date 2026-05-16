@@ -60,17 +60,30 @@ beforeEach(() => {
           updatedAt: '2026-05-16T10:00:00.000Z',
         },
         {
-          id: 'rpt_other_001',
-          category: 'other',
+          id: 'rpt_feature_001',
+          category: 'feature-request',
           status: 'submitted',
-          title: 'Other report',
-          description: 'Other body',
+          title: 'Feature report',
+          description: 'Feature body',
           createdBy: 'member_002',
           triagedBy: null,
           triagedAt: null,
           closedAt: null,
           createdAt: '2026-05-16T10:05:00.000Z',
           updatedAt: '2026-05-16T10:05:00.000Z',
+        },
+        {
+          id: 'rpt_other_001',
+          category: 'other',
+          status: 'submitted',
+          title: 'Other report',
+          description: 'Other body',
+          createdBy: 'member_003',
+          triagedBy: null,
+          triagedAt: null,
+          closedAt: null,
+          createdAt: '2026-05-16T10:06:00.000Z',
+          updatedAt: '2026-05-16T10:06:00.000Z',
         },
       ];
 
@@ -129,7 +142,7 @@ describe('AdminUserReportsPage', () => {
     expect(screen.getByRole('heading', { name: 'Admin user reports' })).toBeInTheDocument();
   });
 
-  it('gates issue publication action by category and allows triage/publish for issue rows', async () => {
+  it('gates issue publication action by category and allows publish for issue and feature-request rows', async () => {
     render(
       <MemoryRouter>
         <AdminUserReportsPage />
@@ -159,6 +172,12 @@ describe('AdminUserReportsPage', () => {
         expect.objectContaining({ dedupeKey: 'admin-user-reports:publish-issue:rpt_issue_001:success' }),
       );
     });
+
+    const featureCell = screen.getByText('Feature report');
+    const featureRow = featureCell.closest('tr');
+    expect(featureRow).not.toBeNull();
+    const featurePublishButton = within(featureRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' });
+    expect(featurePublishButton).toBeEnabled();
 
     const otherCell = screen.getByText('Other report');
     const otherRow = otherCell.closest('tr');

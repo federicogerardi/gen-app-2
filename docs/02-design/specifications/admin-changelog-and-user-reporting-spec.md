@@ -1,5 +1,5 @@
 ---
-status: draft
+status: active
 version: 1.0
 last-reviewed: 2026-05-16
 owner: Frontend Platform Team
@@ -9,16 +9,16 @@ owner: Frontend Platform Team
 
 ## 1. Purpose
 
-Define a DDD-first feature proposal for:
+Define the DDD-first implemented feature for:
 - admin publication of user-facing changelog entries
 - user submission of reports/requests with canonical categories
-- optional GitHub issue publication for reports in category `issue`
+- optional GitHub issue publication for reports in category `issue` or `feature-request`
 
-This spec is terminology-first and architecture-ready. It does not introduce runtime implementation changes.
+This specification is canonical for the implemented runtime behavior and terminology.
 
-## 2. Canonical Vocabulary (Proposed)
+## 2. Canonical Vocabulary
 
-The following terms are introduced as provisional and governed by DDD-065:
+The following terms are canonical and governed by DDD-065:
 - `ProductChangelog`
 - `UserReport`
 - `UserReportCategory` = `issue` | `feature-request` | `other`
@@ -115,18 +115,18 @@ Minimum fields:
 
 Capabilities:
 - update status from `submitted` to `triaged`/`closed`
-- publish to GitHub only when `category = issue`
+- publish to GitHub only when `category = issue` or `feature-request`
 - store resulting `GitHubIssueLink` when publication succeeds
 
 Failure contract:
 - local `UserReport` record must remain persisted even when GitHub publication fails
 - failed external publish must not drop local triage context
 
-## 6. XState Concept Draft
+## 6. XState Concept
 
 ## 6.1 Machine Boundary
 
-Canonical machine concept: `FeedbackCenterMachine` (provisional).
+Canonical machine concept: `FeedbackCenterMachine`.
 
 Intent:
 - provide one deterministic orchestration boundary for changelog publication and user reporting flows
@@ -362,7 +362,7 @@ Core events:
 
 Deterministic guards:
 - `isAdmin`: allow changelog publish, triage, and issue publication only for admin principal
-- `isIssueCategory`: allow issue publication only when `UserReportCategory = issue`
+- `isIssueCategory`: allow issue publication when `UserReportCategory = issue` or `feature-request`
 - `hasRequiredSubmissionFields`: enforce report form completeness before dispatch
 
 Guard policy:
@@ -400,7 +400,7 @@ Runtime hooks:
 
 Minimum test matrix:
 - role gate: member cannot publish changelog/triage/publish issue
-- category gate: non-`issue` report cannot publish to GitHub
+- category gate: only `issue` and `feature-request` reports can publish to GitHub
 - recovery: every operation failure can return to `ready.idle` with reenter path
 - persistence safety: GitHub publish failure keeps local `UserReport` status recoverable (`submitted` or `triaged`)
 - success acknowledgement behavior: each `ready.*Success` state must require explicit `ACK_SUCCESS` before returning to `ready.idle`
@@ -422,7 +422,7 @@ Feedback channel output:
 | `REPORT_TRIAGE_REQUESTED` | `ready.idle` | `isAdmin` | `ready.reportTriaging` | `assign(activeReportId)` + invoke `triageReport` (`fromPromise`) | triage is admin-only |
 | `onDone(triageReport)` | `ready.reportTriaging` | none | `ready.reportTriageSuccess` | `assign(lastError = null)` | triage success remains operation-scoped |
 | `onError(triageReport)` | `ready.reportTriaging` | none | `ready.reportTriageFailure` | `assign(lastError)` | triage failure remains operation-scoped |
-| `ISSUE_PUBLISH_REQUESTED` | `ready.idle` | `isAdmin && isIssueCategory` | `ready.issuePublishing` | `assign(activeReportId)` + invoke `publishIssue` (`fromPromise`) | publish issue allowed only for admin + `issue` |
+| `ISSUE_PUBLISH_REQUESTED` | `ready.idle` | `isAdmin && isIssueCategory` | `ready.issuePublishing` | `assign(activeReportId)` + invoke `publishIssue` (`fromPromise`) | publish issue allowed only for admin + `issue`/`feature-request` |
 | `ISSUE_PUBLISH_REQUESTED` (guard fail) | `ready.idle` | `!isAdmin \|\| !isIssueCategory` | `ready.issuePublishFailure` (target policy) | `assign(lastError)` | category/role mismatch is explicit and testable |
 | `onDone(publishIssue)` | `ready.issuePublishing` | none | `ready.issuePublishSuccess` | `assign(lastIssueUrl, lastError = null)` | external issue link is persisted in context |
 | `onError(publishIssue)` | `ready.issuePublishing` | none | `ready.issuePublishFailure` | `assign(lastError)` | local report continuity preserved on GitHub failure |
@@ -455,9 +455,9 @@ Copy governance notes:
 - Keep success copy concise and ephemeral (`global`) with one clear acknowledgement path.
 - Do not expose raw transport/internal errors in UI copy; map technical errors to user-readable messages.
 
-## 7. API Contract Draft (Terminology-Level)
+## 7. API Contract
 
-Provisional endpoint naming proposal:
+Canonical endpoint naming:
 - `POST /api/user-reports`
 - `GET /api/admin/user-reports`
 - `PATCH /api/admin/user-reports/{reportId}`
@@ -465,7 +465,7 @@ Provisional endpoint naming proposal:
 - `POST /api/admin/changelog`
 - `GET /api/changelog`
 
-No route is canonical until implementation approval.
+Endpoint naming is implementation-aligned and approved.
 
 ## 7.1 Persistence Contract (PR-Ready)
 
@@ -532,7 +532,7 @@ No route is canonical until implementation approval.
 
 ## 8. Naming Audit Report
 
-Resolved by this proposal:
+Resolved by this specification:
 - `bug` vs `problem` vs `issue` -> canonical `UserReportCategory = issue`
 - `feature` vs `feature request` -> canonical `feature-request`
 - `request` vs `report` -> canonical persisted entity `UserReport`

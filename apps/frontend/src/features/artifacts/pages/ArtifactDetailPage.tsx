@@ -224,7 +224,10 @@ const LegacyArtifactView = ({
 
       <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/DigitalDocument">
         <section className="ui-artifact-primary-panel" aria-label="Preview contenuto artifact">
-          <ArtifactContentPreview content={artifact.content} downloadOptions={downloadOptions} />
+          <ArtifactContentPreview
+            content={artifact.content}
+            {...(downloadOptions ? { downloadOptions } : {})}
+          />
         </section>
 
         <aside className="ui-artifact-secondary-panel" aria-label="Contesto e azioni artifact">

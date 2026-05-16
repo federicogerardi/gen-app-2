@@ -155,6 +155,23 @@ export const appCopy = {
       loadAdminUsers: 'Admin users load failed',
       loadAdminUsersHttp: (status: number): string => `Unable to load admin users (HTTP ${status})`,
     },
+    feedback: {
+      adminUsersCreated: 'Utente creato.',
+      adminUsersUpdated: 'Utente aggiornato.',
+      adminUsersDisabled: 'Utente disabilitato.',
+      adminUsersCreateFailed: 'Impossibile creare utente.',
+      adminUsersUpdateFailed: 'Impossibile aggiornare utente.',
+      adminUsersDisableFailed: 'Impossibile disabilitare utente.',
+      adminModelsCreated: 'Modello creato.',
+      adminModelsDeleted: 'Modello eliminato.',
+      adminModelsDefaultUpdated: 'Modello predefinito aggiornato.',
+      adminModelsStatusUpdated: 'Stato modello aggiornato.',
+      adminModelsCreateFailed: 'Impossibile creare modello.',
+      adminModelsDeleteFailed: 'Impossibile eliminare modello.',
+      adminModelsDefaultUpdateFailed: 'Impossibile aggiornare il modello predefinito.',
+      adminModelsStatusUpdateFailed: 'Impossibile aggiornare lo stato modello.',
+      projectsCreated: 'Progetto creato.',
+    },
     options: {
       intent: [
         { value: 'new', label: 'Nuovo' },

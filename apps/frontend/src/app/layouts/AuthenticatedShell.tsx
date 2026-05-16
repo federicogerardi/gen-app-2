@@ -6,6 +6,7 @@ import { useAuthSession } from '../providers/AuthSessionProvider';
 import { MainNavigation } from './MainNavigation';
 import './MainNavigation.css';
 import { ThemeToggleButton } from '../ui/ThemeToggleButton';
+import { GlobalFeedbackViewport } from '../ui/GlobalFeedbackViewport';
 import { Shell, Surface, cx, uiPrimitives } from '../ui/primitives';
 
 export const AuthenticatedShell = () => {
@@ -67,6 +68,8 @@ export const AuthenticatedShell = () => {
           <Outlet />
         </section>
       </section>
+
+      <GlobalFeedbackViewport />
     </Shell>
   );
 };

@@ -6,6 +6,8 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { useMswHandler } from '../../../test/mocks/server';
+import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
+import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
 
 const briefingMachineSeed = vi.hoisted(() => ({
   initialState: 'ready' as 'idle' | 'ready',
@@ -506,6 +508,34 @@ describe('ToolPageTemplate wiring', () => {
       optin: 'optin content',
       quiz: 'quiz content',
     });
+  });
+
+  it('keeps dispatch failure feedback inline and does not emit global feedback', async () => {
+    useMswHandler(
+      http.post('/api/tools/orchestrate', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    render(
+      <FeedbackMessageProvider>
+        <MemoryRouter>
+          <ToolPageTemplate toolKey="funnel-pages" />
+        </MemoryRouter>
+        <GlobalFeedbackViewport />
+      </FeedbackMessageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    expect(
+      await screen.findByText('Impossibile avviare la generazione. Controlla la connessione e riprova.'),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
 });

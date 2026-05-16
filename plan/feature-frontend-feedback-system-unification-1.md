@@ -4,13 +4,13 @@ version: 1.1
 date_created: 2026-05-16
 last_updated: 2026-05-16
 owner: Frontend Platform Team
-status: 'Planned'
+status: 'Completed'
 tags: [feature, frontend, architecture, ui-governance, ddd]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines the deterministic implementation path to unify all frontend user feedback into the canonical channel model: `inline-action`, `page-state`, and `global`, while preserving DDD terminology and UI governance constraints.
 
@@ -43,11 +43,11 @@ This plan defines the deterministic implementation path to unify all frontend us
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Create `apps/frontend/src/app/providers/FeedbackMessageProvider.tsx` exporting `FeedbackMessageProvider`, `useFeedbackMessage`, deterministic queue reducer, and public APIs `publishSuccess`, `publishError`, `dismiss`, `dismissAll`; define message type union with `severity`, `channel='global'`, `ttlMs`, `dedupeKey`. |  |  |
-| TASK-002 | Create `apps/frontend/src/app/ui/GlobalFeedbackViewport.tsx` rendering queue entries via MUI `Snackbar` + `Alert`; implement deterministic stacking order (newest last), auto-hide per `ttlMs`, `onClose` reason handling (`clickaway` ignored, deterministic dismiss on timeout/manual close), `Escape` behavior for stacked snackbars, and `aria-live` behavior by severity. |  |  |
-| TASK-003 | Update `apps/frontend/src/App.tsx` to wrap `RouterProvider` with `FeedbackMessageProvider` while preserving `AuthSessionProvider` and `GenerationWorkspaceProvider` ordering. |  |  |
-| TASK-004 | Update `apps/frontend/src/app/layouts/AuthenticatedShell.tsx` to mount `GlobalFeedbackViewport` once at shell level outside route content to guarantee cross-page persistence. |  |  |
-| TASK-005 | Add style tokens and classes in `apps/frontend/src/styles.css` for viewport placement, stacking gap, z-index policy, and responsive behavior on desktop/mobile. |  |  |
+| TASK-001 | Create `apps/frontend/src/app/providers/FeedbackMessageProvider.tsx` exporting `FeedbackMessageProvider`, `useFeedbackMessage`, deterministic queue reducer, and public APIs `publishSuccess`, `publishError`, `dismiss`, `dismissAll`; define message type union with `severity`, `channel='global'`, `ttlMs`, `dedupeKey`. | Yes | 2026-05-16 |
+| TASK-002 | Create `apps/frontend/src/app/ui/GlobalFeedbackViewport.tsx` rendering queue entries via MUI `Snackbar` + `Alert`; implement deterministic stacking order (newest last), auto-hide per `ttlMs`, `onClose` reason handling (`clickaway` ignored, deterministic dismiss on timeout/manual close), `Escape` behavior for stacked snackbars, and `aria-live` behavior by severity. | Yes | 2026-05-16 |
+| TASK-003 | Update `apps/frontend/src/App.tsx` to wrap `RouterProvider` with `FeedbackMessageProvider` while preserving `AuthSessionProvider` and `GenerationWorkspaceProvider` ordering. | Yes | 2026-05-16 |
+| TASK-004 | Update `apps/frontend/src/app/layouts/AuthenticatedShell.tsx` to mount `GlobalFeedbackViewport` once at shell level outside route content to guarantee cross-page persistence. | Yes | 2026-05-16 |
+| TASK-005 | Add style tokens and classes in `apps/frontend/src/styles.css` for viewport placement, stacking gap, z-index policy, and responsive behavior on desktop/mobile. | Yes | 2026-05-16 |
 
 ### Implementation Phase 2
 
@@ -55,11 +55,11 @@ This plan defines the deterministic implementation path to unify all frontend us
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Refactor `apps/frontend/src/features/admin/pages/AdminUsersPage.tsx`: replace local `feedbackMessage` success handling with `useFeedbackMessage().publishSuccess`, keep `mutationError` mapped to `publishError` when field-local context is unavailable, and remove success rendering via `LoadingStateMessage`. |  |  |
-| TASK-007 | Refactor `apps/frontend/src/features/admin/pages/AdminModelsPage.tsx`: route create/update/delete success and mutation failures through `publishSuccess`/`publishError`; keep list loading/error/empty in `PageStateMessage` positions. |  |  |
-| TASK-008 | Refactor `apps/frontend/src/features/projects/pages/NewProjectPage.tsx`: on successful project creation, publish global success before navigation; keep form root validation error local (`inline-action`). |  |  |
-| TASK-009 | Refactor `apps/frontend/src/features/auth/ui/LoginForm.tsx` and `apps/frontend/src/app/layouts/PublicShell.tsx`: keep credential/form errors local; publish global success only for cross-page session bootstrap confirmation (if enabled by product policy). |  |  |
-| TASK-010 | Refactor `apps/frontend/src/features/dashboard/pages/DashboardPage.tsx`: replace raw `<p className={uiPrimitives.error}>` branch for session query error with canonical `ErrorStateMessage` (`page-state`) and prevent unintended global emission for query lifecycle. |  |  |
+| TASK-006 | Refactor `apps/frontend/src/features/admin/pages/AdminUsersPage.tsx`: replace local `feedbackMessage` success handling with `useFeedbackMessage().publishSuccess`, keep `mutationError` mapped to `publishError` when field-local context is unavailable, and remove success rendering via `LoadingStateMessage`. | Yes | 2026-05-16 |
+| TASK-007 | Refactor `apps/frontend/src/features/admin/pages/AdminModelsPage.tsx`: route create/update/delete success and mutation failures through `publishSuccess`/`publishError`; keep list loading/error/empty in `PageStateMessage` positions. | Yes | 2026-05-16 |
+| TASK-008 | Refactor `apps/frontend/src/features/projects/pages/NewProjectPage.tsx`: on successful project creation, publish global success before navigation; keep form root validation error local (`inline-action`). | Yes | 2026-05-16 |
+| TASK-009 | Refactor `apps/frontend/src/features/auth/ui/LoginForm.tsx` and `apps/frontend/src/app/layouts/PublicShell.tsx`: keep credential/form errors local; publish global success only for cross-page session bootstrap confirmation (if enabled by product policy). | Yes | 2026-05-16 |
+| TASK-010 | Refactor `apps/frontend/src/features/dashboard/pages/DashboardPage.tsx`: replace raw `<p className={uiPrimitives.error}>` branch for session query error with canonical `ErrorStateMessage` (`page-state`) and prevent unintended global emission for query lifecycle. | Yes | 2026-05-16 |
 
 ### Implementation Phase 3
 
@@ -67,11 +67,11 @@ This plan defines the deterministic implementation path to unify all frontend us
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Create `apps/frontend/src/app/runtime/feedback-channel-map.ts` exporting deterministic helper `resolveFeedbackChannel(eventType)` aligned to governance matrix in UI spec section 7; include explicit exhaustive mapping for known event types. |  |  |
-| TASK-012 | Update `apps/frontend/src/app/ui/ListingTableSection.tsx` documentation/comments to explicitly state `PageStateMessage` ownership and prohibition of global substitution for loading/empty/error. |  |  |
-| TASK-013 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` and `apps/frontend/src/features/tools/runtime/useToolPage.ts` comments/contracts to explicitly preserve `DispatchError` as `inline-action` only and reject global duplication. |  |  |
-| TASK-014 | Add copy keys in `apps/frontend/src/app/copy/system.ts` for global success/error messages currently hardcoded in admin/project flows; remove duplicated literal strings in migrated pages. |  |  |
-| TASK-015 | Add governance reference block to `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` section 7 usage notes to include implementation contract paths (`FeedbackMessageProvider`, `GlobalFeedbackViewport`, `resolveFeedbackChannel`). |  |  |
+| TASK-011 | Create `apps/frontend/src/app/runtime/feedback-channel-map.ts` exporting deterministic helper `resolveFeedbackChannel(eventType)` aligned to governance matrix in UI spec section 7; include explicit exhaustive mapping for known event types. | Yes | 2026-05-16 |
+| TASK-012 | Update `apps/frontend/src/app/ui/ListingTableSection.tsx` documentation/comments to explicitly state `PageStateMessage` ownership and prohibition of global substitution for loading/empty/error. | Yes | 2026-05-16 |
+| TASK-013 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` and `apps/frontend/src/features/tools/runtime/useToolPage.ts` comments/contracts to explicitly preserve `DispatchError` as `inline-action` only and reject global duplication. | Yes | 2026-05-16 |
+| TASK-014 | Add copy keys in `apps/frontend/src/app/copy/system.ts` for global success/error messages currently hardcoded in admin/project flows; remove duplicated literal strings in migrated pages. | Yes | 2026-05-16 |
+| TASK-015 | Add governance reference block to `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` section 7 usage notes to include implementation contract paths (`FeedbackMessageProvider`, `GlobalFeedbackViewport`, `resolveFeedbackChannel`). | Yes | 2026-05-16 |
 
 ### Implementation Phase 4
 
@@ -79,11 +79,11 @@ This plan defines the deterministic implementation path to unify all frontend us
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-016 | Add provider unit tests in `apps/frontend/src/app/providers/FeedbackMessageProvider.test.tsx` for queue insertion, dedupe behavior, dismiss, auto-expire, and severity-to-aria mapping, using Vitest fake timers (`vi.useFakeTimers`, `vi.advanceTimersByTime`, cleanup with `vi.useRealTimers`) for deterministic TTL checks. |  |  |
-| TASK-017 | Add viewport rendering tests in `apps/frontend/src/app/ui/GlobalFeedbackViewport.test.tsx` for stack order, close action, `onClose` reason handling (`clickaway` and `escapeKeyDown`), and responsive class behavior. |  |  |
-| TASK-018 | Update `apps/frontend/src/features/admin/pages/AdminUsersPage.test.tsx` and add `apps/frontend/src/features/admin/pages/AdminModelsPage.test.tsx` to assert global feedback publication for mutation outcomes and no `LoadingStateMessage` misuse for success copy. |  |  |
-| TASK-019 | Add regression tests for tool page in `apps/frontend/src/features/tools/ui/ToolPageTemplate.test.tsx` (or nearest existing suite) asserting `DispatchError` remains inline and is not emitted to global viewport. |  |  |
-| TASK-020 | Execute validation command sequence: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test`, `npm --workspace apps/frontend run build`; capture outputs in implementation PR notes. |  |  |
+| TASK-016 | Add provider unit tests in `apps/frontend/src/app/providers/FeedbackMessageProvider.test.tsx` for queue insertion, dedupe behavior, dismiss, auto-expire, and severity-to-aria mapping, using Vitest fake timers (`vi.useFakeTimers`, `vi.advanceTimersByTime`, cleanup with `vi.useRealTimers`) for deterministic TTL checks. | Yes | 2026-05-16 |
+| TASK-017 | Add viewport rendering tests in `apps/frontend/src/app/ui/GlobalFeedbackViewport.test.tsx` for stack order, close action, `onClose` reason handling (`clickaway` and `escapeKeyDown`), and responsive class behavior. | Yes | 2026-05-16 |
+| TASK-018 | Update `apps/frontend/src/features/admin/pages/AdminUsersPage.test.tsx` and add `apps/frontend/src/features/admin/pages/AdminModelsPage.test.tsx` to assert global feedback publication for mutation outcomes and no `LoadingStateMessage` misuse for success copy. | Yes | 2026-05-16 |
+| TASK-019 | Add regression tests for tool page in `apps/frontend/src/features/tools/ui/ToolPageTemplate.test.tsx` (or nearest existing suite) asserting `DispatchError` remains inline and is not emitted to global viewport. | Yes | 2026-05-16 |
+| TASK-020 | Execute validation command sequence: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test`, `npm --workspace apps/frontend run build`; capture outputs in implementation PR notes. | Yes | 2026-05-16 |
 
 ## 3. Alternatives
 

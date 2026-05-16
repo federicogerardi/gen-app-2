@@ -87,6 +87,9 @@
   --artifact-content-fg: #0f172a;
 
   --mobile-nav-shadow: 4px 0 12px rgba(1, 8, 24, 0.3);
+  --feedback-global-z-index: 1250;
+  --feedback-global-width: min(420px, calc(100vw - 24px));
+  --feedback-global-gap: 12px;
 
   --border-subtle: rgba(15, 23, 42, 0.14);
   --border-strong: rgba(15, 23, 42, 0.24);

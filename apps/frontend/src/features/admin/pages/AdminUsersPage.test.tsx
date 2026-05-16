@@ -7,6 +7,13 @@ import { useMswHandler } from '../../../test/mocks/server';
 import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
 
+const feedbackApiSpy = vi.hoisted(() => ({
+  publishSuccess: vi.fn(),
+  publishError: vi.fn(),
+  dismiss: vi.fn(),
+  dismissAll: vi.fn(),
+}));
+
 // Mutable session bag so individual tests can change role
 const sessionBag = { role: 'member' as string | null };
 const authBag = {
@@ -32,7 +39,19 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   }),
 }));
 
+vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
+  useFeedbackMessage: () => ({
+    messages: [],
+    ...feedbackApiSpy,
+  }),
+}));
+
 beforeEach(() => {
+  feedbackApiSpy.publishSuccess.mockReset();
+  feedbackApiSpy.publishError.mockReset();
+  feedbackApiSpy.dismiss.mockReset();
+  feedbackApiSpy.dismissAll.mockReset();
+
   sessionBag.role = 'member';
   usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
   useMswHandler(http.get('/admin/users', () => HttpResponse.json(usersDb)));
@@ -181,7 +200,11 @@ describe('AdminUsersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crea utente' }));
 
     expect(await screen.findByText('new-member@test.com')).toBeInTheDocument();
-    expect(await screen.findByText('Utente creato.')).toBeInTheDocument();
+    expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+      appCopy.ui.feedback.adminUsersCreated,
+      expect.objectContaining({ dedupeKey: 'admin-users:create:success' }),
+    );
+    expect(screen.queryByText('Utente creato.')).not.toBeInTheDocument();
   });
 
   it('updates an existing user inline', async () => {
@@ -204,7 +227,10 @@ describe('AdminUsersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
 
     expect(await screen.findByText('alice-admin@test.com')).toBeInTheDocument();
-    expect(await screen.findByText('Utente aggiornato.')).toBeInTheDocument();
+    expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+      appCopy.ui.feedback.adminUsersUpdated,
+      expect.objectContaining({ dedupeKey: `admin-users:update:${usersDb[0]?.id}:success` }),
+    );
     expect(await screen.findByText(/role: admin/i)).toBeInTheDocument();
   });
 
@@ -221,7 +247,10 @@ describe('AdminUsersPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/status: disabled/i)).toBeInTheDocument();
     });
-    expect(screen.getByText('Utente disabilitato.')).toBeInTheDocument();
+    expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+      appCopy.ui.feedback.adminUsersDisabled,
+      expect.objectContaining({ dedupeKey: `admin-users:delete:${usersDb[0]?.id}:success` }),
+    );
   });
 
   it('refetches remote admin users after SPA navigation remount', async () => {

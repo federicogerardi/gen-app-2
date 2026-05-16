@@ -14,6 +14,7 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import { joinApiPath, requestJson } from '../../../app/runtime/http-client';
 
 type AdminLlmModel = {
@@ -76,8 +77,8 @@ const useAdminModelsQuery = (apiBaseUrl: string) => {
 export const AdminModelsPage = () => {
   const auth = useAuthSession();
   const { data: models, loading, error, reload } = useAdminModelsQuery(auth.apiBaseUrl);
+  const { publishSuccess, publishError } = useFeedbackMessage();
 
-  const [mutationError, setMutationError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<'create' | `default:${string}` | `toggle:${string}` | `delete:${string}` | null>(null);
 
   const {
@@ -91,7 +92,6 @@ export const AdminModelsPage = () => {
   });
 
   const handleCreateSubmit = async (data: CreateModelFormValues) => {
-    setMutationError(null);
     setBusyAction('create');
 
     try {
@@ -102,9 +102,10 @@ export const AdminModelsPage = () => {
         body: JSON.stringify({ key: data.key.trim(), label: data.label.trim(), status: data.status }),
       });
       reset();
+      publishSuccess(appCopy.ui.feedback.adminModelsCreated, { dedupeKey: 'admin-models:create:success' });
       reload();
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Failed to create model');
+    } catch {
+      publishError(appCopy.ui.feedback.adminModelsCreateFailed, { dedupeKey: 'admin-models:create:error' });
     } finally {
       setBusyAction(null);
     }
@@ -112,7 +113,6 @@ export const AdminModelsPage = () => {
 
   const handleSetDefault = async (model: AdminLlmModel) => {
     if (model.isDefault) return;
-    setMutationError(null);
     setBusyAction(`default:${model.id}`);
 
     try {
@@ -122,9 +122,10 @@ export const AdminModelsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDefault: true }),
       });
+      publishSuccess(appCopy.ui.feedback.adminModelsDefaultUpdated, { dedupeKey: `admin-models:default:${model.id}:success` });
       reload();
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Failed to set default');
+    } catch {
+      publishError(appCopy.ui.feedback.adminModelsDefaultUpdateFailed, { dedupeKey: `admin-models:default:${model.id}:error` });
     } finally {
       setBusyAction(null);
     }
@@ -132,7 +133,6 @@ export const AdminModelsPage = () => {
 
   const handleToggleStatus = async (model: AdminLlmModel) => {
     const nextStatus = model.status === 'enabled' ? 'disabled' : 'enabled';
-    setMutationError(null);
     setBusyAction(`toggle:${model.id}`);
 
     try {
@@ -142,9 +142,10 @@ export const AdminModelsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus }),
       });
+      publishSuccess(appCopy.ui.feedback.adminModelsStatusUpdated, { dedupeKey: `admin-models:toggle:${model.id}:success` });
       reload();
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Failed to update status');
+    } catch {
+      publishError(appCopy.ui.feedback.adminModelsStatusUpdateFailed, { dedupeKey: `admin-models:toggle:${model.id}:error` });
     } finally {
       setBusyAction(null);
     }
@@ -152,7 +153,6 @@ export const AdminModelsPage = () => {
 
   const handleDelete = async (model: AdminLlmModel) => {
     if (!window.confirm(`Delete model "${model.key}"? This cannot be undone.`)) return;
-    setMutationError(null);
     setBusyAction(`delete:${model.id}`);
 
     try {
@@ -164,9 +164,10 @@ export const AdminModelsPage = () => {
         const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
         throw new Error(body?.error?.message ?? `HTTP ${res.status}`);
       }
+      publishSuccess(appCopy.ui.feedback.adminModelsDeleted, { dedupeKey: `admin-models:delete:${model.id}:success` });
       reload();
-    } catch (err) {
-      setMutationError(err instanceof Error ? err.message : 'Failed to delete model');
+    } catch {
+      publishError(appCopy.ui.feedback.adminModelsDeleteFailed, { dedupeKey: `admin-models:delete:${model.id}:error` });
     } finally {
       setBusyAction(null);
     }
@@ -226,7 +227,7 @@ export const AdminModelsPage = () => {
             type="button"
             variant="outlined"
             disabled={busyAction === 'create'}
-            onClick={() => { reset(); setMutationError(null); }}
+            onClick={() => { reset(); }}
           >
             {appCopy.ui.actions.reset}
           </MuiButton>
@@ -235,7 +236,6 @@ export const AdminModelsPage = () => {
 
       {loading ? <LoadingStateMessage>Caricamento modelli...</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
-      {mutationError ? <ErrorStateMessage>{mutationError}</ErrorStateMessage> : null}
       {!loading && !error && models.length === 0
         ? <EmptyStateMessage>Nessun modello nel catalogo.</EmptyStateMessage>
         : null}

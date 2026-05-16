@@ -5,7 +5,7 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import { ErrorStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getEnabledToolKeys } from '../../tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { AppButton } from '../../../components/AppButton';
@@ -116,7 +116,7 @@ export const DashboardPage = () => {
           {sessionsQuery.loading ? (
             <p className={uiPrimitives.metaLine}>Caricamento sessioni...</p>
           ) : sessionsQuery.error ? (
-            <p className={uiPrimitives.error}>{sessionsQuery.error}</p>
+            <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage>
           ) : recentSessions.length === 0 ? (
             <p className={uiPrimitives.metaLine}>{appCopy.editorial.sessions.emptyState}</p>
           ) : (

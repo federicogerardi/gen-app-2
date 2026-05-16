@@ -6,6 +6,7 @@ import { Button as MuiButton, MenuItem, TextField } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import {
   cx,
   EmptyStateMessage,
@@ -94,9 +95,8 @@ export const AdminUsersPage = () => {
   const error = usersQuery.error;
   const [showCreateForm, setShowCreateForm] = useState(true);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<'create' | `update:${string}` | `delete:${string}` | null>(null);
+  const { publishSuccess, publishError } = useFeedbackMessage();
 
   const {
     register: registerCreate,
@@ -118,13 +118,7 @@ export const AdminUsersPage = () => {
     defaultValues: createEmptyUserForm(),
   });
 
-  const resetFeedback = () => {
-    setMutationError(null);
-    setFeedbackMessage(null);
-  };
-
   const handleCreateSubmit = async (data: AdminUserFormValues) => {
-    resetFeedback();
     setBusyAction('create');
 
     try {
@@ -141,23 +135,21 @@ export const AdminUsersPage = () => {
       });
 
       resetCreateForm(createEmptyUserForm());
-      setFeedbackMessage('Utente creato.');
+      publishSuccess(appCopy.ui.feedback.adminUsersCreated, { dedupeKey: 'admin-users:create:success' });
       usersQuery.reload();
-    } catch (createError) {
-      setMutationError(createError instanceof Error ? createError.message : 'Impossibile creare utente');
+    } catch {
+      publishError(appCopy.ui.feedback.adminUsersCreateFailed, { dedupeKey: 'admin-users:create:error' });
     } finally {
       setBusyAction(null);
     }
   };
 
   const startEditingUser = (user: AdminUser) => {
-    resetFeedback();
     setEditingUserId(user.id);
     resetEditForm(createEditUserForm(user));
   };
 
   const handleUpdateSubmit = async (data: AdminUserFormValues, userId: string) => {
-    resetFeedback();
     setBusyAction(`update:${userId}`);
 
     try {
@@ -175,17 +167,16 @@ export const AdminUsersPage = () => {
 
       setEditingUserId(null);
       resetEditForm(createEmptyUserForm());
-      setFeedbackMessage('Utente aggiornato.');
+      publishSuccess(appCopy.ui.feedback.adminUsersUpdated, { dedupeKey: `admin-users:update:${userId}:success` });
       usersQuery.reload();
-    } catch (updateError) {
-      setMutationError(updateError instanceof Error ? updateError.message : 'Impossibile aggiornare utente');
+    } catch {
+      publishError(appCopy.ui.feedback.adminUsersUpdateFailed, { dedupeKey: `admin-users:update:${userId}:error` });
     } finally {
       setBusyAction(null);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    resetFeedback();
     setBusyAction(`delete:${userId}`);
 
     try {
@@ -198,10 +189,10 @@ export const AdminUsersPage = () => {
         setEditingUserId(null);
         resetEditForm(createEmptyUserForm());
       }
-      setFeedbackMessage('Utente disabilitato.');
+      publishSuccess(appCopy.ui.feedback.adminUsersDisabled, { dedupeKey: `admin-users:delete:${userId}:success` });
       usersQuery.reload();
-    } catch (deleteError) {
-      setMutationError(deleteError instanceof Error ? deleteError.message : 'Impossibile disabilitare utente');
+    } catch {
+      publishError(appCopy.ui.feedback.adminUsersDisableFailed, { dedupeKey: `admin-users:delete:${userId}:error` });
     } finally {
       setBusyAction(null);
     }
@@ -221,7 +212,6 @@ export const AdminUsersPage = () => {
             type="button"
             onClick={() => {
               setShowCreateForm((current) => !current);
-              resetFeedback();
             }}
             disabled={busyAction === 'create'}
             variant="outlined"
@@ -316,7 +306,6 @@ export const AdminUsersPage = () => {
               type="button"
               onClick={() => {
                 resetCreateForm(createEmptyUserForm());
-                resetFeedback();
               }}
               disabled={busyAction === 'create'}
               variant="outlined"
@@ -329,8 +318,6 @@ export const AdminUsersPage = () => {
 
       {usersQuery.loading ? <LoadingStateMessage>Caricamento utenti...</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
-      {mutationError ? <ErrorStateMessage>{mutationError}</ErrorStateMessage> : null}
-      {feedbackMessage ? <LoadingStateMessage>{feedbackMessage}</LoadingStateMessage> : null}
 
       {!error && !usersQuery.loading && users.length === 0 ? <EmptyStateMessage>Nessun utente disponibile.</EmptyStateMessage> : null}
 

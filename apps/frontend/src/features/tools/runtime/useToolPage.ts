@@ -103,6 +103,8 @@ export const useToolPage = ({
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
+  // DispatchError is local inline-action feedback (Setup Panel). It is intentionally
+  // not published to the global feedback channel to preserve action-local recovery context.
   const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
@@ -659,7 +661,8 @@ export const useToolPage = ({
     void (async () => {
       const success = await startGenerationStep(capturedStep);
       if (!success) {
-        // Reset machine to configuring and surface error to user
+        // Reset machine to configuring and surface error inline near the primary action.
+        // Do not duplicate this message in global feedback.
         setDispatchError('Impossibile avviare la generazione. Controlla la connessione e riprova.');
         toolPageSend({ type: 'CANCEL_GENERATION' });
       }
@@ -701,6 +704,7 @@ export const useToolPage = ({
       }
 
       // Force exit from generating state so the UI does not remain stuck in pending.
+      // Keep terminal failure feedback inline-action only.
       setDispatchError(streamErrorMessage);
       setIsAutoChainEnabled(false);
       currentRunPrefixRef.current = null;
@@ -770,6 +774,7 @@ export const useToolPage = ({
 
     const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    // Clear inline DispatchError before a new dispatch attempt.
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);

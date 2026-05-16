@@ -266,6 +266,14 @@ Channel precedence for ambiguous cases:
 2. if the message represents page data lifecycle, use `page-state`
 3. only if the event is mutation outcome with cross-page relevance, use `global`
 
+### 7.1 Implementation Contract References
+
+The following runtime paths are the canonical implementation contract for channel governance:
+
+- `apps/frontend/src/app/providers/FeedbackMessageProvider.tsx` — app-level global feedback runtime API (`publishSuccess`, `publishError`, `dismiss`, `dismissAll`)
+- `apps/frontend/src/app/ui/GlobalFeedbackViewport.tsx` — shell-level viewport renderer for `Global Feedback Message`
+- `apps/frontend/src/app/runtime/feedback-channel-map.ts` — deterministic event-to-channel resolver (`resolveFeedbackChannel`)
+
 ## 8. Feedback Anti-Patterns And Remediation
 
 | Anti-pattern | Why It Is Drift | Canonical Remediation |

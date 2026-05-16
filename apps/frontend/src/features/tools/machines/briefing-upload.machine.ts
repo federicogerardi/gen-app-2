@@ -1,7 +1,7 @@
 import { assign, fromPromise, setup } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
-import { isAllowedBriefingExtension } from '../runtime/tool-form-architecture';
 import type { SupportedTool } from './tool-flow.machine';
 import { isExtractionContextValidForTool } from './extraction-context-validity';
 

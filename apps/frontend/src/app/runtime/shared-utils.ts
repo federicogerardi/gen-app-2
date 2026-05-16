@@ -17,6 +17,18 @@ export const generateRequestId = (): string => {
 };
 
 /**
+ * Generate a deterministic workflow session identifier for one Tool run.
+ * Consolidates duplicate implementations from useToolPage and tool-page.machine.
+ */
+export const generateSessionId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+/**
  * Normalize a string identifier to kebab-case.
  * Trims, lowercases, converts underscores to hyphens.
  * Consolidates normalize() and normalizeToolKey() patterns from step-hydration.ts and artifact-history.ts.

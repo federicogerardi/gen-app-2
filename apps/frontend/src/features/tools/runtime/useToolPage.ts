@@ -12,7 +12,12 @@ import { useMachine, useSelector } from '@xstate/react';
 import type { ActorRefFrom } from 'xstate';
 import { useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { generateRequestId, readInputField } from '../../../app/runtime/shared-utils';
+import {
+  generateRequestId,
+  generateSessionId,
+  readInputField,
+} from '../../../app/runtime/shared-utils';
+import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
@@ -22,7 +27,7 @@ import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest } from '../runtime/tool-generation-engine';
 import { orchestrateToolStep } from '../runtime/tools-client';
-import { useProjectsLoader, useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
+import { useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { extractArtifactStep, readExtractionPayloadFromArtifact } from '../../generation/runtime/step-hydration';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
@@ -97,14 +102,6 @@ const mapInlineDispatchError = (reason: string | null | undefined): string | nul
   return normalized;
 };
 
-const createSessionId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
 export const useToolPage = ({
   toolKey,
   sourceArtifactId,
@@ -130,7 +127,7 @@ export const useToolPage = ({
   const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
-  const sessionIdRef = useRef<string>(createSessionId());
+  const sessionIdRef = useRef<string>(generateSessionId());
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const wasStreamActiveRef = useRef(false);
@@ -157,7 +154,11 @@ export const useToolPage = ({
     generation.focusedProjectId ?? initialProjectId ?? undefined,
   );
 
-  const { projects, loading: projectsLoading } = useProjectsLoader();
+  const { data: projects, loading: projectsLoading } = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: auth.session !== null && auth.capabilities.projects,
+  });
 
   const briefingSnapshot = useSelector(
     toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,

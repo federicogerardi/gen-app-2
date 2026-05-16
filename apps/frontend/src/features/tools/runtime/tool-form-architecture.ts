@@ -3,6 +3,7 @@
  * Enables scalable, reusable form construction for multi-step tools
  */
 
+import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
 
@@ -30,25 +31,6 @@ export type ToolFormConfig = {
 };
 
 /**
- * Project loading state shared across all tools
- */
-export type ProjectsLoadingState = {
-  projects: Array<{ id: string; name: string }>;
-  loading: boolean;
-  error: string | null;
-};
-
-/**
- * Briefing upload state shared across all tools
- */
-export type BriefingUploadState = {
-  file: File | null;
-  fileName: string | null;
-  error: string | null;
-  status: 'idle' | 'uploading' | 'extracting' | 'ready';
-};
-
-/**
  * Tool form state that maps to step dependencies and generation
  */
 export type ToolFormState = {
@@ -70,22 +52,6 @@ export type ToolFormState = {
 export type ToolFormValidation = {
   isValid: boolean;
   errors: Record<string, string>;
-};
-
-/**
- * Submit handler receives normalized form data
- */
-export type ToolFormSubmitData = {
-  projectId: string;
-  model: string;
-  tone: string;
-  registrySnapshotRef: string;
-  briefingId: string;
-  briefingFileName: string;
-  extractionArtifactId: string;
-  extractionPayload: Record<string, unknown>;
-  selectedSteps: ToolStep[];
-  stepArtifactIds: Partial<Record<ToolStep, string>>;
 };
 
 /**
@@ -169,14 +135,6 @@ export const getToolFormConfig = (toolKey: SupportedTool): ToolFormConfig => {
     throw new Error(`Unknown tool: ${toolKey}`);
   }
   return config;
-};
-
-/**
- * Validate briefing file extension
- */
-export const isAllowedBriefingExtension = (fileName: string): boolean => {
-  const normalized = fileName.toLowerCase();
-  return normalized.endsWith('.docx') || normalized.endsWith('.txt') || normalized.endsWith('.md');
 };
 
 /**

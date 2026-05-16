@@ -1121,12 +1121,12 @@ describe('ToolPageTemplate CTA regression guard', () => {
     expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
   });
 
-  it('non interrompe la chain dopo extraction success se il payload viene arricchito dall artifact', async () => {
+  it('non interrompe la chain dopo extraction success con extraction context valido', async () => {
     briefingMachineSeed.initialState = 'ready';
     briefingMachineSeed.context = {
       ...briefingMachineSeed.context,
       extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: {},
+      extractionPayload: { schemaVersion: 'extraction.v1' },
       normalizedText: 'brief text',
       briefingId: 'brief-001',
     };
@@ -1164,6 +1164,15 @@ describe('ToolPageTemplate CTA regression guard', () => {
   });
 
   it('CTA non rimane bloccata dopo che lo stream torna inattivo', async () => {
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      normalizedText: 'brief text',
+      briefingId: 'brief-001',
+    };
+
     // Simula stream attivo: click non deve chiamare start
     generationWorkspaceState.isStreamActive = true;
 

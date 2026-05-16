@@ -4,6 +4,8 @@ import {
   streamGeneration,
   GenerationTransportError,
 } from '../../generation/runtime/generation-client';
+import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
+import type { SupportedTool } from '../machines/tool-flow.machine';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
@@ -113,6 +115,37 @@ const resolveExtractionPayloadFromArtifact = (artifact: GenerationArtifact): Rec
   // Fallback: attempt multi-envelope content parsing for live-stream results
   // that were built from raw SSE chunk accumulation (not yet persisted as an artifact).
   return parseExtractionArtifactContent(artifact.content);
+};
+
+const mapExtractionFailureReasonToCode = (reason: string): string => {
+  const normalized = reason.trim();
+  if (
+    normalized === 'stream_empty_output'
+    || normalized === 'extraction_empty_output'
+    || normalized === 'extraction_context_insufficient'
+  ) {
+    return 'extraction_context_insufficient';
+  }
+
+  return normalized;
+};
+
+const assertExtractionResultIsValid = (
+  toolKey: string,
+  payload: Record<string, unknown>,
+  normalizedText: string,
+): void => {
+  if (
+    isExtractionContextValidForTool(
+      toolKey as SupportedTool,
+      payload,
+      normalizedText,
+    )
+  ) {
+    return;
+  }
+
+  throw new Error('extraction_context_insufficient');
 };
 
 export const uploadBrief = async (
@@ -226,6 +259,17 @@ export const runExtraction = async (
     }
 
     if (error instanceof GenerationTransportError) {
+      if (error.code === 'terminal_failed') {
+        const mappedCode = mapExtractionFailureReasonToCode(error.message);
+        if (mappedCode !== error.message) {
+          console.debug('[tools-client] mapped extraction terminal reason', {
+            rawReason: error.message,
+            mappedReason: mappedCode,
+          });
+        }
+        throw new Error(mappedCode);
+      }
+
       throw new Error(error.message);
     }
     throw error;
@@ -241,25 +285,35 @@ export const runExtraction = async (
   if (content.trim().length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
+      const payload = resolveExtractionPayloadFromArtifact(recovered);
+      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
       return {
         artifactId: recovered.artifactId,
         content: recovered.content,
-        payload: resolveExtractionPayloadFromArtifact(recovered),
+        payload,
       };
     }
+
+    throw new Error('extraction_context_insufficient');
   }
 
   const parsedPayload = parseExtractionArtifactContent(content);
   if (Object.keys(parsedPayload).length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
+      const payload = resolveExtractionPayloadFromArtifact(recovered);
+      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
       return {
         artifactId: recovered.artifactId,
         content,
-        payload: resolveExtractionPayloadFromArtifact(recovered),
+        payload,
       };
     }
+
+    throw new Error('extraction_context_insufficient');
   }
+
+  assertExtractionResultIsValid(input.toolKey, parsedPayload, input.briefingText);
 
   return {
     artifactId,

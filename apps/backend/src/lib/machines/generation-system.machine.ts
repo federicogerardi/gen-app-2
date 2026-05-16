@@ -177,6 +177,16 @@ const getExtractionResultParams = (event: unknown): CacheExtractionResultParams 
 const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
   (event as { output?: ToolDoneOutput }).output;
 
+const isExtractionPayloadSemanticallyValid = (payload: Record<string, unknown>): boolean => {
+  const fields = payload.fields;
+  if (!fields || typeof fields !== 'object') {
+    return false;
+  }
+
+  const briefingSummary = (fields as Record<string, unknown>).briefing_summary;
+  return typeof briefingSummary === 'string' && briefingSummary.trim().length > 0;
+};
+
 const getInvokeFailureReason = (event: unknown): string =>
   (event as { output?: { reason?: string } }).output?.reason ?? 'generation_failed';
 
@@ -584,6 +594,14 @@ export const generationSystemMachine = setup({
     invokePersistence: persistenceBatchMachine,
     invokeExtraction: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
       const payload = buildExtractionStructuredPayload(input.context);
+
+      if (!isExtractionPayloadSemanticallyValid(payload)) {
+        return {
+          type: 'EXTRACTION_ATTEMPT_REJECTED' as const,
+          reason: 'extraction_context_insufficient',
+        };
+      }
+
       return {
         type: 'EXTRACTION_ATTEMPT_ACCEPTED' as const,
         artifactId: input.context.artifactId ?? input.context.artifactIdFactory(),

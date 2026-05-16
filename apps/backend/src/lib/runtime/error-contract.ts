@@ -46,6 +46,14 @@ export const mapFailureReasonToBackendError = (
     };
   }
 
+  if (failureReason === 'extraction_context_insufficient') {
+    return {
+      code: 'validation_failed',
+      message: 'Extraction context is insufficient for the selected tool',
+      retryable: true,
+    };
+  }
+
   if (failureReason.includes('validation') || failureReason === 'missing_registry_selector') {
     return {
       code: 'validation_failed',

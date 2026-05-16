@@ -17,6 +17,7 @@ import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorks
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { briefingUploadMachine } from '../machines/briefing-upload.machine';
+import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest } from '../runtime/tool-generation-engine';
@@ -73,6 +74,27 @@ const normalizeToneProfile = (tone: string, fallbackTone: string = TONE_PROFILE_
 
   const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
   return match ?? fallbackTone;
+};
+
+const mapInlineDispatchError = (reason: string | null | undefined): string | null => {
+  if (!reason) {
+    return null;
+  }
+
+  const normalized = reason.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (normalized === 'extraction_context_insufficient' || normalized === 'stream_empty_output') {
+    return 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.';
+  }
+
+  if (normalized.startsWith('terminal_failed')) {
+    return 'La generazione non è andata a buon fine. Riprova tra pochi istanti.';
+  }
+
+  return normalized;
 };
 
 const createSessionId = (): string => {
@@ -151,7 +173,7 @@ export const useToolPage = ({
       : briefingSnapshot.matches('ready')
         ? 'ready'
         : 'idle';
-  const briefingError = briefingSnapshot.context.error;
+  const briefingError = mapInlineDispatchError(briefingSnapshot.context.error);
   const briefingFileNameFromActor = briefingSnapshot.context.fileName;
   const normalizedProjectId = formState.projectId.trim();
   const workspaceExtractionContext = normalizedProjectId
@@ -187,6 +209,10 @@ export const useToolPage = ({
       normalizedTextFromActor.length === 0 ||
       parsedFormatFromActor === null
     ) {
+      return;
+    }
+
+    if (!isExtractionContextValidForTool(toolKey, extractionPayloadFromActor, normalizedTextFromActor)) {
       return;
     }
 
@@ -475,7 +501,15 @@ export const useToolPage = ({
                 : briefingContextText,
           };
         }
-        if (workspaceExtractionContext !== null) {
+        if (
+          workspaceExtractionContext !== null
+          && briefingSnapshot.context.error !== 'extraction_context_insufficient'
+          && isExtractionContextValidForTool(
+            toolKey,
+            workspaceExtractionContext.extractionPayload,
+            workspaceExtractionContext.normalizedText,
+          )
+        ) {
           return {
             extractionArtifactId: workspaceExtractionContext.extractionArtifactId,
             extractionPayload: workspaceExtractionContext.extractionPayload,
@@ -693,19 +727,20 @@ export const useToolPage = ({
     if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
       toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
     } else if (generation.streamStatus === 'failed') {
-      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'Generazione fallita';
+      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'generation_failed';
+      const readableStreamError = mapInlineDispatchError(streamErrorMessage) ?? 'Generazione fallita';
 
       if (normalizedFailedStep) {
         toolPageSend({
           type: 'STEP_FAILED',
           step: normalizedFailedStep,
-          message: streamErrorMessage,
+          message: readableStreamError,
         });
       }
 
       // Force exit from generating state so the UI does not remain stuck in pending.
       // Keep terminal failure feedback inline-action only.
-      setDispatchError(streamErrorMessage);
+      setDispatchError(readableStreamError);
       setIsAutoChainEnabled(false);
       currentRunPrefixRef.current = null;
       toolPageSend({ type: 'CANCEL_GENERATION' });

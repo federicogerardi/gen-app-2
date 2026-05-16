@@ -107,6 +107,14 @@ describe('tools-client', () => {
   it('runExtraction enforces fixed analitico tone for extraction jobs', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: '{"schemaVersion":"extraction.v1"}',
+          sequence: 1,
+        },
+      });
       options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
     });
 
@@ -180,7 +188,7 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
   });
 
-  it('runExtraction rejects top-level array payloads and returns empty object', async () => {
+  it('runExtraction rejects top-level array payloads as insufficient extraction context', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
       options.onEvent({
@@ -196,16 +204,15 @@ describe('tools-client', () => {
 
     getArtifactByIdMock.mockResolvedValue(null);
 
-    const result = await runExtraction({
+    await expect(runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
       model: 'openrouter:auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
-    });
+    })).rejects.toThrow('extraction_context_insufficient');
 
-    expect(result.payload).toEqual({});
     expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
   });
 

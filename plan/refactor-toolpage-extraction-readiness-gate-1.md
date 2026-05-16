@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-05-16
 last_updated: 2026-05-16
 owner: Frontend Platform Team
-status: 'Planned'
+status: 'Completed'
 tags: [refactor, frontend, backend, xstate, readiness, extraction, bug]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines a deterministic refactor that blocks Tool Workspace Page readiness when extraction completes with semantically invalid output (for example empty or non-actionable extraction payload), and requires a new valid brief upload before generation can start.
 
@@ -36,10 +36,10 @@ This plan defines a deterministic refactor that blocks Tool Workspace Page readi
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Add a failing unit test in `apps/frontend/src/features/tools/machines/briefing-upload.machine.test.ts` verifying `extracting -> idle` when extraction terminal outcome is semantically empty (no required extraction signal). |  |  |
-| TASK-002 | Add a failing unit test in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` verifying `ReadinessSnapshot.hasExtractionContext=false` for invalid extraction context despite populated `briefingId` and `extractionArtifactId`. |  |  |
-| TASK-003 | Add a failing integration-level hook test in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` verifying `primaryActionPolicy='disabled'` after invalid extraction and presence of inline `DispatchError`. |  |  |
-| TASK-004 | Add a backend test in `apps/backend/src/lib/tests/generation-system.runtime.test.ts` covering extraction stream success with empty semantic output and expected mapped failure reason contract. |  |  |
+| TASK-001 | Add a failing unit test in `apps/frontend/src/features/tools/machines/briefing-upload.machine.test.ts` verifying `extracting -> idle` when extraction terminal outcome is semantically empty (no required extraction signal). | ✅ | 2026-05-16 |
+| TASK-002 | Add a failing unit test in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` verifying `ReadinessSnapshot.hasExtractionContext=false` for invalid extraction context despite populated `briefingId` and `extractionArtifactId`. | ✅ | 2026-05-16 |
+| TASK-003 | Add a failing integration-level hook test in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` verifying `primaryActionPolicy='disabled'` after invalid extraction and presence of inline `DispatchError`. | ✅ | 2026-05-16 |
+| TASK-004 | Add a backend test in `apps/backend/src/lib/tests/generation-system.runtime.test.ts` covering extraction stream success with empty semantic output and expected mapped failure reason contract. | ✅ | 2026-05-16 |
 
 Completion criteria:
 - All four tests exist and fail on current codebase for the targeted scenario.
@@ -51,10 +51,10 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-005 | In `apps/frontend/src/features/tools/machines/tool-page.machine.ts`, implement `isExtractionContextValidForTool(toolKey, payload, normalizedText)` and replace direct core-field checks in `hasCompleteBriefingContext` / `deriveHasExtractionContext` with this predicate. |  |  |
-| TASK-006 | In `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`, add extraction output validation in `extracting.onDone`: if invalid, transition to `idle`, clear extraction context fields, and set deterministic error code/message key (for example `extraction_context_insufficient`). |  |  |
-| TASK-007 | In `apps/frontend/src/features/tools/runtime/useToolPage.ts`, ensure `ExtractionContextBridge` upserts only when extraction context passes the same validity predicate used by `toolPageMachine`; prevent stale valid context reuse after invalid extraction attempt. |  |  |
-| TASK-008 | In `apps/frontend/src/features/tools/runtime/tools-client.ts`, normalize extraction result classification so empty/invalid extraction payload does not silently return as successful ready candidate. |  |  |
+| TASK-005 | In `apps/frontend/src/features/tools/machines/tool-page.machine.ts`, implement `isExtractionContextValidForTool(toolKey, payload, normalizedText)` and replace direct core-field checks in `hasCompleteBriefingContext` / `deriveHasExtractionContext` with this predicate. | ✅ | 2026-05-16 |
+| TASK-006 | In `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`, add extraction output validation in `extracting.onDone`: if invalid, transition to `idle`, clear extraction context fields, and set deterministic error code/message key (for example `extraction_context_insufficient`). | ✅ | 2026-05-16 |
+| TASK-007 | In `apps/frontend/src/features/tools/runtime/useToolPage.ts`, ensure `ExtractionContextBridge` upserts only when extraction context passes the same validity predicate used by `toolPageMachine`; prevent stale valid context reuse after invalid extraction attempt. | ✅ | 2026-05-16 |
+| TASK-008 | In `apps/frontend/src/features/tools/runtime/tools-client.ts`, normalize extraction result classification so empty/invalid extraction payload does not silently return as successful ready candidate. | ✅ | 2026-05-16 |
 
 Completion criteria:
 - Invalid extraction can no longer produce `briefingSnapshot.matches('ready')` for readiness purposes.
@@ -66,10 +66,10 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-009 | In `apps/backend/src/lib/machines/generation-system.machine.ts`, define deterministic extraction-empty failure mapping (new reason code or explicit existing code) for extraction route when semantic output is empty/invalid. |  |  |
-| TASK-010 | In `apps/backend/src/lib/runtime/error-contract.ts`, map the selected extraction-empty reason to a stable API error envelope (`code`, `message`) consumable by frontend without leaking internal machine event types. |  |  |
-| TASK-011 | In `apps/frontend/src/features/generation/runtime/generation-client.ts` and `apps/frontend/src/features/tools/runtime/tools-client.ts`, map backend extraction-empty reason to domain-readable frontend error text and preserve raw reason only in debug logs. |  |  |
-| TASK-012 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, verify feedback remains in `inline-action` channel (`DispatchError`) and does not trigger global feedback viewport for this scenario. |  |  |
+| TASK-009 | In `apps/backend/src/lib/machines/generation-system.machine.ts`, define deterministic extraction-empty failure mapping (new reason code or explicit existing code) for extraction route when semantic output is empty/invalid. | ✅ | 2026-05-16 |
+| TASK-010 | In `apps/backend/src/lib/runtime/error-contract.ts`, map the selected extraction-empty reason to a stable API error envelope (`code`, `message`) consumable by frontend without leaking internal machine event types. | ✅ | 2026-05-16 |
+| TASK-011 | In `apps/frontend/src/features/generation/runtime/generation-client.ts` and `apps/frontend/src/features/tools/runtime/tools-client.ts`, map backend extraction-empty reason to domain-readable frontend error text and preserve raw reason only in debug logs. | ✅ | 2026-05-16 |
+| TASK-012 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, verify feedback remains in `inline-action` channel (`DispatchError`) and does not trigger global feedback viewport for this scenario. | ✅ | 2026-05-16 |
 
 Completion criteria:
 - Screenshot-equivalent scenario shows readable inline error and no ready state.
@@ -81,10 +81,10 @@ Completion criteria:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-013 | Update frontend machine tests to cover valid and invalid extraction for `funnel-pages`, `nextland`, and existing strict path `youtube-lf-script`. |  |  |
-| TASK-014 | Update runtime test matrix in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` to verify re-upload recovers from invalid extraction and re-enables readiness only after valid context. |  |  |
-| TASK-015 | Update DDD governance docs for readiness/extraction validity semantics: `docs/01-requirements/domain-ubiquitous-language-glossary.md` and `docs/07-governance/domain-naming-decision-log.md` (new DDD-NNN entry if new canonical reason term is introduced). |  |  |
-| TASK-016 | Update UI specification if feedback wording/channel behavior changes: `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`. |  |  |
+| TASK-013 | Update frontend machine tests to cover valid and invalid extraction for `funnel-pages`, `nextland`, and existing strict path `youtube-lf-script`. | ✅ | 2026-05-16 |
+| TASK-014 | Update runtime test matrix in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` to verify re-upload recovers from invalid extraction and re-enables readiness only after valid context. | ✅ | 2026-05-16 |
+| TASK-015 | Update DDD governance docs for readiness/extraction validity semantics: `docs/01-requirements/domain-ubiquitous-language-glossary.md` and `docs/07-governance/domain-naming-decision-log.md` (new DDD-NNN entry if new canonical reason term is introduced). | ✅ | 2026-05-16 |
+| TASK-016 | Update UI specification if feedback wording/channel behavior changes: `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`. | ✅ | 2026-05-16 |
 
 Completion criteria:
 - Full targeted test suite passes.

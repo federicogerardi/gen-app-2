@@ -130,7 +130,6 @@ export const buildExtractionStructuredPayload = (
   const briefText =
     toOptionalString(input.requestInput.briefingText)
     ?? toOptionalString(input.requestInput.normalizedText)
-    ?? toOptionalString(input.requestInput.prompt)
     ?? '';
   const summary = briefText
     ? briefText.split(/\s+/).slice(0, 60).join(' ')

@@ -124,11 +124,16 @@ describe('SessionSummaryDetailPage', () => {
     renderPage(SessionSummaryDetailPage);
 
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(2);
+    expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
     expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
     expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
     expect(screen.getByText('completed')).toBeInTheDocument();
-    expect(screen.getByText(/sessionId: sess_demo/)).toBeInTheDocument();
+    expect(screen.getByText('Project One')).toBeInTheDocument();
+    expect(screen.getByText('Tool')).toBeInTheDocument();
+    expect(screen.getByText('Data job')).toBeInTheDocument();
+    expect(screen.getByText('Ultimo aggiornamento')).toBeInTheDocument();
+    expect(screen.getByText('Artefatti')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dettagli sessione' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
     const relaunchLink = screen.getByRole('link', { name: 'Rilancia' });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');

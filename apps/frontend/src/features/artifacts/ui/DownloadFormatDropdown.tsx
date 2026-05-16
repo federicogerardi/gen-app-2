@@ -98,7 +98,9 @@ export const DownloadFormatDropdown = ({
               aria-label="Seleziona formato download"
               title="Seleziona formato download"
             >
-              <ChevronDown size={13} />
+              <span className="ui-download-split-arrow" aria-hidden="true">
+                <ChevronDown size={13} />
+              </span>
               <span className="ui-download-split-format-label">
                 {getFormatExtensionLabel(selectedFormat)}
               </span>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -21,6 +21,7 @@ import {
 } from '../../tools/runtime/session-client';
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
+import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 
 const formatToolName = (toolKey: string | null): string => {
   if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
@@ -74,6 +75,21 @@ export const SessionSummaryDetailPage = () => {
     [relaunchArtifactQuery.data],
   );
   const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
+
+  const handleSessionDownload = useCallback(
+    (format: DownloadFormat) => {
+      if (pageState.phase !== 'session') return;
+      void downloadSessionFile(pageState.group.sessionId, format, {
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+      }).catch((err: unknown) => {
+        if (import.meta.env.DEV) {
+          console.error('[session-download] failed', err);
+        }
+      });
+    },
+    [pageState, auth.apiBaseUrl, auth.capabilities],
+  );
 
   useEffect(() => {
     if (!sessionId) {
@@ -185,6 +201,19 @@ export const SessionSummaryDetailPage = () => {
               <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
                 Rilancia
               </SecondaryCtaButton>
+              {auth.capabilities.sessionDownload ? (
+                <div className="ui-session-download-actions" aria-label={appCopy.ui.actions.download}>
+                  {(['md', 'txt', 'docx'] as DownloadFormat[]).map((fmt) => (
+                    <SecondaryCtaButton key={fmt} type="button" onClick={() => handleSessionDownload(fmt)}>
+                      {fmt === 'md'
+                        ? appCopy.ui.actions.downloadAsMarkdown
+                        : fmt === 'txt'
+                          ? appCopy.ui.actions.downloadAsTxt
+                          : appCopy.ui.actions.downloadAsDocx}
+                    </SecondaryCtaButton>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </section>
         </aside>

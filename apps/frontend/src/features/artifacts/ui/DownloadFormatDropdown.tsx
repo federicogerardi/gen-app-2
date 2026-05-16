@@ -6,7 +6,7 @@ import { cx } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import type { DownloadFormat } from '../runtime/download-client';
 
-const DOWNLOAD_FORMATS: DownloadFormat[] = ['md', 'docx'];
+const DOWNLOAD_FORMATS: DownloadFormat[] = ['docx', 'md'];
 
 const getFormatLabel = (format: DownloadFormat): string => {
   if (format === 'md') return appCopy.ui.actions.downloadAsMarkdown;

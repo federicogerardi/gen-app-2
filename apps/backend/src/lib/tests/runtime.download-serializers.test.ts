@@ -100,6 +100,9 @@ test('serializeArtifactDownload applies optional visual theme without changing p
 test('parseDocxThemePresetFromEnv returns classic only for supported value', () => {
   assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'classic' }), 'classic');
   assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'CLASSIC' }), 'classic');
+  assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'google-docs' }), 'google-docs');
+  assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'google_docs' }), 'google-docs');
+  assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'gdocs' }), 'google-docs');
   assert.equal(parseDocxThemePresetFromEnv({ DOCX_DEFAULT_THEME: 'unsupported' }), 'none');
   assert.equal(parseDocxThemePresetFromEnv({}), 'none');
 });
@@ -107,13 +110,22 @@ test('parseDocxThemePresetFromEnv returns classic only for supported value', () 
 test('docxThemeFromPreset returns a deterministic theme object', () => {
   const noneTheme = docxThemeFromPreset('none');
   const classicTheme = docxThemeFromPreset('classic');
+  const googleDocsTheme = docxThemeFromPreset('google-docs');
 
   assert.equal(typeof noneTheme, 'object');
   assert.equal(typeof classicTheme, 'object');
+  assert.equal(typeof googleDocsTheme, 'object');
   assert.notEqual(classicTheme, noneTheme);
-  assert.equal(classicTheme.runByRole?.default?.font, 'Source Sans 3');
-  assert.equal(classicTheme.runByRole?.heading?.font, 'IBM Plex Sans');
-  assert.equal(classicTheme.runByRole?.code?.font, 'JetBrains Mono');
-  assert.equal(classicTheme.runByRole?.default?.size, 30);
-  assert.equal(classicTheme.paragraphByKind?.paragraph?.spacing?.line, 408);
+  assert.notEqual(googleDocsTheme, noneTheme);
+  assert.equal(classicTheme.runByRole?.default?.font, 'Lato');
+  assert.equal(classicTheme.runByRole?.heading?.font, 'Lato');
+  assert.equal(classicTheme.runByRole?.code?.font, 'Lato');
+  assert.equal(classicTheme.runByRole?.default?.size, 24);
+  assert.equal(classicTheme.runByRole?.heading?.size, 32);
+  assert.equal(classicTheme.paragraphByKind?.paragraph?.spacing?.line, 384);
+  assert.ok((classicTheme.paragraphByKind?.['heading-1']?.spacing?.before ?? 0) < 360);
+  assert.equal(googleDocsTheme.runByRole?.default?.font, 'Arial');
+  assert.equal(googleDocsTheme.runByRole?.default?.size, 24);
+  assert.equal(googleDocsTheme.runByRole?.heading?.size, 30);
+  assert.equal(googleDocsTheme.paragraphByKind?.paragraph?.spacing?.line, 320);
 });

@@ -10,6 +10,16 @@ import {
   updateModel,
   deleteModel,
 } from '../adapters/llm-model.adapter';
+import {
+  createProductChangelog,
+  publishProductChangelog,
+  listPublishedProductChangelogs,
+  createUserReport,
+  getUserReportById,
+  listUserReports,
+  updateUserReportStatus,
+  publishUserReportIssueTransaction,
+} from '../adapters';
 import type { LlmModelStatus } from '../types/llm-model';
 import type {
   AuthSessionPrincipal,
@@ -47,6 +57,14 @@ import { createAdminHandlers } from './auth-http/admin-handlers';
 import { parseDownloadFormat, contentTypeForFormat } from './downloads/download-format';
 import { artifactDownloadFilename, sessionDownloadFilename, contentDispositionAttachment } from './downloads/download-filename';
 import { serializeArtifactDownload, serializeSessionDownload } from './downloads/download-serializers';
+import {
+  canPublishUserReportIssue,
+  normalizeProductChangelogStatus,
+  normalizeUserReportCategory,
+  normalizeUserReportStatus,
+} from './feedback-center-policy';
+import { assertGitHubApiConfig, readGitHubApiConfigFromEnv } from './integrations/github-config';
+import { publishGitHubIssue, PublishGitHubIssueError } from './integrations/github-issues';
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
@@ -118,6 +136,29 @@ type AdminUpdateUserRequestBody = {
   password?: unknown;
 };
 
+type AdminCreateChangelogRequestBody = {
+  title?: unknown;
+  body?: unknown;
+  status?: unknown;
+};
+
+type CreateUserReportRequestBody = {
+  category?: unknown;
+  title?: unknown;
+  description?: unknown;
+};
+
+type AdminUpdateUserReportRequestBody = {
+  status?: unknown;
+};
+
+type AdminPublishUserReportIssueRequestBody = {
+  owner?: unknown;
+  repo?: unknown;
+  title?: unknown;
+  body?: unknown;
+};
+
 type CreateProjectRequestBody = {
   name?: unknown;
   description?: unknown;
@@ -144,6 +185,15 @@ const AUTH_USER_STATUS_SET = new Set<AuthUserStatus>(['active', 'disabled', 'pen
 
 const parseRequestUrl = (request: IncomingMessage): URL => {
   return new URL(request.url ?? '/', 'http://localhost');
+};
+
+const parseOptionalNonEmptyString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 };
 
 const writeJson = (
@@ -361,6 +411,8 @@ export const createAuthHttpRuntime = (
   const sessionCookies = options.sessionCookies ?? createDefaultSessionCookieRuntime();
   const passwordHashing = options.passwordHashing ?? createDefaultPasswordHashRuntime();
   const googleOAuth = options.googleOAuth ?? createGoogleOAuthRuntimeFromEnv();
+  const githubApiConfig = readGitHubApiConfigFromEnv();
+  assertGitHubApiConfig(githubApiConfig);
   const idGenerator = options.idGenerator ?? createDefaultAuthIdGenerator();
 
   const readPrincipalFromCookie = async (
@@ -1779,6 +1831,355 @@ export const createAuthHttpRuntime = (
     response.end('');
   };
 
+  const handleCreateUserReport = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for user reports create');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: CreateUserReportRequestBody;
+    try {
+      body = await parseJsonBody<CreateUserReportRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const category = normalizeUserReportCategory(parseOptionalNonEmptyString(body.category));
+    const title = parseOptionalNonEmptyString(body.title) ?? '';
+    const description = parseOptionalNonEmptyString(body.description) ?? '';
+
+    if (!category) {
+      writeError(response, 400, 'bad_request', 'Invalid category');
+      return;
+    }
+
+    if (!title) {
+      writeError(response, 400, 'bad_request', 'title is required');
+      return;
+    }
+
+    if (!description) {
+      writeError(response, 400, 'bad_request', 'description is required');
+      return;
+    }
+
+    const report = await createUserReport(pool, {
+      category,
+      title,
+      description,
+      createdByUserId: principal.user.id,
+    });
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 201, { report });
+  };
+
+  const handleListPublishedChangelog = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for changelog list');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const changelog = await listPublishedProductChangelogs(pool);
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { changelog });
+  };
+
+  const handleAdminCreateChangelog = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for changelog create');
+      return;
+    }
+
+    const adminPrincipal = await requireAdminPrincipal(request, response);
+    if (!adminPrincipal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: AdminCreateChangelogRequestBody;
+    try {
+      body = await parseJsonBody<AdminCreateChangelogRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const title = parseOptionalNonEmptyString(body.title) ?? '';
+    const changelogBody = parseOptionalNonEmptyString(body.body) ?? '';
+    const requestedStatus = normalizeProductChangelogStatus(parseOptionalNonEmptyString(body.status));
+
+    if (!title) {
+      writeError(response, 400, 'bad_request', 'title is required');
+      return;
+    }
+
+    if (!changelogBody) {
+      writeError(response, 400, 'bad_request', 'body is required');
+      return;
+    }
+
+    let changelog = await createProductChangelog(pool, {
+      title,
+      body: changelogBody,
+      createdByUserId: adminPrincipal.user.id,
+    });
+
+    if (requestedStatus === 'published') {
+      const published = await publishProductChangelog(pool, {
+        id: changelog.id,
+        publishedByUserId: adminPrincipal.user.id,
+      });
+
+      if (published) {
+        changelog = published;
+      }
+    }
+
+    await repositories.sessions.touchSession(adminPrincipal.session.id, now());
+    writeSuccess(response, 201, { changelog });
+  };
+
+  const handleAdminListUserReports = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for user reports list');
+      return;
+    }
+
+    const adminPrincipal = await requireAdminPrincipal(request, response);
+    if (!adminPrincipal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    const url = parseRequestUrl(request);
+    const status = normalizeUserReportStatus(url.searchParams.get('status') ?? undefined);
+    const category = normalizeUserReportCategory(url.searchParams.get('category') ?? undefined);
+
+    if (url.searchParams.has('status') && !status) {
+      writeError(response, 400, 'bad_request', 'Invalid status filter');
+      return;
+    }
+
+    if (url.searchParams.has('category') && !category) {
+      writeError(response, 400, 'bad_request', 'Invalid category filter');
+      return;
+    }
+
+    const reports = await listUserReports(pool, {
+      ...(status ? { status } : {}),
+      ...(category ? { category } : {}),
+    });
+
+    await repositories.sessions.touchSession(adminPrincipal.session.id, now());
+    writeSuccess(response, 200, { reports });
+  };
+
+  const handleAdminUpdateUserReport = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    reportId: string,
+  ): Promise<void> => {
+    if (request.method !== 'PATCH') {
+      writeError(response, 405, 'method_not_allowed', 'Use PATCH for user report update');
+      return;
+    }
+
+    const adminPrincipal = await requireAdminPrincipal(request, response);
+    if (!adminPrincipal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: AdminUpdateUserReportRequestBody;
+    try {
+      body = await parseJsonBody<AdminUpdateUserReportRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const status = normalizeUserReportStatus(parseOptionalNonEmptyString(body.status));
+    if (!status) {
+      writeError(response, 400, 'bad_request', 'Invalid status');
+      return;
+    }
+
+    const report = await updateUserReportStatus(pool, {
+      id: reportId,
+      status,
+      actedByUserId: adminPrincipal.user.id,
+    });
+
+    if (!report) {
+      writeError(response, 404, 'not_found', 'User report not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(adminPrincipal.session.id, now());
+    writeSuccess(response, 200, { report });
+  };
+
+  const handleAdminPublishUserReportIssue = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    reportId: string,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST for user report issue publish');
+      return;
+    }
+
+    const adminPrincipal = await requireAdminPrincipal(request, response);
+    if (!adminPrincipal) {
+      return;
+    }
+
+    const pool = requireDb(response);
+    if (!pool) {
+      return;
+    }
+
+    let body: AdminPublishUserReportIssueRequestBody;
+    try {
+      body = await parseJsonBody<AdminPublishUserReportIssueRequestBody>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const report = await getUserReportById(pool, reportId);
+    if (!report) {
+      writeError(response, 404, 'not_found', 'User report not found');
+      return;
+    }
+
+    if (!canPublishUserReportIssue(report.category, report.status)) {
+      writeError(response, 409, 'conflict', 'User report cannot be published as GitHub issue from current state');
+      return;
+    }
+
+    if (!githubApiConfig) {
+      writeError(response, 503, 'service_unavailable', 'GitHub integration is not configured');
+      return;
+    }
+
+    const owner = parseOptionalNonEmptyString(body.owner) ?? githubApiConfig.owner;
+    const repo = parseOptionalNonEmptyString(body.repo) ?? githubApiConfig.repo;
+    if (!owner || !repo) {
+      writeError(response, 400, 'bad_request', 'owner and repo are required');
+      return;
+    }
+
+    const issueTitle = parseOptionalNonEmptyString(body.title) ?? `[${report.category}] ${report.title}`;
+    const issueBody = parseOptionalNonEmptyString(body.body)
+      ?? [
+        `User report id: ${report.id}`,
+        `Category: ${report.category}`,
+        '',
+        report.description,
+      ].join('\n');
+
+    try {
+      const requestId = typeof request.headers['x-request-id'] === 'string'
+        ? request.headers['x-request-id']
+        : undefined;
+
+      const issue = await publishGitHubIssue(githubApiConfig, {
+        owner,
+        repo,
+        title: issueTitle,
+        body: issueBody,
+        ...(requestId ? { requestId } : {}),
+      });
+
+      const githubLink = await publishUserReportIssueTransaction(pool, {
+        userReportId: report.id,
+        repository: `${owner}/${repo}`,
+        issueNumber: issue.issueNumber,
+        issueUrl: issue.issueUrl,
+        publishedByUserId: adminPrincipal.user.id,
+      });
+
+      await repositories.sessions.touchSession(adminPrincipal.session.id, now());
+      writeSuccess(response, 200, {
+        githubLink,
+      });
+    } catch (error) {
+      if (error instanceof PublishGitHubIssueError) {
+        if (error.code === 'auth_error') {
+          writeError(response, 401, 'unauthorized', error.message);
+          return;
+        }
+
+        if (error.code === 'forbidden') {
+          writeError(response, 403, 'forbidden', error.message);
+          return;
+        }
+
+        if (error.code === 'not_found') {
+          writeError(response, 404, 'not_found', error.message);
+          return;
+        }
+
+        if (error.code === 'validation_error') {
+          writeError(response, 400, 'bad_request', error.message);
+          return;
+        }
+
+        writeError(response, 503, 'service_unavailable', error.message);
+        return;
+      }
+
+      writeError(response, 500, 'internal', 'Unexpected error while publishing GitHub issue');
+    }
+  };
+
   // ── end LlmModelCatalog handlers ─────────────────────────────────────────
 
   const handleAdminListUsers = async (
@@ -2079,6 +2480,10 @@ export const createAuthHttpRuntime = (
     handleAdminModelsCreate,
     handleAdminModelsUpdate,
     handleAdminModelsDelete,
+    handleAdminCreateChangelog,
+    handleAdminListUserReports,
+    handleAdminUpdateUserReport,
+    handleAdminPublishUserReportIssue,
     handleAdminListUsers,
     handleAdminCreateUser,
     handleAdminGetUser,
@@ -2192,6 +2597,46 @@ export const createAuthHttpRuntime = (
 
       if (path === '/api/models') {
         await handleModelsList(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/changelog') {
+        await handleListPublishedChangelog(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/user-reports') {
+        await handleCreateUserReport(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/admin/changelog') {
+        await adminHandlers.handleAdminCreateChangelog(request, response);
+        return { handled: true };
+      }
+
+      if (path === '/api/admin/user-reports') {
+        await adminHandlers.handleAdminListUserReports(request, response);
+        return { handled: true };
+      }
+
+      const adminUserReportIssueMatch = path.match(/^\/api\/admin\/user-reports\/([^/]+)\/publish-issue$/);
+      if (adminUserReportIssueMatch) {
+        await adminHandlers.handleAdminPublishUserReportIssue(
+          request,
+          response,
+          decodeURIComponent(adminUserReportIssueMatch[1] ?? ''),
+        );
+        return { handled: true };
+      }
+
+      const adminUserReportMatch = path.match(/^\/api\/admin\/user-reports\/([^/]+)$/);
+      if (adminUserReportMatch) {
+        await adminHandlers.handleAdminUpdateUserReport(
+          request,
+          response,
+          decodeURIComponent(adminUserReportMatch[1] ?? ''),
+        );
         return { handled: true };
       }
 

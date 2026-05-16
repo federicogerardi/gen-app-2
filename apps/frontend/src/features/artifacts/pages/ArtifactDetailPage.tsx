@@ -17,6 +17,7 @@ import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery'
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
 import { ArtifactContentPreview } from '../ui/ArtifactContentPreview';
+import { DownloadFormatDropdown } from '../ui/DownloadFormatDropdown';
 import { downloadArtifactFile, type DownloadFormat } from '../runtime/download-client';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
@@ -209,10 +210,6 @@ const LegacyArtifactView = ({
     [artifact.artifactId, auth.apiBaseUrl, auth.capabilities],
   );
 
-  const downloadOptions = auth.capabilities.artifactDownload
-    ? { onDownload: handleDownload }
-    : undefined;
-
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
@@ -224,10 +221,7 @@ const LegacyArtifactView = ({
 
       <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/DigitalDocument">
         <section className="ui-artifact-primary-panel" aria-label="Preview contenuto artifact">
-          <ArtifactContentPreview
-            content={artifact.content}
-            {...(downloadOptions ? { downloadOptions } : {})}
-          />
+          <ArtifactContentPreview content={artifact.content} />
         </section>
 
         <aside className="ui-artifact-secondary-panel" aria-label="Contesto e azioni artifact">
@@ -258,6 +252,9 @@ const LegacyArtifactView = ({
               >
                 {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
+              {auth.capabilities.artifactDownload ? (
+                <DownloadFormatDropdown onDownload={handleDownload} />
+              ) : null}
               <SoftCtaButton type="button" disabled={!isDeleteEnabled}>
                 {appCopy.ui.actions.deleteUiOnly}
               </SoftCtaButton>

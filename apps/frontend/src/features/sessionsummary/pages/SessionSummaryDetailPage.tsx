@@ -22,6 +22,7 @@ import {
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
+import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
 
 const formatToolName = (toolKey: string | null): string => {
   if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
@@ -202,17 +203,7 @@ export const SessionSummaryDetailPage = () => {
                 Rilancia
               </SecondaryCtaButton>
               {auth.capabilities.sessionDownload ? (
-                <div className="ui-session-download-actions" aria-label={appCopy.ui.actions.download}>
-                  {(['md', 'txt', 'docx'] as DownloadFormat[]).map((fmt) => (
-                    <SecondaryCtaButton key={fmt} type="button" onClick={() => handleSessionDownload(fmt)}>
-                      {fmt === 'md'
-                        ? appCopy.ui.actions.downloadAsMarkdown
-                        : fmt === 'txt'
-                          ? appCopy.ui.actions.downloadAsTxt
-                          : appCopy.ui.actions.downloadAsDocx}
-                    </SecondaryCtaButton>
-                  ))}
-                </div>
+                <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}
             </div>
           </section>

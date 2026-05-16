@@ -111,6 +111,9 @@ test('docxThemeFromPreset returns a deterministic theme object', () => {
   const noneTheme = docxThemeFromPreset('none');
   const classicTheme = docxThemeFromPreset('classic');
   const googleDocsTheme = docxThemeFromPreset('google-docs');
+  const classicParagraphSpacing = classicTheme.paragraphByKind?.paragraph?.spacing as { line?: number } | undefined;
+  const classicHeading1Spacing = classicTheme.paragraphByKind?.['heading-1']?.spacing as { before?: number } | undefined;
+  const googleDocsParagraphSpacing = googleDocsTheme.paragraphByKind?.paragraph?.spacing as { line?: number } | undefined;
 
   assert.equal(typeof noneTheme, 'object');
   assert.equal(typeof classicTheme, 'object');
@@ -122,10 +125,10 @@ test('docxThemeFromPreset returns a deterministic theme object', () => {
   assert.equal(classicTheme.runByRole?.code?.font, 'Lato');
   assert.equal(classicTheme.runByRole?.default?.size, 24);
   assert.equal(classicTheme.runByRole?.heading?.size, 32);
-  assert.equal(classicTheme.paragraphByKind?.paragraph?.spacing?.line, 384);
-  assert.ok((classicTheme.paragraphByKind?.['heading-1']?.spacing?.before ?? 0) < 360);
+  assert.equal(classicParagraphSpacing?.line, 384);
+  assert.ok((classicHeading1Spacing?.before ?? 0) < 360);
   assert.equal(googleDocsTheme.runByRole?.default?.font, 'Arial');
   assert.equal(googleDocsTheme.runByRole?.default?.size, 24);
   assert.equal(googleDocsTheme.runByRole?.heading?.size, 30);
-  assert.equal(googleDocsTheme.paragraphByKind?.paragraph?.spacing?.line, 320);
+  assert.equal(googleDocsParagraphSpacing?.line, 320);
 });

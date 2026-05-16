@@ -33,6 +33,14 @@ export type ApiPaths = {
     users: string;
     userById: (id: string) => string;
   };
+  feedback: {
+    changelogList: string | null;
+    userReportsCreate: string | null;
+    adminChangelogCreate: string | null;
+    adminUserReportsList: string | null;
+    adminUserReportById: (reportId: string) => string | null;
+    adminPublishUserReportIssue: (reportId: string) => string | null;
+  };
 };
 
 export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
@@ -69,5 +77,17 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   admin: {
     users: '/admin/users',
     userById: (id: string) => `/admin/users/${id}`,
+  },
+  feedback: {
+    changelogList: capabilities.changelogList ? '/api/changelog' : null,
+    userReportsCreate: capabilities.userReportsCreate ? '/api/user-reports' : null,
+    adminChangelogCreate: capabilities.adminChangelogCreate ? '/api/admin/changelog' : null,
+    adminUserReportsList: capabilities.adminUserReportsList ? '/api/admin/user-reports' : null,
+    adminUserReportById: (reportId: string) => (
+      capabilities.adminUserReportsUpdate ? `/api/admin/user-reports/${reportId}` : null
+    ),
+    adminPublishUserReportIssue: (reportId: string) => (
+      capabilities.adminUserReportsPublishIssue ? `/api/admin/user-reports/${reportId}/publish-issue` : null
+    ),
   },
 });

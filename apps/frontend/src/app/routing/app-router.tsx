@@ -22,7 +22,10 @@ const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummar
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
+const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
+const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
 const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
+const UserReportSubmissionPage = lazy(() => import('../../features/feedback-center/pages/UserReportSubmissionPage').then(m => ({ default: m.UserReportSubmissionPage })));
 
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
@@ -99,6 +102,10 @@ export const createAppRouter = () => createBrowserRouter([
         element: <Suspense fallback={<PageLoader />}><GenerationConsolePage /></Suspense>,
       },
       {
+        path: '/feedback/report',
+        element: <Suspense fallback={<PageLoader />}><UserReportSubmissionPage /></Suspense>,
+      },
+      {
         path: '/artifacts',
         element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
       },
@@ -129,6 +136,14 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: '/admin/activity',
             element: <Suspense fallback={<PageLoader />}><AdminActivityPage /></Suspense>,
+          },
+          {
+            path: '/admin/changelog',
+            element: <Suspense fallback={<PageLoader />}><AdminChangelogPage /></Suspense>,
+          },
+          {
+            path: '/admin/user-reports',
+            element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
           },
         ],
       },

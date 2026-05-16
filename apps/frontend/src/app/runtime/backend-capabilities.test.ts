@@ -38,6 +38,12 @@ describe('backend-capabilities', () => {
       toolsUpload: true,
       artifactDownload: true,
       sessionDownload: true,
+      changelogList: true,
+      userReportsCreate: true,
+      adminChangelogCreate: true,
+      adminUserReportsList: true,
+      adminUserReportsUpdate: true,
+      adminUserReportsPublishIssue: true,
     };
     const result = resolveBackendCapabilities(all);
     expect(result).toEqual(all);

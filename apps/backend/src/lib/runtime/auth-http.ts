@@ -2050,6 +2050,11 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    if (status !== 'triaged' && status !== 'closed') {
+      writeError(response, 400, 'bad_request', 'Only triaged and closed transitions are supported by this endpoint');
+      return;
+    }
+
     const report = await updateUserReportStatus(pool, {
       id: reportId,
       status,

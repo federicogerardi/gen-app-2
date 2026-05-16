@@ -20,6 +20,7 @@ export const appCopy = {
       funnelPages: 'Hotlead Funnel',
       nextland: 'Nextland',
       youtubeLfScript: 'YouTube LF Script',
+      feedbackCenter: 'Feedback',
       sessionSummary: 'Sessions',
       artifacts: 'Artifacts',
       admin: 'Admin',
@@ -179,6 +180,14 @@ export const appCopy = {
       adminModelsDefaultUpdateFailed: 'Impossibile aggiornare il modello predefinito.',
       adminModelsStatusUpdateFailed: 'Impossibile aggiornare lo stato modello.',
       projectsCreated: 'Progetto creato.',
+      adminChangelogPublished: 'Voce changelog pubblicata.',
+      adminChangelogPublishFailed: 'Impossibile pubblicare la voce changelog.',
+      adminUserReportStatusUpdated: 'Stato segnalazione aggiornato.',
+      adminUserReportStatusUpdateFailed: 'Impossibile aggiornare lo stato segnalazione.',
+      adminUserReportIssuePublished: 'Issue GitHub pubblicata.',
+      adminUserReportIssuePublishFailed: 'Impossibile pubblicare la issue GitHub.',
+      userReportSubmitted: 'Segnalazione inviata con successo.',
+      userReportSubmitFailed: 'Impossibile inviare la segnalazione.',
     },
     options: {
       intent: [
@@ -280,6 +289,11 @@ export const appCopy = {
       activityBody: 'Attività recente del workspace.',
       modelsTitle: 'Admin models',
       usersTitle: 'Admin users',
+      changelogTitle: 'Admin changelog',
+      userReportsTitle: 'Admin user reports',
+    },
+    feedback: {
+      userReportTitle: 'User report submission',
     },
     generation: {
       setupTitle: 'Configura la generazione',
@@ -314,6 +328,7 @@ export const appNavigation = [
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
   { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
+  { to: '/feedback/report', label: appCopy.ui.navigation.feedbackCenter, end: false },
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },

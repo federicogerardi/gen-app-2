@@ -141,21 +141,35 @@ export const parseMarkdownToDocxBlocks = (input: string): MarkdownDocxBlock[] =>
 
     const heading = trimmed.match(/^(#{1,3})\s+(.*)$/);
     if (heading) {
-      const level = heading[1].length as 1 | 2 | 3;
-      const text = heading[2].trim();
+      const headingHashes = heading[1];
+      const headingText = heading[2];
+      if (!headingHashes || headingText === undefined) {
+        continue;
+      }
+      const level = headingHashes.length as 1 | 2 | 3;
+      const text = headingText.trim();
       blocks.push({ kind: 'heading', level, text });
       continue;
     }
 
     const bullet = trimmed.match(/^[-*+]\s+(.*)$/);
     if (bullet) {
-      blocks.push({ kind: 'unordered-list-item', text: bullet[1].trim() });
+      const bulletText = bullet[1];
+      if (bulletText === undefined) {
+        continue;
+      }
+      blocks.push({ kind: 'unordered-list-item', text: bulletText.trim() });
       continue;
     }
 
     const ordered = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (ordered) {
-      blocks.push({ kind: 'ordered-list-item', index: Number(ordered[1]), text: ordered[2].trim() });
+      const orderedIndex = ordered[1];
+      const orderedText = ordered[2];
+      if (!orderedIndex || orderedText === undefined) {
+        continue;
+      }
+      blocks.push({ kind: 'ordered-list-item', index: Number(orderedIndex), text: orderedText.trim() });
       continue;
     }
 

@@ -12,6 +12,11 @@ export type ToolsHandlers = {
     sessionId: string,
     stepKey: string,
   ): Promise<void>;
+  handleToolsSessionDownload(
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+  ): Promise<void>;
 };
 
 export const createToolsHandlers = (handlers: ToolsHandlers): ToolsHandlers => handlers;

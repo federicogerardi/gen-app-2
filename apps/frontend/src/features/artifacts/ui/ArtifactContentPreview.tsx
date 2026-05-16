@@ -1,15 +1,21 @@
 import { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Download } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import type { DownloadFormat } from '../runtime/download-client';
+
+type DownloadOptions = {
+  onDownload: (format: DownloadFormat) => void;
+};
 
 type ArtifactContentPreviewProps = {
   content: string | null | undefined;
   toolbarLabel?: string;
   panelLabel?: string;
   emptyContentLabel?: string;
+  downloadOptions?: DownloadOptions;
 };
 
 export const ArtifactContentPreview = ({
@@ -17,9 +23,11 @@ export const ArtifactContentPreview = ({
   toolbarLabel = 'Modalita visualizzazione contenuto',
   panelLabel = 'Preview contenuto artifact',
   emptyContentLabel = 'Contenuto non disponibile.',
+  downloadOptions,
 }: ArtifactContentPreviewProps) => {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<'markdown' | 'raw'>('markdown');
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const markdownRef = useRef<HTMLDivElement>(null);
 
   const resolvedContent = content ?? '';
@@ -95,6 +103,44 @@ export const ArtifactContentPreview = ({
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
+        {downloadOptions ? (
+          <div className="ui-artifact-download-menu-wrapper">
+            <button
+              type="button"
+              className="ui-view-tab ui-view-tab--icon"
+              aria-label={appCopy.ui.actions.download}
+              title={appCopy.ui.actions.download}
+              aria-haspopup="menu"
+              aria-expanded={downloadMenuOpen}
+              onClick={() => setDownloadMenuOpen((prev) => !prev)}
+              disabled={!resolvedContent}
+            >
+              <Download size={13} />
+            </button>
+            {downloadMenuOpen ? (
+              <div className="ui-artifact-download-menu" role="menu" aria-label={appCopy.ui.actions.download}>
+                {(['md', 'txt', 'docx'] as DownloadFormat[]).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    role="menuitem"
+                    className="ui-artifact-download-menu-item"
+                    onClick={() => {
+                      setDownloadMenuOpen(false);
+                      downloadOptions.onDownload(fmt);
+                    }}
+                  >
+                    {fmt === 'md'
+                      ? appCopy.ui.actions.downloadAsMarkdown
+                      : fmt === 'txt'
+                        ? appCopy.ui.actions.downloadAsTxt
+                        : appCopy.ui.actions.downloadAsDocx}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {viewMode === 'markdown' ? (

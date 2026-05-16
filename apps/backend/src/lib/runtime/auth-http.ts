@@ -25,6 +25,7 @@ import {
   isSupportedToolWorkflow,
   resolveStepDependencyIds,
   extractStepFromArtifactInput,
+  TOOL_WORKFLOW_REGISTRY,
 } from './tool-workflow-registry';
 import { SessionQueryAdapter } from '../adapters/session-query.adapter';
 import type { SessionListEntry } from '../adapters/session-query.adapter';
@@ -43,6 +44,9 @@ import { createAuthHandlers } from './auth-http/auth-handlers';
 import { createProjectsHandlers } from './auth-http/projects-handlers';
 import { createToolsHandlers } from './auth-http/tools-handlers';
 import { createAdminHandlers } from './auth-http/admin-handlers';
+import { parseDownloadFormat, contentTypeForFormat } from './downloads/download-format';
+import { artifactDownloadFilename, sessionDownloadFilename, contentDispositionAttachment } from './downloads/download-filename';
+import { serializeArtifactDownload, serializeSessionDownload } from './downloads/download-serializers';
 
 const DEFAULT_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
@@ -1398,6 +1402,75 @@ export const createAuthHttpRuntime = (
     writeSuccess(response, 200, { artifact });
   };
 
+  const handleToolsSessionDownload = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    sessionId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for session download');
+      return;
+    }
+
+    const url = parseRequestUrl(request);
+    const format = parseDownloadFormat(url.searchParams);
+    if (!format) {
+      writeError(response, 400, 'bad_request', 'format must be one of: md, txt, docx');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const adapter = new SessionQueryAdapter(queries.artifacts);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    if (!group) {
+      writeError(response, 404, 'not_found', 'Session not found');
+      return;
+    }
+
+    // Deterministic step ordering: use canonical registry if toolKey is known
+    let orderedArtifacts = group.artifacts;
+    if (group.toolKey && isSupportedToolWorkflow(group.toolKey)) {
+      const plan = TOOL_WORKFLOW_REGISTRY[group.toolKey];
+      const stepPosition = new Map<string, number>(
+        plan.steps.map((step, index) => [step.key, index]),
+      );
+      orderedArtifacts = [...group.artifacts].sort((a, b) => {
+        const aPos = a.stepKey ? stepPosition.get(a.stepKey) : undefined;
+        const bPos = b.stepKey ? stepPosition.get(b.stepKey) : undefined;
+        if (aPos === undefined && bPos === undefined) {
+          return Date.parse(a.updatedAt) - Date.parse(b.updatedAt);
+        }
+        if (aPos === undefined) return 1;
+        if (bPos === undefined) return -1;
+        return aPos - bPos;
+      });
+    } else {
+      orderedArtifacts = [...group.artifacts].sort(
+        (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
+      );
+    }
+
+    const fileBuffer = await serializeSessionDownload(sessionId, group.toolKey, orderedArtifacts, format);
+    const filename = sessionDownloadFilename(sessionId, format);
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+
+    response.statusCode = 200;
+    response.setHeader('Content-Type', contentTypeForFormat(format));
+    response.setHeader('Content-Disposition', contentDispositionAttachment(filename));
+    response.setHeader('Content-Length', fileBuffer.length);
+    response.end(fileBuffer);
+  };
+
   const handleArtifactById = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1426,6 +1499,51 @@ export const createAuthHttpRuntime = (
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, { artifact });
+  };
+
+  const handleArtifactDownload = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    artifactId: string,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for artifact download');
+      return;
+    }
+
+    const url = parseRequestUrl(request);
+    const format = parseDownloadFormat(url.searchParams);
+    if (!format) {
+      writeError(response, 400, 'bad_request', 'format must be one of: md, txt, docx');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+    if (!artifact) {
+      writeError(response, 404, 'not_found', 'Artifact not found');
+      return;
+    }
+
+    const fileBuffer = await serializeArtifactDownload(artifactId, artifact.content ?? '', format);
+    const filename = artifactDownloadFilename(artifactId, format);
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+
+    response.statusCode = 200;
+    response.setHeader('Content-Type', contentTypeForFormat(format));
+    response.setHeader('Content-Disposition', contentDispositionAttachment(filename));
+    response.setHeader('Content-Length', fileBuffer.length);
+    response.end(fileBuffer);
   };
 
   // ── LlmModelCatalog handlers ─────────────────────────────────────────────
@@ -1943,6 +2061,7 @@ export const createAuthHttpRuntime = (
     handleProjectById,
     handleArtifactsList,
     handleArtifactById,
+    handleArtifactDownload,
   });
 
   const toolsHandlers = createToolsHandlers({
@@ -1952,6 +2071,7 @@ export const createAuthHttpRuntime = (
     handleToolsSessionsList,
     handleToolsSessionArtifacts,
     handleToolsSessionStepArtifact,
+    handleToolsSessionDownload,
   });
 
   const adminHandlers = createAdminHandlers({
@@ -2132,12 +2252,34 @@ export const createAuthHttpRuntime = (
         return { handled: true };
       }
 
+      // Download route must be before the /:sessionId catch-all
+      const toolSessionDownloadMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)\/download$/);
+      if (toolSessionDownloadMatch) {
+        await toolsHandlers.handleToolsSessionDownload(
+          request,
+          response,
+          decodeURIComponent(toolSessionDownloadMatch[1] ?? ''),
+        );
+        return { handled: true };
+      }
+
       const toolSessionMatch = path.match(/^\/api\/tools\/sessions\/([^/]+)$/);
       if (toolSessionMatch) {
         await toolsHandlers.handleToolsSessionArtifacts(
           request,
           response,
           decodeURIComponent(toolSessionMatch[1] ?? ''),
+        );
+        return { handled: true };
+      }
+
+      // Download route must be before the /:artifactId catch-all
+      const artifactDownloadMatch = path.match(/^\/api\/artifacts\/([^/]+)\/download$/);
+      if (artifactDownloadMatch) {
+        await projectsHandlers.handleArtifactDownload(
+          request,
+          response,
+          decodeURIComponent(artifactDownloadMatch[1] ?? ''),
         );
         return { handled: true };
       }

@@ -17,6 +17,7 @@ export type ApiPaths = {
     sessions: {
       list: string | null;
       byId: (sessionId: string) => string | null;
+      downloadById: (sessionId: string, format: string) => string | null;
     };
   };
   projects: {
@@ -26,6 +27,7 @@ export type ApiPaths = {
   artifacts: {
     list: string | null;
     byId: (id: string) => string | null;
+    downloadById: (id: string, format: string) => string | null;
   };
   admin: {
     users: string;
@@ -50,6 +52,8 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     sessions: {
       list: capabilities.sessionsList ? '/api/tools/sessions' : null,
       byId: (sessionId: string) => (capabilities.sessionsDetail ? `/api/tools/sessions/${sessionId}` : null),
+      downloadById: (sessionId: string, format: string) =>
+        capabilities.sessionDownload ? `/api/tools/sessions/${sessionId}/download?format=${format}` : null,
     },
   },
   projects: {
@@ -59,6 +63,8 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   artifacts: {
     list: capabilities.artifacts ? '/api/artifacts' : null,
     byId: (id: string) => (capabilities.artifacts ? `/api/artifacts/${id}` : null),
+    downloadById: (id: string, format: string) =>
+      capabilities.artifactDownload ? `/api/artifacts/${id}/download?format=${format}` : null,
   },
   admin: {
     users: '/admin/users',

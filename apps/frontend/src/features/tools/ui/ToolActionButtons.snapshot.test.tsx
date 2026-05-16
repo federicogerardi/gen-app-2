@@ -21,7 +21,7 @@ describe('ToolActionButtons visual snapshot', () => {
       />,
     );
 
-    const labels = screen.getAllByRole('button').map((button) => button.textContent?.trim());
+    const labels = screen.getAllByRole('button').map((button: HTMLElement) => button.textContent?.trim());
 
     expect(labels).toMatchInlineSnapshot(`
       [

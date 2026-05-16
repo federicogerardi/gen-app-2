@@ -20,6 +20,25 @@ export {
 } from './openrouter.adapter';
 
 export {
+  createProductChangelog,
+  publishProductChangelog,
+  listPublishedProductChangelogs,
+  listProductChangelogs,
+} from './product-changelog.adapter';
+
+export {
+  createUserReport,
+  getUserReportById,
+  listUserReports,
+  updateUserReportStatus,
+} from './user-report.adapter';
+
+export {
+  createUserReportGithubLink,
+  publishUserReportIssueTransaction,
+} from './user-report-github-link.adapter';
+
+export {
   createAuthProductionRepositories,
   PostgresAuthSessionRepository,
   PostgresAuthUserRepository,

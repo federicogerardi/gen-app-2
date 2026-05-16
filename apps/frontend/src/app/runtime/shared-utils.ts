@@ -3,6 +3,8 @@
  * DDD-safe: implementation details only, no domain concepts affected.
  */
 
+let sessionIdFallbackCounter = 0;
+
 /**
  * Generate a unique request identifier.
  * Uses native crypto.randomUUID() if available, falls back to timestamp-based id.
@@ -31,7 +33,8 @@ export const generateSessionId = (): string => {
     return `sess_${Date.now().toString(36)}_${suffix}`;
   }
 
-  return `sess_${Date.now().toString(36)}`;
+  sessionIdFallbackCounter = (sessionIdFallbackCounter + 1) % 0xffff;
+  return `sess_${Date.now().toString(36)}_${sessionIdFallbackCounter.toString(36).padStart(4, '0')}`;
 };
 
 /**

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listArtifacts,
@@ -38,12 +38,12 @@ export const useArtifactsQuery = (
 
   // Serialize filters so that inline object literals don't trigger the effect on every render.
   const filtersKey = JSON.stringify(options.filters);
-  const filters = options.filters;
+  const filters = useMemo(() => options.filters, [filtersKey]);
   const query = useCallback(() => listArtifacts(filters, {
     apiBaseUrl: options.apiBaseUrl,
     capabilities: options.capabilities,
     localArtifacts: localArtifactsRef.current,
-  }), [filtersKey, options.apiBaseUrl, options.capabilities]);
+  }), [filters, options.apiBaseUrl, options.capabilities]);
   const queryState = useAsyncQuery<ArtifactQueryData>({
     enabled: options.enabled ?? true,
     emptyData: {

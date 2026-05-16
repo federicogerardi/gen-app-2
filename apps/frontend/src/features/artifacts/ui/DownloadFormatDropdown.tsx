@@ -1,12 +1,17 @@
 import { useState, type MouseEvent } from 'react';
 import { Menu, MenuItem } from '@mui/material';
-import { Download } from 'lucide-react';
+import { ChevronDown, Download } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { cx } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import type { DownloadFormat } from '../runtime/download-client';
 
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['docx', 'md'];
+
+const getFormatExtensionLabel = (format: DownloadFormat): string => {
+  if (format === 'md') return '.md';
+  return '.docx';
+};
 
 const getFormatLabel = (format: DownloadFormat): string => {
   if (format === 'md') return appCopy.ui.actions.downloadAsMarkdown;
@@ -26,6 +31,7 @@ export const DownloadFormatDropdown = ({
   triggerVariant = 'secondary',
   className,
 }: DownloadFormatDropdownProps) => {
+  const [selectedFormat, setSelectedFormat] = useState<DownloadFormat>('docx');
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(anchorEl);
 
@@ -35,6 +41,19 @@ export const DownloadFormatDropdown = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleSecondaryClick = (event: MouseEvent<HTMLElement>) => {
+    const target = event.target;
+    const clickedChevron =
+      target instanceof Element && target.closest('[data-download-format-trigger="true"]');
+
+    if (clickedChevron) {
+      setAnchorEl(event.currentTarget);
+      return;
+    }
+
+    onDownload(selectedFormat);
   };
 
   return (
@@ -55,13 +74,36 @@ export const DownloadFormatDropdown = ({
       ) : (
         <SecondaryCtaButton
           type="button"
-          className={className}
+          className={cx('ui-download-split-button', className)}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          onClick={handleOpen}
+          onClick={handleSecondaryClick}
           disabled={disabled}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setAnchorEl(event.currentTarget);
+            }
+          }}
         >
-          {appCopy.ui.actions.download}
+          <span className="ui-download-split-layout">
+            <span className="ui-download-split-label-wrap">
+              <span className="ui-download-split-label">
+                {appCopy.ui.actions.download}
+              </span>
+            </span>
+            <span
+              className="ui-download-split-trigger"
+              data-download-format-trigger="true"
+              aria-label="Seleziona formato download"
+              title="Seleziona formato download"
+            >
+              <ChevronDown size={13} />
+              <span className="ui-download-split-format-label">
+                {getFormatExtensionLabel(selectedFormat)}
+              </span>
+            </span>
+          </span>
         </SecondaryCtaButton>
       )}
 
@@ -69,14 +111,19 @@ export const DownloadFormatDropdown = ({
         anchorEl={anchorEl}
         open={menuOpen}
         onClose={handleClose}
-        MenuListProps={{ 'aria-label': appCopy.ui.actions.download }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{
+          list: { 'aria-label': appCopy.ui.actions.download },
+          paper: { className: 'ui-download-format-menu' },
+        }}
       >
         {DOWNLOAD_FORMATS.map((format) => (
           <MenuItem
             key={format}
             onClick={() => {
               handleClose();
-              onDownload(format);
+              setSelectedFormat(format);
             }}
           >
             {getFormatLabel(format)}

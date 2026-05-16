@@ -26,6 +26,32 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
   3. If the screen is tabular, align behavior and composition with the `Data Table View` + canonical table standard.
   4. If the screen diverges from the canonical archetype, treat it as drift and document convergence in the same change.
 
+## Dependency And Lockfile Determinism Gate (Deploy Safety)
+- This gate is mandatory whenever dependency manifests are changed, including any edit under:
+  - `package.json`
+  - `package-lock.json`
+  - `apps/*/package.json`
+  - `apps/*/package-lock.json`
+  - `packages/*/package.json`
+- Never hand-edit lockfiles. Regenerate lockfiles only through npm commands.
+- If dependencies change in any workspace package, update lockfiles in the same change so `npm ci` remains deterministic in CI/CD.
+
+### Required Command Sequence After Dependency Changes
+Run these commands from workspace root and ensure all succeed before considering the task complete:
+1. `npm install --workspaces --include-workspace-root`
+2. `npm ci`
+3. `npm ci --workspaces --include-workspace-root`
+4. `npm --workspace apps/frontend run build`
+
+### Additional Rules For This Repository
+- Keep both lockfiles in sync when dependency graphs change:
+  - root lockfile: `package-lock.json`
+  - frontend lockfile: `apps/frontend/package-lock.json`
+- Validate the exact install strategy used by Dockerfiles:
+  - frontend image path must pass `npm ci` from root before frontend build
+  - root image path must pass `npm ci --workspaces --include-workspace-root`
+- If `npm ci` reports "package.json and package-lock.json are not in sync", stop and regenerate lockfiles via `npm install` (never patch lockfiles manually).
+
 ## Code Analysis Gate
 - Before analyzing TypeScript/React code, identify which bounded context owns the file being analyzed.
 - Map every domain concept in the file to a canonical term in the glossary before proposing changes.

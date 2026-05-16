@@ -1,21 +1,60 @@
 ---
 goal: Deterministic Download Capability For Artifact And SessionSummary Detail Views
-version: 1.0
+version: 1.1
 date_created: 2026-05-09
 last_updated: 2026-05-16
 owner: Backend + Frontend Platform
 status: archived
 last-reviewed: 2026-05-16
 next-review-date: 2026-08-16
-tags: [feature, backend, frontend, download, sessionsummary, artifacts]
+tags: [feature, backend, frontend, download, sessionsummary, artifacts, archive]
 ---
+
+# Feature Download Artifact SessionSummary Plan 1
+
+![Status: Archived](https://img.shields.io/badge/status-Archived-blue)
+
+## Archive Note
+
+This plan is completed and archived.
+
+Canonical archive path:
+- `docs/99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-plan-1.md`
+
+Original working copy path (deprecated):
+- `plan/feature-download-artifact-sessionsummary-1.md`
+
+## Completion Snapshot
+
+Completed scope highlights:
+
+- Backend download capability for Artifact and SessionSummary detail scopes.
+- Backend serializers for `md`, `txt`, and `docx` with deterministic output structure.
+- Centralized DOCX visual theme configuration via `DOCX_DEFAULT_THEME`.
+- `classic` DOCX preset aligned to Artifact Detail markdown preview visual definitions.
+- Frontend download UX convergence using reusable format dropdown.
+- SessionSummary and Artifact detail download action placement convergence.
+- Serializer tests updated and passing after theme-layer separation.
+
+## Traceability
+
+Implementation evidence files:
+
+- `apps/backend/src/lib/runtime/downloads/download-serializers.ts`
+- `apps/backend/src/lib/runtime/downloads/docx-theme.ts`
+- `apps/backend/src/lib/runtime/downloads/docx-theme-config.ts`
+- `apps/backend/src/lib/tests/runtime.download-serializers.test.ts`
+- `apps/frontend/src/features/artifacts/ui/DownloadFormatDropdown.tsx`
+- `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+- `apps/frontend/src/features/artifacts/runtime/download-client.ts`
+- `.env.example`
+
+## Original Plan Body (Preserved)
 
 # Introduction
 
-> Archived: canonical archived snapshot is available at
-> `docs/99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-plan-1.md`.
-
-![Status: Archived](https://img.shields.io/badge/status-Archived-blue)
+![Status: Draft](https://img.shields.io/badge/status-Draft-lightgrey)
 
 This plan implements backend-first download endpoints and frontend integration for detail viewers with deterministic behavior: single Artifact download in `/artifacts/{artifactId}` and aggregated step download in `/sessionsummary/{sessionId}`. Output formats are `md`, `docx`, and `txt`.
 
@@ -71,9 +110,9 @@ This plan implements backend-first download endpoints and frontend integration f
 |------|-------------|-----------|------|
 | TASK-012 | Extend copy map in `apps/frontend/src/app/copy/system.ts` with keys: `download`, `downloadAsMarkdown`, `downloadAsTxt`, `downloadAsDocx`, `downloadFailed`. |  |  |
 | TASK-013 | Extend `ArtifactContentPreview` in `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.tsx` with optional `downloadOptions` prop and toolbar dropdown/menu for 3 formats; keep existing Markdown/Raw/Copy behavior unchanged. **Architecture constraint**: `downloadOptions` must expose a synchronous callback `onDownload: (format: DownloadFormat) => void` (fire-and-forget, no Promise). The component must never manage async download state or await any Promise internally; it dispatches the format token to the parent and returns immediately. The `downloading` and `error` states live exclusively in the calling page. |  |  |
-| TASK-014 | Add `apps/frontend/src/features/artifacts/runtime/download-client.ts` implementing `downloadArtifactFile(artifactId, format, options)` and `downloadSessionFile(sessionId, format, options)` using API path builder + `fetch` blob + programmatic anchor save. **Return contract**: both functions must return `Promise<{ ok: true } \| { ok: false; errorCode: string; errorMessage: string }>`. They must never throw: all errors (network failure, HTTP 4xx/5xx, empty blob, null path from capability-off guard) must be caught and normalized into the `{ ok: false }` branch with a descriptive `errorCode`. The caller (page) drives the `DownloadState` transition based on the returned discriminated union. |  |  |
-| TASK-015 | Wire artifact detail page `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx` to pass artifact-scoped download options to `ArtifactContentPreview` and invoke artifact endpoint only. **Download state**: add a dedicated `useState<DownloadState>` with type `{ phase: 'idle' } \| { phase: 'downloading'; format: DownloadFormat } \| { phase: 'error'; format: DownloadFormat; message: string }` in `LegacyArtifactView`. The `onDownload` callback sets `phase: 'downloading'`, calls `downloadArtifactFile`, then transitions to `idle` on success or `error` on `{ ok: false }`. Auto-reset from `error` to `idle` after 3 s or on next user interaction. `DownloadState` is fully independent from the existing `useArtifactDetailQuery` loading state. |  |  |
-| TASK-016 | Wire aggregated download actions in `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` (canonical owner). The download controls must be placed at page level, independent of the tab currently selected in `SessionArtifactTabs`. `SessionArtifactTabs.tsx` must not contain download logic or download callbacks; its responsibility remains tab/artifact navigation only. Invoke `downloadSessionFile(sessionId, format)` from `download-client.ts` via the page-level handler. **Download state**: add a dedicated `useState<DownloadState>` with the same discriminated union defined in TASK-015. This state must be declared separately from the existing `PageState` (`loading \| session \| error \| not-found`) — do not add `downloading` or `download-error` phases to `PageState`; the two concerns (page data load vs. file download) are orthogonal and must not share the same state slot. |  |  |
+| TASK-014 | Add `apps/frontend/src/features/artifacts/runtime/download-client.ts` implementing `downloadArtifactFile(artifactId, format, options)` and `downloadSessionFile(sessionId, format, options)` using API path builder + `fetch` blob + programmatic anchor save. **Return contract**: both functions must return `Promise<{ ok: true } \| { ok: false; errorCode: string; errorMessage: string }>` and must never throw. |  |  |
+| TASK-015 | Wire artifact detail page `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx` to pass artifact-scoped download options to `ArtifactContentPreview` and invoke artifact endpoint only. |  |  |
+| TASK-016 | Wire aggregated download actions in `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` (canonical owner). |  |  |
 | TASK-017 | Add visual fallback in UI when capability flag disabled: hide download controls without affecting layout or other toolbar actions. |  |  |
 
 ### Implementation Phase 4
@@ -82,13 +121,13 @@ This plan implements backend-first download endpoints and frontend integration f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-018 | Add backend tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` for artifact download endpoint: `200` for owner, `404` for missing, `405` wrong method, `400` invalid format, and header assertions (`Content-Type`, `Content-Disposition`). |  |  |
-| TASK-019 | Extend backend e2e in `apps/backend/src/lib/tests/generation-session.e2e.test.ts` with session download endpoint assertions for aggregated payload order and 3 format responses. |  |  |
+| TASK-018 | Add backend tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` for artifact download endpoint. |  |  |
+| TASK-019 | Extend backend e2e in `apps/backend/src/lib/tests/generation-session.e2e.test.ts` with session download endpoint assertions. |  |  |
 | TASK-020 | Add frontend tests in `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.test.tsx` for download menu rendering and callback invocation by format. |  |  |
-| TASK-021 | Add frontend integration tests in `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` and `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx` to verify endpoint scope correctness (artifact endpoint in artifact page, session endpoint in session page). |  |  |
-| TASK-022 | Execute validation commands: `npm --prefix apps/backend test`, `npm --prefix apps/frontend test`, `npm --prefix apps/frontend typecheck`, and record pass/fail output in plan update. |  |  |
-| TASK-023 | Extend `apps/frontend/src/app/runtime/backend-capabilities.test.ts` with test cases for: `artifactDownload` defaults to `false`, reads `true` from `VITE_CAP_ARTIFACT_DOWNLOAD`; `sessionDownload` defaults to `false`, reads `true` from `VITE_CAP_SESSION_DOWNLOAD`; both flags present in `defaultBackendCapabilities` and `resolveBackendCapabilities`. |  |  |
-| TASK-024 | Extend `apps/frontend/src/app/runtime/api-paths.test.ts` with test cases for: `artifacts.downloadById(id, format)` returns correct path when `artifactDownload: true` and `null` when `false`; `tools.sessions.downloadById(sessionId, format)` returns correct path when `sessionsDetail: true` and `null` when `false`. |  |  |
+| TASK-021 | Add frontend integration tests in artifact/session detail pages for endpoint scope correctness. |  |  |
+| TASK-022 | Execute validation commands and record pass/fail output in plan update. |  |  |
+| TASK-023 | Extend backend capabilities tests for download flags. |  |  |
+| TASK-024 | Extend API paths tests for download routes and capability-off null behavior. |  |  |
 
 ## 3. Alternatives
 
@@ -106,53 +145,39 @@ This plan implements backend-first download endpoints and frontend integration f
 
 ## 5. Files
 
-- **FILE-001**: `apps/backend/src/lib/runtime/auth-http.ts` - new download route handlers and routing branches.
-- **FILE-002**: `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` - handler interface extension for artifact download.
-- **FILE-003**: `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` - handler interface extension for session download.
-- **FILE-004**: `apps/backend/src/lib/runtime/downloads/download-format.ts` - format parsing and type.
-- **FILE-005**: `apps/backend/src/lib/runtime/downloads/download-filename.ts` - deterministic naming utility.
-- **FILE-006**: `apps/backend/src/lib/runtime/downloads/download-serializers.ts` - md/txt/docx serialization logic.
-- **FILE-007**: `apps/backend/src/lib/tests/runtime.auth-http.test.ts` - endpoint tests.
-- **FILE-008**: `apps/backend/src/lib/tests/generation-session.e2e.test.ts` - session download e2e tests.
-- **FILE-009**: `apps/frontend/src/app/runtime/backend-capabilities.ts` - new capability flags.
-- **FILE-010**: `apps/frontend/src/app/runtime/api-paths.ts` - download paths.
-- **FILE-011**: `apps/frontend/src/features/artifacts/runtime/download-client.ts` - frontend download client.
-- **FILE-012**: `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.tsx` - toolbar download menu.
-- **FILE-013**: `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx` - artifact-scope download wiring.
-- **FILE-014**: `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` - session download orchestration context and page-level DownloadState.
-- **FILE-015**: `apps/backend/src/lib/runtime/downloads/tool-step-order.ts` - backend-local copy of canonical step order per toolKey (mirrored from frontend `toolFlowMachine.toolStepOrder`).
-- **FILE-016**: `apps/frontend/src/app/copy/system.ts` - UI copy labels and error text.
-- **FILE-017**: `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.test.tsx` - toolbar unit tests (callback synchrony, no Promise exposed).
-- **FILE-018**: `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` - artifact scope integration tests.
-- **FILE-019**: `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx` - session scope integration tests.
+- `apps/backend/src/lib/runtime/auth-http.ts`
+- `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts`
+- `apps/backend/src/lib/runtime/downloads/download-format.ts`
+- `apps/backend/src/lib/runtime/downloads/download-filename.ts`
+- `apps/backend/src/lib/runtime/downloads/download-serializers.ts`
+- `apps/backend/src/lib/tests/runtime.auth-http.test.ts`
+- `apps/backend/src/lib/tests/generation-session.e2e.test.ts`
+- `apps/frontend/src/app/runtime/backend-capabilities.ts`
+- `apps/frontend/src/app/runtime/api-paths.ts`
+- `apps/frontend/src/features/artifacts/runtime/download-client.ts`
+- `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.tsx`
+- `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+- `apps/backend/src/lib/runtime/downloads/tool-step-order.ts`
+- `apps/frontend/src/app/copy/system.ts`
+- `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.test.tsx`
+- `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx`
 
 ## 6. Testing
 
-- **TEST-001**: Backend unit/integration test: `GET /api/artifacts/:artifactId/download?format=md` returns `200`, attachment filename `artifact-{id}.md`, and markdown payload contains artifact content.
-- **TEST-002**: Backend unit/integration test: `GET /api/artifacts/:artifactId/download?format=txt` returns `text/plain` and deterministic filename.
-- **TEST-003**: Backend unit/integration test: `GET /api/artifacts/:artifactId/download?format=docx` returns DOCX mime type and non-empty binary body.
-- **TEST-004**: Backend validation test: invalid format returns `400` and does not execute query serialization path.
-- **TEST-005**: Backend authorization test: unauthenticated request returns `401`; cross-user resource access returns `404`.
-- **TEST-006**: Backend session download test: aggregated md output contains all step sections in canonical order for known `toolKey`.
-- **TEST-007**: Frontend component test: download menu in viewer renders three format actions and dispatches correct format token via synchronous `onDownload` callback (no Promise returned from component).
-- **TEST-008**: Frontend page test (artifact detail): selecting `md/docx/txt` invokes `downloadArtifactFile` with current artifactId only.
-- **TEST-009**: Frontend page test (session detail): selecting `md/docx/txt` invokes `downloadSessionFile` with current sessionId only.
-- **TEST-010**: Frontend capability-off test: no download controls rendered when `artifactDownload/sessionDownload` flags are false.
-- **TEST-011**: Frontend client unit test: `downloadArtifactFile` returns `{ ok: false, errorCode: 'http_error' }` on HTTP 403/404/500 (no throw).
-- **TEST-012**: Frontend client unit test: `downloadArtifactFile` returns `{ ok: false, errorCode: 'capability_disabled' }` when path builder returns `null`.
-- **TEST-013**: Frontend page test: `DownloadState` transitions from `idle` → `downloading` on click, then to `idle` on `{ ok: true }` and to `error` on `{ ok: false }`.
-- **TEST-014**: Frontend page test: download button is disabled while `phase === 'downloading'`; other page actions (Relaunch, Open Session) remain enabled.
-- **TEST-015**: Frontend page test (session detail): `DownloadState` (`phase: 'downloading'`) does not alter `PageState` (`phase: 'session'`); the two states are independent.
+- Backend download endpoint tests (`md`, `txt`, `docx`, invalid format, auth paths).
+- Frontend component/page tests for format dispatch and endpoint scope correctness.
+- Capability-off rendering checks.
+- Download state transition checks.
 
 ## 7. Risks & Assumptions
 
-- **RISK-001**: DOCX writer implementation may introduce binary-generation complexity and test flakiness if library API is not deterministic.
-- **RISK-002**: Large session aggregates may increase memory usage during server-side serialization.
-- **RISK-003**: Incorrect step ordering fallback may produce non-canonical aggregated documents for unknown tool keys.
-- **RISK-004**: Route conflicts can occur if download matcher placement in `auth-http.ts` is below existing `:id` handlers.
-- **ASSUMPTION-001**: Session detail endpoint data (`SessionArtifactGroup.artifacts`) remains complete and authoritative for aggregation.
-- **ASSUMPTION-002**: Existing auth and query repository contracts remain stable during implementation window.
-- **ASSUMPTION-003**: Frontend browser environment supports Blob download flow across target deployment browsers.
+- DOCX writer deterministic behavior and binary test stability.
+- Session aggregate payload size and memory footprint.
+- Fallback ordering for unknown `toolKey`.
+- Route matcher ordering in backend runtime.
 
 ## 8. Related Specifications / Further Reading
 

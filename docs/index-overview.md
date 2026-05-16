@@ -98,6 +98,7 @@ Archive folder is maintained for future reference and historical context. See [9
 - [feature-llm-model-catalog-plan-1](./99-lifecycle/99-archive/plans/feature-llm-model-catalog-plan-1.md)
 - [feature-pagetool-artifact-aggregation-plan-1](./99-lifecycle/99-archive/plans/feature-pagetool-artifact-aggregation-plan-1.md)
 - [feature-frontend-feedback-system-unification-plan-1](./99-lifecycle/99-archive/plans/feature-frontend-feedback-system-unification-plan-1.md)
+- [feature-download-artifact-sessionsummary-plan-1](./99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-plan-1.md)
 - [feature-youtube-long-form-tool-plan-1](./99-lifecycle/99-archive/plans/feature-youtube-long-form-tool-plan-1.md)
 - [refactor-backend-frontend-atomization-plan-1](./99-lifecycle/99-archive/plans/refactor-backend-frontend-atomization-plan-1.md)
 - [refactor-backend-frontend-atomization-plan-2](./99-lifecycle/99-archive/plans/refactor-backend-frontend-atomization-plan-2.md)

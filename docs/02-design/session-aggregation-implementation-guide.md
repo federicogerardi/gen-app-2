@@ -1,7 +1,7 @@
 ---
 status: draft
-version: 1.0
-last-reviewed: 2026-05-09
+version: 1.1
+last-reviewed: 2026-05-16
 owner: Frontend + Backend Platform
 ---
 
@@ -73,6 +73,23 @@ Implementation points:
 Migration note:
 - `collectCompletedStepsByTool()` is deprecated and should only serve legacy rows.
 - New code should use `collectCompletedStepsBySession()` with explicit `sessionId`.
+
+## Download Serialization Runtime Configuration
+
+Backend download endpoints (`/api/artifacts/{artifactId}/download`, `/api/tools/sessions/{sessionId}/download`) now support centralized DOCX visual preset selection through environment configuration.
+
+- Runtime config key: `DOCX_DEFAULT_THEME`
+- Supported values: `none`, `classic`
+- Default fallback: `none`
+
+`classic` is intentionally aligned to the Artifact Detail preview visual language (body/headings/code typography + spacing) while keeping markdown parsing semantics independent from visual theming.
+
+Source evidence:
+
+- `apps/backend/src/lib/runtime/downloads/docx-theme-config.ts`
+- `apps/backend/src/lib/runtime/downloads/download-serializers.ts`
+- `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.tsx`
+- `apps/frontend/src/styles.css` (`.ui-artifact-markdown`)
 
 ## Troubleshooting
 

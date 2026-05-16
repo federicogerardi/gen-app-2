@@ -3,7 +3,6 @@
  * Enables scalable, reusable form construction for multi-step tools
  */
 
-import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
 

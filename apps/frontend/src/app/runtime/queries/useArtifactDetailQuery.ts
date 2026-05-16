@@ -24,17 +24,29 @@ export const useArtifactDetailQuery = (
 ): UseArtifactDetailQueryResult => {
   const localArtifactsRef = useRef(options.localArtifacts);
   localArtifactsRef.current = options.localArtifacts;
+  const localArtifactsKey = JSON.stringify(
+    options.localArtifacts.map((artifact) => [
+      artifact.artifactId,
+      artifact.updatedAt,
+      artifact.status,
+    ]),
+  );
   const query = useCallback(() => getArtifactById(options.artifactId, {
     apiBaseUrl: options.apiBaseUrl,
     capabilities: options.capabilities,
     localArtifacts: localArtifactsRef.current,
-  }), [options.artifactId, options.apiBaseUrl, options.capabilities]);
+  }), [options.artifactId, options.apiBaseUrl, options.capabilities, localArtifactsKey]);
 
   return useAsyncQuery<GenerationArtifact | null>({
     enabled: options.enabled !== false && options.artifactId.length > 0,
     emptyData: null,
     errorMessage: 'Unable to load artifact detail',
-    dependencyKey: JSON.stringify([options.artifactId, options.apiBaseUrl, options.capabilities]),
+    dependencyKey: JSON.stringify([
+      options.artifactId,
+      options.apiBaseUrl,
+      options.capabilities,
+      localArtifactsKey,
+    ]),
     query,
   });
 };

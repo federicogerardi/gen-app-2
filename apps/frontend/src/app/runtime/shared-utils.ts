@@ -3,6 +3,8 @@
  * DDD-safe: implementation details only, no domain concepts affected.
  */
 
+let sessionIdFallbackCounter = 0;
+
 /**
  * Generate a unique request identifier.
  * Uses native crypto.randomUUID() if available, falls back to timestamp-based id.
@@ -17,7 +19,7 @@ export const generateRequestId = (): string => {
 };
 
 /**
- * Generate a deterministic workflow session identifier for one Tool run.
+ * Generate a unique workflow session identifier for one Tool run.
  * Consolidates duplicate implementations from useToolPage and tool-page.machine.
  */
 export const generateSessionId = (): string => {
@@ -31,10 +33,11 @@ export const generateSessionId = (): string => {
     return `sess_${Date.now().toString(36)}_${suffix}`;
   }
 
+  sessionIdFallbackCounter += 1;
   const monotonicSuffix = typeof performance !== 'undefined'
     ? Math.floor(performance.now() * 1000).toString(36)
-    : 'fallback';
-  return `sess_${Date.now().toString(36)}_${monotonicSuffix}`;
+    : 'perf';
+  return `sess_${Date.now().toString(36)}_${monotonicSuffix}_${sessionIdFallbackCounter.toString(36)}`;
 };
 
 /**

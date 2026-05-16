@@ -339,4 +339,36 @@ describe('useToolPage', () => {
     );
     expect(result.current.dispatchError).toContain('terminal_failed:402');
   });
+
+  it('surfaces stream_empty_output as inline dispatch feedback on terminal failure', async () => {
+    mocks.generation.isStreamActive = true;
+    mocks.generation.streamStatus = 'idle';
+    mocks.generation.snapshot.context.lastRequest = {
+      input: { step: 'optin' },
+    };
+
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    act(() => {
+      mocks.generation.isStreamActive = false;
+      mocks.generation.streamStatus = 'failed';
+      mocks.generation.terminalFailedStep = null;
+      mocks.generation.snapshot.context.errorMessage = 'stream_empty_output';
+    });
+
+    rerender();
+
+    await waitFor(() => {
+      expect(mocks.send).toHaveBeenCalledWith({ type: 'CANCEL_GENERATION' });
+    });
+
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'STEP_FAILED',
+        step: 'optin',
+        message: 'stream_empty_output',
+      }),
+    );
+    expect(result.current.dispatchError).toBe('stream_empty_output');
+  });
 });

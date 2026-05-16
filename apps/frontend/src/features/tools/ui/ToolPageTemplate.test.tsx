@@ -227,13 +227,17 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'project-001', name: 'Project 001' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../runtime/useToolForm', () => {
   return {
-    useProjectsLoader: () => ({
-      projects: [{ id: 'project-001', name: 'Project 001' }],
-      loading: false,
-      error: null,
-    }),
     useToolFormInit: () => ({
       formState: {
         projectId: 'project-001',

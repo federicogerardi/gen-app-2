@@ -138,8 +138,16 @@ vi.mock('../runtime/tool-form-architecture', () => ({
   getToolFormConfig: () => mocks.toolConfig,
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'project-001', name: 'Project 001' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../runtime/useToolForm', () => ({
-  useProjectsLoader: () => ({ projects: [{ id: 'project-001', name: 'Project 001' }], loading: false }),
   useToolFormInit: () => ({ formState: mocks.formState, setFormState: mocks.setFormState }),
   useAvailableSteps: () => mocks.availableSteps,
 }));

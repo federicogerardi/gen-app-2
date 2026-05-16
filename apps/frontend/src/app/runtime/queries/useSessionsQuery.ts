@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listSessions,
   type SessionSummary,
 } from '../../../features/tools/runtime/session-client';
+import { useAsyncQuery } from './useAsyncQuery';
 
 type UseSessionsQueryOptions = {
   projectId?: string;
@@ -20,65 +21,18 @@ type UseSessionsQueryResult = {
 };
 
 export const useSessionsQuery = (options: UseSessionsQueryOptions): UseSessionsQueryResult => {
-  const [data, setData] = useState<SessionSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  const reload = useCallback(() => {
-    setReloadToken((prev) => prev + 1);
-  }, []);
-
   const projectIdKey = options.projectId ?? '';
-  const apiBaseUrl = options.apiBaseUrl;
-  const capabilitiesKey = JSON.stringify(options.capabilities);
-  const enabledRef = useRef(options.enabled);
-  enabledRef.current = options.enabled;
+  const dependencyKey = JSON.stringify([projectIdKey, options.apiBaseUrl, options.capabilities]);
+  const query = useCallback(() => listSessions(
+    projectIdKey ? { projectId: projectIdKey } : {},
+    { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities as BackendCapabilities },
+  ), [projectIdKey, options.apiBaseUrl, options.capabilities]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (enabledRef.current === false) {
-      setData([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    void (async () => {
-      try {
-        const sessions = await listSessions(
-          projectIdKey ? { projectId: projectIdKey } : {},
-          { apiBaseUrl, capabilities: JSON.parse(capabilitiesKey) as BackendCapabilities },
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        setData(sessions);
-        setError(null);
-      } catch (loadError) {
-        if (cancelled) {
-          return;
-        }
-
-        setData([]);
-        const message = loadError instanceof Error ? loadError.message : 'Unable to load sessions';
-        setError(message);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectIdKey, apiBaseUrl, capabilitiesKey, reloadToken]);
-
-  return { data, loading, error, reload };
+  return useAsyncQuery<SessionSummary[]>({
+    enabled: options.enabled ?? true,
+    emptyData: [],
+    errorMessage: 'Unable to load sessions',
+    dependencyKey,
+    query,
+  });
 };

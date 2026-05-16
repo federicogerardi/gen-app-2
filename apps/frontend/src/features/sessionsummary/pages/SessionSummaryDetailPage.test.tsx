@@ -133,7 +133,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getByText('Data job')).toBeInTheDocument();
     expect(screen.getByText('Ultimo aggiornamento')).toBeInTheDocument();
     expect(screen.getByText('Artefatti')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dettagli sessione' })).toBeInTheDocument();
+    expect(screen.getByText('Dettagli sessione')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
     const relaunchLink = screen.getByRole('link', { name: 'Rilancia' });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');

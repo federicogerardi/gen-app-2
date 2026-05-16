@@ -9,6 +9,7 @@ import type {
   PrimaryActionPolicy,
   SecondaryActionFlags,
 } from '../runtime/tool-ux-state';
+import { generateSessionId } from '../../../app/runtime/shared-utils';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
   belongsToTool,
@@ -602,14 +603,6 @@ export type ToolPageEvent =
     localArtifacts?: GenerationArtifact[];
   };
 
-const createSessionId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
 export const toolPageMachine = setup({
   types: {
     context: {} as ToolPageContext,
@@ -892,7 +885,7 @@ export const toolPageMachine = setup({
   id: 'toolPageMachine',
   context: ({ input }) => ({
     toolKey: input.toolKey,
-    sessionId: input.sessionId ?? createSessionId(),
+    sessionId: input.sessionId ?? generateSessionId(),
     projectId: input.projectId,
     model: input.model,
     registrySnapshotRef: input.registrySnapshotRef,

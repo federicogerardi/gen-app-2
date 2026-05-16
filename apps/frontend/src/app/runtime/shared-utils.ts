@@ -20,6 +20,7 @@ export const generateRequestId = (): string => {
 
 /**
  * Generate a unique workflow session identifier for one Tool run.
+ * Uses `crypto.randomUUID()` when available and falls back to a timestamp/counter suffix otherwise.
  * Consolidates duplicate implementations from useToolPage and tool-page.machine.
  */
 export const generateSessionId = (): string => {
@@ -36,7 +37,7 @@ export const generateSessionId = (): string => {
   sessionIdFallbackCounter += 1;
   const monotonicSuffix = typeof performance !== 'undefined'
     ? Math.floor(performance.now() * 1000).toString(36)
-    : 'perf';
+    : 'no-perf';
   return `sess_${Date.now().toString(36)}_${monotonicSuffix}_${sessionIdFallbackCounter.toString(36)}`;
 };
 

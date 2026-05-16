@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { getArtifactById } from '../../../features/artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../../features/generation/ui/artifact-history';
@@ -24,13 +24,13 @@ export const useArtifactDetailQuery = (
 ): UseArtifactDetailQueryResult => {
   const localArtifactsRef = useRef(options.localArtifacts);
   localArtifactsRef.current = options.localArtifacts;
-  const localArtifactsKey = JSON.stringify(
+  const localArtifactsKey = useMemo(() => JSON.stringify(
     options.localArtifacts.map((artifact) => [
       artifact.artifactId,
       artifact.updatedAt,
       artifact.status,
     ]),
-  );
+  ), [options.localArtifacts]);
   const query = useCallback(() => getArtifactById(options.artifactId, {
     apiBaseUrl: options.apiBaseUrl,
     capabilities: options.capabilities,

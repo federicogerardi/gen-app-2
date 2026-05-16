@@ -1842,6 +1842,101 @@ button:not(.MuiButton-root):not([class]):disabled,
   color: var(--text-muted);
 }
 
+.ui-news-sticky {
+  position: fixed;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  z-index: 1100;
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+}
+
+.ui-news-sticky__launcher {
+  min-width: 124px;
+}
+
+.ui-news-sticky__panel {
+  width: min(360px, calc(100vw - 28px));
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-2);
+  display: grid;
+  gap: var(--space-1-5);
+}
+
+.ui-news-sticky__header h3 {
+  margin: 0;
+}
+
+.ui-news-sticky__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ui-news-sticky__item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: var(--space-1);
+  display: grid;
+  gap: 4px;
+}
+
+.ui-news-sticky__item-date {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ui-news-sticky__item h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ui-news-sticky__item p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.ui-news-sticky__form {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ui-news-sticky__form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ui-news-sticky__form input,
+.ui-news-sticky__form select,
+.ui-news-sticky__form textarea {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-raised-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.ui-news-sticky__form textarea {
+  resize: vertical;
+}
+
 ul {
   margin: 0;
   padding-left: 1rem;
@@ -1962,6 +2057,21 @@ ul {
 }
 
 @media (max-width: 760px) {
+  .ui-news-sticky {
+    right: var(--space-1);
+    left: var(--space-1);
+    justify-items: stretch;
+  }
+
+  .ui-news-sticky__launcher {
+    justify-self: end;
+  }
+
+  .ui-news-sticky__panel {
+    width: 100%;
+    max-height: 62vh;
+  }
+
   .ui-shell {
     width: min(100% - 20px, 1520px);
     padding-top: var(--space-3);

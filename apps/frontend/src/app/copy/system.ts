@@ -328,7 +328,6 @@ export const appNavigation = [
   { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
   { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
   { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
-  { to: '/feedback/report', label: appCopy.ui.navigation.feedbackCenter, end: false },
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },

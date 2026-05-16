@@ -8,6 +8,7 @@ import './MainNavigation.css';
 import { ThemeToggleButton } from '../ui/ThemeToggleButton';
 import { GlobalFeedbackViewport } from '../ui/GlobalFeedbackViewport';
 import { Shell, Surface, cx, uiPrimitives } from '../ui/primitives';
+import { FeedbackNewsSticky } from '../../features/feedback-center/ui/FeedbackNewsSticky';
 
 export const AuthenticatedShell = () => {
   const auth = useAuthSession();
@@ -70,6 +71,7 @@ export const AuthenticatedShell = () => {
       </section>
 
       <GlobalFeedbackViewport />
+      <FeedbackNewsSticky />
     </Shell>
   );
 };

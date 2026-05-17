@@ -189,6 +189,33 @@ export const appCopy = {
       userReportSubmitted: 'Segnalazione inviata con successo.',
       userReportSubmitFailed: 'Impossibile inviare la segnalazione.',
     },
+    feedbackCenter: {
+      newsHeading: 'News',
+      newsSubheading: 'Changelog pubblicato dagli admin.',
+      formHeading: 'Segnala un problema',
+      formSubheading: 'Aiutaci a migliorare la piattaforma.',
+      closeFormAriaLabel: 'Chiudi modulo feedback',
+      closeFormTitle: 'Chiudi modulo',
+      loadingChangelog: 'Caricamento changelog...',
+      noNewsAvailable: 'Nessuna news pubblicata al momento.',
+      unavailableDate: 'Data non disponibile',
+      submitButtonText: 'Invia segnalazione',
+      submitButtonLoading: 'Invio in corso...',
+      submitButtonSubmit: 'Invia',
+      formCategoryLabel: 'Categoria',
+      formTitleLabel: 'Titolo',
+      formDescriptionLabel: 'Descrizione',
+      formValidationError: 'Titolo e descrizione sono obbligatori.',
+      openNewsAriaLabel: 'Apri news',
+      closeNewsAriaLabel: 'Chiudi news',
+    },
+    feedbackCenterOptions: {
+      categories: [
+        { value: 'issue', label: 'Bug' },
+        { value: 'feature-request', label: 'Feature request' },
+        { value: 'other', label: 'Other' },
+      ] satisfies ReadonlyArray<CopyOption<'issue' | 'feature-request' | 'other'>>,
+    },
     options: {
       intent: [
         { value: 'new', label: 'Nuovo' },

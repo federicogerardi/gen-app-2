@@ -14,22 +14,16 @@ import {
   submitUserReport,
 } from '../runtime/feedback-center-client';
 
-const CATEGORY_OPTIONS: ReadonlyArray<{ value: UserReportCategory; label: string }> = [
-  { value: 'issue', label: 'Bug' },
-  { value: 'feature-request', label: 'Feature request' },
-  { value: 'other', label: 'Other' },
-];
-
 const MAX_CHANGELOG_ITEMS = 5;
 
 const formatDate = (isoDate: string | null): string => {
   if (!isoDate) {
-    return 'Data non disponibile';
+    return appCopy.ui.feedbackCenter.unavailableDate;
   }
 
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) {
-    return 'Data non disponibile';
+    return appCopy.ui.feedbackCenter.unavailableDate;
   }
 
   return date.toLocaleDateString('it-IT', {
@@ -87,7 +81,7 @@ export const FeedbackNewsSticky = () => {
     event.preventDefault();
 
     if (!title.trim() || !description.trim()) {
-      setFormError('Titolo e descrizione sono obbligatori.');
+      setFormError(appCopy.ui.feedbackCenter.formValidationError);
       return;
     }
 
@@ -131,13 +125,13 @@ export const FeedbackNewsSticky = () => {
             <div className="ui-news-sticky__header-content">
               {isFormOpen ? (
                 <>
-                  <h3>Segnala un problema</h3>
-                  <p className={uiPrimitives.metaLine}>Aiutaci a migliorare la piattaforma.</p>
+                  <h3>{appCopy.ui.feedbackCenter.formHeading}</h3>
+                  <p className={uiPrimitives.metaLine}>{appCopy.ui.feedbackCenter.formSubheading}</p>
                 </>
               ) : (
                 <>
-                  <h3>News</h3>
-                  <p className={uiPrimitives.metaLine}>Changelog pubblicato dagli admin.</p>
+                  <h3>{appCopy.ui.feedbackCenter.newsHeading}</h3>
+                  <p className={uiPrimitives.metaLine}>{appCopy.ui.feedbackCenter.newsSubheading}</p>
                 </>
               )}
             </div>
@@ -149,15 +143,15 @@ export const FeedbackNewsSticky = () => {
                   setIsFormOpen(false);
                   resetForm();
                 }}
-                aria-label="Chiudi modulo feedback"
-                title="Chiudi modulo"
+                aria-label={appCopy.ui.feedbackCenter.closeFormAriaLabel}
+                title={appCopy.ui.feedbackCenter.closeFormTitle}
               >
                 <X size={16} strokeWidth={2.5} />
               </button>
             )}
           </header>
 
-          {changelogQuery.loading ? <p className={uiPrimitives.metaLine}>Caricamento changelog...</p> : null}
+          {changelogQuery.loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.feedbackCenter.loadingChangelog}</p> : null}
           {!changelogQuery.loading && changelogQuery.error ? (
             <p className={uiPrimitives.error} role="alert">{changelogQuery.error}</p>
           ) : null}
@@ -166,7 +160,7 @@ export const FeedbackNewsSticky = () => {
             <ul className="ui-news-sticky__list">
               {visibleChangelog.length === 0 ? (
                 <li>
-                  <p className={uiPrimitives.metaLine}>Nessuna news pubblicata al momento.</p>
+                  <p className={uiPrimitives.metaLine}>{appCopy.ui.feedbackCenter.noNewsAvailable}</p>
                 </li>
               ) : (
                 visibleChangelog.map((entry) => (
@@ -191,7 +185,7 @@ export const FeedbackNewsSticky = () => {
                 }}
               >
                 <Send size={18} strokeWidth={1.5} />
-                <span>Invia segnalazione</span>
+                <span>{appCopy.ui.feedbackCenter.submitButtonText}</span>
               </button>
             </div>
           )}
@@ -199,20 +193,20 @@ export const FeedbackNewsSticky = () => {
           {isFormOpen ? (
             <form className="ui-news-sticky__form" onSubmit={(event) => void handleSubmitReport(event)}>
               <label>
-                Categoria
+                {appCopy.ui.feedbackCenter.formCategoryLabel}
                 <select
                   value={category}
                   onChange={(event) => setCategory(event.target.value as UserReportCategory)}
                   disabled={isSubmitting}
                 >
-                  {CATEGORY_OPTIONS.map((option) => (
+                  {appCopy.ui.feedbackCenterOptions.categories.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </label>
 
               <label>
-                Titolo
+                {appCopy.ui.feedbackCenter.formTitleLabel}
                 <input
                   type="text"
                   value={title}
@@ -223,7 +217,7 @@ export const FeedbackNewsSticky = () => {
               </label>
 
               <label>
-                Descrizione
+                {appCopy.ui.feedbackCenter.formDescriptionLabel}
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
@@ -238,7 +232,7 @@ export const FeedbackNewsSticky = () => {
               <div className={uiPrimitives.actions}>
                 <button type="submit" className={cx(uiPrimitives.button, 'ui-news-sticky__form-submit')} disabled={isSubmitting}>
                   <Send size={16} strokeWidth={1.5} />
-                  <span>{isSubmitting ? 'Invio in corso...' : 'Invia'}</span>
+                  <span>{isSubmitting ? appCopy.ui.feedbackCenter.submitButtonLoading : appCopy.ui.feedbackCenter.submitButtonSubmit}</span>
                 </button>
               </div>
             </form>
@@ -252,8 +246,8 @@ export const FeedbackNewsSticky = () => {
         onClick={() => setIsPanelOpen((prev) => !prev)}
         aria-expanded={isPanelOpen}
         aria-controls="news-sticky-panel"
-        aria-label={isPanelOpen ? 'Chiudi news' : 'Apri news'}
-        title={isPanelOpen ? 'Chiudi news' : 'Apri news'}
+        aria-label={isPanelOpen ? appCopy.ui.feedbackCenter.closeNewsAriaLabel : appCopy.ui.feedbackCenter.openNewsAriaLabel}
+        title={isPanelOpen ? appCopy.ui.feedbackCenter.closeNewsAriaLabel : appCopy.ui.feedbackCenter.openNewsAriaLabel}
       >
         <Bell size={20} strokeWidth={1.5} />
       </button>

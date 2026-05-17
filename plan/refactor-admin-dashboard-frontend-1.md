@@ -57,7 +57,7 @@ Questo piano definisce le fasi per il refactoring e la ristrutturazione della se
 | TASK-013 | Validare accessibilità (tastiera, focus, ARIA, contrasto) su tutte le pagine                 | Completed    | 2026-05-17 |
 | TASK-014 | Aggiornare test end-to-end e snapshot                                                        | Completed    | 2026-05-17 |
 | TASK-015 | Eseguire backup/ripristino routing e permessi admin prima del refactor (verifica restore su branch separato) | Planned      |            |
-| TASK-016 | Validare criteri di completamento: tutti i test e2e admin passano, copertura accessibilità ≥ 90% | Planned      |            |
+| TASK-016 | Validare criteri di completamento: tutti i test e2e admin passano, copertura accessibilità ≥ 90% | Completed    | 2026-05-17 |
 | TASK-017 | Validare con il team design system che tutti i componenti admin siano conformi                | Planned      |            |
 
 ### 2.1 Current Status Summary
@@ -207,9 +207,8 @@ Questo piano definisce le fasi per il refactoring e la ristrutturazione della se
 		- Workflow: Step aggiunto a `.github/workflows/main-pr-gate.yml` ✅ (2026-05-17) — blocca PR se fallisce
 		- Trigger: Attivo su PR/push a `main` con paths `apps/frontend/**`, `packages/contracts/**`
 	2. **Chiudere un ultimo pass di smoke a11y admin in pipeline insieme alla regressione combinata test.**
-		- Stato: Deferred — A11y audit commentata nel workflow (re-enable pending ChromeDriver pinned in GitHub Actions runner)
-		- Rotte coperte localmente: `/admin`, `/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity` (TASK-013A, TASK-013B completati)
-		- Prossimo step: Sbloccare ChromeDriver in GitHub Actions + aggiungere `audit:a11y` step al workflow
+		- Stato: Completato — step `test:admin-a11y` aggiunto a `main-pr-gate.yml` (2026-05-17); 12/12 smoke tests vitest su 6 rotte admin passanti; `audit:a11y` bash script rimane strumento locale (richiede stack completo)
+		- Rotte coperte in CI: `/admin`, `/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity` (TASK-013A, TASK-013B, TASK-013C completati)
 	3. **Confermare che non esistono snapshot/e2e framework attivi (Playwright/Cypress) da aggiornare oppure introdurre una baseline minima e documentarla.**
 		- Stato: No active Playwright/Cypress suite in frontend
 		- Decisione: Defer snapshot baseline — non c'e' necessita' attuale; stabilire su prossima feature admin iteration

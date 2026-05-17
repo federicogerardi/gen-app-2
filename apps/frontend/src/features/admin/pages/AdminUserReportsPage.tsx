@@ -20,7 +20,7 @@ export const AdminUserReportsPage = () => {
     categoryFilter,
   });
 
-  const { busyAction, handleStatusTransition, handlePublishIssue } = useAdminUserReportsMutations({
+  const { busyAction, publishedIssueUrls, handleStatusTransition, handlePublishIssue } = useAdminUserReportsMutations({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
     reloadReports: reportsQuery.reload,
@@ -47,6 +47,7 @@ export const AdminUserReportsPage = () => {
         loading={reportsQuery.loading}
         error={reportsQuery.error}
         busyAction={busyAction}
+        publishedIssueUrls={publishedIssueUrls}
         onStatusTransition={(reportId, status) => { void handleStatusTransition(reportId, status); }}
         onPublishIssue={(reportId) => { void handlePublishIssue(reportId); }}
       />

@@ -5,6 +5,7 @@ import { canPublishUserReportIssue } from '../runtime/admin-user-reports-policy'
 type AdminUserReportsTableActionsProps = {
   row: UserReportDto;
   busyAction: string | null;
+  publishedIssueUrl?: string | undefined;
   onStatusTransition: (reportId: string, status: Extract<UserReportStatus, 'triaged' | 'closed'>) => void;
   onPublishIssue: (reportId: string) => void;
 };
@@ -12,6 +13,7 @@ type AdminUserReportsTableActionsProps = {
 export const AdminUserReportsTableActions = ({
   row,
   busyAction,
+  publishedIssueUrl,
   onStatusTransition,
   onPublishIssue,
 }: AdminUserReportsTableActionsProps) => {
@@ -35,14 +37,25 @@ export const AdminUserReportsTableActions = ({
         Chiudi
       </button>
 
-      <button
-        type="button"
-        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-        onClick={() => onPublishIssue(row.id)}
-        disabled={busyAction !== null || !canPublishUserReportIssue(row)}
-      >
-        Pubblica issue
-      </button>
+      {publishedIssueUrl ? (
+        <a
+          href={publishedIssueUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+        >
+          Apri su GitHub
+        </a>
+      ) : (
+        <button
+          type="button"
+          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+          onClick={() => onPublishIssue(row.id)}
+          disabled={busyAction !== null || !canPublishUserReportIssue(row)}
+        >
+          Pubblica issue
+        </button>
+      )}
     </div>
   );
 };

@@ -20,11 +20,12 @@ type ReportsTableProps = {
   loading: boolean;
   error: string | null;
   busyAction: string | null;
+  publishedIssueUrls: Map<string, string>;
   onStatusTransition: (reportId: string, status: Extract<UserReportStatus, 'triaged' | 'closed'>) => void;
   onPublishIssue: (reportId: string) => void;
 };
 
-export const ReportsTable = ({ rows, loading, error, busyAction, onStatusTransition, onPublishIssue }: ReportsTableProps) => {
+export const ReportsTable = ({ rows, loading, error, busyAction, publishedIssueUrls, onStatusTransition, onPublishIssue }: ReportsTableProps) => {
   return (
     <ListingTableSection<UserReportDto>
       title="Inbox segnalazioni"
@@ -61,6 +62,7 @@ export const ReportsTable = ({ rows, loading, error, busyAction, onStatusTransit
           <AdminUserReportsTableActions
             row={row}
             busyAction={busyAction}
+            publishedIssueUrl={publishedIssueUrls.get(row.id)}
             onStatusTransition={onStatusTransition}
             onPublishIssue={onPublishIssue}
           />

@@ -20,6 +20,7 @@ export const useAdminUserReportsMutations = ({
 }: UseAdminUserReportsMutationsOptions) => {
   const { publishSuccess, publishError } = useAdminMutationFeedback();
   const [busyAction, setBusyAction] = useState<AdminUserReportsBusyAction>(null);
+  const [publishedIssueUrls, setPublishedIssueUrls] = useState<Map<string, string>>(new Map());
 
   const handleStatusTransition = async (
     reportId: string,
@@ -70,6 +71,7 @@ export const useAdminUserReportsMutations = ({
         return;
       }
 
+      setPublishedIssueUrls((prev) => new Map(prev).set(reportId, result.data.issueUrl));
       publishSuccess('Issue GitHub pubblicata.', `admin-user-reports:publish-issue:${reportId}:success`);
       reloadReports();
     } catch {
@@ -81,6 +83,7 @@ export const useAdminUserReportsMutations = ({
 
   return {
     busyAction,
+    publishedIssueUrls,
     handleStatusTransition,
     handlePublishIssue,
   };

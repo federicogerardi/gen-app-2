@@ -53,6 +53,7 @@ export const uiPrimitives = {
   authActions: 'ui-auth-actions',
   shellUtilityBar: 'ui-shell-utility-bar',
   runtimeBadge: 'ui-runtime-badge',
+  statusBadge: 'ui-status-badge',
   menuToggle: 'ui-menu-toggle',
   mobileNavBackdrop: 'ui-mobile-nav-backdrop',
   mainNav: 'ui-main-nav',
@@ -101,7 +102,7 @@ export const Button = ({ className, type = 'button', ...rest }: ButtonProps): JS
 );
 
 export const LoadingStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (
-  <p className={uiPrimitives.metaLine}>{children}</p>
+  <p className={`${uiPrimitives.metaLine} ui-loading-state`} role="status" aria-live="polite">{children}</p>
 );
 
 export const EmptyStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (

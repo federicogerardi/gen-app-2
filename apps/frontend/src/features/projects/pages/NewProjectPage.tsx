@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { TextField, Button as MuiButton } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { createProject } from '../runtime/projects-client';
 
@@ -18,6 +19,7 @@ type NewProjectFormValues = z.infer<typeof newProjectSchema>;
 export const NewProjectPage = () => {
   const auth = useAuthSession();
   const navigate = useNavigate();
+  const { publishSuccess } = useFeedbackMessage();
 
   const {
     register,
@@ -38,6 +40,7 @@ export const NewProjectPage = () => {
           capabilities: auth.capabilities,
         },
       );
+      publishSuccess(appCopy.ui.feedback.projectsCreated, { dedupeKey: 'projects:create:success' });
       navigate(`/dashboard/projects/${created.id}`);
     } catch (submitError) {
       setError('root', {

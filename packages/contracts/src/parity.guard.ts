@@ -107,6 +107,200 @@ const _backendStreamEventBackendParity: AssertBackendStreamEventBackendParity = 
 const _backendStreamEventFrontendParity: AssertBackendStreamEventFrontendParity = true;
 
 // =====================================================================
+// Parity Checks: Feedback Center Contracts
+// =====================================================================
+
+type CanonicalProductChangelogStatus = import('./index').ProductChangelogStatus;
+type BackendProductChangelogStatus = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').ProductChangelogStatus;
+type FrontendProductChangelogStatus = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').ProductChangelogStatus;
+
+type AssertProductChangelogStatusBackendParity = CanonicalProductChangelogStatus extends BackendProductChangelogStatus
+  ? BackendProductChangelogStatus extends CanonicalProductChangelogStatus
+    ? true
+    : false
+  : false;
+
+type AssertProductChangelogStatusFrontendParity = CanonicalProductChangelogStatus extends FrontendProductChangelogStatus
+  ? FrontendProductChangelogStatus extends CanonicalProductChangelogStatus
+    ? true
+    : false
+  : false;
+
+const _productChangelogStatusBackendParity: AssertProductChangelogStatusBackendParity = true;
+const _productChangelogStatusFrontendParity: AssertProductChangelogStatusFrontendParity = true;
+
+type CanonicalUserReportCategory = import('./index').UserReportCategory;
+type BackendUserReportCategory = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').UserReportCategory;
+type FrontendUserReportCategory = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').UserReportCategory;
+
+type AssertUserReportCategoryBackendParity = CanonicalUserReportCategory extends BackendUserReportCategory
+  ? BackendUserReportCategory extends CanonicalUserReportCategory
+    ? true
+    : false
+  : false;
+
+type AssertUserReportCategoryFrontendParity = CanonicalUserReportCategory extends FrontendUserReportCategory
+  ? FrontendUserReportCategory extends CanonicalUserReportCategory
+    ? true
+    : false
+  : false;
+
+const _userReportCategoryBackendParity: AssertUserReportCategoryBackendParity = true;
+const _userReportCategoryFrontendParity: AssertUserReportCategoryFrontendParity = true;
+
+type CanonicalUserReportStatus = import('./index').UserReportStatus;
+type BackendUserReportStatus = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').UserReportStatus;
+type FrontendUserReportStatus = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').UserReportStatus;
+
+type AssertUserReportStatusBackendParity = CanonicalUserReportStatus extends BackendUserReportStatus
+  ? BackendUserReportStatus extends CanonicalUserReportStatus
+    ? true
+    : false
+  : false;
+
+type AssertUserReportStatusFrontendParity = CanonicalUserReportStatus extends FrontendUserReportStatus
+  ? FrontendUserReportStatus extends CanonicalUserReportStatus
+    ? true
+    : false
+  : false;
+
+const _userReportStatusBackendParity: AssertUserReportStatusBackendParity = true;
+const _userReportStatusFrontendParity: AssertUserReportStatusFrontendParity = true;
+
+type CanonicalProductChangelogDto = import('./index').ProductChangelogDto;
+type BackendProductChangelogDto = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').ProductChangelogDto;
+type FrontendProductChangelogDto = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').ProductChangelogDto;
+
+type AssertProductChangelogDtoBackendParity = CanonicalProductChangelogDto extends BackendProductChangelogDto
+  ? BackendProductChangelogDto extends CanonicalProductChangelogDto
+    ? true
+    : false
+  : false;
+
+type AssertProductChangelogDtoFrontendParity = CanonicalProductChangelogDto extends FrontendProductChangelogDto
+  ? FrontendProductChangelogDto extends CanonicalProductChangelogDto
+    ? true
+    : false
+  : false;
+
+const _productChangelogDtoBackendParity: AssertProductChangelogDtoBackendParity = true;
+const _productChangelogDtoFrontendParity: AssertProductChangelogDtoFrontendParity = true;
+
+type CanonicalUserReportDto = import('./index').UserReportDto;
+type BackendUserReportDto = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').UserReportDto;
+type FrontendUserReportDto = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').UserReportDto;
+
+type AssertUserReportDtoBackendParity = CanonicalUserReportDto extends BackendUserReportDto
+  ? BackendUserReportDto extends CanonicalUserReportDto
+    ? true
+    : false
+  : false;
+
+type AssertUserReportDtoFrontendParity = CanonicalUserReportDto extends FrontendUserReportDto
+  ? FrontendUserReportDto extends CanonicalUserReportDto
+    ? true
+    : false
+  : false;
+
+const _userReportDtoBackendParity: AssertUserReportDtoBackendParity = true;
+const _userReportDtoFrontendParity: AssertUserReportDtoFrontendParity = true;
+
+type CanonicalGitHubIssueLinkDto = import('./index').GitHubIssueLinkDto;
+type BackendGitHubIssueLinkDto = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').GitHubIssueLinkDto;
+type FrontendGitHubIssueLinkDto = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').GitHubIssueLinkDto;
+
+type AssertGitHubIssueLinkDtoBackendParity = CanonicalGitHubIssueLinkDto extends BackendGitHubIssueLinkDto
+  ? BackendGitHubIssueLinkDto extends CanonicalGitHubIssueLinkDto
+    ? true
+    : false
+  : false;
+
+type AssertGitHubIssueLinkDtoFrontendParity = CanonicalGitHubIssueLinkDto extends FrontendGitHubIssueLinkDto
+  ? FrontendGitHubIssueLinkDto extends CanonicalGitHubIssueLinkDto
+    ? true
+    : false
+  : false;
+
+const _gitHubIssueLinkDtoBackendParity: AssertGitHubIssueLinkDtoBackendParity = true;
+const _gitHubIssueLinkDtoFrontendParity: AssertGitHubIssueLinkDtoFrontendParity = true;
+
+type CanonicalCreateProductChangelogCommand = import('./index').CreateProductChangelogCommand;
+type BackendCreateProductChangelogCommand = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').CreateProductChangelogCommand;
+type FrontendCreateProductChangelogCommand = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').CreateProductChangelogCommand;
+
+type AssertCreateProductChangelogCommandBackendParity = CanonicalCreateProductChangelogCommand extends BackendCreateProductChangelogCommand
+  ? BackendCreateProductChangelogCommand extends CanonicalCreateProductChangelogCommand
+    ? true
+    : false
+  : false;
+
+type AssertCreateProductChangelogCommandFrontendParity = CanonicalCreateProductChangelogCommand extends FrontendCreateProductChangelogCommand
+  ? FrontendCreateProductChangelogCommand extends CanonicalCreateProductChangelogCommand
+    ? true
+    : false
+  : false;
+
+const _createProductChangelogCommandBackendParity: AssertCreateProductChangelogCommandBackendParity = true;
+const _createProductChangelogCommandFrontendParity: AssertCreateProductChangelogCommandFrontendParity = true;
+
+type CanonicalCreateUserReportCommand = import('./index').CreateUserReportCommand;
+type BackendCreateUserReportCommand = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').CreateUserReportCommand;
+type FrontendCreateUserReportCommand = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').CreateUserReportCommand;
+
+type AssertCreateUserReportCommandBackendParity = CanonicalCreateUserReportCommand extends BackendCreateUserReportCommand
+  ? BackendCreateUserReportCommand extends CanonicalCreateUserReportCommand
+    ? true
+    : false
+  : false;
+
+type AssertCreateUserReportCommandFrontendParity = CanonicalCreateUserReportCommand extends FrontendCreateUserReportCommand
+  ? FrontendCreateUserReportCommand extends CanonicalCreateUserReportCommand
+    ? true
+    : false
+  : false;
+
+const _createUserReportCommandBackendParity: AssertCreateUserReportCommandBackendParity = true;
+const _createUserReportCommandFrontendParity: AssertCreateUserReportCommandFrontendParity = true;
+
+type CanonicalUpdateUserReportStatusCommand = import('./index').UpdateUserReportStatusCommand;
+type BackendUpdateUserReportStatusCommand = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').UpdateUserReportStatusCommand;
+type FrontendUpdateUserReportStatusCommand = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').UpdateUserReportStatusCommand;
+
+type AssertUpdateUserReportStatusCommandBackendParity = CanonicalUpdateUserReportStatusCommand extends BackendUpdateUserReportStatusCommand
+  ? BackendUpdateUserReportStatusCommand extends CanonicalUpdateUserReportStatusCommand
+    ? true
+    : false
+  : false;
+
+type AssertUpdateUserReportStatusCommandFrontendParity = CanonicalUpdateUserReportStatusCommand extends FrontendUpdateUserReportStatusCommand
+  ? FrontendUpdateUserReportStatusCommand extends CanonicalUpdateUserReportStatusCommand
+    ? true
+    : false
+  : false;
+
+const _updateUserReportStatusCommandBackendParity: AssertUpdateUserReportStatusCommandBackendParity = true;
+const _updateUserReportStatusCommandFrontendParity: AssertUpdateUserReportStatusCommandFrontendParity = true;
+
+type CanonicalPublishUserReportIssueCommand = import('./index').PublishUserReportIssueCommand;
+type BackendPublishUserReportIssueCommand = import('../../../apps/backend/src/lib/runtime/feedback-center-contract').PublishUserReportIssueCommand;
+type FrontendPublishUserReportIssueCommand = import('../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract').PublishUserReportIssueCommand;
+
+type AssertPublishUserReportIssueCommandBackendParity = CanonicalPublishUserReportIssueCommand extends BackendPublishUserReportIssueCommand
+  ? BackendPublishUserReportIssueCommand extends CanonicalPublishUserReportIssueCommand
+    ? true
+    : false
+  : false;
+
+type AssertPublishUserReportIssueCommandFrontendParity = CanonicalPublishUserReportIssueCommand extends FrontendPublishUserReportIssueCommand
+  ? FrontendPublishUserReportIssueCommand extends CanonicalPublishUserReportIssueCommand
+    ? true
+    : false
+  : false;
+
+const _publishUserReportIssueCommandBackendParity: AssertPublishUserReportIssueCommandBackendParity = true;
+const _publishUserReportIssueCommandFrontendParity: AssertPublishUserReportIssueCommandFrontendParity = true;
+
+// =====================================================================
 // Summary
 // =====================================================================
 

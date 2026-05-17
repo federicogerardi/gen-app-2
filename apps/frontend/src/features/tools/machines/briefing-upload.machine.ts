@@ -1,8 +1,9 @@
 import { assign, fromPromise, setup } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
-import { isAllowedBriefingExtension } from '../runtime/tool-form-architecture';
 import type { SupportedTool } from './tool-flow.machine';
+import { isExtractionContextValidForTool } from './extraction-context-validity';
 
 export type BriefingUploadContext = {
   projectId: string;
@@ -122,6 +123,19 @@ export const briefingUploadMachine = setup({
     },
     hasValidProject: ({ context }) => context.projectId.trim().length > 0,
     hasUserId: ({ context }) => context.userId != null,
+    extractionResultIsValid: ({ context, event }) => {
+      const doneEvent = event as unknown as {
+        output?: {
+          payload?: Record<string, unknown>;
+        };
+      };
+
+      return isExtractionContextValidForTool(
+        context.toolKey,
+        doneEvent.output?.payload ?? null,
+        context.normalizedText,
+      );
+    },
   },
   actions: {
     cacheSelectedFile: assign({
@@ -333,24 +347,41 @@ export const briefingUploadMachine = setup({
           apiBaseUrl: context.apiBaseUrl,
           capabilities: context.capabilities,
         }),
-        onDone: {
-          target: 'ready',
-          actions: assign(({ context, event }) => {
-            const doneEvent = event as unknown as {
-              output: {
-                artifactId: string;
-                payload: Record<string, unknown>;
+        onDone: [
+          {
+            guard: 'extractionResultIsValid',
+            target: 'ready',
+            actions: assign(({ context, event }) => {
+              const doneEvent = event as unknown as {
+                output: {
+                  artifactId: string;
+                  payload: Record<string, unknown>;
+                };
               };
-            };
 
-            return {
+              return {
+                ...context,
+                extractionArtifactId: doneEvent.output.artifactId,
+                extractionPayload: doneEvent.output.payload,
+                error: null,
+              };
+            }),
+          },
+          {
+            target: 'idle',
+            actions: assign(({ context }) => ({
               ...context,
-              extractionArtifactId: doneEvent.output.artifactId,
-              extractionPayload: doneEvent.output.payload,
-              error: null,
-            };
-          }),
-        },
+              file: null,
+              fileName: null,
+              briefingId: null,
+              extractionArtifactId: null,
+              extractionPayload: null,
+              normalizedText: null,
+              parsedFormat: null,
+              error: 'extraction_context_insufficient',
+            })),
+          },
+        ],
         onError: {
           target: 'idle',
           actions: assign(({ context, event }) => ({

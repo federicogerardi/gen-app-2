@@ -102,6 +102,37 @@ describe('briefingUploadMachine', () => {
     expect(actor.getSnapshot().context.error).toBe('extraction failed');
   });
 
+  it('returns to idle when extraction output is semantically insufficient', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-2',
+      projectId: 'project-1',
+      toolKey: 'funnel-pages',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      size: 10,
+      parsedFormat: 'md',
+      normalizedText: 'brief text',
+      charCount: 10,
+      wordCount: 2,
+    });
+    mockedRunExtraction.mockResolvedValue({
+      artifactId: 'artifact-empty',
+      content: '{}',
+      payload: {},
+    });
+
+    const actor = createMachineActor();
+    actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+
+    await waitFor(actor, (snapshot) => snapshot.matches('idle'));
+
+    const context = actor.getSnapshot().context;
+    expect(context.error).toBe('extraction_context_insufficient');
+    expect(context.extractionArtifactId).toBeNull();
+    expect(context.extractionPayload).toBeNull();
+    expect(context.briefingId).toBeNull();
+  });
+
   it('transitions extracting -> ready when extraction is recovered from persisted artifact', async () => {
     mockedUploadBrief.mockResolvedValue({
       briefingId: 'brief-recovered',

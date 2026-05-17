@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
+import { renderProjectPage } from '../test/renderProjectPage';
 import { ProjectsListPage } from './ProjectsListPage';
 
 const authBag = {
@@ -35,11 +36,7 @@ beforeEach(() => {
 
 describe('ProjectsListPage', () => {
   it('renders loaded projects without showing load error fallback', async () => {
-    render(
-      <MemoryRouter>
-        <ProjectsListPage />
-      </MemoryRouter>,
-    );
+    renderProjectPage(<ProjectsListPage />);
 
     expect(await screen.findByText('Project Alpha')).toBeInTheDocument();
     expect(screen.queryByText(appCopy.ui.fallbackErrors.loadProjects)).toBeNull();
@@ -50,11 +47,7 @@ describe('ProjectsListPage', () => {
       http.get('/api/projects', () => new HttpResponse(null, { status: 500 })),
     );
 
-    render(
-      <MemoryRouter>
-        <ProjectsListPage />
-      </MemoryRouter>,
-    );
+    renderProjectPage(<ProjectsListPage />);
 
     expect(await screen.findByText(/Unable to list projects/i)).toBeInTheDocument();
   });
@@ -76,19 +69,18 @@ describe('ProjectsListPage', () => {
       }),
     );
 
-    render(
-      <MemoryRouter initialEntries={['/start']}>
-        <Routes>
-          <Route
-            path="/start"
-            element={<Link to="/dashboard/projects">Apri projects</Link>}
-          />
-          <Route
-            path="/dashboard/projects"
-            element={<ProjectsListPage />}
-          />
-        </Routes>
-      </MemoryRouter>,
+    renderProjectPage(
+      <Routes>
+        <Route
+          path="/start"
+          element={<Link to="/dashboard/projects">Apri projects</Link>}
+        />
+        <Route
+          path="/dashboard/projects"
+          element={<ProjectsListPage />}
+        />
+      </Routes>,
+      { initialEntries: ['/start'] },
     );
 
     fireEvent.click(screen.getByRole('link', { name: 'Apri projects' }));

@@ -2,12 +2,14 @@ import { assign, fromPromise, raise, sendTo, setup, stopChild, type ActorRefFrom
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { toolFlowMachine, type SupportedTool, type ToolStep, type ToolStepStatus } from './tool-flow.machine';
+import { isExtractionContextValidForTool } from './extraction-context-validity';
 import { toolStepOrder } from '../runtime/tool-generation-engine';
 import type {
   CanonicalToolUiState,
   PrimaryActionPolicy,
   SecondaryActionFlags,
 } from '../runtime/tool-ux-state';
+import { generateSessionId } from '../../../app/runtime/shared-utils';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
   belongsToTool,
@@ -108,25 +110,6 @@ const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hy
     && hydrationResult.normalizedText.trim().length > 0;
 };
 
-const YOUTUBE_REQUIRED_EXTRACTION_FIELDS = [
-  'knowledge_content',
-  'avatar',
-  'pain_point',
-  'offer',
-  'proof',
-] as const;
-
-const hasRequiredYoutubeExtractionFields = (payload: Record<string, unknown> | null | undefined): boolean => {
-  if (!payload) {
-    return false;
-  }
-
-  return YOUTUBE_REQUIRED_EXTRACTION_FIELDS.every((field) => {
-    const value = payload[field];
-    return typeof value === 'string' && value.trim().length > 0;
-  });
-};
-
 const hasCompleteBriefingContext = (
   toolKey: SupportedTool,
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
@@ -137,17 +120,16 @@ const hasCompleteBriefingContext = (
   }
 
   const hasCoreContext = (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
-    && (snapshot.context.briefingId?.trim().length ?? 0) > 0
-    && (snapshot.context.normalizedText?.trim().length ?? 0) > 0;
+    && (snapshot.context.briefingId?.trim().length ?? 0) > 0;
   if (!hasCoreContext) {
     return false;
   }
 
-  if (toolKey !== 'youtube-lf-script') {
-    return true;
-  }
-
-  return hasRequiredYoutubeExtractionFields(snapshot.context.extractionPayload);
+  return isExtractionContextValidForTool(
+    toolKey,
+    snapshot.context.extractionPayload,
+    snapshot.context.normalizedText,
+  );
 };
 
 const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
@@ -368,11 +350,12 @@ const deriveHasExtractionContext = (
   hydrationResult: HydrationResult | null,
 ): boolean => {
   if (hasCompleteHydrationResult(hydrationResult)) {
-    if (toolKey !== 'youtube-lf-script') {
-      return true;
-    }
-
-    return hasRequiredYoutubeExtractionFields(hydrationResult.extractionPayload);
+    return isExtractionContextValidForTool(
+      toolKey,
+      hydrationResult.extractionPayload,
+      hydrationResult.normalizedText,
+      { allowEmptyPayload: true },
+    );
   }
 
   return hasCompleteBriefingContext(toolKey, briefingActorRef);
@@ -619,14 +602,6 @@ export type ToolPageEvent =
     sourceExtractionArtifactId?: string | null;
     localArtifacts?: GenerationArtifact[];
   };
-
-const createSessionId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-
-  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-};
 
 export const toolPageMachine = setup({
   types: {
@@ -910,7 +885,7 @@ export const toolPageMachine = setup({
   id: 'toolPageMachine',
   context: ({ input }) => ({
     toolKey: input.toolKey,
-    sessionId: input.sessionId ?? createSessionId(),
+    sessionId: input.sessionId ?? generateSessionId(),
     projectId: input.projectId,
     model: input.model,
     registrySnapshotRef: input.registrySnapshotRef,

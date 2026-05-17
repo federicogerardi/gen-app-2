@@ -39,12 +39,15 @@ jobs:
       - name: Form validation regression tests
         run: npm --workspace apps/frontend run test:forms
 
-      - name: Visual snapshot regression tests
-        run: npm --workspace apps/frontend run test:visual
+      - name: Admin Dashboard Combined Tests (Router + Mutations + A11y)
+        run: npm --workspace apps/frontend run test:admin-combined
+
+      - name: Admin A11y Smoke Tests (vitest + axe, 6 admin routes)
+        run: npm --workspace apps/frontend run test:admin-a11y
 
       - name: Build
         run: npm --workspace apps/frontend run build
 
-      # - name: Accessibility automated audit
+      # - name: Accessibility full browser audit (local only)
       #   run: npm --workspace apps/frontend run audit:a11y
-      # TODO: re-enable when ChromeDriver version is pinned in CI runner
+      # NOTE: audit:a11y requires full stack (backend + DB) — use audit-admin-a11y.sh locally

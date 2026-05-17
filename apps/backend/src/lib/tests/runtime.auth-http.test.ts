@@ -72,6 +72,204 @@ class MockServerResponse extends EventEmitter {
   }
 }
 
+type FeedbackCenterUserReportRecord = {
+  id: string;
+  category: 'issue' | 'feature-request' | 'other';
+  status: 'submitted' | 'triaged' | 'github-published' | 'closed';
+  title: string;
+  description: string;
+  created_by_user_id: string;
+  triaged_by_user_id: string | null;
+  triaged_at: Date | null;
+  closed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type FeedbackCenterProductChangelogRecord = {
+  id: string;
+  title: string;
+  body: string;
+  status: 'draft' | 'published';
+  created_by_user_id: string;
+  published_by_user_id: string | null;
+  published_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+class FeedbackCenterDbStub {
+  readonly userReports: FeedbackCenterUserReportRecord[] = [];
+  readonly changelogs: FeedbackCenterProductChangelogRecord[] = [];
+
+  seedUserReport(record: FeedbackCenterUserReportRecord): void {
+    this.userReports.push(record);
+  }
+
+  async query<T = unknown>(sqlText: string, values: unknown[] = []): Promise<{ rows: T[] }> {
+    if (sqlText.includes('INSERT INTO user_reports')) {
+      const createdAt = new Date('2026-05-16T10:00:00.000Z');
+      const row: FeedbackCenterUserReportRecord = {
+        id: String(values[0]),
+        category: String(values[1]) as FeedbackCenterUserReportRecord['category'],
+        status: 'submitted',
+        title: String(values[2]),
+        description: String(values[3]),
+        created_by_user_id: String(values[4]),
+        triaged_by_user_id: null,
+        triaged_at: null,
+        closed_at: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+      };
+      this.userReports.push(row);
+      return { rows: [row as unknown as T] };
+    }
+
+    if (
+      (
+        sqlText.includes('SELECT id, category, status, title, description')
+        && sqlText.includes('FROM user_reports')
+        && sqlText.includes('WHERE id = $1')
+      )
+      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('WHERE ur.id = $1'))
+    ) {
+      const id = String(values[0]);
+      const row = this.userReports.find((report) => report.id === id);
+      if (!row) {
+        return { rows: [] };
+      }
+      return { rows: [{ ...row, github_issue_url: null } as unknown as T] };
+    }
+
+    if (
+      (
+        sqlText.includes('SELECT id, category, status, title, description')
+        && sqlText.includes('FROM user_reports')
+        && sqlText.includes('ORDER BY created_at DESC')
+      )
+      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('ORDER BY ur.created_at DESC'))
+    ) {
+      let filtered = [...this.userReports];
+
+      const statusFilterClause = sqlText.includes('status = $1') || sqlText.includes('ur.status = $1');
+      const categoryFilterClauseAsSecond = sqlText.includes('category = $2') || sqlText.includes('ur.category = $2');
+      const categoryFilterClauseAsFirst = sqlText.includes('category = $1') || sqlText.includes('ur.category = $1');
+
+      if (statusFilterClause && categoryFilterClauseAsSecond) {
+        filtered = filtered.filter((report) => report.status === values[0] && report.category === values[1]);
+      } else if (statusFilterClause) {
+        filtered = filtered.filter((report) => report.status === values[0]);
+      } else if (categoryFilterClauseAsFirst) {
+        filtered = filtered.filter((report) => report.category === values[0]);
+      }
+
+      const rowsWithJoinProjection = filtered.map((report) => ({
+        ...report,
+        github_issue_url: null,
+      }));
+
+      return { rows: rowsWithJoinProjection as unknown as T[] };
+    }
+
+    if (sqlText.includes('UPDATE user_reports') && sqlText.includes('RETURNING id, category, status, title, description')) {
+      const id = String(values[0]);
+      const status = String(values[1]) as FeedbackCenterUserReportRecord['status'];
+      const actedByUserId = values.length > 2 ? String(values[2]) : null;
+      const row = this.userReports.find((report) => report.id === id);
+      if (!row) {
+        return { rows: [] };
+      }
+
+      row.status = status;
+      row.updated_at = new Date('2026-05-16T11:00:00.000Z');
+
+      if (status === 'triaged' && actedByUserId) {
+        row.triaged_by_user_id = actedByUserId;
+        row.triaged_at = new Date('2026-05-16T11:00:00.000Z');
+      }
+
+      if (status === 'closed') {
+        row.closed_at = new Date('2026-05-16T11:00:00.000Z');
+      }
+
+      return { rows: [row as unknown as T] };
+    }
+
+    if (sqlText.includes('INSERT INTO product_changelogs')) {
+      const createdAt = new Date('2026-05-16T12:00:00.000Z');
+      const row: FeedbackCenterProductChangelogRecord = {
+        id: String(values[0]),
+        title: String(values[1]),
+        body: String(values[2]),
+        status: 'draft',
+        created_by_user_id: String(values[3]),
+        published_by_user_id: null,
+        published_at: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+      };
+      this.changelogs.push(row);
+      return { rows: [row as unknown as T] };
+    }
+
+    if (sqlText.includes('UPDATE product_changelogs') && sqlText.includes('RETURNING id, title, body, status')) {
+      const id = String(values[0]);
+      const publishedByUserId = String(values[1]);
+      const row = this.changelogs.find((entry) => entry.id === id);
+      if (!row) {
+        return { rows: [] };
+      }
+
+      row.status = 'published';
+      row.published_by_user_id = publishedByUserId;
+      row.published_at = new Date('2026-05-16T12:30:00.000Z');
+      row.updated_at = new Date('2026-05-16T12:30:00.000Z');
+      return { rows: [row as unknown as T] };
+    }
+
+    if (sqlText.includes('FROM product_changelogs') && sqlText.includes("WHERE status = 'published'")) {
+      const rows = this.changelogs.filter((entry) => entry.status === 'published');
+      return { rows: rows as unknown as T[] };
+    }
+
+    if (sqlText === 'BEGIN' || sqlText === 'COMMIT' || sqlText === 'ROLLBACK') {
+      return { rows: [] };
+    }
+
+    throw new Error(`Unsupported SQL in FeedbackCenterDbStub: ${sqlText}`);
+  }
+
+  async connect(): Promise<{ query: <T = unknown>(sqlText: string, values?: unknown[]) => Promise<{ rows: T[] }>; release: () => void }> {
+    return {
+      query: <T = unknown>(sqlText: string, values: unknown[] = []) => this.query<T>(sqlText, values),
+      release: () => {},
+    };
+  }
+}
+
+const loginAndReadCookie = async (
+  runtime: { handleRequest(request: IncomingMessage, response: ServerResponse): Promise<{ handled: boolean }> },
+  payload: { email: string; password: string },
+): Promise<string> => {
+  const loginRequest = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    body: JSON.stringify(payload),
+  });
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    loginRequest as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(loginResponse.statusCode, 200);
+  const setCookieHeader = loginResponse.getHeader('set-cookie');
+  assert.ok(setCookieHeader);
+  const setCookieValue = Array.isArray(setCookieHeader) ? setCookieHeader[0] : setCookieHeader;
+  return (typeof setCookieValue === 'string' ? setCookieValue.split(';')[0] : '') ?? '';
+};
+
 test('auth HTTP runtime supports login, session and logout flow', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
@@ -1278,4 +1476,254 @@ test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', 
     offer: 'audit',
     audience: 'b2b',
   });
+});
+
+test('auth HTTP runtime supports feedback-center report/changelog endpoints with auth and normalization', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const db = new FeedbackCenterDbStub();
+
+  await repositories.users.createUser({
+    id: 'admin-feedback-001',
+    email: 'admin.feedback@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Admin-Feedback-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  await repositories.users.createUser({
+    id: 'member-feedback-001',
+    email: 'member.feedback@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Feedback-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: db as never,
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-16T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => `session-feedback-${Math.random().toString(16).slice(2)}` },
+  });
+
+  const unauthorizedCreateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      body: JSON.stringify({ category: 'issue', title: 'T', description: 'D' }),
+    }) as unknown as IncomingMessage,
+    unauthorizedCreateResponse as unknown as ServerResponse,
+  );
+  assert.equal(unauthorizedCreateResponse.statusCode, 401);
+
+  const memberCookie = await loginAndReadCookie(runtime, {
+    email: 'member.feedback@example.com',
+    password: 'Member-Feedback-1',
+  });
+
+  const createReportResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: JSON.stringify({
+        category: 'ISSUE',
+        title: 'Cannot save project',
+        description: 'Save action fails with 500.',
+      }),
+    }) as unknown as IncomingMessage,
+    createReportResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(createReportResponse.statusCode, 201);
+  const createdReport = (createReportResponse.jsonBody().data as {
+    report: { category: string; status: string; id: string };
+  }).report;
+  assert.equal(createdReport.category, 'issue');
+  assert.equal(createdReport.status, 'submitted');
+
+  const invalidCategoryResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: JSON.stringify({
+        category: 'bug',
+        title: 'Invalid category',
+        description: 'Should fail',
+      }),
+    }) as unknown as IncomingMessage,
+    invalidCategoryResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidCategoryResponse.statusCode, 400);
+
+  const forbiddenListResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/admin/user-reports',
+      headers: { cookie: memberCookie },
+    }) as unknown as IncomingMessage,
+    forbiddenListResponse as unknown as ServerResponse,
+  );
+  assert.equal(forbiddenListResponse.statusCode, 403);
+
+  const adminCookie = await loginAndReadCookie(runtime, {
+    email: 'admin.feedback@example.com',
+    password: 'Admin-Feedback-1',
+  });
+
+  const publishChangelogResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/admin/changelog',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ title: 'Release 1.2.0', body: 'Published changes', status: 'published' }),
+    }) as unknown as IncomingMessage,
+    publishChangelogResponse as unknown as ServerResponse,
+  );
+  assert.equal(publishChangelogResponse.statusCode, 201);
+
+  const listChangelogResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/changelog',
+      headers: { cookie: memberCookie },
+    }) as unknown as IncomingMessage,
+    listChangelogResponse as unknown as ServerResponse,
+  );
+  assert.equal(listChangelogResponse.statusCode, 200);
+  const listedChangelog = (listChangelogResponse.jsonBody().data as { changelog: Array<{ status: string }> }).changelog;
+  assert.equal(listedChangelog.length, 1);
+  assert.equal(listedChangelog[0]?.status, 'published');
+});
+
+test('auth HTTP runtime enforces user-report admin validation, triage updates, and issue policy rejection', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const db = new FeedbackCenterDbStub();
+
+  await repositories.users.createUser({
+    id: 'admin-feedback-002',
+    email: 'admin.feedback2@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Admin-Feedback-2'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  db.seedUserReport({
+    id: 'rpt_seed_issue_001',
+    category: 'issue',
+    status: 'submitted',
+    title: 'Issue seed',
+    description: 'Issue report',
+    created_by_user_id: 'member-feedback-xxx',
+    triaged_by_user_id: null,
+    triaged_at: null,
+    closed_at: null,
+    created_at: new Date('2026-05-16T09:00:00.000Z'),
+    updated_at: new Date('2026-05-16T09:00:00.000Z'),
+  });
+
+  db.seedUserReport({
+    id: 'rpt_seed_other_001',
+    category: 'other',
+    status: 'submitted',
+    title: 'Other seed',
+    description: 'Other report',
+    created_by_user_id: 'member-feedback-yyy',
+    triaged_by_user_id: null,
+    triaged_at: null,
+    closed_at: null,
+    created_at: new Date('2026-05-16T09:10:00.000Z'),
+    updated_at: new Date('2026-05-16T09:10:00.000Z'),
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: db as never,
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-16T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => `session-feedback-${Math.random().toString(16).slice(2)}` },
+  });
+
+  const adminCookie = await loginAndReadCookie(runtime, {
+    email: 'admin.feedback2@example.com',
+    password: 'Admin-Feedback-2',
+  });
+
+  const invalidStatusFilterResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/admin/user-reports?status=invalid',
+      headers: { cookie: adminCookie },
+    }) as unknown as IncomingMessage,
+    invalidStatusFilterResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidStatusFilterResponse.statusCode, 400);
+
+  const filteredListResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/admin/user-reports?category=issue',
+      headers: { cookie: adminCookie },
+    }) as unknown as IncomingMessage,
+    filteredListResponse as unknown as ServerResponse,
+  );
+  assert.equal(filteredListResponse.statusCode, 200);
+  const filteredReports = (filteredListResponse.jsonBody().data as { reports: Array<{ id: string }> }).reports;
+  assert.deepEqual(filteredReports.map((item) => item.id), ['rpt_seed_issue_001']);
+
+  const invalidPatchResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'PATCH',
+      url: '/api/admin/user-reports/rpt_seed_issue_001',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ status: 'github-published' }),
+    }) as unknown as IncomingMessage,
+    invalidPatchResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidPatchResponse.statusCode, 400);
+
+  const patchResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'PATCH',
+      url: '/api/admin/user-reports/rpt_seed_issue_001',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ status: 'triaged' }),
+    }) as unknown as IncomingMessage,
+    patchResponse as unknown as ServerResponse,
+  );
+  assert.equal(patchResponse.statusCode, 200);
+  const patchedReport = (patchResponse.jsonBody().data as { report: { status: string } }).report;
+  assert.equal(patchedReport.status, 'triaged');
+
+  const publishIssueRejectedResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/admin/user-reports/rpt_seed_other_001/publish-issue',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ owner: 'acme', repo: 'platform' }),
+    }) as unknown as IncomingMessage,
+    publishIssueRejectedResponse as unknown as ServerResponse,
+  );
+  assert.equal(publishIssueRejectedResponse.statusCode, 409);
 });

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { appCopy, formatMeta } from '../../../app/copy/system';
+import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
@@ -13,6 +13,7 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import {
@@ -21,12 +22,26 @@ import {
 } from '../../tools/runtime/session-client';
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
+import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
+import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
 
 const formatToolName = (toolKey: string | null): string => {
   if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
   if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
   if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
   return toolKey ?? 'Tool non disponibile';
+};
+
+const toHumanReadableDate = (isoLike: string): string => {
+  const date = new Date(isoLike);
+  if (Number.isNaN(date.getTime())) {
+    return isoLike;
+  }
+
+  return new Intl.DateTimeFormat('it-IT', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 };
 
 const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
@@ -74,6 +89,21 @@ export const SessionSummaryDetailPage = () => {
     [relaunchArtifactQuery.data],
   );
   const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
+
+  const handleSessionDownload = useCallback(
+    (format: DownloadFormat) => {
+      if (pageState.phase !== 'session') return;
+      void downloadSessionFile(pageState.group.sessionId, format, {
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+      }).catch((err: unknown) => {
+        if (import.meta.env.DEV) {
+          console.error('[session-download] failed', err);
+        }
+      });
+    },
+    [pageState, auth.apiBaseUrl, auth.capabilities],
+  );
 
   useEffect(() => {
     if (!sessionId) {
@@ -151,6 +181,11 @@ export const SessionSummaryDetailPage = () => {
   const group = pageState.group;
   const effectiveToolKey = asSupportedTool(group.toolKey);
   const projectId = group.artifacts[0]?.projectId ?? null;
+  const artifactTimestamps = group.artifacts
+    .map((artifact) => Date.parse(artifact.updatedAt))
+    .filter((timestamp) => !Number.isNaN(timestamp));
+  const jobDate = artifactTimestamps.length > 0 ? new Date(Math.min(...artifactTimestamps)) : null;
+  const lastUpdate = artifactTimestamps.length > 0 ? new Date(Math.max(...artifactTimestamps)) : null;
   const projectName = projectId
     ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `Project ${projectId}`
     : 'Project non disponibile';
@@ -159,7 +194,10 @@ export const SessionSummaryDetailPage = () => {
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
-        <h2>{detailTitle}</h2>
+        <div className="ui-session-summary-topbar-main">
+          <h2>{detailTitle}</h2>
+          <StatusBadge status={group.status} />
+        </div>
         <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
@@ -172,20 +210,30 @@ export const SessionSummaryDetailPage = () => {
 
         <aside className="ui-artifact-secondary-panel" aria-label="Contesto sessione">
           <section className="ui-artifact-overview" aria-label="Panoramica sessione">
-            <div className="ui-artifact-overview-main">
-              <div className="ui-artifact-overview-heading-row">
-                <h3 className="ui-artifact-overview-title">{detailTitle}</h3>
-                <span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>{group.status}</span>
-              </div>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.sessionId, group.sessionId)}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.status, group.status)}</p>
-            </div>
-
             <div className="ui-artifact-overview-actions">
               <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
                 Rilancia
               </SecondaryCtaButton>
+              {auth.capabilities.sessionDownload ? (
+                <DownloadFormatDropdown onDownload={handleSessionDownload} />
+              ) : null}
             </div>
+
+            <details className="ui-artifact-accessory">
+              <summary>Dettagli sessione</summary>
+              <dl className="ui-artifact-metadata ui-session-summary-details">
+                <dt>{appCopy.ui.labels.projectName}</dt>
+                <dd>{projectName}</dd>
+                <dt>{appCopy.ui.labels.toolKey}</dt>
+                <dd>{formatToolName(group.toolKey)}</dd>
+                <dt>{appCopy.ui.meta.jobDate}</dt>
+                <dd>{jobDate ? toHumanReadableDate(jobDate.toISOString()) : 'Data non disponibile'}</dd>
+                <dt>{appCopy.ui.meta.lastUpdate}</dt>
+                <dd>{lastUpdate ? toHumanReadableDate(lastUpdate.toISOString()) : 'Data non disponibile'}</dd>
+                <dt>{appCopy.ui.meta.artifactCount}</dt>
+                <dd>{group.artifacts.length}</dd>
+              </dl>
+            </details>
           </section>
         </aside>
       </div>

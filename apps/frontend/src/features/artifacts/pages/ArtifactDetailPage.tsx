@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
@@ -11,12 +11,15 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
 import { ArtifactContentPreview } from '../ui/ArtifactContentPreview';
+import { DownloadFormatDropdown } from '../ui/DownloadFormatDropdown';
+import { downloadArtifactFile, type DownloadFormat } from '../runtime/download-client';
 
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
@@ -129,7 +132,7 @@ export const ArtifactDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
         {artifactQuery.loading ? (
-          <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage>
+          <LoadingStateMessage>{appCopy.ui.states.loadingArtifact}</LoadingStateMessage>
         ) : null}
         {artifactQuery.error ? <ErrorStateMessage>{artifactQuery.error}</ErrorStateMessage> : null}
         {!artifactQuery.loading ? (
@@ -142,15 +145,17 @@ export const ArtifactDetailPage = () => {
     );
   }
 
-  return <LegacyArtifactView artifact={artifact} projectName={projectName} />;
+  return <LegacyArtifactView artifact={artifact} projectName={projectName} auth={auth} />;
 };
 
 const LegacyArtifactView = ({
   artifact,
   projectName,
+  auth,
 }: {
   artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>;
   projectName: string | null;
+  auth: ReturnType<typeof useAuthSession>;
 }) => {
   const generation = useGenerationWorkspace();
   const restartPath = useMemo(
@@ -192,6 +197,20 @@ const LegacyArtifactView = ({
     return normalized.length > 0 ? normalized : '-';
   }, [artifact.sourceRequest.input]);
 
+  const handleDownload = useCallback(
+    (format: DownloadFormat) => {
+      void downloadArtifactFile(artifact.artifactId, format, {
+        apiBaseUrl: auth.apiBaseUrl,
+        capabilities: auth.capabilities,
+      }).catch((err: unknown) => {
+        if (import.meta.env.DEV) {
+          console.error('[artifact-download] failed', err);
+        }
+      });
+    },
+    [artifact.artifactId, auth.apiBaseUrl, auth.capabilities],
+  );
+
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
@@ -211,7 +230,7 @@ const LegacyArtifactView = ({
             <div className="ui-artifact-overview-main">
               <div className="ui-artifact-overview-heading-row">
                 <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
-                <span className={`ui-runtime-badge ui-artifact-status-tag is-${artifact.status}`}>{artifact.status}</span>
+                <StatusBadge status={artifact.status} />
               </div>
               <p className={uiPrimitives.metaLine}>{`${toolName} - ${resolvedProjectName}`}</p>
               <p className={uiPrimitives.metaLine}>{completedAtHumanReadable}</p>
@@ -234,6 +253,9 @@ const LegacyArtifactView = ({
               >
                 {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
+              {auth.capabilities.artifactDownload ? (
+                <DownloadFormatDropdown onDownload={handleDownload} />
+              ) : null}
               <SoftCtaButton type="button" disabled={!isDeleteEnabled}>
                 {appCopy.ui.actions.deleteUiOnly}
               </SoftCtaButton>

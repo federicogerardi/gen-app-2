@@ -25,6 +25,8 @@ applyTo:
   - explicit success criteria and explicit fail/stop criteria
   - rollback action for the same scope
 - If any item above is missing, add it before implementation.
+- Prefer the smallest deterministic task slice, split broad implementation work into atomic steps, and reuse existing repository patterns or dependencies before adding new ones.
+- When using `apply_patch`, keep each task-scoped edit atomic and narrowly targeted; avoid monolithic replacements that make deterministic implementation harder to validate.
 
 ## Plan-To-Code Mapping Rule
 - For each task that changes runtime behavior, include at least one concrete code anchor:

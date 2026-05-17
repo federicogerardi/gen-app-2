@@ -6,6 +6,7 @@ import {
   cx,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
@@ -174,7 +175,7 @@ export const ArtifactsListingSection = ({
           ?? 'Progetto non disponibile';
 
         if (columnKey === 'type') return <strong>{artifact.artifactType}</strong>;
-        if (columnKey === 'status') return artifact.status;
+        if (columnKey === 'status') return <StatusBadge status={artifact.status} />;
         if (columnKey === 'project') return resolvedProjectName;
         if (columnKey === 'updated') return new Date(artifact.updatedAt).toLocaleString();
 

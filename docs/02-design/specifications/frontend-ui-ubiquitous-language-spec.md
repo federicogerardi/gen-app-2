@@ -44,12 +44,21 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Table Toolbar | Header actions for filtering/sorting/search/reload/export actions. | Artifact list table top action zone | Controls row, actions header |
 | Table Empty State | Standard no-data rendering with reason and next action. | Shared empty-state pattern | No results message |
 | Table Error State | Standard error rendering with retry affordance. | Shared error-state pattern | Load error block |
-| Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false` and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. See DDD-061. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
+| Feedback Channel | Canonical classification for user feedback rendering. Values: `inline-action`, `page-state`, `global`. Selection is deterministic by intent and scope. | `ToolPageTemplate`, `ListingTableSection`, admin mutation pages | Generic notification |
+| Page State Message | Canonical page-body feedback primitive family for query/list lifecycle: `LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`. | `app/ui/primitives.tsx` + `ListingTableSection` | Toast for loading/empty/error |
+| Global Feedback Message | **Provisional** ephemeral cross-page mutation feedback message (success/error) rendered in a global viewport without replacing local contextual feedback. | Transition target from local mutation messages | Page-local ad-hoc success string |
+| Global Feedback Viewport | **Provisional** app-level container that renders `Global Feedback Message` items. Must not be used for `Dispatch Error` or `Page State Message`. | Shell-level runtime target | Reusing Data Table state area |
+| Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false`, extraction semantic invalidity (`extraction_context_insufficient`), and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. UI copy must be user-readable and must not display raw tokens such as `stream_empty_output` or `extraction_context_insufficient`. See DDD-061 and DDD-064. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-060. | `useToolPage` effect #2b | — |
 
 ## 3. Canonical Page Archetypes
 
 All frontend pages must map to exactly one archetype before implementation.
+
+Global composition rule:
+
+- avoid nested cards by default; use nested cards only when strictly necessary for semantic grouping that cannot be represented with spacing, dividers, or typography
+- rationale: nested cards increase cognitive load and visually over-weight layouts, reducing scan speed
 
 ### 3.1 Tool Workspace Page (reference archetype)
 
@@ -64,6 +73,7 @@ Composition:
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
 - **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
 - **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-060).
+- **Channel ownership rule**: Tool Workspace Page feedback follows `Feedback Channel` mapping. `Dispatch Error` remains `inline-action`; query/list lifecycle remains `page-state`; `global` channel is optional and must not duplicate the same message already rendered inline.
 
 ### 3.2 Data Table View (reference archetype)
 
@@ -76,6 +86,7 @@ Composition:
 - table body with deterministic columns
 - Table Empty State and Table Error State
 - pagination or cursor controls in one consistent location
+- `Page State Message` primitives are rendered in deterministic in-page positions and are never replaced by `Global Feedback Message`
 
 Rule:
 
@@ -112,6 +123,24 @@ Canonical composition:
 - sidebar heading row must render aggregate title first and the lifecycle status tag adjacent to it
 - status tag must display persisted lifecycle values in lowercase (`generating`, `completed`, `failed`) and use state color tokens
 - avoid nested cards inside the detail layout; preserve hierarchy through panel composition and token-based spacing
+
+#### 3.2.3 Admin Overview companion layout (`/admin`)
+
+`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
+
+Canonical composition:
+
+- persistent admin navigation is rendered at layout level and remains visible across all `/admin/*` routes
+- overview body is KPI-first and uses compact widget cards designed for scan speed and triage priority
+- each KPI widget must support deterministic state rendering: `loading`, `empty`, `error`, `ready`
+- `ready` state should expose a compact value + minimal context line, avoiding long explanatory copy
+- widget cards are read-oriented overview elements; operational mutations remain in downstream Admin `Data Table View` pages
+- channel ownership remains deterministic: widget query lifecycle uses `Page State Message` semantics inside card body; mutation feedback remains owned by page-level channels in target admin pages
+
+Convergence note:
+
+- this companion pattern resolves the `/admin` archetype ambiguity while preserving the two canonical archetypes (`Tool Workspace Page`, `Data Table View`)
+- future `/admin` enhancements must extend this companion pattern and must not introduce ad-hoc page archetypes
 
 ## 4. Canonical Table Standard (Artifact Baseline)
 
@@ -210,13 +239,14 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 
 ### 5.1 Confirmed drift
 
-- Admin Models diverges from the Data Table View baseline in layout and interaction semantics.
+- None currently registered in Admin Overview archetype mapping after companion-pattern convergence.
 
 ### 5.2 Resolved drift
 
 | Page | Archetype declared | Drift resolved | Date |
 | --- | --- | --- | --- |
 | Admin Users (`/admin/users`) | Data Table View | Card-list → table with toolbar, bordered-chip row actions, inline edit row | 2026-05-08 |
+| Admin Overview (`/admin`) | Data Table View companion | Declared canonical operational-overview companion with persistent admin navigation + KPI widget state cards (`loading`/`empty`/`error`/`ready`) | 2026-05-17 |
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
 | Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
@@ -226,7 +256,6 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 
 ### 5.3 Required convergence target
 
-- Admin Models must adopt Data Table View archetype and table standard from Section 4.
 - Tool Workspace Page remains the visual and compositional reference for generation-oriented flows.
 
 ## 6. Convergence Workflow
@@ -239,7 +268,46 @@ Before implementing or refactoring a page:
 4. run drift check against this spec and `frontend-design-system-ui-kit-guide.md`
 5. update documentation index when adding new governance artifacts
 
-## 7. Acceptance Gates
+## 7. Feedback Governance Matrix
+
+Use this matrix to map each feedback event to exactly one canonical channel.
+
+| Event Type | Canonical Channel | Canonical Term | Rendering Location | Rule |
+| --- | --- | --- | --- | --- |
+| Form field validation failure | `inline-action` | Dispatch Error family (contextual) | Field/form area | Keep message adjacent to failing input/action; do not promote to global viewport |
+| Tool primary-action dispatch failure | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must remain local and actionable in-place |
+| Tool terminal stream failure without recoverable failed step | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Keep local recovery context; global duplication is not allowed |
+| Extraction completed but semantically invalid | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must show user-readable copy and keep `start-generation` blocked until valid re-upload |
+| Query loading state | `page-state` | Page State Message (`LoadingStateMessage`) | Page/table body state slot | Never use global channel for loading |
+| Query empty state | `page-state` | Page State Message (`EmptyStateMessage`) | Page/table body state slot | Empty states are structural page content, not notifications |
+| Query error state | `page-state` | Page State Message (`ErrorStateMessage`) | Page/table body state slot | Keep retry affordance in-page |
+| Mutation success (create/update/delete) with cross-page relevance | `global` | Global Feedback Message (provisional) | Global Feedback Viewport | Use ephemeral global feedback; avoid replacing page-state blocks |
+| Mutation failure not tied to a specific input field | `global` | Global Feedback Message (provisional) | Global Feedback Viewport | Keep short actionable text; avoid duplicating the same error inline and global |
+
+Channel precedence for ambiguous cases:
+
+1. if the user can fix the issue in the current control, use `inline-action`
+2. if the message represents page data lifecycle, use `page-state`
+3. only if the event is mutation outcome with cross-page relevance, use `global`
+
+### 7.1 Implementation Contract References
+
+The following runtime paths are the canonical implementation contract for channel governance:
+
+- `apps/frontend/src/app/providers/FeedbackMessageProvider.tsx` — app-level global feedback runtime API (`publishSuccess`, `publishError`, `dismiss`, `dismissAll`)
+- `apps/frontend/src/app/ui/GlobalFeedbackViewport.tsx` — shell-level viewport renderer for `Global Feedback Message`
+- `apps/frontend/src/app/runtime/feedback-channel-map.ts` — deterministic event-to-channel resolver (`resolveFeedbackChannel`)
+
+## 8. Feedback Anti-Patterns And Remediation
+
+| Anti-pattern | Why It Is Drift | Canonical Remediation |
+| --- | --- | --- |
+| Showing Data Table loading/error/empty as global toast | Removes structural context and weakens table readability | Render as `Page State Message` in page body |
+| Emitting `Dispatch Error` both inline and global | Duplicates signal and confuses priority | Keep `Dispatch Error` only in `inline-action` slot |
+| Using `LoadingStateMessage` for mutation success copy | Semantic mismatch (`loading` vs `success`) | Route to `Global Feedback Message` (provisional) |
+| Keeping ad-hoc page-local success variable names as governance terms | Creates terminology drift across docs/PRs | Use canonical UL terms in docs/PRs (`Global Feedback Message`, `Feedback Channel`) |
+
+## 9. Acceptance Gates
 
 A PR touching frontend UI is acceptable only if:
 
@@ -248,16 +316,19 @@ A PR touching frontend UI is acceptable only if:
 3. table pages demonstrate alignment with Section 4 rules
 4. no new local visual pattern is introduced when a canonical one exists
 5. accessibility baseline is preserved (contrast, focus visibility, keyboard navigation)
+6. feedback mapping is explicit and channel-consistent (`inline-action` vs `page-state` vs `global`) with no channel overlap for the same event
+7. every new feedback event is mapped to a row in Section 7 (or explicitly justified as temporary exception)
+8. anti-patterns in Section 8 are not introduced in the touched pages
 
-## 8. Rollout Priority
+## 10. Rollout Priority
 
 Priority order for convergence:
 
-1. Admin Models (highest current drift)
-2. Any additional admin list pages that behave as table indices
-3. Remaining list pages still using ad-hoc table composition
+1. Any additional admin list pages that behave as table indices
+2. Remaining list pages still using ad-hoc table composition
+3. Companion-pattern consistency checks across admin overview surfaces (`/admin`)
 
-## 9. Governance Ownership
+## 11. Governance Ownership
 
 - Owner: Frontend Platform Team
 - Design review support: UX/UI

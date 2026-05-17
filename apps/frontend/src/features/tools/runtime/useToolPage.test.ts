@@ -138,8 +138,16 @@ vi.mock('../runtime/tool-form-architecture', () => ({
   getToolFormConfig: () => mocks.toolConfig,
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'project-001', name: 'Project 001' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../runtime/useToolForm', () => ({
-  useProjectsLoader: () => ({ projects: [{ id: 'project-001', name: 'Project 001' }], loading: false }),
   useToolFormInit: () => ({ formState: mocks.formState, setFormState: mocks.setFormState }),
   useAvailableSteps: () => mocks.availableSteps,
 }));
@@ -337,6 +345,106 @@ describe('useToolPage', () => {
         step: 'optin',
       }),
     );
-    expect(result.current.dispatchError).toContain('terminal_failed:402');
+    expect(result.current.dispatchError).toBe('La generazione non è andata a buon fine. Riprova tra pochi istanti.');
+  });
+
+  it('surfaces stream_empty_output as inline dispatch feedback on terminal failure', async () => {
+    mocks.generation.isStreamActive = true;
+    mocks.generation.streamStatus = 'idle';
+    mocks.generation.snapshot.context.lastRequest = {
+      input: { step: 'optin' },
+    };
+
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    act(() => {
+      mocks.generation.isStreamActive = false;
+      mocks.generation.streamStatus = 'failed';
+      mocks.generation.terminalFailedStep = null;
+      mocks.generation.snapshot.context.errorMessage = 'stream_empty_output';
+    });
+
+    rerender();
+
+    await waitFor(() => {
+      expect(mocks.send).toHaveBeenCalledWith({ type: 'CANCEL_GENERATION' });
+    });
+
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'STEP_FAILED',
+        step: 'optin',
+        message: 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.',
+      }),
+    );
+    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+  });
+
+  it('keeps primary action disabled after invalid extraction and surfaces inline dispatch error', async () => {
+    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
+    mocks.machineSnapshot.context.readiness.canStartFlow = false;
+    mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
+    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
+    mocks.briefingSnapshot.context.error = 'extraction_context_insufficient';
+
+    mocks.generation.isStreamActive = true;
+    mocks.generation.streamStatus = 'idle';
+    mocks.generation.snapshot.context.lastRequest = {
+      input: { step: 'optin' },
+    };
+
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    act(() => {
+      mocks.generation.isStreamActive = false;
+      mocks.generation.streamStatus = 'failed';
+      mocks.generation.terminalFailedStep = null;
+      mocks.generation.snapshot.context.errorMessage = 'stream_empty_output';
+    });
+
+    rerender();
+
+    await waitFor(() => {
+      expect(mocks.send).toHaveBeenCalledWith({ type: 'CANCEL_GENERATION' });
+    });
+
+    expect(result.current.machineViewModel.primaryActionPolicy).toBe('disabled');
+    expect(result.current.readinessSnapshot.canStartFlow).toBe(false);
+    expect(result.current.briefingError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+  });
+
+  it('re-upload recovery: keeps disabled on invalid context and re-enables only after valid context', async () => {
+    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
+    mocks.machineSnapshot.context.readiness.canStartFlow = false;
+    mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
+    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
+    mocks.briefingSnapshot.context.error = 'extraction_context_insufficient';
+    mocks.briefingSnapshot.context.briefingId = 'brief-invalid';
+    mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-invalid';
+    mocks.briefingSnapshot.context.extractionPayload = {};
+    mocks.briefingSnapshot.context.normalizedText = 'brief text';
+    mocks.briefingSnapshot.context.parsedFormat = 'md';
+
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    expect(result.current.machineViewModel.primaryActionPolicy).toBe('disabled');
+    expect(mocks.generation.upsertExtractionContext).not.toHaveBeenCalled();
+
+    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
+    mocks.machineSnapshot.context.readiness.canStartFlow = true;
+    mocks.machineSnapshot.context.readiness.hasExtractionContext = true;
+    mocks.briefingSnapshot.context.error = null;
+    mocks.briefingSnapshot.context.briefingId = 'brief-valid';
+    mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-valid';
+    mocks.briefingSnapshot.context.extractionPayload = { schemaVersion: 'extraction.v1' };
+    mocks.briefingSnapshot.context.normalizedText = 'brief text';
+    mocks.briefingSnapshot.context.parsedFormat = 'md';
+
+    rerender();
+
+    expect(result.current.machineViewModel.primaryActionPolicy).toBe('start-generation');
+    expect(result.current.readinessSnapshot.canStartFlow).toBe(true);
+    expect(result.current.briefingError).toBeNull();
   });
 });

@@ -254,7 +254,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
 
-              {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
+                {/* DispatchError ownership contract:
+                  This message is inline-action only (Setup Panel, adjacent to primary CTA).
+                  It must not be mirrored to the global feedback channel. */}
+                {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
               <ToolActionButtons
                 primaryPolicy={machineViewModel.primaryActionPolicy}

@@ -1,7 +1,7 @@
 ---
 status: approved
-version: 2.1
-last-reviewed: 2026-05-01
+version: 2.2
+last-reviewed: 2026-05-16
 next-review-date: 2026-08-01
 owner: Platform/DevOps
 ---
@@ -13,7 +13,7 @@ owner: Platform/DevOps
 > - [Domain Bounded Context Map](../domain-bounded-context-map.md) — context boundaries and integration points
 
 **Data**: 2026-05-01  
-**Revisione**: 2.1  
+**Revisione**: 2.2  
 **Scope**: Stato deploy Railway corrente, migrazione same-origin private-network e regole operative per evitare regressioni
 
 ---
@@ -240,9 +240,25 @@ CSRF_TRUSTED_ORIGINS=https://<frontend-service>.up.railway.app
 AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=lax
 GOOGLE_REDIRECT_URI=https://<frontend-service>.up.railway.app/auth/google/callback
+# Optional DOCX visual preset for backend download serializers.
+# Supported values: none | classic
+DOCX_DEFAULT_THEME=none
 ```
 
 **ATTENZIONE**: `GOOGLE_REDIRECT_URI` si sposta dall'host backend pubblico all'host frontend. Aggiornare anche negli **Authorized Redirect URIs** del client OAuth su Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (HTTP 400).
+
+### DOCX visual preset governance (download endpoints)
+
+`DOCX_DEFAULT_THEME` selects the default visual theme used by backend DOCX download serialization when no per-call override is passed.
+
+- `none`: semantic-only rendering baseline
+- `classic`: visual preset aligned to the Artifact Detail markdown preview typography and spacing
+
+Source evidence:
+
+- `apps/backend/src/lib/runtime/downloads/docx-theme-config.ts`
+- `apps/backend/src/lib/runtime/downloads/download-serializers.ts`
+- `apps/frontend/src/styles.css` (`.ui-artifact-markdown`)
 
 ### Header proxy — contratto forward
 

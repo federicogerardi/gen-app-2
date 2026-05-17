@@ -52,3 +52,5 @@ description: "Use when creating, updating, reorganizing, archiving, or reviewing
 ## Overlap Control
 - Keep this instruction focused on governance, structure, naming, archive flow, and index/link integrity.
 - Keep content-writing style guidance separate from structural governance rules to avoid instruction overlap.
+- Prefer the smallest coherent documentation change, split large updates into atomic edits, and reuse existing docs or established patterns before introducing new structure.
+- When using `apply_patch`, keep documentation edits atomic per section or paragraph; avoid monolithic substitutions that make patch application brittle.

@@ -1,11 +1,13 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import type { FC, LazyExoticComponent } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
+import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
 import { getEnabledToolKeys } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
+import { PageLoader } from '../ui/PageLoader';
 
 // Lazy load page components for code splitting
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -19,9 +21,12 @@ const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/Artifact
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
+const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
+const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
+const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
 const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
 
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
@@ -40,27 +45,45 @@ const TOOL_ROUTES = getEnabledToolKeys().map((toolKey) => ({
   path: `/tools/${toolKey}`,
   component: toolPageComponents[toolKey],
 }));
-const PageLoader = () => (
-  <div className="route-loader" role="status" aria-live="polite" aria-label="Caricamento pagina">
-    <div className="route-loader__panel">
-      <div className="route-loader__pulse" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <p className="route-loader__eyebrow">Workspace in sync</p>
-      <h2 className="route-loader__title">Sto preparando la prossima schermata</h2>
-      <p className="route-loader__body">
-        Caricamento modulo, stato e contenuti essenziali in corso.
-      </p>
-    </div>
-  </div>
-);
+const lighthouseAdminRouteTargets: Record<string, string> = {
+  users: '/admin/users',
+  models: '/admin/models',
+  changelog: '/admin/changelog',
+  'user-reports': '/admin/user-reports',
+  activity: '/admin/activity',
+};
 
 const AdminLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== '/admin') {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const requestedRoute = params.get('lh-route');
+
+    if (!requestedRoute) {
+      return;
+    }
+
+    const targetPath = lighthouseAdminRouteTargets[requestedRoute];
+
+    if (!targetPath) {
+      return;
+    }
+
+    navigate(targetPath, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+
   return (
     <AdminGuard>
-      <Outlet />
+      <div className="ui-admin-route-layout">
+        <AdminPersistentNavigation />
+        <Outlet />
+      </div>
     </AdminGuard>
   );
 };
@@ -120,15 +143,27 @@ export const createAppRouter = () => createBrowserRouter([
         children: [
           {
             index: true,
+            element: <Suspense fallback={<PageLoader />}><AdminDashboardPage /></Suspense>,
+          },
+          {
+            path: 'users',
             element: <Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>,
           },
           {
-            path: '/admin/models',
+            path: 'models',
             element: <Suspense fallback={<PageLoader />}><AdminModelsPage /></Suspense>,
           },
           {
-            path: '/admin/activity',
+            path: 'activity',
             element: <Suspense fallback={<PageLoader />}><AdminActivityPage /></Suspense>,
+          },
+          {
+            path: 'changelog',
+            element: <Suspense fallback={<PageLoader />}><AdminChangelogPage /></Suspense>,
+          },
+          {
+            path: 'user-reports',
+            element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
           },
         ],
       },

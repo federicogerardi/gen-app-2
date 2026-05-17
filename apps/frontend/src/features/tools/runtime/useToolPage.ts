@@ -12,16 +12,22 @@ import { useMachine, useSelector } from '@xstate/react';
 import type { ActorRefFrom } from 'xstate';
 import { useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { generateRequestId, readInputField } from '../../../app/runtime/shared-utils';
+import {
+  generateRequestId,
+  generateSessionId,
+  readInputField,
+} from '../../../app/runtime/shared-utils';
+import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { briefingUploadMachine } from '../machines/briefing-upload.machine';
+import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { createStepRequest } from '../runtime/tool-generation-engine';
 import { orchestrateToolStep } from '../runtime/tools-client';
-import { useProjectsLoader, useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
+import { useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { extractArtifactStep, readExtractionPayloadFromArtifact } from '../../generation/runtime/step-hydration';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
@@ -75,12 +81,25 @@ const normalizeToneProfile = (tone: string, fallbackTone: string = TONE_PROFILE_
   return match ?? fallbackTone;
 };
 
-const createSessionId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+const mapInlineDispatchError = (reason: string | null | undefined): string | null => {
+  if (!reason) {
+    return null;
   }
 
-  return `sess_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  const normalized = reason.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (normalized === 'extraction_context_insufficient' || normalized === 'stream_empty_output') {
+    return 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.';
+  }
+
+  if (normalized.startsWith('terminal_failed')) {
+    return 'La generazione non è andata a buon fine. Riprova tra pochi istanti.';
+  }
+
+  return normalized;
 };
 
 export const useToolPage = ({
@@ -103,10 +122,12 @@ export const useToolPage = ({
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
+  // DispatchError is local inline-action feedback (Setup Panel). It is intentionally
+  // not published to the global feedback channel to preserve action-local recovery context.
   const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
-  const sessionIdRef = useRef<string>(createSessionId());
+  const sessionIdRef = useRef<string>(generateSessionId());
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const wasStreamActiveRef = useRef(false);
@@ -133,7 +154,11 @@ export const useToolPage = ({
     generation.focusedProjectId ?? initialProjectId ?? undefined,
   );
 
-  const { projects, loading: projectsLoading } = useProjectsLoader();
+  const { data: projects, loading: projectsLoading } = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: auth.session !== null && auth.capabilities.projects,
+  });
 
   const briefingSnapshot = useSelector(
     toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,
@@ -149,7 +174,7 @@ export const useToolPage = ({
       : briefingSnapshot.matches('ready')
         ? 'ready'
         : 'idle';
-  const briefingError = briefingSnapshot.context.error;
+  const briefingError = mapInlineDispatchError(briefingSnapshot.context.error);
   const briefingFileNameFromActor = briefingSnapshot.context.fileName;
   const normalizedProjectId = formState.projectId.trim();
   const workspaceExtractionContext = normalizedProjectId
@@ -185,6 +210,10 @@ export const useToolPage = ({
       normalizedTextFromActor.length === 0 ||
       parsedFormatFromActor === null
     ) {
+      return;
+    }
+
+    if (!isExtractionContextValidForTool(toolKey, extractionPayloadFromActor, normalizedTextFromActor)) {
       return;
     }
 
@@ -473,7 +502,15 @@ export const useToolPage = ({
                 : briefingContextText,
           };
         }
-        if (workspaceExtractionContext !== null) {
+        if (
+          workspaceExtractionContext !== null
+          && briefingSnapshot.context.error !== 'extraction_context_insufficient'
+          && isExtractionContextValidForTool(
+            toolKey,
+            workspaceExtractionContext.extractionPayload,
+            workspaceExtractionContext.normalizedText,
+          )
+        ) {
           return {
             extractionArtifactId: workspaceExtractionContext.extractionArtifactId,
             extractionPayload: workspaceExtractionContext.extractionPayload,
@@ -659,7 +696,8 @@ export const useToolPage = ({
     void (async () => {
       const success = await startGenerationStep(capturedStep);
       if (!success) {
-        // Reset machine to configuring and surface error to user
+        // Reset machine to configuring and surface error inline near the primary action.
+        // Do not duplicate this message in global feedback.
         setDispatchError('Impossibile avviare la generazione. Controlla la connessione e riprova.');
         toolPageSend({ type: 'CANCEL_GENERATION' });
       }
@@ -690,18 +728,20 @@ export const useToolPage = ({
     if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
       toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
     } else if (generation.streamStatus === 'failed') {
-      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'Generazione fallita';
+      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'generation_failed';
+      const readableStreamError = mapInlineDispatchError(streamErrorMessage) ?? 'Generazione fallita';
 
       if (normalizedFailedStep) {
         toolPageSend({
           type: 'STEP_FAILED',
           step: normalizedFailedStep,
-          message: streamErrorMessage,
+          message: readableStreamError,
         });
       }
 
       // Force exit from generating state so the UI does not remain stuck in pending.
-      setDispatchError(streamErrorMessage);
+      // Keep terminal failure feedback inline-action only.
+      setDispatchError(readableStreamError);
       setIsAutoChainEnabled(false);
       currentRunPrefixRef.current = null;
       toolPageSend({ type: 'CANCEL_GENERATION' });
@@ -770,6 +810,7 @@ export const useToolPage = ({
 
     const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    // Clear inline DispatchError before a new dispatch attempt.
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);

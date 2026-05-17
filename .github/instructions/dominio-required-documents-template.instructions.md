@@ -66,3 +66,5 @@ Apply the following minimum structure when creating each missing file.
 - Keep content in English for domain artifacts.
 - Keep term elicitation questions in Italian when interacting with the user.
 - Keep the canonical set stable across workspaces so other agents can rely on fixed DDD references.
+- Prefer minimal, atomic document updates and reuse the existing canonical document set before introducing any new file or template structure.
+- When applying patches, keep each change atomic and localized to one required document block at a time to reduce fail-match risk.

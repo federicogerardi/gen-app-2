@@ -5,6 +5,15 @@ export type BackendCapabilities = {
   sessionsList: boolean;
   sessionsDetail: boolean;
   toolsUpload: boolean;
+  artifactDownload: boolean;
+  sessionDownload: boolean;
+  changelogList: boolean;
+  userReportsCreate: boolean;
+  adminChangelogCreate: boolean;
+  adminChangelogArchive: boolean;
+  adminUserReportsList: boolean;
+  adminUserReportsUpdate: boolean;
+  adminUserReportsPublishIssue: boolean;
 };
 
 const readFlag = (value: string | undefined, fallback = false): boolean => {
@@ -26,6 +35,15 @@ export const readBackendCapabilities = (): BackendCapabilities => {
     sessionsList: readFlag(import.meta.env.VITE_CAP_SESSIONS_LIST as string | undefined, true),
     sessionsDetail: readFlag(import.meta.env.VITE_CAP_SESSIONS_DETAIL as string | undefined, true),
     toolsUpload: readFlag(import.meta.env.VITE_CAP_TOOLS_UPLOAD as string | undefined),
+    artifactDownload: readFlag(import.meta.env.VITE_CAP_ARTIFACT_DOWNLOAD as string | undefined),
+    sessionDownload: readFlag(import.meta.env.VITE_CAP_SESSION_DOWNLOAD as string | undefined),
+    changelogList: readFlag(import.meta.env.VITE_CAP_CHANGELOG_LIST as string | undefined, true),
+    userReportsCreate: readFlag(import.meta.env.VITE_CAP_USER_REPORTS_CREATE as string | undefined, true),
+    adminChangelogCreate: readFlag(import.meta.env.VITE_CAP_ADMIN_CHANGELOG_CREATE as string | undefined, true),
+    adminChangelogArchive: readFlag(import.meta.env.VITE_CAP_ADMIN_CHANGELOG_ARCHIVE as string | undefined, true),
+    adminUserReportsList: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_LIST as string | undefined, true),
+    adminUserReportsUpdate: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_UPDATE as string | undefined, true),
+    adminUserReportsPublishIssue: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_PUBLISH_ISSUE as string | undefined, true),
   };
 };
 
@@ -36,6 +54,15 @@ export const defaultBackendCapabilities: BackendCapabilities = {
   sessionsList: false,
   sessionsDetail: false,
   toolsUpload: false,
+  artifactDownload: false,
+  sessionDownload: false,
+  changelogList: false,
+  userReportsCreate: false,
+  adminChangelogCreate: false,
+  adminChangelogArchive: false,
+  adminUserReportsList: false,
+  adminUserReportsUpdate: false,
+  adminUserReportsPublishIssue: false,
 };
 
 export const resolveBackendCapabilities = (

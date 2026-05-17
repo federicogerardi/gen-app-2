@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { appCopy } from '../copy/system';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -28,6 +29,10 @@ type ListingTableSectionProps<Row> = {
   paginationNode?: ReactNode;
 };
 
+// PageStateMessage ownership contract (Data Table View):
+// - Loading/empty/error must stay local to page-state slots rendered in this section.
+// - Global feedback viewport is reserved for cross-page mutation outcomes and must not
+//   replace these query lifecycle messages.
 export const ListingTableSection = <Row,>({
   title,
   headingLevel = 'h3',
@@ -48,7 +53,7 @@ export const ListingTableSection = <Row,>({
     <section className={uiPrimitives.stack}>
       <HeadingTag>{title}</HeadingTag>
 
-      {loading ? <LoadingStateMessage>Caricamento...</LoadingStateMessage> : null}
+      {loading ? <LoadingStateMessage>{appCopy.ui.states.loadingList}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
 
       {toolbarNode}

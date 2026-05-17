@@ -36,6 +36,15 @@ describe('backend-capabilities', () => {
       sessionsList: true,
       sessionsDetail: true,
       toolsUpload: true,
+      artifactDownload: true,
+      sessionDownload: true,
+      changelogList: true,
+      userReportsCreate: true,
+      adminChangelogCreate: true,
+      adminChangelogArchive: true,
+      adminUserReportsList: true,
+      adminUserReportsUpdate: true,
+      adminUserReportsPublishIssue: true,
     };
     const result = resolveBackendCapabilities(all);
     expect(result).toEqual(all);

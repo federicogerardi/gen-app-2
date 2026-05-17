@@ -6,6 +6,8 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { useMswHandler } from '../../../test/mocks/server';
+import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
+import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
 
 const briefingMachineSeed = vi.hoisted(() => ({
   initialState: 'ready' as 'idle' | 'ready',
@@ -225,13 +227,17 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
 }));
 
+vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
+  useProjectsQuery: () => ({
+    data: [{ id: 'project-001', name: 'Project 001' }],
+    loading: false,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
+
 vi.mock('../runtime/useToolForm', () => {
   return {
-    useProjectsLoader: () => ({
-      projects: [{ id: 'project-001', name: 'Project 001' }],
-      loading: false,
-      error: null,
-    }),
     useToolFormInit: () => ({
       formState: {
         projectId: 'project-001',
@@ -506,6 +512,34 @@ describe('ToolPageTemplate wiring', () => {
       optin: 'optin content',
       quiz: 'quiz content',
     });
+  });
+
+  it('keeps dispatch failure feedback inline and does not emit global feedback', async () => {
+    useMswHandler(
+      http.post('/api/tools/orchestrate', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    render(
+      <FeedbackMessageProvider>
+        <MemoryRouter>
+          <ToolPageTemplate toolKey="funnel-pages" />
+        </MemoryRouter>
+        <GlobalFeedbackViewport />
+      </FeedbackMessageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+
+    expect(
+      await screen.findByText('Impossibile avviare la generazione. Controlla la connessione e riprova.'),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
 });
@@ -1091,12 +1125,12 @@ describe('ToolPageTemplate CTA regression guard', () => {
     expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
   });
 
-  it('non interrompe la chain dopo extraction success se il payload viene arricchito dall artifact', async () => {
+  it('non interrompe la chain dopo extraction success con extraction context valido', async () => {
     briefingMachineSeed.initialState = 'ready';
     briefingMachineSeed.context = {
       ...briefingMachineSeed.context,
       extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: {},
+      extractionPayload: { schemaVersion: 'extraction.v1' },
       normalizedText: 'brief text',
       briefingId: 'brief-001',
     };
@@ -1134,6 +1168,15 @@ describe('ToolPageTemplate CTA regression guard', () => {
   });
 
   it('CTA non rimane bloccata dopo che lo stream torna inattivo', async () => {
+    briefingMachineSeed.initialState = 'ready';
+    briefingMachineSeed.context = {
+      ...briefingMachineSeed.context,
+      extractionArtifactId: 'artifact-extract-001',
+      extractionPayload: { schemaVersion: 'extraction.v1' },
+      normalizedText: 'brief text',
+      briefingId: 'brief-001',
+    };
+
     // Simula stream attivo: click non deve chiamare start
     generationWorkspaceState.isStreamActive = true;
 

@@ -4,12 +4,19 @@ import remarkGfm from 'remark-gfm';
 import { Check, Copy } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import type { DownloadFormat } from '../runtime/download-client';
+import { DownloadFormatDropdown } from './DownloadFormatDropdown';
+
+type DownloadOptions = {
+  onDownload: (format: DownloadFormat) => void;
+};
 
 type ArtifactContentPreviewProps = {
   content: string | null | undefined;
   toolbarLabel?: string;
   panelLabel?: string;
   emptyContentLabel?: string;
+  downloadOptions?: DownloadOptions;
 };
 
 export const ArtifactContentPreview = ({
@@ -17,6 +24,7 @@ export const ArtifactContentPreview = ({
   toolbarLabel = 'Modalita visualizzazione contenuto',
   panelLabel = 'Preview contenuto artifact',
   emptyContentLabel = 'Contenuto non disponibile.',
+  downloadOptions,
 }: ArtifactContentPreviewProps) => {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<'markdown' | 'raw'>('markdown');
@@ -95,6 +103,13 @@ export const ArtifactContentPreview = ({
         >
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>
+        {downloadOptions ? (
+          <DownloadFormatDropdown
+            triggerVariant="icon"
+            disabled={!resolvedContent}
+            onDownload={downloadOptions.onDownload}
+          />
+        ) : null}
       </div>
 
       {viewMode === 'markdown' ? (

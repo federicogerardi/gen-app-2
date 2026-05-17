@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type * as React from 'react';
-import { Link, MemoryRouter, Outlet, Route, RouterProvider, Routes, useNavigate } from 'react-router-dom';
+import { Link, Outlet, RouterProvider, useNavigate } from 'react-router-dom';
 import { createAppRouter } from './app-router';
 
 // Minimal stubs for route smoke tests
@@ -19,6 +19,16 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
   AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('../../app/providers/FeedbackMessageProvider', () => ({
+  useFeedbackMessage: () => ({
+    messages: [],
+    publishSuccess: vi.fn(),
+    publishError: vi.fn(),
+    dismiss: vi.fn(),
+    dismissAll: vi.fn(),
+  }),
+}));
+
 vi.mock('../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
   GenerationWorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -34,6 +44,26 @@ vi.mock('../layouts/PublicShell', () => ({
 
 vi.mock('../../features/admin/routing/admin-guard', () => ({
   AdminGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../features/admin/pages/AdminUsersPage', () => ({
+  AdminUsersPage: () => <h1>Admin users</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminModelsPage', () => ({
+  AdminModelsPage: () => <h1>Admin models</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminChangelogPage', () => ({
+  AdminChangelogPage: () => <h1>Admin changelog</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminUserReportsPage', () => ({
+  AdminUserReportsPage: () => <h1>Admin user reports</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminActivityPage', () => ({
+  AdminActivityPage: () => <h1>Attività recente</h1>,
 }));
 
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
@@ -69,47 +99,6 @@ vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
   SessionSummaryDetailPage: () => <div data-testid="sessionsummary-detail">SessionSummary detail loaded</div>,
 }));
 
-const PlaceholderPage = ({ label }: { label: string }) => <div data-testid="page">{label}</div>;
-
-describe('app router – smoke', () => {
-  const renderAt = (path: string, label: string) =>
-    render(
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path={path} element={<PlaceholderPage label={label} />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-  it.each([
-    ['/dashboard', 'Dashboard'],
-    ['/dashboard/projects', 'Projects'],
-    ['/dashboard/projects/new', 'NewProject'],
-    ['/tools/funnel-pages', 'FunnelPages'],
-    ['/tools/youtube-lf-script', 'YoutubeLfScript'],
-    ['/sessionsummary', 'SessionSummary'],
-    ['/artifacts', 'Artifacts'],
-    ['/admin', 'Admin'],
-  ])('renders placeholder at %s', (path, label) => {
-    renderAt(path, label);
-    expect(screen.getByTestId('page')).toHaveTextContent(label);
-  });
-
-  it('redirects unauthenticated user away from protected route', () => {
-    // AuthenticatedShell renders <Navigate to="/" when session is null
-    render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <Routes>
-          <Route path="/" element={<div data-testid="login">login</div>} />
-          <Route path="/dashboard" element={<div data-testid="dash">dash</div>} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    // Without a guard wrapper we verify only that the router resolves; the real
-    // guard is tested in AuthenticatedShell's own render path.
-    expect(screen.getByTestId('dash')).toBeInTheDocument();
-  });
-});
 
 describe('app router – integration', () => {
   it('follows SPA flow tool completed -> CTA -> artifacts listing', async () => {
@@ -145,6 +134,33 @@ describe('app router – integration', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByTestId('sessionsummary-detail')).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('renders the admin dashboard at /admin', async () => {
+    window.history.pushState({}, '', '/admin');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it.each([
+    ['/admin?lh-route=users', /admin users/i, '/admin/users'],
+    ['/admin?lh-route=models', /admin models/i, '/admin/models'],
+    ['/admin?lh-route=changelog', /admin changelog/i, '/admin/changelog'],
+    ['/admin?lh-route=user-reports', /admin user reports/i, '/admin/user-reports'],
+    ['/admin?lh-route=activity', /attività recente/i, '/admin/activity'],
+  ])('resolves lighthouse seed route %s to target admin section', async (entryPath, headingName, expectedPathname) => {
+    window.history.pushState({}, '', entryPath);
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: headingName })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(expectedPathname);
     router.dispose();
   });
 });

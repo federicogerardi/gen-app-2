@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { AuthSessionProvider } from './app/providers/AuthSessionProvider';
+import { FeedbackMessageProvider } from './app/providers/FeedbackMessageProvider';
 import { uiRolloutMode } from './app/runtime/ui-rollout';
 import { createAppRouter } from './app/routing/app-router';
 import { GenerationWorkspaceProvider } from './features/generation/runtime/GenerationWorkspaceProvider';
@@ -19,7 +20,9 @@ export const App = () => {
       <CssBaseline />
       <AuthSessionProvider>
         <GenerationWorkspaceProvider>
-          <RouterProvider router={router} />
+          <FeedbackMessageProvider>
+            <RouterProvider router={router} />
+          </FeedbackMessageProvider>
         </GenerationWorkspaceProvider>
       </AuthSessionProvider>
     </ThemeProvider>

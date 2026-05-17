@@ -4,18 +4,18 @@ import { normalizeStepKey, normalizeToolWorkflowKey } from '../workflow-normaliz
 
 const PROMPT_FILE_BY_KEY = {
   extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
-  'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script-extraction.md',
+  'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_extraction.md',
   'funnel-pages:optin': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md',
   'funnel-pages:quiz': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md',
   'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
   'nextland:landing': 'src/lib/runtime/tool-prompts/nextland/prompt_landing_generator.md',
   'nextland:thank_you': 'src/lib/runtime/tool-prompts/nextland/prompt_thank_you_generator.md',
-  'youtube-lf-script:pre-script-analysis': 'src/lib/runtime/tool-prompts/youtube-lf-script-pre-script-analysis.md',
-  'youtube-lf-script:packaging': 'src/lib/runtime/tool-prompts/youtube-lf-script-packaging.md',
-  'youtube-lf-script:intro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-intro-structure.md',
-  'youtube-lf-script:body-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-body-structure.md',
-  'youtube-lf-script:native-cta-embeds': 'src/lib/runtime/tool-prompts/youtube-lf-script-native-cta-embeds.md',
-  'youtube-lf-script:outro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script-outro-structure.md',
+  'youtube-lf-script:pre-script-analysis': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_pre_script_analysis.md',
+  'youtube-lf-script:packaging': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_packaging.md',
+  'youtube-lf-script:intro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_intro_structure.md',
+  'youtube-lf-script:body-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_body_structure.md',
+  'youtube-lf-script:native-cta-embeds': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_native_cta_embeds.md',
+  'youtube-lf-script:outro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_outro_structure.md',
 } as const;
 
 const promptCache = new Map<string, string>();

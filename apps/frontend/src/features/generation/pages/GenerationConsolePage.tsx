@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { appCopy } from '../../../app/copy/system';
 import { GenerationForm } from '../ui/GenerationForm';
 import { GenerationStreamPanel } from '../ui/GenerationStreamPanel';
 import { ArtifactHistoryPanel } from '../ui/ArtifactHistoryPanel';
@@ -12,7 +11,7 @@ import {
 import { useGenerationWorkspace } from '../runtime/GenerationWorkspaceProvider';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { uiPrimitives } from '../../../app/ui/primitives';
-import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
+import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import {
   buildToolEntryPathFromArtifact,
   type GenerationArtifact,
@@ -22,9 +21,11 @@ export const GenerationConsolePage = () => {
   const navigate = useNavigate();
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [projectsLoading, setProjectsLoading] = useState(true);
-  const [projectsError, setProjectsError] = useState<string | null>(null);
+  const projectsQuery = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: !!auth.session && auth.capabilities.projects,
+  });
 
   const [, setToolSetupState] = useState<{
     phase: ToolPhase;
@@ -45,49 +46,6 @@ export const GenerationConsolePage = () => {
     checkpointHasExtractionContext: false,
     hasSourceArtifact: false,
   });
-
-  useEffect(() => {
-    if (!auth.session || !auth.capabilities.projects) {
-      setProjects([]);
-      setProjectsLoading(false);
-      setProjectsError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setProjectsLoading(true);
-
-    void (async () => {
-      try {
-        const nextProjects = await listProjects({
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        setProjects(nextProjects);
-        setProjectsError(null);
-      } catch (loadError) {
-        if (cancelled) {
-          return;
-        }
-
-        setProjects([]);
-        setProjectsError(loadError instanceof Error ? loadError.message : appCopy.ui.fallbackErrors.loadProjects);
-      } finally {
-        if (!cancelled) {
-          setProjectsLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
 
   if (!auth.session) {
     return null;
@@ -110,9 +68,9 @@ export const GenerationConsolePage = () => {
         <GenerationForm
           userId={auth.session.user.id}
           toolsUploadEnabled={auth.capabilities.toolsUpload}
-          projectOptions={projects.map((project) => ({ id: project.id, name: project.name }))}
-          projectsLoading={projectsLoading}
-          projectsError={projectsError}
+          projectOptions={projectsQuery.data.map((project) => ({ id: project.id, name: project.name }))}
+          projectsLoading={projectsQuery.loading}
+          projectsError={projectsQuery.error}
           disabled={generation.isStreamActive}
           checkpoints={generation.checkpoints}
           prefillProjectId={generation.focusedProjectId}

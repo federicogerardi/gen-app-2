@@ -25,6 +25,33 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
   2. Reuse canonical UI terms from the spec in analysis, PR notes, and updated docs.
   3. If the screen is tabular, align behavior and composition with the `Data Table View` + canonical table standard.
   4. If the screen diverges from the canonical archetype, treat it as drift and document convergence in the same change.
+  5. Avoid nested cards by default. Use nested cards only when strictly necessary for semantic grouping that cannot be expressed with spacing, dividers, or typography. Card nesting increases cognitive load and visually weights layouts.
+
+## Dependency And Lockfile Determinism Gate (Deploy Safety)
+- This gate is mandatory whenever dependency manifests are changed, including any edit under:
+  - `package.json`
+  - `package-lock.json`
+  - `apps/*/package.json`
+  - `apps/*/package-lock.json`
+  - `packages/*/package.json`
+- Never hand-edit lockfiles. Regenerate lockfiles only through npm commands.
+- If dependencies change in any workspace package, update lockfiles in the same change so `npm ci` remains deterministic in CI/CD.
+
+### Required Command Sequence After Dependency Changes
+Run these commands from workspace root and ensure all succeed before considering the task complete:
+1. `npm install --workspaces --include-workspace-root`
+2. `npm ci`
+3. `npm ci --workspaces --include-workspace-root`
+4. `npm --workspace apps/frontend run build`
+
+### Additional Rules For This Repository
+- Keep both lockfiles in sync when dependency graphs change:
+  - root lockfile: `package-lock.json`
+  - frontend lockfile: `apps/frontend/package-lock.json`
+- Validate the exact install strategy used by Dockerfiles:
+  - frontend image path must pass `npm ci` from root before frontend build
+  - root image path must pass `npm ci --workspaces --include-workspace-root`
+- If `npm ci` reports "package.json and package-lock.json are not in sync", stop and regenerate lockfiles via `npm install` (never patch lockfiles manually).
 
 ## Code Analysis Gate
 - Before analyzing TypeScript/React code, identify which bounded context owns the file being analyzed.
@@ -38,6 +65,11 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
   2. If no canonical term exists, create a `DDD-NNN` entry in `domain-naming-decision-log.md` first.
   3. Apply the canonical term in the code change.
   4. Add a backward-compat alias if the old name is referenced by other code (deprecated, 1 cycle).
+- Prefer the smallest coherent change that solves one concern at a time; avoid monolithic implementations that bundle unrelated behavior into one block.
+- Prefer unifying duplicate or overlapping logic into a single authoritative path when the concepts are the same.
+- Prefer atomized helpers, modules, and components over large all-in-one structures when the split improves clarity and reuse.
+- Reuse existing libraries, adapters, utilities, and workspace patterns before introducing a new dependency or custom implementation.
+- When editing files with `apply_patch`, prefer atomic hunks that touch one concern at a time; avoid monolithic replacement blocks that increase fail-match risk.
 - Never introduce synonyms for existing canonical terms (e.g., do not use `BriefingContext` where `ExtractionContext` is canonical).
 - Deprecated aliases (prefixed with `ToolPage*`, `Tool*`, `Stream*`) must not be promoted to primary definitions.
 

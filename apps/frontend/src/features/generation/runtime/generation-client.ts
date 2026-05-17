@@ -33,6 +33,16 @@ export type StreamGenerationOptions = {
   onEvent: (event: BackendStreamEvent) => void;
 };
 
+export const mapBackendFailureReasonToUserMessage = (reason: string): string => {
+  const normalized = reason.trim();
+
+  if (normalized === 'stream_empty_output' || normalized === 'extraction_context_insufficient') {
+    return 'The uploaded brief does not provide enough actionable context.';
+  }
+
+  return normalized;
+};
+
 export const normalizeTransportError = (error: unknown): GenerationTransportError => {
   if (error instanceof GenerationTransportError) {
     return error;
@@ -104,9 +114,17 @@ export const streamGeneration = async (
       if (event.event === 'terminal') {
         terminalSeen = true;
         if (event.data.status === 'failed') {
+            const rawReason = event.data.reason ?? 'Terminal failed';
+            const mappedReason = mapBackendFailureReasonToUserMessage(rawReason);
+            if (mappedReason !== rawReason) {
+              console.debug('[generation-client] mapped backend failure reason', {
+                rawReason,
+                mappedReason,
+              });
+            }
           throw new GenerationTransportError(
             'terminal_failed',
-            event.data.reason ?? 'Terminal failed',
+              mappedReason,
             false,
           );
         }

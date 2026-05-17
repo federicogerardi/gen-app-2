@@ -3,9 +3,7 @@
  * Extracted from FunnelPagesToolPage and NextlandToolPage
  */
 
-import { useMemo, useState, useEffect } from 'react';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { listProjects, type ProjectSummary } from '../../projects/runtime/projects-client';
+import { useMemo, useState } from 'react';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import {
   getToolFormConfig,
@@ -13,59 +11,6 @@ import {
   validateToolForm,
   type ToolFormState,
 } from './tool-form-architecture';
-
-
-/**
- * Hook: Load projects for the authenticated user
- * Shared across all tool pages
- */
-export const useProjectsLoader = () => {
-  const auth = useAuthSession();
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!auth.session || !auth.capabilities.projects) {
-      setProjects([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    void (async () => {
-      try {
-        const nextProjects = await listProjects({
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
-        });
-
-        if (cancelled) return;
-
-        setProjects(nextProjects);
-        setError(null);
-      } catch (loadError) {
-        if (cancelled) return;
-
-        setProjects([]);
-        setError(loadError instanceof Error ? loadError.message : 'Unable to load projects');
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
-
-  return { projects, loading, error };
-};
 
 /**
  * Hook: Initialize form with tool defaults

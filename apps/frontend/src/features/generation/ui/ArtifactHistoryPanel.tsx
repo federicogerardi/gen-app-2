@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@mui/material';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { Surface, cx, uiPrimitives } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import {
   filterArtifacts,
   type ArtifactFilters,
@@ -119,7 +120,7 @@ export const ArtifactHistoryPanel = ({
               onClick={() => setSelectedArtifactId(artifact.artifactId)}
             >
               <strong>{artifact.artifactType}</strong>
-              <span>{artifact.status}</span>
+              <StatusBadge status={artifact.status} />
               <span>{artifact.model}</span>
               <span>{new Date(artifact.updatedAt).toLocaleString()}</span>
             </button>
@@ -134,7 +135,7 @@ export const ArtifactHistoryPanel = ({
               <h3>{appCopy.editorial.generation.artifactDetailTitle}</h3>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.artifactId, selectedArtifact.artifactId)}</p>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.projectId, selectedArtifact.projectId)}</p>
-              <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.labels.status.toLowerCase(), selectedArtifact.status)}</p>
+              <p className={uiPrimitives.metaLine}><span>{appCopy.ui.labels.status}: </span><StatusBadge status={selectedArtifact.status} /></p>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.labels.type.toLowerCase(), selectedArtifact.artifactType)}</p>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.model, selectedArtifact.model)}</p>
               <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.updated, new Date(selectedArtifact.updatedAt).toLocaleString())}</p>

@@ -150,6 +150,23 @@ const createYoutubeToolPageActor = () => {
   return actor;
 };
 
+const createNextlandToolPageActor = () => {
+  const actor = createActor(toolPageMachine, {
+    input: {
+      toolKey: 'nextland',
+      projectId: 'project-1',
+      model: 'openrouter/auto',
+      registrySnapshotRef: 'snapshot:default',
+      apiBaseUrl: '',
+      capabilities: { toolsUpload: true },
+      userId: 'user-1',
+    },
+  });
+
+  actor.start();
+  return actor;
+};
+
 // Phase 3: syncCanStartFlow non passa più boolean readiness — la macchina li deriva internamente.
 // Il briefing actor dev'essere in stato ready (via BRIEFING_FILE_SELECTED) prima di chiamare questa helper.
 const syncCanStartFlow = (actor: ReturnType<typeof createToolPageActor>) => {
@@ -468,6 +485,125 @@ describe('toolPageMachine', () => {
     });
 
     expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(false);
+  });
+
+  it('enables hasExtractionContext for valid funnel-pages extraction context', () => {
+    const actor = createToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-funnel-valid',
+      payload: { schemaVersion: 'extraction.v1' },
+      briefingId: 'brief-funnel-valid',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(true);
+  });
+
+  it('keeps hasExtractionContext=false for invalid nextland extraction context', () => {
+    const actor = createNextlandToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-nextland-invalid',
+      payload: {},
+      briefingId: 'brief-nextland-invalid',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(false);
+    expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(false);
+  });
+
+  it('enables hasExtractionContext for valid youtube-lf-script extraction context', () => {
+    const actor = createYoutubeToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-youtube-valid',
+      payload: {
+        knowledge_content: 'Knowledge',
+        avatar: 'Avatar',
+        pain_point: 'Pain point',
+        offer: 'Offer',
+        proof: 'Proof',
+      },
+      briefingId: 'brief-youtube-valid',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(true);
+    expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(true);
+  });
+
+  it('keeps hasExtractionContext=false when briefing actor is ready with empty payload', () => {
+    const actor = createToolPageActor();
+
+    actor.send({
+      type: 'BRIEFING_FILE_SELECTED',
+      file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
+    });
+
+    actor.send({
+      type: 'BRIEFING_RESET',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    // Simula un recovery con context semanticamente vuoto (payload senza segnali utili).
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-empty',
+      payload: {},
+      briefingId: 'brief-empty',
+      normalizedText: 'brief text',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(actor.getSnapshot().context.readiness.hasExtractionContext).toBe(false);
+    expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(false);
   });
 
   it('blocks START_GENERATION when readiness is true but policy is not startable', () => {

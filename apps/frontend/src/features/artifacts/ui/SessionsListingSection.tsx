@@ -6,11 +6,11 @@ import {
   cx,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import type { SessionSummary } from '../../tools/runtime/session-client';
 
 const pageSize = 10;
 
@@ -30,12 +30,6 @@ const normalizeFixedProjectId = (projectId: string | undefined): string | null =
 
   const trimmed = projectId.trim();
   return trimmed.length > 0 ? trimmed : null;
-};
-
-const statusLabel = (status: SessionSummary['status']): string => {
-  if (status === 'generating') return 'In corso';
-  if (status === 'failed') return 'Con errore';
-  return 'Completata';
 };
 
 const toolLabel = (toolKey: string | null): string => {
@@ -122,7 +116,7 @@ export const SessionsListingSection = ({
           ?? 'Progetto non disponibile';
 
         if (columnKey === 'tool') return <strong>{toolLabel(session.toolKey)}</strong>;
-        if (columnKey === 'status') return statusLabel(session.status);
+        if (columnKey === 'status') return <StatusBadge status={session.status} />;
         if (columnKey === 'project') return resolvedProjectName;
         if (columnKey === 'output') return `${session.artifactCount} ${appCopy.editorial.sessions.artifactCountLabel}`;
         if (columnKey === 'updated') return new Date(session.updatedAt).toLocaleString();

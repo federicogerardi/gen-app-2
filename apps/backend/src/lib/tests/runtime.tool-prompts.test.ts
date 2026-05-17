@@ -71,7 +71,7 @@ test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
   });
 
   assert.ok(resolved);
-  assert.match(resolved.filePath, /youtube-lf-script-pre-script-analysis\.md$/);
+  assert.match(resolved.filePath, /prompt_pre_script_analysis\.md$/);
   assert.match(resolved.prompt, /Step Key/i);
 });
 
@@ -92,5 +92,5 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
   });
 
   const input = event.input as Record<string, unknown>;
-  assert.match(String(input.resolvedPromptSource), /youtube-lf-script-extraction\.md$/);
+  assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
 });

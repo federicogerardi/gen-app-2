@@ -250,6 +250,33 @@ test('generation root extraction flow persists as extraction artifact with struc
   assert.equal(typeof extraction?.payload, 'object');
 });
 
+test('generation extraction fails with validation_failed when semantic extraction output is empty', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-extraction-empty-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'extraction',
+      model: 'gpt-5.3-codex',
+      briefingId: 'briefing-empty-001',
+      input: {
+        prompt: '',
+        briefingText: '   ',
+      },
+      workflowType: 'extraction',
+      idempotencyKey: 'idem-root-extraction-empty-001',
+      registrySnapshotRef: 'snapshot:root-extraction-empty',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error?.code, 'validation_failed');
+  assert.equal(result.error?.message, 'Extraction context is insufficient for the selected tool');
+});
+
 test('generation root tool flow completes from invoke input bootstrap', async () => {
   const adapters = createInMemoryGenerationAdapters();
 

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listEnabledModels,
   type LlmModelOption,
 } from '../../../features/tools/runtime/models-client';
+import { useAsyncQuery } from './useAsyncQuery';
 
 type UseModelsQueryOptions = {
   apiBaseUrl: string;
@@ -19,64 +20,17 @@ type UseModelsQueryResult = {
 };
 
 export const useModelsQuery = (options: UseModelsQueryOptions): UseModelsQueryResult => {
-  const [data, setData] = useState<LlmModelOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const dependencyKey = JSON.stringify([options.apiBaseUrl, options.capabilities]);
+  const query = useCallback(() => listEnabledModels({
+    apiBaseUrl: options.apiBaseUrl,
+    capabilities: options.capabilities as BackendCapabilities,
+  }), [options.apiBaseUrl, options.capabilities]);
 
-  const reload = useCallback(() => {
-    setReloadToken((prev) => prev + 1);
-  }, []);
-
-  const apiBaseUrl = options.apiBaseUrl;
-  const capabilitiesKey = JSON.stringify(options.capabilities);
-  const enabledRef = useRef(options.enabled);
-  enabledRef.current = options.enabled;
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (enabledRef.current === false) {
-      setData([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    void (async () => {
-      try {
-        const models = await listEnabledModels({
-          apiBaseUrl,
-          capabilities: JSON.parse(capabilitiesKey) as BackendCapabilities,
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        setData(models);
-        setError(null);
-      } catch (loadError) {
-        if (cancelled) {
-          return;
-        }
-
-        setData([]);
-        const message = loadError instanceof Error ? loadError.message : 'Unable to load models';
-        setError(message);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiBaseUrl, capabilitiesKey, reloadToken]);
-
-  return { data, loading, error, reload };
+  return useAsyncQuery<LlmModelOption[]>({
+    enabled: options.enabled ?? true,
+    emptyData: [],
+    errorMessage: 'Unable to load models',
+    dependencyKey,
+    query,
+  });
 };

@@ -37,9 +37,9 @@ export const AdminUserReportsTableActions = ({
         Chiudi
       </button>
 
-      {publishedIssueUrl ? (
+      {(row.githubIssueUrl ?? publishedIssueUrl) ? (
         <a
-          href={publishedIssueUrl}
+          href={(row.githubIssueUrl ?? publishedIssueUrl)!}
           target="_blank"
           rel="noopener noreferrer"
           className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}

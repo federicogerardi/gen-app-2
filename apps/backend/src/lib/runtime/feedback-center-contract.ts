@@ -28,6 +28,7 @@ export type UserReportDto = {
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  githubIssueUrl: string | null;
 };
 
 export type GitHubIssueLinkDto = {

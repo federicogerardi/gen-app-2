@@ -9,7 +9,10 @@ import {
 } from '../types/feedback-center';
 
 const SELECT_COLS =
-  'id, category, status, title, description, created_by_user_id, triaged_by_user_id, triaged_at, closed_at, created_at, updated_at';
+  'ur.id, ur.category, ur.status, ur.title, ur.description, ur.created_by_user_id, ur.triaged_by_user_id, ur.triaged_at, ur.closed_at, ur.created_at, ur.updated_at, gl.issue_url AS github_issue_url';
+
+const SELECT_COLS_NO_ALIAS =
+  'id, category, status, title, description, created_by_user_id, triaged_by_user_id, triaged_at, closed_at, created_at, updated_at, NULL::text AS github_issue_url';
 
 export const createUserReport = async (
   db: Pool,
@@ -27,7 +30,7 @@ export const createUserReport = async (
     const result = await db.query<UserReportRow>(
       `INSERT INTO user_reports (id, category, status, title, description, created_by_user_id)
        VALUES ($1, $2, 'submitted', $3, $4, $5)
-       RETURNING ${SELECT_COLS}`,
+       RETURNING ${SELECT_COLS_NO_ALIAS}`,
       [reportId, payload.category, payload.title, payload.description, payload.createdByUserId],
     );
     console.debug('[createUserReport] Query executed, rows returned:', result.rows.length);
@@ -47,8 +50,9 @@ export const createUserReport = async (
 export const getUserReportById = async (db: Pool, id: string): Promise<UserReport | null> => {
   const result = await db.query<UserReportRow>(
     `SELECT ${SELECT_COLS}
-     FROM user_reports
-     WHERE id = $1`,
+     FROM user_reports ur
+     LEFT JOIN user_report_github_links gl ON gl.user_report_id = ur.id
+     WHERE ur.id = $1`,
     [id],
   );
   const row = result.rows[0];
@@ -63,19 +67,20 @@ export const listUserReports = async (
   const values: unknown[] = [];
   let idx = 1;
   if (filters?.status) {
-    clauses.push(`status = $${idx++}`);
+    clauses.push(`ur.status = $${idx++}`);
     values.push(filters.status);
   }
   if (filters?.category) {
-    clauses.push(`category = $${idx++}`);
+    clauses.push(`ur.category = $${idx++}`);
     values.push(filters.category);
   }
   const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
   const result = await db.query<UserReportRow>(
     `SELECT ${SELECT_COLS}
-     FROM user_reports
+     FROM user_reports ur
+     LEFT JOIN user_report_github_links gl ON gl.user_report_id = ur.id
      ${whereClause}
-     ORDER BY created_at DESC`,
+     ORDER BY ur.created_at DESC`,
     values,
   );
   return result.rows.map(rowToUserReport);
@@ -100,7 +105,7 @@ export const updateUserReportStatus = async (
     `UPDATE user_reports
      SET ${setClauses.join(', ')}
      WHERE id = $1
-     RETURNING ${SELECT_COLS}`,
+     RETURNING ${SELECT_COLS_NO_ALIAS}`,
     [payload.id, payload.status, payload.actedByUserId],
   );
   const row = result.rows[0];

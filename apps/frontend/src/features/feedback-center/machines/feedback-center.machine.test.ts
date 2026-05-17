@@ -18,6 +18,7 @@ const createActors = (overrides: Partial<FeedbackCenterMachineActors> = {}): Fee
       closedAt: null,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:00:00.000Z',
+      githubIssueUrl: null,
     },
   }),
   publishProductChangelog: async (command) => ({
@@ -48,6 +49,7 @@ const createActors = (overrides: Partial<FeedbackCenterMachineActors> = {}): Fee
       closedAt: command.status === 'closed' ? '2026-05-16T10:10:00.000Z' : null,
       createdAt: '2026-05-16T10:00:00.000Z',
       updatedAt: '2026-05-16T10:10:00.000Z',
+      githubIssueUrl: null,
     },
   }),
   publishUserReportIssue: async (reportId) => ({

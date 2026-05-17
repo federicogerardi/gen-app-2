@@ -44,6 +44,7 @@ export type UserReport = {
   closedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  githubIssueUrl: string | null;
 };
 
 export type UserReportRow = {
@@ -58,6 +59,7 @@ export type UserReportRow = {
   closed_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  github_issue_url: string | null;
 };
 
 export type UserReportGithubLink = {
@@ -104,6 +106,7 @@ export const rowToUserReport = (row: UserReportRow): UserReport => ({
   closedAt: row.closed_at,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  githubIssueUrl: row.github_issue_url ?? null,
 });
 
 export const rowToUserReportGithubLink = (row: UserReportGithubLinkRow): UserReportGithubLink => ({

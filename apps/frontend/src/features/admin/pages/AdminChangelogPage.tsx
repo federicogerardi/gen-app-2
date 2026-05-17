@@ -16,6 +16,8 @@ import type { ProductChangelogDto } from '../../feedback-center/contracts/feedba
 import {
   createProductChangelog,
   listPublishedProductChangelog,
+  listAdminProductChangelog,
+  archiveProductChangelog,
 } from '../../feedback-center/runtime/feedback-center-client';
 
 const CHANGELOG_COLUMNS: ListingTableColumn[] = [
@@ -23,6 +25,7 @@ const CHANGELOG_COLUMNS: ListingTableColumn[] = [
   { key: 'status', header: 'Stato' },
   { key: 'publishedAt', header: 'Pubblicato il' },
   { key: 'updatedAt', header: 'Aggiornato il' },
+  { key: 'actions', header: 'Azioni' },
 ];
 
 const formatDateTime = (value: string | null): string => {
@@ -45,6 +48,8 @@ export const AdminChangelogPage = () => {
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const isAdmin = auth.session?.user.role === 'admin';
 
   const listPublishedChangelogQuery = useCallback(async (): Promise<ProductChangelogDto[]> => {
@@ -60,12 +65,25 @@ export const AdminChangelogPage = () => {
     return result.data;
   }, [auth.apiBaseUrl, auth.capabilities]);
 
+  const listAdminChangelogQuery = useCallback(async (): Promise<ProductChangelogDto[]> => {
+    const result = await listAdminProductChangelog({
+      apiBaseUrl: auth.apiBaseUrl,
+      capabilities: auth.capabilities,
+    });
+
+    if (!result.ok) {
+      throw new Error(result.error.message);
+    }
+
+    return result.data;
+  }, [auth.apiBaseUrl, auth.capabilities]);
+
   const changelogQuery = useAsyncQuery<ProductChangelogDto[]>({
     enabled: true,
     emptyData: [],
     errorMessage: 'Unable to load changelog',
-    dependencyKey: JSON.stringify([auth.apiBaseUrl, auth.capabilities]),
-    query: listPublishedChangelogQuery,
+    dependencyKey: JSON.stringify([auth.apiBaseUrl, auth.capabilities, showArchived]),
+    query: showArchived ? listAdminChangelogQuery : listPublishedChangelogQuery,
   });
 
   const handlePublish = async () => {
@@ -110,6 +128,33 @@ export const AdminChangelogPage = () => {
     }
   };
 
+  const handleArchiveChangelog = async (changelogId: string) => {
+    setBusyAction(`archive:${changelogId}`);
+    try {
+      const result = await archiveProductChangelog(
+        changelogId,
+        {
+          apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+        },
+      );
+
+      if (!result.ok) {
+        publishError(result.error.message, { dedupeKey: `admin-changelog:archive:${changelogId}:error` });
+        return;
+      }
+
+      publishSuccess('Voce changelog archiviata.', { dedupeKey: `admin-changelog:archive:${changelogId}:success` });
+      changelogQuery.reload();
+    } catch {
+      publishError('Impossibile archiviare la voce changelog.', {
+        dedupeKey: `admin-changelog:archive:${changelogId}:unexpected-error`,
+      });
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
   return (
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
@@ -126,8 +171,16 @@ export const AdminChangelogPage = () => {
           <button
             type="button"
             className={uiPrimitives.button}
+            onClick={() => setShowArchived(!showArchived)}
+            disabled={changelogQuery.loading}
+          >
+            {showArchived ? 'Nascondi archiviate' : 'Mostra archiviate'}
+          </button>
+          <button
+            type="button"
+            className={uiPrimitives.button}
             onClick={() => changelogQuery.reload()}
-            disabled={changelogQuery.loading || isPublishing}
+            disabled={changelogQuery.loading || isPublishing || busyAction !== null}
           >
             Aggiorna tabella
           </button>
@@ -201,7 +254,20 @@ export const AdminChangelogPage = () => {
             return formatDateTime(row.publishedAt);
           }
 
-          return formatDateTime(row.updatedAt);
+          if (columnKey === 'updatedAt') {
+            return formatDateTime(row.updatedAt);
+          }
+
+          return (
+            <button
+              type="button"
+              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
+              onClick={() => void handleArchiveChangelog(row.id)}
+              disabled={busyAction !== null}
+            >
+              Archiva
+            </button>
+          );
         }}
       />
     </Surface>

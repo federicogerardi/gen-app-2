@@ -22,6 +22,7 @@ export {
 export {
   createProductChangelog,
   publishProductChangelog,
+  archiveProductChangelog,
   listPublishedProductChangelogs,
   listProductChangelogs,
 } from './product-changelog.adapter';

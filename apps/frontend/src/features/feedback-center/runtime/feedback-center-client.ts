@@ -333,3 +333,65 @@ export const listPublishedProductChangelog = async (
     return buildFailure(error, 'Unable to list published changelog');
   }
 };
+
+export const listAdminProductChangelog = async (
+  options: FeedbackCenterClientOptions = {},
+): Promise<FeedbackCenterClientResult<ProductChangelogDto[]>> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const path = buildApiPaths(capabilities).feedback.adminChangelogListAll;
+
+  if (!path) {
+    return buildCapabilityDisabledFailure('Admin changelog listing is disabled by capability flag.');
+  }
+
+  try {
+    const payload = await requestJson<
+      FeedbackCenterSuccessEnvelope<{ changelogs: ProductChangelogDto[] }> | FeedbackCenterErrorEnvelope
+    >(joinApiPath(options.apiBaseUrl ?? '', path), {
+      method: 'GET',
+      credentials: 'include',
+    });
+
+    const result = readSuccessData(payload, 'Unable to list admin changelog');
+    if (!result.ok) {
+      return result;
+    }
+
+    return { ok: true, data: result.data.changelogs };
+  } catch (error) {
+    return buildFailure(error, 'Unable to list admin changelog');
+  }
+};
+
+export const archiveProductChangelog = async (
+  changelogId: string,
+  options: FeedbackCenterClientOptions = {},
+): Promise<FeedbackCenterClientResult<ProductChangelogDto>> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const pathFn = buildApiPaths(capabilities).feedback.adminChangelogArchive;
+  const path = pathFn(changelogId);
+
+  if (!path) {
+    return buildCapabilityDisabledFailure('Admin changelog archival is disabled by capability flag.');
+  }
+
+  try {
+    const payload = await requestJson<
+      FeedbackCenterSuccessEnvelope<{ changelog: ProductChangelogDto }> | FeedbackCenterErrorEnvelope
+    >(joinApiPath(options.apiBaseUrl ?? '', path), {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+
+    const result = readSuccessData(payload, 'Unable to archive changelog entry');
+    if (!result.ok) {
+      return result;
+    }
+
+    return { ok: true, data: result.data.changelog };
+  } catch (error) {
+    return buildFailure(error, 'Unable to archive changelog entry');
+  }
+};

@@ -7,7 +7,7 @@ import {
 } from '../types/feedback-center';
 
 const SELECT_COLS =
-  'id, title, body, status, created_by_user_id, published_by_user_id, published_at, created_at, updated_at';
+  'id, title, body, status, created_by_user_id, published_by_user_id, published_at, archived_by_user_id, archived_at, created_at, updated_at';
 
 export const createProductChangelog = async (
   db: Pool,
@@ -47,6 +47,27 @@ export const publishProductChangelog = async (
      WHERE id = $1
      RETURNING ${SELECT_COLS}`,
     [payload.id, payload.publishedByUserId],
+  );
+  const row = result.rows[0];
+  return row ? rowToProductChangelog(row) : null;
+};
+
+export const archiveProductChangelog = async (
+  db: Pool,
+  payload: {
+    id: string;
+    archivedByUserId: string;
+  },
+): Promise<ProductChangelog | null> => {
+  const result = await db.query<ProductChangelogRow>(
+    `UPDATE product_changelogs
+     SET status = 'archived',
+         archived_by_user_id = $2,
+         archived_at = now(),
+         updated_at = now()
+     WHERE id = $1
+     RETURNING ${SELECT_COLS}`,
+    [payload.id, payload.archivedByUserId],
   );
   const row = result.rows[0];
   return row ? rowToProductChangelog(row) : null;

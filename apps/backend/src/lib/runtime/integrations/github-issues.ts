@@ -85,13 +85,26 @@ export const publishGitHubIssue = async (
   input: PublishGitHubIssueInput,
 ): Promise<PublishGitHubIssueResult> => {
   const endpoint = `${config.apiBaseUrl.replace(/\/$/, '')}/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/issues`;
+  console.debug('[publishGitHubIssue] Starting GitHub API request', {
+    endpoint,
+    owner: input.owner,
+    repo: input.repo,
+    titleLength: input.title.length,
+    bodyLength: input.body.length,
+    requestId: input.requestId,
+    apiVersion: config.apiVersion,
+    timeout: config.timeoutMs,
+    maxRetries: config.maxRetries,
+  });
 
   let attempt = 0;
   while (attempt <= config.maxRetries) {
+    console.debug(`[publishGitHubIssue] Attempt ${attempt + 1} of ${config.maxRetries + 1}...`);
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), config.timeoutMs);
 
     try {
+      console.debug('[publishGitHubIssue] Sending fetch request...', { endpoint });
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -109,6 +122,7 @@ export const publishGitHubIssue = async (
       });
 
       clearTimeout(timeout);
+      console.debug('[publishGitHubIssue] Response received', { status: response.status, statusText: response.statusText });
 
       if (response.status >= 200 && response.status < 300) {
         const payload = await response.json() as {
@@ -116,6 +130,7 @@ export const publishGitHubIssue = async (
           html_url: string;
           url: string;
         };
+        console.debug('[publishGitHubIssue] Success response parsed', { issueNumber: payload.number, issueUrl: payload.html_url });
 
         return {
           issueNumber: payload.number,
@@ -126,27 +141,34 @@ export const publishGitHubIssue = async (
 
       if (shouldRetryStatus(response.status) && attempt < config.maxRetries) {
         const backoffMs = config.retryBaseDelayMs * (2 ** attempt);
+        console.debug('[publishGitHubIssue] Retryable status, backing off...', { status: response.status, backoffMs, nextAttempt: attempt + 1 });
         await sleep(backoffMs);
         attempt += 1;
         continue;
       }
 
       const message = await parseIssueErrorMessage(response);
+      console.debug('[publishGitHubIssue] Non-retryable error response', { status: response.status, message });
       throw new PublishGitHubIssueError(mapStatusToErrorCode(response.status), response.status, message);
     } catch (error) {
       clearTimeout(timeout);
 
       if (error instanceof PublishGitHubIssueError) {
+        console.error('[publishGitHubIssue] PublishGitHubIssueError thrown', { code: error.code, statusCode: error.statusCode, message: error.message });
         throw error;
       }
 
+      console.debug('[publishGitHubIssue] Unexpected error caught', { error: error instanceof Error ? { message: error.message, name: error.name } : error });
+
       if (attempt < config.maxRetries) {
         const backoffMs = config.retryBaseDelayMs * (2 ** attempt);
+        console.debug('[publishGitHubIssue] Retrying after unexpected error...', { backoffMs, nextAttempt: attempt + 1 });
         await sleep(backoffMs);
         attempt += 1;
         continue;
       }
 
+      console.error('[publishGitHubIssue] Max retries exhausted, throwing upstream_unavailable error', { error: error instanceof Error ? { message: error.message, name: error.name } : error });
       throw new PublishGitHubIssueError(
         'upstream_unavailable',
         503,
@@ -155,5 +177,6 @@ export const publishGitHubIssue = async (
     }
   }
 
+  console.error('[publishGitHubIssue] All retry attempts exhausted');
   throw new PublishGitHubIssueError('upstream_unavailable', 503, 'Unable to reach GitHub Issues API');
 };

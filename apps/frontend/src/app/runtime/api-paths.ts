@@ -37,6 +37,8 @@ export type ApiPaths = {
     changelogList: string | null;
     userReportsCreate: string | null;
     adminChangelogCreate: string | null;
+    adminChangelogListAll: string | null;
+    adminChangelogArchive: (id: string) => string | null;
     adminUserReportsList: string | null;
     adminUserReportById: (reportId: string) => string | null;
     adminPublishUserReportIssue: (reportId: string) => string | null;
@@ -82,6 +84,10 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     changelogList: capabilities.changelogList ? '/api/changelog' : null,
     userReportsCreate: capabilities.userReportsCreate ? '/api/user-reports' : null,
     adminChangelogCreate: capabilities.adminChangelogCreate ? '/api/admin/changelog' : null,
+    adminChangelogListAll: capabilities.adminChangelogCreate ? '/api/admin/changelog' : null,
+    adminChangelogArchive: (id: string) => (
+      capabilities.adminChangelogArchive ? `/api/admin/product-changelogs/${id}/archive` : null
+    ),
     adminUserReportsList: capabilities.adminUserReportsList ? '/api/admin/user-reports' : null,
     adminUserReportById: (reportId: string) => (
       capabilities.adminUserReportsUpdate ? `/api/admin/user-reports/${reportId}` : null

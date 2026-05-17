@@ -179,6 +179,8 @@ export type CreateProductChangelogCommand = {
   body: string;
 };
 
+export type ArchiveProductChangelogCommand = Record<string, never>;
+
 export type CreateUserReportCommand = {
   category: UserReportCategory;
   title: string;

@@ -1,4 +1,4 @@
-export type ProductChangelogStatus = 'draft' | 'published';
+export type ProductChangelogStatus = 'draft' | 'published' | 'archived';
 
 export type UserReportCategory = 'issue' | 'feature-request' | 'other';
 
@@ -12,6 +12,8 @@ export type ProductChangelog = {
   createdByUserId: string;
   publishedByUserId: string | null;
   publishedAt: Date | null;
+  archivedByUserId: string | null;
+  archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -24,6 +26,8 @@ export type ProductChangelogRow = {
   created_by_user_id: string;
   published_by_user_id: string | null;
   published_at: Date | null;
+  archived_by_user_id: string | null;
+  archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -82,6 +86,8 @@ export const rowToProductChangelog = (row: ProductChangelogRow): ProductChangelo
   createdByUserId: row.created_by_user_id,
   publishedByUserId: row.published_by_user_id,
   publishedAt: row.published_at,
+  archivedByUserId: row.archived_by_user_id,
+  archivedAt: row.archived_at,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });

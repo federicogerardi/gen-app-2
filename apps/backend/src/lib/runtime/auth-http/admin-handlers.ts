@@ -6,6 +6,8 @@ export type AdminHandlers = {
   handleAdminModelsUpdate(request: IncomingMessage, response: ServerResponse, modelId: string): Promise<void>;
   handleAdminModelsDelete(request: IncomingMessage, response: ServerResponse, modelId: string): Promise<void>;
   handleAdminCreateChangelog(request: IncomingMessage, response: ServerResponse): Promise<void>;
+  handleAdminListChangelog(request: IncomingMessage, response: ServerResponse): Promise<void>;
+  handleAdminArchiveChangelog(request: IncomingMessage, response: ServerResponse, changelogId: string): Promise<void>;
   handleAdminListUserReports(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleAdminUpdateUserReport(request: IncomingMessage, response: ServerResponse, reportId: string): Promise<void>;
   handleAdminPublishUserReportIssue(request: IncomingMessage, response: ServerResponse, reportId: string): Promise<void>;

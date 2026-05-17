@@ -229,6 +229,15 @@ export const AdminUsersPage = () => {
           <Link to="/admin/models" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
             Gestione modelli LLM
           </Link>
+          <Link to="/admin/changelog" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
+            Gestione changelog
+          </Link>
+          <Link to="/admin/user-reports" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
+            Gestione segnalazioni
+          </Link>
+          <Link to="/admin/activity" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
+            Attività recente
+          </Link>
         </div>
       </div>
 

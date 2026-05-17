@@ -41,6 +41,7 @@ describe('backend-capabilities', () => {
       changelogList: true,
       userReportsCreate: true,
       adminChangelogCreate: true,
+      adminChangelogArchive: true,
       adminUserReportsList: true,
       adminUserReportsUpdate: true,
       adminUserReportsPublishIssue: true,

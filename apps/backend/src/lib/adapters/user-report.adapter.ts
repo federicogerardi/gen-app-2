@@ -21,17 +21,27 @@ export const createUserReport = async (
     id?: string;
   },
 ): Promise<UserReport> => {
-  const result = await db.query<UserReportRow>(
-    `INSERT INTO user_reports (id, category, status, title, description, created_by_user_id)
-     VALUES ($1, $2, 'submitted', $3, $4, $5)
-     RETURNING ${SELECT_COLS}`,
-    [payload.id ?? `rpt_${randomUUID()}`, payload.category, payload.title, payload.description, payload.createdByUserId],
-  );
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error('Insert returned no row');
+  const reportId = payload.id ?? `rpt_${randomUUID()}`;
+  console.debug('[createUserReport] Starting insert with:', { reportId, category: payload.category, userId: payload.createdByUserId });
+  try {
+    const result = await db.query<UserReportRow>(
+      `INSERT INTO user_reports (id, category, status, title, description, created_by_user_id)
+       VALUES ($1, $2, 'submitted', $3, $4, $5)
+       RETURNING ${SELECT_COLS}`,
+      [reportId, payload.category, payload.title, payload.description, payload.createdByUserId],
+    );
+    console.debug('[createUserReport] Query executed, rows returned:', result.rows.length);
+    const row = result.rows[0];
+    if (!row) {
+      throw new Error('Insert returned no row');
+    }
+    const report = rowToUserReport(row);
+    console.debug('[createUserReport] Report successfully created:', { id: report.id, status: report.status });
+    return report;
+  } catch (error) {
+    console.error('[createUserReport] Error during insert:', error instanceof Error ? { message: error.message, code: (error as any).code } : error);
+    throw error;
   }
-  return rowToUserReport(row);
 };
 
 export const getUserReportById = async (db: Pool, id: string): Promise<UserReport | null> => {

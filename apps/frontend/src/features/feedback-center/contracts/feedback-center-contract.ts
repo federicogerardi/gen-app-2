@@ -6,6 +6,7 @@ export type {
   UserReportDto,
   GitHubIssueLinkDto,
   CreateProductChangelogCommand,
+  ArchiveProductChangelogCommand,
   CreateUserReportCommand,
   UpdateUserReportStatusCommand,
   PublishUserReportIssueCommand,

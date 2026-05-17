@@ -47,9 +47,12 @@ export const publishUserReportIssueTransaction = async (
     publishedByUserId: string;
   },
 ): Promise<UserReportGithubLink> => {
+  console.debug('[publishUserReportIssueTransaction] Starting transaction', { userReportId: payload.userReportId, issueNumber: payload.issueNumber, repository: payload.repository });
   const client = await db.connect();
   try {
     await client.query('BEGIN');
+    console.debug('[publishUserReportIssueTransaction] Transaction BEGIN');
+    
     const linkResult = await client.query<UserReportGithubLinkRow>(
       `INSERT INTO user_report_github_links (
          user_report_id,
@@ -62,8 +65,9 @@ export const publishUserReportIssueTransaction = async (
        RETURNING ${SELECT_COLS}`,
       [payload.userReportId, payload.repository, payload.issueNumber, payload.issueUrl, payload.publishedByUserId],
     );
+    console.debug('[publishUserReportIssueTransaction] INSERT user_report_github_links executed, rows:', linkResult.rows.length);
 
-    await client.query(
+    const updateResult = await client.query(
       `UPDATE user_reports
        SET status = 'github-published',
            triaged_by_user_id = COALESCE(triaged_by_user_id, $2),
@@ -72,17 +76,24 @@ export const publishUserReportIssueTransaction = async (
        WHERE id = $1`,
       [payload.userReportId, payload.publishedByUserId],
     );
+    console.debug('[publishUserReportIssueTransaction] UPDATE user_reports executed, rows affected:', updateResult.rowCount);
 
     await client.query('COMMIT');
+    console.debug('[publishUserReportIssueTransaction] Transaction COMMIT');
+    
     const row = linkResult.rows[0];
     if (!row) {
       throw new Error('Insert returned no row');
     }
-    return rowToUserReportGithubLink(row);
+    const link = rowToUserReportGithubLink(row);
+    console.debug('[publishUserReportIssueTransaction] Transaction completed successfully', { linkId: link.userReportId });
+    return link;
   } catch (error) {
+    console.error('[publishUserReportIssueTransaction] Transaction error, rolling back', { error: error instanceof Error ? { message: error.message, code: (error as any).code } : error });
     await client.query('ROLLBACK');
     throw error;
   } finally {
     client.release();
+    console.debug('[publishUserReportIssueTransaction] Database client released');
   }
 };

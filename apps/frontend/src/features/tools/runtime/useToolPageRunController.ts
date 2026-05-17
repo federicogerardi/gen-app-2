@@ -92,15 +92,16 @@ export const useToolPageRunController = ({
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const wasStreamActiveRef = useRef(false);
+  const toolStepSet = useMemo(() => new Set(toolConfig.steps), [toolConfig.steps]);
   const validateToolStep = useCallback(
     (candidate: unknown): ToolStep | null => {
       if (typeof candidate !== 'string') {
         return null;
       }
 
-      return toolConfig.steps.find((step) => step === candidate) ?? null;
+      return toolStepSet.has(candidate as ToolStep) ? (candidate as ToolStep) : null;
     },
-    [toolConfig.steps],
+    [toolStepSet],
   );
 
   const streamingStep = useMemo(() => {

@@ -239,10 +239,17 @@ const useGenerationArtifactsState = (
 };
 
 const useGenerationProjectState = (
+  auth: ReturnType<typeof useAuthSession>,
   snapshot: FrontendStreamSnapshot,
   send: FrontendStreamSend,
 ) => {
   const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!auth.session) {
+      setFocusedProjectId(null);
+    }
+  }, [auth.session]);
 
   const upsertExtractionContext = useCallback(
     (context: ExtractionContext) => {
@@ -314,7 +321,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   );
 
   const artifactsValue = useGenerationArtifactsState(auth, snapshot, send, streamStatus);
-  const projectValue = useGenerationProjectState(snapshot, send);
+  const projectValue = useGenerationProjectState(auth, snapshot, send);
 
   const value = useMemo<GenerationWorkspaceValue>(
     () => ({

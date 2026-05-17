@@ -64,6 +64,22 @@
   --badge-success-bg-end: rgba(21, 128, 61, 0.08);
   --badge-success-border: rgba(21, 128, 61, 0.3);
 
+  --badge-error-fg: #7f1d1d;
+  --badge-error-bg: rgba(180, 35, 24, 0.12);
+  --badge-error-border: rgba(220, 38, 38, 0.3);
+
+  --badge-warning-fg: #78350f;
+  --badge-warning-bg: rgba(180, 108, 8, 0.12);
+  --badge-warning-border: rgba(217, 119, 6, 0.3);
+
+  --badge-info-fg: #1e3a8a;
+  --badge-info-bg: rgba(37, 99, 235, 0.1);
+  --badge-info-border: rgba(37, 99, 235, 0.28);
+
+  --badge-neutral-fg: var(--text-muted);
+  --badge-neutral-bg: rgba(15, 23, 42, 0.06);
+  --badge-neutral-border: var(--border-subtle);
+
   --interactive-soft: rgba(37, 99, 235, 0.1);
   --interactive-hover: rgba(37, 99, 235, 0.12);
 
@@ -167,6 +183,22 @@
   --badge-success-bg-start: rgba(21, 128, 61, 0.34);
   --badge-success-bg-end: rgba(21, 128, 61, 0.16);
   --badge-success-border: rgba(21, 128, 61, 0.38);
+
+  --badge-error-fg: #fecaca;
+  --badge-error-bg: rgba(180, 35, 24, 0.22);
+  --badge-error-border: rgba(248, 113, 113, 0.36);
+
+  --badge-warning-fg: #fde68a;
+  --badge-warning-bg: rgba(180, 108, 8, 0.22);
+  --badge-warning-border: rgba(251, 191, 36, 0.36);
+
+  --badge-info-fg: #bfdbfe;
+  --badge-info-bg: rgba(59, 130, 246, 0.18);
+  --badge-info-border: rgba(59, 130, 246, 0.36);
+
+  --badge-neutral-fg: var(--text-muted);
+  --badge-neutral-bg: rgba(148, 163, 184, 0.1);
+  --badge-neutral-border: rgba(148, 163, 184, 0.22);
 
   --interactive-soft: rgba(59, 130, 246, 0.16);
   --interactive-hover: rgba(59, 130, 246, 0.22);
@@ -725,6 +757,50 @@ button:not(.MuiButton-root):not([class]):disabled,
   border: 1px solid var(--badge-success-border);
 }
 
+.ui-status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-chip);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.ui-status-badge--success {
+  color: var(--badge-success-fg);
+  background: color-mix(in srgb, var(--badge-success-bg-start) 60%, transparent);
+  border-color: var(--badge-success-border);
+}
+
+.ui-status-badge--error {
+  color: var(--badge-error-fg);
+  background: var(--badge-error-bg);
+  border-color: var(--badge-error-border);
+}
+
+.ui-status-badge--warning {
+  color: var(--badge-warning-fg);
+  background: var(--badge-warning-bg);
+  border-color: var(--badge-warning-border);
+}
+
+.ui-status-badge--info {
+  color: var(--badge-info-fg);
+  background: var(--badge-info-bg);
+  border-color: var(--badge-info-border);
+}
+
+.ui-status-badge--neutral {
+  color: var(--badge-neutral-fg);
+  background: var(--badge-neutral-bg);
+  border-color: var(--badge-neutral-border);
+}
+
 .menu-toggle,
 .ui-menu-toggle {
   display: none;
@@ -1197,34 +1273,6 @@ button:not(.MuiButton-root):not([class]):disabled,
   align-items: center;
   gap: var(--space-1);
   flex-wrap: wrap;
-}
-
-.ui-artifact-status-tag {
-  padding: 2px 8px;
-  font-size: 10px;
-  line-height: 1.1;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.ui-artifact-status-tag.is-completed {
-  color: var(--badge-success-fg);
-  background: color-mix(in srgb, var(--badge-success-bg-start) 32%, transparent);
-  border-color: var(--badge-success-border);
-}
-
-.ui-artifact-status-tag.is-failed {
-  color: var(--error-fg);
-  background: color-mix(in srgb, var(--error-bg) 48%, transparent);
-  border-color: var(--error-border);
-}
-
-.ui-artifact-status-tag.is-generating {
-  color: var(--text-secondary);
-  background: transparent;
-  border-color: var(--border-subtle);
 }
 
 .ui-artifact-overview-actions {

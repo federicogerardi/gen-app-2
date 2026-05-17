@@ -13,6 +13,7 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import {
@@ -195,9 +196,7 @@ export const SessionSummaryDetailPage = () => {
       <TopBar>
         <div className="ui-session-summary-topbar-main">
           <h2>{detailTitle}</h2>
-          <span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>
-            {group.status}
-          </span>
+          <StatusBadge status={group.status} />
         </div>
         <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}

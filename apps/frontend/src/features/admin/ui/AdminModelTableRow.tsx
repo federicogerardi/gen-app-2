@@ -1,4 +1,5 @@
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { AdminLlmModelRow } from '../llm/LLMTable';
 
 type AdminModelTableRowProps = {
@@ -20,7 +21,7 @@ export const AdminModelTableRow = ({
     <tr>
       <td><code>{model.key}</code></td>
       <td>{model.label}</td>
-      <td>{model.status}</td>
+      <td><StatusBadge status={model.status} /></td>
       <td>{model.isDefault ? 'default' : '-'}</td>
       <td>
         <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>

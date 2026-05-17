@@ -127,7 +127,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
     expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
     expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
-    expect(screen.getByText('completed')).toBeInTheDocument();
+    expect(screen.getByText('Completato')).toBeInTheDocument();
     expect(screen.getByText('Project One')).toBeInTheDocument();
     expect(screen.getByText('Tool')).toBeInTheDocument();
     expect(screen.getByText('Data job')).toBeInTheDocument();

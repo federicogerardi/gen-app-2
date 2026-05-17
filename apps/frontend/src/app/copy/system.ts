@@ -14,6 +14,26 @@ export const appCopy = {
     badges: {
       runtimeAsIs: 'workspace attivo',
     },
+    statusLabels: {
+      // ArtifactLifecycleStatus / SessionSummary.status
+      completed: 'Completato',
+      failed: 'Con errore',
+      generating: 'In corso',
+      // AuthUserStatus
+      active: 'Attivo',
+      disabled: 'Disabilitato',
+      pending_password_reset: 'Reset password',
+      // AdminLlmModelRow.status
+      enabled: 'Abilitato',
+      // ProductChangelogStatus
+      draft: 'Bozza',
+      published: 'Pubblicato',
+      'github-published': 'Su GitHub',
+      // UserReportStatus
+      submitted: 'Inviata',
+      triaged: 'In analisi',
+      closed: 'Chiusa',
+    },
     navigation: {
       dashboard: 'Dashboard',
       projects: 'Projects',

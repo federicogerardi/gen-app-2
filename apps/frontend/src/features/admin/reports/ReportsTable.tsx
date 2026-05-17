@@ -1,4 +1,5 @@
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { ListingTableSection } from '../../../app/ui/ListingTableSection';
 import type {
   UserReportDto,
@@ -51,7 +52,7 @@ export const ReportsTable = ({ rows, loading, error, busyAction, publishedIssueU
         }
 
         if (columnKey === 'status') {
-          return row.status;
+          return <StatusBadge status={row.status} />;
         }
 
         if (columnKey === 'createdAt') {

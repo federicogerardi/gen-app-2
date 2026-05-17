@@ -53,6 +53,7 @@ export const uiPrimitives = {
   authActions: 'ui-auth-actions',
   shellUtilityBar: 'ui-shell-utility-bar',
   runtimeBadge: 'ui-runtime-badge',
+  statusBadge: 'ui-status-badge',
   menuToggle: 'ui-menu-toggle',
   mobileNavBackdrop: 'ui-mobile-nav-backdrop',
   mainNav: 'ui-main-nav',

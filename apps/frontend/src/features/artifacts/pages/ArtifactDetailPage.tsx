@@ -11,6 +11,7 @@ import {
   TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
@@ -229,7 +230,7 @@ const LegacyArtifactView = ({
             <div className="ui-artifact-overview-main">
               <div className="ui-artifact-overview-heading-row">
                 <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
-                <span className={`ui-runtime-badge ui-artifact-status-tag is-${artifact.status}`}>{artifact.status}</span>
+                <StatusBadge status={artifact.status} />
               </div>
               <p className={uiPrimitives.metaLine}>{`${toolName} - ${resolvedProjectName}`}</p>
               <p className={uiPrimitives.metaLine}>{completedAtHumanReadable}</p>

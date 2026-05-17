@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 
 import { formatMeta } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { AdminUser } from '../runtime/admin-client';
 import type { AdminUserFormValues } from '../runtime/admin-user-form';
 import type { AdminUsersBusyAction } from '../runtime/useAdminUsersMutations';
@@ -40,7 +41,7 @@ export const AdminUserTableRow = ({
           <p className={uiPrimitives.metaLine}>{user.id}</p>
         </td>
         <td>{formatMeta('Role', user.role)}</td>
-        <td>{formatMeta('Status', user.status)}</td>
+        <td><StatusBadge status={user.status} /></td>
         <td>{typeof user.monthlyQuota === 'number' ? user.monthlyQuota : '-'}</td>
         <td>
           <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>

@@ -112,7 +112,7 @@ describe('AdminUserReportsPage', () => {
       );
     });
 
-    expect(await screen.findByText('closed')).toBeInTheDocument();
+    expect(await screen.findByText('Chiusa')).toBeInTheDocument();
   });
 
   it('emits global error feedback when publish issue fails', async () => {

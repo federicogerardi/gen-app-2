@@ -272,7 +272,7 @@ describe('AdminUsersPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/status: disabled/i)).toBeInTheDocument();
+      expect(screen.getByText('Disabilitato')).toBeInTheDocument();
     });
     expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
       appCopy.ui.feedback.adminUsersDisabled,

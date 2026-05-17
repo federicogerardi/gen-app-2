@@ -1,5 +1,6 @@
 import { ListingTableSection } from '../../../app/ui/ListingTableSection';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { ProductChangelogDto } from '../../feedback-center/contracts/feedback-center-contract';
 import { AdminChangelogTableRow } from '../ui/AdminChangelogTableRow';
 import { formatAdminDateTime } from '../runtime/admin-date-format';
@@ -42,7 +43,7 @@ export const ChangelogTable = ({ rows, loading, error, busyAction, onArchive }: 
         }
 
         if (columnKey === 'status') {
-          return row.status;
+          return <StatusBadge status={row.status} />;
         }
 
         if (columnKey === 'publishedAt') {

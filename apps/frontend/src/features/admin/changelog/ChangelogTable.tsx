@@ -1,6 +1,8 @@
-import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import { ListingTableSection } from '../../../app/ui/ListingTableSection';
+import { uiPrimitives } from '../../../app/ui/primitives';
 import type { ProductChangelogDto } from '../../feedback-center/contracts/feedback-center-contract';
+import { AdminChangelogTableRow } from '../ui/AdminChangelogTableRow';
+import { formatAdminDateTime } from '../runtime/admin-date-format';
 
 const CHANGELOG_COLUMNS = [
   { key: 'title', header: 'Titolo' },
@@ -9,19 +11,6 @@ const CHANGELOG_COLUMNS = [
   { key: 'updatedAt', header: 'Aggiornato il' },
   { key: 'actions', header: 'Azioni' },
 ] as const;
-
-const formatDateTime = (value: string | null): string => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-};
 
 type ChangelogTableProps = {
   rows: ProductChangelogDto[];
@@ -57,25 +46,18 @@ export const ChangelogTable = ({ rows, loading, error, busyAction, onArchive }: 
         }
 
         if (columnKey === 'publishedAt') {
-          return formatDateTime(row.publishedAt);
+          return formatAdminDateTime(row.publishedAt);
         }
 
         if (columnKey === 'updatedAt') {
-          return formatDateTime(row.updatedAt);
+          return formatAdminDateTime(row.updatedAt);
         }
 
-        return (
-          <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
-            <button
-              type="button"
-              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-              onClick={() => onArchive(row.id)}
-              disabled={busyAction !== null || row.status !== 'published'}
-            >
-              Archivia
-            </button>
-          </div>
-        );
+        if (columnKey === 'actions') {
+          return <AdminChangelogTableRow row={row} busyAction={busyAction} onArchive={onArchive} />;
+        }
+
+        return null;
       }}
     />
   );

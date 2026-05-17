@@ -64,6 +64,11 @@ Run these commands from workspace root and ensure all succeed before considering
   2. If no canonical term exists, create a `DDD-NNN` entry in `domain-naming-decision-log.md` first.
   3. Apply the canonical term in the code change.
   4. Add a backward-compat alias if the old name is referenced by other code (deprecated, 1 cycle).
+- Prefer the smallest coherent change that solves one concern at a time; avoid monolithic implementations that bundle unrelated behavior into one block.
+- Prefer unifying duplicate or overlapping logic into a single authoritative path when the concepts are the same.
+- Prefer atomized helpers, modules, and components over large all-in-one structures when the split improves clarity and reuse.
+- Reuse existing libraries, adapters, utilities, and workspace patterns before introducing a new dependency or custom implementation.
+- When editing files with `apply_patch`, prefer atomic hunks that touch one concern at a time; avoid monolithic replacement blocks that increase fail-match risk.
 - Never introduce synonyms for existing canonical terms (e.g., do not use `BriefingContext` where `ExtractionContext` is canonical).
 - Deprecated aliases (prefixed with `ToolPage*`, `Tool*`, `Stream*`) must not be promoted to primary definitions.
 

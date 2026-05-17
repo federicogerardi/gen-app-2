@@ -4,6 +4,8 @@ import type {
   UserReportDto,
   UserReportStatus,
 } from '../../feedback-center/contracts/feedback-center-contract';
+import { formatAdminDateTime } from '../runtime/admin-date-format';
+import { AdminUserReportsTableActions } from '../ui/AdminUserReportsTableActions';
 
 const USER_REPORT_COLUMNS = [
   { key: 'title', header: 'Segnalazione' },
@@ -12,20 +14,6 @@ const USER_REPORT_COLUMNS = [
   { key: 'createdAt', header: 'Creata il' },
   { key: 'actions', header: 'Azioni' },
 ] as const;
-
-const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-};
-
-const canPublishIssue = (report: UserReportDto): boolean => {
-  const categoryEligibleForGithubPublish = report.category === 'issue' || report.category === 'feature-request';
-  return categoryEligibleForGithubPublish && (report.status === 'submitted' || report.status === 'triaged');
-};
 
 type ReportsTableProps = {
   rows: UserReportDto[];
@@ -66,38 +54,16 @@ export const ReportsTable = ({ rows, loading, error, busyAction, onStatusTransit
         }
 
         if (columnKey === 'createdAt') {
-          return formatDateTime(row.createdAt);
+          return formatAdminDateTime(row.createdAt);
         }
 
         return (
-          <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
-            <button
-              type="button"
-              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-              onClick={() => onStatusTransition(row.id, 'triaged')}
-              disabled={busyAction !== null || row.status !== 'submitted'}
-            >
-              Triage
-            </button>
-
-            <button
-              type="button"
-              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-              onClick={() => onStatusTransition(row.id, 'closed')}
-              disabled={busyAction !== null || row.status === 'closed'}
-            >
-              Chiudi
-            </button>
-
-            <button
-              type="button"
-              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-              onClick={() => onPublishIssue(row.id)}
-              disabled={busyAction !== null || !canPublishIssue(row)}
-            >
-              Pubblica issue
-            </button>
-          </div>
+          <AdminUserReportsTableActions
+            row={row}
+            busyAction={busyAction}
+            onStatusTransition={onStatusTransition}
+            onPublishIssue={onPublishIssue}
+          />
         );
       }}
     />

@@ -13,9 +13,9 @@
 - Opportunità: Widget di stato, notifiche, quick links.
 
 ### 2. Navigazione alle Funzioni
-- Cosa fa: Sceglie una funzione (es. gestione modelli).
-- Pain: Menu non chiaro, nomi incoerenti, icone mancanti.
-- Opportunità: Menu laterale persistente, icone standard, etichette chiare.
+- Cosa fa: Sceglie una funzione dalla dashboard hub o da un link interno coerente.
+- Pain: Accesso dispersivo, nomi incoerenti, icone mancanti.
+- Opportunità: Card/link interni standard, etichette chiare, gerarchia visiva coerente.
 
 ### 3. Azione Specifica (es. Modifica Modello)
 - Cosa fa: Esegue task amministrativo.

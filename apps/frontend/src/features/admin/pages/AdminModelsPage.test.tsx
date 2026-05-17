@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
+import { renderAdminPage } from '../test/renderAdminPage';
+import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminModelsPage } from './AdminModelsPage';
 
 const feedbackApiSpy = vi.hoisted(() => ({
@@ -34,13 +35,7 @@ let modelsDb: TestModel[] = [
 ];
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'seed-user-001', email: 'admin@test.com', role: 'admin' } },
-    loading: false,
-    error: null,
-    apiBaseUrl: '',
-    capabilities: { adminModels: true },
-  }),
+  useAuthSession: () => getMockAuthSession(),
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -55,6 +50,13 @@ beforeEach(() => {
   feedbackApiSpy.publishError.mockReset();
   feedbackApiSpy.dismiss.mockReset();
   feedbackApiSpy.dismissAll.mockReset();
+
+  resetMockAdminSession({
+    role: 'admin',
+    userId: 'seed-user-001',
+    email: 'admin@test.com',
+    capabilities: { adminModels: true },
+  });
 
   modelsDb = [
     {
@@ -117,11 +119,7 @@ beforeEach(() => {
 
 describe('AdminModelsPage', () => {
   it('renders models and publishes global success for create mutation', async () => {
-    render(
-      <MemoryRouter>
-        <AdminModelsPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminModelsPage />);
 
     expect(await screen.findByText('OpenRouter Auto')).toBeInTheDocument();
 
@@ -144,11 +142,7 @@ describe('AdminModelsPage', () => {
       http.post('/api/admin/models', () => new HttpResponse(null, { status: 500 })),
     );
 
-    render(
-      <MemoryRouter>
-        <AdminModelsPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminModelsPage />);
 
     await screen.findByText('OpenRouter Auto');
 
@@ -160,6 +154,77 @@ describe('AdminModelsPage', () => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
         appCopy.ui.feedback.adminModelsCreateFailed,
         expect.objectContaining({ dedupeKey: 'admin-models:create:error' }),
+      );
+    });
+  });
+
+  it('handles status toggle and default promotion with global feedback', async () => {
+    modelsDb = [
+      ...modelsDb,
+      {
+        id: 'model-2',
+        key: 'gpt-4.1-mini',
+        label: 'GPT 4.1 Mini',
+        status: 'disabled',
+        isDefault: false,
+        sortOrder: 2,
+      },
+    ];
+
+    renderAdminPage(<AdminModelsPage />);
+
+    const modelCell = await screen.findByText('GPT 4.1 Mini');
+    const row = modelCell.closest('tr');
+    expect(row).not.toBeNull();
+
+    const rowScope = within(row as HTMLElement);
+
+    fireEvent.click(rowScope.getByRole('button', { name: 'Abilita' }));
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+        appCopy.ui.feedback.adminModelsStatusUpdated,
+        expect.objectContaining({ dedupeKey: 'admin-models:toggle:model-2:success' }),
+      );
+    });
+
+    fireEvent.click(rowScope.getByRole('button', { name: 'Predefinito' }));
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+        appCopy.ui.feedback.adminModelsDefaultUpdated,
+        expect.objectContaining({ dedupeKey: 'admin-models:default:model-2:success' }),
+      );
+    });
+  });
+
+  it('publishes global error when status toggle mutation fails', async () => {
+    modelsDb = [
+      ...modelsDb,
+      {
+        id: 'model-2',
+        key: 'gpt-4.1-mini',
+        label: 'GPT 4.1 Mini',
+        status: 'disabled',
+        isDefault: false,
+        sortOrder: 2,
+      },
+    ];
+
+    useMswHandler(
+      http.put('/api/admin/models/:id', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    renderAdminPage(<AdminModelsPage />);
+
+    const modelCell = await screen.findByText('GPT 4.1 Mini');
+    const row = modelCell.closest('tr');
+    expect(row).not.toBeNull();
+
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Abilita' }));
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
+        appCopy.ui.feedback.adminModelsStatusUpdateFailed,
+        expect.objectContaining({ dedupeKey: 'admin-models:toggle:model-2:error' }),
       );
     });
   });

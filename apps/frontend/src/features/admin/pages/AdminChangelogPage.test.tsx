@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
-import { useMswHandler } from '../../../test/mocks/server';
+import { useMswHandlers } from '../../../test/mocks/server';
+import { renderAdminPage } from '../test/renderAdminPage';
+import { buildChangelogHandlers } from '../test/msw-admin-factories';
+import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminChangelogPage } from './AdminChangelogPage';
 
 const feedbackApiSpy = vi.hoisted(() => ({
@@ -14,20 +16,7 @@ const feedbackApiSpy = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'admin_001', email: 'admin@test.com', role: 'admin' } },
-    loading: false,
-    error: null,
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-  }),
+  useAuthSession: () => getMockAuthSession(),
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -41,65 +30,34 @@ beforeEach(() => {
   feedbackApiSpy.publishSuccess.mockReset();
   feedbackApiSpy.publishError.mockReset();
 
-  useMswHandler(
-    http.get('/api/changelog', () => HttpResponse.json({
-      ok: true,
-      data: {
-        changelog: [
-          {
-            id: 'chg_001',
-            title: 'Release 1.0',
-            body: 'Initial release',
-            status: 'published',
-            createdBy: 'admin_001',
-            publishedBy: 'admin_001',
-            publishedAt: '2026-05-16T12:00:00.000Z',
-            createdAt: '2026-05-16T12:00:00.000Z',
-            updatedAt: '2026-05-16T12:00:00.000Z',
-          },
-        ],
-      },
-    })),
-  );
+  resetMockAdminSession({
+    role: 'admin',
+    userId: 'admin_001',
+    email: 'admin@test.com',
+    capabilities: {
+      changelogList: true,
+      userReportsCreate: true,
+      adminChangelogCreate: true,
+      adminChangelogArchive: true,
+      adminUserReportsList: true,
+      adminUserReportsUpdate: true,
+      adminUserReportsPublishIssue: true,
+    },
+  });
 
-  useMswHandler(
-    http.post('/api/admin/changelog', () => HttpResponse.json({
-      ok: true,
-      data: {
-        changelog: {
-          id: 'chg_002',
-          title: 'Release 1.1',
-          body: 'Patch release',
-          status: 'published',
-          createdBy: 'admin_001',
-          publishedBy: 'admin_001',
-          publishedAt: '2026-05-16T12:30:00.000Z',
-          createdAt: '2026-05-16T12:30:00.000Z',
-          updatedAt: '2026-05-16T12:30:00.000Z',
-        },
-      },
-    }, { status: 201 })),
-  );
+  useMswHandlers(...buildChangelogHandlers());
 });
 
 describe('AdminChangelogPage', () => {
   it('renders published changelog table', async () => {
-    render(
-      <MemoryRouter>
-        <AdminChangelogPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminChangelogPage />);
 
     expect(await screen.findByText('Release 1.0')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Admin changelog' })).toBeInTheDocument();
   });
 
   it('publishes changelog and emits global success feedback', async () => {
-    render(
-      <MemoryRouter>
-        <AdminChangelogPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminChangelogPage />);
 
     await screen.findByText('Release 1.0');
 
@@ -111,6 +69,47 @@ describe('AdminChangelogPage', () => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
         'Voce changelog pubblicata.',
         expect.objectContaining({ dedupeKey: 'admin-changelog:publish:success' }),
+      );
+    });
+  });
+
+  it('emits global error feedback when publish changelog fails', async () => {
+    useMswHandlers(
+      http.post('/api/admin/changelog', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    renderAdminPage(<AdminChangelogPage />);
+
+    await screen.findByText('Release 1.0');
+
+    fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Release failure' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /contenuto/i }), { target: { value: 'Broken publish' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Pubblica changelog' }));
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ dedupeKey: 'admin-changelog:publish:error' }),
+      );
+    });
+  });
+
+  it('archives a published changelog entry and emits global success feedback', async () => {
+    renderAdminPage(<AdminChangelogPage />);
+
+    const titleCell = await screen.findByText('Release 1.0');
+    const row = titleCell.closest('tr');
+    expect(row).not.toBeNull();
+
+    const archiveButton = (row as HTMLElement).querySelector('button');
+    expect(archiveButton).not.toBeNull();
+
+    fireEvent.click(archiveButton as HTMLElement);
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+        'Voce changelog archiviata.',
+        expect.objectContaining({ dedupeKey: 'admin-changelog:archive:chg_001:success' }),
       );
     });
   });

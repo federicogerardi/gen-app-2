@@ -1,5 +1,5 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import type { FC, LazyExoticComponent } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
@@ -60,7 +60,39 @@ const PageLoader = () => (
   </div>
 );
 
+const lighthouseAdminRouteTargets: Record<string, string> = {
+  users: '/admin/users',
+  models: '/admin/models',
+  changelog: '/admin/changelog',
+  'user-reports': '/admin/user-reports',
+  activity: '/admin/activity',
+};
+
 const AdminLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== '/admin') {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const requestedRoute = params.get('lh-route');
+
+    if (!requestedRoute) {
+      return;
+    }
+
+    const targetPath = lighthouseAdminRouteTargets[requestedRoute];
+
+    if (!targetPath) {
+      return;
+    }
+
+    navigate(targetPath, { replace: true });
+  }, [location.pathname, location.search, navigate]);
+
   return (
     <AdminGuard>
       <Outlet />

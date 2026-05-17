@@ -19,6 +19,16 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
   AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('../../app/providers/FeedbackMessageProvider', () => ({
+  useFeedbackMessage: () => ({
+    messages: [],
+    publishSuccess: vi.fn(),
+    publishError: vi.fn(),
+    dismiss: vi.fn(),
+    dismissAll: vi.fn(),
+  }),
+}));
+
 vi.mock('../../features/generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => ({ artifacts: [], isStreamActive: false }),
   GenerationWorkspaceProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -34,6 +44,26 @@ vi.mock('../layouts/PublicShell', () => ({
 
 vi.mock('../../features/admin/routing/admin-guard', () => ({
   AdminGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../features/admin/pages/AdminUsersPage', () => ({
+  AdminUsersPage: () => <h1>Admin users</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminModelsPage', () => ({
+  AdminModelsPage: () => <h1>Admin models</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminChangelogPage', () => ({
+  AdminChangelogPage: () => <h1>Admin changelog</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminUserReportsPage', () => ({
+  AdminUserReportsPage: () => <h1>Admin user reports</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminActivityPage', () => ({
+  AdminActivityPage: () => <h1>Attività recente</h1>,
 }));
 
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
@@ -156,6 +186,23 @@ describe('app router – integration', () => {
 
     expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /apri gestione utenti/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it.each([
+    ['/admin?lh-route=users', /admin users/i, '/admin/users'],
+    ['/admin?lh-route=models', /admin models/i, '/admin/models'],
+    ['/admin?lh-route=changelog', /admin changelog/i, '/admin/changelog'],
+    ['/admin?lh-route=user-reports', /admin user reports/i, '/admin/user-reports'],
+    ['/admin?lh-route=activity', /attività recente/i, '/admin/activity'],
+  ])('resolves lighthouse seed route %s to target admin section', async (entryPath, headingName, expectedPathname) => {
+    window.history.pushState({}, '', entryPath);
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: headingName })).toBeInTheDocument();
+    expect(window.location.pathname).toBe(expectedPathname);
     router.dispose();
   });
 });

@@ -1,5 +1,6 @@
 import type { ToolCheckpoint } from '../../generation/ui/tool-checkpoints';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { formatAdminDateTime } from '../runtime/admin-date-format';
 
 type ActivityLogTableProps = {
   rows: ToolCheckpoint[];
@@ -23,7 +24,7 @@ export const ActivityLogTable = ({ rows }: ActivityLogTableProps) => {
               <td><strong>{item.projectId}</strong></td>
               <td><span className={uiPrimitives.metaLine}>{item.artifactId}</span></td>
               <td><span className={uiPrimitives.metaLine}>{item.status}</span></td>
-              <td><span className={uiPrimitives.metaLine}>{new Date(item.updatedAt).toLocaleString()}</span></td>
+              <td><span className={uiPrimitives.metaLine}>{formatAdminDateTime(item.updatedAt)}</span></td>
             </tr>
           ))}
         </tbody>

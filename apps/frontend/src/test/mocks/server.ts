@@ -9,3 +9,7 @@ export const resetMswHandlers = () => {
 export const useMswHandler = (handler: Parameters<typeof mswServer.use>[0]) => {
   mswServer.use(handler);
 };
+
+export const useMswHandlers = (...handlers: Parameters<typeof mswServer.use>) => {
+  mswServer.use(...handlers);
+};

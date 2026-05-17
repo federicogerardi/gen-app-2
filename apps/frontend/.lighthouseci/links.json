@@ -1,0 +1,8 @@
+{
+  "http://127.0.0.1:4174/admin": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984334513-35836.report.html",
+  "http://127.0.0.1:4174/admin?lh-route=users": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984335467-25566.report.html",
+  "http://127.0.0.1:4174/admin?lh-route=models": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984336399-66377.report.html",
+  "http://127.0.0.1:4174/admin?lh-route=changelog": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984337319-86836.report.html",
+  "http://127.0.0.1:4174/admin?lh-route=user-reports": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984338285-49369.report.html",
+  "http://127.0.0.1:4174/admin?lh-route=activity": "https://storage.googleapis.com/lighthouse-infrastructure.appspot.com/reports/1778984339238-56975.report.html"
+}

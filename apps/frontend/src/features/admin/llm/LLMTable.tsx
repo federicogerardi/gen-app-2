@@ -1,4 +1,5 @@
-import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { uiPrimitives } from '../../../app/ui/primitives';
+import { AdminModelTableRow } from '../ui/AdminModelTableRow';
 
 export type AdminLlmModelRow = {
   id: string;
@@ -32,42 +33,14 @@ export const LLMTable = ({ models, busyAction, onSetDefault, onToggleStatus, onD
         </thead>
         <tbody>
           {models.map((model) => (
-            <tr key={model.id}>
-              <td><code>{model.key}</code></td>
-              <td>{model.label}</td>
-              <td>{model.status}</td>
-              <td>{model.isDefault ? 'default' : '-'}</td>
-              <td>
-                <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
-                  <button
-                    type="button"
-                    className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                    onClick={() => onSetDefault(model)}
-                    disabled={busyAction !== null || model.isDefault}
-                  >
-                    Predefinito
-                  </button>
-
-                  <button
-                    type="button"
-                    className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                    onClick={() => onToggleStatus(model)}
-                    disabled={busyAction !== null}
-                  >
-                    {model.status === 'enabled' ? 'Disabilita' : 'Abilita'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                    onClick={() => onDelete(model)}
-                    disabled={busyAction !== null}
-                  >
-                    Elimina
-                  </button>
-                </div>
-              </td>
-            </tr>
+            <AdminModelTableRow
+              key={model.id}
+              model={model}
+              busyAction={busyAction}
+              onSetDefault={onSetDefault}
+              onToggleStatus={onToggleStatus}
+              onDelete={onDelete}
+            />
           ))}
         </tbody>
       </table>

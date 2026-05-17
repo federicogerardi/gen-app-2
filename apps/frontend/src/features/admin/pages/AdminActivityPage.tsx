@@ -1,18 +1,11 @@
-import { useMemo } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import { EmptyStateMessage } from '../../../app/ui/primitives';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { ActivityLogTable } from '../activity/ActivityLogTable';
+import { useAdminActivityFeed } from '../runtime/useAdminActivityFeed';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 export const AdminActivityPage = () => {
-  const generation = useGenerationWorkspace();
-
-  const feed = useMemo(() => {
-    return [...generation.checkpoints]
-      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-      .slice(0, 20);
-  }, [generation.checkpoints]);
+  const feed = useAdminActivityFeed();
 
   return (
     <AdminPageContainer

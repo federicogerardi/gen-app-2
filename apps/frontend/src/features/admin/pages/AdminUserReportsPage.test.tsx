@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
-import { useMswHandler } from '../../../test/mocks/server';
+import { useMswHandlers } from '../../../test/mocks/server';
+import { renderAdminPage } from '../test/renderAdminPage';
+import { buildUserReportsHandlers } from '../test/msw-admin-factories';
+import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminUserReportsPage } from './AdminUserReportsPage';
 
 const feedbackApiSpy = vi.hoisted(() => ({
@@ -14,20 +16,7 @@ const feedbackApiSpy = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'admin_001', email: 'admin@test.com', role: 'admin' } },
-    loading: false,
-    error: null,
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-  }),
+  useAuthSession: () => getMockAuthSession(),
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -41,113 +30,33 @@ beforeEach(() => {
   feedbackApiSpy.publishSuccess.mockReset();
   feedbackApiSpy.publishError.mockReset();
 
-  useMswHandler(
-    http.get('/api/admin/user-reports', ({ request }) => {
-      const url = new URL(request.url);
-      const category = url.searchParams.get('category');
-      const reports = [
-        {
-          id: 'rpt_issue_001',
-          category: 'issue',
-          status: 'submitted',
-          title: 'Issue report',
-          description: 'Issue body',
-          createdBy: 'member_001',
-          triagedBy: null,
-          triagedAt: null,
-          closedAt: null,
-          createdAt: '2026-05-16T10:00:00.000Z',
-          updatedAt: '2026-05-16T10:00:00.000Z',
-        },
-        {
-          id: 'rpt_feature_001',
-          category: 'feature-request',
-          status: 'submitted',
-          title: 'Feature report',
-          description: 'Feature body',
-          createdBy: 'member_002',
-          triagedBy: null,
-          triagedAt: null,
-          closedAt: null,
-          createdAt: '2026-05-16T10:05:00.000Z',
-          updatedAt: '2026-05-16T10:05:00.000Z',
-        },
-        {
-          id: 'rpt_other_001',
-          category: 'other',
-          status: 'submitted',
-          title: 'Other report',
-          description: 'Other body',
-          createdBy: 'member_003',
-          triagedBy: null,
-          triagedAt: null,
-          closedAt: null,
-          createdAt: '2026-05-16T10:06:00.000Z',
-          updatedAt: '2026-05-16T10:06:00.000Z',
-        },
-      ];
+  resetMockAdminSession({
+    role: 'admin',
+    userId: 'admin_001',
+    email: 'admin@test.com',
+    capabilities: {
+      changelogList: true,
+      userReportsCreate: true,
+      adminChangelogCreate: true,
+      adminUserReportsList: true,
+      adminUserReportsUpdate: true,
+      adminUserReportsPublishIssue: true,
+    },
+  });
 
-      const filtered = category ? reports.filter((item) => item.category === category) : reports;
-      return HttpResponse.json({ ok: true, data: { reports: filtered } });
-    }),
-  );
-
-  useMswHandler(
-    http.patch('/api/admin/user-reports/:id', ({ params }) => HttpResponse.json({
-      ok: true,
-      data: {
-        report: {
-          id: String(params.id),
-          category: 'issue',
-          status: 'triaged',
-          title: 'Issue report',
-          description: 'Issue body',
-          createdBy: 'member_001',
-          triagedBy: 'admin_001',
-          triagedAt: '2026-05-16T10:30:00.000Z',
-          closedAt: null,
-          createdAt: '2026-05-16T10:00:00.000Z',
-          updatedAt: '2026-05-16T10:30:00.000Z',
-        },
-      },
-    })),
-  );
-
-  useMswHandler(
-    http.post('/api/admin/user-reports/:id/publish-issue', ({ params }) => HttpResponse.json({
-      ok: true,
-      data: {
-        githubLink: {
-          userReportId: String(params.id),
-          repository: 'acme/platform',
-          issueNumber: 99,
-          issueUrl: 'https://github.com/acme/platform/issues/99',
-          publishedBy: 'admin_001',
-          publishedAt: '2026-05-16T10:40:00.000Z',
-        },
-      },
-    })),
-  );
+  useMswHandlers(...buildUserReportsHandlers());
 });
 
 describe('AdminUserReportsPage', () => {
   it('renders inbox as Data Table View', async () => {
-    render(
-      <MemoryRouter>
-        <AdminUserReportsPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUserReportsPage />);
 
     expect(await screen.findByText('Issue report')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Admin user reports' })).toBeInTheDocument();
   });
 
   it('gates issue publication action by category and allows publish for issue and feature-request rows', async () => {
-    render(
-      <MemoryRouter>
-        <AdminUserReportsPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUserReportsPage />);
 
     const issueCell = await screen.findByText('Issue report');
     const issueRow = issueCell.closest('tr');
@@ -184,5 +93,46 @@ describe('AdminUserReportsPage', () => {
     expect(otherRow).not.toBeNull();
     const otherPublishButton = within(otherRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' });
     expect(otherPublishButton).toBeDisabled();
+  });
+
+  it('closes a report and emits global success feedback for closed transition', async () => {
+    renderAdminPage(<AdminUserReportsPage />);
+
+    const issueCell = await screen.findByText('Issue report');
+    const issueRow = issueCell.closest('tr');
+    expect(issueRow).not.toBeNull();
+
+    const closeButton = within(issueRow as HTMLElement).getByRole('button', { name: 'Chiudi' });
+    fireEvent.click(closeButton);
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
+        'Report closed aggiornato.',
+        expect.objectContaining({ dedupeKey: 'admin-user-reports:closed:rpt_issue_001:success' }),
+      );
+    });
+
+    expect(await screen.findByText('closed')).toBeInTheDocument();
+  });
+
+  it('emits global error feedback when publish issue fails', async () => {
+    useMswHandlers(
+      http.post('/api/admin/user-reports/:id/publish-issue', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    renderAdminPage(<AdminUserReportsPage />);
+
+    const issueCell = await screen.findByText('Issue report');
+    const issueRow = issueCell.closest('tr');
+    expect(issueRow).not.toBeNull();
+
+    fireEvent.click(within(issueRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' }));
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ dedupeKey: 'admin-user-reports:publish-issue:rpt_issue_001:error' }),
+      );
+    });
   });
 });

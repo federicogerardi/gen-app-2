@@ -6,6 +6,7 @@ import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
 import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
+import { getMockAuthSession, resetMockAdminSession, setMockAdminSession } from '../test/mockAdminSession';
 
 const feedbackApiSpy = vi.hoisted(() => ({
   publishSuccess: vi.fn(),
@@ -14,11 +15,6 @@ const feedbackApiSpy = vi.hoisted(() => ({
   dismissAll: vi.fn(),
 }));
 
-// Mutable session bag so individual tests can change role
-const sessionBag = { role: 'member' as string | null };
-const authBag = {
-  capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
-};
 type TestAdminUser = {
   id: string;
   email: string;
@@ -30,13 +26,7 @@ type TestAdminUser = {
 let usersDb: TestAdminUser[] = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: sessionBag.role != null ? { user: { email: 'u@test.com', role: sessionBag.role } } : null,
-    loading: false,
-    error: null,
-    apiBaseUrl: '',
-    capabilities: authBag.capabilities,
-  }),
+  useAuthSession: () => getMockAuthSession(),
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -52,7 +42,13 @@ beforeEach(() => {
   feedbackApiSpy.dismiss.mockReset();
   feedbackApiSpy.dismissAll.mockReset();
 
-  sessionBag.role = 'member';
+  resetMockAdminSession({
+    role: 'member',
+    userId: 'user_001',
+    email: 'u@test.com',
+    capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
+  });
+
   usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
   useMswHandler(http.get('/admin/users', () => HttpResponse.json(usersDb)));
   useMswHandler(http.post('/admin/users', async ({ request }) => {
@@ -110,7 +106,7 @@ beforeEach(() => {
 
 describe('AdminGuard', () => {
   it('redirects to /dashboard when role is not admin', () => {
-    sessionBag.role = 'member';
+    setMockAdminSession({ role: 'member' });
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -126,7 +122,7 @@ describe('AdminGuard', () => {
   });
 
   it('renders children when role is admin', () => {
-    sessionBag.role = 'admin';
+    setMockAdminSession({ role: 'admin' });
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -141,7 +137,7 @@ describe('AdminGuard', () => {
   });
 
   it('redirects to /dashboard when session is null', () => {
-    sessionBag.role = null;
+    setMockAdminSession({ role: null });
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <Routes>
@@ -234,6 +230,37 @@ describe('AdminUsersPage', () => {
     expect(await screen.findByText(/role: admin/i)).toBeInTheDocument();
   });
 
+  it('emits global error feedback when inline update fails', async () => {
+    useMswHandler(
+      http.patch('/admin/users/:id', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
+
+    const editForm = screen.getByRole('heading', { name: 'Modifica utente' }).closest('form');
+    expect(editForm).not.toBeNull();
+    if (!editForm) {
+      throw new Error('Edit form not found');
+    }
+
+    fireEvent.change(editForm.querySelector('input[type="email"]')!, { target: { value: 'alice-fail@test.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
+        appCopy.ui.feedback.adminUsersUpdateFailed,
+        expect.objectContaining({ dedupeKey: 'admin-users:update:u1:error' }),
+      );
+    });
+  });
+
   it('disables an existing user', async () => {
     render(
       <MemoryRouter>
@@ -253,8 +280,30 @@ describe('AdminUsersPage', () => {
     );
   });
 
+  it('emits global error feedback when disable user fails', async () => {
+    useMswHandler(
+      http.delete('/admin/users/:id', () => new HttpResponse(null, { status: 500 })),
+    );
+
+    render(
+      <MemoryRouter>
+        <AdminUsersPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
+
+    await waitFor(() => {
+      expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
+        appCopy.ui.feedback.adminUsersDisableFailed,
+        expect.objectContaining({ dedupeKey: 'admin-users:delete:u1:error' }),
+      );
+    });
+  });
+
   it('refetches remote admin users after SPA navigation remount', async () => {
-    sessionBag.role = 'admin';
+    setMockAdminSession({ role: 'admin' });
     let requestCount = 0;
 
     useMswHandler(http.get('/admin/users', () => {

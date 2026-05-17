@@ -55,6 +55,11 @@ Use these names in code, docs, PR descriptions, and design reviews.
 
 All frontend pages must map to exactly one archetype before implementation.
 
+Global composition rule:
+
+- avoid nested cards by default; use nested cards only when strictly necessary for semantic grouping that cannot be represented with spacing, dividers, or typography
+- rationale: nested cards increase cognitive load and visually over-weight layouts, reducing scan speed
+
 ### 3.1 Tool Workspace Page (reference archetype)
 
 Reference: Tool page architecture and current runtime behavior.

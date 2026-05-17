@@ -25,6 +25,7 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
   2. Reuse canonical UI terms from the spec in analysis, PR notes, and updated docs.
   3. If the screen is tabular, align behavior and composition with the `Data Table View` + canonical table standard.
   4. If the screen diverges from the canonical archetype, treat it as drift and document convergence in the same change.
+  5. Avoid nested cards by default. Use nested cards only when strictly necessary for semantic grouping that cannot be expressed with spacing, dividers, or typography. Card nesting increases cognitive load and visually weights layouts.
 
 ## Dependency And Lockfile Determinism Gate (Deploy Safety)
 - This gate is mandatory whenever dependency manifests are changed, including any edit under:

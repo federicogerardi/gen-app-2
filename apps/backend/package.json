@@ -8,7 +8,7 @@
     "test": "node --import tsx --test src/lib/tests/*.test.ts",
     "test:watch": "node --import tsx --test --watch src/lib/tests/*.test.ts",
     "start:server": "tsx src/server.ts",
-    "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations",
+    "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations --track --table=schema_migrations",
     "db:seed:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/seeds",
     "db:seed:redis:minimal": "tsx ../../packages/infra-db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",
     "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict && npm run smoke:queries",

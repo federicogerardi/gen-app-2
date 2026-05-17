@@ -1010,6 +1010,56 @@ button:not(.MuiButton-root):not([class]):disabled,
   border-radius: var(--radius-card);
   background: var(--surface-muted);
 }
+.ui-admin-page__headline {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ui-admin-page {
+  min-width: 0;
+}
+
+.ui-admin-page__header {
+  align-items: start;
+}
+
+.ui-admin-page-eyebrow {
+  font-family: var(--font-family-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand-strong);
+}
+
+.ui-admin-kpi-grid,
+.ui-admin-overview-grid {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ui-admin-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.ui-admin-kpi {
+  display: grid;
+  gap: var(--space-1);
+  min-height: 152px;
+}
+
+.ui-admin-kpi strong {
+  font-family: var(--font-family-ui);
+  font-size: 1.3rem;
+}
+
+.ui-admin-overview-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.ui-admin-overview-card {
+  min-height: 260px;
+}
 
 .ui-artifact-table-pagination .ui-meta-line {
   font-family: var(--font-family-ui);

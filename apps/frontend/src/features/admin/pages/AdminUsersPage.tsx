@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button as MuiButton, MenuItem, TextField } from '@mui/material';
-import { Link } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
@@ -13,7 +12,6 @@ import {
   ErrorStateMessage,
   LoadingStateMessage,
   Surface,
-  TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { useAdminUsersQuery } from '../../../app/runtime/queries/useAdminUsersQuery';
@@ -24,6 +22,7 @@ import {
   type AdminUser,
 } from '../runtime/admin-client';
 import type { AuthUserRole, AuthUserStatus } from '../../auth/runtime/auth-client';
+import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 const ADMIN_USER_ROLE_OPTIONS = [
   { value: 'member', label: 'Member' },
@@ -199,11 +198,10 @@ export const AdminUsersPage = () => {
   };
 
   return (
-    <Surface as="section" className={uiPrimitives.stack}>
-      <TopBar>
-        <h2>{appCopy.editorial.admin.usersTitle}</h2>
-        <p className={uiPrimitives.metaLine}>Gestione utenti in formato Data Table View.</p>
-      </TopBar>
+    <AdminPageContainer
+      title={appCopy.editorial.admin.usersTitle}
+      description="Provisioning rapido, aggiornamento ruoli e disabilitazione account in una vista tabellare coerente."
+    >
 
       <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
         <p className={uiPrimitives.metaLine}>Provisioning rapido, aggiornamento ruoli e disabilitazione account.</p>
@@ -226,18 +224,6 @@ export const AdminUsersPage = () => {
           >
             Aggiorna tabella
           </MuiButton>
-          <Link to="/admin/models" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-            Gestione modelli LLM
-          </Link>
-          <Link to="/admin/changelog" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-            Gestione changelog
-          </Link>
-          <Link to="/admin/user-reports" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-            Gestione segnalazioni
-          </Link>
-          <Link to="/admin/activity" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-            Attività recente
-          </Link>
         </div>
       </div>
 
@@ -468,6 +454,6 @@ export const AdminUsersPage = () => {
           </table>
         </div>
       ) : null}
-    </Surface>
+    </AdminPageContainer>
   );
 };

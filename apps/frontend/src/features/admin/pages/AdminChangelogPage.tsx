@@ -7,11 +7,8 @@ import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvid
 import { useAsyncQuery } from '../../../app/runtime/queries/useAsyncQuery';
 import {
   cx,
-  Surface,
-  TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
-import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import type { ProductChangelogDto } from '../../feedback-center/contracts/feedback-center-contract';
 import {
   createProductChangelog,
@@ -19,27 +16,8 @@ import {
   listAdminProductChangelog,
   archiveProductChangelog,
 } from '../../feedback-center/runtime/feedback-center-client';
-
-const CHANGELOG_COLUMNS: ListingTableColumn[] = [
-  { key: 'title', header: 'Titolo' },
-  { key: 'status', header: 'Stato' },
-  { key: 'publishedAt', header: 'Pubblicato il' },
-  { key: 'updatedAt', header: 'Aggiornato il' },
-  { key: 'actions', header: 'Azioni' },
-];
-
-const formatDateTime = (value: string | null): string => {
-  if (!value) {
-    return '-';
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-};
+import { ChangelogTable } from '../changelog/ChangelogTable';
+import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 export const AdminChangelogPage = () => {
   const auth = useAuthSession();
@@ -156,11 +134,10 @@ export const AdminChangelogPage = () => {
   };
 
   return (
-    <Surface as="section" className={uiPrimitives.stack}>
-      <TopBar>
-        <h2>{appCopy.editorial.admin.changelogTitle}</h2>
-        <p className={uiPrimitives.metaLine}>Data Table View canonica per pubblicazioni ProductChangelog.</p>
-      </TopBar>
+    <AdminPageContainer
+      title={appCopy.editorial.admin.changelogTitle}
+      description="Data Table View canonica per ProductChangelog pubblicati e archivio amministrativo."
+    >
 
       <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
         <p className={uiPrimitives.metaLine}>Pubblica aggiornamenti di prodotto visibili agli utenti autenticati.</p>
@@ -187,7 +164,7 @@ export const AdminChangelogPage = () => {
         </div>
       </div>
 
-      <Surface as="form" className="ui-admin-user-form" onSubmit={(event) => {
+      <form className="ui-admin-user-form" onSubmit={(event) => {
         event.preventDefault();
         void handlePublish();
       }}>
@@ -225,51 +202,15 @@ export const AdminChangelogPage = () => {
             {isPublishing ? 'Pubblicazione...' : 'Pubblica changelog'}
           </button>
         </div>
-      </Surface>
+      </form>
 
-      <ListingTableSection<ProductChangelogDto>
-        title="Voci pubblicate"
+      <ChangelogTable
+        rows={changelogQuery.data}
         loading={changelogQuery.loading}
         error={changelogQuery.error}
-        isEmpty={!changelogQuery.loading && changelogQuery.data.length === 0}
-        emptyMessage="Nessuna voce pubblicata al momento."
-        columns={CHANGELOG_COLUMNS}
-        rows={changelogQuery.data}
-        rowKey={(row) => row.id}
-        renderCell={(row, columnKey) => {
-          if (columnKey === 'title') {
-            return (
-              <>
-                <strong>{row.title}</strong>
-                <p className={uiPrimitives.metaLine}>{row.id}</p>
-              </>
-            );
-          }
-
-          if (columnKey === 'status') {
-            return row.status;
-          }
-
-          if (columnKey === 'publishedAt') {
-            return formatDateTime(row.publishedAt);
-          }
-
-          if (columnKey === 'updatedAt') {
-            return formatDateTime(row.updatedAt);
-          }
-
-          return (
-            <button
-              type="button"
-              className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-              onClick={() => void handleArchiveChangelog(row.id)}
-              disabled={busyAction !== null}
-            >
-              Archiva
-            </button>
-          );
-        }}
+        busyAction={busyAction}
+        onArchive={(changelogId) => { void handleArchiveChangelog(changelogId); }}
       />
-    </Surface>
+    </AdminPageContainer>
   );
 };

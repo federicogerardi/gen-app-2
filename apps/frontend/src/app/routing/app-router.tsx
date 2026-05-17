@@ -19,6 +19,7 @@ const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/Artifact
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
+const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
@@ -122,22 +123,26 @@ export const createAppRouter = () => createBrowserRouter([
         children: [
           {
             index: true,
+            element: <Suspense fallback={<PageLoader />}><AdminDashboardPage /></Suspense>,
+          },
+          {
+            path: 'users',
             element: <Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>,
           },
           {
-            path: '/admin/models',
+            path: 'models',
             element: <Suspense fallback={<PageLoader />}><AdminModelsPage /></Suspense>,
           },
           {
-            path: '/admin/activity',
+            path: 'activity',
             element: <Suspense fallback={<PageLoader />}><AdminActivityPage /></Suspense>,
           },
           {
-            path: '/admin/changelog',
+            path: 'changelog',
             element: <Suspense fallback={<PageLoader />}><AdminChangelogPage /></Suspense>,
           },
           {
-            path: '/admin/user-reports',
+            path: 'user-reports',
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
           },
         ],

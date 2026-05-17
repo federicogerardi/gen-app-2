@@ -7,14 +7,10 @@ import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvid
 import { useAsyncQuery } from '../../../app/runtime/queries/useAsyncQuery';
 import {
   cx,
-  Surface,
-  TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
-import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import type {
   UserReportCategory,
-  UserReportDto,
   UserReportStatus,
 } from '../../feedback-center/contracts/feedback-center-contract';
 import {
@@ -22,14 +18,8 @@ import {
   publishUserReportIssue,
   updateUserReportStatus,
 } from '../../feedback-center/runtime/feedback-center-client';
-
-const USER_REPORT_COLUMNS: ListingTableColumn[] = [
-  { key: 'title', header: 'Segnalazione' },
-  { key: 'category', header: 'Categoria' },
-  { key: 'status', header: 'Stato' },
-  { key: 'createdAt', header: 'Creata il' },
-  { key: 'actions', header: 'Azioni' },
-];
+import { ReportsTable } from '../reports/ReportsTable';
+import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 const USER_REPORT_STATUS_FILTER_OPTIONS: ReadonlyArray<{ value: UserReportStatus | 'all'; label: string }> = [
   { value: 'all', label: 'Tutti gli stati' },
@@ -46,20 +36,6 @@ const USER_REPORT_CATEGORY_FILTER_OPTIONS: ReadonlyArray<{ value: UserReportCate
   { value: 'other', label: 'other' },
 ];
 
-const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-};
-
-const canPublishIssue = (report: UserReportDto): boolean => {
-  const categoryEligibleForGithubPublish = report.category === 'issue' || report.category === 'feature-request';
-  return categoryEligibleForGithubPublish && (report.status === 'submitted' || report.status === 'triaged');
-};
-
 export const AdminUserReportsPage = () => {
   const auth = useAuthSession();
   const { publishSuccess, publishError } = useFeedbackMessage();
@@ -70,7 +46,7 @@ export const AdminUserReportsPage = () => {
 
   const filtersDependency = JSON.stringify([statusFilter, categoryFilter]);
 
-  const listUserReportsQuery = useCallback(async (): Promise<UserReportDto[]> => {
+  const listUserReportsQuery = useCallback(async () => {
     const result = await listAdminUserReports(
       {
         ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
@@ -89,7 +65,7 @@ export const AdminUserReportsPage = () => {
     return result.data;
   }, [auth.apiBaseUrl, auth.capabilities, statusFilter, categoryFilter]);
 
-  const reportsQuery = useAsyncQuery<UserReportDto[]>({
+  const reportsQuery = useAsyncQuery({
     enabled: true,
     emptyData: [],
     errorMessage: 'Unable to load admin user reports',
@@ -162,11 +138,10 @@ export const AdminUserReportsPage = () => {
   };
 
   return (
-    <Surface as="section" className={uiPrimitives.stack}>
-      <TopBar>
-        <h2>{appCopy.editorial.admin.userReportsTitle}</h2>
-        <p className={uiPrimitives.metaLine}>Data Table View canonica per triage UserReport e IssuePublicationPolicy.</p>
-      </TopBar>
+    <AdminPageContainer
+      title={appCopy.editorial.admin.userReportsTitle}
+      description="Data Table View canonica per triage UserReport e IssuePublicationPolicy."
+    >
 
       <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
         <div className={uiPrimitives.actions}>
@@ -211,69 +186,14 @@ export const AdminUserReportsPage = () => {
         </div>
       </div>
 
-      <ListingTableSection<UserReportDto>
-        title="Inbox segnalazioni"
+      <ReportsTable
+        rows={reportsQuery.data}
         loading={reportsQuery.loading}
         error={reportsQuery.error}
-        isEmpty={!reportsQuery.loading && reportsQuery.data.length === 0}
-        emptyMessage="Nessuna segnalazione trovata con i filtri selezionati."
-        columns={USER_REPORT_COLUMNS}
-        rows={reportsQuery.data}
-        rowKey={(row) => row.id}
-        renderCell={(row, columnKey) => {
-          if (columnKey === 'title') {
-            return (
-              <>
-                <strong>{row.title}</strong>
-                <p className={uiPrimitives.metaLine}>{row.description}</p>
-              </>
-            );
-          }
-
-          if (columnKey === 'category') {
-            return row.category;
-          }
-
-          if (columnKey === 'status') {
-            return row.status;
-          }
-
-          if (columnKey === 'createdAt') {
-            return formatDateTime(row.createdAt);
-          }
-
-          return (
-            <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
-              <button
-                type="button"
-                className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                onClick={() => void handleStatusTransition(row.id, 'triaged')}
-                disabled={busyAction !== null || row.status !== 'submitted'}
-              >
-                Triage
-              </button>
-
-              <button
-                type="button"
-                className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                onClick={() => void handleStatusTransition(row.id, 'closed')}
-                disabled={busyAction !== null || row.status === 'closed'}
-              >
-                Chiudi
-              </button>
-
-              <button
-                type="button"
-                className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                onClick={() => void handlePublishIssue(row.id)}
-                disabled={busyAction !== null || !canPublishIssue(row)}
-              >
-                Pubblica issue
-              </button>
-            </div>
-          );
-        }}
+        busyAction={busyAction}
+        onStatusTransition={(reportId, status) => { void handleStatusTransition(reportId, status); }}
+        onPublishIssue={(reportId) => { void handlePublishIssue(reportId); }}
       />
-    </Surface>
+    </AdminPageContainer>
   );
 };

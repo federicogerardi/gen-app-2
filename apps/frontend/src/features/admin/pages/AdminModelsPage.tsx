@@ -5,26 +5,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { TextField, MenuItem, Button as MuiButton } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import {
-  cx,
   EmptyStateMessage,
   ErrorStateMessage,
   LoadingStateMessage,
-  Surface,
-  TopBar,
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import { joinApiPath, requestJson } from '../../../app/runtime/http-client';
+import { LLMTable, type AdminLlmModelRow } from '../llm/LLMTable';
+import { AdminPageContainer } from '../ui/AdminPageContainer';
 
-type AdminLlmModel = {
-  id: string;
-  key: string;
-  label: string;
-  status: 'enabled' | 'disabled';
-  isDefault: boolean;
-  sortOrder: number | null;
-};
+type AdminLlmModel = AdminLlmModelRow;
 
 const createModelSchema = z.object({
   key: z.string().min(1, 'Key richiesta'),
@@ -174,13 +166,12 @@ export const AdminModelsPage = () => {
   };
 
   return (
-    <Surface as="section" className={uiPrimitives.stack}>
-      <TopBar>
-        <h2>{appCopy.editorial.admin.modelsTitle}</h2>
-        <p className={uiPrimitives.metaLine}>Gestisci il catalogo dei modelli LLM disponibili.</p>
-      </TopBar>
+    <AdminPageContainer
+      title={appCopy.editorial.admin.modelsTitle}
+      description="Gestisci il catalogo dei modelli LLM disponibili e lo stato di esposizione nel selector frontend."
+    >
 
-      <Surface as="form" onSubmit={handleSubmit(handleCreateSubmit)} className="ui-admin-user-form">
+      <form onSubmit={handleSubmit(handleCreateSubmit)} className="ui-admin-user-form">
         <div className="ui-admin-user-form-headline">
           <h3>Nuovo modello</h3>
           <p className={uiPrimitives.metaLine}>Aggiungi un modello al catalogo.</p>
@@ -232,73 +223,22 @@ export const AdminModelsPage = () => {
             {appCopy.ui.actions.reset}
           </MuiButton>
         </div>
-      </Surface>
+      </form>
 
       {loading ? <LoadingStateMessage>Caricamento modelli...</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
       {!loading && !error && models.length === 0
         ? <EmptyStateMessage>Nessun modello nel catalogo.</EmptyStateMessage>
         : null}
-
       {models.length > 0 ? (
-        <div className={uiPrimitives.artifactTableWrap}>
-          <table className={uiPrimitives.artifactTable}>
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Label</th>
-                <th>Status</th>
-                <th>Default</th>
-                <th>Azioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {models.map((model) => (
-                <tr key={model.id}>
-                  <td><code>{model.key}</code></td>
-                  <td>{model.label}</td>
-                  <td>
-                    <span className={uiPrimitives.metaLine}>
-                      {model.status === 'enabled' ? '✓ enabled' : '✗ disabled'}
-                    </span>
-                  </td>
-                  <td>{model.isDefault ? '★' : null}</td>
-                  <td className="ui-admin-models-table-actions">
-                      {!model.isDefault ? (
-                        <button
-                          type="button"
-                          className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                          disabled={busyAction === `default:${model.id}`}
-                          onClick={() => void handleSetDefault(model)}
-                        >
-                          {busyAction === `default:${model.id}` ? '...' : 'Set default'}
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                        disabled={busyAction === `toggle:${model.id}`}
-                        onClick={() => void handleToggleStatus(model)}
-                      >
-                        {busyAction === `toggle:${model.id}`
-                          ? '...'
-                          : model.status === 'enabled' ? 'Disabilita' : 'Abilita'}
-                      </button>
-                      <button
-                        type="button"
-                        className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
-                        disabled={busyAction === `delete:${model.id}` || model.isDefault}
-                        onClick={() => void handleDelete(model)}
-                      >
-                        {busyAction === `delete:${model.id}` ? 'Eliminazione...' : 'Elimina'}
-                      </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-    </Surface>
+          <LLMTable
+            models={models}
+            busyAction={busyAction}
+            onSetDefault={(model) => { void handleSetDefault(model); }}
+            onToggleStatus={(model) => { void handleToggleStatus(model); }}
+            onDelete={(model) => { void handleDelete(model); }}
+          />
+        ) : null}
+    </AdminPageContainer>
   );
 };

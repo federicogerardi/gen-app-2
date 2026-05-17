@@ -147,4 +147,15 @@ describe('app router – integration', () => {
     expect(await screen.findByTestId('sessionsummary-detail')).toBeInTheDocument();
     router.dispose();
   });
+
+  it('renders the admin dashboard at /admin', async () => {
+    window.history.pushState({}, '', '/admin');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /apri gestione utenti/i })).toBeInTheDocument();
+    router.dispose();
+  });
 });

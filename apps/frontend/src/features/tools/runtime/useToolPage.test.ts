@@ -295,6 +295,12 @@ describe('useToolPage', () => {
       input: { tone: string };
     };
 
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'PROGRESS_SYNCED',
+        runRequestPrefix: 'run-001',
+      }),
+    );
     expect(request.model).toBe('openrouter/auto');
     expect(request.input.tone).toBe('Professional');
   });

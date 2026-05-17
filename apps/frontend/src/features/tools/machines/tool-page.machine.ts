@@ -349,11 +349,26 @@ const deriveHasExtractionContext = (
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
-  // Null check preliminare: evita il type narrowing aggressivo del type guard
-  // hasCompleteHydrationResult che restringe a `never` il ramo Caso 2.
+  const logInvalidExtractionContext = (
+    message: string,
+    details: {
+      extractionArtifactId: string | null;
+      briefingId: string | null;
+      normalizedTextLength: number;
+      extractionPayloadKeys: number;
+    },
+  ): void => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.warn(message, {
+      toolKey,
+      ...details,
+    });
+  };
+
   if (hydrationResult !== null) {
-    // Caso 1: hydrationResult completo → validazione standard
-    // Usare flag booleano (non type guard) per evitare narrowing a `never` nel Caso 2.
     const isComplete = hydrationResult.extractionArtifactId.trim().length > 0
       && hydrationResult.briefingId.trim().length > 0
       && hydrationResult.normalizedText.trim().length > 0;
@@ -366,38 +381,28 @@ const deriveHasExtractionContext = (
         { allowEmptyPayload: true },
       );
       if (!valid) {
-        // Log diagnostico dettagliato
-        console.warn('[deriveHasExtractionContext] ExtractionContext non valido dopo hydration:', {
-          toolKey,
+        logInvalidExtractionContext(
+          '[deriveHasExtractionContext] ExtractionContext non valido dopo hydration:',
+          {
           extractionArtifactId: hydrationResult.extractionArtifactId,
           briefingId: hydrationResult.briefingId,
-          normalizedTextLength: hydrationResult.normalizedText?.length,
+          normalizedTextLength: hydrationResult.normalizedText.length,
           extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
-          extractionPayload: hydrationResult.extractionPayload,
-        });
+          },
+        );
       }
       return valid;
     }
-
-    // Caso 2: hydrationResult presente ma incompleto → readiness se almeno normalizedText valido
-    if (typeof hydrationResult.normalizedText === 'string' && hydrationResult.normalizedText.trim().length > 0) {
-      // Permetti readiness anche se gli altri campi sono vuoti subito dopo extraction
-      return true;
-    }
   }
 
-  // Caso 3: fallback su briefingActorRef
   const validBriefing = hasCompleteBriefingContext(toolKey, briefingActorRef);
   if (!validBriefing) {
-    // Log diagnostico per briefing context
     const snapshot = briefingActorRef?.getSnapshot();
-    console.warn('[deriveHasExtractionContext] Briefing context non valido:', {
-      toolKey,
-      extractionArtifactId: snapshot?.context.extractionArtifactId,
-      briefingId: snapshot?.context.briefingId,
-      normalizedTextLength: snapshot?.context.normalizedText?.length,
+    logInvalidExtractionContext('[deriveHasExtractionContext] Briefing context non valido:', {
+      extractionArtifactId: snapshot?.context.extractionArtifactId ?? null,
+      briefingId: snapshot?.context.briefingId ?? null,
+      normalizedTextLength: snapshot?.context.normalizedText?.length ?? 0,
       extractionPayloadKeys: Object.keys(snapshot?.context.extractionPayload ?? {}).length,
-      extractionPayload: snapshot?.context.extractionPayload,
     });
   }
   return validBriefing;

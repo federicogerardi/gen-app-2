@@ -177,25 +177,26 @@ export const briefingUploadMachine = setup({
         return context;
       }
 
-      // Fallback deterministici per readiness robusta
-      const fallbackId = context.fileName ? `brief_${context.fileName}` : 'brief_fallback';
-      const extractionArtifactId = event.artifactId && typeof event.artifactId === 'string' && event.artifactId.trim().length > 0
-        ? event.artifactId
-        : fallbackId;
-      const briefingId = event.briefingId && typeof event.briefingId === 'string' && event.briefingId.trim().length > 0
-        ? event.briefingId
-        : fallbackId;
-      const normalizedText = event.normalizedText && typeof event.normalizedText === 'string' && event.normalizedText.trim().length > 0
-        ? event.normalizedText
-        : context.normalizedText ?? ' '; // fallback a stringa non vuota
+      const extractionArtifactId =
+        event.artifactId && typeof event.artifactId === 'string' && event.artifactId.trim().length > 0
+          ? event.artifactId
+          : context.extractionArtifactId;
+      const briefingId =
+        event.briefingId && typeof event.briefingId === 'string' && event.briefingId.trim().length > 0
+          ? event.briefingId
+          : context.briefingId;
+      const normalizedText =
+        event.normalizedText && typeof event.normalizedText === 'string' && event.normalizedText.trim().length > 0
+          ? event.normalizedText
+          : context.normalizedText;
 
       return {
         ...context,
-        extractionArtifactId,
+        extractionArtifactId: extractionArtifactId ?? null,
         extractionPayload: event.payload,
-        briefingId,
+        briefingId: briefingId ?? null,
         fileName: event.fileName ?? context.fileName,
-        normalizedText,
+        normalizedText: normalizedText ?? null,
         parsedFormat: event.parsedFormat ?? context.parsedFormat,
         error: null,
       };

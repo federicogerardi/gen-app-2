@@ -329,20 +329,6 @@ export const useToolPage = ({
     return toolConfig.steps.includes(candidate) ? candidate : null;
   }, [sourceArtifact, toolConfig.steps]);
 
-  // 5. Sync progress to machine
-  // briefingStatus è incluso nelle deps: quando l'estrazione completa (→ 'ready')
-  // PROGRESS_SYNCED deve essere inviato affinché syncProgress ricalcoli la readiness
-  // usando context.briefingActorRef, che a quel punto è già in stato 'ready'.
-  useEffect(() => {
-    toolPageSend({
-      type: 'PROGRESS_SYNCED',
-      artifacts: generationArtifacts.artifacts,
-      intent,
-      sourceArtifact,
-      runRequestPrefix: null,
-    });
-  }, [generationArtifacts.artifacts, briefingStatus, intent, sourceArtifact, toolPageSend]);
-
   const currentProject = projects.find((p) => p.id === formState.projectId);
   const runController = useToolPageRunController({
     auth,
@@ -370,6 +356,28 @@ export const useToolPage = ({
     toolPageSend,
     sessionId: sessionIdRef.current,
   });
+  const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
+
+  // 5. Sync progress to machine
+  // briefingStatus è incluso nelle deps: quando l'estrazione completa (→ 'ready')
+  // PROGRESS_SYNCED deve essere inviato affinché syncProgress ricalcoli la readiness
+  // usando context.briefingActorRef, che a quel punto è già in stato 'ready'.
+  useEffect(() => {
+    toolPageSend({
+      type: 'PROGRESS_SYNCED',
+      artifacts: generationArtifacts.artifacts,
+      intent,
+      sourceArtifact,
+      runRequestPrefix: getCurrentRunRequestPrefix(),
+    });
+  }, [
+    briefingStatus,
+    generationArtifacts.artifacts,
+    getCurrentRunRequestPrefix,
+    intent,
+    sourceArtifact,
+    toolPageSend,
+  ]);
 
   const effectiveCanonicalState = (
     isGenerating || generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState

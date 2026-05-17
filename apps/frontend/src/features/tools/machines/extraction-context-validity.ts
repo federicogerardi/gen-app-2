@@ -41,20 +41,49 @@ export const isExtractionContextValidForTool = (
   normalizedText: string | null | undefined,
   options: ExtractionContextValidityOptions = {},
 ): boolean => {
+  const logInvalidContext = (
+    message: string,
+    details: {
+      normalizedTextLength: number;
+      extractionPayloadKeys: number;
+    },
+  ): void => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.warn(message, {
+      toolKey,
+      ...details,
+    });
+  };
+
   if (!hasNonEmptyString(normalizedText)) {
-    console.warn('[isExtractionContextValidForTool] normalizedText vuoto o mancante', { toolKey, normalizedText });
+    logInvalidContext('[isExtractionContextValidForTool] normalizedText vuoto o mancante', {
+      normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
+      extractionPayloadKeys: Object.keys(payload ?? {}).length,
+    });
     return false;
   }
 
   if (!options.allowEmptyPayload && !hasActionableExtractionPayload(payload)) {
-    console.warn('[isExtractionContextValidForTool] extractionPayload vuoto o mancante', { toolKey, payload });
+    logInvalidContext('[isExtractionContextValidForTool] extractionPayload vuoto o mancante', {
+      normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
+      extractionPayloadKeys: Object.keys(payload ?? {}).length,
+    });
     return false;
   }
 
   if (toolKey === 'youtube-lf-script') {
     const valid = hasRequiredYoutubeExtractionFields(payload);
     if (!valid) {
-      console.warn('[isExtractionContextValidForTool] Campi obbligatori mancanti per youtube-lf-script', { toolKey, payload });
+      logInvalidContext(
+        '[isExtractionContextValidForTool] Campi obbligatori mancanti per youtube-lf-script',
+        {
+          normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
+          extractionPayloadKeys: Object.keys(payload ?? {}).length,
+        },
+      );
     }
     return valid;
   }

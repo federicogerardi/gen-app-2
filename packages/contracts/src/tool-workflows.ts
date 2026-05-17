@@ -93,7 +93,8 @@ export const TOOL_KEY_BY_WORKFLOW_TYPE: Record<ToolWorkflowType, ToolKey> = Obje
   TOOL_KEYS.map((toolKey) => [TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType, toolKey]),
 ) as Record<ToolWorkflowType, ToolKey>;
 
-export const isToolKey = (value: string): value is ToolKey => value in TOOL_WORKFLOW_DEFINITIONS;
+export const isToolKey = (value: string): value is ToolKey =>
+  Object.hasOwn(TOOL_WORKFLOW_DEFINITIONS, value);
 
 export const isGenerationRouteToolKey = (
   value: string,
@@ -104,7 +105,7 @@ export const isGenerationRequestToolKey = (
 ): value is GenerationRequestToolKey => isToolKey(value) || isGenerationRouteToolKey(value);
 
 export const isToolWorkflowType = (value: string): value is ToolWorkflowType =>
-  value in TOOL_KEY_BY_WORKFLOW_TYPE;
+  Object.hasOwn(TOOL_KEY_BY_WORKFLOW_TYPE, value);
 
 export const resolveToolWorkflowType = (toolKey: ToolKey): ToolWorkflowType =>
   TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;

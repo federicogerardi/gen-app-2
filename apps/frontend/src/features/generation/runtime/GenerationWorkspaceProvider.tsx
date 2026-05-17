@@ -333,15 +333,15 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   );
 
   return (
-    <GenerationWorkspaceContext value={value}>
-      <GenerationStreamWorkspaceContext value={streamValue}>
-        <GenerationArtifactsWorkspaceContext value={artifactsValue}>
-          <GenerationProjectWorkspaceContext value={projectValue}>
+    <GenerationWorkspaceContext.Provider value={value}>
+      <GenerationStreamWorkspaceContext.Provider value={streamValue}>
+        <GenerationArtifactsWorkspaceContext.Provider value={artifactsValue}>
+          <GenerationProjectWorkspaceContext.Provider value={projectValue}>
             {children}
-          </GenerationProjectWorkspaceContext>
-        </GenerationArtifactsWorkspaceContext>
-      </GenerationStreamWorkspaceContext>
-    </GenerationWorkspaceContext>
+          </GenerationProjectWorkspaceContext.Provider>
+        </GenerationArtifactsWorkspaceContext.Provider>
+      </GenerationStreamWorkspaceContext.Provider>
+    </GenerationWorkspaceContext.Provider>
   );
 };
 

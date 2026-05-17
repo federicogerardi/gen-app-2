@@ -597,9 +597,15 @@ export const useToolPageRunController = ({
     toolPageSend,
   ]);
 
+  const getCurrentRunRequestPrefix = useCallback(
+    (): string | null => currentRunPrefixRef.current,
+    [],
+  );
+
   return {
     currentRunningStep,
     dispatchError,
+    getCurrentRunRequestPrefix,
     primaryTargetStep,
     pausedCheckpointStep,
     streamingStep,

@@ -42,15 +42,21 @@ export const isExtractionContextValidForTool = (
   options: ExtractionContextValidityOptions = {},
 ): boolean => {
   if (!hasNonEmptyString(normalizedText)) {
+    console.warn('[isExtractionContextValidForTool] normalizedText vuoto o mancante', { toolKey, normalizedText });
     return false;
   }
 
   if (!options.allowEmptyPayload && !hasActionableExtractionPayload(payload)) {
+    console.warn('[isExtractionContextValidForTool] extractionPayload vuoto o mancante', { toolKey, payload });
     return false;
   }
 
   if (toolKey === 'youtube-lf-script') {
-    return hasRequiredYoutubeExtractionFields(payload);
+    const valid = hasRequiredYoutubeExtractionFields(payload);
+    if (!valid) {
+      console.warn('[isExtractionContextValidForTool] Campi obbligatori mancanti per youtube-lf-script', { toolKey, payload });
+    }
+    return valid;
   }
 
   return true;

@@ -1,68 +1,115 @@
-import { Link } from 'react-router-dom';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { Surface, uiPrimitives } from '../../../app/ui/primitives';
-import { adminNavigationItems } from '../config/admin-navigation';
+import {
+  EmptyStateMessage,
+  ErrorStateMessage,
+  LoadingStateMessage,
+  Surface,
+} from '../../../app/ui/primitives';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 
-const overviewCards = adminNavigationItems.filter((item) => item.key !== 'overview');
+type AdminKpiWidgetState = 'loading' | 'empty' | 'error' | 'ready';
+
+type AdminKpiWidgetPreview = {
+  key: string;
+  title: string;
+  hint: string;
+  state: AdminKpiWidgetState;
+  valuePreview?: string;
+};
+
+const adminKpiWidgetPreviews: readonly AdminKpiWidgetPreview[] = [
+  {
+    key: 'daily-quota-usage',
+    title: 'Uso quota oggi',
+    hint: 'Trend consume quota + utenti a rischio saturazione',
+    state: 'loading',
+  },
+  {
+    key: 'open-user-reports',
+    title: 'UserReport aperti',
+    hint: 'Coda issue/feature-request in attesa di triage',
+    state: 'loading',
+  },
+  {
+    key: 'llm-model-catalog-status',
+    title: 'Stato catalogo LlmModel',
+    hint: 'Modelli enabled/disabled e default attuale',
+    state: 'loading',
+  },
+  {
+    key: 'recent-admin-activity',
+    title: 'Attivita admin recenti',
+    hint: 'Mutazioni critiche eseguite nelle ultime 24h',
+    state: 'loading',
+  },
+  {
+    key: 'operational-error-rate',
+    title: 'Error rate operativo',
+    hint: 'Failure stream, retry dispatch e anomalie endpoint',
+    state: 'loading',
+  },
+  {
+    key: 'mean-resolution-time',
+    title: 'Tempo medio risoluzione',
+    hint: 'Tempo da apertura UserReport a chiusura/escalation',
+    state: 'loading',
+  },
+] as const;
+
+const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview }) => {
+  if (widget.state === 'loading') {
+    return (
+      <div className="ui-admin-kpi-widget-state" aria-busy="true" aria-live="polite">
+        <LoadingStateMessage>Caricamento KPI...</LoadingStateMessage>
+        <div className="ui-admin-kpi-skeleton" aria-hidden="true">
+          <span className="ui-admin-kpi-skeleton__line ui-admin-kpi-skeleton__line--value" />
+          <span className="ui-admin-kpi-skeleton__line" />
+          <span className="ui-admin-kpi-skeleton__line ui-admin-kpi-skeleton__line--short" />
+        </div>
+      </div>
+    );
+  }
+
+  if (widget.state === 'empty') {
+    return (
+      <div className="ui-admin-kpi-widget-state">
+        <EmptyStateMessage>Nessun dato disponibile.</EmptyStateMessage>
+      </div>
+    );
+  }
+
+  if (widget.state === 'error') {
+    return (
+      <div className="ui-admin-kpi-widget-state">
+        <ErrorStateMessage>Errore caricamento widget.</ErrorStateMessage>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ui-admin-kpi-widget-state">
+      <p className="ui-admin-kpi-widget-value">{widget.valuePreview ?? '--'}</p>
+      <p className="ui-admin-kpi-widget-value-meta">Pronto per dato reale</p>
+    </div>
+  );
+};
 
 export const AdminDashboardPage = () => {
-  const auth = useAuthSession();
-  const adminEmail = auth.session?.user.email ?? 'admin';
-
   return (
     <AdminPageContainer
       title="Dashboard admin"
-      description="Entry point unica per supervisionare utenti, LlmModelCatalog, ProductChangelog, UserReport e attivita recente."
-      actions={(
-        <Link to="/admin/users" className={uiPrimitives.button}>
-          Apri gestione utenti
-        </Link>
-      )}
+      description=""
+      showEyebrow={false}
     >
-      <div className="ui-admin-kpi-grid">
-        <Surface className="ui-admin-kpi">
-          <p className="ui-admin-page-eyebrow">Responsabile</p>
-          <strong>{adminEmail}</strong>
-          <p className={uiPrimitives.metaLine}>Sessione autenticata con accesso amministrativo.</p>
-        </Surface>
-
-        <Surface className="ui-admin-kpi">
-          <p className="ui-admin-page-eyebrow">Sezioni attive</p>
-          <strong>{overviewCards.length}</strong>
-          <p className={uiPrimitives.metaLine}>Pagine atomiche raggiungibili direttamente da questa dashboard admin.</p>
-        </Surface>
-
-        <Surface className="ui-admin-kpi">
-          <p className="ui-admin-page-eyebrow">Feedback</p>
-          <strong>Globale + locale</strong>
-          <p className={uiPrimitives.metaLine}>Le mutazioni mantengono Global Feedback Message e page-state coerenti.</p>
-        </Surface>
-      </div>
-
-      <section className={uiPrimitives.stack} aria-labelledby="admin-dashboard-sections-title">
-        <h3 id="admin-dashboard-sections-title">Sezioni operative</h3>
-        <div className="ui-admin-overview-grid">
-          {overviewCards.map((item) => (
-            <Surface key={item.key} className="ui-dashboard-card ui-admin-overview-card">
-              <div className={uiPrimitives.stack}>
-                <p className="ui-admin-page-eyebrow">Admin section</p>
-                <h3>{item.label}</h3>
-                <p>{item.description}</p>
-              </div>
-
-              <Link to={item.to} className={uiPrimitives.button}>
-                Apri sezione
-              </Link>
-            </Surface>
-          ))}
-        </div>
+      <section className="ui-admin-kpi-placeholder-grid" aria-label="Widget KPI di sistema in preview">
+        {adminKpiWidgetPreviews.map((widget) => (
+          <Surface key={widget.key} className="ui-admin-kpi-placeholder-card ui-admin-kpi-widget-card">
+            <p className="ui-admin-kpi-placeholder-label">Widget preview</p>
+            <h3>{widget.title}</h3>
+            <p>{widget.hint}</p>
+            <AdminKpiWidgetStatePreview widget={widget} />
+          </Surface>
+        ))}
       </section>
-
-      <Surface className={uiPrimitives.stack}>
-        <h3>Governance operativa</h3>
-        <p className={uiPrimitives.metaLine}>Le viste tabellari admin convergono sul pattern canonico Data Table View con toolbar locale, page-state in-page e azioni di riga compatte.</p>
-      </Surface>
     </AdminPageContainer>
   );
 };

@@ -1,0 +1,45 @@
+import { NavLink } from 'react-router-dom';
+import {
+  Activity,
+  LayoutDashboard,
+  Megaphone,
+  MessageSquareWarning,
+  type LucideIcon,
+  Settings2,
+  Users,
+} from 'lucide-react';
+import { adminNavigationItems } from '../config/admin-navigation';
+import { Surface, cx } from '../../../app/ui/primitives';
+
+const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], LucideIcon> = {
+  overview: LayoutDashboard,
+  users: Users,
+  models: Settings2,
+  changelog: Megaphone,
+  'user-reports': MessageSquareWarning,
+  activity: Activity,
+};
+
+export const AdminPersistentNavigation = () => {
+  return (
+    <Surface as="nav" className="ui-admin-persistent-nav" aria-label="Navigazione amministrazione">
+      <div className="ui-admin-persistent-nav__list">
+        {adminNavigationItems.map((item) => {
+          const Icon = adminNavIcons[item.key];
+
+          return (
+            <NavLink
+              key={item.key}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => cx('ui-admin-persistent-nav__link', isActive && 'is-active')}
+            >
+              <Icon size={16} aria-hidden="true" className="ui-admin-persistent-nav__icon" />
+              <span className="ui-admin-persistent-nav__label">{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </div>
+    </Surface>
+  );
+};

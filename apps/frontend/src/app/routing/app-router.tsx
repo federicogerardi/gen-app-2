@@ -4,6 +4,7 @@ import type { FC, LazyExoticComponent } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
+import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
 import { getEnabledToolKeys } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 
@@ -95,7 +96,10 @@ const AdminLayout = () => {
 
   return (
     <AdminGuard>
-      <Outlet />
+      <div className="ui-admin-route-layout">
+        <AdminPersistentNavigation />
+        <Outlet />
+      </div>
     </AdminGuard>
   );
 };

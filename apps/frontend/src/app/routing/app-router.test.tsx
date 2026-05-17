@@ -185,7 +185,6 @@ describe('app router – integration', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /apri gestione utenti/i })).toBeInTheDocument();
     router.dispose();
   });
 

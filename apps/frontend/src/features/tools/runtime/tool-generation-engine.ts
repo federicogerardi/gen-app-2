@@ -13,10 +13,10 @@ export const createStepRequest = (
   dependencyArtifactContentsByStep: Partial<Record<ToolStep, string>> = {},
 ): GenerationRequest => {
   const dependencyEntries = Object.entries(dependencies).filter(
-    (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
+    (entry): entry is [ToolStep, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
   );
   const dependencyContentEntries = Object.entries(dependencyArtifactContentsByStep).filter(
-    (entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
+    (entry): entry is [ToolStep, string] => typeof entry[1] === 'string' && entry[1].trim().length > 0,
   );
 
   return {

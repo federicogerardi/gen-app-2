@@ -98,8 +98,7 @@ export const useToolPageRunController = ({
         return null;
       }
 
-      const validatedStep = candidate as ToolStep;
-      return toolConfig.steps.includes(validatedStep) ? validatedStep : null;
+      return toolConfig.steps.find((step) => step === candidate) ?? null;
     },
     [toolConfig.steps],
   );

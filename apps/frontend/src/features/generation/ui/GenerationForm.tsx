@@ -32,6 +32,19 @@ import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 
 const DEFAULT_TOOL_KEY: ToolKey = 'funnel-pages';
+const normalizeToolMetadata = (
+  toolKey: string,
+  workflowType: GenerationWorkflowType,
+): { toolKey: ToolKey; workflowType: GenerationWorkflowType } => {
+  const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
+  return {
+    toolKey: normalizedToolKey,
+    workflowType:
+      workflowType === 'extraction'
+        ? workflowType
+        : resolveToolWorkflowType(normalizedToolKey),
+  };
+};
 
 type GenerationFormProps = {
   userId: string;
@@ -154,11 +167,7 @@ export const GenerationForm = ({
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
-    const normalizedWorkflowType =
-      workflowType === 'extraction'
-        ? workflowType
-        : resolveToolWorkflowType(normalizedToolKey);
+    const normalizedToolMetadata = normalizeToolMetadata(toolKey, workflowType);
 
     const request: GenerationRequest = {
       requestId: generateRequestId(),
@@ -183,8 +192,8 @@ export const GenerationForm = ({
         checkpointArtifactId: selectedCheckpoint?.artifactId ?? null,
       },
       outputFormat,
-      toolKey: normalizedToolKey,
-      workflowType: normalizedWorkflowType,
+      toolKey: normalizedToolMetadata.toolKey,
+      workflowType: normalizedToolMetadata.workflowType,
       registrySnapshotRef,
     };
 
@@ -230,7 +239,7 @@ export const GenerationForm = ({
       return;
     }
 
-    const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
+    const normalizedToolMetadata = normalizeToolMetadata(toolKey, workflowType);
 
     setPhase('uploading');
     setExtractionLifecycle('in_progress');
@@ -240,7 +249,7 @@ export const GenerationForm = ({
       const uploaded = await uploadBrief(
           {
             projectId: projectId.trim(),
-            toolKey: normalizedToolKey,
+            toolKey: normalizedToolMetadata.toolKey,
             file: briefingFile,
           },
         {
@@ -255,7 +264,7 @@ export const GenerationForm = ({
             userId,
             projectId: projectId.trim(),
             model,
-            toolKey: normalizedToolKey,
+            toolKey: normalizedToolMetadata.toolKey,
             tone,
             notes,
           briefingId: uploaded.briefingId,

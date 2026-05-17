@@ -92,20 +92,32 @@ export const useToolPageRunController = ({
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const wasStreamActiveRef = useRef(false);
+  const validateToolStep = useCallback(
+    (candidate: unknown): ToolStep | null => {
+      if (typeof candidate !== 'string') {
+        return null;
+      }
+
+      const validatedStep = candidate as ToolStep;
+      return toolConfig.steps.includes(validatedStep) ? validatedStep : null;
+    },
+    [toolConfig.steps],
+  );
 
   const streamingStep = useMemo(() => {
     if (!generationStream.isStreamActive) {
       return null;
     }
 
-    const candidate = (generationStream.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined)
-      ?.step;
-    if (typeof candidate !== 'string') {
-      return null;
-    }
-
-    return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
-  }, [generationStream.isStreamActive, generationStream.snapshot.context.lastRequest, toolConfig.steps]);
+    return validateToolStep(
+      (generationStream.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined)
+        ?.step,
+    );
+  }, [
+    generationStream.isStreamActive,
+    generationStream.snapshot.context.lastRequest,
+    validateToolStep,
+  ]);
 
   const currentRunningStep = streamingStep;
 
@@ -439,15 +451,11 @@ export const useToolPageRunController = ({
       | Record<string, unknown>
       | undefined)?.step;
     const normalizedFailedStep =
-      typeof failedStep === 'string' && toolConfig.steps.includes(failedStep as ToolStep)
-        ? (failedStep as ToolStep)
-        : typeof inferredStepFromLastRequest === 'string'
-            && toolConfig.steps.includes(inferredStepFromLastRequest as ToolStep)
-          ? (inferredStepFromLastRequest as ToolStep)
-          : null;
+      validateToolStep(failedStep) ?? validateToolStep(inferredStepFromLastRequest);
 
-    if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
-      toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
+    const normalizedCompletedStep = validateToolStep(completedStep);
+    if (normalizedCompletedStep) {
+      toolPageSend({ type: 'STEP_DONE', step: normalizedCompletedStep });
       return;
     }
 
@@ -473,11 +481,11 @@ export const useToolPageRunController = ({
     }
 
     if (!completedStep && !failedStep && generationStream.streamStatus === 'completed') {
-      const inferredStep = (generationStream.snapshot.context.lastRequest?.input as
+      const inferredStep = validateToolStep((generationStream.snapshot.context.lastRequest?.input as
         | Record<string, unknown>
-        | undefined)?.step;
-      if (typeof inferredStep === 'string' && toolConfig.steps.includes(inferredStep as ToolStep)) {
-        toolPageSend({ type: 'STEP_DONE', step: inferredStep as ToolStep });
+        | undefined)?.step);
+      if (inferredStep) {
+        toolPageSend({ type: 'STEP_DONE', step: inferredStep });
       }
     }
   }, [
@@ -487,8 +495,8 @@ export const useToolPageRunController = ({
     generationStream.streamStatus,
     generationStream.terminalCompletedStep,
     generationStream.terminalFailedStep,
-    toolConfig.steps,
     toolPageSend,
+    validateToolStep,
   ]);
 
   useEffect(() => {

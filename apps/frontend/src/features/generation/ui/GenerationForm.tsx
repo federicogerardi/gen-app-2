@@ -31,6 +31,8 @@ import type { ExtractionContext } from '../runtime/GenerationWorkspaceProvider';
 import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 
+const DEFAULT_TOOL_KEY: ToolKey = 'funnel-pages';
+
 type GenerationFormProps = {
   userId: string;
   toolsUploadEnabled: boolean;
@@ -80,7 +82,7 @@ export const GenerationForm = ({
   const [notes, setNotes] = useState('');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown');
   const [workflowType, setWorkflowType] = useState<GenerationWorkflowType>('funnel_pages');
-  const [toolKey, setToolKey] = useState<ToolKey>('funnel-pages');
+  const [toolKey, setToolKey] = useState<ToolKey>(DEFAULT_TOOL_KEY);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [intent, setIntent] = useState<ToolIntent>('new');
   const [hasCheckpoint, setHasCheckpoint] = useState(false);
@@ -152,7 +154,7 @@ export const GenerationForm = ({
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    const normalizedToolKey = isToolKey(toolKey) ? toolKey : 'funnel-pages';
+    const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
     const normalizedWorkflowType =
       workflowType === 'extraction'
         ? workflowType
@@ -228,7 +230,7 @@ export const GenerationForm = ({
       return;
     }
 
-    const normalizedToolKey = isToolKey(toolKey) ? toolKey : 'funnel-pages';
+    const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
 
     setPhase('uploading');
     setExtractionLifecycle('in_progress');
@@ -490,7 +492,7 @@ export const GenerationForm = ({
           onChange={(e) => setWorkflowType(
             e.target.value === 'extraction'
               ? 'extraction'
-              : resolveToolWorkflowType(isToolKey(toolKey) ? toolKey : 'funnel-pages'),
+              : resolveToolWorkflowType(isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY),
           )}
         />
       </label>
@@ -500,7 +502,7 @@ export const GenerationForm = ({
         <input
           value={toolKey}
           onChange={(e) => {
-            const nextToolKey = isToolKey(e.target.value) ? e.target.value : 'funnel-pages';
+            const nextToolKey = isToolKey(e.target.value) ? e.target.value : DEFAULT_TOOL_KEY;
             setToolKey(nextToolKey);
             setWorkflowType(resolveToolWorkflowType(nextToolKey));
           }}

@@ -110,12 +110,9 @@ const normalizeWorkflowTypeCandidate = (
     return 'extraction';
   }
 
-  if (normalized === 'funnel-pages') {
-    return 'funnel_pages';
-  }
-
-  if (normalized === 'youtube-lf-script') {
-    return 'youtube_lf_script';
+  const normalizedToolKey = normalizeToolKeyCandidate(normalized);
+  if (normalizedToolKey) {
+    return resolveToolWorkflowType(normalizedToolKey);
   }
 
   return isToolWorkflowType(normalized) ? normalized : null;

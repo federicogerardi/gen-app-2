@@ -79,8 +79,8 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
 
   return (
     <div className="ui-admin-kpi-widget-state">
-      <p className="ui-admin-kpi-widget-value">{widget.valuePreview ?? '--'}</p>
-      <p className="ui-admin-kpi-widget-value-meta">{widget.valueMeta ?? 'Pronto per dato reale'}</p>
+      <p className="ui-kpi-value">{widget.valuePreview ?? '--'}</p>
+      <p className="ui-kpi-meta">{widget.valueMeta ?? 'Pronto per dato reale'}</p>
     </div>
   );
 };

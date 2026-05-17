@@ -1,7 +1,6 @@
-import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { listAdminUsers, type AdminUser } from '../../../features/admin/runtime/admin-client';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
 type UseAdminUsersQueryOptions = {
   apiBaseUrl: string;
@@ -9,26 +8,15 @@ type UseAdminUsersQueryOptions = {
   enabled?: boolean;
 };
 
-type UseAdminUsersQueryResult = {
-  data: AdminUser[];
-  loading: boolean;
-  error: string | null;
-  reload: () => void;
-};
-
 export const useAdminUsersQuery = (
   options: UseAdminUsersQueryOptions,
-): UseAdminUsersQueryResult => {
-  const query = useCallback(() => listAdminUsers({
-    apiBaseUrl: options.apiBaseUrl,
-    capabilities: options.capabilities,
-  }), [options.apiBaseUrl, options.capabilities]);
+): SWRQueryResult<AdminUser[]> => {
+  const enabled = options.enabled ?? true;
 
-  return useAsyncQuery<AdminUser[]>({
-    enabled: options.enabled ?? true,
+  return useSWRQuery<AdminUser[]>({
+    key: enabled ? [options.apiBaseUrl, options.capabilities, 'admin-users'] : null,
+    fetcher: () => listAdminUsers({ apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities }),
     emptyData: [],
     errorMessage: 'Unable to load admin users',
-    dependencyKey: JSON.stringify([options.apiBaseUrl, options.capabilities]),
-    query,
   });
 };

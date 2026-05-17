@@ -32,8 +32,8 @@ export const DashboardPage = () => {
   });
 
   const artifactCount = generation.artifacts.length;
-  const projectsCount = projectsQuery.data.length;
-  const sessionsCount = sessionsQuery.data.length;
+  const projectsCount = projectsQuery.loading ? '—' : projectsQuery.data.length;
+  const sessionsCount = sessionsQuery.loading ? '—' : sessionsQuery.data.length;
 
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';

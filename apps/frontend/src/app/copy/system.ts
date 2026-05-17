@@ -154,6 +154,10 @@ export const appCopy = {
     },
     states: {
       loadingProjects: 'Caricamento progetti...',
+      loadingUsers: 'Caricamento utenti...',
+      loadingModels: 'Caricamento modelli...',
+      loadingArtifact: 'Caricamento artifact...',
+      loadingList: 'Caricamento...',
       noChunkReceived: 'In attesa del contenuto...',
       noArtifactsFiltered: 'Nessun artefatto disponibile con i filtri correnti.',
       noArtifactSelected: 'Seleziona un artefatto per vedere il dettaglio.',

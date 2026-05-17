@@ -1,10 +1,9 @@
-import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import {
   listSessions,
   type SessionSummary,
 } from '../../../features/tools/runtime/session-client';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
 type UseSessionsQueryOptions = {
   projectId?: string;
@@ -13,26 +12,17 @@ type UseSessionsQueryOptions = {
   enabled?: boolean;
 };
 
-type UseSessionsQueryResult = {
-  data: SessionSummary[];
-  loading: boolean;
-  error: string | null;
-  reload: () => void;
-};
-
-export const useSessionsQuery = (options: UseSessionsQueryOptions): UseSessionsQueryResult => {
+export const useSessionsQuery = (options: UseSessionsQueryOptions): SWRQueryResult<SessionSummary[]> => {
   const projectIdKey = options.projectId ?? '';
-  const dependencyKey = JSON.stringify([projectIdKey, options.apiBaseUrl, options.capabilities]);
-  const query = useCallback(() => listSessions(
-    projectIdKey ? { projectId: projectIdKey } : {},
-    { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities as BackendCapabilities },
-  ), [projectIdKey, options.apiBaseUrl, options.capabilities]);
+  const enabled = options.enabled ?? true;
 
-  return useAsyncQuery<SessionSummary[]>({
-    enabled: options.enabled ?? true,
+  return useSWRQuery<SessionSummary[]>({
+    key: enabled ? [projectIdKey, options.apiBaseUrl, options.capabilities, 'sessions'] : null,
+    fetcher: () => listSessions(
+      projectIdKey ? { projectId: projectIdKey } : {},
+      { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities },
+    ),
     emptyData: [],
     errorMessage: 'Unable to load sessions',
-    dependencyKey,
-    query,
   });
 };

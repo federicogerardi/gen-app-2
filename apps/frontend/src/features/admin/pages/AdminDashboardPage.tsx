@@ -8,7 +8,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
-import { useAdminModelsQuery } from '../runtime/useAdminModelsQuery';
+import { useAdminModelsQuery } from '../../../app/runtime/queries/useAdminModelsQuery';
 import { useAdminUserReportsQuery } from '../runtime/useAdminUserReportsQuery';
 
 type AdminKpiWidgetState = 'loading' | 'empty' | 'error' | 'ready';
@@ -89,7 +89,7 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
 
 export const AdminDashboardPage = () => {
   const auth = useAuthSession();
-  const modelsQuery = useAdminModelsQuery(auth.apiBaseUrl);
+  const modelsQuery = useAdminModelsQuery({ apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
   const userReportsQuery = useAdminUserReportsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
@@ -132,7 +132,7 @@ export const AdminDashboardPage = () => {
   };
 
   const dashboardWidgets: readonly AdminKpiWidgetPreview[] = [
-    adminKpiWidgetPreviews[0],
+    ...(adminKpiWidgetPreviews[0] ? [adminKpiWidgetPreviews[0]] : []),
     openUserReportsWidget,
     llmModelCatalogWidget,
     ...adminKpiWidgetPreviews.slice(1),

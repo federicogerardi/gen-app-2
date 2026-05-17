@@ -1,7 +1,6 @@
-import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { getProjectById, type ProjectSummary } from '../../../features/projects/runtime/projects-client';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
 type UseProjectDetailQueryOptions = {
   projectId: string;
@@ -10,26 +9,18 @@ type UseProjectDetailQueryOptions = {
   enabled?: boolean;
 };
 
-type UseProjectDetailQueryResult = {
-  data: ProjectSummary | null;
-  loading: boolean;
-  error: string | null;
-  reload: () => void;
-};
-
 export const useProjectDetailQuery = (
   options: UseProjectDetailQueryOptions,
-): UseProjectDetailQueryResult => {
-  const query = useCallback(() => getProjectById(options.projectId, {
-    apiBaseUrl: options.apiBaseUrl,
-    capabilities: options.capabilities,
-  }), [options.projectId, options.apiBaseUrl, options.capabilities]);
+): SWRQueryResult<ProjectSummary | null> => {
+  const enabled = options.enabled !== false && options.projectId.length > 0;
 
-  return useAsyncQuery<ProjectSummary | null>({
-    enabled: options.enabled !== false && options.projectId.length > 0,
+  return useSWRQuery<ProjectSummary | null>({
+    key: enabled ? [options.projectId, options.apiBaseUrl, options.capabilities, 'project-detail'] : null,
+    fetcher: () => getProjectById(options.projectId, {
+      apiBaseUrl: options.apiBaseUrl,
+      capabilities: options.capabilities,
+    }),
     emptyData: null,
     errorMessage: 'Unable to load project detail',
-    dependencyKey: JSON.stringify([options.projectId, options.apiBaseUrl, options.capabilities]),
-    query,
   });
 };

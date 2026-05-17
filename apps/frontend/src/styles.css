@@ -611,6 +611,21 @@ button:not(.MuiButton-root):not([class]):disabled,
   font-size: 13px;
 }
 
+@keyframes ui-loading-ellipsis {
+  0%   { content: '.'; }
+  33%  { content: '..'; }
+  66%  { content: '...'; }
+  100% { content: '.'; }
+}
+
+.ui-loading-state::after {
+  content: '.';
+  display: inline-block;
+  animation: ui-loading-ellipsis 1.2s steps(1, end) infinite;
+  width: 1.5ch;
+  text-align: left;
+}
+
 .status-line strong,
 .ui-status-line strong {
   color: var(--text-soft);

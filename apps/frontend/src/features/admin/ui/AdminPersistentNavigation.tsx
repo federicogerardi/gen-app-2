@@ -26,12 +26,13 @@ export const AdminPersistentNavigation = () => {
       <div className="ui-admin-persistent-nav__list">
         {adminNavigationItems.map((item) => {
           const Icon = adminNavIcons[item.key];
+          const navLinkProps = item.end !== undefined ? { end: item.end } : {};
 
           return (
             <NavLink
               key={item.key}
               to={item.to}
-              end={item.end}
+              {...navLinkProps}
               className={({ isActive }) => cx('ui-admin-persistent-nav__link', isActive && 'is-active')}
             >
               <Icon size={16} aria-hidden="true" className="ui-admin-persistent-nav__icon" />

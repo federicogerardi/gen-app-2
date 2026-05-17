@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { appCopy } from '../copy/system';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -52,7 +53,7 @@ export const ListingTableSection = <Row,>({
     <section className={uiPrimitives.stack}>
       <HeadingTag>{title}</HeadingTag>
 
-      {loading ? <LoadingStateMessage>Caricamento...</LoadingStateMessage> : null}
+      {loading ? <LoadingStateMessage>{appCopy.ui.states.loadingList}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
 
       {toolbarNode}

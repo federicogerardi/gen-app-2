@@ -1,7 +1,6 @@
-import { useCallback } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { listProjects, type ProjectSummary } from '../../../features/projects/runtime/projects-client';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
 type UseProjectsQueryOptions = {
   apiBaseUrl: string;
@@ -9,26 +8,15 @@ type UseProjectsQueryOptions = {
   enabled?: boolean;
 };
 
-type UseProjectsQueryResult = {
-  data: ProjectSummary[];
-  loading: boolean;
-  error: string | null;
-  reload: () => void;
-};
-
 export const useProjectsQuery = (
   options: UseProjectsQueryOptions,
-): UseProjectsQueryResult => {
-  const query = useCallback(() => listProjects({
-    apiBaseUrl: options.apiBaseUrl,
-    capabilities: options.capabilities,
-  }), [options.apiBaseUrl, options.capabilities]);
+): SWRQueryResult<ProjectSummary[]> => {
+  const enabled = options.enabled ?? true;
 
-  return useAsyncQuery<ProjectSummary[]>({
-    enabled: options.enabled ?? true,
+  return useSWRQuery<ProjectSummary[]>({
+    key: enabled ? [options.apiBaseUrl, options.capabilities, 'projects'] : null,
+    fetcher: () => listProjects({ apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities }),
     emptyData: [],
     errorMessage: 'Unable to load projects',
-    dependencyKey: JSON.stringify([options.apiBaseUrl, options.capabilities]),
-    query,
   });
 };

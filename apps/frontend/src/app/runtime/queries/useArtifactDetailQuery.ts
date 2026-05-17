@@ -1,8 +1,8 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { getArtifactById } from '../../../features/artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../../features/generation/ui/artifact-history';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
 type UseArtifactDetailQueryOptions = {
   artifactId: string;
@@ -12,18 +12,9 @@ type UseArtifactDetailQueryOptions = {
   enabled?: boolean;
 };
 
-type UseArtifactDetailQueryResult = {
-  data: GenerationArtifact | null;
-  loading: boolean;
-  error: string | null;
-  reload: () => void;
-};
-
 export const useArtifactDetailQuery = (
   options: UseArtifactDetailQueryOptions,
-): UseArtifactDetailQueryResult => {
-  const localArtifactsRef = useRef(options.localArtifacts);
-  localArtifactsRef.current = options.localArtifacts;
+): SWRQueryResult<GenerationArtifact | null> => {
   const localArtifactsKey = useMemo(() => JSON.stringify(
     options.localArtifacts.map((artifact) => [
       artifact.artifactId,
@@ -31,22 +22,19 @@ export const useArtifactDetailQuery = (
       artifact.status,
     ]),
   ), [options.localArtifacts]);
-  const query = useCallback(() => getArtifactById(options.artifactId, {
-    apiBaseUrl: options.apiBaseUrl,
-    capabilities: options.capabilities,
-    localArtifacts: localArtifactsRef.current,
-  }), [options.artifactId, options.apiBaseUrl, options.capabilities, localArtifactsKey]);
 
-  return useAsyncQuery<GenerationArtifact | null>({
-    enabled: options.enabled !== false && options.artifactId.length > 0,
+  const enabled = options.enabled !== false && options.artifactId.length > 0;
+
+  return useSWRQuery<GenerationArtifact | null>({
+    key: enabled
+      ? [options.artifactId, options.apiBaseUrl, options.capabilities, localArtifactsKey, 'artifact-detail']
+      : null,
+    fetcher: () => getArtifactById(options.artifactId, {
+      apiBaseUrl: options.apiBaseUrl,
+      capabilities: options.capabilities,
+      localArtifacts: options.localArtifacts,
+    }),
     emptyData: null,
     errorMessage: 'Unable to load artifact detail',
-    dependencyKey: JSON.stringify([
-      options.artifactId,
-      options.apiBaseUrl,
-      options.capabilities,
-      localArtifactsKey,
-    ]),
-    query,
   });
 };

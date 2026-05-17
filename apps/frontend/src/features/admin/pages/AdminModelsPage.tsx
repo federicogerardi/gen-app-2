@@ -11,12 +11,12 @@ import { LLMTable, type AdminLlmModelRow } from '../llm/LLMTable';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 import { AdminModelCreateForm } from '../ui/AdminModelCreateForm';
 import { adminModelFormSchema, type AdminModelFormValues } from '../runtime/admin-models-form';
-import { useAdminModelsQuery } from '../runtime/useAdminModelsQuery';
+import { useAdminModelsQuery } from '../../../app/runtime/queries/useAdminModelsQuery';
 import { useAdminModelsMutations } from '../runtime/useAdminModelsMutations';
 
 export const AdminModelsPage = () => {
   const auth = useAuthSession();
-  const { data: models, loading, error, reload } = useAdminModelsQuery(auth.apiBaseUrl);
+  const { data: models, loading, error, reload } = useAdminModelsQuery({ apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
 
   const {
     register,
@@ -47,7 +47,7 @@ export const AdminModelsPage = () => {
         reset={reset}
       />
 
-      {loading ? <LoadingStateMessage>Caricamento modelli...</LoadingStateMessage> : null}
+      {loading ? <LoadingStateMessage>{appCopy.ui.states.loadingModels}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
       {!loading && !error && models.length === 0
         ? <EmptyStateMessage>Nessun modello nel catalogo.</EmptyStateMessage>

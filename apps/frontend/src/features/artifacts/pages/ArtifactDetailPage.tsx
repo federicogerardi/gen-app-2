@@ -132,7 +132,7 @@ export const ArtifactDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
         {artifactQuery.loading ? (
-          <LoadingStateMessage>Caricamento artifact...</LoadingStateMessage>
+          <LoadingStateMessage>{appCopy.ui.states.loadingArtifact}</LoadingStateMessage>
         ) : null}
         {artifactQuery.error ? <ErrorStateMessage>{artifactQuery.error}</ErrorStateMessage> : null}
         {!artifactQuery.loading ? (

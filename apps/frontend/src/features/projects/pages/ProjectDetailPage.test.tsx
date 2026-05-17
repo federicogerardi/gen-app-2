@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
+import { renderProjectPage } from '../test/renderProjectPage';
 import { ProjectDetailPage } from './ProjectDetailPage';
 
 const workspaceBag = {
@@ -48,12 +49,11 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => workspaceBag,
 }));
 
-const renderPage = (projectId = 'p1') => render(
-  <MemoryRouter initialEntries={[`/dashboard/projects/${projectId}`]}>
-    <Routes>
-      <Route path="/dashboard/projects/:id" element={<ProjectDetailPage />} />
-    </Routes>
-  </MemoryRouter>,
+const renderPage = (projectId = 'p1') => renderProjectPage(
+  <Routes>
+    <Route path="/dashboard/projects/:id" element={<ProjectDetailPage />} />
+  </Routes>,
+  { initialEntries: [`/dashboard/projects/${projectId}`] },
 );
 
 beforeEach(() => {
@@ -110,7 +110,7 @@ describe('ProjectDetailPage', () => {
 
     expect(await screen.findByText('Project One')).toBeInTheDocument();
     expect(screen.getByText(appCopy.editorial.projects.contextualSessions)).toBeInTheDocument();
-    expect(await screen.findByText(appCopy.ui.actions.openDetail)).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: appCopy.ui.actions.openDetail })).toBeInTheDocument();
   });
 
   it('shows not found state when project detail returns 404', async () => {

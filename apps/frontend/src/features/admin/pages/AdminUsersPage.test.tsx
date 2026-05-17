@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
+import { renderAdminPage } from '../test/renderAdminPage';
 import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
 import { getMockAuthSession, resetMockAdminSession, setMockAdminSession } from '../test/mockAdminSession';
@@ -154,11 +155,7 @@ describe('AdminGuard', () => {
 
 describe('AdminUsersPage', () => {
   it('renders Admin users heading', () => {
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUsersPage />);
     expect(screen.getByRole('heading', { name: appCopy.editorial.admin.usersTitle })).toBeInTheDocument();
   });
 
@@ -166,29 +163,17 @@ describe('AdminUsersPage', () => {
     useMswHandler(
       http.get('/admin/users', () => new HttpResponse(null, { status: 403 })),
     );
-    const { findByText } = render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    const { findByText } = renderAdminPage(<AdminUsersPage />);
     expect(await findByText(/403/i)).toBeInTheDocument();
   });
 
   it('renders users returned by API', async () => {
-    const { findByText } = render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    const { findByText } = renderAdminPage(<AdminUsersPage />);
     expect(await findByText('alice@test.com')).toBeInTheDocument();
   });
 
   it('creates a new admin user and refreshes the list', async () => {
-    const { container } = render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    const { container } = renderAdminPage(<AdminUsersPage />);
 
     fireEvent.change(container.querySelector('input[type="email"]')!, { target: { value: 'new-member@test.com' } });
     fireEvent.change(container.querySelector('input[type="password"]')!, { target: { value: 'Secret-123' } });
@@ -204,11 +189,7 @@ describe('AdminUsersPage', () => {
   });
 
   it('updates an existing user inline', async () => {
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
@@ -235,11 +216,7 @@ describe('AdminUsersPage', () => {
       http.patch('/admin/users/:id', () => new HttpResponse(null, { status: 500 })),
     );
 
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
@@ -262,11 +239,7 @@ describe('AdminUsersPage', () => {
   });
 
   it('disables an existing user', async () => {
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
@@ -285,11 +258,7 @@ describe('AdminUsersPage', () => {
       http.delete('/admin/users/:id', () => new HttpResponse(null, { status: 500 })),
     );
 
-    render(
-      <MemoryRouter>
-        <AdminUsersPage />
-      </MemoryRouter>,
-    );
+    renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
@@ -318,16 +287,15 @@ describe('AdminUsersPage', () => {
       ]);
     }));
 
-    render(
-      <MemoryRouter initialEntries={['/start']}>
-        <Routes>
-          <Route
-            path="/start"
-            element={<Link to="/admin">Apri admin</Link>}
-          />
-          <Route path="/admin" element={<AdminUsersPage />} />
-        </Routes>
-      </MemoryRouter>,
+    renderAdminPage(
+      <Routes>
+        <Route
+          path="/start"
+          element={<Link to="/admin">Apri admin</Link>}
+        />
+        <Route path="/admin" element={<AdminUsersPage />} />
+      </Routes>,
+      { initialEntries: ['/start'] },
     );
 
     fireEvent.click(screen.getByRole('link', { name: 'Apri admin' }));

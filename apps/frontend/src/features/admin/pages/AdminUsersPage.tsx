@@ -101,7 +101,7 @@ export const AdminUsersPage = () => {
         />
       ) : null}
 
-      {usersQuery.loading ? <LoadingStateMessage>Caricamento utenti...</LoadingStateMessage> : null}
+      {usersQuery.loading ? <LoadingStateMessage>{appCopy.ui.states.loadingUsers}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
 
       {!error && !usersQuery.loading && users.length === 0 ? <EmptyStateMessage>Nessun utente disponibile.</EmptyStateMessage> : null}

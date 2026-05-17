@@ -153,7 +153,7 @@ describe('ArtifactDetailPage', () => {
         model: 'gpt-4',
         input: { tone: 'Professional' },
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
       },
     });
 
@@ -183,7 +183,7 @@ describe('ArtifactDetailPage', () => {
   it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
     artifactDetailBag.artifact = makeArtifact({
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       sourceRequest: {
         requestId: 'req-1',
         userId: 'user-1',
@@ -197,7 +197,7 @@ describe('ArtifactDetailPage', () => {
           briefingFileName: 'brief-legacy.md',
         },
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         registrySnapshotRef: 'snapshot:default',
       },
     });

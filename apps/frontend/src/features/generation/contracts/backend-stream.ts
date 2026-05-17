@@ -4,7 +4,13 @@
  */
 export type {
   ArtifactType,
+  GenerationRequestInput,
   OutputFormat,
   GenerationRequest,
   BackendStreamEvent,
+  GenerationWorkflowType,
+  ToolKey,
+  ToolStep,
+  ToolWorkflowType,
+  WorkflowRunMode,
 } from '@gen-app-2/contracts';

@@ -21,6 +21,43 @@
  *   - Backend authority: src/lib/runtime/request-contract.ts, stream-contract.ts
  */
 
+export {
+  GENERATION_ROUTE_TOOL_KEY,
+  isGenerationRequestToolKey,
+  isGenerationRouteToolKey,
+  isToolKey,
+  isToolWorkflowType,
+  resolveToolKeyFromWorkflowType,
+  resolveToolWorkflowType,
+  TOOL_KEYS,
+  TOOL_KEY_BY_WORKFLOW_TYPE,
+  TOOL_STEP_DEPENDENCIES,
+  TOOL_STEP_ORDER,
+  TOOL_WORKFLOW_BY_TOOL_KEY,
+  TOOL_WORKFLOW_DEFINITIONS,
+} from './tool-workflows';
+export type {
+  GenerationRequestToolKey,
+  GenerationRouteToolKey,
+  GenerationWorkflowType,
+  ToolKey,
+  ToolStep,
+  ToolWorkflowDefinition,
+  ToolWorkflowStepDefinition,
+  ToolWorkflowStepDependencyMap,
+  ToolWorkflowStepOrder,
+  ToolWorkflowType,
+} from './tool-workflows';
+
+import type {
+  GenerationRequestToolKey,
+  GenerationRouteToolKey,
+  GenerationWorkflowType,
+  ToolKey,
+  ToolStep,
+  ToolWorkflowType,
+} from './tool-workflows';
+
 // =====================================================================
 // Value Objects
 // =====================================================================
@@ -35,6 +72,7 @@ export type ArtifactType = 'content' | 'seo' | 'code' | 'extraction';
  * Output formatting contract for streamed response.
  */
 export type OutputFormat = 'plain' | 'json' | 'markdown';
+export type WorkflowRunMode = 'new' | 'resume' | 'regenerate';
 
 // =====================================================================
 // Domain Commands
@@ -65,7 +103,27 @@ export type OutputFormat = 'plain' | 'json' | 'markdown';
  *   - extractionArtifactId: Optional prior extraction artifact ID for context recovery
  *   - stepDependencyArtifactIds: Prior step artifact IDs for multi-step workflow
  */
-export type GenerationRequest = {
+export type GenerationRequestInput = {
+  prompt?: string;
+  step?: ToolStep | string;
+  intent?: WorkflowRunMode;
+  tone?: string;
+  notes?: string;
+  toolKey?: ToolKey;
+  briefingId?: string | null;
+  briefingText?: string;
+  briefingFileName?: string | null;
+  extractionArtifactId?: string | null;
+  extractionPayload?: Record<string, unknown>;
+  stepDependencyArtifactIds?: string[] | null;
+  stepDependencyArtifactIdsByStep?: Partial<Record<ToolStep, string>>;
+  stepDependencyArtifactContentsByStep?: Partial<Record<ToolStep, string>>;
+  sourceArtifactId?: string | null;
+  relaunchFromArtifactId?: string | null;
+  [key: string]: unknown;
+};
+
+type GenerationRequestBase = {
   requestId: string;
   userId: string;
   projectId: string;
@@ -75,9 +133,6 @@ export type GenerationRequest = {
   artifactType: ArtifactType;
   // LlmModelId — see DDD-056
   model: string;
-  input: Record<string, unknown>;
-  toolKey?: string | null;
-  workflowType?: string | null;
   idempotencyKey?: string;
   outputFormat?: OutputFormat;
   registryVersion?: string;
@@ -86,6 +141,36 @@ export type GenerationRequest = {
   extractionArtifactId?: string | null;
   stepDependencyArtifactIds?: string[] | null;
 };
+
+export type ToolGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput;
+  toolKey: ToolKey;
+  workflowType: ToolWorkflowType;
+};
+
+export type ExtractionGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput & {
+    toolKey?: ToolKey;
+  };
+  toolKey: GenerationRouteToolKey;
+  workflowType: 'extraction';
+};
+
+export type GenericGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput;
+  toolKey?: null;
+  workflowType?: null;
+};
+
+export type GenerationRequest =
+  | ToolGenerationRequest
+  | ExtractionGenerationRequest
+  | GenericGenerationRequest
+  | (GenerationRequestBase & {
+      input: GenerationRequestInput;
+      toolKey?: GenerationRequestToolKey | null;
+      workflowType?: GenerationWorkflowType | null;
+    });
 
 // =====================================================================
 // Domain Events
@@ -198,4 +283,3 @@ export type PublishUserReportIssueCommand = {
   title?: string;
   body?: string;
 };
-

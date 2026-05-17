@@ -13,7 +13,7 @@ const relaunchSourceArtifact: GenerationArtifact = {
   status: 'completed',
   model: 'gpt-4',
   toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
+  workflowType: 'funnel_pages',
   content: 'artifact content',
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
@@ -30,7 +30,7 @@ const relaunchSourceArtifact: GenerationArtifact = {
       briefingFileName: 'brief-legacy.md',
     },
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     registrySnapshotRef: 'snapshot:default',
   },
 };

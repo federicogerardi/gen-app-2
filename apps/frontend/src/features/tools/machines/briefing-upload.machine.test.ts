@@ -166,6 +166,8 @@ describe('briefingUploadMachine', () => {
 
     expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-recovered');
     expect(actor.getSnapshot().context.extractionPayload).toEqual({ recovered: true });
+    expect(actor.getSnapshot().context.briefingId).toBe('brief-recovered');
+    expect(actor.getSnapshot().context.fileName).toBe('brief.md');
     expect(actor.getSnapshot().context.normalizedText).toBe('recovered brief');
     expect(actor.getSnapshot().context.parsedFormat).toBe('md');
     actor.stop();

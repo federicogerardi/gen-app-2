@@ -1,4 +1,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import {
+  isGenerationRouteToolKey,
+  isToolKey,
+  isToolWorkflowType,
+  type GenerationWorkflowType,
+} from '@gen-app-2/contracts';
 
 import type { GenerationAdapters } from '../adapters';
 import {
@@ -199,6 +205,9 @@ const createCorrelationId = (requestId: string): string => `run:${requestId}`;
 const defaultMapGenerationRequest = (
   payload: Record<string, unknown>,
 ): BackendGenerationRequest => {
+  const rawToolKey = typeof payload.toolKey === 'string' ? payload.toolKey.trim() : null;
+  const rawWorkflowType =
+    typeof payload.workflowType === 'string' ? payload.workflowType.trim() : null;
   const request: BackendGenerationRequest = {
     requestId: requireStringField(payload, 'requestId'),
     userId: requireStringField(payload, 'userId'),
@@ -206,8 +215,14 @@ const defaultMapGenerationRequest = (
     artifactType: requireStringField(payload, 'artifactType') as BackendGenerationRequest['artifactType'],
     model: requireStringField(payload, 'model'),
     input: requireObjectField(payload, 'input'),
-    toolKey: typeof payload.toolKey === 'string' ? payload.toolKey : null,
-    workflowType: typeof payload.workflowType === 'string' ? payload.workflowType : null,
+    toolKey:
+      rawToolKey && (isToolKey(rawToolKey) || isGenerationRouteToolKey(rawToolKey))
+        ? rawToolKey
+        : null,
+    workflowType:
+      rawWorkflowType && (isToolWorkflowType(rawWorkflowType) || rawWorkflowType === 'extraction')
+        ? (rawWorkflowType as GenerationWorkflowType)
+        : null,
   };
 
   if (typeof payload.sessionId === 'string' && payload.sessionId.trim().length > 0) {

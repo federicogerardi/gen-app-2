@@ -20,7 +20,11 @@ import type {
   ArtifactType,
   BackendStreamEvent,
   GenerationRequest,
+  GenerationRequestInput,
   OutputFormat,
+  ToolKey,
+  ToolWorkflowType,
+  WorkflowRunMode,
 } from './backend-stream';
 
 // ---------------------------------------------------------------------------
@@ -31,16 +35,24 @@ import type {
 
 type _PinnedArtifactType = 'content' | 'seo' | 'code' | 'extraction';
 type _PinnedOutputFormat = 'plain' | 'json' | 'markdown';
+type _PinnedWorkflowRunMode = 'new' | 'resume' | 'regenerate';
+type _PinnedToolKey = 'funnel-pages' | 'nextland' | 'youtube-lf-script';
+type _PinnedToolWorkflowType = 'funnel_pages' | 'nextland' | 'youtube_lf_script';
+type _PinnedGenerationRequestInput = GenerationRequestInput & {
+  intent?: _PinnedWorkflowRunMode;
+  toolKey?: _PinnedToolKey;
+};
 
 type _PinnedGenerationRequest = {
   requestId: string;
   userId: string;
   projectId: string;
+  sessionId?: string;
   artifactType: _PinnedArtifactType;
   model: string;
-  input: Record<string, unknown>;
-  toolKey?: string | null;
-  workflowType?: string | null;
+  input: _PinnedGenerationRequestInput;
+  toolKey?: _PinnedToolKey | 'extraction' | null;
+  workflowType?: _PinnedToolWorkflowType | 'extraction' | null;
   idempotencyKey?: string;
   outputFormat?: _PinnedOutputFormat;
   registryVersion?: string;
@@ -80,6 +92,32 @@ type _CheckOutputFormatFEextendsPinned = OutputFormat extends _PinnedOutputForma
 type _CheckOutputFormatPinnedExtendsFE = _PinnedOutputFormat extends OutputFormat ? true : never;
 declare const _assertOutputFormatFwd: _CheckOutputFormatFEextendsPinned;
 declare const _assertOutputFormatRev: _CheckOutputFormatPinnedExtendsFE;
+
+// WorkflowRunMode parity
+type _CheckWorkflowRunModeFEextendsPinned = WorkflowRunMode extends _PinnedWorkflowRunMode
+  ? true
+  : never;
+type _CheckWorkflowRunModePinnedExtendsFE = _PinnedWorkflowRunMode extends WorkflowRunMode
+  ? true
+  : never;
+declare const _assertWorkflowRunModeFwd: _CheckWorkflowRunModeFEextendsPinned;
+declare const _assertWorkflowRunModeRev: _CheckWorkflowRunModePinnedExtendsFE;
+
+// ToolKey parity
+type _CheckToolKeyFEextendsPinned = ToolKey extends _PinnedToolKey ? true : never;
+type _CheckToolKeyPinnedExtendsFE = _PinnedToolKey extends ToolKey ? true : never;
+declare const _assertToolKeyFwd: _CheckToolKeyFEextendsPinned;
+declare const _assertToolKeyRev: _CheckToolKeyPinnedExtendsFE;
+
+// ToolWorkflowType parity
+type _CheckToolWorkflowTypeFEextendsPinned = ToolWorkflowType extends _PinnedToolWorkflowType
+  ? true
+  : never;
+type _CheckToolWorkflowTypePinnedExtendsFE = _PinnedToolWorkflowType extends ToolWorkflowType
+  ? true
+  : never;
+declare const _assertToolWorkflowTypeFwd: _CheckToolWorkflowTypeFEextendsPinned;
+declare const _assertToolWorkflowTypeRev: _CheckToolWorkflowTypePinnedExtendsFE;
 
 // GenerationRequest parity
 type _CheckGenerationRequestFEextendsPinned = GenerationRequest extends _PinnedGenerationRequest

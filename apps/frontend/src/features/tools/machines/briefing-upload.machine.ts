@@ -177,13 +177,26 @@ export const briefingUploadMachine = setup({
         return context;
       }
 
+      const extractionArtifactId =
+        event.artifactId && typeof event.artifactId === 'string' && event.artifactId.trim().length > 0
+          ? event.artifactId
+          : context.extractionArtifactId;
+      const briefingId =
+        event.briefingId && typeof event.briefingId === 'string' && event.briefingId.trim().length > 0
+          ? event.briefingId
+          : context.briefingId;
+      const normalizedText =
+        event.normalizedText && typeof event.normalizedText === 'string' && event.normalizedText.trim().length > 0
+          ? event.normalizedText
+          : context.normalizedText;
+
       return {
         ...context,
-        extractionArtifactId: event.artifactId,
+        extractionArtifactId: extractionArtifactId ?? null,
         extractionPayload: event.payload,
-        briefingId: event.briefingId ?? context.briefingId,
+        briefingId: briefingId ?? null,
         fileName: event.fileName ?? context.fileName,
-        normalizedText: event.normalizedText ?? context.normalizedText,
+        normalizedText: normalizedText ?? null,
         parsedFormat: event.parsedFormat ?? context.parsedFormat,
         error: null,
       };

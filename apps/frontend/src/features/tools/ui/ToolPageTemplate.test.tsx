@@ -150,7 +150,7 @@ const defaultExtractionArtifact = {
   status: 'completed' as const,
   model: 'openrouter/auto',
   toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
+  workflowType: 'funnel_pages',
   content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
   createdAt: '2026-05-01T00:00:00.000Z',
   updatedAt: '2026-05-01T00:00:00.000Z',
@@ -161,7 +161,7 @@ const defaultExtractionArtifact = {
     artifactType: 'extraction' as const,
     model: 'openrouter/auto',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     input: { briefingId: 'brief-001', briefingText: 'brief text', toolKey: 'funnel-pages' },
   },
 } satisfies GenerationArtifact;
@@ -225,6 +225,18 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
+  useGenerationStreamWorkspace: () => generationWorkspaceState,
+  useGenerationArtifactsWorkspace: () => ({
+    artifacts: generationWorkspaceState.artifacts,
+    reloadArtifacts: vi.fn(),
+  }),
+  useGenerationProjectWorkspace: () => ({
+    focusedProjectId: generationWorkspaceState.focusedProjectId,
+    extractionByProject: {},
+    setFocusedProjectId: generationWorkspaceState.setFocusedProjectId,
+    upsertExtractionContext: generationWorkspaceState.upsertExtractionContext,
+    getExtractionContext: generationWorkspaceState.getExtractionContext,
+  }),
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
@@ -358,7 +370,7 @@ describe('ToolPageTemplate wiring', () => {
     };
 
     expect(request.toolKey).toBe('funnel-pages');
-    expect(request.workflowType).toBe('funnel-pages');
+    expect(request.workflowType).toBe('funnel_pages');
     expect(request.input.step).toBe('quiz');
     expect(request.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
     expect(request.input.briefingId).toBe('brief-001');
@@ -554,7 +566,7 @@ describe('resolveFlowProgressState', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'vsl content',
       createdAt: '2026-05-02T00:00:00.000Z',
       updatedAt: '2026-05-02T00:00:00.000Z',
@@ -565,7 +577,7 @@ describe('resolveFlowProgressState', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: {
           step: 'vsl',
           stepDependencyArtifactIdsByStep: {
@@ -586,7 +598,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -597,7 +609,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -609,7 +621,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz content',
         createdAt: '2026-05-01T01:00:00.000Z',
         updatedAt: '2026-05-01T01:00:00.000Z',
@@ -620,7 +632,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -632,7 +644,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'fresh unrelated optin',
         createdAt: '2026-05-03T00:00:00.000Z',
         updatedAt: '2026-05-03T00:00:00.000Z',
@@ -643,7 +655,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -672,7 +684,7 @@ describe('resolveFlowProgressState', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'optin content',
       createdAt: '2026-05-01T00:00:00.000Z',
       updatedAt: '2026-05-01T00:00:00.000Z',
@@ -683,7 +695,7 @@ describe('resolveFlowProgressState', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: { step: 'optin' },
       },
     } satisfies GenerationArtifact;
@@ -698,7 +710,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz regenerated',
         createdAt: '2026-05-03T00:00:00.000Z',
         updatedAt: '2026-05-03T00:00:00.000Z',
@@ -709,7 +721,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -818,7 +830,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'vsl',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'vsl content',
       },
@@ -832,7 +844,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'quiz',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'quiz content',
       },
@@ -846,7 +858,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'optin',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'optin content',
       },

@@ -3,8 +3,11 @@ import { Button as MuiButton } from '@mui/material';
 import type {
   ArtifactType,
   GenerationRequest,
+  GenerationWorkflowType,
   OutputFormat,
+  ToolKey,
 } from '../contracts/backend-stream';
+import { isToolKey, resolveToolWorkflowType } from '@gen-app-2/contracts';
 import {
   runExtraction,
   uploadBrief,
@@ -27,6 +30,21 @@ import {
 import type { ExtractionContext } from '../runtime/GenerationWorkspaceProvider';
 import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+
+const DEFAULT_TOOL_KEY: ToolKey = 'funnel-pages';
+const normalizeToolMetadata = (
+  toolKey: string,
+  workflowType: GenerationWorkflowType,
+): { toolKey: ToolKey; workflowType: GenerationWorkflowType } => {
+  const normalizedToolKey = isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY;
+  return {
+    toolKey: normalizedToolKey,
+    workflowType:
+      workflowType === 'extraction'
+        ? workflowType
+        : resolveToolWorkflowType(normalizedToolKey),
+  };
+};
 
 type GenerationFormProps = {
   userId: string;
@@ -76,8 +94,8 @@ export const GenerationForm = ({
   const [tone, setTone] = useState<string>(appCopy.editorial.generation.defaultTone);
   const [notes, setNotes] = useState('');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown');
-  const [workflowType, setWorkflowType] = useState('funnel_pages');
-  const [toolKey, setToolKey] = useState('funnel-pages');
+  const [workflowType, setWorkflowType] = useState<GenerationWorkflowType>('funnel_pages');
+  const [toolKey, setToolKey] = useState<ToolKey>(DEFAULT_TOOL_KEY);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [intent, setIntent] = useState<ToolIntent>('new');
   const [hasCheckpoint, setHasCheckpoint] = useState(false);
@@ -149,6 +167,8 @@ export const GenerationForm = ({
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
+    const normalizedToolMetadata = normalizeToolMetadata(toolKey, workflowType);
+
     const request: GenerationRequest = {
       requestId: generateRequestId(),
       userId,
@@ -167,13 +187,13 @@ export const GenerationForm = ({
           ...(extractionContext?.extractionArtifactId ? [extractionContext.extractionArtifactId] : []),
           ...(hasSourceArtifact ? [sourceArtifactId.trim()] : []),
         ],
-        extractionPayload: extractionContext?.extractionPayload ?? null,
+        extractionPayload: extractionContext?.extractionPayload ?? {},
         sourceArtifactId: hasSourceArtifact ? sourceArtifactId.trim() : null,
         checkpointArtifactId: selectedCheckpoint?.artifactId ?? null,
       },
       outputFormat,
-      toolKey,
-      workflowType,
+      toolKey: normalizedToolMetadata.toolKey,
+      workflowType: normalizedToolMetadata.workflowType,
       registrySnapshotRef,
     };
 
@@ -219,17 +239,19 @@ export const GenerationForm = ({
       return;
     }
 
+    const normalizedToolMetadata = normalizeToolMetadata(toolKey, workflowType);
+
     setPhase('uploading');
     setExtractionLifecycle('in_progress');
     setBriefingError(null);
 
     try {
       const uploaded = await uploadBrief(
-        {
-          projectId: projectId.trim(),
-          toolKey,
-          file: briefingFile,
-        },
+          {
+            projectId: projectId.trim(),
+            toolKey: normalizedToolMetadata.toolKey,
+            file: briefingFile,
+          },
         {
           capabilities: { toolsUpload: toolsUploadEnabled },
         },
@@ -238,13 +260,13 @@ export const GenerationForm = ({
       setPhase('extracting');
 
       const extraction = await runExtraction(
-        {
-          userId,
-          projectId: projectId.trim(),
-          model,
-          toolKey,
-          tone,
-          notes,
+          {
+            userId,
+            projectId: projectId.trim(),
+            model,
+            toolKey: normalizedToolMetadata.toolKey,
+            tone,
+            notes,
           briefingId: uploaded.briefingId,
           briefingText: uploaded.normalizedText,
           registrySnapshotRef,
@@ -474,12 +496,26 @@ export const GenerationForm = ({
 
       <label>
         {appCopy.ui.labels.workflowType}
-        <input value={workflowType} onChange={(e) => setWorkflowType(e.target.value)} />
+        <input
+          value={workflowType}
+          onChange={(e) => setWorkflowType(
+            e.target.value === 'extraction'
+              ? 'extraction'
+              : resolveToolWorkflowType(isToolKey(toolKey) ? toolKey : DEFAULT_TOOL_KEY),
+          )}
+        />
       </label>
 
       <label>
         {appCopy.ui.labels.toolKey}
-        <input value={toolKey} onChange={(e) => setToolKey(e.target.value)} />
+        <input
+          value={toolKey}
+          onChange={(e) => {
+            const nextToolKey = isToolKey(e.target.value) ? e.target.value : DEFAULT_TOOL_KEY;
+            setToolKey(nextToolKey);
+            setWorkflowType(resolveToolWorkflowType(nextToolKey));
+          }}
+        />
       </label>
 
       <label>

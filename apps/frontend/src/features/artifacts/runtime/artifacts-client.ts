@@ -1,4 +1,11 @@
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import {
+  isToolKey,
+  isToolWorkflowType,
+  resolveToolWorkflowType,
+  type GenerationWorkflowType,
+  type ToolKey,
+} from '@gen-app-2/contracts';
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
@@ -54,7 +61,7 @@ type BackendArtifact = {
   completedAt?: string | null;
 };
 
-const normalizeToolKeyCandidate = (value: unknown): string | null => {
+const normalizeToolKeyCandidate = (value: unknown): ToolKey | null => {
   if (typeof value !== 'string') {
     return null;
   }
@@ -84,10 +91,34 @@ const normalizeToolKeyCandidate = (value: unknown): string | null => {
     return 'youtube-lf-script';
   }
 
-  return normalized;
+  return isToolKey(normalized) ? normalized : null;
 };
 
-const readToolKey = (artifact: BackendArtifact): string | null => {
+const normalizeWorkflowTypeCandidate = (
+  value: unknown,
+): GenerationWorkflowType | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (normalized === 'extraction') {
+    return 'extraction';
+  }
+
+  const normalizedToolKey = normalizeToolKeyCandidate(normalized);
+  if (normalizedToolKey) {
+    return resolveToolWorkflowType(normalizedToolKey);
+  }
+
+  return isToolWorkflowType(normalized) ? normalized : null;
+};
+
+const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
   const input = artifact.input;
   const toolWorkflowInput =
     input && typeof input['toolWorkflow'] === 'object' && input['toolWorkflow'] !== null
@@ -161,7 +192,9 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
     model: artifact.model,
     input: artifact.input ?? {},
     toolKey,
-    workflowType: artifact.workflowType,
+    workflowType:
+      normalizeWorkflowTypeCandidate(artifact.workflowType)
+      ?? (toolKey ? resolveToolWorkflowType(toolKey) : null),
   };
 };
 

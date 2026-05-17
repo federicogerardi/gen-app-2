@@ -37,7 +37,7 @@ const createArtifact = (
     artifactType: partial.artifactType ?? 'content',
     model: 'openrouter:auto',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     input: {
       step: partial.step,
     },

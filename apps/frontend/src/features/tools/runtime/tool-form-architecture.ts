@@ -3,6 +3,7 @@
  * Enables scalable, reusable form construction for multi-step tools
  */
 
+import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
 
@@ -64,12 +65,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'Hotlead Funnel',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: ['optin', 'quiz', 'vsl'] as const,
-    stepDependencies: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
+    steps: TOOL_STEP_ORDER['funnel-pages'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['funnel-pages'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -80,11 +77,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'Nextland',
     defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: ['landing', 'thank_you'] as const,
-    stepDependencies: {
-      landing: [],
-      thank_you: ['landing'],
-    },
+    steps: TOOL_STEP_ORDER.nextland,
+    stepDependencies: TOOL_STEP_DEPENDENCIES.nextland,
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -95,22 +89,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'YouTube LF Script',
     defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: [
-      'pre-script-analysis',
-      'packaging',
-      'intro-structure',
-      'body-structure',
-      'native-cta-embeds',
-      'outro-structure',
-    ] as const,
-    stepDependencies: {
-      'pre-script-analysis': [],
-      packaging: ['pre-script-analysis'],
-      'intro-structure': ['packaging'],
-      'body-structure': ['intro-structure'],
-      'native-cta-embeds': ['body-structure'],
-      'outro-structure': ['native-cta-embeds'],
-    },
+    steps: TOOL_STEP_ORDER['youtube-lf-script'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-lf-script'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },

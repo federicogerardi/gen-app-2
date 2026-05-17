@@ -7,7 +7,7 @@ import { resolveToolPrompt } from '../runtime/tool-prompts';
 test('resolveToolPrompt loads funnel optin prompt from markdown files', () => {
   const resolved = resolveToolPrompt({
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     artifactType: 'content',
     stepKey: 'optin',
   });
@@ -25,7 +25,7 @@ test('buildRequestReceivedEvent injects resolved prompt and source when prompt i
     artifactType: 'content',
     model: 'gpt-5.3-codex',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     briefingId: 'briefing-001',
     extractionArtifactId: 'artifact-extraction-001',
     stepDependencyArtifactIds: ['artifact-step-001', 'artifact-step-002'],
@@ -65,7 +65,7 @@ test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter
 test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
   const resolved = resolveToolPrompt({
     toolKey: 'youtube-lf-script',
-    workflowType: 'youtube-lf-script',
+    workflowType: 'youtube_lf_script',
     artifactType: 'content',
     stepKey: 'pre-script-analysis',
   });

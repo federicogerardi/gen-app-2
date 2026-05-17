@@ -349,16 +349,63 @@ const deriveHasExtractionContext = (
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
-  if (hasCompleteHydrationResult(hydrationResult)) {
-    return isExtractionContextValidForTool(
+  const logInvalidExtractionContext = (
+    message: string,
+    details: {
+      extractionArtifactId: string | null;
+      briefingId: string | null;
+      normalizedTextLength: number;
+      extractionPayloadKeys: number;
+    },
+  ): void => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    console.warn(message, {
       toolKey,
-      hydrationResult.extractionPayload,
-      hydrationResult.normalizedText,
-      { allowEmptyPayload: true },
-    );
+      ...details,
+    });
+  };
+
+  if (hydrationResult !== null) {
+    const isComplete = hydrationResult.extractionArtifactId.trim().length > 0
+      && hydrationResult.briefingId.trim().length > 0
+      && hydrationResult.normalizedText.trim().length > 0;
+
+    if (isComplete) {
+      const valid = isExtractionContextValidForTool(
+        toolKey,
+        hydrationResult.extractionPayload,
+        hydrationResult.normalizedText,
+        { allowEmptyPayload: true },
+      );
+      if (!valid) {
+        logInvalidExtractionContext(
+          '[deriveHasExtractionContext] ExtractionContext non valido dopo hydration:',
+          {
+          extractionArtifactId: hydrationResult.extractionArtifactId,
+          briefingId: hydrationResult.briefingId,
+          normalizedTextLength: hydrationResult.normalizedText.length,
+          extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
+          },
+        );
+      }
+      return valid;
+    }
   }
 
-  return hasCompleteBriefingContext(toolKey, briefingActorRef);
+  const validBriefing = hasCompleteBriefingContext(toolKey, briefingActorRef);
+  if (!validBriefing) {
+    const snapshot = briefingActorRef?.getSnapshot();
+    logInvalidExtractionContext('[deriveHasExtractionContext] Briefing context non valido:', {
+      extractionArtifactId: snapshot?.context.extractionArtifactId ?? null,
+      briefingId: snapshot?.context.briefingId ?? null,
+      normalizedTextLength: snapshot?.context.normalizedText?.length ?? 0,
+      extractionPayloadKeys: Object.keys(snapshot?.context.extractionPayload ?? {}).length,
+    });
+  }
+  return validBriefing;
 };
 
 const deriveHasPrimaryTargetStep = (toolKey: SupportedTool): boolean => {

@@ -18,19 +18,22 @@ import {
   readInputField,
 } from '../../../app/runtime/shared-utils';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import type { GenerationRequest } from '../../generation/contracts/backend-stream';
+import {
+  useGenerationArtifactsWorkspace,
+  useGenerationProjectWorkspace,
+  useGenerationStreamWorkspace,
+} from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { briefingUploadMachine } from '../machines/briefing-upload.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
-import { createStepRequest } from '../runtime/tool-generation-engine';
-import { orchestrateToolStep } from '../runtime/tools-client';
 import { useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { extractArtifactStep, readExtractionPayloadFromArtifact } from '../../generation/runtime/step-hydration';
+import { extractArtifactStep } from '../../generation/runtime/step-hydration';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
+import { mapInlineDispatchError, normalizeToneProfile } from './tool-page-runtime-utils';
+import { useToolPageRunController } from './useToolPageRunController';
 
 export interface UseToolPageProps {
   toolKey: SupportedTool;
@@ -45,63 +48,6 @@ export interface UseToolPageProps {
   briefingFileName?: string | null;
 }
 
-const isEmptyPayload = (payload: Record<string, unknown>): boolean =>
-  Object.keys(payload).length === 0;
-
-const TONE_PROFILE_DEFAULT = 'Professional';
-const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
-
-const normalizeModelForPayload = (model: string, fallbackModel: string): string => {
-  const normalized = model.trim();
-  if (normalized.length === 0) {
-    return fallbackModel;
-  }
-
-  if (normalized.includes('/')) {
-    return normalized;
-  }
-
-  if (normalized.includes(':')) {
-    const [provider, ...rest] = normalized.split(':');
-    if (provider && rest.length > 0) {
-      return `${provider}/${rest.join(':')}`;
-    }
-  }
-
-  return normalized;
-};
-
-const normalizeToneProfile = (tone: string, fallbackTone: string = TONE_PROFILE_DEFAULT): string => {
-  const normalized = tone.trim().toLowerCase();
-  if (normalized.length === 0) {
-    return fallbackTone;
-  }
-
-  const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
-  return match ?? fallbackTone;
-};
-
-const mapInlineDispatchError = (reason: string | null | undefined): string | null => {
-  if (!reason) {
-    return null;
-  }
-
-  const normalized = reason.trim();
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  if (normalized === 'extraction_context_insufficient' || normalized === 'stream_empty_output') {
-    return 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.';
-  }
-
-  if (normalized.startsWith('terminal_failed')) {
-    return 'La generazione non è andata a buon fine. Riprova tra pochi istanti.';
-  }
-
-  return normalized;
-};
-
 export const useToolPage = ({
   toolKey,
   sourceArtifactId,
@@ -115,35 +61,29 @@ export const useToolPage = ({
   briefingFileName,
 }: UseToolPageProps) => {
   const auth = useAuthSession();
-  const generation = useGenerationWorkspace();
+  const generationStream = useGenerationStreamWorkspace();
+  const generationArtifacts = useGenerationArtifactsWorkspace();
+  const generationProject = useGenerationProjectWorkspace();
   const navigate = useNavigate();
   const toolConfig = getToolFormConfig(toolKey);
 
-  const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
-  const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
-  // DispatchError is local inline-action feedback (Setup Panel). It is intentionally
-  // not published to the global feedback channel to preserve action-local recovery context.
-  const [dispatchError, setDispatchError] = useState<string | null>(null);
 
   const initialPrefillDoneRef = useRef(false);
   const sessionIdRef = useRef<string>(generateSessionId());
-  const currentRunPrefixRef = useRef<string | null>(null);
-  const lastRequestedStepRef = useRef<ToolStep | null>(null);
-  const wasStreamActiveRef = useRef(false);
   const previousProjectIdRef = useRef<string>(
-    (generation.focusedProjectId ?? initialProjectId ?? '').trim(),
+    (generationProject.focusedProjectId ?? initialProjectId ?? '').trim(),
   );
   const tonePrefillDoneRef = useRef(false);
 
   const [toolPageSnapshot, toolPageSend] = useMachine(toolPageMachine, {
-    input: {
-      toolKey,
-      sessionId: sessionIdRef.current,
-      projectId: generation.focusedProjectId ?? initialProjectId ?? '',
-      model: toolConfig.defaultModel,
-      registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
-      apiBaseUrl: auth.apiBaseUrl,
+      input: {
+        toolKey,
+        sessionId: sessionIdRef.current,
+        projectId: generationProject.focusedProjectId ?? initialProjectId ?? '',
+        model: toolConfig.defaultModel,
+        registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
+        apiBaseUrl: auth.apiBaseUrl,
       capabilities: auth.capabilities,
       userId: auth.session?.user.id ?? null,
     },
@@ -151,7 +91,7 @@ export const useToolPage = ({
 
   const { formState, setFormState } = useToolFormInit(
     toolKey,
-    generation.focusedProjectId ?? initialProjectId ?? undefined,
+    generationProject.focusedProjectId ?? initialProjectId ?? undefined,
   );
 
   const { data: projects, loading: projectsLoading } = useProjectsQuery({
@@ -178,7 +118,7 @@ export const useToolPage = ({
   const briefingFileNameFromActor = briefingSnapshot.context.fileName;
   const normalizedProjectId = formState.projectId.trim();
   const workspaceExtractionContext = normalizedProjectId
-    ? generation.getExtractionContext(normalizedProjectId)
+    ? generationProject.getExtractionContext(normalizedProjectId)
     : null;
 
   // 1. One-shot prefill from route params
@@ -190,9 +130,9 @@ export const useToolPage = ({
       return;
     }
     setFormState((prev) => ({ ...prev, projectId: nextProjectId }));
-    generation.setFocusedProjectId(nextProjectId);
+    generationProject.setFocusedProjectId(nextProjectId);
     initialPrefillDoneRef.current = true;
-  }, [generation, initialProjectId, setFormState]);
+  }, [generationProject, initialProjectId, setFormState]);
 
   useEffect(() => {
     if (!briefingSnapshot.matches('ready')) return;
@@ -230,7 +170,7 @@ export const useToolPage = ({
       return;
     }
 
-    generation.upsertExtractionContext({
+    generationProject.upsertExtractionContext({
       projectId: normalizedProjectId,
       briefingId: briefingIdFromActor,
       extractionArtifactId: extractionArtifactIdFromActor,
@@ -239,7 +179,7 @@ export const useToolPage = ({
       parsedFormat: parsedFormatFromActor,
       updatedAt: new Date().toISOString(),
     });
-  }, [briefingSnapshot, generation, normalizedProjectId, workspaceExtractionContext]);
+  }, [briefingSnapshot, generationProject, normalizedProjectId, workspaceExtractionContext]);
 
   // 2. Resolve source artifact for relaunch intent
   useEffect(() => {
@@ -249,7 +189,7 @@ export const useToolPage = ({
       return;
     }
     const localSource =
-      generation.artifacts.find((a) => a.artifactId === normalizedSourceArtifactId) ?? null;
+      generationArtifacts.artifacts.find((a) => a.artifactId === normalizedSourceArtifactId) ?? null;
     if (localSource) {
       setSourceArtifact(localSource);
       return;
@@ -260,7 +200,7 @@ export const useToolPage = ({
         const detail = await getArtifactById(normalizedSourceArtifactId, {
           apiBaseUrl: auth.apiBaseUrl,
           capabilities: auth.capabilities,
-          localArtifacts: generation.artifacts,
+          localArtifacts: generationArtifacts.artifacts,
         });
         if (!cancelled) setSourceArtifact(detail);
       } catch {
@@ -270,7 +210,7 @@ export const useToolPage = ({
     return () => {
       cancelled = true;
     };
-  }, [generation.artifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
+  }, [generationArtifacts.artifacts, auth.apiBaseUrl, auth.capabilities, sourceArtifactId]);
 
   // 3. Hydrate extraction context from source artifact
   useEffect(() => {
@@ -299,10 +239,10 @@ export const useToolPage = ({
       sourceArtifactId: sourceArtifact.artifactId,
       resolvedBriefingId: resolvedHydrationBriefingId,
       sourceExtractionArtifactId: resolvedSourceExtractionArtifactId,
-      localArtifacts: generation.artifacts,
+      localArtifacts: generationArtifacts.artifacts,
     });
   }, [
-    generation.artifacts,
+    generationArtifacts.artifacts,
     briefingId,
     extractionArtifactId,
     intent,
@@ -367,9 +307,6 @@ export const useToolPage = ({
   const readinessSnapshot = toolPageSnapshot.context.readiness;
   const machineViewModel = toolPageSnapshot.context.viewModel;
   const isGenerating = toolPageSnapshot.matches('generating');
-  const effectiveCanonicalState = (
-    isGenerating || generation.isStreamActive ? 'running' : machineViewModel.canonicalState
-  );
 
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
@@ -392,453 +329,74 @@ export const useToolPage = ({
     return toolConfig.steps.includes(candidate) ? candidate : null;
   }, [sourceArtifact, toolConfig.steps]);
 
-  const streamingStep = useMemo(() => {
-    if (!generation.isStreamActive) return null;
-    const candidate = (
-      generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
-    )?.step;
-    if (typeof candidate !== 'string') return null;
-    return toolConfig.steps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
-  }, [generation.isStreamActive, generation.snapshot.context.lastRequest, toolConfig.steps]);
-
-  const currentRunningStep = streamingStep;
-
-  useEffect(() => {
-    if (!pausedCheckpointStep) return;
-    if (completedStepsForFlow.has(pausedCheckpointStep)) setPausedCheckpointStep(null);
-  }, [completedStepsForFlow, pausedCheckpointStep]);
-
-  const primaryTargetStep = useMemo(() => {
-    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' && pausedCheckpointStep) {
-      return pausedCheckpointStep;
-    }
-    if (machineViewModel.primaryActionPolicy === 'regenerate-current-step') {
-      return sourceStep ?? nextAvailableStep;
-    }
-    if (
-      machineViewModel.primaryActionPolicy === 'start-generation' ||
-      machineViewModel.primaryActionPolicy === 'resume-checkpoint'
-    ) {
-      return nextAvailableStep;
-    }
-    return null;
-  }, [machineViewModel.primaryActionPolicy, nextAvailableStep, pausedCheckpointStep, sourceStep]);
+  const currentProject = projects.find((p) => p.id === formState.projectId);
+  const runController = useToolPageRunController({
+    auth,
+    toolKey,
+    toolConfig,
+    formState,
+    intent,
+    generationStream,
+    generationArtifacts,
+    sourceArtifact,
+    sourceArtifactId: sourceArtifactId ?? null,
+    machineHydrationResult,
+    workspaceExtractionContext,
+    briefingSnapshot,
+    effectiveBriefingFileName,
+    resolvedBriefingId,
+    resolvedNotes,
+    resolvedRelaunchSource,
+    nextAvailableStep,
+    sourceStep,
+    machineViewModel,
+    readinessSnapshot,
+    completedStepsForFlow,
+    pendingStepStart: toolPageSnapshot.context.pendingStepStart,
+    toolPageSend,
+    sessionId: sessionIdRef.current,
+  });
+  const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
 
   // 5. Sync progress to machine
+  // briefingStatus è incluso nelle deps: quando l'estrazione completa (→ 'ready')
+  // PROGRESS_SYNCED deve essere inviato affinché syncProgress ricalcoli la readiness
+  // usando context.briefingActorRef, che a quel punto è già in stato 'ready'.
   useEffect(() => {
     toolPageSend({
       type: 'PROGRESS_SYNCED',
-      artifacts: generation.artifacts,
+      artifacts: generationArtifacts.artifacts,
       intent,
       sourceArtifact,
-      runRequestPrefix: currentRunPrefixRef.current,
+      runRequestPrefix: getCurrentRunRequestPrefix(),
     });
-  }, [generation.artifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]);
-
-  const currentProject = projects.find((p) => p.id === formState.projectId);
-
-  const resolveRuntimeIntent = useCallback((): 'new' | 'resume' | 'regenerate' => {
-    if (machineViewModel.primaryActionPolicy === 'resume-checkpoint' || intent === 'resume') {
-      return 'resume';
-    }
-    if (
-      machineViewModel.primaryActionPolicy === 'regenerate-current-step' ||
-      intent === 'regenerate'
-    ) {
-      return 'regenerate';
-    }
-    const hasArtifactDrivenEntry =
-      (sourceArtifactId?.trim().length ?? 0) > 0 ||
-      sourceArtifact !== null ||
-      machineHydrationResult !== null;
-    return hasArtifactDrivenEntry ? 'regenerate' : 'new';
   }, [
-    machineViewModel.primaryActionPolicy,
+    briefingStatus,
+    generationArtifacts.artifacts,
+    getCurrentRunRequestPrefix,
     intent,
-    sourceArtifactId,
     sourceArtifact,
-    machineHydrationResult,
-  ]);
-
-  // 6. Generation dispatch
-  const startGenerationStep = useCallback(
-    async (step: ToolStep): Promise<boolean> => {
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] generation start', {
-          step,
-          toolKey,
-          routeIntent: intent,
-          runtimeIntent: resolveRuntimeIntent(),
-          primaryActionPolicy: machineViewModel.primaryActionPolicy,
-          readiness: readinessSnapshot,
-          sourceArtifactId,
-          resolvedBriefingId,
-          hydrationResult: machineHydrationResult,
-          pausedCheckpointStep,
-          nextAvailableStep,
-          sourceStep,
-          primaryTargetStep,
-          hasSession: !!auth.session,
-          normalizedProjectId,
-          briefingTextLength: (briefingSnapshot.context.normalizedText ?? '').length,
-          extractionPayloadKeys: Object.keys(briefingSnapshot.context.extractionPayload ?? {})
-            .length,
-        });
-      }
-
-      if (!auth.session || !normalizedProjectId) return false;
-
-      const hasSourceArtifact = sourceArtifact !== null;
-      const extractionInfo = (() => {
-        const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
-        if (machineHydrationResult !== null) {
-          return {
-            extractionArtifactId: machineHydrationResult.extractionArtifactId,
-            extractionPayload: machineHydrationResult.extractionPayload,
-            briefingId: machineHydrationResult.briefingId,
-            briefingText:
-              machineHydrationResult.normalizedText.trim().length > 0
-                ? machineHydrationResult.normalizedText
-                : briefingContextText,
-          };
-        }
-        if (
-          workspaceExtractionContext !== null
-          && briefingSnapshot.context.error !== 'extraction_context_insufficient'
-          && isExtractionContextValidForTool(
-            toolKey,
-            workspaceExtractionContext.extractionPayload,
-            workspaceExtractionContext.normalizedText,
-          )
-        ) {
-          return {
-            extractionArtifactId: workspaceExtractionContext.extractionArtifactId,
-            extractionPayload: workspaceExtractionContext.extractionPayload,
-            briefingId: workspaceExtractionContext.briefingId,
-            briefingText: workspaceExtractionContext.normalizedText,
-          };
-        }
-        if (hasSourceArtifact) return null;
-        const bc = briefingSnapshot.context;
-        if (bc.extractionArtifactId && bc.briefingId) {
-          return {
-            extractionArtifactId: bc.extractionArtifactId,
-            extractionPayload: bc.extractionPayload ?? {},
-            briefingId: bc.briefingId,
-            briefingText: bc.normalizedText ?? '',
-          };
-        }
-        return null;
-      })();
-
-      if (!extractionInfo) return false;
-
-      let effectiveExtractionInfo = extractionInfo;
-      const hasExtArtifactId = effectiveExtractionInfo.extractionArtifactId.trim().length > 0;
-      const needsPayload = isEmptyPayload(effectiveExtractionInfo.extractionPayload);
-      const needsBriefingText = effectiveExtractionInfo.briefingText.trim().length === 0;
-      const needsBriefingId = effectiveExtractionInfo.briefingId.trim().length === 0;
-
-      if (hasExtArtifactId && (needsPayload || needsBriefingText || needsBriefingId)) {
-        const extArtifact = await getArtifactById(effectiveExtractionInfo.extractionArtifactId, {
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
-          localArtifacts: generation.artifacts,
-        }).catch(() => null);
-
-        if (extArtifact) {
-          effectiveExtractionInfo = {
-            extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
-            extractionPayload: needsPayload
-              ? readExtractionPayloadFromArtifact(extArtifact)
-              : effectiveExtractionInfo.extractionPayload,
-            briefingText:
-              effectiveExtractionInfo.briefingText.trim().length > 0
-                ? effectiveExtractionInfo.briefingText
-                : typeof extArtifact.sourceRequest.input?.briefingText === 'string'
-                  ? extArtifact.sourceRequest.input.briefingText
-                  : '',
-            briefingId:
-              effectiveExtractionInfo.briefingId ||
-              (typeof extArtifact.sourceRequest.input?.briefingId === 'string'
-                ? extArtifact.sourceRequest.input.briefingId
-                : ''),
-          };
-        }
-      }
-
-      const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
-      currentRunPrefixRef.current = runPrefix;
-      const runtimeIntent = resolveRuntimeIntent();
-      const normalizedModel = normalizeModelForPayload(formState.model, toolConfig.defaultModel);
-      const normalizedTone = normalizeToneProfile(formState.tone);
-      toolPageSend({
-        type: 'PROGRESS_SYNCED',
-        artifacts: generation.artifacts,
-        intent,
-        sourceArtifact,
-        runRequestPrefix: runPrefix,
-      });
-
-      const baseRequest: GenerationRequest = {
-        requestId: runPrefix,
-        userId: auth.session.user.id,
-        projectId: normalizedProjectId,
-        sessionId: sessionIdRef.current,
-        artifactType: 'content',
-        model: normalizedModel,
-        outputFormat: 'markdown',
-        toolKey,
-        workflowType: toolKey,
-        registrySnapshotRef: formState.registrySnapshotRef,
-        input: {
-          intent: runtimeIntent,
-          tone: normalizedTone,
-          notes: resolvedNotes,
-          relaunchFromArtifactId: resolvedRelaunchSource,
-          sourceArtifactId: sourceArtifactId ?? null,
-          briefingId: resolvedBriefingId ?? effectiveExtractionInfo.briefingId,
-          briefingText: effectiveExtractionInfo.briefingText,
-          briefingFileName: effectiveBriefingFileName ?? null,
-          extractionArtifactId: effectiveExtractionInfo.extractionArtifactId,
-          extractionPayload: effectiveExtractionInfo.extractionPayload,
-        },
-      };
-
-      lastRequestedStepRef.current = step;
-      let orchestrationResult;
-      try {
-        orchestrationResult = await orchestrateToolStep(
-          normalizedProjectId,
-          toolKey,
-          step,
-          { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
-        );
-      } catch (err) {
-        console.error('[useToolPage] orchestrateToolStep failed', { toolKey, step, err });
-        return false;
-      }
-
-      const dependencies = orchestrationResult.dependencyArtifactIdsByStep;
-      const dependencyArtifactContentsByStep = Object.fromEntries(
-        Object.entries(dependencies)
-          .map(([stepKey, artifactId]): [string, string] => {
-            const dep = generation.artifacts.find((a) => a.artifactId === artifactId);
-            return [stepKey, dep?.content ?? ''];
-          })
-          .filter(([, content]) => content.trim().length > 0),
-      );
-
-      const request = createStepRequest(
-        baseRequest,
-        toolKey,
-        step,
-        dependencies,
-        dependencyArtifactContentsByStep,
-      );
-
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] generation request dispatched', {
-          step,
-          runtimeIntent: request.input.intent,
-          requestId: request.requestId,
-          briefingTextLength:
-            typeof request.input.briefingText === 'string' ? request.input.briefingText.length : 0,
-          extractionArtifactId: request.input.extractionArtifactId,
-          extractionPayloadKeys:
-            request.input.extractionPayload !== null &&
-            typeof request.input.extractionPayload === 'object'
-              ? Object.keys(request.input.extractionPayload as Record<string, unknown>).length
-              : 0,
-        });
-      }
-
-      generation.start(request);
-      return true;
-    },
-    [
-      auth,
-      briefingSnapshot.context,
-      effectiveBriefingFileName,
-      formState.model,
-      formState.tone,
-      formState.registrySnapshotRef,
-      generation,
-      intent,
-      machineHydrationResult,
-      machineViewModel.primaryActionPolicy,
-      normalizedProjectId,
-      workspaceExtractionContext,
-      nextAvailableStep,
-      pausedCheckpointStep,
-      primaryTargetStep,
-      readinessSnapshot,
-      resolvedBriefingId,
-      resolvedNotes,
-      resolvedRelaunchSource,
-      resolveRuntimeIntent,
-      sourceArtifact,
-      sourceArtifactId,
-      sourceStep,
-      toolKey,
-      toolPageSend,
-    ],
-  );
-
-  // 7. Dispatch pending step start (triggered by machine via REQUEST_STEP_START)
-  useEffect(() => {
-    const pending = toolPageSnapshot.context.pendingStepStart;
-    if (!pending) return;
-    const capturedStep = pending.step;
-    currentRunPrefixRef.current = pending.runRequestPrefix;
-    // Clear pendingStepStart before the async call to prevent re-entry
-    toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
-    void (async () => {
-      const success = await startGenerationStep(capturedStep);
-      if (!success) {
-        // Reset machine to configuring and surface error inline near the primary action.
-        // Do not duplicate this message in global feedback.
-        setDispatchError('Impossibile avviare la generazione. Controlla la connessione e riprova.');
-        toolPageSend({ type: 'CANCEL_GENERATION' });
-      }
-    })();
-  }, [startGenerationStep, toolPageSend, toolPageSnapshot.context.pendingStepStart]);
-
-  // 8. Bridge: stream terminal → machine STEP_DONE/STEP_FAILED
-  useEffect(() => {
-    if (generation.isStreamActive) {
-      wasStreamActiveRef.current = true;
-      return;
-    }
-    if (!wasStreamActiveRef.current) return;
-    wasStreamActiveRef.current = false;
-
-    const completedStep = generation.terminalCompletedStep;
-    const failedStep = generation.terminalFailedStep;
-    const inferredStepFromLastRequest = (
-      generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
-    )?.step;
-    const normalizedFailedStep =
-      typeof failedStep === 'string' && toolConfig.steps.includes(failedStep as ToolStep)
-        ? (failedStep as ToolStep)
-        : typeof inferredStepFromLastRequest === 'string' && toolConfig.steps.includes(inferredStepFromLastRequest as ToolStep)
-          ? (inferredStepFromLastRequest as ToolStep)
-          : null;
-
-    if (completedStep && toolConfig.steps.includes(completedStep as ToolStep)) {
-      toolPageSend({ type: 'STEP_DONE', step: completedStep as ToolStep });
-    } else if (generation.streamStatus === 'failed') {
-      const streamErrorMessage = generation.snapshot.context.errorMessage?.trim() || 'generation_failed';
-      const readableStreamError = mapInlineDispatchError(streamErrorMessage) ?? 'Generazione fallita';
-
-      if (normalizedFailedStep) {
-        toolPageSend({
-          type: 'STEP_FAILED',
-          step: normalizedFailedStep,
-          message: readableStreamError,
-        });
-      }
-
-      // Force exit from generating state so the UI does not remain stuck in pending.
-      // Keep terminal failure feedback inline-action only.
-      setDispatchError(readableStreamError);
-      setIsAutoChainEnabled(false);
-      currentRunPrefixRef.current = null;
-      toolPageSend({ type: 'CANCEL_GENERATION' });
-    } else if (!completedStep && !failedStep && generation.streamStatus === 'completed') {
-      const inferredStep = (
-        generation.snapshot.context.lastRequest?.input as Record<string, unknown> | undefined
-      )?.step;
-      if (typeof inferredStep === 'string' && toolConfig.steps.includes(inferredStep as ToolStep)) {
-        toolPageSend({ type: 'STEP_DONE', step: inferredStep as ToolStep });
-      }
-    }
-  }, [
-    generation.isStreamActive,
-    generation.terminalCompletedStep,
-    generation.terminalFailedStep,
-    generation.streamStatus,
-    generation.snapshot,
-    toolConfig.steps,
     toolPageSend,
   ]);
 
-  // 9. Auto-chain: start next step after current completes
-  useEffect(() => {
-    if (!isAutoChainEnabled) return;
-
-    if (generation.streamStatus === 'failed') {
-      const interruptedStep = currentRunningStep ?? lastRequestedStepRef.current;
-      if (interruptedStep) setPausedCheckpointStep(interruptedStep);
-      setIsAutoChainEnabled(false);
-      currentRunPrefixRef.current = null;
-      return;
-    }
-
-    if (generation.isStreamActive) return;
-    if (!nextAvailableStep) {
-      setIsAutoChainEnabled(false);
-      currentRunPrefixRef.current = null;
-      return;
-    }
-
-    const lastRequestedStep = lastRequestedStepRef.current;
-    if (!lastRequestedStep) return;
-    if (!completedStepsForFlow.has(lastRequestedStep)) return;
-    if (lastRequestedStep === nextAvailableStep) return;
-
-    void startGenerationStep(nextAvailableStep);
-  }, [
-    completedStepsForFlow,
-    currentRunningStep,
-    generation.isStreamActive,
-    generation.streamStatus,
-    isAutoChainEnabled,
-    nextAvailableStep,
-    startGenerationStep,
-  ]);
+  const effectiveCanonicalState = (
+    isGenerating || generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState
+  );
+  const primaryTargetStep = runController.primaryTargetStep;
 
   const handlePrimaryAction = useCallback((): void => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionIdRef.current}`);
       return;
     }
-    if (!readinessSnapshot.canStartFlow) return;
-    if (generation.isStreamActive) return;
-    const targetStep = primaryTargetStep;
-    if (!targetStep) return;
 
-    const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
-    currentRunPrefixRef.current = runPrefix;
-    // Clear inline DispatchError before a new dispatch attempt.
-    setDispatchError(null);
-    setPausedCheckpointStep(null);
-    setIsAutoChainEnabled(true);
-    toolPageSend({ type: 'REQUEST_STEP_START', step: targetStep, runRequestPrefix: runPrefix });
-  }, [
-    generation.isStreamActive,
-    machineViewModel.primaryActionPolicy,
-    navigate,
-    primaryTargetStep,
-    readinessSnapshot.canStartFlow,
-    toolPageSend,
-  ]);
+    runController.handlePrimaryAction();
+  }, [machineViewModel.primaryActionPolicy, navigate, runController]);
 
-  const handleCancelGeneration = useCallback((): void => {
-    setIsAutoChainEnabled(false);
-    const interruptedStep = currentRunningStep ?? lastRequestedStepRef.current;
-    if (interruptedStep) setPausedCheckpointStep(interruptedStep);
-    currentRunPrefixRef.current = null;
-    toolPageSend({
-      type: 'PROGRESS_SYNCED',
-      artifacts: generation.artifacts,
-      intent,
-      sourceArtifact,
-      runRequestPrefix: null,
-    });
-    toolPageSend({ type: 'CANCEL_GENERATION' });
-    generation.cancel();
-  }, [currentRunningStep, generation, intent, sourceArtifact, toolPageSend]);
+  const handleCancelGeneration = runController.handleCancelGeneration;
+  const currentRunningStep = runController.currentRunningStep;
+  const streamingStep = runController.streamingStep;
+  const dispatchError = runController.dispatchError;
 
   const handleBriefingFileSelected = useCallback((file: File): void => {
     toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file });
@@ -878,7 +436,7 @@ export const useToolPage = ({
     effectiveCanonicalState,
     currentProject,
     // Generation workspace passthrough (for JSX derived values)
-    isStreamActive: generation.isStreamActive,
+    isStreamActive: generationStream.isStreamActive,
     // Handlers
     handlePrimaryAction,
     handleCancelGeneration,

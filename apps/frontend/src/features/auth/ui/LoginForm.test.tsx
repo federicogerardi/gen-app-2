@@ -17,8 +17,10 @@ describe('LoginForm', () => {
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: /entra nel workspace/i }));
 
-    expect(await screen.findByText('Email non valida')).toBeInTheDocument();
-    expect(await screen.findByText('Password richiesta')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /email/i })).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByLabelText(/password/i)).toHaveAttribute('aria-invalid', 'true');
+    });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

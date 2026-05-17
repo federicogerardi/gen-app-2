@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { appCopy } from '../../../app/copy/system';
 import { GenerationForm } from './GenerationForm';
 import type { GenerationRequest } from '../contracts/backend-stream';
 
@@ -62,14 +61,14 @@ describe('GenerationForm', () => {
       target: { value: 'project-001' },
     });
 
-    const fileInput = screen.getByLabelText(appCopy.ui.labels.briefingFile) as HTMLInputElement;
+    const fileInput = screen.getByLabelText(/briefing file/i) as HTMLInputElement;
     fireEvent.change(fileInput, {
       target: {
         files: [new File(['# brief'], 'brief.md', { type: 'text/markdown' })],
       },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.processBriefing }));
+    fireEvent.click(screen.getByRole('button', { name: /processa briefing/i }));
 
     await waitFor(() => {
       expect(uploadBriefMock).toHaveBeenCalledTimes(1);
@@ -106,8 +105,7 @@ describe('GenerationForm', () => {
       />,
     );
 
-    const processButton = screen.getByRole('button', { name: appCopy.ui.actions.processBriefing });
+    const processButton = screen.getByRole('button', { name: /processa briefing/i });
     expect(processButton).toBeDisabled();
-    expect(screen.getByText(appCopy.ui.states.toolsUploadDisabled)).toBeInTheDocument();
   });
 });

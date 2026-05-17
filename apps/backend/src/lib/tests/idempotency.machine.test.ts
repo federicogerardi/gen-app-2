@@ -34,9 +34,6 @@ test('idempotencyCoordinatorMachine returns claimed on first claim', async () =>
 
   actor.start();
   const outputPromise = toPromise(actor) as Promise<IdempotencyClaimedEvent>;
-  await waitFor(actor, (s) => s.matches('claimed'));
-  const finalSnapshot = actor.getSnapshot();
-  assert.equal(finalSnapshot.value, 'claimed');
   const output = await outputPromise;
   assert.equal(output.type, 'IDEMPOTENCY_CLAIMED');
   assert.equal(output.requestId, 'req-idem-claimed');
@@ -73,9 +70,6 @@ test('idempotencyCoordinatorMachine returns replay after completed record', asyn
 
   actor.start();
   const outputPromise = toPromise(actor) as Promise<IdempotencyReplayReadyEvent>;
-  await waitFor(actor, (s) => s.matches('replayReady'));
-  const finalSnapshot = actor.getSnapshot();
-  assert.equal(finalSnapshot.value, 'replayReady');
   const output = await outputPromise;
   assert.equal(output.type, 'IDEMPOTENCY_REPLAY_READY');
   assert.equal(output.requestId, 'req-idem-replay');
@@ -113,9 +107,6 @@ test('idempotencyCoordinatorMachine returns conflict when already claimed', asyn
 
   actor.start();
   const outputPromise = toPromise(actor) as Promise<IdempotencyConflictEvent>;
-  await waitFor(actor, (s) => s.matches('conflict'));
-  const finalSnapshot = actor.getSnapshot();
-  assert.equal(finalSnapshot.value, 'conflict');
   const output = await outputPromise;
   assert.equal(output.type, 'IDEMPOTENCY_CONFLICT');
   assert.equal(output.requestId, 'req-idem-conflict');

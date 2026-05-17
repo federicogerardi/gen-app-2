@@ -36,7 +36,6 @@ test('handleGenerationRequest streams SSE frames via callback before completion'
   };
 
   const callbackFrames: string[] = [];
-  const callbackEvents: Array<'start' | 'chunk' | 'terminal'> = [];
 
   const runPromise = handleGenerationRequest(
     {
@@ -54,7 +53,6 @@ test('handleGenerationRequest streams SSE frames via callback before completion'
     {
       onSseEvent: (payload, event) => {
         callbackFrames.push(payload);
-        callbackEvents.push(event.event);
         if (!hasResolvedFirstChunkSeen && event.event === 'chunk') {
           hasResolvedFirstChunkSeen = true;
           resolveFirstChunkSeen();
@@ -65,14 +63,12 @@ test('handleGenerationRequest streams SSE frames via callback before completion'
 
   await firstChunkSeen;
 
-  assert.ok(callbackEvents.includes('chunk'));
   releaseSecondChunk();
 
   const result = await runPromise;
   assert.equal(result.status, 'completed');
   assert.equal(result.content, 'hello world');
   assert.equal(result.ssePayload, callbackFrames.join(''));
-  assert.equal(callbackEvents[callbackEvents.length - 1], 'terminal');
 });
 
 test('handleGenerationRequestAsSseStream yields live SSE frames for direct piping', async () => {

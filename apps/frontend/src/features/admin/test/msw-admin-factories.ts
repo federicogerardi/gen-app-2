@@ -1,5 +1,26 @@
 import { http, HttpResponse } from 'msw';
 
+export const buildUsersHandlers = (
+  users = [{ id: 'u_001', email: 'member@test.com', role: 'member', status: 'active', monthlyQuota: 120 }],
+) => [
+  http.get('/admin/users', () => HttpResponse.json(users)),
+];
+
+export const buildModelsHandlers = (
+  models = [
+    {
+      id: 'model_001',
+      key: 'openrouter/auto',
+      label: 'OpenRouter Auto',
+      status: 'enabled',
+      isDefault: true,
+      sortOrder: 1,
+    },
+  ],
+) => [
+  http.get('/api/admin/models', () => HttpResponse.json({ data: { models } })),
+];
+
 export const buildChangelogHandlers = () => {
   let changelog = [
     {

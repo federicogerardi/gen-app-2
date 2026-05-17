@@ -119,6 +119,24 @@ Canonical composition:
 - status tag must display persisted lifecycle values in lowercase (`generating`, `completed`, `failed`) and use state color tokens
 - avoid nested cards inside the detail layout; preserve hierarchy through panel composition and token-based spacing
 
+#### 3.2.3 Admin Overview companion layout (`/admin`)
+
+`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
+
+Canonical composition:
+
+- persistent admin navigation is rendered at layout level and remains visible across all `/admin/*` routes
+- overview body is KPI-first and uses compact widget cards designed for scan speed and triage priority
+- each KPI widget must support deterministic state rendering: `loading`, `empty`, `error`, `ready`
+- `ready` state should expose a compact value + minimal context line, avoiding long explanatory copy
+- widget cards are read-oriented overview elements; operational mutations remain in downstream Admin `Data Table View` pages
+- channel ownership remains deterministic: widget query lifecycle uses `Page State Message` semantics inside card body; mutation feedback remains owned by page-level channels in target admin pages
+
+Convergence note:
+
+- this companion pattern resolves the `/admin` archetype ambiguity while preserving the two canonical archetypes (`Tool Workspace Page`, `Data Table View`)
+- future `/admin` enhancements must extend this companion pattern and must not introduce ad-hoc page archetypes
+
 ## 4. Canonical Table Standard (Artifact Baseline)
 
 The Artifact table is the standard for table ergonomics and visual rhythm.
@@ -216,13 +234,14 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 
 ### 5.1 Confirmed drift
 
-- Admin Models diverges from the Data Table View baseline in layout and interaction semantics.
+- None currently registered in Admin Overview archetype mapping after companion-pattern convergence.
 
 ### 5.2 Resolved drift
 
 | Page | Archetype declared | Drift resolved | Date |
 | --- | --- | --- | --- |
 | Admin Users (`/admin/users`) | Data Table View | Card-list → table with toolbar, bordered-chip row actions, inline edit row | 2026-05-08 |
+| Admin Overview (`/admin`) | Data Table View companion | Declared canonical operational-overview companion with persistent admin navigation + KPI widget state cards (`loading`/`empty`/`error`/`ready`) | 2026-05-17 |
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |
 | Admin Activity (`/admin/activity`) | Data Table View | Card-list (`<ul>`+`<Surface as="li">`) → read-only table (Project, Artifact, Status, Aggiornato) | 2026-05-08 |
@@ -232,7 +251,6 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 
 ### 5.3 Required convergence target
 
-- Admin Models must adopt Data Table View archetype and table standard from Section 4.
 - Tool Workspace Page remains the visual and compositional reference for generation-oriented flows.
 
 ## 6. Convergence Workflow
@@ -301,9 +319,9 @@ A PR touching frontend UI is acceptable only if:
 
 Priority order for convergence:
 
-1. Admin Models (highest current drift)
-2. Any additional admin list pages that behave as table indices
-3. Remaining list pages still using ad-hoc table composition
+1. Any additional admin list pages that behave as table indices
+2. Remaining list pages still using ad-hoc table composition
+3. Companion-pattern consistency checks across admin overview surfaces (`/admin`)
 
 ## 11. Governance Ownership
 

@@ -9,13 +9,13 @@
 
 ### 1. Accesso alla Dashboard
 - Cosa fa: Login e atterraggio sulla dashboard.
-- Pain: Mancanza di overview, alert, stato servizi.
-- Opportunità: Widget di stato, notifiche, quick links.
+- Pain: KPI non ancora tutti collegati a dati reali.
+- Opportunità: Completare wiring progressivo mantenendo stati widget deterministici (`loading`/`empty`/`error`/`ready`).
 
 ### 2. Navigazione alle Funzioni
-- Cosa fa: Sceglie una funzione dalla dashboard hub o da un link interno coerente.
-- Pain: Accesso dispersivo, nomi incoerenti, icone mancanti.
-- Opportunità: Card/link interni standard, etichette chiare, gerarchia visiva coerente.
+- Cosa fa: Usa la navigation persistente disponibile in tutte le rotte `/admin/*`.
+- Pain: Necessita stato attivo sempre leggibile durante il passaggio tra pagine.
+- Opportunità: Rafforzare indicatori visivi dello stato attivo e densita informativa admin-first.
 
 ### 3. Azione Specifica (es. Modifica Modello)
 - Cosa fa: Esegue task amministrativo.
@@ -26,3 +26,11 @@
 - Cosa fa: Consulta log/attività.
 - Pain: Placeholder, dati non aggiornati, filtri assenti.
 - Opportunità: Tabella filtrabile, badge stato, timestamp chiari.
+
+### 5. Overview KPI di Sistema
+- Cosa fa: Legge i widget KPI della dashboard per priorizzare il triage operativo.
+- Pain: Solo una parte dei widget e attualmente connessa a dati reali.
+- Opportunità: Estendere il wiring reale a tutte le card KPI mantenendo fallback empty/error consistenti.
+
+## Governance Alignment Reference
+- La journey map e sincronizzata con la convergenza archetype descritta in `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`, sezione **3.2.3 Admin Overview companion layout (`/admin`)**.

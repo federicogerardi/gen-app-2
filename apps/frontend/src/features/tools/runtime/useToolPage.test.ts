@@ -132,6 +132,18 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => mocks.generation,
+  useGenerationStreamWorkspace: () => mocks.generation,
+  useGenerationArtifactsWorkspace: () => ({
+    artifacts: mocks.generation.artifacts,
+    reloadArtifacts: vi.fn(),
+  }),
+  useGenerationProjectWorkspace: () => ({
+    focusedProjectId: mocks.generation.focusedProjectId,
+    extractionByProject: {},
+    setFocusedProjectId: mocks.generation.setFocusedProjectId,
+    upsertExtractionContext: mocks.generation.upsertExtractionContext,
+    getExtractionContext: mocks.generation.getExtractionContext,
+  }),
 }));
 
 vi.mock('../runtime/tool-form-architecture', () => ({

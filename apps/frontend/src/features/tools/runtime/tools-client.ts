@@ -1,5 +1,6 @@
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import type { ToolKey, ToolStep } from '@gen-app-2/contracts';
 import {
   streamGeneration,
   GenerationTransportError,
@@ -27,7 +28,7 @@ type ToolsClientOptions = {
 
 export type UploadBriefInput = {
   projectId: string;
-  toolKey: string;
+  toolKey: ToolKey;
   file: File;
 };
 
@@ -48,7 +49,7 @@ export type RunExtractionInput = {
   userId: string;
   projectId: string;
   model: string;
-  toolKey: string;
+  toolKey: ToolKey;
   tone?: string;
   notes?: string;
   briefingId: string;
@@ -131,7 +132,7 @@ const mapExtractionFailureReasonToCode = (reason: string): string => {
 };
 
 const assertExtractionResultIsValid = (
-  toolKey: string,
+  toolKey: ToolKey,
   payload: Record<string, unknown>,
   normalizedText: string,
 ): void => {
@@ -323,16 +324,16 @@ export const runExtraction = async (
 };
 
 export type OrchestrationResult = {
-  toolKey: string;
-  targetStep: string;
+  toolKey: ToolKey;
+  targetStep: ToolStep;
   stepDependencyArtifactIds: string[];
-  dependencyArtifactIdsByStep: Record<string, string>;
+  dependencyArtifactIdsByStep: Partial<Record<ToolStep, string>>;
 };
 
 export const orchestrateToolStep = async (
   projectId: string,
-  toolKey: string,
-  targetStep: string,
+  toolKey: ToolKey,
+  targetStep: ToolStep,
   options: ToolsClientOptions = {},
 ): Promise<OrchestrationResult> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);

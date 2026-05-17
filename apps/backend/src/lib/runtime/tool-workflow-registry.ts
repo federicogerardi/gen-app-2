@@ -7,12 +7,16 @@
  * can resolve step dependency artifact IDs without requiring the frontend to compute them.
  */
 
+import {
+  TOOL_KEYS,
+  TOOL_STEP_ORDER,
+  TOOL_WORKFLOW_BY_TOOL_KEY,
+  isToolKey,
+  type ToolKey as SupportedToolWorkflow,
+} from '@gen-app-2/contracts';
 import type { WorkflowStepDescriptor } from '../types/xstate';
 
-export type SupportedToolWorkflow = 'funnel-pages' | 'nextland' | 'youtube-lf-script';
-
-export const isSupportedToolWorkflow = (value: string): value is SupportedToolWorkflow =>
-  value === 'funnel-pages' || value === 'nextland' || value === 'youtube-lf-script';
+export const isSupportedToolWorkflow = isToolKey;
 
 /**
  * Canonical dependency-graph plan for a ToolWorkflow.
@@ -46,33 +50,26 @@ const buildWorkflowPlan = (
  * `dependencyGraph` is derived from `steps` by `buildWorkflowPlan` — do not add it manually.
  */
 export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowPlan> = {
-  'funnel-pages': buildWorkflowPlan('funnel-pages', [
-    { key: 'optin', dependencies: [] },
-    { key: 'quiz', dependencies: ['optin'] },
-    { key: 'vsl', dependencies: ['optin', 'quiz'] },
-  ]),
-  nextland: buildWorkflowPlan('nextland', [
-    { key: 'landing', dependencies: [] },
-    { key: 'thank_you', dependencies: ['landing'] },
-  ]),
-  'youtube-lf-script': buildWorkflowPlan('youtube-lf-script', [
-    { key: 'pre-script-analysis', dependencies: [] },
-    { key: 'packaging', dependencies: ['pre-script-analysis'] },
-    { key: 'intro-structure', dependencies: ['packaging'] },
-    { key: 'body-structure', dependencies: ['intro-structure'] },
-    { key: 'native-cta-embeds', dependencies: ['body-structure'] },
-    { key: 'outro-structure', dependencies: ['native-cta-embeds'] },
-  ]),
-};
+  ...Object.fromEntries(
+    TOOL_KEYS.map((toolKey) => [
+      toolKey,
+      buildWorkflowPlan(
+        toolKey,
+        TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].steps.map((step) => ({
+          key: step.key,
+          dependencies: [...step.dependencies],
+        })),
+      ),
+    ]),
+  ),
+} as Record<SupportedToolWorkflow, ToolWorkflowPlan>;
 
 /**
  * Ordered step keys per ToolWorkflow. Derived from `TOOL_WORKFLOW_REGISTRY` so step order
  * cannot diverge between the registry and this lookup table.
  */
 export const toolWorkflowStepOrder: Record<SupportedToolWorkflow, string[]> = Object.fromEntries(
-  (Object.entries(TOOL_WORKFLOW_REGISTRY) as [SupportedToolWorkflow, ToolWorkflowPlan][]).map(
-    ([key, plan]) => [key, plan.steps.map((s) => s.key)],
-  ),
+  TOOL_KEYS.map((toolKey) => [toolKey, TOOL_STEP_ORDER[toolKey]]),
 ) as Record<SupportedToolWorkflow, string[]>;
 
 /**

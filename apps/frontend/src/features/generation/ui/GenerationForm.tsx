@@ -3,8 +3,11 @@ import { Button as MuiButton } from '@mui/material';
 import type {
   ArtifactType,
   GenerationRequest,
+  GenerationWorkflowType,
   OutputFormat,
+  ToolKey,
 } from '../contracts/backend-stream';
+import { isToolKey, resolveToolWorkflowType } from '@gen-app-2/contracts';
 import {
   runExtraction,
   uploadBrief,
@@ -76,8 +79,8 @@ export const GenerationForm = ({
   const [tone, setTone] = useState<string>(appCopy.editorial.generation.defaultTone);
   const [notes, setNotes] = useState('');
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('markdown');
-  const [workflowType, setWorkflowType] = useState('funnel_pages');
-  const [toolKey, setToolKey] = useState('funnel-pages');
+  const [workflowType, setWorkflowType] = useState<GenerationWorkflowType>('funnel_pages');
+  const [toolKey, setToolKey] = useState<ToolKey>('funnel-pages');
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [intent, setIntent] = useState<ToolIntent>('new');
   const [hasCheckpoint, setHasCheckpoint] = useState(false);
@@ -149,6 +152,12 @@ export const GenerationForm = ({
   const onSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
+    const normalizedToolKey = isToolKey(toolKey) ? toolKey : 'funnel-pages';
+    const normalizedWorkflowType =
+      workflowType === 'extraction'
+        ? workflowType
+        : resolveToolWorkflowType(normalizedToolKey);
+
     const request: GenerationRequest = {
       requestId: generateRequestId(),
       userId,
@@ -167,13 +176,13 @@ export const GenerationForm = ({
           ...(extractionContext?.extractionArtifactId ? [extractionContext.extractionArtifactId] : []),
           ...(hasSourceArtifact ? [sourceArtifactId.trim()] : []),
         ],
-        extractionPayload: extractionContext?.extractionPayload ?? null,
+        extractionPayload: extractionContext?.extractionPayload ?? {},
         sourceArtifactId: hasSourceArtifact ? sourceArtifactId.trim() : null,
         checkpointArtifactId: selectedCheckpoint?.artifactId ?? null,
       },
       outputFormat,
-      toolKey,
-      workflowType,
+      toolKey: normalizedToolKey,
+      workflowType: normalizedWorkflowType,
       registrySnapshotRef,
     };
 
@@ -219,17 +228,19 @@ export const GenerationForm = ({
       return;
     }
 
+    const normalizedToolKey = isToolKey(toolKey) ? toolKey : 'funnel-pages';
+
     setPhase('uploading');
     setExtractionLifecycle('in_progress');
     setBriefingError(null);
 
     try {
       const uploaded = await uploadBrief(
-        {
-          projectId: projectId.trim(),
-          toolKey,
-          file: briefingFile,
-        },
+          {
+            projectId: projectId.trim(),
+            toolKey: normalizedToolKey,
+            file: briefingFile,
+          },
         {
           capabilities: { toolsUpload: toolsUploadEnabled },
         },
@@ -238,13 +249,13 @@ export const GenerationForm = ({
       setPhase('extracting');
 
       const extraction = await runExtraction(
-        {
-          userId,
-          projectId: projectId.trim(),
-          model,
-          toolKey,
-          tone,
-          notes,
+          {
+            userId,
+            projectId: projectId.trim(),
+            model,
+            toolKey: normalizedToolKey,
+            tone,
+            notes,
           briefingId: uploaded.briefingId,
           briefingText: uploaded.normalizedText,
           registrySnapshotRef,
@@ -474,12 +485,26 @@ export const GenerationForm = ({
 
       <label>
         {appCopy.ui.labels.workflowType}
-        <input value={workflowType} onChange={(e) => setWorkflowType(e.target.value)} />
+        <input
+          value={workflowType}
+          onChange={(e) => setWorkflowType(
+            e.target.value === 'extraction'
+              ? 'extraction'
+              : resolveToolWorkflowType(isToolKey(toolKey) ? toolKey : 'funnel-pages'),
+          )}
+        />
       </label>
 
       <label>
         {appCopy.ui.labels.toolKey}
-        <input value={toolKey} onChange={(e) => setToolKey(e.target.value)} />
+        <input
+          value={toolKey}
+          onChange={(e) => {
+            const nextToolKey = isToolKey(e.target.value) ? e.target.value : 'funnel-pages';
+            setToolKey(nextToolKey);
+            setWorkflowType(resolveToolWorkflowType(nextToolKey));
+          }}
+        />
       </label>
 
       <label>

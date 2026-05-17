@@ -107,7 +107,7 @@ describe('artifacts-client – listArtifacts', () => {
               status: 'completed',
               model: 'gpt-4',
               toolKey: 'funnel-pages',
-              workflowType: 'funnel-pages',
+              workflowType: 'funnel_pages',
               input: {},
               content: 'content',
               createdAt: '2026-04-20T00:00:00.000Z',

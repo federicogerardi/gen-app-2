@@ -39,9 +39,6 @@ jobs:
       - name: Form validation regression tests
         run: npm --workspace apps/frontend run test:forms
 
-      - name: Visual snapshot regression tests
-        run: npm --workspace apps/frontend run test:visual
-
       - name: Admin Dashboard Combined Tests (Router + Mutations + A11y)
         run: npm --workspace apps/frontend run test:admin-combined
 

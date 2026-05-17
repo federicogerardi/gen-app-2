@@ -3,7 +3,9 @@ import {
   ErrorStateMessage,
   LoadingStateMessage,
   Surface,
+  uiPrimitives,
 } from '../../../app/ui/primitives';
+import { Link } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 import { useAdminModelsQuery } from '../runtime/useAdminModelsQuery';
@@ -141,6 +143,11 @@ export const AdminDashboardPage = () => {
       title="Dashboard admin"
       description=""
       showEyebrow={false}
+      actions={(
+        <Link to="/admin/user-reports" className={uiPrimitives.inlineLink}>
+          Apri coda UserReport
+        </Link>
+      )}
     >
       <section className="ui-admin-kpi-placeholder-grid" aria-label="Widget KPI di sistema in preview">
         {dashboardWidgets.map((widget) => (

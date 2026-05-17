@@ -126,24 +126,50 @@ class FeedbackCenterDbStub {
       return { rows: [row as unknown as T] };
     }
 
-    if (sqlText.includes('SELECT id, category, status, title, description') && sqlText.includes('FROM user_reports') && sqlText.includes('WHERE id = $1')) {
+    if (
+      (
+        sqlText.includes('SELECT id, category, status, title, description')
+        && sqlText.includes('FROM user_reports')
+        && sqlText.includes('WHERE id = $1')
+      )
+      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('WHERE ur.id = $1'))
+    ) {
       const id = String(values[0]);
       const row = this.userReports.find((report) => report.id === id);
-      return { rows: row ? [row as unknown as T] : [] };
+      if (!row) {
+        return { rows: [] };
+      }
+      return { rows: [{ ...row, github_issue_url: null } as unknown as T] };
     }
 
-    if (sqlText.includes('SELECT id, category, status, title, description') && sqlText.includes('FROM user_reports') && sqlText.includes('ORDER BY created_at DESC')) {
+    if (
+      (
+        sqlText.includes('SELECT id, category, status, title, description')
+        && sqlText.includes('FROM user_reports')
+        && sqlText.includes('ORDER BY created_at DESC')
+      )
+      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('ORDER BY ur.created_at DESC'))
+    ) {
       let filtered = [...this.userReports];
 
-      if (sqlText.includes('status = $1') && sqlText.includes('category = $2')) {
+      const statusFilterClause = sqlText.includes('status = $1') || sqlText.includes('ur.status = $1');
+      const categoryFilterClauseAsSecond = sqlText.includes('category = $2') || sqlText.includes('ur.category = $2');
+      const categoryFilterClauseAsFirst = sqlText.includes('category = $1') || sqlText.includes('ur.category = $1');
+
+      if (statusFilterClause && categoryFilterClauseAsSecond) {
         filtered = filtered.filter((report) => report.status === values[0] && report.category === values[1]);
-      } else if (sqlText.includes('status = $1')) {
+      } else if (statusFilterClause) {
         filtered = filtered.filter((report) => report.status === values[0]);
-      } else if (sqlText.includes('category = $1')) {
+      } else if (categoryFilterClauseAsFirst) {
         filtered = filtered.filter((report) => report.category === values[0]);
       }
 
-      return { rows: filtered as unknown as T[] };
+      const rowsWithJoinProjection = filtered.map((report) => ({
+        ...report,
+        github_issue_url: null,
+      }));
+
+      return { rows: rowsWithJoinProjection as unknown as T[] };
     }
 
     if (sqlText.includes('UPDATE user_reports') && sqlText.includes('RETURNING id, category, status, title, description')) {

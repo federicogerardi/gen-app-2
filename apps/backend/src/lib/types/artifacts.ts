@@ -14,6 +14,7 @@ export type ArtifactSummary = {
   artifactId: string;
   requestId: string;
   userId: string | null;
+  userEmail?: string | null;
   projectId: string;
   artifactType: ArtifactType;
   status: ArtifactStatus;
@@ -47,6 +48,7 @@ type ArtifactRow = {
   id: string;
   request_id: string;
   user_id: string | null;
+  user_email?: string | null;
   project_id: string | null;
   type: string;
   status: string;
@@ -88,6 +90,7 @@ export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
     artifactId: row.id,
     requestId: row.request_id,
     userId: row.user_id,
+    userEmail: row.user_email ?? null,
     projectId: row.project_id ?? '',
     artifactType: toArtifactType(row.type),
     status: toArtifactStatus(row.status),

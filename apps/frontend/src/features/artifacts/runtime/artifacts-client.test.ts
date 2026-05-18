@@ -13,6 +13,7 @@ const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationAr
   artifactId: 'a1',
   requestId: 'r1',
   projectId: 'p1',
+  ownerUsername: null,
   artifactType: 'content',
   status: 'completed',
   model: 'gpt-4',

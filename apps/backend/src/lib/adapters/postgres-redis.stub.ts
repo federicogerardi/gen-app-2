@@ -453,6 +453,33 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     };
   }
 
+  async getArtifactById(artifactId: string): Promise<ArtifactDetail | null> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) {
+      return null;
+    }
+
+    return {
+      artifactId: artifact.artifactId,
+      requestId: artifact.requestId,
+      userId: artifact.userId,
+      projectId: artifact.projectId,
+      artifactType: artifact.artifactType,
+      status: artifact.status,
+      model: artifact.model,
+      workflowType: artifact.workflowType,
+      sessionId: artifact.sessionId ?? null,
+      stepKey: artifact.stepKey ?? null,
+      artifactRole: artifact.artifactRole ?? null,
+      runMode: artifact.runMode ?? null,
+      input: artifact.input,
+      content: artifact.content,
+      failureReason: artifact.failureReason,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt,
+    };
+  }
+
   async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
     return [...this.artifacts.values()]
       .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)

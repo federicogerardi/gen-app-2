@@ -147,7 +147,11 @@ export const ArtifactsListingSection = ({
       renderCell={(artifact, columnKey) => {
         if (columnKey === 'type') return <strong>{artifact.artifactType}</strong>;
         if (columnKey === 'status') return <StatusBadge status={artifact.status} />;
-        if (columnKey === 'user') return artifact.sourceRequest.userId || appCopy.ui.states.userUnavailable;
+        if (columnKey === 'user') {
+          return artifact.ownerUsername
+            || artifact.sourceRequest.userId
+            || appCopy.ui.states.userUnavailable;
+        }
         if (columnKey === 'updated') return new Date(artifact.updatedAt).toLocaleString();
 
         return (

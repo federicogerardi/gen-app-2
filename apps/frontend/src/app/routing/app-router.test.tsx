@@ -66,6 +66,10 @@ vi.mock('../../features/admin/pages/AdminActivityPage', () => ({
   AdminActivityPage: () => <h1>Attività recente</h1>,
 }));
 
+vi.mock('../../features/admin/pages/AdminDashboardPage', () => ({
+  AdminDashboardPage: () => <h1>Dashboard admin</h1>,
+}));
+
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
   FunnelPagesToolPage: () => {
     const navigate = useNavigate();

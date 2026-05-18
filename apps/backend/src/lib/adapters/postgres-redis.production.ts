@@ -93,6 +93,8 @@ type StreamRepositoryOptions = {
 type PersistenceRepositoryOptions = {
   artifactsTableName?: string;
   artifactsSchema?: string;
+  usersTableName?: string;
+  usersSchema?: string;
   quotaHistoryTableName?: string;
   quotaHistorySchema?: string;
   projectsTableName?: string;
@@ -111,6 +113,7 @@ type ArtifactRow = {
   id: string;
   request_id: string;
   user_id: string | null;
+  user_email?: string | null;
   project_id: string | null;
   type: string;
   status: string;
@@ -905,6 +908,7 @@ export class PostgresProjectQueryRepository implements ProjectQueryRepository {
 
 export class PostgresArtifactQueryRepository implements ArtifactQueryRepository {
   private readonly artifactsTableName: string;
+  private readonly usersTableName: string;
 
   constructor(
     private readonly pg: Pool,
@@ -913,6 +917,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     this.artifactsTableName = buildQualifiedTableName(
       options.artifactsSchema,
       options.artifactsTableName ?? 'artifacts',
+    );
+    this.usersTableName = buildQualifiedTableName(
+      options.usersSchema,
+      options.usersTableName ?? 'users',
     );
   }
 
@@ -960,26 +968,28 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     const query = `
       SELECT
-        id,
-        request_id,
-        user_id,
-        project_id,
-        type,
-        status,
-        model,
-        workflow_type,
-        session_id,
-        step_key,
-        artifact_role,
-        run_mode,
-        input_json,
-        content,
-        failure_reason,
-        created_at,
-        updated_at
-      FROM ${this.artifactsTableName}
+        a.id,
+        a.request_id,
+        a.user_id,
+        u.email AS user_email,
+        a.project_id,
+        a.type,
+        a.status,
+        a.model,
+        a.workflow_type,
+        a.session_id,
+        a.step_key,
+        a.artifact_role,
+        a.run_mode,
+        a.input_json,
+        a.content,
+        a.failure_reason,
+        a.created_at,
+        a.updated_at
+      FROM ${this.artifactsTableName} a
+      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
       WHERE ${whereClause}
-      ORDER BY updated_at DESC, id DESC
+      ORDER BY a.updated_at DESC, a.id DESC
       ${paginationClause}
     `;
 
@@ -1029,26 +1039,28 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     const query = `
       SELECT
-        id,
-        request_id,
-        user_id,
-        project_id,
-        type,
-        status,
-        model,
-        workflow_type,
-        session_id,
-        step_key,
-        artifact_role,
-        run_mode,
-        input_json,
-        content,
-        failure_reason,
-        created_at,
-        updated_at
-      FROM ${this.artifactsTableName}
+        a.id,
+        a.request_id,
+        a.user_id,
+        u.email AS user_email,
+        a.project_id,
+        a.type,
+        a.status,
+        a.model,
+        a.workflow_type,
+        a.session_id,
+        a.step_key,
+        a.artifact_role,
+        a.run_mode,
+        a.input_json,
+        a.content,
+        a.failure_reason,
+        a.created_at,
+        a.updated_at
+      FROM ${this.artifactsTableName} a
+      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
       WHERE ${where.join(' AND ')}
-      ORDER BY updated_at DESC, id DESC
+      ORDER BY a.updated_at DESC, a.id DESC
       ${paginationClause}
     `;
 
@@ -1162,6 +1174,36 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     `;
 
     const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, artifactId]);
+    const row = result.rows[0];
+    return row ? mapArtifactRowToDetail(row) : null;
+  }
+
+  async getArtifactById(artifactId: string): Promise<ArtifactDetail | null> {
+    const query = `
+      SELECT
+        id,
+        request_id,
+        user_id,
+        project_id,
+        type,
+        status,
+        model,
+        workflow_type,
+        session_id,
+        step_key,
+        artifact_role,
+        run_mode,
+        input_json,
+        content,
+        failure_reason,
+        created_at,
+        updated_at
+      FROM ${this.artifactsTableName}
+      WHERE id = $1
+      LIMIT 1
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [artifactId]);
     const row = result.rows[0];
     return row ? mapArtifactRowToDetail(row) : null;
   }

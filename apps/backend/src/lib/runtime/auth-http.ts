@@ -1551,7 +1551,10 @@ export const createAuthHttpRuntime = (
       return;
     }
 
-    const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+    const canViewAllArtifacts = principal.user.role === 'admin';
+    const artifact = canViewAllArtifacts
+      ? await queries.artifacts.getArtifactById(artifactId)
+      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Artifact not found');
       return;
@@ -1588,7 +1591,10 @@ export const createAuthHttpRuntime = (
       return;
     }
 
-    const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+    const canViewAllArtifacts = principal.user.role === 'admin';
+    const artifact = canViewAllArtifacts
+      ? await queries.artifacts.getArtifactById(artifactId)
+      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Artifact not found');
       return;

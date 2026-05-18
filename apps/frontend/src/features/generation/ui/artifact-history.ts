@@ -8,6 +8,7 @@ export type GenerationArtifact = {
   artifactId: string;
   requestId: string;
   projectId: string;
+  ownerUsername?: string | null;
   sessionId?: string | null;
   stepKey?: string | null;
   artifactRole?: 'step' | 'final' | null;

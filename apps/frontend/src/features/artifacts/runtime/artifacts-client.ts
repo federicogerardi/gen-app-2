@@ -35,6 +35,8 @@ type BackendArtifact = {
   artifactId: string;
   requestId: string;
   userId?: string | null;
+  userEmail?: string | null;
+  user_email?: string | null;
   projectId: string;
   sessionId?: string | null;
   session_id?: string | null;
@@ -213,6 +215,7 @@ const readDiagnosticString = (a: string | null | undefined, b: string | null | u
 
 const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => {
   const toolKey = readToolKey(artifact);
+  const ownerEmail = readDiagnosticString(artifact.userEmail, artifact.user_email);
 
   const sessionId = readDiagnosticString(artifact.sessionId, artifact.session_id);
   const stepKey = readDiagnosticString(artifact.stepKey, artifact.step_key);
@@ -232,6 +235,7 @@ const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => 
     model: artifact.model,
     toolKey,
     workflowType: artifact.workflowType,
+    ownerUsername: ownerEmail,
     content: artifact.content ?? '',
     createdAt: artifact.createdAt,
     updatedAt: artifact.updatedAt,

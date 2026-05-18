@@ -103,12 +103,12 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-008 | Audit `generation-system.machine.ts` lines `:300–414+` and identify the three responsibility clusters: (a) metadata/routing resolution, (b) fallback/retry logic, (c) persistence preparation. Map each cluster to a proposed extraction target file path under `apps/backend/src/lib/machines/`. | | |
-| TASK-009 | Extract metadata/routing resolution logic (lines `:300–412`) into a pure function module at `apps/backend/src/lib/machines/generation-routing.ts`. The function must be deterministic and have no side effects. | | |
-| TASK-010 | Extract fallback and retry policy logic (lines `:414+`) into a dedicated XState v5 sub-actor at `apps/backend/src/lib/machines/generation-fallback.actor.ts` using `setup().createMachine()`. Wire it into the parent machine via `invoke` or `spawnChild`. | | |
-| TASK-011 | Extract persistence preparation logic into `apps/backend/src/lib/machines/generation-persistence.ts`. This module prepares the artifact payload; it must not perform DB writes directly. | | |
-| TASK-012 | Update `generation-system.machine.ts` to delegate to the new sub-actor and helper modules. Target ≤ 400 LOC for the top-level machine file. | | |
-| TASK-013 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests. | | |
+| TASK-008 | Audit `generation-system.machine.ts` lines `:300–414+` and identify the three responsibility clusters: (a) metadata/routing resolution, (b) fallback/retry logic, (c) persistence preparation. Map each cluster to a proposed extraction target file path under `apps/backend/src/lib/machines/`. | ✅ | 2026-05-18 |
+| TASK-009 | Extract metadata/routing resolution logic (lines `:300–412`) into a pure function module at `apps/backend/src/lib/machines/generation-routing.ts`. The function must be deterministic and have no side effects. | ✅ | 2026-05-18 |
+| TASK-010 | Extract fallback and retry policy logic (lines `:414+`) into a dedicated XState v5 sub-actor at `apps/backend/src/lib/machines/generation-fallback.actor.ts` using `setup().createMachine()`. Wire it into the parent machine via `invoke` or `spawnChild`. | ✅ | 2026-05-18 |
+| TASK-011 | Extract persistence preparation logic into `apps/backend/src/lib/machines/generation-persistence.ts`. This module prepares the artifact payload; it must not perform DB writes directly. | ✅ | 2026-05-18 |
+| TASK-012 | Update `generation-system.machine.ts` to delegate to the new sub-actor and helper modules. Target ≤ 400 LOC for the top-level machine file. | ✅ | 2026-05-18 |
+| TASK-013 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests. | ✅ | 2026-05-18 |
 
 **Completion criteria**: `generation-system.machine.ts` ≤ 400 LOC; `tsc` passes; all tests green.
 

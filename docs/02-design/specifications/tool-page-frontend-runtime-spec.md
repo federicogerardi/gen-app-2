@@ -14,7 +14,7 @@ type: ai-first-runtime-spec
 
 > **DDD Reference**: canonical terms used here are defined in:
 > - `docs/01-requirements/domain-ubiquitous-language-glossary.md` — glossary (including `GenerationWorkspace`, `ExtractionContextBridge`, `DispatchError`, `ReadinessSnapshot`, `ExtractionContext`, `HydrationResult`, `ToolPage`, `BriefingUpload`)
-> - `docs/07-governance/domain-naming-decision-log.md` — DDD-059, DDD-060, DDD-061
+> - `docs/07-governance/domain-naming-decision-log.md` — DDD-069, DDD-070, DDD-061
 > - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` — Tool Workspace Page archetype
 
 ---
@@ -136,7 +136,7 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts`
 
 ### Effect #2b — ExtractionContextBridge (lines ~140–185)
 
-> **Critical effect.** See DDD-060 for full rationale.
+> **Critical effect.** See DDD-070 for full rationale.
 
 **Purpose**: Sync a ready `BriefingUpload` actor's extraction context into `GenerationWorkspace` so that `startGenerationStep` can read it via `workspaceExtractionContext`.
 

@@ -94,7 +94,7 @@ export const TOOL_KEY_BY_WORKFLOW_TYPE: Record<ToolWorkflowType, ToolKey> = Obje
 ) as Record<ToolWorkflowType, ToolKey>;
 
 export const isToolKey = (value: string): value is ToolKey =>
-  Object.hasOwn(TOOL_WORKFLOW_DEFINITIONS, value);
+  Object.prototype.hasOwnProperty.call(TOOL_WORKFLOW_DEFINITIONS, value);
 
 export const isGenerationRouteToolKey = (
   value: string,
@@ -105,7 +105,7 @@ export const isGenerationRequestToolKey = (
 ): value is GenerationRequestToolKey => isToolKey(value) || isGenerationRouteToolKey(value);
 
 export const isToolWorkflowType = (value: string): value is ToolWorkflowType =>
-  Object.hasOwn(TOOL_KEY_BY_WORKFLOW_TYPE, value);
+  Object.prototype.hasOwnProperty.call(TOOL_KEY_BY_WORKFLOW_TYPE, value);
 
 export const resolveToolWorkflowType = (toolKey: ToolKey): ToolWorkflowType =>
   TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;

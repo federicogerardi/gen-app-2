@@ -2,6 +2,8 @@
  * Frontend contract boundary now re-exported from shared workspace package.
  * Canonical source: @gen-app-2/contracts.
  */
+import '@gen-app-2/contracts/parity.guard';
+
 export type {
   ArtifactType,
   GenerationRequestInput,

@@ -162,11 +162,24 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-025 | Audit all `import(...)` type expressions in `packages/contracts/src/parity.guard.ts`. The cross-boundary violations span the full file — confirmed groups: `:22–23` (ArtifactType), `:45–46` (OutputFormat), `:68–69` (GenerationRequest), `:91–92` (BackendStreamEvent), `:113–115` (ProductChangelogStatus), `:132–134` (UserReportCategory), `:151–153` (UserReportStatus), `:171–172+` (ProductChangelogDto, and any further types). List every import path that crosses into `apps/backend/` or `apps/frontend/` — do not assume the list ends at line `:92`. | | |
-| TASK-026 | For each cross-boundary import identified in TASK-025, inline the referenced type literal directly into `packages/contracts/src/index.ts` as a canonical type export. Confirmed types requiring promotion: `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`. Verify the full list from TASK-025 before starting. The canonical contract package becomes the sole source of truth for all these types. | | |
-| TASK-027 | Rewrite `parity.guard.ts` to perform structural parity checks only against types exported from `packages/contracts/src/index.ts`. Remove all `import(../../../apps/...)` statements. | | |
-| TASK-028 | Consolidate the dual parity-guard strategy: remove `apps/frontend/src/features/generation/contracts/backend-stream.parity.guard.ts` and replace its checks with an import of the canonical parity guard from `packages/contracts`. Update any imports of the removed file. | | |
-| TASK-029 | Run `tsc --noEmit` in `packages/contracts/`, `apps/backend/`, and `apps/frontend/`. Confirm zero errors and zero cross-boundary imports from `packages/contracts`. | | |
+| TASK-025 | Audit all `import(...)` type expressions in `packages/contracts/src/parity.guard.ts`. The cross-boundary violations span the full file — confirmed groups: `:22–23` (ArtifactType), `:45–46` (OutputFormat), `:68–69` (GenerationRequest), `:91–92` (BackendStreamEvent), `:113–115` (ProductChangelogStatus), `:132–134` (UserReportCategory), `:151–153` (UserReportStatus), `:171–172+` (ProductChangelogDto, and any further types). List every import path that crosses into `apps/backend/` or `apps/frontend/` — do not assume the list ends at line `:92`. | ✅ | 2026-05-19 |
+| TASK-026 | For each cross-boundary import identified in TASK-025, inline the referenced type literal directly into `packages/contracts/src/index.ts` as a canonical type export. Confirmed types requiring promotion: `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`. Verify the full list from TASK-025 before starting. The canonical contract package becomes the sole source of truth for all these types. | ✅ | 2026-05-19 |
+| TASK-027 | Rewrite `parity.guard.ts` to perform structural parity checks only against types exported from `packages/contracts/src/index.ts`. Remove all `import(../../../apps/...)` statements. | ✅ | 2026-05-19 |
+| TASK-028 | Consolidate the dual parity-guard strategy: remove `apps/frontend/src/features/generation/contracts/backend-stream.parity.guard.ts` and replace its checks with an import of the canonical parity guard from `packages/contracts`. Update any imports of the removed file. | ✅ | 2026-05-19 |
+| TASK-029 | Run `tsc --noEmit` in `packages/contracts/`, `apps/backend/`, and `apps/frontend/`. Confirm zero errors and zero cross-boundary imports from `packages/contracts`. | ✅ | 2026-05-19 |
+
+#### TASK-025 Audit Output — Cross-Boundary Import Paths In `packages/contracts/src/parity.guard.ts`
+
+| Path | Target side | Used by parity blocks |
+|---|---|---|
+| `../../../apps/backend/src/lib/types/artifact` | backend | `ArtifactType`, `OutputFormat` |
+| `../../../apps/frontend/src/features/generation/contracts/backend-stream` | frontend | `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent` |
+| `../../../apps/backend/src/lib/runtime/request-contract` | backend | `GenerationRequest` |
+| `../../../apps/backend/src/lib/runtime/stream-contract` | backend | `BackendStreamEvent` |
+| `../../../apps/backend/src/lib/runtime/feedback-center-contract` | backend | `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`, `UserReportDto`, `GitHubIssueLinkDto`, `CreateProductChangelogCommand`, `CreateUserReportCommand`, `UpdateUserReportStatusCommand`, `PublishUserReportIssueCommand` |
+| `../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract` | frontend | `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`, `UserReportDto`, `GitHubIssueLinkDto`, `CreateProductChangelogCommand`, `CreateUserReportCommand`, `UpdateUserReportStatusCommand`, `PublishUserReportIssueCommand` |
+
+Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/contracts/src/parity.guard.ts` resolve to the six paths listed above; no additional `apps/backend` or `apps/frontend` paths are present in the file.
 
 **Completion criteria**: `packages/contracts/src/parity.guard.ts` contains zero `import(../../../apps/...)` paths; `tsc` passes across all packages; frontend parity guard consolidated to one file.
 

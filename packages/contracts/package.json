@@ -5,7 +5,8 @@
   "type": "commonjs",
   "main": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./parity.guard": "./src/parity.guard.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

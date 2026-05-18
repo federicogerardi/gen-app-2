@@ -101,7 +101,7 @@ const buildContextBlock = (requestInput: Record<string, unknown>): string | null
 
   // Bug 1 diagnostics: log what we're receiving server-side
   if (process.env.DEBUG || process.env.NODE_ENV !== 'production') {
-    console.log('[openrouter] buildContextBlock diagnostics', {
+    console.debug('[openrouter] buildContextBlock diagnostics', {
       hasBriefingText: !!briefingText,
       briefingTextLength: briefingText?.length ?? 0,
       extractionPayloadType: typeof extractionPayload,
@@ -162,7 +162,7 @@ const buildMessages = (requestInput: Record<string, unknown>) => {
 
   // Bug 1 diagnostics: log final message sent to LLM
   if (process.env.DEBUG || process.env.NODE_ENV !== 'production') {
-    console.log('[openrouter] buildMessages final output', {
+    console.debug('[openrouter] buildMessages final output', {
       hasContextBlock: !!contextBlock,
       contextBlockLength: contextBlock?.length ?? 0,
       userMessageLength: finalMessages[0]?.content?.length ?? 0,

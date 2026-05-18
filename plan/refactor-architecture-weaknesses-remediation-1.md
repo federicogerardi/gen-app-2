@@ -191,11 +191,11 @@ Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/co
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-030 | In `apps/frontend/server.mjs`, delete: (a) the comment block at lines `:177–178`, (b) the `handleDebugConnectivity` async function declaration and body at lines `:180–193`, and (c) the route dispatch branch `if (method === 'GET' && path === '/debug/connectivity')` at lines `:218–222`. Also remove the reference to `/debug/connectivity` in the inline comment block at line `:197`. | | |
-| TASK-031 | In `apps/backend/src/lib/runtime/auth-http.ts` lines `:1994–2056` (auth flow) and `:2304–2408` (report flow), downgrade all `console.info` and `console.log` statements that log request payloads, tokens, or user data to `console.debug`. Remove any statement logging raw auth tokens or session cookies entirely. | | |
-| TASK-032 | In `apps/backend/src/lib/runtime/github-issues.ts` lines `:88–172`, downgrade verbose request/response logging to `console.debug`. Remove any statement that logs GitHub API tokens or full issue body payloads. | | |
-| TASK-033 | In `apps/backend/src/lib/runtime/openrouter.adapter.ts` lines `:102–113` and `:163–170`, downgrade verbose request/response logging to `console.debug`. Ensure no API keys or bearer tokens are ever logged. | | |
-| TASK-034 | Run a grep audit: `grep -rn "console.info\|console.log" apps/backend/src/lib/runtime/` and confirm no remaining statements log security-sensitive data (tokens, keys, passwords, full request bodies in auth paths). | | |
+| TASK-030 | In `apps/frontend/server.mjs`, delete: (a) the comment block at lines `:177–178`, (b) the `handleDebugConnectivity` async function declaration and body at lines `:180–193`, and (c) the route dispatch branch `if (method === 'GET' && path === '/debug/connectivity')` at lines `:218–222`. Also remove the reference to `/debug/connectivity` in the inline comment block at line `:197`. | ✅ | 2026-05-19 |
+| TASK-031 | In `apps/backend/src/lib/runtime/auth-http.ts` lines `:1994–2056` (auth flow) and `:2304–2408` (report flow), downgrade all `console.info` and `console.log` statements that log request payloads, tokens, or user data to `console.debug`. Remove any statement logging raw auth tokens or session cookies entirely. | ✅ | 2026-05-19 |
+| TASK-032 | In `apps/backend/src/lib/runtime/github-issues.ts` lines `:88–172`, downgrade verbose request/response logging to `console.debug`. Remove any statement that logs GitHub API tokens or full issue body payloads. | ✅ | 2026-05-19 |
+| TASK-033 | In `apps/backend/src/lib/runtime/openrouter.adapter.ts` lines `:102–113` and `:163–170`, downgrade verbose request/response logging to `console.debug`. Ensure no API keys or bearer tokens are ever logged. | ✅ | 2026-05-19 |
+| TASK-034 | Run a grep audit: `grep -rn "console.info\|console.log" apps/backend/src/lib/runtime/` and confirm no remaining statements log security-sensitive data (tokens, keys, passwords, full request bodies in auth paths). | ✅ | 2026-05-19 |
 
 **Completion criteria**: `/debug/connectivity` route absent from `server.mjs`; zero `console.info`/`console.log` statements logging auth tokens or API keys in the affected files; all tests green.
 

@@ -90,6 +90,10 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 
 - [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
 
+### Active Reviews
+
+- [architecture-weaknesses-code-review-2026-05-18](./07-governance/architecture-weaknesses-code-review-2026-05-18.md)
+
 ## Archive Registry
 
 Archive folder is maintained for future reference and historical context. See [99-lifecycle/99-archive](./99-lifecycle/99-archive/).

@@ -10,7 +10,6 @@ import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/ListingTableSection';
 import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
-import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { type ArtifactQuery } from '../runtime/artifacts-client';
 
@@ -21,7 +20,6 @@ type ArtifactsListingSectionProps = {
   title: string;
   emptyStateMessage?: string;
   fixedProjectId?: string;
-  fixedProjectName?: string;
   enabled?: boolean;
   headingLevel?: 'h2' | 'h3';
 };
@@ -45,26 +43,12 @@ export const ArtifactsListingSection = ({
   title,
   emptyStateMessage,
   fixedProjectId,
-  fixedProjectName,
   enabled,
   headingLevel = 'h3',
 }: ArtifactsListingSectionProps) => {
   const auth = useAuthSession();
   const generation = useGenerationWorkspace();
-  const projectsQuery = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
-    ...(enabled !== undefined ? { enabled } : {}),
-  });
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
-  const normalizedFixedProjectName = useMemo(() => {
-    if (typeof fixedProjectName !== 'string') {
-      return null;
-    }
-
-    const trimmed = fixedProjectName.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }, [fixedProjectName]);
   const [filters, setFilters] = useState<ArtifactQuery>(() => buildDefaultFilters(normalizedFixedProjectId));
   const [page, setPage] = useState(1);
 
@@ -97,19 +81,13 @@ export const ArtifactsListingSection = ({
     () => artifactsQuery.data.slice(0, pageSize),
     [artifactsQuery.data],
   );
-  const projectNameById = useMemo(() => {
-    return projectsQuery.data.reduce<Record<string, string>>((acc, project) => {
-      acc[project.id] = project.name;
-      return acc;
-    }, {});
-  }, [projectsQuery.data]);
   const totalPages = useMemo(() => {
     return artifactsQuery.totalResults === 0 ? 0 : Math.ceil(artifactsQuery.totalResults / pageSize);
   }, [artifactsQuery.totalResults]);
   const columns = useMemo<ListingTableColumn[]>(() => [
     { key: 'type', header: appCopy.ui.labels.type },
     { key: 'status', header: appCopy.ui.labels.status },
-    { key: 'project', header: appCopy.ui.labels.project },
+    { key: 'user', header: appCopy.ui.labels.user },
     { key: 'updated', header: appCopy.ui.meta.updated },
     { key: 'openDetail', header: appCopy.ui.actions.openDetail },
   ], []);
@@ -167,16 +145,9 @@ export const ArtifactsListingSection = ({
       rows={items}
       rowKey={(artifact) => artifact.artifactId}
       renderCell={(artifact, columnKey) => {
-        const resolvedProjectName =
-          (normalizedFixedProjectId !== null && artifact.projectId === normalizedFixedProjectId
-            ? normalizedFixedProjectName
-            : null)
-          ?? projectNameById[artifact.projectId]
-          ?? 'Progetto non disponibile';
-
         if (columnKey === 'type') return <strong>{artifact.artifactType}</strong>;
         if (columnKey === 'status') return <StatusBadge status={artifact.status} />;
-        if (columnKey === 'project') return resolvedProjectName;
+        if (columnKey === 'user') return artifact.sourceRequest.userId || appCopy.ui.states.userUnavailable;
         if (columnKey === 'updated') return new Date(artifact.updatedAt).toLocaleString();
 
         return (

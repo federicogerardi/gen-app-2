@@ -268,6 +268,81 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
 export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
   private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
 
+  async countArtifacts(filters: ArtifactListFilters): Promise<number> {
+    return [...this.artifacts.values()].filter((artifact) => {
+      if (filters.type && artifact.artifactType !== filters.type) {
+        return false;
+      }
+
+      if (filters.status && artifact.status !== filters.status) {
+        return false;
+      }
+
+      if (filters.projectId && artifact.projectId !== filters.projectId) {
+        return false;
+      }
+
+      if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+        return false;
+      }
+
+      if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+        return false;
+      }
+
+      return true;
+    }).length;
+  }
+
+  async listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
+    const filtered = [...this.artifacts.values()]
+      .filter((artifact) => {
+        if (filters.type && artifact.artifactType !== filters.type) {
+          return false;
+        }
+
+        if (filters.status && artifact.status !== filters.status) {
+          return false;
+        }
+
+        if (filters.projectId && artifact.projectId !== filters.projectId) {
+          return false;
+        }
+
+        if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+          return false;
+        }
+
+        if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((artifact) => ({
+        artifactId: artifact.artifactId,
+        requestId: artifact.requestId,
+        userId: artifact.userId,
+        projectId: artifact.projectId,
+        artifactType: artifact.artifactType,
+        status: artifact.status,
+        model: artifact.model,
+        workflowType: artifact.workflowType,
+        sessionId: artifact.sessionId ?? null,
+        stepKey: artifact.stepKey ?? null,
+        artifactRole: artifact.artifactRole ?? null,
+        runMode: artifact.runMode ?? null,
+        createdAt: artifact.createdAt,
+        updatedAt: artifact.updatedAt,
+      }));
+
+    const offset = typeof filters.offset === 'number' ? filters.offset : 0;
+    const end = typeof filters.limit === 'number' ? offset + filters.limit : undefined;
+
+    return filtered.slice(offset, end);
+  }
+
   async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {
     return [...this.artifacts.values()].filter((artifact) => {
       if (artifact.userId !== userId) {
@@ -331,6 +406,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       .map((artifact) => ({
         artifactId: artifact.artifactId,
         requestId: artifact.requestId,
+        userId: artifact.userId,
         projectId: artifact.projectId,
         artifactType: artifact.artifactType,
         status: artifact.status,

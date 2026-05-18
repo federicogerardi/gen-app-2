@@ -967,6 +967,146 @@ test('auth HTTP runtime returns 401/404/400 for projects and artifacts constrain
   assert.equal(missingArtifactResponse.statusCode, 404);
 });
 
+test('auth HTTP runtime applies session role scope on /api/artifacts listing', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-artifacts-scope-001',
+    now: () => new Date('2026-04-24T10:30:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+  let sessionOrdinal = 0;
+
+  await repositories.users.createUser({
+    id: 'admin-artifacts-001',
+    email: 'admin.artifacts@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Admin-Artifacts-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  await repositories.users.createUser({
+    id: 'member-artifacts-001',
+    email: 'member.artifacts@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Artifacts-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-member-001',
+      requestId: 'req-member-001',
+      userId: 'member-artifacts-001',
+      projectId: 'project-artifacts-scope-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      input: {},
+      content: 'member artifact',
+      failureReason: null,
+      createdAt: '2026-04-24T10:30:00.000Z',
+      updatedAt: '2026-04-24T10:30:00.000Z',
+    },
+    {
+      artifactId: 'artifact-other-001',
+      requestId: 'req-other-001',
+      userId: 'user-other-001',
+      projectId: 'project-artifacts-scope-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'nextland',
+      input: {},
+      content: 'other artifact',
+      failureReason: null,
+      createdAt: '2026-04-24T10:31:00.000Z',
+      updatedAt: '2026-04-24T10:31:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-24T10:30:00.000Z'),
+    idGenerator: { nextSessionId: () => `session-artifacts-scope-${++sessionOrdinal}` },
+  });
+
+  const adminLoginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/auth/login',
+      body: JSON.stringify({ email: 'admin.artifacts@example.com', password: 'Admin-Artifacts-1' }),
+    }) as unknown as IncomingMessage,
+    adminLoginResponse as unknown as ServerResponse,
+  );
+  const adminCookie = (Array.isArray(adminLoginResponse.getHeader('set-cookie'))
+    ? adminLoginResponse.getHeader('set-cookie')?.[0]
+    : adminLoginResponse.getHeader('set-cookie')) as string;
+  const adminCookieHeader = adminCookie.split(';')[0] ?? '';
+
+  const memberLoginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/auth/login',
+      body: JSON.stringify({ email: 'member.artifacts@example.com', password: 'Member-Artifacts-1' }),
+    }) as unknown as IncomingMessage,
+    memberLoginResponse as unknown as ServerResponse,
+  );
+  const memberCookie = (Array.isArray(memberLoginResponse.getHeader('set-cookie'))
+    ? memberLoginResponse.getHeader('set-cookie')?.[0]
+    : memberLoginResponse.getHeader('set-cookie')) as string;
+  const memberCookieHeader = memberCookie.split(';')[0] ?? '';
+
+  const memberListResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts',
+      headers: { cookie: memberCookieHeader },
+    }) as unknown as IncomingMessage,
+    memberListResponse as unknown as ServerResponse,
+  );
+  assert.equal(memberListResponse.statusCode, 200);
+  const memberPayload = memberListResponse.jsonBody().data as {
+    artifacts: Array<{ artifactId: string }>;
+    totalResults: number;
+  };
+  assert.equal(memberPayload.totalResults, 1);
+  assert.deepEqual(memberPayload.artifacts.map((artifact) => artifact.artifactId), ['artifact-member-001']);
+
+  const adminListResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts',
+      headers: { cookie: adminCookieHeader },
+    }) as unknown as IncomingMessage,
+    adminListResponse as unknown as ServerResponse,
+  );
+  assert.equal(adminListResponse.statusCode, 200);
+  const adminPayload = adminListResponse.jsonBody().data as {
+    artifacts: Array<{ artifactId: string }>;
+    totalResults: number;
+  };
+  assert.equal(adminPayload.totalResults, 2);
+  assert.deepEqual(
+    adminPayload.artifacts.map((artifact) => artifact.artifactId),
+    ['artifact-other-001', 'artifact-member-001'],
+  );
+});
+
 test('auth HTTP runtime supports /api/tools/briefs upload with parser for markdown files', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();

@@ -34,6 +34,7 @@ type ArtifactsClientOptions = {
 type BackendArtifact = {
   artifactId: string;
   requestId: string;
+  userId?: string | null;
   projectId: string;
   sessionId?: string | null;
   session_id?: string | null;
@@ -186,7 +187,7 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
 
   return {
     requestId: artifact.requestId,
-    userId: '',
+    userId: artifact.userId ?? '',
     projectId: artifact.projectId,
     artifactType: artifact.artifactType,
     model: artifact.model,

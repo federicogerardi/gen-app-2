@@ -13,6 +13,7 @@ export type ArtifactListFilters = {
 export type ArtifactSummary = {
   artifactId: string;
   requestId: string;
+  userId: string | null;
   projectId: string;
   artifactType: ArtifactType;
   status: ArtifactStatus;
@@ -86,6 +87,7 @@ export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
   return {
     artifactId: row.id,
     requestId: row.request_id,
+    userId: row.user_id,
     projectId: row.project_id ?? '',
     artifactType: toArtifactType(row.type),
     status: toArtifactStatus(row.status),
@@ -109,7 +111,6 @@ export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
 export const mapArtifactRowToDetail = (row: ArtifactRow): ArtifactDetail => {
   return {
     ...mapArtifactRowToSummary(row),
-    userId: row.user_id,
     input: row.input_json ?? {},
     content: row.content,
     failureReason: row.failure_reason,

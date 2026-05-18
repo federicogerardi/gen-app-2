@@ -916,6 +916,77 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     );
   }
 
+  async listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
+    const where: string[] = [];
+    const params: unknown[] = [];
+
+    if (filters.type) {
+      params.push(filters.type);
+      where.push(`type = $${params.length}`);
+    }
+
+    if (filters.status) {
+      params.push(filters.status);
+      where.push(`status = $${params.length}`);
+    }
+
+    if (filters.projectId) {
+      params.push(filters.projectId);
+      where.push(`project_id = $${params.length}`);
+    }
+
+    if (filters.from) {
+      params.push(filters.from);
+      where.push(`updated_at >= $${params.length}::timestamptz`);
+    }
+
+    if (filters.to) {
+      params.push(filters.to);
+      where.push(`updated_at <= $${params.length}::timestamptz`);
+    }
+
+    const whereClause = where.length > 0 ? where.join(' AND ') : 'TRUE';
+
+    let paginationClause = '';
+    if (typeof filters.limit === 'number') {
+      params.push(filters.limit);
+      paginationClause += `\n      LIMIT $${params.length}`;
+    }
+
+    if (typeof filters.offset === 'number') {
+      params.push(filters.offset);
+      paginationClause += `\n      OFFSET $${params.length}`;
+    }
+
+    const query = `
+      SELECT
+        id,
+        request_id,
+        user_id,
+        project_id,
+        type,
+        status,
+        model,
+        workflow_type,
+        session_id,
+        step_key,
+        artifact_role,
+        run_mode,
+        input_json,
+        content,
+        failure_reason,
+        created_at,
+        updated_at
+      FROM ${this.artifactsTableName}
+      WHERE ${whereClause}
+      ORDER BY updated_at DESC, id DESC
+      ${paginationClause}
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);
+    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+  }
+
   async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
     const where: string[] = ['user_id = $1'];
     const params: unknown[] = [userId];
@@ -983,6 +1054,47 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);
     return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+  }
+
+  async countArtifacts(filters: ArtifactListFilters): Promise<number> {
+    const where: string[] = [];
+    const params: unknown[] = [];
+
+    if (filters.type) {
+      params.push(filters.type);
+      where.push(`type = $${params.length}`);
+    }
+
+    if (filters.status) {
+      params.push(filters.status);
+      where.push(`status = $${params.length}`);
+    }
+
+    if (filters.projectId) {
+      params.push(filters.projectId);
+      where.push(`project_id = $${params.length}`);
+    }
+
+    if (filters.from) {
+      params.push(filters.from);
+      where.push(`updated_at >= $${params.length}::timestamptz`);
+    }
+
+    if (filters.to) {
+      params.push(filters.to);
+      where.push(`updated_at <= $${params.length}::timestamptz`);
+    }
+
+    const whereClause = where.length > 0 ? where.join(' AND ') : 'TRUE';
+
+    const query = `
+      SELECT COUNT(*) as total
+      FROM ${this.artifactsTableName}
+      WHERE ${whereClause}
+    `;
+
+    const result: QueryResult<{ total: string }> = await this.pg.query(query, params);
+    return parseInt(result.rows[0]?.total ?? '0', 10);
   }
 
   async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {

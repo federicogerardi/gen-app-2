@@ -52,6 +52,7 @@ import {
   type SessionCookieRuntime,
 } from './auth-contract';
 import { normalizePath } from './http-utils';
+import { normalizeToolWorkflowKey } from './workflow-normalizers';
 import { createAuthHandlers } from './auth-http/auth-handlers';
 import { createProjectsHandlers } from './auth-http/projects-handlers';
 import { createToolsHandlers } from './auth-http/tools-handlers';
@@ -904,8 +905,13 @@ export const createAuthHttpRuntime = (
       filters.offset = Number.parseInt(offsetRaw, 10);
     }
 
-    const artifacts = await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
-    const totalResults = await queries.artifacts.countArtifactsByUser(principal.user.id, filters);
+    const canViewAllArtifacts = principal.user.role === 'admin';
+    const artifacts = canViewAllArtifacts
+      ? await queries.artifacts.listArtifacts(filters)
+      : await queries.artifacts.listArtifactsByUser(principal.user.id, filters);
+    const totalResults = canViewAllArtifacts
+      ? await queries.artifacts.countArtifacts(filters)
+      : await queries.artifacts.countArtifactsByUser(principal.user.id, filters);
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, { artifacts, totalResults });
@@ -1325,7 +1331,7 @@ export const createAuthHttpRuntime = (
     });
 
     const toolArtifacts = allCompleted.filter(
-      (a) => a.workflowType === toolKey && a.artifactType !== 'extraction',
+      (a) => normalizeToolWorkflowKey(a.workflowType) === toolKey && a.artifactType !== 'extraction',
     );
 
     // Fetch details to extract step keys (N+1 acceptable: max 3–5 artifacts per tool).

@@ -208,10 +208,10 @@ Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/co
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
 | TASK-035 | Read `docs/07-governance/domain-naming-decision-log.md` lines `:61` (`DDD-039` provisional) and `:80` (`DDD-059` provisional). For each: determine the correct canonical term by cross-referencing `docs/01-requirements/domain-ubiquitous-language-glossary.md` and `docs/02-design/domain-bounded-context-map.md`. | ✅ | 2026-05-18 |
-| TASK-036 | Update `DDD-039` in the decision log: change status from `provisional` to `approved` and add the rationale and evidence (file path + line) that confirms the canonical term. | | |
-| TASK-037 | Update `DDD-059` in the decision log: change status from `provisional` to `approved` or `deprecated` with the same evidence format. | | |
-| TASK-038 | Read `docs/07-governance/domain-naming-decision-log.md` line `:102` (`DDD-C-005` open). Determine the decision: either approve a canonical cross-context translation rule or explicitly close it as out-of-scope. Document the decision inline. | | |
-| TASK-039 | For any term promoted from provisional → approved in TASK-036/037, verify that all usages in `apps/backend/src/`, `apps/frontend/src/`, and `packages/contracts/src/` use the canonical term. If drift is found, create a follow-up `DDD-NNN` entry and track it as a separate refactor task. | | |
+| TASK-036 | Update `DDD-039` in the decision log: change status from `provisional` to `approved` and add the rationale and evidence (file path + line) that confirms the canonical term. | ✅ | 2026-05-18 |
+| TASK-037 | Update `DDD-059` in the decision log: change status from `provisional` to `approved` or `deprecated` with the same evidence format. | ✅ | 2026-05-18 |
+| TASK-038 | Read `docs/07-governance/domain-naming-decision-log.md` line `:102` (`DDD-C-005` open). Determine the decision: either approve a canonical cross-context translation rule or explicitly close it as out-of-scope. Document the decision inline. | ✅ | 2026-05-18 |
+| TASK-039 | For any term promoted from provisional → approved in TASK-036/037, verify that all usages in `apps/backend/src/`, `apps/frontend/src/`, and `packages/contracts/src/` use the canonical term. If drift is found, create a follow-up `DDD-NNN` entry and track it as a separate refactor task. | ✅ | 2026-05-18 |
 
 **Completion criteria**: Zero entries with status `open` or `provisional` remain in `domain-naming-decision-log.md` for DDD-039, DDD-059, and DDD-C-005.
 
@@ -288,7 +288,7 @@ Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/co
 - **RISK-002**: The XState v5 sub-actor split for `generation-system.machine.ts` may require context shape changes that affect serialization/persistence of in-flight generation states. Mitigation: freeze context shape during refactor; only split actor topology.
 - **RISK-003**: Removing the silent `return []` in `models-client.ts` will propagate errors to callers. If callers are not updated simultaneously (TASK-023), the frontend will break. Mitigation: TASK-021–024 are a single atomic unit; do not partially apply.
 - **RISK-004**: Inlining canonical types into `packages/contracts/src/index.ts` (TASK-026) may cause type drift if backend or frontend evolve their local copies independently. Mitigation: parity guard (TASK-027) will catch drift at compile time.
-- **RISK-005**: DDD-C-005 (`open`) may require cross-team alignment before it can be closed. Mitigation: if consensus cannot be reached, close with status `deferred` and document the blocker inline.
+- **RISK-005**: DDD-C-005 was previously tracked as open and requiring cross-team alignment. Status updated to `resolved-documented` on 2026-05-18 as part of Phase 7 closure.
 - **ASSUMPTION-001**: The four handler type files in `auth-http/` (`admin-handlers.ts`, `auth-handlers.ts`, `projects-handlers.ts`, `tools-handlers.ts`) are the intended extraction targets and their type contracts accurately reflect what implementations should export.
 - **ASSUMPTION-002**: No external consumers (outside the monorepo) import directly from `packages/contracts/src/parity.guard.ts`; the file is a compile-time-only artifact.
 - **ASSUMPTION-003**: The `RegistryBackedWorkflowType` open union in `apps/backend/src/lib/types/xstate.ts:5–7` is a TypeScript escape hatch added for registry-backed tool configuration, not a structural design intent. Tightening it will not break runtime behavior if existing callers are audited.

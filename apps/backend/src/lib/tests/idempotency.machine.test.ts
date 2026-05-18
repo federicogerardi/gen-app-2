@@ -115,3 +115,40 @@ test('idempotencyCoordinatorMachine returns conflict when already claimed', asyn
   assert.equal(output.reason, 'idempotency_conflict');
   actor.stop();
 });
+
+test('idempotencyCoordinatorMachine dedups by idempotencyKey across different requestIds', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const firstInput = {
+    requestId: 'req-idem-dedup-first',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    workflowType: null,
+    idempotencyKey: 'idem-dedup-001',
+    registrySnapshotRef: 'snapshot:seed' as never,
+    runtime: {
+      now: fixedNow,
+    },
+  };
+
+  await adapters.idempotency.checkAndClaim(firstInput);
+  await adapters.idempotency.markCompleted(firstInput, 'artifact-dedup-001', 'cached-dedup-content');
+
+  const secondActor = createActor(idempotencyCoordinatorMachine, {
+    input: {
+      ...firstInput,
+      requestId: 'req-idem-dedup-second',
+      adapters: {
+        idempotency: adapters.idempotency,
+      },
+    },
+  });
+
+  secondActor.start();
+  const outputPromise = toPromise(secondActor) as Promise<IdempotencyReplayReadyEvent>;
+  const output = await outputPromise;
+  assert.equal(output.type, 'IDEMPOTENCY_REPLAY_READY');
+  assert.equal(output.requestId, 'req-idem-dedup-second');
+  assert.equal(output.artifactId, 'artifact-dedup-001');
+  assert.equal(output.metadata.content, 'cached-dedup-content');
+  secondActor.stop();
+});

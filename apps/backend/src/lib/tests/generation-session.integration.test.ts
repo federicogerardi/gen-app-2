@@ -164,3 +164,55 @@ test('SessionQueryAdapter resolves status precedence generating > failed > compl
   assert.equal(stepArtifact.status, 'failed');
   assert.equal(stepArtifact.failureReason, 'llm_timeout');
 });
+
+test('SessionQueryAdapter respects projection contract for content payload', async () => {
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-projection-session-1',
+      requestId: 'req-projection-session-1',
+      userId: 'user-session-003',
+      projectId: 'project-session-003',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter:auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-projection',
+      stepKey: 'optin',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          stepKey: 'optin',
+          toolKey: 'funnel-pages',
+        },
+      },
+      content: 'projected session content',
+      failureReason: null,
+      createdAt: '2026-05-08T12:00:00.000Z',
+      updatedAt: '2026-05-08T12:00:00.000Z',
+    },
+  ]);
+
+  const adapter = new SessionQueryAdapter(artifactQueries);
+
+  const slimGroup = await adapter.fetchSessionArtifacts('sess-projection', 'user-session-003');
+  assert.ok(slimGroup);
+  assert.equal(slimGroup.artifacts[0]?.content, '');
+
+  const fullGroup = await adapter.fetchSessionArtifacts('sess-projection', 'user-session-003', {
+    includeContent: true,
+  });
+  assert.ok(fullGroup);
+  assert.equal(fullGroup.artifacts[0]?.content, 'projected session content');
+
+  const stepSlim = await adapter.fetchStepArtifact('sess-projection', 'optin', 'user-session-003');
+  assert.ok(stepSlim);
+  assert.equal(stepSlim.content, '');
+
+  const stepFull = await adapter.fetchStepArtifact('sess-projection', 'optin', 'user-session-003', {
+    includeContent: true,
+  });
+  assert.ok(stepFull);
+  assert.equal(stepFull.content, 'projected session content');
+});

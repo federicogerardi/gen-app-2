@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { useMswHandler } from '../../../test/mocks/server';
 import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
 import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
@@ -98,7 +99,27 @@ vi.mock('../machines/briefing-upload.machine', async () => {
       },
     },
   });
-  return { briefingUploadMachine };
+  const hasReadyBriefingExtractionContext = (
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
+      extractionArtifactId: string | null;
+      extractionPayload: Record<string, unknown> | null;
+      briefingId: string | null;
+      normalizedText: string | null;
+    } } } | null,
+  ) => {
+    const snapshot = briefingActorRef?.getSnapshot?.();
+    return snapshot?.matches('ready')
+      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+      && isExtractionContextValidForTool(
+        toolKey,
+        snapshot.context.extractionPayload,
+        snapshot.context.normalizedText,
+      );
+  };
+
+  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 // Phase 4: la hydration avviene in macchina via artifacts-client locale.

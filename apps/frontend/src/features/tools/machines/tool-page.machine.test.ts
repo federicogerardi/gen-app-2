@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { assign, createActor, setup } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import { isExtractionContextValidForTool } from './extraction-context-validity';
 
 vi.mock('./briefing-upload.machine', () => {
   const briefingUploadMachine = setup({
@@ -111,10 +112,32 @@ vi.mock('./briefing-upload.machine', () => {
     },
   });
 
-  return { briefingUploadMachine };
+  const hasReadyBriefingExtractionContext = (
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
+      extractionArtifactId: string | null;
+      extractionPayload: Record<string, unknown> | null;
+      briefingId: string | null;
+      normalizedText: string | null;
+    } } } | null,
+  ) => {
+    const snapshot = briefingActorRef?.getSnapshot?.();
+    return snapshot?.matches('ready')
+      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+      && isExtractionContextValidForTool(
+        toolKey,
+        snapshot.context.extractionPayload,
+        snapshot.context.normalizedText,
+      );
+  };
+
+  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 import { toolPageMachine } from './tool-page.machine';
+
+const activeActors: Array<ReturnType<typeof createActor<typeof toolPageMachine>>> = [];
 
 const createToolPageActor = () => {
   const actor = createActor(toolPageMachine, {
@@ -130,6 +153,7 @@ const createToolPageActor = () => {
   });
 
   actor.start();
+  activeActors.push(actor);
   return actor;
 };
 
@@ -182,6 +206,12 @@ const syncCanStartFlow = (actor: ReturnType<typeof createToolPageActor>) => {
 describe('toolPageMachine', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    while (activeActors.length > 0) {
+      activeActors.pop()?.stop();
+    }
   });
 
   it('blocks START_GENERATION when briefing is not ready', () => {

@@ -120,13 +120,22 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Audit `apps/frontend/src/features/tools/machines/tool-page.machine.ts` and identify state clusters (e.g., briefing upload, generation lifecycle, hydration/resume, error handling). Map each cluster to a proposed sub-machine or helper actor file path. | | |
-| TASK-015 | Extract the briefing upload/extraction state cluster from `tool-page.machine.ts` into a dedicated sub-machine at `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`. | | |
-| TASK-016 | Extract the generation lifecycle state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts`. | | |
-| TASK-017 | Extract the hydration/resume state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/hydration.machine.ts`. | | |
-| TASK-018 | Reduce `useToolPageRunController.ts` (615 LOC) by moving pure selector/derived-state logic into a dedicated helper module at `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`. Hook must not exceed 250 LOC after extraction. | | |
-| TASK-019 | Reduce `useToolPage.ts` (448 LOC) by moving actor wiring and context derivation into `apps/frontend/src/features/tools/runtime/tool-page-context.ts`. Hook must not exceed 200 LOC after extraction. | | |
-| TASK-020 | Run `tsc --noEmit` in `apps/frontend/` and confirm zero errors. Run frontend unit tests (`npm test --workspace apps/frontend`). | | |
+| TASK-014 | Audit `apps/frontend/src/features/tools/machines/tool-page.machine.ts` and identify state clusters (e.g., briefing upload, generation lifecycle, hydration/resume, error handling). Map each cluster to a proposed sub-machine or helper actor file path. | ✅ | 2026-05-18 |
+| TASK-015 | Extract the briefing upload/extraction state cluster from `tool-page.machine.ts` into a dedicated sub-machine at `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-016 | Extract the generation lifecycle state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-017 | Extract the hydration/resume state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/hydration.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-018 | Reduce `useToolPageRunController.ts` (615 LOC) by moving pure selector/derived-state logic into a dedicated helper module at `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`. Hook must not exceed 250 LOC after extraction. | ✅ | 2026-05-18 |
+| TASK-019 | Reduce `useToolPage.ts` (448 LOC) by moving actor wiring and context derivation into `apps/frontend/src/features/tools/runtime/tool-page-context.ts`. Hook must not exceed 200 LOC after extraction. | ✅ | 2026-05-18 |
+| TASK-020 | Run `tsc --noEmit` in `apps/frontend/` and confirm zero errors. Run frontend unit tests (`npm test --workspace apps/frontend`). | ✅ | 2026-05-18 |
+
+#### TASK-014 Audit Output — `cluster → proposed extraction target`
+
+| State/logic cluster | Current anchors in `tool-page.machine.ts` | Proposed extraction target |
+|---|---|---|
+| Briefing upload/extraction orchestration | `configuring` handlers for `BRIEFING_FILE_SELECTED` / `BRIEFING_RESET`, `spawnBriefingActor`, `sendBriefingSelected`, `sendBriefingReset`, readiness bridge via `deriveHasExtractionContext` | `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts` (sub-machine reuse as canonical briefing lifecycle owner) |
+| Generation lifecycle orchestration | `generating` state, `REQUEST_STEP_START` gating, `startToolFlow`, `cancelToolFlow`, `forwardStepDone`, `forwardStepFailed`, `forwardRetryStep`, `INTERNAL_CANCELLED` path | `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts` |
+| Hydration/resume orchestration | `HydrationResult`/`PendingHydration`, `HYDRATE_REQUESTED`, `hydrating` state, `hydrateExtractionContextActor` (local artifact resolution + `/api/tools/hydrate` fallback), `onDone`/`onError` transitions | `apps/frontend/src/features/tools/machines/hydration.machine.ts` |
+| Readiness/view-model/error policy | `buildReadinessSnapshot`, `buildToolPageViewModel`, `resolveFlowProgressState`, `setGenerationError`, `hydrationError` projection, policy derivation helpers | `apps/frontend/src/features/tools/machines/tool-page-view-model.ts` (pure helper module) |
 
 **Completion criteria**: Each individual file ≤ 400 LOC; `tsc` passes; all frontend tests green.
 

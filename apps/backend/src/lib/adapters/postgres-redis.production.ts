@@ -1069,27 +1069,27 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     if (filters.type) {
       params.push(filters.type);
-      where.push(`type = $${params.length}`);
+      where.push(`a.type = $${params.length}`);
     }
 
     if (filters.status) {
       params.push(filters.status);
-      where.push(`status = $${params.length}`);
+      where.push(`a.status = $${params.length}`);
     }
 
     if (filters.projectId) {
       params.push(filters.projectId);
-      where.push(`project_id = $${params.length}`);
+      where.push(`a.project_id = $${params.length}`);
     }
 
     if (filters.from) {
       params.push(filters.from);
-      where.push(`updated_at >= $${params.length}::timestamptz`);
+      where.push(`a.updated_at >= $${params.length}::timestamptz`);
     }
 
     if (filters.to) {
       params.push(filters.to);
-      where.push(`updated_at <= $${params.length}::timestamptz`);
+      where.push(`a.updated_at <= $${params.length}::timestamptz`);
     }
 
     const whereClause = where.length > 0 ? where.join(' AND ') : 'TRUE';
@@ -1134,32 +1134,32 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
   }
 
   async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
-    const where: string[] = ['user_id = $1'];
+    const where: string[] = ['a.user_id = $1'];
     const params: unknown[] = [userId];
 
     if (filters.type) {
       params.push(filters.type);
-      where.push(`type = $${params.length}`);
+      where.push(`a.type = $${params.length}`);
     }
 
     if (filters.status) {
       params.push(filters.status);
-      where.push(`status = $${params.length}`);
+      where.push(`a.status = $${params.length}`);
     }
 
     if (filters.projectId) {
       params.push(filters.projectId);
-      where.push(`project_id = $${params.length}`);
+      where.push(`a.project_id = $${params.length}`);
     }
 
     if (filters.from) {
       params.push(filters.from);
-      where.push(`updated_at >= $${params.length}::timestamptz`);
+      where.push(`a.updated_at >= $${params.length}::timestamptz`);
     }
 
     if (filters.to) {
       params.push(filters.to);
-      where.push(`updated_at <= $${params.length}::timestamptz`);
+      where.push(`a.updated_at <= $${params.length}::timestamptz`);
     }
 
     let paginationClause = '';

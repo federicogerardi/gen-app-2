@@ -122,6 +122,7 @@ const run = async (): Promise<void> => {
       projects: new PostgresProjectQueryRepository(pg),
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
+    idempotency: generationAdapters.idempotency,
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',

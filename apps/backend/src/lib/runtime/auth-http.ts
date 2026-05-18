@@ -2,7 +2,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
 import type { Pool } from 'pg';
-import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../adapters';
+import type {
+  AuthRepositoryBundle,
+  IdempotencyAdapter,
+  UserQueryRepositoryBundle,
+} from '../adapters';
 import {
   listEnabledModels,
   listAllModels,
@@ -59,6 +63,7 @@ import {
 } from './auth-contract';
 import { normalizePath } from './http-utils';
 import { normalizeToolWorkflowKey } from './workflow-normalizers';
+import { buildToolsOrchestrateIdempotencyInput } from './request-contract';
 import { createAuthHandlers } from './auth-http/auth-handlers';
 import { createProjectsHandlers } from './auth-http/projects-handlers';
 import { createToolsHandlers } from './auth-http/tools-handlers';
@@ -107,6 +112,7 @@ export type AuthHttpResponseBody = AuthHttpSuccessBody | AuthHttpErrorBody;
 export type AuthHttpRuntimeOptions = {
   repositories: AuthRepositoryBundle;
   queryRepositories?: UserQueryRepositoryBundle;
+  idempotency?: IdempotencyAdapter;
   db?: Pool;
   sessionCookies?: SessionCookieRuntime;
   passwordHashing?: PasswordHashRuntime;
@@ -420,6 +426,7 @@ export const createAuthHttpRuntime = (
   const sessionCookies = options.sessionCookies ?? createDefaultSessionCookieRuntime();
   const passwordHashing = options.passwordHashing ?? createDefaultPasswordHashRuntime();
   const googleOAuth = options.googleOAuth ?? createGoogleOAuthRuntimeFromEnv();
+  const idempotency = options.idempotency ?? null;
   const githubApiConfig = readGitHubApiConfigFromEnv();
   assertGitHubApiConfig(githubApiConfig);
   const idGenerator = options.idGenerator ?? createDefaultAuthIdGenerator();
@@ -1284,6 +1291,8 @@ export const createAuthHttpRuntime = (
     projectId?: unknown;
     toolKey?: unknown;
     targetStep?: unknown;
+    requestId?: unknown;
+    idempotencyKey?: unknown;
   };
 
   const handleToolsOrchestrate = async (
@@ -1345,9 +1354,74 @@ export const createAuthHttpRuntime = (
     const correlationId = `orchestrate:${randomUUID()}`;
     const route = '/api/tools/orchestrate';
     const deadline = createGenerationRouteDeadline(1500);
+    const idempotencyInput = buildToolsOrchestrateIdempotencyInput({
+      requestId: body.requestId,
+      userId: principal.user.id,
+      projectId,
+      toolKey,
+      idempotencyKey: body.idempotencyKey,
+    });
 
     let stepDependencyArtifactIds: string[] = [];
     let dependencyArtifactIdsByStep: Record<string, string> = {};
+    let idempotencyClaimed = false;
+
+    if (idempotencyInput) {
+      if (!idempotency) {
+        writeError(response, 503, 'service_unavailable', 'Idempotency adapter unavailable');
+        return;
+      }
+
+      try {
+        const decision = await idempotency.checkAndClaim(idempotencyInput);
+        if (decision.status === 'conflict') {
+          writeError(response, 409, 'conflict', 'Duplicate orchestrate request in progress');
+          return;
+        }
+
+        if (decision.status === 'replay') {
+          let replayPayload: {
+            toolKey: string;
+            targetStep: string;
+            stepDependencyArtifactIds: string[];
+            dependencyArtifactIdsByStep: Record<string, string>;
+          };
+
+          try {
+            replayPayload = JSON.parse(decision.content) as {
+              toolKey: string;
+              targetStep: string;
+              stepDependencyArtifactIds: string[];
+              dependencyArtifactIdsByStep: Record<string, string>;
+            };
+          } catch {
+            writeError(response, 500, 'internal', 'Invalid replay payload for orchestrate idempotency');
+            return;
+          }
+
+          if (replayPayload.toolKey !== toolKey || replayPayload.targetStep !== targetStep) {
+            writeError(response, 409, 'conflict', 'Idempotency key reused with different orchestrate input');
+            return;
+          }
+
+          await repositories.sessions.touchSession(principal.session.id, now());
+          writeSuccess(response, 200, {
+            orchestration: {
+              toolKey,
+              targetStep,
+              stepDependencyArtifactIds: replayPayload.stepDependencyArtifactIds,
+              dependencyArtifactIdsByStep: replayPayload.dependencyArtifactIdsByStep,
+            },
+          });
+          return;
+        }
+
+        idempotencyClaimed = true;
+      } catch {
+        writeError(response, 500, 'internal', 'Failed idempotency claim for orchestrate request');
+        return;
+      }
+    }
 
     try {
       ({ stepDependencyArtifactIds, dependencyArtifactIdsByStep } = await runGenerationRoutePipeline(
@@ -1379,6 +1453,10 @@ export const createAuthHttpRuntime = (
         },
       ));
     } catch (error) {
+      if (idempotencyInput && idempotency && idempotencyClaimed) {
+        await idempotency.markFailed(idempotencyInput);
+      }
+
       if (error instanceof GenerationRoutePipelineError && error.code === 'deadline_exceeded') {
         writeError(response, 503, 'service_unavailable', 'Tools orchestration timeout');
         return;
@@ -1386,6 +1464,19 @@ export const createAuthHttpRuntime = (
 
       writeError(response, 500, 'internal', 'Failed to orchestrate tool dependencies');
       return;
+    }
+
+    if (idempotencyInput && idempotency && idempotencyClaimed) {
+      await idempotency.markCompleted(
+        idempotencyInput,
+        `orchestrate:${toolKey}:${targetStep}`,
+        JSON.stringify({
+          toolKey,
+          targetStep,
+          stepDependencyArtifactIds,
+          dependencyArtifactIdsByStep,
+        }),
+      );
     }
 
     await repositories.sessions.touchSession(principal.session.id, now());

@@ -5,6 +5,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
   ArtifactQueryRepositoryStub,
+  createInMemoryGenerationAdapters,
   createAuthStubRepositories,
   ProjectQueryRepositoryStub,
   type StubArtifactQueryRecord,
@@ -83,6 +84,7 @@ const FIXED_NOW = new Date('2026-05-04T10:00:00.000Z');
 
 const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
   const repositories = createAuthStubRepositories();
+  const generationAdapters = createInMemoryGenerationAdapters();
   const hasher = createDefaultPasswordHashRuntime();
   const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
   const projectQueries = new ProjectQueryRepositoryStub({
@@ -92,6 +94,7 @@ const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
 
   return {
     repositories,
+    generationAdapters,
     hasher,
     sessionCookies,
     projectQueries,
@@ -101,6 +104,7 @@ const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
         projects: projectQueries,
         artifacts: artifactStub,
       },
+      idempotency: generationAdapters.idempotency,
       passwordHashing: hasher,
       sessionCookies,
       now: () => FIXED_NOW,
@@ -500,4 +504,72 @@ test('/api/tools/orchestrate rejects missing project without quota side effects'
   assert.ok(after);
   assert.equal(after?.monthlyUsed, before?.monthlyUsed);
   assert.equal(listCalls.length, 0);
+});
+
+test('/api/tools/orchestrate replays cached orchestration response when idempotencyKey is reused', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+  const firstReq = POST_ORCHESTRATE(cookie, {
+    requestId: 'req-orchestrate-replay-001',
+    idempotencyKey: 'idem-orchestrate-replay-001',
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const firstRes = new MockServerResponse();
+  await runtime.handleRequest(firstReq as unknown as IncomingMessage, firstRes as unknown as ServerResponse);
+
+  assert.equal(firstRes.statusCode, 200);
+
+  artifactStub.listArtifactsByUser = async () => {
+    throw new Error('listArtifactsByUser should not run on replay response');
+  };
+
+  const replayReq = POST_ORCHESTRATE(cookie, {
+    requestId: 'req-orchestrate-replay-001-retry',
+    idempotencyKey: 'idem-orchestrate-replay-001',
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const replayRes = new MockServerResponse();
+  await runtime.handleRequest(replayReq as unknown as IncomingMessage, replayRes as unknown as ServerResponse);
+
+  assert.equal(replayRes.statusCode, 200);
+  const replayBody = replayRes.jsonBody();
+  const orchestration = (replayBody.data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orchestration.stepDependencyArtifactIds, ['art-optin-001']);
+  assert.deepEqual(orchestration.dependencyArtifactIdsByStep, { optin: 'art-optin-001' });
+});
+
+test('/api/tools/orchestrate returns 409 when idempotency slot is already claimed in progress', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries, generationAdapters } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  await generationAdapters.idempotency.checkAndClaim({
+    requestId: 'req-orchestrate-conflict-seed',
+    userId: 'user-orch-001',
+    projectId,
+    workflowType: 'funnel_pages',
+    idempotencyKey: 'idem-orchestrate-conflict-001',
+    registrySnapshotRef: 'snapshot:default' as never,
+  });
+
+  const req = POST_ORCHESTRATE(cookie, {
+    requestId: 'req-orchestrate-conflict-001',
+    idempotencyKey: 'idem-orchestrate-conflict-001',
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'optin',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 409);
 });

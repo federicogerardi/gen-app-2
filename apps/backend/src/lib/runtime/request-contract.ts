@@ -1,9 +1,11 @@
 import type {
   AuthOkEvent,
+  IdempotencyCoordinatorInput,
   RequestReceivedEvent,
   ValidationOkEvent,
 } from '../types/xstate';
 import type { GenerationRequest, OutputFormat } from '@gen-app-2/contracts';
+import { isToolKey, resolveToolWorkflowType } from '@gen-app-2/contracts';
 import { resolveToolPrompt } from './tool-prompts';
 
 /**
@@ -33,6 +35,15 @@ const toDependencyArtifactIds = (value: unknown): string[] => {
     .filter((entry): entry is string => typeof entry === 'string')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+};
+
+const toNonEmptyString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 };
 
 const toOutputFormat = (value: OutputFormat | undefined): OutputFormat => {
@@ -156,3 +167,33 @@ export const buildValidationOkEvent = (
   registryVersion: (request.registryVersion ?? null) as never,
   registrySnapshotRef: (request.registrySnapshotRef ?? null) as never,
 });
+
+export const buildToolsOrchestrateIdempotencyInput = (input: {
+  requestId?: unknown;
+  userId: string;
+  projectId: string;
+  toolKey: string;
+  idempotencyKey?: unknown;
+}): IdempotencyCoordinatorInput | null => {
+  const idempotencyKey = toNonEmptyString(input.idempotencyKey);
+  if (!idempotencyKey) {
+    return null;
+  }
+
+  if (!isToolKey(input.toolKey)) {
+    return null;
+  }
+
+  const requestId =
+    toNonEmptyString(input.requestId)
+    ?? `orchestrate:${input.toolKey}:${idempotencyKey}`;
+
+  return {
+    requestId,
+    userId: input.userId,
+    projectId: input.projectId,
+    workflowType: resolveToolWorkflowType(input.toolKey),
+    idempotencyKey,
+    registrySnapshotRef: 'snapshot:default' as never,
+  };
+};

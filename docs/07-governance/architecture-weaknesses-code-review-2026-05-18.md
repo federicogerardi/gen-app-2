@@ -1,7 +1,7 @@
 ---
 status: active
-version: 1.0
-last-reviewed: 2026-05-18
+version: 1.1
+last-reviewed: 2026-05-19
 next-review-date: 2026-08-18
 owner: Architecture Review
 ---
@@ -16,23 +16,30 @@ owner: Architecture Review
 
 | Severity | Weakness | Evidence |
 | --- | --- | --- |
-| Critical | Backend god object: HTTP routing, policy, integration and domain logic are centralized in one file. | `apps/backend/src/lib/runtime/auth-http.ts` (3020 LOC), routing cluster `:2750-3017` |
-| Critical | Generation orchestrator is monolithic and mixes responsibilities (routing, metadata, fallback, persistence preparation). | `apps/backend/src/lib/machines/generation-system.machine.ts` (1182 LOC), e.g. `:300-412`, `:414+` |
-| High | Frontend Tool runtime is heavily coupled and spread across very large state/runtime units. | `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (1168), `.../useToolPageRunController.ts` (615), `.../useToolPage.ts` (448) |
-| High | Handler modularization is mostly pass-through; logic remains concentrated in `auth-http.ts`. | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts:1-22`, `projects-handlers.ts:34`, `tools-handlers.ts:22` |
-| Critical | Contracts package violates isolation by importing from application packages. | `packages/contracts/src/parity.guard.ts:22-23,68-69,91-92` |
-| High | Dual parity-guard strategy duplicates authority and increases divergence risk. | `packages/contracts/src/parity.guard.ts`, `apps/frontend/src/features/generation/contracts/backend-stream.parity.guard.ts` |
-| Critical | Model availability guard fails open: DB failure enables permissive behavior. | `apps/backend/src/server.ts:105-111`; optional model check in `apps/backend/src/lib/runtime/node-server.ts:54-57` |
-| High | Silent degradation in frontend paths (`[]`/`null` fallback) reduces observability and correctness guarantees. | `apps/frontend/src/features/tools/runtime/models-client.ts:58-60`, `.../useToolPage.ts:206-208`, `.../useToolPageRunController.ts:270` |
-| High | Temporary debug endpoint is still exposed in frontend server runtime. | `apps/frontend/server.mjs:177-179,218-223` |
-| High | Excessive debug logging in sensitive flows (auth/report/github/openrouter) increases operational noise and leakage risk. | `auth-http.ts:1994-2056,2304-2408`, `github-issues.ts:88-172`, `openrouter.adapter.ts:102-113,163-170` |
-| Medium | Type-safety erosion via open unions and broad request payload shape. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:123` |
-| Medium | Shared domain package is inactive, so cross-context model consolidation is not implemented. | `packages/domain/README.md:15-20`, `packages/domain/package.json:8` |
-| Medium | DDD governance still includes open/provisional decisions in key areas. | `docs/07-governance/domain-naming-decision-log.md:102 (DDD-C-005 open), :61 (DDD-039 provisional), :80 (DDD-059 provisional)` |
+| Critical | CSRF protection can fail open when trusted origins resolve to an empty list. | `apps/backend/src/lib/runtime/node-server.ts:152-153`, `apps/backend/src/lib/runtime/node-server.ts:190-191` |
+| High | Backend HTTP composition remains a high-coupling route chain with oversized handler modules. | `apps/backend/src/lib/runtime/auth-http/runtime.ts` (515 LOC), `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` (1092 LOC), `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` (873 LOC) |
+| High | Generation orchestrator remains a monolithic state machine definition with mixed concerns. | `apps/backend/src/lib/machines/generation-system.definition.ts` (1089 LOC), fallback/persistence cluster `:920-1040` |
+| High | Frontend Tool page orchestration still concentrates readiness policy, hydration projection, and UI policy. | `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (1021 LOC), `apps/frontend/src/features/tools/machines/tool-page.machine.ts:565-860` |
+| High | Excessive debug logging persists in sensitive admin and integration paths. | `apps/backend/src/lib/runtime/node-server.ts:158-162`, `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts:674-777`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:88-165` |
+| Medium | Type-safety erosion via open unions and broad request payload shape remains. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:116-123` |
+| Medium | Tool key normalization logic is duplicated outside contracts-level canonical mapping. | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts:70-91`, contracts mapping exports in `packages/contracts/src/index.ts:22-44` |
+| Medium | Shared domain package remains inactive, so cross-context model consolidation is still deferred. | `packages/domain/README.md:11-20`, `packages/domain/package.json:8` |
+
+## Evidence Refresh Delta (2026-05-19)
+
+### Closed Since Previous Review
+- Contracts isolation breach is closed: `packages/contracts/src/parity.guard.ts` is package-local and no longer imports `apps/*` types.
+- Model availability fail-open on DB read error is closed: startup check now fails closed (`fallback=deny`) in `apps/backend/src/server.ts:92-103`.
+- Frontend temporary debug endpoint finding is closed: `apps/frontend/server.mjs` no longer exposes the previously reported debug route and now handles only health, proxy, static, and SPA fallback.
+
+### Still Open / Updated
+- Core architecture risk moved from single-file `auth-http.ts` to oversized runtime + handler modules under `apps/backend/src/lib/runtime/auth-http/`.
+- Generation and ToolPage orchestration remain large single-point mutation surfaces.
+- Operational logging volume in admin and integration paths remains above governance target for production-sensitive flows.
 
 ## Priority Remediation Order
-1. Decompose monoliths: `auth-http.ts`, `generation-system.machine.ts`, `tool-page.machine.ts`.
-2. Remove fail-open/silent fallback behavior on model and extraction-critical paths.
-3. Restore strict package boundaries for `@gen-app-2/contracts` (no imports from `apps/*`).
-4. Remove temporary debug surfaces and reduce production debug logs.
-5. Close open/provisional DDD decisions that impact runtime contracts and routing semantics.
+1. Enforce strict CSRF startup invariants (non-empty trusted origin set when CSRF is enabled) and fail fast on invalid security posture.
+2. Decompose backend runtime routing into bounded modules with declarative route registration and smaller handler units.
+3. Split `generation-system.definition.ts` and `tool-page.machine.ts` into narrower orchestration/policy/projection slices.
+4. Reduce or gate verbose debug logs in admin and external integration flows with environment-based policy.
+5. Converge tool-key normalization to contracts-level canonical mapping only.

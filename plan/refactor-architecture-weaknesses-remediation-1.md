@@ -44,13 +44,54 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Audit `apps/backend/src/lib/runtime/auth-http.ts` focusing on the `createAuthHttpRuntime` factory function body (lines `:417–2744`), which contains all handler implementations as inline closures. Identify every handler closure by domain context (Auth, Admin, Projects, Tools, Generation) and produce a mapping: `closure_name → bounded_context → target_file` before moving any code. Lines `:1–416` contain only type declarations and utility helpers shared across handlers; do not move these. | | |
-| TASK-002 | Extract all **Auth** handler implementations (login, logout, session, OAuth callback, CSRF, token refresh) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts`. Update the existing `AdminHandlers` / handler type declarations if needed. | | |
-| TASK-003 | Extract all **Admin** handler implementations (models CRUD, changelog, user reports, user management) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts`. Ensure the `AdminHandlers` type already declared at line `:1` of that file is fully implemented here. | | |
-| TASK-004 | Extract all **Projects** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts`. The existing type stub at `projects-handlers.ts:34` must be fully implemented. | | |
-| TASK-005 | Extract all **Tools/Generation** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts`. The existing type stub at `tools-handlers.ts:22` must be fully implemented. | | |
-| TASK-006 | Reduce `apps/backend/src/lib/runtime/auth-http.ts` to only: (a) route matching/dispatch logic (lines `:2750–3017`), (b) imports from the new handler files, and (c) the factory function that wires dependencies. Target ≤ 400 LOC. | | |
-| TASK-007 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests (`npm test --workspace apps/backend`). | | |
+| TASK-001 | Audit `apps/backend/src/lib/runtime/auth-http.ts` focusing on the `createAuthHttpRuntime` factory function body (lines `:417–2744`), which contains all handler implementations as inline closures. Identify every handler closure by domain context (Auth, Admin, Projects, Tools, Generation) and produce a mapping: `closure_name → bounded_context → target_file` before moving any code. Lines `:1–416` contain only type declarations and utility helpers shared across handlers; do not move these. | ✅ | 2026-05-18 |
+| TASK-002 | Extract all **Auth** handler implementations (login, logout, session, OAuth callback, CSRF, token refresh) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts`. Update the existing `AdminHandlers` / handler type declarations if needed. | ✅ | 2026-05-18 |
+| TASK-003 | Extract all **Admin** handler implementations (models CRUD, changelog, user reports, user management) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts`. Ensure the `AdminHandlers` type already declared at line `:1` of that file is fully implemented here. | ✅ | 2026-05-18 |
+| TASK-004 | Extract all **Projects** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts`. The existing type stub at `projects-handlers.ts:34` must be fully implemented. | ✅ | 2026-05-18 |
+| TASK-005 | Extract all **Tools/Generation** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts`. The existing type stub at `tools-handlers.ts:22` must be fully implemented. | ✅ | 2026-05-18 |
+| TASK-006 | Reduce `apps/backend/src/lib/runtime/auth-http.ts` to only: (a) route matching/dispatch logic (lines `:2750–3017`), (b) imports from the new handler files, and (c) the factory function that wires dependencies. Target ≤ 400 LOC. | ✅ | 2026-05-18 |
+| TASK-007 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests (`npm test --workspace apps/backend`). | ✅ | 2026-05-18 |
+
+#### TASK-001 Audit Output — `closure_name → bounded_context → target_file`
+
+| Closure name | Bounded context | Target file |
+|---|---|---|
+| `handleLogin` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleLogout` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleSession` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleGoogleOAuthStart` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleGoogleOAuthCallback` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleProjectsList` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleProjectsCreate` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleProjectById` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactsList` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactById` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactDownload` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleToolsBriefUpload` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsHydrate` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsOrchestrate` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionsList` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionArtifacts` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionStepArtifact` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionDownload` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleModelsList` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsList` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsCreate` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsUpdate` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsDelete` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleCreateUserReport` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleListPublishedChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminCreateChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminArchiveChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListUserReports` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminUpdateUserReport` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminPublishUserReportIssue` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListUsers` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminCreateUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminGetUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminUpdateUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminDeleteUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
 
 **Completion criteria**: `auth-http.ts` ≤ 400 LOC; `tsc` passes; all tests green.
 

@@ -19,6 +19,11 @@ export type ArtifactListFilters = {
   offset?: number;
 };
 
+export type ArtifactReadProjection = {
+  includeInput?: boolean;
+  includeContent?: boolean;
+};
+
 export type ArtifactSummary = {
   artifactId: string;
   requestId: string;
@@ -67,9 +72,9 @@ type ArtifactRow = {
   step_key?: string | null;
   artifact_role?: string | null;
   run_mode?: string | null;
-  input_json: Record<string, unknown> | null;
-  content: string;
-  failure_reason: unknown;
+  input_json?: Record<string, unknown> | null;
+  content?: string | null;
+  failure_reason?: unknown;
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -108,7 +113,7 @@ export const mapArtifactRowToDetail = (row: ArtifactRow): ArtifactDetail => {
   return {
     ...mapArtifactRowToSummary(row),
     input: row.input_json ?? {},
-    content: row.content,
+    content: typeof row.content === 'string' ? row.content : '',
     failureReason: normalizeArtifactFailureReason(row.failure_reason),
   };
 };

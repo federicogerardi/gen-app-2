@@ -1,5 +1,6 @@
 import type { ArtifactQueryRepository } from './postgres-redis.interfaces';
-import type { SessionListEntry } from '../types/artifacts';
+import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
+import type { ArtifactReadProjection, SessionListEntry } from '../types/artifacts';
 
 export type SessionArtifactEntry = {
   artifactId: string;
@@ -63,16 +64,28 @@ const deriveGroupStatus = (artifacts: SessionArtifactEntry[]): 'generating' | 'c
   return 'completed';
 };
 
+const deriveToolKeyFromWorkflowType = (workflowType: string | null): string | null => {
+  return normalizeToolWorkflowKey(workflowType);
+};
+
 export class SessionQueryAdapter {
   constructor(private readonly artifactQueries: ArtifactQueryRepository) {}
 
-  async fetchSessionArtifacts(sessionId: string, userId: string): Promise<SessionArtifactGroup | null> {
+  async fetchSessionArtifacts(
+    sessionId: string,
+    userId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<SessionArtifactGroup | null> {
     const normalizedSessionId = sessionId.trim();
     if (normalizedSessionId.length === 0) {
       return null;
     }
 
-    const details = await this.artifactQueries.listArtifactDetailsBySession(userId, normalizedSessionId);
+    const details = await this.artifactQueries.listArtifactDetailsBySession(
+      userId,
+      normalizedSessionId,
+      projection,
+    );
 
     if (details.length === 0) {
       return null;
@@ -83,6 +96,7 @@ export class SessionQueryAdapter {
         const toolWorkflow = readToolWorkflow(artifact.input);
         const stepFromInput = readString(toolWorkflow.stepKey) ?? readString(artifact.input.step);
         const toolKeyFromInput = readString(toolWorkflow.toolKey) ?? readString(artifact.input.toolKey);
+        const toolKeyFromWorkflow = deriveToolKeyFromWorkflowType(artifact.workflowType);
 
         return {
           artifactId: artifact.artifactId,
@@ -96,7 +110,7 @@ export class SessionQueryAdapter {
           failureReason: artifact.failureReason,
           updatedAt: artifact.updatedAt,
           workflowType: artifact.workflowType,
-          toolKey: toolKeyFromInput,
+          toolKey: toolKeyFromInput ?? toolKeyFromWorkflow,
         };
       })
       .sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
@@ -121,8 +135,9 @@ export class SessionQueryAdapter {
     sessionId: string,
     stepKey: string,
     userId: string,
+    projection: ArtifactReadProjection = {},
   ): Promise<SessionArtifactEntry | null> {
-    const group = await this.fetchSessionArtifacts(sessionId, userId);
+    const group = await this.fetchSessionArtifacts(sessionId, userId, projection);
     if (!group) {
       return null;
     }

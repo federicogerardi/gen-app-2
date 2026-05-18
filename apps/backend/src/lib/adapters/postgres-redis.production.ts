@@ -7,6 +7,7 @@ import {
   mapArtifactRowToSummary,
   type ArtifactDetail,
   type ArtifactListFilters,
+  type ArtifactReadProjection,
   type ArtifactSummary,
   type SessionListEntry,
 } from '../types/artifacts';
@@ -1037,6 +1038,31 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     );
   }
 
+  private buildProjectedDetailSelect(projection: ArtifactReadProjection): string {
+    const includeInput = projection.includeInput === true;
+    const includeContent = projection.includeContent === true;
+
+    return [
+      'id',
+      'request_id',
+      'user_id',
+      'project_id',
+      'type',
+      'status',
+      'model',
+      'workflow_type',
+      'session_id',
+      'step_key',
+      'artifact_role',
+      'run_mode',
+      includeInput ? 'input_json' : 'NULL::jsonb AS input_json',
+      includeContent ? 'content' : "''::text AS content",
+      'failure_reason',
+      'created_at',
+      'updated_at',
+    ].join(',\n        ');
+  }
+
   async listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
     const where: string[] = [];
     const params: unknown[] = [];
@@ -1094,9 +1120,6 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         a.step_key,
         a.artifact_role,
         a.run_mode,
-        a.input_json,
-        a.content,
-        a.failure_reason,
         a.created_at,
         a.updated_at
       FROM ${this.artifactsTableName} a
@@ -1165,9 +1188,6 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         a.step_key,
         a.artifact_role,
         a.run_mode,
-        a.input_json,
-        a.content,
-        a.failure_reason,
         a.created_at,
         a.updated_at
       FROM ${this.artifactsTableName} a
@@ -1261,26 +1281,15 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return parseInt(result.rows[0]?.total ?? '0', 10);
   }
 
-  async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
+  async getArtifactByIdForUser(
+    userId: string,
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const select = this.buildProjectedDetailSelect(projection);
     const query = `
       SELECT
-        id,
-        request_id,
-        user_id,
-        project_id,
-        type,
-        status,
-        model,
-        workflow_type,
-        session_id,
-        step_key,
-        artifact_role,
-        run_mode,
-        input_json,
-        content,
-        failure_reason,
-        created_at,
-        updated_at
+        ${select}
       FROM ${this.artifactsTableName}
       WHERE user_id = $1 AND id = $2
       LIMIT 1
@@ -1291,26 +1300,14 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
-  async getArtifactById(artifactId: string): Promise<ArtifactDetail | null> {
+  async getArtifactById(
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const select = this.buildProjectedDetailSelect(projection);
     const query = `
       SELECT
-        id,
-        request_id,
-        user_id,
-        project_id,
-        type,
-        status,
-        model,
-        workflow_type,
-        session_id,
-        step_key,
-        artifact_role,
-        run_mode,
-        input_json,
-        content,
-        failure_reason,
-        created_at,
-        updated_at
+        ${select}
       FROM ${this.artifactsTableName}
       WHERE id = $1
       LIMIT 1
@@ -1321,26 +1318,15 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
-  async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
+  async listArtifactDetailsBySession(
+    userId: string,
+    sessionId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    const select = this.buildProjectedDetailSelect(projection);
     const query = `
       SELECT
-        id,
-        request_id,
-        user_id,
-        project_id,
-        type,
-        status,
-        model,
-        workflow_type,
-        session_id,
-        step_key,
-        artifact_role,
-        run_mode,
-        input_json,
-        content,
-        failure_reason,
-        created_at,
-        updated_at
+        ${select}
       FROM ${this.artifactsTableName}
       WHERE user_id = $1 AND session_id = $2
       ORDER BY updated_at ASC, id ASC

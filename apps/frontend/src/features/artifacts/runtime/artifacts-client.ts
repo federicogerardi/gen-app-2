@@ -342,7 +342,8 @@ export const getArtifactById = async (
   }
 
   try {
-    const payload = await requestJson<ArtifactsResponse>(joinApiPath(options.apiBaseUrl ?? '', path), {
+    const detailPath = `${path}?includeInput=1&includeContent=1`;
+    const payload = await requestJson<ArtifactsResponse>(joinApiPath(options.apiBaseUrl ?? '', detailPath), {
       method: 'GET',
       credentials: 'include',
     });

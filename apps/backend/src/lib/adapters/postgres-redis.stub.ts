@@ -16,6 +16,7 @@ import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters
 import type {
   ArtifactDetail,
   ArtifactListFilters,
+  ArtifactReadProjection,
   ArtifactSummary,
   SessionListEntry,
 } from '../types/artifacts';
@@ -284,6 +285,31 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
 export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
   private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
 
+  private mapToDetail(
+    artifact: StubArtifactQueryRecord,
+    projection: ArtifactReadProjection = {},
+  ): ArtifactDetail {
+    return {
+      artifactId: artifact.artifactId,
+      requestId: artifact.requestId,
+      userId: artifact.userId,
+      projectId: artifact.projectId,
+      artifactType: artifact.artifactType,
+      status: artifact.status,
+      model: artifact.model,
+      workflowType: artifact.workflowType,
+      sessionId: artifact.sessionId ?? null,
+      stepKey: artifact.stepKey ?? null,
+      artifactRole: artifact.artifactRole ?? null,
+      runMode: artifact.runMode ?? null,
+      input: projection.includeInput === true ? artifact.input : {},
+      content: projection.includeContent === true ? artifact.content : '',
+      failureReason: artifact.failureReason,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt,
+    };
+  }
+
   async countArtifacts(filters: ArtifactListFilters): Promise<number> {
     return [...this.artifacts.values()].filter((artifact) => {
       if (filters.type && artifact.artifactType !== filters.type) {
@@ -442,83 +468,40 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     return filtered.slice(offset, end);
   }
 
-  async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
+  async getArtifactByIdForUser(
+    userId: string,
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
     const artifact = this.artifacts.get(artifactId);
     if (!artifact || artifact.userId !== userId) {
       return null;
     }
 
-    return {
-      artifactId: artifact.artifactId,
-      requestId: artifact.requestId,
-      userId: artifact.userId,
-      projectId: artifact.projectId,
-      artifactType: artifact.artifactType,
-      status: artifact.status,
-      model: artifact.model,
-      workflowType: artifact.workflowType,
-      sessionId: artifact.sessionId ?? null,
-      stepKey: artifact.stepKey ?? null,
-      artifactRole: artifact.artifactRole ?? null,
-      runMode: artifact.runMode ?? null,
-      input: artifact.input,
-      content: artifact.content,
-      failureReason: artifact.failureReason,
-      createdAt: artifact.createdAt,
-      updatedAt: artifact.updatedAt,
-    };
+    return this.mapToDetail(artifact, projection);
   }
 
-  async getArtifactById(artifactId: string): Promise<ArtifactDetail | null> {
+  async getArtifactById(
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
     const artifact = this.artifacts.get(artifactId);
     if (!artifact) {
       return null;
     }
 
-    return {
-      artifactId: artifact.artifactId,
-      requestId: artifact.requestId,
-      userId: artifact.userId,
-      projectId: artifact.projectId,
-      artifactType: artifact.artifactType,
-      status: artifact.status,
-      model: artifact.model,
-      workflowType: artifact.workflowType,
-      sessionId: artifact.sessionId ?? null,
-      stepKey: artifact.stepKey ?? null,
-      artifactRole: artifact.artifactRole ?? null,
-      runMode: artifact.runMode ?? null,
-      input: artifact.input,
-      content: artifact.content,
-      failureReason: artifact.failureReason,
-      createdAt: artifact.createdAt,
-      updatedAt: artifact.updatedAt,
-    };
+    return this.mapToDetail(artifact, projection);
   }
 
-  async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
+  async listArtifactDetailsBySession(
+    userId: string,
+    sessionId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
     return [...this.artifacts.values()]
       .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
       .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
-      .map((artifact) => ({
-        artifactId: artifact.artifactId,
-        requestId: artifact.requestId,
-        userId: artifact.userId,
-        projectId: artifact.projectId,
-        artifactType: artifact.artifactType,
-        status: artifact.status,
-        model: artifact.model,
-        workflowType: artifact.workflowType,
-        sessionId: artifact.sessionId ?? null,
-        stepKey: artifact.stepKey ?? null,
-        artifactRole: artifact.artifactRole ?? null,
-        runMode: artifact.runMode ?? null,
-        input: artifact.input,
-        content: artifact.content,
-        failureReason: artifact.failureReason,
-        createdAt: artifact.createdAt,
-        updatedAt: artifact.updatedAt,
-      }));
+      .map((artifact) => this.mapToDetail(artifact, projection));
   }
 
   async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {

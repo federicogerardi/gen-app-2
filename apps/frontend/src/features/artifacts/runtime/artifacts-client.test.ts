@@ -208,5 +208,9 @@ describe('artifacts-client – getArtifactById', () => {
 
     const result = await getArtifactById('api-1', { capabilities: { artifacts: true } });
     expect(result?.artifactId).toBe('api-1');
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/artifacts/api-1?includeInput=1&includeContent=1',
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 });

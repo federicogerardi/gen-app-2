@@ -65,7 +65,10 @@ import { normalizePath } from './http-utils';
 import { normalizeToolWorkflowKey } from './workflow-normalizers';
 import { buildToolsOrchestrateIdempotencyInput } from './request-contract';
 import { createAuthHandlers } from './auth-http/auth-handlers';
-import { createProjectsHandlers } from './auth-http/projects-handlers';
+import {
+  createProjectsHandlers,
+  parseArtifactReadProjection,
+} from './auth-http/projects-handlers';
 import { createToolsHandlers } from './auth-http/tools-handlers';
 import { createAdminHandlers } from './auth-http/admin-handlers';
 import { parseDownloadFormat, contentTypeForFormat } from './downloads/download-format';
@@ -1160,7 +1163,11 @@ export const createAuthHttpRuntime = (
 
     // Step 1: resolve from sourceArtifactId if provided
     if (sourceArtifactId) {
-      const artifact = await queries.artifacts.getArtifactByIdForUser(principal.user.id, sourceArtifactId);
+      const artifact = await queries.artifacts.getArtifactByIdForUser(
+        principal.user.id,
+        sourceArtifactId,
+        { includeInput: true, includeContent: true },
+      );
       if (artifact) {
         if (artifact.artifactType === 'extraction') {
           const briefingId = (typeof artifact.input.briefingId === 'string' && artifact.input.briefingId.trim())
@@ -1246,7 +1253,11 @@ export const createAuthHttpRuntime = (
     });
 
     const best = ranked[0]!;
-    const bestDetail = await queries.artifacts.getArtifactByIdForUser(principal.user.id, best.artifactId);
+    const bestDetail = await queries.artifacts.getArtifactByIdForUser(
+      principal.user.id,
+      best.artifactId,
+      { includeInput: true, includeContent: true },
+    );
     if (!bestDetail) {
       writeError(response, 404, 'not_found', 'Extraction artifact detail not found');
       return;
@@ -1438,7 +1449,7 @@ export const createAuthHttpRuntime = (
             toolKey,
             allCompleted,
             async (userId, artifactId) => {
-              return queries.artifacts.getArtifactByIdForUser(userId, artifactId);
+                return queries.artifacts.getArtifactByIdForUser(userId, artifactId, { includeInput: true });
             },
             route,
             correlationId,
@@ -1540,8 +1551,10 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const projection = parseArtifactReadProjection(parseRequestUrl(request).searchParams);
+
     const adapter = new SessionQueryAdapter(queries.artifacts);
-    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id, projection);
     if (!group) {
       writeError(response, 404, 'not_found', 'Session not found');
       return;
@@ -1572,8 +1585,10 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const projection = parseArtifactReadProjection(parseRequestUrl(request).searchParams);
+
     const adapter = new SessionQueryAdapter(queries.artifacts);
-    const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id);
+    const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id, projection);
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Session step artifact not found');
       return;
@@ -1611,7 +1626,9 @@ export const createAuthHttpRuntime = (
     }
 
     const adapter = new SessionQueryAdapter(queries.artifacts);
-    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id);
+    const group = await adapter.fetchSessionArtifacts(sessionId, principal.user.id, {
+      includeContent: true,
+    });
     if (!group) {
       writeError(response, 404, 'not_found', 'Session not found');
       return;
@@ -1672,10 +1689,12 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const projection = parseArtifactReadProjection(parseRequestUrl(request).searchParams);
+
     const canViewAllArtifacts = principal.user.role === 'admin';
     const artifact = canViewAllArtifacts
-      ? await queries.artifacts.getArtifactById(artifactId)
-      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+      ? await queries.artifacts.getArtifactById(artifactId, projection)
+      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId, projection);
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Artifact not found');
       return;
@@ -1714,8 +1733,10 @@ export const createAuthHttpRuntime = (
 
     const canViewAllArtifacts = principal.user.role === 'admin';
     const artifact = canViewAllArtifacts
-      ? await queries.artifacts.getArtifactById(artifactId)
-      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId);
+      ? await queries.artifacts.getArtifactById(artifactId, { includeContent: true })
+      : await queries.artifacts.getArtifactByIdForUser(principal.user.id, artifactId, {
+        includeContent: true,
+      });
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Artifact not found');
       return;

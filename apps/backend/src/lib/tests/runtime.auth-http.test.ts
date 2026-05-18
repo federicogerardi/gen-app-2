@@ -1255,6 +1255,203 @@ test('auth HTTP runtime applies session role scope on /api/artifacts/:id detail'
   assert.equal(adminDetailPayload.artifact.artifactId, 'artifact-other-detail-001');
 });
 
+test('auth HTTP runtime artifact detail uses slim projection by default and expands when requested', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub();
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'member-artifacts-projection-001',
+    email: 'member.artifacts.projection@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Artifacts-Projection-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-projection-001',
+      requestId: 'req-projection-001',
+      userId: 'member-artifacts-projection-001',
+      projectId: 'project-artifacts-projection-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      input: { briefingText: 'full input payload' },
+      content: 'full content payload',
+      failureReason: null,
+      createdAt: '2026-04-24T10:30:00.000Z',
+      updatedAt: '2026-04-24T10:30:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-24T10:30:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-artifacts-projection-001' },
+  });
+
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/auth/login',
+      body: JSON.stringify({
+        email: 'member.artifacts.projection@example.com',
+        password: 'Member-Artifacts-Projection-1',
+      }),
+    }) as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const slimResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts/artifact-projection-001',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    slimResponse as unknown as ServerResponse,
+  );
+  assert.equal(slimResponse.statusCode, 200);
+  const slimArtifact = (slimResponse.jsonBody().data as { artifact: { input: Record<string, unknown>; content: string } }).artifact;
+  assert.deepEqual(slimArtifact.input, {});
+  assert.equal(slimArtifact.content, '');
+
+  const fullResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/artifacts/artifact-projection-001?includeInput=1&includeContent=1',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    fullResponse as unknown as ServerResponse,
+  );
+  assert.equal(fullResponse.statusCode, 200);
+  const fullArtifact = (fullResponse.jsonBody().data as { artifact: { input: Record<string, unknown>; content: string } }).artifact;
+  assert.deepEqual(fullArtifact.input, { briefingText: 'full input payload' });
+  assert.equal(fullArtifact.content, 'full content payload');
+});
+
+test('auth HTTP runtime session detail includes content only when requested via projection flag', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub();
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'member-session-projection-001',
+    email: 'member.session.projection@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Session-Projection-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-session-projection-001',
+      requestId: 'req-session-projection-001',
+      userId: 'member-session-projection-001',
+      projectId: 'project-session-projection-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-projection-001',
+      stepKey: 'optin',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          toolKey: 'funnel-pages',
+          stepKey: 'optin',
+        },
+      },
+      content: 'session content payload',
+      failureReason: null,
+      createdAt: '2026-04-24T10:30:00.000Z',
+      updatedAt: '2026-04-24T10:30:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-04-24T10:30:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-session-projection-001' },
+  });
+
+  const loginResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/auth/login',
+      body: JSON.stringify({
+        email: 'member.session.projection@example.com',
+        password: 'Member-Session-Projection-1',
+      }),
+    }) as unknown as IncomingMessage,
+    loginResponse as unknown as ServerResponse,
+  );
+
+  const cookie = (Array.isArray(loginResponse.getHeader('set-cookie'))
+    ? loginResponse.getHeader('set-cookie')?.[0]
+    : loginResponse.getHeader('set-cookie')) as string;
+  const cookieHeader = cookie.split(';')[0] ?? '';
+
+  const slimResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/tools/sessions/sess-projection-001',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    slimResponse as unknown as ServerResponse,
+  );
+  assert.equal(slimResponse.statusCode, 200);
+  const slimSession = (slimResponse.jsonBody().data as {
+    session: { artifacts: Array<{ content: string }> };
+  }).session;
+  assert.equal(slimSession.artifacts[0]?.content, '');
+
+  const fullResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/tools/sessions/sess-projection-001?includeContent=1',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    fullResponse as unknown as ServerResponse,
+  );
+  assert.equal(fullResponse.statusCode, 200);
+  const fullSession = (fullResponse.jsonBody().data as {
+    session: { artifacts: Array<{ content: string }> };
+  }).session;
+  assert.equal(fullSession.artifacts[0]?.content, 'session content payload');
+});
+
 test('auth HTTP runtime supports /api/tools/briefs upload with parser for markdown files', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();

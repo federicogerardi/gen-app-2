@@ -1,6 +1,7 @@
 import type {
   ArtifactDetail,
   ArtifactListFilters,
+  ArtifactReadProjection,
   ArtifactSummary,
   SessionListEntry,
 } from '../types/artifacts';
@@ -67,9 +68,17 @@ export interface ArtifactQueryRepository {
   countArtifacts(filters: ArtifactListFilters): Promise<number>;
   listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
   countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number>;
-  getArtifactById(artifactId: string): Promise<ArtifactDetail | null>;
-  getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null>;
-  listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]>;
+  getArtifactById(artifactId: string, projection?: ArtifactReadProjection): Promise<ArtifactDetail | null>;
+  getArtifactByIdForUser(
+    userId: string,
+    artifactId: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail | null>;
+  listArtifactDetailsBySession(
+    userId: string,
+    sessionId: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail[]>;
   listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]>;
 }
 

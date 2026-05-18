@@ -32,21 +32,23 @@ owner: Domain Architecture
 **Aggregate Root**: `GenerationSystem`  
 **Key Actors (XState machines)**:
 - `generationSystemMachine` — top-level orchestrator
-- `requestGatewayMachine` — auth + validation + usage gate
-- `idempotencyCoordinatorMachine` — deduplication
-- `usageMachine` — quota claim
+- `requestGatewayMachine` — models the intended guard sequence (auth → ownership → modelCheck → usage) but is currently **orphaned**: exported from `machines/index.ts` but not wired into `generationSystemMachine` or any generation entrypoint (see architecture gap below). Wiring or replacement is tracked in the hardening plan (TASK-002).
+- `idempotencyCoordinatorMachine` — deduplication; wired as first step of `preGenerationGuards` inside `generationSystemMachine`
+- `usageMachine` — quota claim; wired as second step of `preGenerationGuards`, invoked after idempotency is resolved
 - `streamTransportMachine` — SSE stream session
 - `persistenceBatchMachine` — artifact persistence
 - `toolWorkflowMachine` — multi-step tool orchestration; owns `WorkflowStep` lifecycle (descriptor + runtime state) and emits per-step `BackendStreamEvent`
 - `extractionChainMachine` — structured extraction fallback
 
-**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `ToolKey`, `WorkflowStepType`, `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`, `LlmModel`, `LlmModelStatus`, `LlmModelCatalog`, `LlmModelId`
+**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `ToolKey`, `WorkflowStepType`, `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`, `LlmModel`, `LlmModelStatus`, `LlmModelCatalog`, `LlmModelId`, `OwnershipAdapter` (provisional — target type for TASK-002, not yet in `generation.adapters.ts`)
 
 **Organizing concept**: `Tool` (DDD-026) is the top-level domain concept. Each Tool is a named capability that chains `WorkflowStep`s of typed execution strategies (`WorkflowStepType`: `extraction`, `generation`, `acquisition`-provisional) over structured user input to produce `Artifact`s. Generation context is the runtime owner of Tool execution; Frontend context is the interaction owner.
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 
-**Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. `RequestGateway` performs a quota pre-authorization gate only; the actual atomic quota decrement is executed by `usageMachine` after idempotency is resolved.
+**Architecture gap (pre TASK-002)**: The `preGenerationGuards` compound state in `generationSystemMachine` currently executes `idempotency → usage` with no ownership check. This violates SEC-001 (no quota mutation before ownership validation). The intended sequence — enforced by `requestGatewayMachine` model but not yet wired — is `idempotency → ownershipCheck → usage`. TASK-002 must add an `ownershipCheck` state to `preGenerationGuards` and introduce `OwnershipAdapter` in `generation.adapters.ts`.
+
+**Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. Per REQ-001, the correct guard sequence at generation entrypoints is Authentication → Ownership → Model Availability → Usage Guards; as of 2026-05-18 the ownership step is absent from `preGenerationGuards` and is pending TASK-002.
 
 ---
 

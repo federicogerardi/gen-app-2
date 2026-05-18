@@ -80,6 +80,8 @@ class MockServerResponse extends EventEmitter {
   }
 }
 
+const alwaysModelAvailable = async (): Promise<boolean> => true;
+
 test('node runtime dispatcher routes auth request to auth runtime', async () => {
   const repositories = createAuthStubRepositories();
   const authRuntime = createAuthHttpRuntime({
@@ -91,6 +93,7 @@ test('node runtime dispatcher routes auth request to auth runtime', async () => 
   const requestHandler = createNodeRuntimeRequestHandler({
     generationAdapters: createInMemoryGenerationAdapters(),
     authRuntime,
+    checkModelAvailability: alwaysModelAvailable,
   });
 
   const request = new MockIncomingMessage({ method: 'GET', url: '/auth/session' });
@@ -128,6 +131,7 @@ test('node runtime dispatcher routes generation stream to SSE runtime', async ()
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
   });
 
   const requestPayload = {
@@ -171,6 +175,7 @@ test('node runtime dispatcher returns 404 for unknown route', async () => {
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
   });
 
   const request = new MockIncomingMessage({ method: 'GET', url: '/unknown' });
@@ -194,6 +199,7 @@ test('node runtime dispatcher handles CORS preflight for allowed origin', async 
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['https://frontend.codespaces.example.com'],
       allowCredentials: true,
@@ -225,6 +231,7 @@ test('node runtime dispatcher supports wildcard CORS when credentials are disabl
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['*'],
       allowCredentials: false,
@@ -256,6 +263,7 @@ test('node runtime dispatcher blocks CSRF for unsafe method with untrusted origi
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['https://frontend.codespaces.example.com'],
       allowCredentials: true,
@@ -302,6 +310,7 @@ test('node runtime request handler rejects wildcard origins when credentials are
         passwordHashing: createDefaultPasswordHashRuntime(),
         sessionCookies: createDefaultSessionCookieRuntime(),
       }),
+      checkModelAvailability: alwaysModelAvailable,
       cors: {
         allowedOrigins: ['*'],
         allowCredentials: true,
@@ -326,6 +335,7 @@ test('node runtime dispatcher denies generation stream for forbidden ownership w
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     checkProjectOwnership: async () => ({ owned: false, reason: 'ownership_forbidden' }),
   });
 
@@ -371,6 +381,7 @@ test('node runtime dispatcher returns not_found when project is missing without 
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     checkProjectOwnership: async () => ({ owned: false, reason: 'project_not_found' }),
   });
 
@@ -396,6 +407,42 @@ test('node runtime dispatcher returns not_found when project is missing without 
 
   assert.equal(response.statusCode, 404);
   assert.equal(usageClaims, 0);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('node runtime dispatcher rejects unavailable model with 422', async () => {
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: createInMemoryGenerationAdapters(),
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: async () => false,
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-model-unavailable-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'unavailable-model',
+      input: { prompt: 'model guard check' },
+      registrySnapshotRef: 'snapshot:model-guard',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 422);
   const body = response.jsonBody();
   assert.equal(body.ok, false);
 });

@@ -147,10 +147,10 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-021 | In `apps/backend/src/server.ts` lines `:105–111`, change the `catch` block of `isModelKeyAvailable` so that on DB error it returns `false` (fail closed) instead of `true`. Update the `console.warn` message to reflect `fallback=deny`. | | |
-| TASK-022 | In `apps/backend/src/lib/runtime/node-server.ts` lines `:54–57`, make `checkModelAvailability` a required parameter (not optional). Remove the legacy permissive fallback comment from the JSDoc in `apps/backend/src/lib/types/xstate.ts` or tighten the `RegistryBackedWorkflowType` open union. | | |
-| TASK-023 | In `apps/frontend/src/features/tools/runtime/models-client.ts` lines `:58–60`, replace the silent `return []` catch with a thrown error or a structured error value (`{ error: true, models: [] }`). Update callers in `useToolPage.ts:206–208` and `useToolPageRunController.ts:270` to handle the error state explicitly instead of silently degrading. | | |
-| TASK-024 | Run `tsc --noEmit` in both `apps/backend/` and `apps/frontend/`. Run all tests. Verify the model-unavailable code path returns HTTP 422/503 (not 200) when the DB is unreachable. | | |
+| TASK-021 | In `apps/backend/src/server.ts` lines `:105–111`, change the `catch` block of `isModelKeyAvailable` so that on DB error it returns `false` (fail closed) instead of `true`. Update the `console.warn` message to reflect `fallback=deny`. | ✅ | 2026-05-18 |
+| TASK-022 | In `apps/backend/src/lib/runtime/node-server.ts` lines `:54–57`, make `checkModelAvailability` a required parameter (not optional). Remove the legacy permissive fallback comment from the JSDoc in `apps/backend/src/lib/types/xstate.ts` or tighten the `RegistryBackedWorkflowType` open union. | ✅ | 2026-05-18 |
+| TASK-023 | In `apps/frontend/src/features/tools/runtime/models-client.ts` lines `:58–60`, replace the silent `return []` catch with a thrown error or a structured error value (`{ error: true, models: [] }`). Update callers in `useToolPage.ts:206–208` and `useToolPageRunController.ts:270` to handle the error state explicitly instead of silently degrading. | ✅ | 2026-05-18 |
+| TASK-024 | Run `tsc --noEmit` in both `apps/backend/` and `apps/frontend/`. Run all tests. Verify the model-unavailable code path returns HTTP 422/503 (not 200) when the DB is unreachable. | ✅ | 2026-05-18 |
 
 **Completion criteria**: `isModelKeyAvailable` catch returns `false`; `models-client.ts` no longer swallows errors silently; all tests green.
 

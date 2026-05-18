@@ -41,7 +41,7 @@ interface ToolPageTemplateProps {
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const auth = useAuthSession();
-  const { data: modelOptions } = useModelsQuery({
+  const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
   });
@@ -181,16 +181,19 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <TextField
                       select
                       label="Model"
+                      disabled={isStreamActive || modelsLoading || Boolean(modelsError)}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, model: e.target.value }));
                       }}
                       value={field.value}
                       error={!!errors.model}
-                      helperText={errors.model?.message as string | undefined}
+                      helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
                       fullWidth
                     >
-                      {modelOptions.length === 0 ? (
+                      {modelsError ? (
+                        <MenuItem value={field.value || ''}>{field.value || 'Catalog unavailable'}</MenuItem>
+                      ) : modelOptions.length === 0 ? (
                         <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
                       ) : (
                         modelOptions.map((o) => (

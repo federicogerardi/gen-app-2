@@ -1,4 +1,13 @@
-import type { ArtifactStatus, ArtifactType } from './artifact';
+import {
+  normalizeArtifactFailureReason,
+  normalizeArtifactStatus,
+  normalizeArtifactType,
+  normalizeToolWorkflow,
+  type ArtifactFailureReason,
+  type ArtifactStatus,
+  type ArtifactType,
+  type ToolWorkflow,
+} from './artifact';
 
 export type ArtifactListFilters = {
   type?: ArtifactType;
@@ -19,7 +28,7 @@ export type ArtifactSummary = {
   artifactType: ArtifactType;
   status: ArtifactStatus;
   model: string;
-  workflowType: string | null;
+  workflowType: ToolWorkflow | null;
   sessionId?: string | null;
   stepKey?: string | null;
   artifactRole?: 'step' | 'final' | null;
@@ -41,7 +50,7 @@ export type ArtifactDetail = ArtifactSummary & {
   userId: string | null;
   input: Record<string, unknown>;
   content: string;
-  failureReason: string | null;
+  failureReason: ArtifactFailureReason | null;
 };
 
 type ArtifactRow = {
@@ -50,39 +59,23 @@ type ArtifactRow = {
   user_id: string | null;
   user_email?: string | null;
   project_id: string | null;
-  type: string;
-  status: string;
+  type: unknown;
+  status: unknown;
   model: string;
-  workflow_type: string | null;
+  workflow_type: unknown;
   session_id?: string | null;
   step_key?: string | null;
   artifact_role?: string | null;
   run_mode?: string | null;
   input_json: Record<string, unknown> | null;
   content: string;
-  failure_reason: string | null;
+  failure_reason: unknown;
   created_at: Date | string;
   updated_at: Date | string;
 };
 
 const toIso = (value: Date | string): string => {
   return typeof value === 'string' ? value : value.toISOString();
-};
-
-const toArtifactType = (value: string): ArtifactType => {
-  if (value === 'seo' || value === 'code' || value === 'extraction') {
-    return value;
-  }
-
-  return 'content';
-};
-
-const toArtifactStatus = (value: string): ArtifactStatus => {
-  if (value === 'generating' || value === 'failed') {
-    return value;
-  }
-
-  return 'completed';
 };
 
 export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
@@ -92,10 +85,10 @@ export const mapArtifactRowToSummary = (row: ArtifactRow): ArtifactSummary => {
     userId: row.user_id,
     userEmail: row.user_email ?? null,
     projectId: row.project_id ?? '',
-    artifactType: toArtifactType(row.type),
-    status: toArtifactStatus(row.status),
+    artifactType: normalizeArtifactType(row.type),
+    status: normalizeArtifactStatus(row.status),
     model: row.model,
-    workflowType: row.workflow_type,
+    workflowType: normalizeToolWorkflow(row.workflow_type),
     sessionId: row.session_id ?? null,
     stepKey: row.step_key ?? null,
     artifactRole:
@@ -116,6 +109,6 @@ export const mapArtifactRowToDetail = (row: ArtifactRow): ArtifactDetail => {
     ...mapArtifactRowToSummary(row),
     input: row.input_json ?? {},
     content: row.content,
-    failureReason: row.failure_reason,
+    failureReason: normalizeArtifactFailureReason(row.failure_reason),
   };
 };

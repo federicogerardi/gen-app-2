@@ -80,14 +80,14 @@ export type StubArtifactQueryRecord = {
   artifactType: ArtifactSummary['artifactType'];
   status: ArtifactSummary['status'];
   model: string;
-  workflowType: string | null;
+  workflowType: ArtifactSummary['workflowType'];
   sessionId?: string | null;
   stepKey?: string | null;
   artifactRole?: 'step' | 'final' | null;
   runMode?: 'new' | 'resume' | 'regenerate' | null;
   input: Record<string, unknown>;
   content: string;
-  failureReason: string | null;
+  failureReason: ArtifactDetail['failureReason'];
   createdAt: string;
   updatedAt: string;
 };

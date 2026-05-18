@@ -4,6 +4,7 @@ import { toolStepOrder, type SupportedTool, type ToolStep } from './tool-flow.ma
 type GenerationLifecycleInput = {
   toolKey: SupportedTool;
   maxRetries?: number;
+  initialStep?: ToolStep | null;
 };
 
 type GenerationLifecycleEvent =
@@ -27,6 +28,15 @@ export type GenerationLifecycleOutput =
   | { status: 'failed'; error: string };
 
 const isCurrentStep = (context: GenerationLifecycleContext, step: ToolStep) => context.steps[context.currentIndex] === step;
+
+const resolveInitialIndex = (steps: readonly ToolStep[], initialStep: ToolStep | null | undefined): number => {
+  if (!initialStep) {
+    return 0;
+  }
+
+  const initialIndex = steps.indexOf(initialStep);
+  return initialIndex >= 0 ? initialIndex : 0;
+};
 
 export const generationLifecycleMachine = setup({
   types: {
@@ -66,14 +76,17 @@ export const generationLifecycleMachine = setup({
   },
 }).createMachine({
   id: 'generationLifecycleMachine',
-  context: ({ input }) => ({
-    toolKey: input.toolKey,
-    steps: toolStepOrder[input.toolKey],
-    currentIndex: 0,
-    maxRetries: input.maxRetries ?? 3,
-    retriesByStep: {},
-    error: null,
-  }),
+  context: ({ input }) => {
+    const steps = toolStepOrder[input.toolKey];
+    return {
+      toolKey: input.toolKey,
+      steps,
+      currentIndex: resolveInitialIndex(steps, input.initialStep),
+      maxRetries: input.maxRetries ?? 3,
+      retriesByStep: {},
+      error: null,
+    };
+  },
   initial: 'running',
   states: {
     running: {

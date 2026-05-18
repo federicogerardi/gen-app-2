@@ -978,6 +978,7 @@ export const toolPageMachine = setup({
         input: ({ context }) => ({
           toolKey: context.toolKey,
           maxRetries: 3,
+          initialStep: context.pendingStepStart?.step ?? null,
         }),
         onDone: {
           target: 'completed',

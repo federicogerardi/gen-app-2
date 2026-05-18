@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { assign, createActor, setup } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { isExtractionContextValidForTool } from './extraction-context-validity';
 
-vi.mock('./briefing-upload.machine', () => {
+vi.mock('./briefing-upload.machine', async () => {
+  const { isExtractionContextValidForTool } = await import('./extraction-context-validity');
   const briefingUploadMachine = setup({
     types: {
       context: {} as {
@@ -244,6 +244,26 @@ describe('toolPageMachine', () => {
     actor.send({ type: 'STEP_DONE', step: 'quiz' });
     actor.send({ type: 'STEP_DONE', step: 'vsl' });
 
+    expect(actor.getSnapshot().value).toBe('completed');
+  });
+
+  it('completes a queued regenerate flow that starts from a later ToolStep', () => {
+    const actor = createToolPageActor();
+
+    actor.send({
+      type: 'BRIEFING_FILE_SELECTED',
+      file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
+    });
+    syncCanStartFlow(actor);
+
+    actor.send({ type: 'REQUEST_STEP_START', step: 'quiz', runRequestPrefix: 'run-regenerate-1' });
+
+    expect(actor.getSnapshot().value).toBe('generating');
+
+    actor.send({ type: 'STEP_DONE', step: 'quiz' });
+    expect(actor.getSnapshot().value).toBe('generating');
+
+    actor.send({ type: 'STEP_DONE', step: 'vsl' });
     expect(actor.getSnapshot().value).toBe('completed');
   });
 

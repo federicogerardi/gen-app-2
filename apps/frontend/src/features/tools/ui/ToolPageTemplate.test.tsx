@@ -5,7 +5,6 @@ import { http, HttpResponse } from 'msw';
 import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { useMswHandler } from '../../../test/mocks/server';
 import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
 import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
@@ -34,6 +33,7 @@ const briefingMachineSeed = vi.hoisted(() => ({
 // e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
 vi.mock('../machines/briefing-upload.machine', async () => {
   const { setup } = await import('xstate');
+  const { isExtractionContextValidForTool } = await import('../machines/extraction-context-validity');
   const briefingUploadMachine = setup({
     types: {
       context: {} as {

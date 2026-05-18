@@ -4,13 +4,13 @@ version: 1.1
 date_created: 2026-05-18
 last_updated: 2026-05-18
 owner: Backend Platform Team
-status: In Progress
+status: Completed
 tags: [architecture, reliability, security, quota, budget, idempotency, parallelization]
 ---
 
 # Introduction
 
-![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan standardizes and executes high-impact architecture corrections for generation routes and quota/budget enforcement in incremental PRs on branch dev. Scope is constrained to preserve active flows for funnel, nextland, youtube-lf-script, and extraction while improving operational safety, deterministic quota/budget behavior, and maintainability.
 
@@ -221,10 +221,10 @@ Phase 1 Wave 1 → Phase 1 Wave 2-3 → Phase 1 test consolidation + merge
 
 | Task | Description | Completed | Date |
 | -------- | --------------------- | --------- | ---- |
-| TASK-017 | Run mandatory CI-equivalent checks at workspace root: npm run typecheck, npm run lint, npm test, npm run build. |  |  |
-| TASK-018 | Execute targeted integration suite for auth/ownership/rate-limit/error contract and SSE persistence invariants. |  |  |
-| TASK-019 | Verify no regressions in Artifact lifecycle persistence for generating/completed/failed in runtime and adapter integration tests. |  |  |
-| TASK-020 | Ensure technical documentation updates are included in the same PR as runtime behavior changes. |  |  |
+| TASK-017 | Run mandatory CI-equivalent checks at workspace root: npm run typecheck, npm run lint, npm test, npm run build. | yes | 2026-05-18 |
+| TASK-018 | Execute targeted integration suite for auth/ownership/rate-limit/error contract and SSE persistence invariants. | yes | 2026-05-18 |
+| TASK-019 | Verify no regressions in Artifact lifecycle persistence for generating/completed/failed in runtime and adapter integration tests. | yes | 2026-05-18 |
+| TASK-020 | Ensure technical documentation updates are included in the same PR as runtime behavior changes. | yes | 2026-05-18 |
 
 ## 3. Alternatives
 

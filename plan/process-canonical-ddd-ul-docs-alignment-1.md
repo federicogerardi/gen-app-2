@@ -80,9 +80,9 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Run deterministic grep checks to confirm no remaining contradictory ArtifactRelaunch action terms across canonical docs. Search terms: regenerate-current-step, start-generation, prefilled-regenerate, DDD-020. |  |  |
-| TASK-015 | Run deterministic grep checks to confirm DDD-C-007, DDD-031, DDD-051, and DDD-019 status text matches updated runtime facts and no stale pending wording remains. |  |  |
-| TASK-016 | Run deterministic grep checks to confirm no legacy evidence prefixes remain in canonical docs: frontend/src, src/lib, src/server.ts, db/migrations. |  |  |
+| TASK-014 | Run ID-scoped deterministic checks for ArtifactRelaunch policy across canonical docs using expected + forbidden clauses. Expected in relaunch-init semantics: prefilled-regenerate, regenerate-current-step, intent='regenerate'. Forbidden in relaunch-init semantics: start-generation as effective post-hydration action. |  |  |
+| TASK-015 | Run ID-scoped deterministic checks for DDD-C-007, DDD-031, DDD-051, and DDD-019 using expected + forbidden clauses per entry. Expected: resolved-documented/implemented-runtime wording aligned to runtime evidence. Forbidden: stale open/pending/zero-caller claims that contradict current runtime. |  |  |
+| TASK-016 | Run exact legacy-root evidence path checks with anchored backticked patterns to avoid false positives on current paths (apps/frontend/src, apps/backend/src/lib, packages/infra-db/migrations). Legacy targets: frontend/src, src/lib, src/server.ts, db/migrations. |  |  |
 
 ## 3. Alternatives
 
@@ -113,14 +113,14 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 ## 6. Testing
 
 - **TEST-001**: Consistency test for ArtifactRelaunch rules.
-  Command: rg -n "ArtifactRelaunch|regenerate-current-step|start-generation|DDD-020" docs/01-requirements/domain-ubiquitous-language-glossary.md docs/02-design/domain-bounded-context-map.md docs/07-governance/domain-naming-decision-log.md
-  Pass criteria: No contradictory normative statements for post-hydration relaunch action.
+  Command: rg -n "DDD-020|ArtifactRelaunch|prefilled-regenerate|regenerate-current-step|intent='regenerate'" docs/01-requirements/domain-ubiquitous-language-glossary.md docs/02-design/domain-bounded-context-map.md docs/07-governance/domain-naming-decision-log.md && ! rg -n "ArtifactRelaunch default runtime intent.*start-generation|effective primary action after hydration remains `start-generation`" docs/02-design/domain-bounded-context-map.md docs/07-governance/domain-naming-decision-log.md
+  Pass criteria: Expected relaunch-init clauses are present in canonical docs and forbidden contradictory start-generation clauses are absent from DDD-020/ArtifactRelaunch normative blocks.
 - **TEST-002**: Status coherence test for DDD-C-007, DDD-031, DDD-051, DDD-019.
-  Command: rg -n "DDD-C-007|DDD-031|DDD-051|DDD-019|open|resolved|pending|implemented" docs/07-governance/domain-naming-decision-log.md
-  Pass criteria: Updated entries reflect runtime implementation facts and do not claim zero runtime callers for orchestrateToolStep.
+  Command: rg -n "DDD-C-007|DDD-031|DDD-051|DDD-019|resolved-documented|implemented-runtime|/api/tools/orchestrate|/api/tools/sessions|TOOL_STEP_ORDER" docs/07-governance/domain-naming-decision-log.md && ! rg -n "DDD-C-007.*open|DDD-C-007.*zero runtime callers|DDD-031.*target-only|DDD-051.*pending-rollout" docs/07-governance/domain-naming-decision-log.md
+  Pass criteria: Each target entry includes expected runtime-aligned status/evidence text and excludes stale contradictory wording.
 - **TEST-003**: Evidence path normalization test.
-  Command: rg -n "frontend/src/|src/lib/|src/server.ts|db/migrations/" docs/01-requirements/domain-ubiquitous-language-glossary.md docs/02-design/domain-bounded-context-map.md docs/07-governance/domain-naming-decision-log.md
-  Pass criteria: Zero legacy path prefixes in canonical docs after update.
+  Command: rg -n '`frontend/src/|`src/lib/|`src/server\.ts`|`db/migrations/' docs/01-requirements/domain-ubiquitous-language-glossary.md docs/02-design/domain-bounded-context-map.md docs/07-governance/domain-naming-decision-log.md
+  Pass criteria: Zero matches for legacy root-prefixed backticked evidence paths, with no false positives from current apps/ or packages/ path prefixes.
 - **TEST-004**: Evidence existence test.
   Command: verify each updated evidence path exists with rg --files and exact path lookup.
   Pass criteria: Every cited source path resolves inside current workspace.

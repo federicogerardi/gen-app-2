@@ -50,6 +50,10 @@ const waitForTerminalState = async (
   }
 };
 
+const eventNamesInOrder = (result: Awaited<ReturnType<typeof runBackendGenerationSession>>): string[] => {
+  return result.streamEvents.map((event) => event.event);
+};
+
 test('generation root happy path completes', async () => {
   const adapters = createInMemoryGenerationAdapters();
 
@@ -170,6 +174,42 @@ test('generation root failure path fails on usage rejection', async () => {
   assert.equal(String(snapshot.value), 'failed');
   assert.equal(snapshot.context.failureReason, 'unauthorized');
   actor.stop();
+});
+
+test('generation root does not claim usage when ownership check rejects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageCalls = 0;
+
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageCalls += 1;
+    return originalClaimUsage(input);
+  };
+
+  adapters.ownership.checkProjectOwnership = async () => ({
+    owned: false,
+    reason: 'ownership_forbidden',
+  });
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-ownership-reject-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      input: { prompt: 'ownership reject' },
+      workflowType: null,
+      idempotencyKey: 'idem-root-ownership-reject-001',
+      registrySnapshotRef: 'snapshot:root-ownership-reject',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error?.code, 'generation_failed');
+  assert.equal(result.error?.message, 'ownership_forbidden');
+  assert.equal(usageCalls, 0);
 });
 
 test('generation root extraction flow completes from invoke input bootstrap', async () => {
@@ -801,4 +841,95 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
   assert.equal(packagingWorkflow.artifactRole, 'step');
   assert.equal(outroWorkflow.stepKey, 'outro-structure');
   assert.equal(outroWorkflow.artifactRole, 'final');
+});
+
+test('generation runtime keeps artifact lifecycle generating -> completed with stable SSE order for youtube-lf-script', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const terminalPersistenceStateByArtifactId = new Map<string, string>();
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+
+  adapters.persistence.finalizeSuccess = async (input) => {
+    terminalPersistenceStateByArtifactId.set(input.artifactId, 'completed');
+    await originalFinalizeSuccess(input);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-task009-youtube-lifecycle-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'youtube-lf-script',
+      workflowType: 'youtube_lf_script',
+      briefingId: 'briefing-task009-youtube-001',
+      extractionArtifactId: 'artifact-extraction-task009-youtube-001',
+      input: { step: 'outro-structure', intent: 'new' },
+      idempotencyKey: 'idem-root-task009-youtube-lifecycle-001',
+      registrySnapshotRef: 'snapshot:root-task009-youtube',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'completed');
+  assert.ok(result.artifactId);
+  assert.deepEqual(eventNamesInOrder(result), ['start', 'chunk', 'terminal']);
+  const terminalEvent = result.streamEvents[result.streamEvents.length - 1];
+  assert.equal(terminalEvent?.event, 'terminal');
+  assert.equal(terminalEvent?.data.status, 'completed');
+  assert.equal(result.streamEvents[0]?.event, 'start');
+
+  assert.equal(
+    terminalPersistenceStateByArtifactId.get(result.artifactId as string),
+    'completed',
+  );
+});
+
+test('generation runtime keeps artifact lifecycle generating -> failed with terminal failed status', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const terminalPersistenceStateByArtifactId = new Map<string, string>();
+  const originalFinalizeFailure = adapters.persistence.finalizeFailure;
+
+  adapters.llm.streamText = async function* () {
+    yield { type: 'chunk', chunk: 'transient chunk' } as const;
+    throw new Error('forced stream mid-flight failure');
+  };
+
+  adapters.persistence.finalizeFailure = async (input, reason) => {
+    terminalPersistenceStateByArtifactId.set(input.artifactId, 'failed');
+    await originalFinalizeFailure(input, reason);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-task009-failed-lifecycle-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel_pages',
+      briefingId: 'briefing-task009-failed-001',
+      extractionArtifactId: 'artifact-extraction-task009-failed-001',
+      input: { step: 'optin', intent: 'new' },
+      idempotencyKey: 'idem-root-task009-failed-lifecycle-001',
+      registrySnapshotRef: 'snapshot:root-task009-failed',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.ok(result.artifactId);
+  const eventNames = eventNamesInOrder(result);
+  assert.equal(eventNames[0], 'start');
+  assert.equal(eventNames[eventNames.length - 1], 'terminal');
+  const terminalEvent = result.streamEvents[result.streamEvents.length - 1];
+  assert.equal(terminalEvent?.event, 'terminal');
+  assert.equal(terminalEvent?.data.status, 'failed');
+  assert.equal(result.streamEvents[0]?.event, 'start');
+
+  assert.equal(
+    terminalPersistenceStateByArtifactId.get(result.artifactId as string),
+    'failed',
+  );
 });

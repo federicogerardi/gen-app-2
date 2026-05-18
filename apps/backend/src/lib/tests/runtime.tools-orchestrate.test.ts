@@ -94,6 +94,7 @@ const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
     repositories,
     hasher,
     sessionCookies,
+    projectQueries,
     runtime: createAuthHttpRuntime({
       repositories,
       queryRepositories: {
@@ -138,6 +139,14 @@ const createAndLoginUser = async (
   const setCookie = loginRes.getHeader('set-cookie');
   const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
   return (typeof raw === 'string' ? raw.split(';')[0] : '') ?? '';
+};
+
+const ensureOwnedProject = async (
+  projectQueries: ProjectQueryRepositoryStub,
+  userId: string,
+): Promise<string> => {
+  const project = await projectQueries.createProjectForUser(userId, { name: 'Owned project' });
+  return project.id;
 };
 
 const POST_ORCHESTRATE = (cookie: string, body: object) =>
@@ -222,12 +231,13 @@ const YOUTUBE_PACKAGING_ARTIFACT: StubArtifactQueryRecord = {
 
 test('/api/tools/orchestrate returns empty deps for first step (optin)', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
-  artifactStub.seed([OPTIN_ARTIFACT]);
-  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
   const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
 
   const req = POST_ORCHESTRATE(cookie, {
-    projectId: 'project-orch-001',
+    projectId,
     toolKey: 'funnel-pages',
     targetStep: 'optin',
   });
@@ -246,12 +256,13 @@ test('/api/tools/orchestrate returns empty deps for first step (optin)', async (
 
 test('/api/tools/orchestrate resolves optin dep for quiz step', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
-  artifactStub.seed([OPTIN_ARTIFACT]);
-  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
   const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
 
   const req = POST_ORCHESTRATE(cookie, {
-    projectId: 'project-orch-001',
+    projectId,
     toolKey: 'funnel-pages',
     targetStep: 'quiz',
   });
@@ -266,12 +277,16 @@ test('/api/tools/orchestrate resolves optin dep for quiz step', async () => {
 
 test('/api/tools/orchestrate resolves optin + quiz deps for vsl step', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
-  artifactStub.seed([OPTIN_ARTIFACT, QUIZ_ARTIFACT]);
-  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
   const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([
+    { ...OPTIN_ARTIFACT, projectId },
+    { ...QUIZ_ARTIFACT, projectId },
+  ]);
 
   const req = POST_ORCHESTRATE(cookie, {
-    projectId: 'project-orch-001',
+    projectId,
     toolKey: 'funnel-pages',
     targetStep: 'vsl',
   });
@@ -289,11 +304,12 @@ test('/api/tools/orchestrate resolves optin + quiz deps for vsl step', async () 
 
 test('/api/tools/orchestrate returns 400 for unknown toolKey', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
-  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
   const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
 
   const req = POST_ORCHESTRATE(cookie, {
-    projectId: 'project-orch-001',
+    projectId,
     toolKey: 'unknown-tool',
     targetStep: 'some-step',
   });
@@ -353,12 +369,16 @@ test('/api/tools/orchestrate returns 405 for GET request', async () => {
 
 test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
-  artifactStub.seed([YOUTUBE_PRE_SCRIPT_ANALYSIS_ARTIFACT, YOUTUBE_PACKAGING_ARTIFACT]);
-  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
   const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([
+    { ...YOUTUBE_PRE_SCRIPT_ANALYSIS_ARTIFACT, projectId },
+    { ...YOUTUBE_PACKAGING_ARTIFACT, projectId },
+  ]);
 
   const req = POST_ORCHESTRATE(cookie, {
-    projectId: 'project-orch-001',
+    projectId,
     toolKey: 'youtube-lf-script',
     targetStep: 'intro-structure',
   });
@@ -376,4 +396,68 @@ test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies',
     'pre-script-analysis': 'art-youtube-pre-script-analysis-001',
     packaging: 'art-youtube-packaging-001',
   });
+});
+
+test('/api/tools/orchestrate rejects foreign project ownership without quota side effects', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const listCalls: string[] = [];
+  const originalListArtifactsByUser = artifactStub.listArtifactsByUser.bind(artifactStub);
+  artifactStub.listArtifactsByUser = async (userId, filters) => {
+    listCalls.push('called');
+    return originalListArtifactsByUser(userId, filters);
+  };
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+
+  const before = await repositories.users.findUserById('user-orch-001');
+  assert.ok(before);
+
+  const foreignProject = await projectQueries.createProjectForUser('another-user', {
+    name: 'Foreign project',
+  });
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId: foreignProject.id,
+    toolKey: 'funnel-pages',
+    targetStep: 'optin',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 403);
+  const after = await repositories.users.findUserById('user-orch-001');
+  assert.ok(after);
+  assert.equal(after?.monthlyUsed, before?.monthlyUsed);
+  assert.equal(listCalls.length, 0);
+});
+
+test('/api/tools/orchestrate rejects missing project without quota side effects', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const listCalls: string[] = [];
+  const originalListArtifactsByUser = artifactStub.listArtifactsByUser.bind(artifactStub);
+  artifactStub.listArtifactsByUser = async (userId, filters) => {
+    listCalls.push('called');
+    return originalListArtifactsByUser(userId, filters);
+  };
+
+  const { repositories, hasher, runtime } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+
+  const before = await repositories.users.findUserById('user-orch-001');
+  assert.ok(before);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId: 'project-missing-001',
+    toolKey: 'funnel-pages',
+    targetStep: 'optin',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 403);
+  const after = await repositories.users.findUserById('user-orch-001');
+  assert.ok(after);
+  assert.equal(after?.monthlyUsed, before?.monthlyUsed);
+  assert.equal(listCalls.length, 0);
 });

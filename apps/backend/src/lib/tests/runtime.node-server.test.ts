@@ -309,3 +309,93 @@ test('node runtime request handler rejects wildcard origins when credentials are
     });
   }, /Invalid CORS configuration/);
 });
+
+test('node runtime dispatcher denies generation stream for forbidden ownership without usage side effects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageClaims = 0;
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageClaims += 1;
+    return originalClaimUsage(input);
+  };
+
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: adapters,
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkProjectOwnership: async () => ({ owned: false, reason: 'ownership_forbidden' }),
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-ownership-forbidden-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      input: { prompt: 'ownership forbidden' },
+      registrySnapshotRef: 'snapshot:ownership-forbidden',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(usageClaims, 0);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('node runtime dispatcher returns not_found when project is missing without usage side effects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageClaims = 0;
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageClaims += 1;
+    return originalClaimUsage(input);
+  };
+
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: adapters,
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkProjectOwnership: async () => ({ owned: false, reason: 'project_not_found' }),
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-project-not-found-001',
+      userId: 'seed-user-001',
+      projectId: 'missing-project-001',
+      artifactType: 'content',
+      model: 'gpt-5.3-codex',
+      input: { prompt: 'project not found' },
+      registrySnapshotRef: 'snapshot:project-not-found',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(usageClaims, 0);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});

@@ -57,6 +57,10 @@ type UsageDoneOutput =
   | { type: 'USAGE_GRANTED' }
   | { type: 'USAGE_REJECTED'; reason: string };
 
+type OwnershipDoneOutput =
+  | { type: 'OWNERSHIP_OK' }
+  | { type: 'OWNERSHIP_REJECTED'; reason: string };
+
 type StreamDoneOutput =
   | {
       type: 'STREAM_TERMINATED_SUCCESS';
@@ -130,6 +134,9 @@ const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
 
 const getUsageDoneOutput = (event: unknown): UsageDoneOutput | undefined =>
   (event as { output?: UsageDoneOutput }).output;
+
+const getOwnershipDoneOutput = (event: unknown): OwnershipDoneOutput | undefined =>
+  (event as { output?: OwnershipDoneOutput }).output;
 
 const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
   (event as { output?: StreamDoneOutput }).output;
@@ -463,6 +470,9 @@ export const generationSystemMachine = setup({
     setUsageFailedFailure: assign({
       failureReason: 'usage_failed',
     }),
+    setOwnershipFailedFailure: assign({
+      failureReason: 'ownership_failed',
+    }),
     setStreamFailureFailure: assign({
       failureReason: 'stream_failure',
     }),
@@ -578,6 +588,8 @@ export const generationSystemMachine = setup({
       (getIdempotencyDoneOutput(event).type ?? '') === 'IDEMPOTENCY_CONFLICT',
     usageOutputIsRejected: ({ event }) =>
       getUsageDoneOutput(event)?.type === 'USAGE_REJECTED',
+    ownershipOutputIsRejected: ({ event }) =>
+      getOwnershipDoneOutput(event)?.type === 'OWNERSHIP_REJECTED',
     streamOutputIsFailure: ({ event }) =>
       getStreamDoneOutput(event)?.type === 'STREAM_TERMINATED_FAILURE',
     streamOutputIsEmptySuccess: ({ context, event }) =>
@@ -590,6 +602,26 @@ export const generationSystemMachine = setup({
   actors: {
     invokeIdempotency: idempotencyCoordinatorMachine,
     invokeUsage: usageMachine,
+    invokeOwnership: fromPromise(
+      async ({ input }: { input: { context: GenerationMachineContext } }) => {
+        const { context } = input;
+        const result = await context.adapters.ownership.checkProjectOwnership({
+          userId: context.userId ?? 'anonymous',
+          projectId: context.projectId ?? 'unknown-project',
+        });
+
+        if (!result.owned) {
+          return {
+            type: 'OWNERSHIP_REJECTED' as const,
+            reason: result.reason ?? 'ownership_forbidden',
+          };
+        }
+
+        return {
+          type: 'OWNERSHIP_OK' as const,
+        };
+      },
+    ),
     invokeStream: streamTransportMachine,
     invokePersistence: persistenceBatchMachine,
     invokeExtraction: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
@@ -791,12 +823,35 @@ export const generationSystemMachine = setup({
                 },
               },
               {
-                target: 'usage',
+                target: 'ownershipCheck',
               },
             ],
             onError: {
               target: '#generationSystemMachine.persistingFailure',
               actions: 'setIdempotencyConflictFailure',
+            },
+          },
+        },
+        ownershipCheck: {
+          invoke: {
+            src: 'invokeOwnership',
+            input: ({ context }) => ({ context }),
+            onDone: [
+              {
+                guard: 'ownershipOutputIsRejected',
+                target: '#generationSystemMachine.persistingFailure',
+                actions: {
+                  type: 'setFailureFromInvokeOutput',
+                  params: ({ event }) => ({ reason: getInvokeFailureReason(event) }),
+                },
+              },
+              {
+                target: 'usage',
+              },
+            ],
+            onError: {
+              target: '#generationSystemMachine.persistingFailure',
+              actions: 'setOwnershipFailedFailure',
             },
           },
         },

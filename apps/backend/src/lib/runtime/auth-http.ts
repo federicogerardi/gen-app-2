@@ -1059,6 +1059,12 @@ export const createAuthHttpRuntime = (
       return;
     }
 
+    const project = await queries.projects.getProjectByIdForUser(principal.user.id, projectId);
+    if (!project) {
+      writeError(response, 403, 'forbidden', 'Project ownership check failed');
+      return;
+    }
+
     const sourceArtifactId = typeof body.sourceArtifactId === 'string' ? body.sourceArtifactId.trim() || null : null;
     let resolvedBriefingId = typeof body.resolvedBriefingId === 'string' ? body.resolvedBriefingId.trim() || null : null;
     let sourceExtractionArtifactId = typeof body.sourceExtractionArtifactId === 'string' ? body.sourceExtractionArtifactId.trim() || null : null;
@@ -1304,6 +1310,12 @@ export const createAuthHttpRuntime = (
     const projectId = typeof body.projectId === 'string' ? body.projectId.trim() : '';
     if (!projectId) {
       writeError(response, 400, 'bad_request', 'projectId is required');
+      return;
+    }
+
+    const project = await queries.projects.getProjectByIdForUser(principal.user.id, projectId);
+    if (!project) {
+      writeError(response, 403, 'forbidden', 'Project ownership check failed');
       return;
     }
 

@@ -29,6 +29,7 @@ import type {
   ArtifactQueryRepository,
   PostgresArtifactRepository,
   PostgresRedisAdapterDependencies,
+  ProjectOwnershipRepository,
   ProjectQueryRepository,
   ProductionAdapterRuntime,
   RedisIdempotencyRepository,
@@ -36,6 +37,7 @@ import type {
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
 import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
+import { resolveClaimUsageDecision } from './postgres-redis.shared';
 
 type StubQuotaBucket = {
   limit: number;
@@ -102,12 +104,26 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
     };
 
     if (current.used >= current.limit) {
-      return { granted: false, reason: 'quota_exhausted' };
+      return resolveClaimUsageDecision({
+        rateLimitExceeded: false,
+        quotaAvailable: false,
+        hasConflict: false,
+      });
     }
 
     current.used += 1;
     this.buckets.set(input.userId, current);
-    return { granted: true };
+    return resolveClaimUsageDecision({
+      rateLimitExceeded: false,
+      quotaAvailable: true,
+      hasConflict: false,
+    });
+  }
+}
+
+export class ProjectOwnershipRepositoryStub implements ProjectOwnershipRepository {
+  async checkProjectOwnership(_input: { userId: string; projectId: string }) {
+    return { owned: true };
   }
 }
 
@@ -570,6 +586,7 @@ export const createPostgresRedisStubDependencies = (
   const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
 
   return {
+    ownership: new ProjectOwnershipRepositoryStub(),
     quota: new RedisQuotaRepositoryStub(defaultQuotaLimit),
     idempotency: new RedisIdempotencyRepositoryStub(),
     stream: new RedisStreamSessionRepositoryStub(runtime),

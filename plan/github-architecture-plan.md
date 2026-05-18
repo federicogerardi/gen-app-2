@@ -12,7 +12,62 @@ tags: [architecture, reliability, security, quota, budget, idempotency, parallel
 
 ![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
 
-This plan standardizes and executes high-impact architecture corrections for generation routes and quota/budget enforcement in incremental PRs on branch dev. Scope is constrained to preserve active flows for funnel, nextland, and extraction while improving operational safety, deterministic quota/budget behavior, and maintainability.
+This plan standardizes and executes high-impact architecture corrections for generation routes and quota/budget enforcement in incremental PRs on branch dev. Scope is constrained to preserve active flows for funnel, nextland, youtube-lf-script, and extraction while improving operational safety, deterministic quota/budget behavior, and maintainability.
+
+## 0. Session Kickoff (2026-05-18)
+
+### Environment Readiness Snapshot
+
+- Branch status: `dev` tracking `origin/dev`, clean working tree.
+- Recent validation status from session logs:
+  - Frontend tests: 45/45 files passed, 305/305 tests passed.
+  - Workspace build: passed (`apps/backend` typecheck + `apps/frontend` production build).
+- DDD governance gate completed before session prep:
+  - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
+  - `docs/02-design/domain-bounded-context-map.md`
+  - `docs/07-governance/domain-naming-decision-log.md`
+
+### Progressive Implementation Session Contract
+
+1. Start from `dev` only; one task branch per TASK id (`feature/TASK-NNN-*`).
+2. Keep each PR scoped to exactly one task objective and its mandatory tests.
+3. Preserve canonical guard order and DDD terms (`Artifact`, `GenerationRequest`, `ClaimUsage`, `ToolWorkflow`, `BackendStreamEvent`).
+4. Do not merge partial guard changes without their blocking assertions.
+5. For behavior-changing runtime work, include corresponding technical doc alignment in the same PR when externally observable.
+
+### Immediate Branch Bootstrap (Wave 1)
+
+```bash
+git checkout dev
+git pull --ff-only
+
+git checkout -b feature/TASK-002-ownership-state
+# implement TASK-002 only
+
+git checkout dev
+git checkout -b feature/TASK-004-quota-policy
+# implement TASK-004 only
+```
+
+### Per-Task Done Gate (before PR open)
+
+```bash
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend test -- src/lib/tests/runtime.node-server.test.ts
+npm --workspace apps/backend test -- src/lib/tests/runtime.tools-orchestrate.test.ts
+```
+
+For adapter/quota tasks, add:
+
+```bash
+npm --workspace apps/backend test -- src/lib/tests/usage.machine.test.ts
+npm --workspace apps/backend test -- src/lib/adapters/postgres-redis.conflict.smoke.ts
+```
+
+### Merge Sequencing Safety Rule
+
+- Merge to `dev` in this strict order for Phase 1: TASK-002 -> TASK-001/TASK-003 -> TASK-004 -> TASK-005 -> TASK-006.
+- If sequencing is violated, rebase downstream branches on updated `dev` and re-run the targeted gate before merge.
 
 
 
@@ -24,7 +79,7 @@ This plan standardizes and executes high-impact architecture corrections for gen
 - REQ-003: Use one canonical policy for quota/budget decisions across Redis window and PostgreSQL counters.
 - REQ-004: Enforce budget atomically across pre-stream authorization and post-stream final cost settlement.
 - REQ-005: Decompose extraction runtime orchestration into dedicated modules without API/SSE contract changes.
-- REQ-006: Consolidate duplicated route logic between funnel and nextland while preserving domain-specific prompt builders.
+- REQ-006: Consolidate duplicated route logic across funnel, nextland, and youtube-lf-script while preserving domain-specific prompt builders.
 - REQ-007: Align runtime behavior and technical documentation in the same change set.
 - REQ-008: Extend idempotency policy to all generate endpoints with uniform replay/conflict/dedup rules.
 - REQ-009: Harden Artifact persistence schema and state transition validity.
@@ -32,7 +87,7 @@ This plan standardizes and executes high-impact architecture corrections for gen
 - SEC-001: No quota/budget mutation is allowed before ownership validation is successful.
 - SEC-002: Budget enforcement must remain race-safe for concurrent requests from the same authenticated principal.
 - CON-001: Preserve existing external API error contract and SSE event semantics.
-- CON-002: Preserve active Tool workflows for funnel, nextland, extraction.
+- CON-002: Preserve active Tool workflows for funnel, nextland, youtube-lf-script, extraction.
 - CON-003: Changes must be delivered as incremental PRs with isolated blast radius.
 - GUD-001: Use canonical DDD terms: Artifact, GenerationRequest, ClaimUsage, ToolWorkflow, BackendStreamEvent.
 - GUD-002: Do not introduce deprecated aliases as primary names.
@@ -99,12 +154,12 @@ To avoid merge conflicts while executing Pair A in parallel:
 
 | Task | Description | Completed | Date |
 | -------- | --------------------- | --------- | ---------- |
-| TASK-001 | Update generation route entrypoints in apps/backend/src/lib/runtime/node-server.ts and apps/backend/src/lib/runtime/auth-http.ts to enforce guard sequence Authentication -> Ownership -> Model Availability -> Usage Guards for /generation/stream and /api/tools/orchestrate. |  |  |
-| TASK-002 | Add ownership gate to generation-system.machine.ts to guarantee no ClaimUsage call for ownership/not-found failures. Currently apps/backend/src/lib/machines/generation-system.machine.ts:preGenerationGuards has only `idempotency → usage` with no ownership step — add `ownershipCheck` state BEFORE `usage`, backed by a new `OwnershipAdapter` in apps/backend/src/lib/adapters/generation.adapters.ts implemented in apps/backend/src/lib/adapters/postgres-redis.production.ts. Note: apps/backend/src/lib/machines/request-gateway.machine.ts defines the intended guard order but is currently orphaned (not wired into generation-system.machine.ts); this task must wire the ownership step into the real machine, not into the orphaned model. apps/backend/src/lib/machines/usage.machine.ts does not need changes for this task. |  |  |
-| TASK-003 | Add integration tests in apps/backend/src/lib/tests/runtime.node-server.test.ts and apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts covering forbidden/not-found requests with assertion monthlyUsed unchanged and no quota events emitted. |  |  |
-| TASK-004 | Define canonical quota/budget decision flow across Redis and PostgreSQL in apps/backend/src/lib/adapters/postgres-redis.adapters.ts, apps/backend/src/lib/adapters/postgres-redis.shared.ts, and apps/backend/src/lib/adapters/postgres-redis.production.ts with deterministic precedence and conflict handling. |  |  |
-| TASK-005 | Implement automatic quota window reset in the adapter layer: add `quota_window_started_at` column via new migration under packages/infra-db/migrations/, update `claimUsage` in apps/backend/src/lib/adapters/postgres-redis.production.ts to reset the window when it has expired before incrementing. apps/backend/src/lib/machines/usage.machine.ts is a single-invocation `fromPromise` actor — it does not orchestrate the window reset and should not be changed for this; optionally pass `resetDate` back in the UsageDecision output for audit tracing. Include concurrency controls for burst/retry/double-submit paths. |  |  |
-| TASK-006 | Add deterministic concurrency tests in apps/backend/src/lib/adapters/postgres-redis.conflict.smoke.ts and apps/backend/src/lib/tests/usage.machine.test.ts to verify repeatable decisions under parallel claims. |  |  |
+| TASK-001 | Update generation route entrypoints in apps/backend/src/lib/runtime/node-server.ts and apps/backend/src/lib/runtime/auth-http.ts to enforce guard sequence Authentication -> Ownership -> Model Availability -> Usage Guards for /generation/stream and /api/tools/orchestrate. | yes | 2026-05-18 |
+| TASK-002 | Add ownership gate to generation-system.machine.ts to guarantee no ClaimUsage call for ownership/not-found failures. Currently apps/backend/src/lib/machines/generation-system.machine.ts:preGenerationGuards has only `idempotency → usage` with no ownership step — add `ownershipCheck` state BEFORE `usage`, backed by a new `OwnershipAdapter` in apps/backend/src/lib/adapters/generation.adapters.ts implemented in apps/backend/src/lib/adapters/postgres-redis.production.ts. Note: apps/backend/src/lib/machines/request-gateway.machine.ts defines the intended guard order but is currently orphaned (not wired into generation-system.machine.ts); this task must wire the ownership step into the real machine, not into the orphaned model. apps/backend/src/lib/machines/usage.machine.ts does not need changes for this task. | yes | 2026-05-18 |
+| TASK-003 | Add integration tests in apps/backend/src/lib/tests/runtime.node-server.test.ts and apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts covering forbidden/not-found requests with assertion monthlyUsed unchanged and no quota events emitted. | yes | 2026-05-18 |
+| TASK-004 | Define canonical quota/budget decision flow across Redis and PostgreSQL in apps/backend/src/lib/adapters/postgres-redis.adapters.ts, apps/backend/src/lib/adapters/postgres-redis.shared.ts, and apps/backend/src/lib/adapters/postgres-redis.production.ts with deterministic precedence and conflict handling. | yes | 2026-05-18 |
+| TASK-005 | Implement automatic quota window reset in the adapter layer: add `quota_window_started_at` column via new migration under packages/infra-db/migrations/, update `claimUsage` in apps/backend/src/lib/adapters/postgres-redis.production.ts to reset the window when it has expired before incrementing. apps/backend/src/lib/machines/usage.machine.ts is a single-invocation `fromPromise` actor — it does not orchestrate the window reset and should not be changed for this; optionally pass `resetDate` back in the UsageDecision output for audit tracing. Include concurrency controls for burst/retry/double-submit paths. | yes | 2026-05-18 |
+| TASK-006 | Add deterministic concurrency tests in apps/backend/src/lib/adapters/postgres-redis.conflict.smoke.ts and apps/backend/src/lib/tests/usage.machine.test.ts to verify repeatable decisions under parallel claims. | yes | 2026-05-18 |
 
 ### Implementation Phase 2
 
@@ -113,9 +168,9 @@ To avoid merge conflicts while executing Pair A in parallel:
 
 | Task | Description | Completed | Date |
 | -------- | --------------------- | --------- | ---- |
-| TASK-007 | Split extraction flow responsibilities in apps/backend/src/lib/runtime/node-server.ts into orchestration, retry/escalation policy, acceptance validation, SSE replay, and terminal persistence modules under apps/backend/src/lib/runtime/. |  |  |
-| TASK-008 | Keep external API/SSE behavior stable by preserving error mapping in apps/backend/src/lib/runtime/error-contract.ts and stream semantics in apps/backend/src/lib/runtime/http-sse.ts and apps/backend/src/lib/runtime/stream-contract.ts. |  |  |
-| TASK-009 | Add regression tests in apps/backend/src/lib/tests/runtime.http-sse.test.ts and apps/backend/src/lib/tests/generation-system.runtime.test.ts validating unchanged SSE event order and Artifact terminal states generating/completed/failed. |  |  |
+| TASK-007 | Split extraction flow responsibilities in apps/backend/src/lib/runtime/node-server.ts into orchestration, retry/escalation policy, acceptance validation, SSE replay, and terminal persistence modules under apps/backend/src/lib/runtime/, preserving parity for funnel, nextland, and youtube-lf-script flows. | yes | 2026-05-18 |
+| TASK-008 | Keep external API/SSE behavior stable by preserving error mapping in apps/backend/src/lib/runtime/error-contract.ts and stream semantics in apps/backend/src/lib/runtime/http-sse.ts and apps/backend/src/lib/runtime/stream-contract.ts. | yes | 2026-05-18 |
+| TASK-009 | Add regression tests in apps/backend/src/lib/tests/runtime.http-sse.test.ts and apps/backend/src/lib/tests/generation-system.runtime.test.ts validating unchanged SSE event order and Artifact terminal states generating/completed/failed, with explicit coverage for youtube-lf-script alongside funnel and nextland. | yes | 2026-05-18 |
 
 ### Implementation Phase 3
 
@@ -124,8 +179,8 @@ To avoid merge conflicts while executing Pair A in parallel:
 
 | Task | Description | Completed | Date |
 | -------- | --------------------- | --------- | ---- |
-| TASK-010 | Extract shared generation route pipeline (auth/ownership/model/usage/deadline/error/logging) into reusable module consumed by generation handlers in apps/backend/src/lib/runtime/auth-http.ts and apps/backend/src/lib/runtime/tool-workflow-registry.ts. |  |  |
-| TASK-011 | Keep domain-specific logic isolated to prompt builders and step mappings in apps/backend/src/lib/runtime/tool-prompts/index.ts and workflow normalizers in apps/backend/src/lib/runtime/workflow-normalizers.ts. |  |  |
+| TASK-010 | Extract shared generation route pipeline (auth/ownership/model/usage/deadline/error/logging) into reusable module consumed by generation handlers in apps/backend/src/lib/runtime/auth-http.ts and apps/backend/src/lib/runtime/tool-workflow-registry.ts, requiring regression coverage parity for funnel, nextland, and youtube-lf-script route paths. |  |  |
+| TASK-011 | Keep domain-specific logic isolated to prompt builders and step mappings in apps/backend/src/lib/runtime/tool-prompts/index.ts and workflow normalizers in apps/backend/src/lib/runtime/workflow-normalizers.ts, with explicit test coverage for youtube-lf-script prompt/step mapping alongside funnel and nextland. |  |  |
 | TASK-012 | Update operational docs to match runtime truth: docs/02-design/domain-bounded-context-map.md and docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md only where behavior is implemented and externally observable. |  |  |
 
 ### Implementation Phase 4
@@ -176,7 +231,7 @@ Phase 1 Wave 1 → Phase 1 Wave 2-3 → Phase 1 test consolidation + merge
 - ALT-001: Single large refactor PR for all P0/P1/P2 items was rejected due to high blast radius and reduced rollback safety.
 - ALT-002: Keep current dual-source quota logic without deterministic precedence was rejected due to audit drift risk between Redis and PostgreSQL.
 - ALT-003: Enforce budget only pre-stream was rejected because final cost settlement can exceed threshold in concurrent scenarios.
-- ALT-004: Keep route-specific duplicated logic for funnel and nextland was rejected because divergence risk increases defect recurrence.
+- ALT-004: Keep route-specific duplicated logic for funnel, nextland, and youtube-lf-script was rejected because divergence risk increases defect recurrence.
 
 ## 4. Dependencies & Execution Coordination
 

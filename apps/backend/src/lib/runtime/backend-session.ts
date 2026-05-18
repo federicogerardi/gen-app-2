@@ -7,6 +7,14 @@ import {
   type BackendError,
 } from './error-contract';
 import {
+  acceptChunkCandidate,
+  hasChunkEvents,
+} from './generation-session-chunk-acceptance';
+import {
+  buildTerminalStreamEvent,
+  resolveTerminalStatus,
+} from './generation-session-terminal';
+import {
   buildAuthOkEvent,
   buildRequestReceivedEvent,
   buildValidationOkEvent,
@@ -74,25 +82,26 @@ export const runBackendGenerationSession = async (
   };
 
   const emitChunk = (sequence: unknown, chunk: unknown) => {
-    if (
-      typeof sequence !== 'number'
-      || sequence <= lastEmittedSequence
-      || typeof chunk !== 'string'
-      || chunk.length === 0
-      || !currentArtifactId
-    ) {
+    const artifactId = currentArtifactId;
+    const accepted = acceptChunkCandidate({
+      sequence,
+      chunk,
+      currentArtifactId: artifactId,
+      lastEmittedSequence,
+    });
+    if (!accepted || !artifactId) {
       return;
     }
 
     emitStreamEvent({
       event: 'chunk',
       data: {
-        artifactId: currentArtifactId,
-        chunk,
-        sequence,
+        artifactId,
+        chunk: accepted.chunk,
+        sequence: accepted.sequence,
       },
     });
-    lastEmittedSequence = sequence;
+    lastEmittedSequence = accepted.sequence;
   };
 
   const attachStreamObserver = (snapshot: unknown) => {
@@ -200,7 +209,7 @@ export const runBackendGenerationSession = async (
     return stateValue === 'completed' || stateValue === 'failed';
   });
 
-  const hasChunkEvent = streamEvents.some((event) => event.event === 'chunk');
+  const hasChunkEvent = hasChunkEvents(streamEvents);
   if (!hasChunkEvent && doneSnapshot.context.contentBuffer && doneSnapshot.context.artifactId) {
     emitStreamEvent({
       event: 'chunk',
@@ -212,7 +221,7 @@ export const runBackendGenerationSession = async (
     });
   }
 
-  const status = String(doneSnapshot.value) === 'completed' ? 'completed' : 'failed';
+  const status = resolveTerminalStatus(String(doneSnapshot.value));
   const error = status === 'failed'
     ? mapFailureReasonToBackendError(doneSnapshot.context.failureReason)
     : null;
@@ -232,14 +241,9 @@ export const runBackendGenerationSession = async (
     ].join(' '),
   );
 
-  emitStreamEvent({
-    event: 'terminal',
-    data: {
-      artifactId: doneSnapshot.context.artifactId,
-      status,
-      reason: doneSnapshot.context.failureReason,
-    },
-  });
+  emitStreamEvent(
+    buildTerminalStreamEvent(doneSnapshot.context, status),
+  );
 
   (streamSubscription as { unsubscribe: () => void } | null)?.unsubscribe();
   actor.stop();

@@ -19,6 +19,7 @@ import type {
 import type {
   IdempotencyDecision,
   LlmStreamAdapter,
+  OwnershipDecision,
   UsageDecision,
 } from './generation.adapters';
 
@@ -29,6 +30,10 @@ export type ProductionAdapterRuntime = {
 
 export interface RedisQuotaRepository {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+}
+
+export interface ProjectOwnershipRepository {
+  checkProjectOwnership(input: { userId: string; projectId: string }): Promise<OwnershipDecision>;
 }
 
 export interface RedisIdempotencyRepository {
@@ -69,6 +74,7 @@ export interface ArtifactQueryRepository {
 }
 
 export interface PostgresRedisAdapterDependencies {
+  ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;
   stream: RedisStreamSessionRepository;

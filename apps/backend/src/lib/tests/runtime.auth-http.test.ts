@@ -996,6 +996,10 @@ test('auth HTTP runtime applies session role scope on /api/artifacts listing', a
     passwordAlgo: hasher.passwordAlgorithm,
   });
 
+  const project = await projectQueries.createProjectForUser('user-hydrate-001', {
+    name: 'Hydrate Project',
+  });
+
   artifactQueries.seed([
     {
       artifactId: 'artifact-member-001',
@@ -1134,6 +1138,10 @@ test('auth HTTP runtime applies session role scope on /api/artifacts/:id detail'
     status: 'active',
     passwordHash: await hasher.hashPassword('Member-Artifacts-Detail-1'),
     passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-001', {
+    name: 'Hydrate Project',
   });
 
   artifactQueries.seed([
@@ -1684,12 +1692,16 @@ test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', 
     passwordAlgo: hasher.passwordAlgorithm,
   });
 
+  const project = await projectQueries.createProjectForUser('user-hydrate-001', {
+    name: 'Hydrate Project',
+  });
+
   artifactQueries.seed([
     {
       artifactId: 'artifact-extract-fenced-001',
       requestId: 'req-extract-fenced-001',
       userId: 'user-hydrate-001',
-      projectId: 'project-hydrate-001',
+      projectId: project.id,
       artifactType: 'extraction',
       status: 'completed',
       model: 'openrouter/auto',
@@ -1738,7 +1750,7 @@ test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', 
     url: '/api/tools/hydrate',
     headers: { cookie: cookieHeader },
     body: JSON.stringify({
-      projectId: 'project-hydrate-001',
+      projectId: project.id,
       sourceArtifactId: 'artifact-extract-fenced-001',
       intent: 'regenerate',
     }),

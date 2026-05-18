@@ -1,10 +1,4 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import {
-  isGenerationRouteToolKey,
-  isToolKey,
-  isToolWorkflowType,
-  type GenerationWorkflowType,
-} from '@gen-app-2/contracts';
 
 import type { GenerationAdapters } from '../adapters';
 import {
@@ -16,11 +10,24 @@ import {
   normalizePath,
   writeJson,
 } from './http-utils';
+import {
+  parseGenerationRequest,
+} from './generation-request-node';
+import {
+  applyModelAvailabilityGuard,
+  applyOwnershipGuard,
+} from './generation-entry-guards';
+import {
+  buildGenerationDebugInfo,
+  createCorrelationId,
+  logGenerationRequestDebug,
+  logGenerationStreamError,
+  logModelCheckDebug,
+} from './generation-stream-observability';
 import type {
   HandleAuthHttpRequestResult,
 } from './auth-http';
 
-const MAX_BODY_SIZE_BYTES = 256 * 1024;
 const DEFAULT_CORS_METHODS = ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'];
 const DEFAULT_CORS_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With'];
 
@@ -36,6 +43,11 @@ export type NodeRuntimeServerOptions = {
   authRuntime: AuthHttpRequestHandler;
   generationRoutePath?: string;
   debugGenerationLogs?: boolean;
+  checkProjectOwnership?: (
+    userId: string,
+    projectId: string,
+    correlationId?: string,
+  ) => Promise<{ owned: boolean; reason?: 'ownership_forbidden' | 'project_not_found' | string }>;
   /**
    * Optional async function that checks whether a given LlmModelId is available.
    * Returns true if the model key exists in the enabled LlmModelCatalog, false otherwise.
@@ -121,149 +133,6 @@ const isCsrfProtectedMethod = (
   protectedMethods: string[],
 ): boolean => {
   return protectedMethods.includes(method.toUpperCase());
-};
-
-const readRequestBody = async (request: IncomingMessage): Promise<string> => {
-  const chunks: Buffer[] = [];
-  let totalSize = 0;
-
-  await new Promise<void>((resolve, reject) => {
-    request.on('data', (chunk: Buffer | string) => {
-      const chunkBuffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalSize += chunkBuffer.length;
-      if (totalSize > MAX_BODY_SIZE_BYTES) {
-        reject(new Error('request_body_too_large'));
-        return;
-      }
-
-      chunks.push(chunkBuffer);
-    });
-
-    request.on('end', () => resolve());
-    request.on('error', reject);
-  });
-
-  return Buffer.concat(chunks).toString('utf8');
-};
-
-const requireStringField = (payload: Record<string, unknown>, field: string): string => {
-  const value = payload[field];
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new Error(`invalid_field:${field}`);
-  }
-
-  return value;
-};
-
-const requireObjectField = (payload: Record<string, unknown>, field: string): Record<string, unknown> => {
-  const value = payload[field];
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`invalid_field:${field}`);
-  }
-
-  return value as Record<string, unknown>;
-};
-
-const normalizeModelForDebug = (value: string): string => {
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return 'openrouter/auto';
-  }
-
-  if (normalized.includes('/')) {
-    return normalized;
-  }
-
-  if (normalized === 'auto') {
-    return 'openrouter/auto';
-  }
-
-  if (normalized.includes(':')) {
-    const [provider, ...rest] = normalized.split(':');
-    if (provider && rest.length > 0) {
-      return `${provider}/${rest.join(':')}`;
-    }
-  }
-
-  return normalized;
-};
-
-const toDebugString = (value: unknown): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-
-  return '-';
-};
-
-const createCorrelationId = (requestId: string): string => `run:${requestId}`;
-
-const defaultMapGenerationRequest = (
-  payload: Record<string, unknown>,
-): BackendGenerationRequest => {
-  const rawToolKey = typeof payload.toolKey === 'string' ? payload.toolKey.trim() : null;
-  const rawWorkflowType =
-    typeof payload.workflowType === 'string' ? payload.workflowType.trim() : null;
-  const request: BackendGenerationRequest = {
-    requestId: requireStringField(payload, 'requestId'),
-    userId: requireStringField(payload, 'userId'),
-    projectId: requireStringField(payload, 'projectId'),
-    artifactType: requireStringField(payload, 'artifactType') as BackendGenerationRequest['artifactType'],
-    model: requireStringField(payload, 'model'),
-    input: requireObjectField(payload, 'input'),
-    toolKey:
-      rawToolKey && (isToolKey(rawToolKey) || isGenerationRouteToolKey(rawToolKey))
-        ? rawToolKey
-        : null,
-    workflowType:
-      rawWorkflowType && (isToolWorkflowType(rawWorkflowType) || rawWorkflowType === 'extraction')
-        ? (rawWorkflowType as GenerationWorkflowType)
-        : null,
-  };
-
-  if (typeof payload.sessionId === 'string' && payload.sessionId.trim().length > 0) {
-    request.sessionId = payload.sessionId;
-  }
-
-  if (typeof payload.idempotencyKey === 'string') {
-    request.idempotencyKey = payload.idempotencyKey;
-  }
-
-  if (
-    payload.outputFormat === 'json'
-    || payload.outputFormat === 'markdown'
-    || payload.outputFormat === 'plain'
-  ) {
-    request.outputFormat = payload.outputFormat;
-  }
-
-  if (typeof payload.registryVersion === 'string') {
-    request.registryVersion = payload.registryVersion;
-  }
-
-  if (typeof payload.registrySnapshotRef === 'string') {
-    request.registrySnapshotRef = payload.registrySnapshotRef;
-  }
-
-  return request;
-};
-
-const parseGenerationRequest = async (
-  request: IncomingMessage,
-  mapGenerationRequest: NodeRuntimeServerOptions['mapGenerationRequest'],
-): Promise<BackendGenerationRequest> => {
-  const rawBody = await readRequestBody(request);
-  if (!rawBody || rawBody.trim().length === 0) {
-    throw new Error('missing_body');
-  }
-
-  const parsed = JSON.parse(rawBody) as Record<string, unknown>;
-  const mapper = mapGenerationRequest ?? defaultMapGenerationRequest;
-  return mapper(parsed, request);
 };
 
 export const createNodeRuntimeRequestHandler = (
@@ -380,97 +249,43 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
-    const step =
-      typeof generationRequest.input.step === 'string' && generationRequest.input.step.trim().length > 0
-        ? generationRequest.input.step.trim()
-        : '-';
-    const tone =
-      typeof generationRequest.input.tone === 'string' && generationRequest.input.tone.trim().length > 0
-        ? generationRequest.input.tone.trim()
-        : '-';
-    const briefingTextLength =
-      typeof generationRequest.input.briefingText === 'string'
-        ? generationRequest.input.briefingText.length
-        : 0;
-    const extractionPayloadKeys =
-      generationRequest.input.extractionPayload
-      && typeof generationRequest.input.extractionPayload === 'object'
-      && !Array.isArray(generationRequest.input.extractionPayload)
-        ? Object.keys(generationRequest.input.extractionPayload as Record<string, unknown>).length
-        : 0;
-    const dependencyCount = Array.isArray(generationRequest.input.stepDependencyArtifactIds)
-      ? generationRequest.input.stepDependencyArtifactIds.length
-      : 0;
-    const normalizedModel = normalizeModelForDebug(generationRequest.model);
     const correlationId = createCorrelationId(generationRequest.requestId);
+    const debugInfo = buildGenerationDebugInfo(generationRequest);
 
     if (debugGenerationLogs) {
-      console.info(
-        [
-          '[gen][request]',
-          `corr=${correlationId}`,
-          `requestId=${generationRequest.requestId}`,
-          `sessionId=${toDebugString(generationRequest.sessionId)}`,
-          `projectId=${generationRequest.projectId}`,
-          `toolKey=${toDebugString(generationRequest.toolKey)}`,
-          `workflowType=${toDebugString(generationRequest.workflowType)}`,
-          `artifactType=${generationRequest.artifactType}`,
-          `step=${step}`,
-          `modelRaw=${generationRequest.model}`,
-          `modelNormalized=${normalizedModel}`,
-          `tone=${tone}`,
-          `briefingTextLen=${briefingTextLength}`,
-          `extractionPayloadKeys=${extractionPayloadKeys}`,
-          `dependencyCount=${dependencyCount}`,
-        ].join(' '),
-      );
+      logGenerationRequestDebug(correlationId, generationRequest, debugInfo);
+    }
+
+    // TASK-001: Ownership guard at generation entrypoint.
+    const ownershipAllowed = await applyOwnershipGuard(
+      response,
+      generationRequest,
+      correlationId,
+      options.checkProjectOwnership,
+    );
+    if (!ownershipAllowed) {
+      return;
     }
 
     // TASK-010: LlmModelCatalog model availability check (DDD-055, DDD-056).
     // Dispatches MODEL_AVAILABLE / MODEL_UNAVAILABLE logic from requestGatewayMachine.
-    if (options.checkModelAvailability) {
-      const isAvailable = await options.checkModelAvailability(generationRequest.model, correlationId);
-      if (debugGenerationLogs) {
-        console.info(
-          [
-            '[gen][model-check]',
-            `corr=${correlationId}`,
-            `requestId=${generationRequest.requestId}`,
-            `modelRaw=${generationRequest.model}`,
-            `modelNormalized=${normalizedModel}`,
-            `available=${isAvailable}`,
-          ].join(' '),
-        );
-      }
-      if (!isAvailable) {
-        writeJson(response, 400, {
-          ok: false,
-          error: {
-            code: 'bad_request',
-            message: 'model_unavailable',
-          },
-        });
-        return;
-      }
+    const modelGuard = await applyModelAvailabilityGuard(
+      response,
+      generationRequest,
+      correlationId,
+      options.checkModelAvailability,
+    );
+    if (debugGenerationLogs && modelGuard.isAvailable !== null) {
+      logModelCheckDebug(correlationId, generationRequest, debugInfo.normalizedModel, modelGuard.isAvailable);
+    }
+    if (!modelGuard.allowed) {
+      return;
     }
 
     try {
       await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
     } catch (error) {
-      console.error(
-        [
-          '[gen][stream-error]',
-          `corr=${correlationId}`,
-          `requestId=${generationRequest.requestId}`,
-          `toolKey=${toDebugString(generationRequest.toolKey)}`,
-          `workflowType=${toDebugString(generationRequest.workflowType)}`,
-          `step=${step}`,
-          `modelRaw=${generationRequest.model}`,
-          `modelNormalized=${normalizedModel}`,
-          `tone=${tone}`,
-        ].join(' '),
-        error,
-      );
+      logGenerationStreamError(correlationId, generationRequest, debugInfo, error);
       if (!response.writableEnded && !response.destroyed) {
         response.statusCode = 500;
         response.end();

@@ -179,9 +179,9 @@ To avoid merge conflicts while executing Pair A in parallel:
 
 | Task | Description | Completed | Date |
 | -------- | --------------------- | --------- | ---- |
-| TASK-010 | Extract shared generation route pipeline (auth/ownership/model/usage/deadline/error/logging) into reusable module consumed by generation handlers in apps/backend/src/lib/runtime/auth-http.ts and apps/backend/src/lib/runtime/tool-workflow-registry.ts, requiring regression coverage parity for funnel, nextland, and youtube-lf-script route paths. |  |  |
-| TASK-011 | Keep domain-specific logic isolated to prompt builders and step mappings in apps/backend/src/lib/runtime/tool-prompts/index.ts and workflow normalizers in apps/backend/src/lib/runtime/workflow-normalizers.ts, with explicit test coverage for youtube-lf-script prompt/step mapping alongside funnel and nextland. |  |  |
-| TASK-012 | Update operational docs to match runtime truth: docs/02-design/domain-bounded-context-map.md and docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md only where behavior is implemented and externally observable. |  |  |
+| TASK-010 | Extract shared generation route pipeline (auth/ownership/model/usage/deadline/error/logging) into reusable module consumed by generation handlers in apps/backend/src/lib/runtime/auth-http.ts and apps/backend/src/lib/runtime/tool-workflow-registry.ts, requiring regression coverage parity for funnel, nextland, and youtube-lf-script route paths. | yes | 2026-05-18 |
+| TASK-011 | Keep domain-specific logic isolated to prompt builders and step mappings in apps/backend/src/lib/runtime/tool-prompts/index.ts and workflow normalizers in apps/backend/src/lib/runtime/workflow-normalizers.ts, with explicit test coverage for youtube-lf-script prompt/step mapping alongside funnel and nextland. | yes | 2026-05-18 |
+| TASK-012 | Update operational docs to match runtime truth: docs/02-design/domain-bounded-context-map.md and docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md only where behavior is implemented and externally observable. | yes | 2026-05-18 |
 
 ### Implementation Phase 4
 

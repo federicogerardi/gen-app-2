@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 date_created: 2026-05-08
-last-reviewed: 2026-05-11
+last-reviewed: 2026-05-18
 next-review-date: 2026-06-08
 owner: Frontend Platform Team
 type: ui-governance-spec
@@ -73,6 +73,7 @@ Composition:
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
 - **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
 - **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-060).
+- **Pre-dispatch orchestration contract**: before `generation.start`, Tool Workspace runtime resolves step dependencies through `/api/tools/orchestrate` (`orchestrateToolStep`) and injects returned dependency artifact IDs into the outgoing request. If orchestration fails, generation dispatch is aborted and feedback remains in the inline `Dispatch Error` slot.
 - **Channel ownership rule**: Tool Workspace Page feedback follows `Feedback Channel` mapping. `Dispatch Error` remains `inline-action`; query/list lifecycle remains `page-state`; `global` channel is optional and must not duplicate the same message already rendered inline.
 
 ### 3.2 Data Table View (reference archetype)
@@ -275,7 +276,7 @@ Use this matrix to map each feedback event to exactly one canonical channel.
 | Event Type | Canonical Channel | Canonical Term | Rendering Location | Rule |
 | --- | --- | --- | --- | --- |
 | Form field validation failure | `inline-action` | Dispatch Error family (contextual) | Field/form area | Keep message adjacent to failing input/action; do not promote to global viewport |
-| Tool primary-action dispatch failure | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must remain local and actionable in-place |
+| Tool primary-action dispatch failure (including `/api/tools/orchestrate` pre-dispatch failure) | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must remain local and actionable in-place |
 | Tool terminal stream failure without recoverable failed step | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Keep local recovery context; global duplication is not allowed |
 | Extraction completed but semantically invalid | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must show user-readable copy and keep `start-generation` blocked until valid re-upload |
 | Query loading state | `page-state` | Page State Message (`LoadingStateMessage`) | Page/table body state slot | Never use global channel for loading |

@@ -75,6 +75,19 @@ test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
   assert.match(resolved.prompt, /Step Key/i);
 });
 
+test('resolveToolPrompt loads nextland step prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'nextland',
+    workflowType: 'nextland',
+    artifactType: 'content',
+    stepKey: 'thank-you',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /prompt_thank_you_generator\.md$/);
+  assert.match(resolved.prompt, /PROMPT NEXTLAND THANK-YOU GENERATOR/i);
+});
+
 test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {
   const event = buildRequestReceivedEvent({
     requestId: 'req-youtube-extraction-001',
@@ -93,4 +106,16 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+});
+
+test('resolveToolPrompt falls back to canonical extraction prompt for non-youtube extraction', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    artifactType: 'extraction',
+    extractionToolKey: 'funnel-pages',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /runtime\/tool-prompts\/extraction\/prompt_generation\.md$/);
 });

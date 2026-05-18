@@ -15,6 +15,11 @@ import {
   type ToolKey as SupportedToolWorkflow,
 } from '@gen-app-2/contracts';
 import type { WorkflowStepDescriptor } from '../types/xstate';
+import {
+  assertGenerationRouteDeadline,
+  type GenerationRouteDeadline,
+} from './generation-route-pipeline';
+import { normalizeToolWorkflowKey } from './workflow-normalizers';
 
 export const isSupportedToolWorkflow = isToolKey;
 
@@ -100,6 +105,50 @@ export const resolveStepDependencyIds = (
 
   const stepDependencyArtifactIds = Object.values(dependencyArtifactIdsByStep);
   return { stepDependencyArtifactIds, dependencyArtifactIdsByStep };
+};
+
+export type CompletedToolArtifactSummary = {
+  artifactId: string;
+  workflowType: string | null;
+  artifactType: string;
+};
+
+export type CompletedToolArtifactDetail = {
+  artifactId: string;
+  input: Record<string, unknown>;
+};
+
+export const buildCompletedArtifactsByStep = async (
+  userId: string,
+  toolKey: SupportedToolWorkflow,
+  summaries: CompletedToolArtifactSummary[],
+  getArtifactDetail: (userId: string, artifactId: string) => Promise<CompletedToolArtifactDetail | null>,
+  route: string,
+  correlationId: string,
+  deadline?: GenerationRouteDeadline,
+): Promise<Record<string, string>> => {
+  const completedArtifactsByStep: Record<string, string> = {};
+  const toolArtifacts = summaries.filter(
+    (artifact) => normalizeToolWorkflowKey(artifact.workflowType) === toolKey && artifact.artifactType !== 'extraction',
+  );
+
+  for (const summary of toolArtifacts) {
+    if (deadline) {
+      assertGenerationRouteDeadline(deadline, route, correlationId);
+    }
+
+    const detail = await getArtifactDetail(userId, summary.artifactId);
+    if (!detail) {
+      continue;
+    }
+
+    const step = extractStepFromArtifactInput(detail.input);
+    if (step && !(step in completedArtifactsByStep)) {
+      completedArtifactsByStep[step] = detail.artifactId;
+    }
+  }
+
+  return completedArtifactsByStep;
 };
 
 /**

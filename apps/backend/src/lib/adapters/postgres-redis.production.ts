@@ -51,7 +51,11 @@ import type {
   RedisQuotaRepository,
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
-import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
+import {
+  normalizeStepKey,
+  normalizeToolWorkflowKey,
+  resolveToolStepArtifactRole,
+} from '../runtime/workflow-normalizers';
 
 const nowDate = (runtime?: ProductionAdapterRuntime): Date =>
   runtime?.now?.() ?? new Date();
@@ -137,10 +141,7 @@ const normalizeToolWorkflowInputJson = (
   workflowType: string | null,
 ): Record<string, unknown> => {
   const base = inputJson ?? {};
-  const rawWorkflowType = (workflowType ?? '').trim().toLowerCase();
-  const normalizedWorkflowType = rawWorkflowType === 'youtube_lf_script'
-    ? 'youtube-lf-script'
-    : rawWorkflowType;
+  const normalizedWorkflowType = normalizeToolWorkflowKey(workflowType);
   if (
     normalizedWorkflowType !== 'funnel-pages'
     && normalizedWorkflowType !== 'nextland'
@@ -149,7 +150,7 @@ const normalizeToolWorkflowInputJson = (
     return base;
   }
 
-  const inputStep = typeof base.step === 'string' ? base.step.trim() : '';
+  const inputStep = normalizeStepKey(base.step);
   const toolWorkflow =
     base.toolWorkflow && typeof base.toolWorkflow === 'object' && !Array.isArray(base.toolWorkflow)
       ? { ...(base.toolWorkflow as Record<string, unknown>) }
@@ -159,25 +160,12 @@ const normalizeToolWorkflowInputJson = (
     ? base.stepDependencyArtifactIds.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
     : [];
 
-  const currentStep = typeof toolWorkflow.stepKey === 'string' && toolWorkflow.stepKey.trim().length > 0
-    ? toolWorkflow.stepKey
-    : inputStep || null;
-
-  const artifactRole = (() => {
-    if (toolWorkflow.artifactRole === 'step' || toolWorkflow.artifactRole === 'final') {
-      return toolWorkflow.artifactRole;
-    }
-
-    if (normalizedWorkflowType === 'funnel-pages') {
-      return currentStep === 'vsl' ? 'final' : 'step';
-    }
-
-    if (normalizedWorkflowType === 'nextland') {
-      return currentStep === 'thank_you' ? 'final' : 'step';
-    }
-
-    return currentStep === 'outro-structure' ? 'final' : 'step';
-  })();
+  const currentStep = normalizeStepKey(toolWorkflow.stepKey) ?? inputStep ?? null;
+  const artifactRole = resolveToolStepArtifactRole(
+    normalizedWorkflowType,
+    currentStep,
+    toolWorkflow.artifactRole,
+  ) ?? 'step';
 
   return {
     ...base,

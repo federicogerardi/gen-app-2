@@ -225,6 +225,22 @@ const YOUTUBE_PACKAGING_ARTIFACT: StubArtifactQueryRecord = {
   updatedAt: '2026-05-04T09:15:00.000Z',
 };
 
+const NEXTLAND_LANDING_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-nextland-landing-001',
+  requestId: 'req-nextland-landing-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'nextland',
+  input: { toolWorkflow: { stepKey: 'landing' }, step: 'landing' },
+  content: '{"landing":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:00:00.000Z',
+  updatedAt: '2026-05-04T09:05:00.000Z',
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -395,6 +411,30 @@ test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies',
   assert.deepEqual(orch.dependencyArtifactIdsByStep, {
     'pre-script-analysis': 'art-youtube-pre-script-analysis-001',
     packaging: 'art-youtube-packaging-001',
+  });
+});
+
+test('/api/tools/orchestrate resolves canonical nextland dependencies', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...NEXTLAND_LANDING_ARTIFACT, projectId }]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'nextland',
+    targetStep: 'thank_you',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.equal(orch.toolKey, 'nextland');
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-nextland-landing-001']);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    landing: 'art-nextland-landing-001',
   });
 });
 

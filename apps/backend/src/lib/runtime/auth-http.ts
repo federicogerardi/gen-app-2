@@ -36,9 +36,15 @@ import { BriefParseError, parseBriefInput } from './brief-parser';
 import {
   isSupportedToolWorkflow,
   resolveStepDependencyIds,
+  buildCompletedArtifactsByStep,
   extractStepFromArtifactInput,
   TOOL_WORKFLOW_REGISTRY,
 } from './tool-workflow-registry';
+import {
+  GenerationRoutePipelineError,
+  createGenerationRouteDeadline,
+  runGenerationRoutePipeline,
+} from './generation-route-pipeline';
 import { SessionQueryAdapter } from '../adapters/session-query.adapter';
 import type { SessionListEntry } from '../adapters/session-query.adapter';
 import {
@@ -1336,39 +1342,51 @@ export const createAuthHttpRuntime = (
       return;
     }
 
-    // Query all completed artifacts for this user+project, filter by workflowType in memory.
-    const allCompleted = await queries.artifacts.listArtifactsByUser(principal.user.id, {
-      projectId,
-      status: 'completed',
-    });
+    const correlationId = `orchestrate:${randomUUID()}`;
+    const route = '/api/tools/orchestrate';
+    const deadline = createGenerationRouteDeadline(1500);
 
-    const toolArtifacts = allCompleted.filter(
-      (a) => normalizeToolWorkflowKey(a.workflowType) === toolKey && a.artifactType !== 'extraction',
-    );
+    let stepDependencyArtifactIds: string[] = [];
+    let dependencyArtifactIdsByStep: Record<string, string> = {};
 
-    // Fetch details to extract step keys (N+1 acceptable: max 3–5 artifacts per tool).
-    const completedArtifactsByStep: Record<string, string> = {};
-    for (const summary of toolArtifacts) {
-      const detail = await queries.artifacts.getArtifactByIdForUser(
-        principal.user.id,
-        summary.artifactId,
-      );
-      if (!detail) {
-        continue;
+    try {
+      ({ stepDependencyArtifactIds, dependencyArtifactIdsByStep } = await runGenerationRoutePipeline(
+        route,
+        correlationId,
+        async () => {
+          const allCompleted = await queries.artifacts.listArtifactsByUser(principal.user.id, {
+            projectId,
+            status: 'completed',
+          });
+
+          const completedArtifactsByStep = await buildCompletedArtifactsByStep(
+            principal.user.id,
+            toolKey,
+            allCompleted,
+            async (userId, artifactId) => {
+              return queries.artifacts.getArtifactByIdForUser(userId, artifactId);
+            },
+            route,
+            correlationId,
+            deadline,
+          );
+
+          return resolveStepDependencyIds(
+            toolKey,
+            targetStep,
+            completedArtifactsByStep,
+          );
+        },
+      ));
+    } catch (error) {
+      if (error instanceof GenerationRoutePipelineError && error.code === 'deadline_exceeded') {
+        writeError(response, 503, 'service_unavailable', 'Tools orchestration timeout');
+        return;
       }
 
-      const step = extractStepFromArtifactInput(detail.input);
-      if (step && !(step in completedArtifactsByStep)) {
-        // Keep the most recent artifact per step (list is ordered updated_at DESC).
-        completedArtifactsByStep[step] = detail.artifactId;
-      }
+      writeError(response, 500, 'internal', 'Failed to orchestrate tool dependencies');
+      return;
     }
-
-    const { stepDependencyArtifactIds, dependencyArtifactIdsByStep } = resolveStepDependencyIds(
-      toolKey,
-      targetStep,
-      completedArtifactsByStep,
-    );
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, {

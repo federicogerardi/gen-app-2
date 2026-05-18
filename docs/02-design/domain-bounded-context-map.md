@@ -1,7 +1,7 @@
 ---
 status: active
-version: 1.8
-last-reviewed: 2026-05-07
+version: 1.9
+last-reviewed: 2026-05-18
 next-review-date: 2026-08-03
 owner: Domain Architecture
 ---
@@ -32,9 +32,9 @@ owner: Domain Architecture
 **Aggregate Root**: `GenerationSystem`  
 **Key Actors (XState machines)**:
 - `generationSystemMachine` — top-level orchestrator
-- `requestGatewayMachine` — models the intended guard sequence (auth → ownership → modelCheck → usage) but is currently **orphaned**: exported from `machines/index.ts` but not wired into `generationSystemMachine` or any generation entrypoint (see architecture gap below). Wiring or replacement is tracked in the hardening plan (TASK-002).
+- `requestGatewayMachine` — reference model for guard sequencing (auth → ownership → modelCheck → usage). Runtime entrypoints enforce this sequence through route-level guards and shared generation route pipeline before generation execution.
 - `idempotencyCoordinatorMachine` — deduplication; wired as first step of `preGenerationGuards` inside `generationSystemMachine`
-- `usageMachine` — quota claim; wired as second step of `preGenerationGuards`, invoked after idempotency is resolved
+- `usageMachine` — quota claim; wired after `ownershipCheck` in `preGenerationGuards`, invoked only when idempotency and ownership checks succeed
 - `streamTransportMachine` — SSE stream session
 - `persistenceBatchMachine` — artifact persistence
 - `toolWorkflowMachine` — multi-step tool orchestration; owns `WorkflowStep` lifecycle (descriptor + runtime state) and emits per-step `BackendStreamEvent`
@@ -46,9 +46,9 @@ owner: Domain Architecture
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 
-**Architecture gap (pre TASK-002)**: The `preGenerationGuards` compound state in `generationSystemMachine` currently executes `idempotency → usage` with no ownership check. This violates SEC-001 (no quota mutation before ownership validation). The intended sequence — enforced by `requestGatewayMachine` model but not yet wired — is `idempotency → ownershipCheck → usage`. TASK-002 must add an `ownershipCheck` state to `preGenerationGuards` and introduce `OwnershipAdapter` in `generation.adapters.ts`.
+**Guard sequence (runtime truth)**: The `preGenerationGuards` compound state in `generationSystemMachine` executes `idempotency → ownershipCheck → usage`. Route entrypoints (`/generation/stream`, `/api/tools/orchestrate`) enforce Authentication and Ownership checks before execution; generation stream paths also apply model availability guard before usage claim.
 
-**Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. Per REQ-001, the correct guard sequence at generation entrypoints is Authentication → Ownership → Model Availability → Usage Guards; as of 2026-05-18 the ownership step is absent from `preGenerationGuards` and is pending TASK-002.
+**Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. Guard sequence at generation entrypoints is Authentication → Ownership → Model Availability → Usage Guards; no quota mutation occurs for ownership failures.
 
 ---
 
@@ -140,7 +140,7 @@ owner: Domain Architecture
 | Regenerate stale downstream policy | Frontend/UI ↔ Generation | When a non-terminal step is regenerated, downstream artifacts remain stored and readable but must be marked `stale` and cannot be finalized until recomputed in canonical order. | DDD-045 |
 | `WorkflowStep` / `ToolStep` step-recognizability | Generation → Frontend/UI | Frontend-selected `ToolStep` must map to backend `WorkflowStep` execution with deterministic dependency order. Each emitted `Artifact` must remain step-recognizable in history (e.g., `optin`, `quiz`, `vsl`) to preserve linear UX progression and unambiguous relaunch intent. | DDD-004, DDD-020 |
 | `ArtifactRelaunch` default runtime intent | Frontend/UI → Generation | Artifact-driven relaunch entries must default to `WorkflowRunMode = regenerate`. In relaunch-init (`prefilled-regenerate`), the effective post-hydration primary action is `regenerate-current-step`; `start-generation` is reserved for `intent='new'` first-time generation. No secondary relaunch entry concept is permitted. | DDD-020 |
-| `ToolStepOrchestration` target pattern | Generation ↔ Frontend/UI | Step dependency resolution at dispatch time must route through `resolveStepDependencyIds` (BE) via `/api/tools/orchestrate` endpoint. FE `orchestrateToolStep` (`tools-client.ts:339`) is the intended adapter — currently zero runtime callers (DDD-C-007). FE `getStepDependencies` is the current production implementation but is flagged as architecture drift. Resolution: see DDD-031 (provisional term `ToolStepOrchestration`). | DDD-031, DDD-C-007 |
+| `ToolStepOrchestration` target pattern | Generation ↔ Frontend/UI | Step dependency resolution at dispatch time routes through `resolveStepDependencyIds` (BE) via `/api/tools/orchestrate` endpoint. FE dispatch path uses `orchestrateToolStep` in `useToolPageRunController` before emitting generation requests; dependency artifact IDs are injected into `GenerationRequest` per target step. | DDD-031, DDD-C-007 |
 | `WorkflowStepUnlocked` / `WorkflowStepCompleted` (internal progression) | Generation | Generation (internal) | Internal domain events in `toolWorkflowMachine` that represent step state progression: unlock signals dependency satisfaction; completion signals step output ready and unblocks dependents. Do not cross process boundary. Fundamental to multi-step deterministic execution. See DDD-035, DDD-036. | DDD-035, DDD-036 |
 | Frontend route namespace separation (`artifacts` vs `sessionsummary`) | Frontend/UI ↔ Generation | Route ownership must be deterministic: non-aggregated artifact history and single generation detail stay under `/artifacts` and `/artifacts/{artifactId}`; session aggregate navigation stays under `/sessionsummary` and `/sessionsummary/{sessionId}`. Backend endpoint contracts remain `/api/artifacts` for artifact history/detail and `/api/tools/sessions` (+ detail endpoints) for session aggregates. Transitional overload `/artifacts/{sessionId}` is deprecated and must not be promoted. | DDD-052 |
 | `LlmModelCatalog` admin CRUD role gate | Frontend/UI → Generation | Write operations on `LlmModelCatalog` (`POST/PUT/DELETE /api/admin/models`) require `AuthUserRole = 'admin'`. Read operations (`GET /api/models`) return `enabled` entries only for all authenticated users. Frontend `LlmModelSelector` must fall back to default `LlmModelId` (`openrouter/auto`) when the catalog endpoint is unavailable. | DDD-053, DDD-055, DDD-057 |

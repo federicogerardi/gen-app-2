@@ -1364,7 +1364,7 @@ export const createAuthHttpRuntime = (
 
     const correlationId = `orchestrate:${randomUUID()}`;
     const route = '/api/tools/orchestrate';
-    const deadline = createGenerationRouteDeadline(1500);
+    const deadline = createGenerationRouteDeadline(3000);
     const idempotencyInput = buildToolsOrchestrateIdempotencyInput({
       requestId: body.requestId,
       userId: principal.user.id,

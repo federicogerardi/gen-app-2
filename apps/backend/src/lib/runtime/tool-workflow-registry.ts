@@ -19,7 +19,7 @@ import {
   assertGenerationRouteDeadline,
   type GenerationRouteDeadline,
 } from './generation-route-pipeline';
-import { normalizeToolWorkflowKey } from './workflow-normalizers';
+import { normalizeStepKey, normalizeToolWorkflowKey } from './workflow-normalizers';
 
 export const isSupportedToolWorkflow = isToolKey;
 
@@ -111,6 +111,7 @@ export type CompletedToolArtifactSummary = {
   artifactId: string;
   workflowType: string | null;
   artifactType: string;
+  stepKey?: string | null;
 };
 
 export type CompletedToolArtifactDetail = {
@@ -135,6 +136,12 @@ export const buildCompletedArtifactsByStep = async (
   for (const summary of toolArtifacts) {
     if (deadline) {
       assertGenerationRouteDeadline(deadline, route, correlationId);
+    }
+
+    const summaryStepKey = normalizeStepKey(summary.stepKey);
+    if (summaryStepKey && !(summaryStepKey in completedArtifactsByStep)) {
+      completedArtifactsByStep[summaryStepKey] = summary.artifactId;
+      continue;
     }
 
     const detail = await getArtifactDetail(userId, summary.artifactId);

@@ -44,13 +44,54 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Audit `apps/backend/src/lib/runtime/auth-http.ts` focusing on the `createAuthHttpRuntime` factory function body (lines `:417–2744`), which contains all handler implementations as inline closures. Identify every handler closure by domain context (Auth, Admin, Projects, Tools, Generation) and produce a mapping: `closure_name → bounded_context → target_file` before moving any code. Lines `:1–416` contain only type declarations and utility helpers shared across handlers; do not move these. | | |
-| TASK-002 | Extract all **Auth** handler implementations (login, logout, session, OAuth callback, CSRF, token refresh) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts`. Update the existing `AdminHandlers` / handler type declarations if needed. | | |
-| TASK-003 | Extract all **Admin** handler implementations (models CRUD, changelog, user reports, user management) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts`. Ensure the `AdminHandlers` type already declared at line `:1` of that file is fully implemented here. | | |
-| TASK-004 | Extract all **Projects** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts`. The existing type stub at `projects-handlers.ts:34` must be fully implemented. | | |
-| TASK-005 | Extract all **Tools/Generation** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts`. The existing type stub at `tools-handlers.ts:22` must be fully implemented. | | |
-| TASK-006 | Reduce `apps/backend/src/lib/runtime/auth-http.ts` to only: (a) route matching/dispatch logic (lines `:2750–3017`), (b) imports from the new handler files, and (c) the factory function that wires dependencies. Target ≤ 400 LOC. | | |
-| TASK-007 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests (`npm test --workspace apps/backend`). | | |
+| TASK-001 | Audit `apps/backend/src/lib/runtime/auth-http.ts` focusing on the `createAuthHttpRuntime` factory function body (lines `:417–2744`), which contains all handler implementations as inline closures. Identify every handler closure by domain context (Auth, Admin, Projects, Tools, Generation) and produce a mapping: `closure_name → bounded_context → target_file` before moving any code. Lines `:1–416` contain only type declarations and utility helpers shared across handlers; do not move these. | ✅ | 2026-05-18 |
+| TASK-002 | Extract all **Auth** handler implementations (login, logout, session, OAuth callback, CSRF, token refresh) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts`. Update the existing `AdminHandlers` / handler type declarations if needed. | ✅ | 2026-05-18 |
+| TASK-003 | Extract all **Admin** handler implementations (models CRUD, changelog, user reports, user management) from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts`. Ensure the `AdminHandlers` type already declared at line `:1` of that file is fully implemented here. | ✅ | 2026-05-18 |
+| TASK-004 | Extract all **Projects** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts`. The existing type stub at `projects-handlers.ts:34` must be fully implemented. | ✅ | 2026-05-18 |
+| TASK-005 | Extract all **Tools/Generation** handler implementations from `auth-http.ts` into `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts`. The existing type stub at `tools-handlers.ts:22` must be fully implemented. | ✅ | 2026-05-18 |
+| TASK-006 | Reduce `apps/backend/src/lib/runtime/auth-http.ts` to only: (a) route matching/dispatch logic (lines `:2750–3017`), (b) imports from the new handler files, and (c) the factory function that wires dependencies. Target ≤ 400 LOC. | ✅ | 2026-05-18 |
+| TASK-007 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests (`npm test --workspace apps/backend`). | ✅ | 2026-05-18 |
+
+#### TASK-001 Audit Output — `closure_name → bounded_context → target_file`
+
+| Closure name | Bounded context | Target file |
+|---|---|---|
+| `handleLogin` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleLogout` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleSession` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleGoogleOAuthStart` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleGoogleOAuthCallback` | Auth | `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts` |
+| `handleProjectsList` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleProjectsCreate` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleProjectById` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactsList` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactById` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleArtifactDownload` | Projects | `apps/backend/src/lib/runtime/auth-http/projects-handlers.ts` |
+| `handleToolsBriefUpload` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsHydrate` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsOrchestrate` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionsList` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionArtifacts` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionStepArtifact` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleToolsSessionDownload` | Generation | `apps/backend/src/lib/runtime/auth-http/tools-handlers.ts` |
+| `handleModelsList` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsList` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsCreate` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsUpdate` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminModelsDelete` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleCreateUserReport` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleListPublishedChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminCreateChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminArchiveChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListChangelog` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListUserReports` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminUpdateUserReport` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminPublishUserReportIssue` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminListUsers` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminCreateUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminGetUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminUpdateUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
+| `handleAdminDeleteUser` | Admin | `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts` |
 
 **Completion criteria**: `auth-http.ts` ≤ 400 LOC; `tsc` passes; all tests green.
 
@@ -62,12 +103,12 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-008 | Audit `generation-system.machine.ts` lines `:300–414+` and identify the three responsibility clusters: (a) metadata/routing resolution, (b) fallback/retry logic, (c) persistence preparation. Map each cluster to a proposed extraction target file path under `apps/backend/src/lib/machines/`. | | |
-| TASK-009 | Extract metadata/routing resolution logic (lines `:300–412`) into a pure function module at `apps/backend/src/lib/machines/generation-routing.ts`. The function must be deterministic and have no side effects. | | |
-| TASK-010 | Extract fallback and retry policy logic (lines `:414+`) into a dedicated XState v5 sub-actor at `apps/backend/src/lib/machines/generation-fallback.actor.ts` using `setup().createMachine()`. Wire it into the parent machine via `invoke` or `spawnChild`. | | |
-| TASK-011 | Extract persistence preparation logic into `apps/backend/src/lib/machines/generation-persistence.ts`. This module prepares the artifact payload; it must not perform DB writes directly. | | |
-| TASK-012 | Update `generation-system.machine.ts` to delegate to the new sub-actor and helper modules. Target ≤ 400 LOC for the top-level machine file. | | |
-| TASK-013 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests. | | |
+| TASK-008 | Audit `generation-system.machine.ts` lines `:300–414+` and identify the three responsibility clusters: (a) metadata/routing resolution, (b) fallback/retry logic, (c) persistence preparation. Map each cluster to a proposed extraction target file path under `apps/backend/src/lib/machines/`. | ✅ | 2026-05-18 |
+| TASK-009 | Extract metadata/routing resolution logic (lines `:300–412`) into a pure function module at `apps/backend/src/lib/machines/generation-routing.ts`. The function must be deterministic and have no side effects. | ✅ | 2026-05-18 |
+| TASK-010 | Extract fallback and retry policy logic (lines `:414+`) into a dedicated XState v5 sub-actor at `apps/backend/src/lib/machines/generation-fallback.actor.ts` using `setup().createMachine()`. Wire it into the parent machine via `invoke` or `spawnChild`. | ✅ | 2026-05-18 |
+| TASK-011 | Extract persistence preparation logic into `apps/backend/src/lib/machines/generation-persistence.ts`. This module prepares the artifact payload; it must not perform DB writes directly. | ✅ | 2026-05-18 |
+| TASK-012 | Update `generation-system.machine.ts` to delegate to the new sub-actor and helper modules. Target ≤ 400 LOC for the top-level machine file. | ✅ | 2026-05-18 |
+| TASK-013 | Run `tsc --noEmit` in `apps/backend/` and confirm zero errors. Run all backend tests. | ✅ | 2026-05-18 |
 
 **Completion criteria**: `generation-system.machine.ts` ≤ 400 LOC; `tsc` passes; all tests green.
 
@@ -79,13 +120,22 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Audit `apps/frontend/src/features/tools/machines/tool-page.machine.ts` and identify state clusters (e.g., briefing upload, generation lifecycle, hydration/resume, error handling). Map each cluster to a proposed sub-machine or helper actor file path. | | |
-| TASK-015 | Extract the briefing upload/extraction state cluster from `tool-page.machine.ts` into a dedicated sub-machine at `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`. | | |
-| TASK-016 | Extract the generation lifecycle state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts`. | | |
-| TASK-017 | Extract the hydration/resume state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/hydration.machine.ts`. | | |
-| TASK-018 | Reduce `useToolPageRunController.ts` (615 LOC) by moving pure selector/derived-state logic into a dedicated helper module at `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`. Hook must not exceed 250 LOC after extraction. | | |
-| TASK-019 | Reduce `useToolPage.ts` (448 LOC) by moving actor wiring and context derivation into `apps/frontend/src/features/tools/runtime/tool-page-context.ts`. Hook must not exceed 200 LOC after extraction. | | |
-| TASK-020 | Run `tsc --noEmit` in `apps/frontend/` and confirm zero errors. Run frontend unit tests (`npm test --workspace apps/frontend`). | | |
+| TASK-014 | Audit `apps/frontend/src/features/tools/machines/tool-page.machine.ts` and identify state clusters (e.g., briefing upload, generation lifecycle, hydration/resume, error handling). Map each cluster to a proposed sub-machine or helper actor file path. | ✅ | 2026-05-18 |
+| TASK-015 | Extract the briefing upload/extraction state cluster from `tool-page.machine.ts` into a dedicated sub-machine at `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-016 | Extract the generation lifecycle state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-017 | Extract the hydration/resume state cluster from `tool-page.machine.ts` into `apps/frontend/src/features/tools/machines/hydration.machine.ts`. | ✅ | 2026-05-18 |
+| TASK-018 | Reduce `useToolPageRunController.ts` (615 LOC) by moving pure selector/derived-state logic into a dedicated helper module at `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`. Hook must not exceed 250 LOC after extraction. | ✅ | 2026-05-18 |
+| TASK-019 | Reduce `useToolPage.ts` (448 LOC) by moving actor wiring and context derivation into `apps/frontend/src/features/tools/runtime/tool-page-context.ts`. Hook must not exceed 200 LOC after extraction. | ✅ | 2026-05-18 |
+| TASK-020 | Run `tsc --noEmit` in `apps/frontend/` and confirm zero errors. Run frontend unit tests (`npm test --workspace apps/frontend`). | ✅ | 2026-05-18 |
+
+#### TASK-014 Audit Output — `cluster → proposed extraction target`
+
+| State/logic cluster | Current anchors in `tool-page.machine.ts` | Proposed extraction target |
+|---|---|---|
+| Briefing upload/extraction orchestration | `configuring` handlers for `BRIEFING_FILE_SELECTED` / `BRIEFING_RESET`, `spawnBriefingActor`, `sendBriefingSelected`, `sendBriefingReset`, readiness bridge via `deriveHasExtractionContext` | `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts` (sub-machine reuse as canonical briefing lifecycle owner) |
+| Generation lifecycle orchestration | `generating` state, `REQUEST_STEP_START` gating, `startToolFlow`, `cancelToolFlow`, `forwardStepDone`, `forwardStepFailed`, `forwardRetryStep`, `INTERNAL_CANCELLED` path | `apps/frontend/src/features/tools/machines/generation-lifecycle.machine.ts` |
+| Hydration/resume orchestration | `HydrationResult`/`PendingHydration`, `HYDRATE_REQUESTED`, `hydrating` state, `hydrateExtractionContextActor` (local artifact resolution + `/api/tools/hydrate` fallback), `onDone`/`onError` transitions | `apps/frontend/src/features/tools/machines/hydration.machine.ts` |
+| Readiness/view-model/error policy | `buildReadinessSnapshot`, `buildToolPageViewModel`, `resolveFlowProgressState`, `setGenerationError`, `hydrationError` projection, policy derivation helpers | `apps/frontend/src/features/tools/machines/tool-page-view-model.ts` (pure helper module) |
 
 **Completion criteria**: Each individual file ≤ 400 LOC; `tsc` passes; all frontend tests green.
 
@@ -97,10 +147,10 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-021 | In `apps/backend/src/server.ts` lines `:105–111`, change the `catch` block of `isModelKeyAvailable` so that on DB error it returns `false` (fail closed) instead of `true`. Update the `console.warn` message to reflect `fallback=deny`. | | |
-| TASK-022 | In `apps/backend/src/lib/runtime/node-server.ts` lines `:54–57`, make `checkModelAvailability` a required parameter (not optional). Remove the legacy permissive fallback comment from the JSDoc in `apps/backend/src/lib/types/xstate.ts` or tighten the `RegistryBackedWorkflowType` open union. | | |
-| TASK-023 | In `apps/frontend/src/features/tools/runtime/models-client.ts` lines `:58–60`, replace the silent `return []` catch with a thrown error or a structured error value (`{ error: true, models: [] }`). Update callers in `useToolPage.ts:206–208` and `useToolPageRunController.ts:270` to handle the error state explicitly instead of silently degrading. | | |
-| TASK-024 | Run `tsc --noEmit` in both `apps/backend/` and `apps/frontend/`. Run all tests. Verify the model-unavailable code path returns HTTP 422/503 (not 200) when the DB is unreachable. | | |
+| TASK-021 | In `apps/backend/src/server.ts` lines `:105–111`, change the `catch` block of `isModelKeyAvailable` so that on DB error it returns `false` (fail closed) instead of `true`. Update the `console.warn` message to reflect `fallback=deny`. | ✅ | 2026-05-18 |
+| TASK-022 | In `apps/backend/src/lib/runtime/node-server.ts` lines `:54–57`, make `checkModelAvailability` a required parameter (not optional). Remove the legacy permissive fallback comment from the JSDoc in `apps/backend/src/lib/types/xstate.ts` or tighten the `RegistryBackedWorkflowType` open union. | ✅ | 2026-05-18 |
+| TASK-023 | In `apps/frontend/src/features/tools/runtime/models-client.ts` lines `:58–60`, replace the silent `return []` catch with a thrown error or a structured error value (`{ error: true, models: [] }`). Update callers in `useToolPage.ts:206–208` and `useToolPageRunController.ts:270` to handle the error state explicitly instead of silently degrading. | ✅ | 2026-05-18 |
+| TASK-024 | Run `tsc --noEmit` in both `apps/backend/` and `apps/frontend/`. Run all tests. Verify the model-unavailable code path returns HTTP 422/503 (not 200) when the DB is unreachable. | ✅ | 2026-05-18 |
 
 **Completion criteria**: `isModelKeyAvailable` catch returns `false`; `models-client.ts` no longer swallows errors silently; all tests green.
 
@@ -112,11 +162,24 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-025 | Audit all `import(...)` type expressions in `packages/contracts/src/parity.guard.ts`. The cross-boundary violations span the full file — confirmed groups: `:22–23` (ArtifactType), `:45–46` (OutputFormat), `:68–69` (GenerationRequest), `:91–92` (BackendStreamEvent), `:113–115` (ProductChangelogStatus), `:132–134` (UserReportCategory), `:151–153` (UserReportStatus), `:171–172+` (ProductChangelogDto, and any further types). List every import path that crosses into `apps/backend/` or `apps/frontend/` — do not assume the list ends at line `:92`. | | |
-| TASK-026 | For each cross-boundary import identified in TASK-025, inline the referenced type literal directly into `packages/contracts/src/index.ts` as a canonical type export. Confirmed types requiring promotion: `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`. Verify the full list from TASK-025 before starting. The canonical contract package becomes the sole source of truth for all these types. | | |
-| TASK-027 | Rewrite `parity.guard.ts` to perform structural parity checks only against types exported from `packages/contracts/src/index.ts`. Remove all `import(../../../apps/...)` statements. | | |
-| TASK-028 | Consolidate the dual parity-guard strategy: remove `apps/frontend/src/features/generation/contracts/backend-stream.parity.guard.ts` and replace its checks with an import of the canonical parity guard from `packages/contracts`. Update any imports of the removed file. | | |
-| TASK-029 | Run `tsc --noEmit` in `packages/contracts/`, `apps/backend/`, and `apps/frontend/`. Confirm zero errors and zero cross-boundary imports from `packages/contracts`. | | |
+| TASK-025 | Audit all `import(...)` type expressions in `packages/contracts/src/parity.guard.ts`. The cross-boundary violations span the full file — confirmed groups: `:22–23` (ArtifactType), `:45–46` (OutputFormat), `:68–69` (GenerationRequest), `:91–92` (BackendStreamEvent), `:113–115` (ProductChangelogStatus), `:132–134` (UserReportCategory), `:151–153` (UserReportStatus), `:171–172+` (ProductChangelogDto, and any further types). List every import path that crosses into `apps/backend/` or `apps/frontend/` — do not assume the list ends at line `:92`. | ✅ | 2026-05-19 |
+| TASK-026 | For each cross-boundary import identified in TASK-025, inline the referenced type literal directly into `packages/contracts/src/index.ts` as a canonical type export. Confirmed types requiring promotion: `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`. Verify the full list from TASK-025 before starting. The canonical contract package becomes the sole source of truth for all these types. | ✅ | 2026-05-19 |
+| TASK-027 | Rewrite `parity.guard.ts` to perform structural parity checks only against types exported from `packages/contracts/src/index.ts`. Remove all `import(../../../apps/...)` statements. | ✅ | 2026-05-19 |
+| TASK-028 | Consolidate the dual parity-guard strategy: remove `apps/frontend/src/features/generation/contracts/backend-stream.parity.guard.ts` and replace its checks with an import of the canonical parity guard from `packages/contracts`. Update any imports of the removed file. | ✅ | 2026-05-19 |
+| TASK-029 | Run `tsc --noEmit` in `packages/contracts/`, `apps/backend/`, and `apps/frontend/`. Confirm zero errors and zero cross-boundary imports from `packages/contracts`. | ✅ | 2026-05-19 |
+
+#### TASK-025 Audit Output — Cross-Boundary Import Paths In `packages/contracts/src/parity.guard.ts`
+
+| Path | Target side | Used by parity blocks |
+|---|---|---|
+| `../../../apps/backend/src/lib/types/artifact` | backend | `ArtifactType`, `OutputFormat` |
+| `../../../apps/frontend/src/features/generation/contracts/backend-stream` | frontend | `ArtifactType`, `OutputFormat`, `GenerationRequest`, `BackendStreamEvent` |
+| `../../../apps/backend/src/lib/runtime/request-contract` | backend | `GenerationRequest` |
+| `../../../apps/backend/src/lib/runtime/stream-contract` | backend | `BackendStreamEvent` |
+| `../../../apps/backend/src/lib/runtime/feedback-center-contract` | backend | `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`, `UserReportDto`, `GitHubIssueLinkDto`, `CreateProductChangelogCommand`, `CreateUserReportCommand`, `UpdateUserReportStatusCommand`, `PublishUserReportIssueCommand` |
+| `../../../apps/frontend/src/features/feedback-center/contracts/feedback-center-contract` | frontend | `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `ProductChangelogDto`, `UserReportDto`, `GitHubIssueLinkDto`, `CreateProductChangelogCommand`, `CreateUserReportCommand`, `UpdateUserReportStatusCommand`, `PublishUserReportIssueCommand` |
+
+Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/contracts/src/parity.guard.ts` resolve to the six paths listed above; no additional `apps/backend` or `apps/frontend` paths are present in the file.
 
 **Completion criteria**: `packages/contracts/src/parity.guard.ts` contains zero `import(../../../apps/...)` paths; `tsc` passes across all packages; frontend parity guard consolidated to one file.
 
@@ -128,11 +191,11 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-030 | In `apps/frontend/server.mjs`, delete: (a) the comment block at lines `:177–178`, (b) the `handleDebugConnectivity` async function declaration and body at lines `:180–193`, and (c) the route dispatch branch `if (method === 'GET' && path === '/debug/connectivity')` at lines `:218–222`. Also remove the reference to `/debug/connectivity` in the inline comment block at line `:197`. | | |
-| TASK-031 | In `apps/backend/src/lib/runtime/auth-http.ts` lines `:1994–2056` (auth flow) and `:2304–2408` (report flow), downgrade all `console.info` and `console.log` statements that log request payloads, tokens, or user data to `console.debug`. Remove any statement logging raw auth tokens or session cookies entirely. | | |
-| TASK-032 | In `apps/backend/src/lib/runtime/github-issues.ts` lines `:88–172`, downgrade verbose request/response logging to `console.debug`. Remove any statement that logs GitHub API tokens or full issue body payloads. | | |
-| TASK-033 | In `apps/backend/src/lib/runtime/openrouter.adapter.ts` lines `:102–113` and `:163–170`, downgrade verbose request/response logging to `console.debug`. Ensure no API keys or bearer tokens are ever logged. | | |
-| TASK-034 | Run a grep audit: `grep -rn "console.info\|console.log" apps/backend/src/lib/runtime/` and confirm no remaining statements log security-sensitive data (tokens, keys, passwords, full request bodies in auth paths). | | |
+| TASK-030 | In `apps/frontend/server.mjs`, delete: (a) the comment block at lines `:177–178`, (b) the `handleDebugConnectivity` async function declaration and body at lines `:180–193`, and (c) the route dispatch branch `if (method === 'GET' && path === '/debug/connectivity')` at lines `:218–222`. Also remove the reference to `/debug/connectivity` in the inline comment block at line `:197`. | ✅ | 2026-05-19 |
+| TASK-031 | In `apps/backend/src/lib/runtime/auth-http.ts` lines `:1994–2056` (auth flow) and `:2304–2408` (report flow), downgrade all `console.info` and `console.log` statements that log request payloads, tokens, or user data to `console.debug`. Remove any statement logging raw auth tokens or session cookies entirely. | ✅ | 2026-05-19 |
+| TASK-032 | In `apps/backend/src/lib/runtime/github-issues.ts` lines `:88–172`, downgrade verbose request/response logging to `console.debug`. Remove any statement that logs GitHub API tokens or full issue body payloads. | ✅ | 2026-05-19 |
+| TASK-033 | In `apps/backend/src/lib/runtime/openrouter.adapter.ts` lines `:102–113` and `:163–170`, downgrade verbose request/response logging to `console.debug`. Ensure no API keys or bearer tokens are ever logged. | ✅ | 2026-05-19 |
+| TASK-034 | Run a grep audit: `grep -rn "console.info\|console.log" apps/backend/src/lib/runtime/` and confirm no remaining statements log security-sensitive data (tokens, keys, passwords, full request bodies in auth paths). | ✅ | 2026-05-19 |
 
 **Completion criteria**: `/debug/connectivity` route absent from `server.mjs`; zero `console.info`/`console.log` statements logging auth tokens or API keys in the affected files; all tests green.
 
@@ -145,10 +208,10 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
 | TASK-035 | Read `docs/07-governance/domain-naming-decision-log.md` lines `:61` (`DDD-039` provisional) and `:80` (`DDD-059` provisional). For each: determine the correct canonical term by cross-referencing `docs/01-requirements/domain-ubiquitous-language-glossary.md` and `docs/02-design/domain-bounded-context-map.md`. | ✅ | 2026-05-18 |
-| TASK-036 | Update `DDD-039` in the decision log: change status from `provisional` to `approved` and add the rationale and evidence (file path + line) that confirms the canonical term. | | |
-| TASK-037 | Update `DDD-059` in the decision log: change status from `provisional` to `approved` or `deprecated` with the same evidence format. | | |
-| TASK-038 | Read `docs/07-governance/domain-naming-decision-log.md` line `:102` (`DDD-C-005` open). Determine the decision: either approve a canonical cross-context translation rule or explicitly close it as out-of-scope. Document the decision inline. | | |
-| TASK-039 | For any term promoted from provisional → approved in TASK-036/037, verify that all usages in `apps/backend/src/`, `apps/frontend/src/`, and `packages/contracts/src/` use the canonical term. If drift is found, create a follow-up `DDD-NNN` entry and track it as a separate refactor task. | | |
+| TASK-036 | Update `DDD-039` in the decision log: change status from `provisional` to `approved` and add the rationale and evidence (file path + line) that confirms the canonical term. | ✅ | 2026-05-18 |
+| TASK-037 | Update `DDD-059` in the decision log: change status from `provisional` to `approved` or `deprecated` with the same evidence format. | ✅ | 2026-05-18 |
+| TASK-038 | Read `docs/07-governance/domain-naming-decision-log.md` line `:102` (`DDD-C-005` open). Determine the decision: either approve a canonical cross-context translation rule or explicitly close it as out-of-scope. Document the decision inline. | ✅ | 2026-05-18 |
+| TASK-039 | For any term promoted from provisional → approved in TASK-036/037, verify that all usages in `apps/backend/src/`, `apps/frontend/src/`, and `packages/contracts/src/` use the canonical term. If drift is found, create a follow-up `DDD-NNN` entry and track it as a separate refactor task. | ✅ | 2026-05-18 |
 
 **Completion criteria**: Zero entries with status `open` or `provisional` remain in `domain-naming-decision-log.md` for DDD-039, DDD-059, and DDD-C-005.
 
@@ -225,7 +288,7 @@ This plan addresses all Critical and High severity findings from [`docs/07-gover
 - **RISK-002**: The XState v5 sub-actor split for `generation-system.machine.ts` may require context shape changes that affect serialization/persistence of in-flight generation states. Mitigation: freeze context shape during refactor; only split actor topology.
 - **RISK-003**: Removing the silent `return []` in `models-client.ts` will propagate errors to callers. If callers are not updated simultaneously (TASK-023), the frontend will break. Mitigation: TASK-021–024 are a single atomic unit; do not partially apply.
 - **RISK-004**: Inlining canonical types into `packages/contracts/src/index.ts` (TASK-026) may cause type drift if backend or frontend evolve their local copies independently. Mitigation: parity guard (TASK-027) will catch drift at compile time.
-- **RISK-005**: DDD-C-005 (`open`) may require cross-team alignment before it can be closed. Mitigation: if consensus cannot be reached, close with status `deferred` and document the blocker inline.
+- **RISK-005**: DDD-C-005 was previously tracked as open and requiring cross-team alignment. Status updated to `resolved-documented` on 2026-05-18 as part of Phase 7 closure.
 - **ASSUMPTION-001**: The four handler type files in `auth-http/` (`admin-handlers.ts`, `auth-handlers.ts`, `projects-handlers.ts`, `tools-handlers.ts`) are the intended extraction targets and their type contracts accurately reflect what implementations should export.
 - **ASSUMPTION-002**: No external consumers (outside the monorepo) import directly from `packages/contracts/src/parity.guard.ts`; the file is a compile-time-only artifact.
 - **ASSUMPTION-003**: The `RegistryBackedWorkflowType` open union in `apps/backend/src/lib/types/xstate.ts:5–7` is a TypeScript escape hatch added for registry-backed tool configuration, not a structural design intent. Tightening it will not break runtime behavior if existing callers are audited.

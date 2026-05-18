@@ -33,6 +33,7 @@ const briefingMachineSeed = vi.hoisted(() => ({
 // e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
 vi.mock('../machines/briefing-upload.machine', async () => {
   const { setup } = await import('xstate');
+  const { isExtractionContextValidForTool } = await import('../machines/extraction-context-validity');
   const briefingUploadMachine = setup({
     types: {
       context: {} as {
@@ -98,7 +99,27 @@ vi.mock('../machines/briefing-upload.machine', async () => {
       },
     },
   });
-  return { briefingUploadMachine };
+  const hasReadyBriefingExtractionContext = (
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
+      extractionArtifactId: string | null;
+      extractionPayload: Record<string, unknown> | null;
+      briefingId: string | null;
+      normalizedText: string | null;
+    } } } | null,
+  ) => {
+    const snapshot = briefingActorRef?.getSnapshot?.();
+    return snapshot?.matches('ready')
+      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+      && isExtractionContextValidForTool(
+        toolKey,
+        snapshot.context.extractionPayload,
+        snapshot.context.normalizedText,
+      );
+  };
+
+  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 // Phase 4: la hydration avviene in macchina via artifacts-client locale.

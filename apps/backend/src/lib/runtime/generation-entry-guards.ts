@@ -57,10 +57,10 @@ export const applyModelAvailabilityGuard = async (
     return { allowed: true, isAvailable };
   }
 
-  writeJson(response, 400, {
+  writeJson(response, 422, {
     ok: false,
     error: {
-      code: 'bad_request',
+      code: 'unprocessable_entity',
       message: 'model_unavailable',
     },
   });

@@ -5,6 +5,37 @@ description: "Workspace-wide DDD-first operating policy: all agents must read ca
 
 # DDD-First Workspace Operating Policy
 
+## Lessons Learned: DDD-First Enforcement (2026-05-19)
+
+To prevent future code drift and costly refactoring, every phase of code writing in this workspace is subject to these mandatory DDD-first rules:
+
+1. **Define canonical terms first**
+  - Every new concept, type, parameter, or field must be registered in the DDD glossary and decision log before use in code.
+  - If a term is missing, block code writing and create the DDD entry first.
+
+2. **Use only canonical terms in code**
+  - No synonyms, abbreviations, or local variants: always reuse the exact glossary term.
+  - If a new nuance is needed, open a DDD-NNN decision and document the rationale.
+
+3. **Update documentation with code**
+  - Every change to types, parameters, or contracts must be accompanied by a patch to DDD docs (glossary, BCM, decision log).
+  - No PR/merge without updated documentation.
+
+4. **Verify consistency with automated scans**
+  - Regularly run grep/scan to detect drift between code and docs.
+  - Integrate these checks into CI/CD workflows.
+
+5. **Make cross-context translations explicit**
+  - Any naming divergence between FE/BE/DB must be deliberate, documented, and centralized (e.g., toolKey/workflowType mapping).
+  - Never leave implicit or "temporary" divergences.
+
+6. **Enforce DDD-first at team and review level**
+  - All contributors must know and apply the DDD-first policy: no shortcuts, no "fix later".
+  - Reviews must block merges that do not comply with DDD governance.
+
+**Summary:**
+Treat DDD documentation as mandatory source code and the single source of truth. This is the only way to prevent drift and avoid future refactoring for DDD alignment.
+
 ## Objective
 - Make DDD and Ubiquitous Language the **primary and mandatory** consistency reference for all agent work in this workspace.
 - This policy applies equally to source code (`src/`, `frontend/src/`), tests, configuration, and documentation.

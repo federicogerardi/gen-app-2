@@ -1,6 +1,14 @@
-import { assign, fromPromise, raise, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
+import { assign, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
-import { briefingUploadMachine } from './briefing-upload.machine';
+import { briefingUploadMachine, hasReadyBriefingExtractionContext } from './briefing-upload.machine';
+import { generationLifecycleMachine, type GenerationLifecycleOutput } from './generation-lifecycle.machine';
+import {
+  hydrationMachine,
+  type HydrationMachineOutput,
+  type HydrationResult,
+  type PendingHydration,
+  toCanonicalBriefingId,
+} from './hydration.machine';
 import { toolFlowMachine, type SupportedTool, type ToolStep, type ToolStepStatus } from './tool-flow.machine';
 import { isExtractionContextValidForTool } from './extraction-context-validity';
 import { toolStepOrder } from '../runtime/tool-generation-engine';
@@ -18,25 +26,9 @@ import {
   collectCompletedStepsBySession,
   collectCompletedStepsByTool,
   extractArtifactStep,
-  readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
 
-export type HydrationResult = {
-  extractionArtifactId: string;
-  extractionPayload: Record<string, unknown>;
-  briefingId: string;
-  briefingFileName: string | null;
-  normalizedText: string;
-  parsedFormat: 'txt' | 'md' | 'docx';
-};
-
-type PendingHydration = {
-  sourceArtifactId: string | null;
-  intent: 'new' | 'resume' | 'regenerate';
-  resolvedBriefingId: string | null;
-  sourceExtractionArtifactId: string | null;
-  localArtifacts: GenerationArtifact[];
-};
+export type { HydrationResult } from './hydration.machine';
 
 export type ToolPageProgressState = {
   completedSteps: Set<ToolStep>;
@@ -98,68 +90,41 @@ const buildReadinessSnapshot = (
   };
 };
 
-const hasCompleteHydrationResult = (hydrationResult: HydrationResult | null): hydrationResult is HydrationResult => {
-  if (hydrationResult === null) {
-    return false;
-  }
-
-  // extractionPayload is optional — old artifacts may not have stored it.
-  // normalizedText alone is sufficient to proceed with generation.
-  return hydrationResult.extractionArtifactId.trim().length > 0
-    && hydrationResult.briefingId.trim().length > 0
-    && hydrationResult.normalizedText.trim().length > 0;
-};
-
-const hasCompleteBriefingContext = (
-  toolKey: SupportedTool,
-  briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
-): boolean => {
-  const snapshot = briefingActorRef?.getSnapshot();
-  if (!snapshot?.matches('ready')) {
-    return false;
-  }
-
-  const hasCoreContext = (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
-    && (snapshot.context.briefingId?.trim().length ?? 0) > 0;
-  if (!hasCoreContext) {
-    return false;
-  }
-
-  return isExtractionContextValidForTool(
-    toolKey,
-    snapshot.context.extractionPayload,
-    snapshot.context.normalizedText,
-  );
-};
-
-const assertCompleteHydrationResult = (hydrationResult: HydrationResult): HydrationResult => {
-  if (!hasCompleteHydrationResult(hydrationResult)) {
-    console.debug('[toolPageMachine] hydrate rejected incomplete extraction context', {
-      extractionArtifactId: (hydrationResult as HydrationResult).extractionArtifactId,
-      briefingId: (hydrationResult as HydrationResult).briefingId,
-      normalizedTextLength: (hydrationResult as HydrationResult).normalizedText.trim().length,
-      extractionPayloadKeys: Object.keys((hydrationResult as HydrationResult).extractionPayload ?? {}).length,
-      parsedFormat: (hydrationResult as HydrationResult).parsedFormat,
-    });
-    throw new Error('incomplete_extraction_context');
-  }
-
-  console.debug('[toolPageMachine] hydrate accepted extraction context', {
-    extractionArtifactId: hydrationResult.extractionArtifactId,
-    briefingId: hydrationResult.briefingId,
-    normalizedTextLength: hydrationResult.normalizedText.trim().length,
-    extractionPayloadKeys: Object.keys(hydrationResult.extractionPayload ?? {}).length,
-    parsedFormat: hydrationResult.parsedFormat,
-  });
-
-  return hydrationResult;
-};
-
 const buildDefaultStepStatuses = (
   toolKey: SupportedTool,
 ): Record<ToolStep, ToolStepStatus> => {
   const entries = toolStepOrder[toolKey].map((step) => [step, 'idle'] as const);
   return Object.fromEntries(entries) as Record<ToolStep, ToolStepStatus>;
+};
+
+const readDoneEventPayload = (event: unknown): unknown => {
+  const doneEvent = event as { output?: unknown; data?: unknown; result?: unknown } | undefined;
+  return doneEvent?.output ?? doneEvent?.data ?? doneEvent?.result ?? event;
+};
+
+const readHydrationMachineOutput = (event: unknown): HydrationMachineOutput => {
+  const output = readDoneEventPayload(event);
+  if (output && typeof output === 'object' && 'status' in output) {
+    return output as HydrationMachineOutput;
+  }
+
+  if (
+    output
+    && typeof output === 'object'
+    && 'extractionArtifactId' in output
+    && 'briefingId' in output
+    && 'normalizedText' in output
+  ) {
+    return {
+      status: 'success',
+      hydration: output as HydrationResult,
+    };
+  }
+
+  return {
+    status: 'error',
+    reason: 'hydration_failed',
+  };
 };
 
 const TOOL_PAGE_MESSAGES = {
@@ -313,36 +278,6 @@ const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {
   return policy === 'start-generation' || policy === 'resume-checkpoint' || policy === 'regenerate-current-step';
 };
 
-const toNonEmptyString = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const toCanonicalBriefingId = (value: unknown): string | null => {
-  const normalized = toNonEmptyString(value);
-  if (!normalized) {
-    return null;
-  }
-
-  return normalized.startsWith('brief_') ? normalized : null;
-};
-
-const readNormalizedBriefingText = (input: Record<string, unknown> | undefined): string => {
-  if (typeof input?.briefingText === 'string' && input.briefingText.trim().length > 0) {
-    return input.briefingText;
-  }
-
-  if (typeof input?.normalizedText === 'string' && input.normalizedText.trim().length > 0) {
-    return input.normalizedText;
-  }
-
-  return '';
-};
-
 // Phase 3: readiness derivata interamente da context macchina
 const deriveHasExtractionContext = (
   toolKey: SupportedTool,
@@ -395,7 +330,7 @@ const deriveHasExtractionContext = (
     }
   }
 
-  const validBriefing = hasCompleteBriefingContext(toolKey, briefingActorRef);
+  const validBriefing = hasReadyBriefingExtractionContext(toolKey, briefingActorRef);
   if (!validBriefing) {
     const snapshot = briefingActorRef?.getSnapshot();
     logInvalidExtractionContext('[deriveHasExtractionContext] Briefing context non valido:', {
@@ -633,7 +568,6 @@ export type ToolPageEvent =
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' }
-  | { type: 'INTERNAL_CANCELLED' }
   | {
     type: 'PROGRESS_SYNCED';
     artifacts: GenerationArtifact[];
@@ -659,91 +593,8 @@ export const toolPageMachine = setup({
   actors: {
     briefingUploadMachine,
     toolFlowMachine,
-    hydrateExtractionContextActor: fromPromise(async ({ input }: {
-      input: {
-        sourceArtifactId: string | null;
-        projectId: string;
-        intent: 'new' | 'resume' | 'regenerate';
-        resolvedBriefingId: string | null;
-        sourceExtractionArtifactId: string | null;
-        localArtifacts: GenerationArtifact[];
-        apiBaseUrl: string;
-        capabilities: Partial<BackendCapabilities>;
-      };
-    }): Promise<HydrationResult> => {
-      const {
-        sourceArtifactId,
-        projectId,
-        intent,
-        resolvedBriefingId,
-        sourceExtractionArtifactId,
-        localArtifacts,
-        apiBaseUrl,
-      } = input;
-
-      // Local resolution: try to resolve from localArtifacts before hitting the network.
-      // Case 1: sourceExtractionArtifactId matches a local artifact.
-      // Case 2: sourceArtifactId is itself an extraction artifact (e.g. relaunch from extraction).
-      if (localArtifacts.length > 0) {
-        const byExtractionId = sourceExtractionArtifactId
-          ? localArtifacts.find((a) => a.artifactId === sourceExtractionArtifactId)
-          : null;
-        const bySourceAsExtraction = !byExtractionId && sourceArtifactId
-          ? localArtifacts.find((a) => a.artifactId === sourceArtifactId && a.artifactType === 'extraction')
-          : null;
-        const extractionArtifact = byExtractionId ?? bySourceAsExtraction;
-
-        if (extractionArtifact) {
-          const payload = readExtractionPayloadFromArtifact(extractionArtifact);
-          const sourceInput = extractionArtifact.sourceRequest?.input as Record<string, unknown> | undefined;
-          const normalizedText = readNormalizedBriefingText(sourceInput);
-
-          // Only use local resolution if at least one of text or payload is recoverable.
-          // Old artifacts may have neither stored locally — fall through to network in that case.
-          if (normalizedText.trim().length > 0 || Object.keys(payload).length > 0) {
-            return assertCompleteHydrationResult({
-              extractionArtifactId: extractionArtifact.artifactId,
-              extractionPayload: payload,
-              briefingId: typeof sourceInput?.briefingId === 'string'
-                ? sourceInput.briefingId
-                : (resolvedBriefingId ?? ''),
-              briefingFileName: null,
-              normalizedText,
-              parsedFormat: 'md',
-            });
-          }
-          // else: artifact found locally but has no recoverable text/payload — fall through to network
-          console.log('[toolPageMachine] local extraction artifact has no text/payload, falling through to network hydration', {
-            extractionArtifactId: extractionArtifact.artifactId,
-          });
-        }
-      }
-
-      const res = await fetch(`${apiBaseUrl}/api/tools/hydrate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          projectId,
-          ...(sourceArtifactId ? { sourceArtifactId } : {}),
-          ...(resolvedBriefingId ? { resolvedBriefingId } : {}),
-          ...(sourceExtractionArtifactId ? { sourceExtractionArtifactId } : {}),
-          intent,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({})) as { error?: { code?: string; message?: string } };
-        // Use message as domain error code when available (BE sends snake_case codes as message)
-        throw new Error(errData?.error?.message ?? errData?.error?.code ?? 'hydration_failed');
-      }
-
-      const resData = await res.json() as { ok: boolean; data: { hydration: HydrationResult } };
-      return assertCompleteHydrationResult({
-        ...resData.data.hydration,
-        briefingFileName: null,
-      });
-    }),
+    generationLifecycleMachine,
+    hydrationMachine,
   },
   guards: {
     canStartGeneration: ({ context }) => {
@@ -916,17 +767,16 @@ export const toolPageMachine = setup({
         : { type: 'RESET' }),
     ),
     sendBriefingReset: sendTo('briefingActor', { type: 'RESET' }),
-    startToolFlow: sendTo('toolFlowActor', { type: 'START' }),
-    cancelToolFlow: sendTo('toolFlowActor', { type: 'RESET' }),
-    forwardStepDone: sendTo(
-      'toolFlowActor',
-      ({ event }) => (event.type === 'STEP_DONE' ? event : { type: 'START' }),
+    sendGenerationLifecycleStepDone: sendTo(
+      'generationLifecycleActor',
+      ({ event }) => (event.type === 'STEP_DONE' ? event : { type: 'CANCEL' }),
     ),
-    forwardStepFailed: sendTo(
-      'toolFlowActor',
-      ({ event }) => (event.type === 'STEP_FAILED' ? event : { type: 'START' }),
+    sendGenerationLifecycleStepFailed: sendTo(
+      'generationLifecycleActor',
+      ({ event }) => (event.type === 'STEP_FAILED' ? event : { type: 'CANCEL' }),
     ),
-    forwardRetryStep: sendTo('toolFlowActor', { type: 'RETRY_STEP' }),
+    sendGenerationLifecycleRetryStep: sendTo('generationLifecycleActor', { type: 'RETRY_STEP' }),
+    cancelGenerationLifecycle: sendTo('generationLifecycleActor', { type: 'CANCEL' }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -1020,73 +870,84 @@ export const toolPageMachine = setup({
     },
     hydrating: {
       invoke: {
-        id: 'hydrateActor',
-        src: 'hydrateExtractionContextActor',
+        id: 'hydrationActor',
+        src: 'hydrationMachine',
         input: ({ context }) => ({
-          sourceArtifactId: context.pendingHydration?.sourceArtifactId ?? null,
+          request: {
+            sourceArtifactId: context.pendingHydration?.sourceArtifactId ?? null,
+            intent: context.pendingHydration?.intent ?? 'new',
+            resolvedBriefingId: context.pendingHydration?.resolvedBriefingId ?? null,
+            sourceExtractionArtifactId: context.pendingHydration?.sourceExtractionArtifactId ?? null,
+            localArtifacts: context.pendingHydration?.localArtifacts ?? [],
+          },
           projectId: context.projectId,
-          intent: context.pendingHydration?.intent ?? 'new',
-          resolvedBriefingId: context.pendingHydration?.resolvedBriefingId ?? null,
-          sourceExtractionArtifactId: context.pendingHydration?.sourceExtractionArtifactId ?? null,
-          localArtifacts: context.pendingHydration?.localArtifacts ?? [],
           apiBaseUrl: context.apiBaseUrl,
           capabilities: context.capabilities,
         }),
-        onDone: {
-          target: 'configuring',
-          actions: [
-            assign(({ context, event }) => {
-              const hydrationResult = event.output as HydrationResult;
-              const intent = context.pendingHydration?.intent ?? 'new';
-              // Ricalcola readiness immediatamente: hydrationResult è ora non-null.
-              const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
-              const readiness = buildReadinessSnapshot(context.projectId, true, hasPrimaryTargetStep);
+        onDone: [
+          {
+            guard: ({ event }) => readHydrationMachineOutput(event).status === 'success',
+            target: 'configuring',
+            actions: [
+              assign(({ context, event }) => {
+                const output = readHydrationMachineOutput(event);
+                const hydrationResult = output.status === 'success' ? output.hydration : null;
+                const intent = context.pendingHydration?.intent ?? 'new';
+                const hasPrimaryTargetStep = deriveHasPrimaryTargetStep(context.toolKey);
+                const readiness = buildReadinessSnapshot(context.projectId, true, hasPrimaryTargetStep);
+                return {
+                  hydrationResult,
+                  hydrationError: null,
+                  pendingHydration: null,
+                  readiness,
+                  viewModel: buildToolPageViewModel({
+                    toolKey: context.toolKey,
+                    intent,
+                    readiness,
+                    progress: context.progress,
+                    generationError: context.generationError,
+                  }),
+                };
+              }),
+              sendTo('briefingActor', ({ event }) => {
+                const output = readHydrationMachineOutput(event);
+                const result = output.status === 'success' ? output.hydration : null;
+                if (result === null) {
+                  return { type: 'RESET' as const };
+                }
+
+                return {
+                  type: 'EXTRACTION_RECOVERED' as const,
+                  artifactId: result.extractionArtifactId,
+                  payload: result.extractionPayload,
+                  briefingId: result.briefingId,
+                  normalizedText: result.normalizedText,
+                  parsedFormat: result.parsedFormat,
+                  ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
+                };
+              }),
+            ],
+          },
+          {
+            target: 'configuring',
+            actions: assign(({ context, event }) => {
+              const output = readHydrationMachineOutput(event);
+              const reason = output.status === 'error' ? output.reason : 'hydration_failed';
               return {
-                hydrationResult,
-                hydrationError: null,
+                hydrationError: reason,
+                hydrationResult: null,
                 pendingHydration: null,
-                readiness,
                 viewModel: buildToolPageViewModel({
                   toolKey: context.toolKey,
-                  intent,
-                  readiness,
+                  readiness: context.readiness,
                   progress: context.progress,
                   generationError: context.generationError,
+                  hydrationError: reason,
                 }),
               };
             }),
-            sendTo('briefingActor', ({ event }) => {
-              const result = event.output as HydrationResult;
-              return {
-                type: 'EXTRACTION_RECOVERED' as const,
-                artifactId: result.extractionArtifactId,
-                payload: result.extractionPayload,
-                briefingId: result.briefingId,
-                normalizedText: result.normalizedText,
-                parsedFormat: result.parsedFormat,
-                ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
-              };
-            }),
-          ],
-        },
-        onError: {
-          target: 'configuring',
-          actions: assign(({ context, event }) => {
-            const reason = event.error instanceof Error ? event.error.message : 'hydration_failed';
-            return {
-              hydrationError: reason,
-              hydrationResult: null,
-              pendingHydration: null,
-              viewModel: buildToolPageViewModel({
-                toolKey: context.toolKey,
-                readiness: context.readiness,
-                progress: context.progress,
-                generationError: context.generationError,
-                hydrationError: reason,
-              }),
-            };
-          }),
-        },
+          },
+        ],
       },
       on: {
         HYDRATE_REQUESTED: {
@@ -1096,7 +957,7 @@ export const toolPageMachine = setup({
             pendingHydration: {
               sourceArtifactId: event.sourceArtifactId ?? null,
               intent: event.intent,
-              resolvedBriefingId: event.resolvedBriefingId ?? null,
+              resolvedBriefingId: toCanonicalBriefingId(event.resolvedBriefingId),
               sourceExtractionArtifactId: event.sourceExtractionArtifactId ?? null,
               localArtifacts: event.localArtifacts ?? [],
             },
@@ -1111,39 +972,31 @@ export const toolPageMachine = setup({
       },
     },
     generating: {
-      entry: 'startToolFlow',
       invoke: {
-        id: 'toolFlowActor',
-        src: 'toolFlowMachine',
+        id: 'generationLifecycleActor',
+        src: 'generationLifecycleMachine',
         input: ({ context }) => ({
-          tool: context.toolKey,
+          toolKey: context.toolKey,
           maxRetries: 3,
+          initialStep: context.pendingStepStart?.step ?? null,
         }),
         onDone: {
           target: 'completed',
           actions: 'clearGenerationError',
         },
-        onError: {
-          target: 'configuring',
-          actions: 'setGenerationError',
-        },
       },
       on: {
         STEP_DONE: {
-          actions: 'forwardStepDone',
+          actions: 'sendGenerationLifecycleStepDone',
         },
         STEP_FAILED: {
-          actions: 'forwardStepFailed',
+          actions: 'sendGenerationLifecycleStepFailed',
         },
         RETRY_STEP: {
-          actions: 'forwardRetryStep',
+          actions: 'sendGenerationLifecycleRetryStep',
         },
         CANCEL_GENERATION: {
-          actions: ['cancelToolFlow', raise({ type: 'INTERNAL_CANCELLED' })],
-        },
-        INTERNAL_CANCELLED: {
           target: 'configuring',
-          actions: 'clearGenerationError',
         },
         STEP_REQUEST_DISPATCHED: {
           actions: 'clearPendingStepStart',
@@ -1151,7 +1004,7 @@ export const toolPageMachine = setup({
         RESET: {
           target: 'configuring',
           reenter: true,
-          actions: ['cancelToolFlow', 'resetConfig', stopChild('briefingActor')],
+          actions: ['cancelGenerationLifecycle', 'resetConfig', stopChild('briefingActor')],
         },
       },
     },

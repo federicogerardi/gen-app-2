@@ -16,12 +16,14 @@ export type ToolFlowContext = {
   stepStatus: Record<ToolStep, ToolStepStatus>;
   retriesByStep: Record<ToolStep, number>;
   maxRetries: number;
+  autoStart: boolean;
   errorMessage: string | null;
 };
 
 type ToolFlowInput = {
   tool: SupportedTool;
   maxRetries?: number;
+  autoStart?: boolean;
 };
 
 type ToolFlowEvent =
@@ -160,10 +162,23 @@ export const toolFlowMachine = setup({
       ...initialRetries,
     },
     maxRetries: input.maxRetries ?? 3,
+    autoStart: input.autoStart === true,
     errorMessage: null,
   }),
-  initial: 'idle',
+  initial: 'booting',
   states: {
+    booting: {
+      always: [
+        {
+          guard: ({ context }) => context.autoStart,
+          target: 'running',
+          actions: 'setCurrentStepRunning',
+        },
+        {
+          target: 'idle',
+        },
+      ],
+    },
     idle: {
       on: {
         START: {

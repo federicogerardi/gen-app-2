@@ -1,4 +1,4 @@
-import { assign, fromPromise, setup } from 'xstate';
+import { assign, fromPromise, setup, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
@@ -19,6 +19,28 @@ export type BriefingUploadContext = {
   normalizedText: string | null;
   parsedFormat: 'txt' | 'md' | 'docx' | null;
   error: string | null;
+};
+
+export const hasReadyBriefingExtractionContext = (
+  toolKey: SupportedTool,
+  briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
+): boolean => {
+  const snapshot = briefingActorRef?.getSnapshot();
+  if (!snapshot?.matches('ready')) {
+    return false;
+  }
+
+  const hasCoreContext = (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+    && (snapshot.context.briefingId?.trim().length ?? 0) > 0;
+  if (!hasCoreContext) {
+    return false;
+  }
+
+  return isExtractionContextValidForTool(
+    toolKey,
+    snapshot.context.extractionPayload,
+    snapshot.context.normalizedText,
+  );
 };
 
 type BriefingUploadInput = {

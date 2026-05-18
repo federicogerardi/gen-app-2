@@ -49,12 +49,11 @@ export type NodeRuntimeServerOptions = {
     correlationId?: string,
   ) => Promise<{ owned: boolean; reason?: 'ownership_forbidden' | 'project_not_found' | string }>;
   /**
-   * Optional async function that checks whether a given LlmModelId is available.
+    * Async function that checks whether a given LlmModelId is available.
    * Returns true if the model key exists in the enabled LlmModelCatalog, false otherwise.
-   * When not provided, all model keys are accepted (legacy permissive behaviour).
    * DDD-055: LlmModelCatalog validation gate; DDD-056: LlmModelId.
    */
-  checkModelAvailability?: (modelKey: string, correlationId?: string) => Promise<boolean>;
+    checkModelAvailability: (modelKey: string, correlationId?: string) => Promise<boolean>;
   cors?: {
     allowedOrigins: string[];
     allowCredentials?: boolean;

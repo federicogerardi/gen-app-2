@@ -72,6 +72,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [tool-page-frontend-runtime-spec](./02-design/specifications/tool-page-frontend-runtime-spec.md) — **AI-first deterministic reference for Tool Page runtime (useToolPage, machines, ExtractionContextBridge, DispatchError)**
 - [admin-changelog-and-user-reporting-spec](./02-design/specifications/admin-changelog-and-user-reporting-spec.md) — **DDD-first implemented specification for ProductChangelog, UserReport, and FeedbackCenterMachine**
+- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) — **Operational deployment architecture, networking, proxy headers, rollback**
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)

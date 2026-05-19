@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 last-reviewed: 2026-05-19
 next-review-date: 2026-08-18
 owner: Architecture Review
@@ -16,10 +16,9 @@ owner: Architecture Review
 
 | Severity | Weakness | Evidence |
 | --- | --- | --- |
-| Medium | Backend auth-http composition is no longer monolithic, but residual concentration remains in route registration and FeedbackCenter admin publication flow. | `apps/backend/src/lib/runtime/auth-http/runtime.ts` (265 LOC), `apps/backend/src/lib/runtime/auth-http/route-table.ts` (349 LOC), `apps/backend/src/lib/runtime/auth-http/admin-feedback-center-handlers.ts` (434 LOC) |
 | High | Generation orchestrator remains a monolithic state machine definition with mixed concerns. | `apps/backend/src/lib/machines/generation-system.definition.ts` (1089 LOC), fallback/persistence cluster `:920-1040` |
 | High | Frontend Tool page orchestration still concentrates readiness policy, hydration projection, and UI policy. | `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (1021 LOC), `apps/frontend/src/features/tools/machines/tool-page.machine.ts:565-860` |
-| High | Excessive debug logging persists in sensitive admin and integration paths. | `apps/backend/src/lib/runtime/node-server.ts:158-162`, `apps/backend/src/lib/runtime/auth-http/admin-feedback-center-handlers.ts:295-398`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:113-194`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:88-165` |
+| High | Excessive debug logging persists in sensitive hydrate and external integration paths. Admin publish-issue path is gated (see closure below). | `apps/backend/src/lib/runtime/node-server.ts:158-162`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:113-194`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:88-165` |
 | Medium | Type-safety erosion via open unions and broad request payload shape remains. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:116-123` |
 | Medium | Shared domain package remains inactive, so cross-context model consolidation is still deferred. | `packages/domain/README.md:11-20`, `packages/domain/package.json:8` |
 
@@ -32,14 +31,20 @@ owner: Architecture Review
 - Frontend temporary debug endpoint finding is closed: `apps/frontend/server.mjs` no longer exposes the previously reported debug route and now handles only health, proxy, static, and SPA fallback.
 - Auth HTTP route-chain weakness is substantially closed: the imperative dispatch chain moved into `apps/backend/src/lib/runtime/auth-http/route-table.ts`, while the parent modules shrank to `runtime.ts` (265 LOC), `admin-handlers.ts` (106 LOC), and `tools-handlers.ts` (59 LOC).
 - Auth HTTP local tool-key normalization duplication is closed: the private `normalizeSupportedToolKey` variant was removed and the tools upload path now uses the canonical backend normalizer `normalizeToolWorkflowKey` from `apps/backend/src/lib/runtime/workflow-normalizers.ts`.
+- **Backend auth-http residual concentration is CLOSED** (per plan `process-auth-http-finding-closure-ddd-1.md` v1.2, executed 2026-05-19):
+  - `route-table.ts`: decomposed from 349 LOC monolithic function to thin composer (51 LOC) with 5 dedicated route group modules (`auth-http-*-routes.ts`): auth (32 LOC), public (22 LOC), admin (143 LOC), projects (58 LOC), tools (61 LOC) = **316 LOC total across modules**, each module < 100 LOC boundary.
+  - `route-dispatch.ts`: extracted dispatcher logic from inline route-table into isolated ~40 LOC module for testability and separation of concerns.
+  - Admin publish-issue flow (`admin-feedback-center-handlers.ts`): all ungated `console.debug` calls wrapped with `if (process.env.NODE_ENV !== 'production')` via centralized `debugLog()` utility, eliminating SEC-002 violation (sensitive operational details in production path).
+  - Test coverage added: route order regression (3 test cases: publish-issue before /:id pattern, userId extraction, unmatched fallback), HTTP status contract mapping (6 test cases: 401/403/404/400/503/500 error branches).
+  - **Validation**: TypeScript typecheck ✅ passing; backend test suite **131 pass / 0 fail** ✅; DDD compliance audit (TASK-002) shows 0 drift, 0 deprecated aliases in scope; line-level anchor verification confirms no cross-context terminology conflicts.
 
 ### Still Open / Updated
-- Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.
+- ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
 - Generation and ToolPage orchestration remain large single-point mutation surfaces.
-- Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.
+- ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **REDUCED**: admin publish-issue path fully gated; hydrate and external integration paths remain (defer to subsequent review).
 
-## Priority Remediation Order
-1. Split `generation-system.definition.ts` and `tool-page.machine.ts` into narrower orchestration/policy/projection slices.
-2. Reduce or gate verbose debug logs in admin publish-issue, hydrate, and external integration flows with environment-based policy.
-3. Reduce residual auth-http size concentration in `route-table.ts` and `admin-feedback-center-handlers.ts`, or add narrower invariants coverage around route order and publish flow behavior.
-4. Activate `packages/domain` or otherwise consolidate cross-context domain models now that the auth-http surface has been decomposed.
+## Priority Remediation Order (Updated 2026-05-19)
+1. ~~Split `generation-system.definition.ts` and `tool-page.machine.ts`~~ (auth-http closure frees review capacity) → now prioritize Generation and ToolPage orchestration decomposition.
+2. ~~Reduce or gate verbose debug logs in admin publish-issue~~ **DONE** → focus on hydrate and external integration paths.
+3. ~~Reduce residual auth-http size concentration~~ **DONE** → activate `packages/domain` or consolidate cross-context models using decomposed auth-http as foundation pattern.
+4. Activate `packages/domain` and establish canonical cross-context model consolidation now that the auth-http surface has been successfully decomposed and validated with full test coverage.

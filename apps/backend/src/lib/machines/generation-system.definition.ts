@@ -63,8 +63,8 @@ export const generationSystemMachine = setup({
     ...input.initialContext,
   }),
   states: {
-    ...(generationSystemRequestStates as any),
-    ...(generationSystemExecutionStates as any),
-    ...(generationSystemPersistenceStates as any),
+    ...generationSystemRequestStates,
+    ...generationSystemExecutionStates,
+    ...generationSystemPersistenceStates,
   },
 });

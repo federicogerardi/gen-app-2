@@ -119,4 +119,4 @@ export const generationSystemPersistenceStates = {
       },
     },
   },
-};
+} as const;

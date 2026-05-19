@@ -1,4 +1,6 @@
 import { assign, enqueueActions } from 'xstate';
+import type { ParameterizedObject } from 'xstate';
+import type { Assigner, PropertyAssigner } from 'xstate';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
@@ -63,7 +65,25 @@ type GenerationSystemGuardObject =
   | { type: 'extractionOutputIsAccepted'; params: unknown }
   | { type: 'toolOutputIsCompleted'; params: unknown };
 
-const assignGeneration = <TParams extends Record<string, unknown> | undefined>(assignment: any) =>
+type GenerationAssignment<TParams extends ParameterizedObject['params'] | undefined> =
+  | Assigner<
+    GenerationMachineContext,
+    GenerationSystemEvent,
+    TParams,
+    GenerationSystemEvent,
+    never
+  >
+  | PropertyAssigner<
+    GenerationMachineContext,
+    GenerationSystemEvent,
+    TParams,
+    GenerationSystemEvent,
+    never
+  >;
+
+const assignGeneration = <TParams extends ParameterizedObject['params'] | undefined>(
+  assignment: GenerationAssignment<TParams>,
+) =>
   assign<
     GenerationMachineContext,
     GenerationSystemEvent,
@@ -72,7 +92,21 @@ const assignGeneration = <TParams extends Record<string, unknown> | undefined>(a
     never
   >(assignment);
 
-const enqueueGenerationActions = <TParams extends Record<string, unknown> | undefined>(collect: any) =>
+type GenerationCollectActions<TParams extends ParameterizedObject['params'] | undefined> = Parameters<
+  typeof enqueueActions<
+    GenerationMachineContext,
+    GenerationSystemEvent,
+    TParams,
+    GenerationSystemEvent,
+    GenerationSystemProvidedActor,
+    GenerationSystemActionObject,
+    GenerationSystemGuardObject
+  >
+>[0];
+
+const enqueueGenerationActions = <TParams extends ParameterizedObject['params'] | undefined>(
+  collect: GenerationCollectActions<TParams>,
+) =>
   enqueueActions<
     GenerationMachineContext,
     GenerationSystemEvent,
@@ -187,7 +221,7 @@ export const generationSystemActions = {
     costUsd: ({ context }: GenerationActionArgs) =>
       context.costUsd > 0 ? context.costUsd : 0,
   }),
-  drivePersistenceFinalizeSuccess: enqueueGenerationActions<undefined>(({ enqueue, context }: any) => {
+  drivePersistenceFinalizeSuccess: enqueueGenerationActions<undefined>(({ enqueue, context }) => {
     enqueue.sendTo('persistenceActor', {
       type: 'STREAM_TERMINATED_SUCCESS',
       requestId: context.requestId,
@@ -196,7 +230,7 @@ export const generationSystemActions = {
       artifactId: context.artifactId ?? context.artifactIdFactory(),
     });
   }),
-  drivePersistenceFinalizeFailure: enqueueGenerationActions<undefined>(({ enqueue, context }: any) => {
+  drivePersistenceFinalizeFailure: enqueueGenerationActions<undefined>(({ enqueue, context }) => {
     enqueue.sendTo('persistenceActor', {
       type: 'STREAM_TERMINATED_FAILURE',
       requestId: context.requestId,

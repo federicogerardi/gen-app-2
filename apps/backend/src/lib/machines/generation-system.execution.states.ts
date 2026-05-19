@@ -195,4 +195,4 @@ export const generationSystemExecutionStates = {
       },
     },
   },
-};
+} as const;

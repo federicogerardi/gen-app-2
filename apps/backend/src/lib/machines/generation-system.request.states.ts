@@ -263,4 +263,4 @@ export const generationSystemRequestStates = {
       },
     ],
   },
-};
+} as const;

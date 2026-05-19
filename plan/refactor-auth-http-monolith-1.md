@@ -1,16 +1,16 @@
 ---
 goal: Scomposizione funzionale del monolite auth-http — runtime, admin-handlers, tools-handlers
-version: 1.3
+version: 1.4
 date_created: 2026-05-19
 last_updated: 2026-05-19
 owner: Backend Architecture
-status: 'In Progress'
+status: 'Completed'
 tags: [refactor, architecture, backend, decomposition]
 ---
 
 # Introduction
 
-![Status: In Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 Questo piano decompone i tre file monolitici del layer HTTP `auth-http` in unità funzionali coese, ciascuna con responsabilità singola e dimensione target ≤ 300 LOC. I file di partenza totalizzano **2480 LOC** e costituiscono la debolezza architetturale High severity già tracciata in `docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md`.
 
@@ -116,11 +116,11 @@ Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-020 | **[Crea route-table.ts]** Creare `apps/backend/src/lib/runtime/auth-http/route-table.ts`. Definire il tipo `RouteEntry`: `{ method: string \| null; pattern: string \| RegExp; handler: (request, response, ...matches: string[]) => Promise<void> }`. Il campo `method: null` indica handler che gestisce il method-check internamente (usato per rotte con metodi multipli). | | |
-| TASK-021 | **[Implementa buildRouteTable(handlers)]** In `route-table.ts` implementare `buildRouteTable(handlers: AllHandlerGroups): RouteEntry[]` che restituisce la route table come array ordinato. I parametri regex catturati (`[1]`, `[2]`) vengono passati come argomenti posizionali all'handler. | | |
-| TASK-022 | **[Implementa dispatchRequest(routeTable, request, response)]** In `route-table.ts` implementare la funzione `dispatchRequest(routeTable: RouteEntry[], request: IncomingMessage, response: ServerResponse): Promise<HandleAuthHttpRequestResult>`. La funzione itera la route table in ordine, fa match su `normalizePath(request.url)` e `request.method`, invoca l'handler con i captures, restituisce `{ handled: true }` o `{ handled: false }` al termine. | | |
-| TASK-023 | **[Aggiorna runtime.ts]** In `createAuthHttpRuntime`: sostituire il blocco if/else del dispatch (L248–510) con `const routeTable = buildRouteTable(allHandlers)` e `return await dispatchRequest(routeTable, request, response)`. Il try/catch di errore unhandled rimane invariato. | | |
-| TASK-024 | **Validazione Phase 4**: eseguire `npm --workspace apps/backend run typecheck`. Verificare zero errori TypeScript. Eseguire la suite di test completa `npm --workspace apps/backend run test`. Verificare che tutte le 29 route entries attualmente coperte in `runtime.ts` siano presenti nella route table con metodi e ordine corretti. | | |
+| TASK-020 | **[Crea route-table.ts]** Creare `apps/backend/src/lib/runtime/auth-http/route-table.ts`. Definire il tipo `RouteEntry`: `{ method: string \| null; pattern: string \| RegExp; handler: (request, response, ...matches: string[]) => Promise<void> }`. Il campo `method: null` indica handler che gestisce il method-check internamente (usato per rotte con metodi multipli). | Yes | 2026-05-19 |
+| TASK-021 | **[Implementa buildRouteTable(handlers)]** In `route-table.ts` implementare `buildRouteTable(handlers: AllHandlerGroups): RouteEntry[]` che restituisce la route table come array ordinato. I parametri regex catturati (`[1]`, `[2]`) vengono passati come argomenti posizionali all'handler. | Yes | 2026-05-19 |
+| TASK-022 | **[Implementa dispatchRequest(routeTable, request, response)]** In `route-table.ts` implementare la funzione `dispatchRequest(routeTable: RouteEntry[], request: IncomingMessage, response: ServerResponse): Promise<HandleAuthHttpRequestResult>`. La funzione itera la route table in ordine, fa match su `normalizePath(request.url)` e `request.method`, invoca l'handler con i captures, restituisce `{ handled: true }` o `{ handled: false }` al termine. | Yes | 2026-05-19 |
+| TASK-023 | **[Aggiorna runtime.ts]** In `createAuthHttpRuntime`: sostituire il blocco if/else del dispatch (L248–510) con `const routeTable = buildRouteTable(allHandlers)` e `return await dispatchRequest(routeTable, request, response)`. Il try/catch di errore unhandled rimane invariato. | Yes | 2026-05-19 |
+| TASK-024 | **Validazione Phase 4**: eseguire `npm --workspace apps/backend run typecheck`. Verificare zero errori TypeScript. Eseguire la suite di test completa `npm --workspace apps/backend run test`. Verificare che tutte le 29 route entries attualmente coperte in `runtime.ts` siano presenti nella route table con metodi e ordine corretti. | Yes | 2026-05-19 |
 
 ---
 

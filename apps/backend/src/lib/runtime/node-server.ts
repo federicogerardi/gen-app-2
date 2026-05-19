@@ -162,6 +162,7 @@ export const createNodeRuntimeRequestHandler = (
   // Canonical resolution of CSRF trusted origins — single path used at both startup and request time.
   const csrfTrustedOrigins = resolveCsrfTrustedOrigins(options);
   const debugGenerationLogs = options.debugGenerationLogs ?? false;
+  const shouldLogRequestLifecycle = debugGenerationLogs || process.env.NODE_ENV !== 'production';
 
   // Startup invariants: fail fast rather than silently disabling CSRF at request time (fail-closed policy).
   // Deferring these checks to per-request execution would allow a misconfigured server to silently
@@ -178,11 +179,15 @@ export const createNodeRuntimeRequestHandler = (
     const path = normalizePath(request.url);
     const method = request.method ?? 'UNKNOWN';
     const origin = getHeaderValue(request.headers.origin as string | string[] | undefined) ?? '(no origin)';
-    console.log(`[req] ${method} ${path} origin=${origin}`);
+    if (shouldLogRequestLifecycle) {
+      console.log(`[req] ${method} ${path} origin=${origin}`);
+    }
 
-    response.on('finish', () => {
-      console.log(`[res] ${method} ${path} → ${response.statusCode}`);
-    });
+    if (shouldLogRequestLifecycle) {
+      response.on('finish', () => {
+        console.log(`[res] ${method} ${path} → ${response.statusCode}`);
+      });
+    }
 
     try {
     if (options.cors) {

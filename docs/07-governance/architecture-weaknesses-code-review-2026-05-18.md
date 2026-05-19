@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 last-reviewed: 2026-05-19
 next-review-date: 2026-08-18
 owner: Architecture Review
@@ -16,7 +16,6 @@ owner: Architecture Review
 
 | Severity | Weakness | Evidence |
 | --- | --- | --- |
-| High | Excessive debug logging persists in sensitive hydrate and external integration paths. Admin publish-issue path is gated (see closure below). | `apps/backend/src/lib/runtime/node-server.ts:158-162`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:113-194`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:88-165` |
 | Medium | Type-safety erosion via open unions and broad request payload shape remains. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:116-123` |
 | Medium | Shared domain package remains inactive, so cross-context model consolidation is still deferred. | `packages/domain/README.md:11-20`, `packages/domain/package.json:8` |
 
@@ -37,13 +36,19 @@ owner: Architecture Review
   - Admin publish-issue flow (`admin-feedback-center-handlers.ts`): all ungated `console.debug` calls wrapped with `if (process.env.NODE_ENV !== 'production')` via centralized `debugLog()` utility, eliminating SEC-002 violation (sensitive operational details in production path).
   - Test coverage added: route order regression (3 test cases: publish-issue before /:id pattern, userId extraction, unmatched fallback), HTTP status contract mapping (6 test cases: 401/403/404/400/503/500 error branches).
   - **Validation**: TypeScript typecheck ✅ passing; backend test suite **131 pass / 0 fail** ✅; DDD compliance audit (TASK-002) shows 0 drift, 0 deprecated aliases in scope; line-level anchor verification confirms no cross-context terminology conflicts.
+- **Excessive operational logging finding is CLOSED** (executed 2026-05-19):
+  - `node-server.ts` request/response lifecycle logs are now gated via `shouldLogRequestLifecycle = debugGenerationLogs || process.env.NODE_ENV !== 'production'`, preventing default production emission while preserving explicit debug visibility when enabled.
+  - `tools-hydrate-handlers.ts` hydrate debug traces moved from direct `console.debug` calls to a centralized local `debugLog()` utility gated by `NODE_ENV !== 'production'`.
+  - `integrations/github-issues.ts` verbose integration tracing moved from direct `console.debug` calls to a centralized local `debugLog()` utility gated by `NODE_ENV !== 'production'`; failure-path `console.error` logs remain active for operational diagnostics.
+  - Closure evidence anchors: `apps/backend/src/lib/runtime/node-server.ts:165-188`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:49-55`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:119-127`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:200-210`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:83-89`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:94-174`.
+  - **Validation**: backend TypeScript typecheck ✅ passing; backend test suite **131 pass / 0 fail** ✅.
 
 ### Still Open / Updated
 - ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
 - ~~ToolPage orchestration remains a large single-point mutation surface.~~ **CLOSED**: decomposed into dedicated readiness/view-model/progress/hydration modules with thin composer (`338` LOC) and full regression evidence.
-- ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **REDUCED**: admin publish-issue path fully gated; hydrate and external integration paths remain (defer to subsequent review).
+- ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **CLOSED**: admin publish-issue, hydrate, external integration, and runtime request/response lifecycle debug/verbose traces are now gated for production-sensitive paths; error-path diagnostics intentionally remain active.
 
 ## Priority Remediation Order (Updated 2026-05-19)
-1. Reduce or gate verbose debug logs remaining in hydrate and external integration paths.
-2. Activate `packages/domain` and establish canonical cross-context model consolidation using the decomposed Generation/auth-http/tool-page surfaces as the reference pattern.
-3. Keep Generation and ToolPage decompositions under anti-regression watch (normalized LOC + regression gates) during future feature work.
+1. Activate `packages/domain` and establish canonical cross-context model consolidation using the decomposed Generation/auth-http/tool-page surfaces as the reference pattern.
+2. Keep Generation and ToolPage decompositions under anti-regression watch (normalized LOC + regression gates) during future feature work.
+3. Keep logging-gate coverage under regression watch so production-sensitive paths do not reintroduce ungated verbose logs.

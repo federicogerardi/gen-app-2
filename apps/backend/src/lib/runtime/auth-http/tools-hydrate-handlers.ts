@@ -46,6 +46,12 @@ export const createToolsHydrateHandlers = (
     writeSuccess,
   } = deps;
 
+  const debugLog = (message: string, payload?: unknown): void => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(message, payload ?? '');
+    }
+  };
+
   const handleToolsHydrate = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -110,7 +116,7 @@ export const createToolsHydrateHandlers = (
           const hasPayload = Object.keys(extractionPayload).length > 0;
           const hasText = normalizedText.trim().length > 0;
 
-          console.debug('[auth-http] hydrate direct extraction artifact resolved', {
+          debugLog('[auth-http] hydrate direct extraction artifact resolved', {
             sourceArtifactId,
             artifactId: artifact.artifactId,
             projectId,
@@ -191,7 +197,7 @@ export const createToolsHydrateHandlers = (
       : (typeof bestDetail.input.normalizedText === 'string' ? bestDetail.input.normalizedText : '');
     const parsedFormat = parsedFormatFromInput(bestDetail.input);
 
-    console.debug('[auth-http] hydrate ranked extraction artifact resolved', {
+    debugLog('[auth-http] hydrate ranked extraction artifact resolved', {
       sourceArtifactId,
       sourceExtractionArtifactId,
       resolvedBriefingId,

@@ -12,8 +12,19 @@ type ExtractionContextValidityOptions = {
   allowEmptyPayload?: boolean;
 };
 
+const READINESS_LOGGING_OVERRIDE_KEY = '__TOOL_PAGE_READINESS_LOGGING_ENABLED__';
+
 const hasNonEmptyString = (value: unknown): boolean =>
   typeof value === 'string' && value.trim().length > 0;
+
+const shouldLogExtractionContextWarnings = (): boolean => {
+  const override = (globalThis as Record<string, unknown>)[READINESS_LOGGING_OVERRIDE_KEY];
+  if (typeof override === 'boolean') {
+    return override;
+  }
+
+  return import.meta.env.DEV;
+};
 
 export const hasActionableExtractionPayload = (
   payload: Record<string, unknown> | null | undefined,
@@ -48,7 +59,7 @@ export const isExtractionContextValidForTool = (
       extractionPayloadKeys: number;
     },
   ): void => {
-    if (!import.meta.env.DEV) {
+    if (!shouldLogExtractionContextWarnings()) {
       return;
     }
 

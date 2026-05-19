@@ -584,6 +584,34 @@ describe('toolPageMachine', () => {
     expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(false);
   });
 
+  it('does not emit sensitive readiness logs on production path', () => {
+    (globalThis as Record<string, unknown>).__TOOL_PAGE_READINESS_LOGGING_ENABLED__ = false;
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const actor = createNextlandToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-nextland-invalid-sensitive',
+      payload: {},
+      briefingId: 'brief-nextland-invalid-sensitive',
+      normalizedText: 'must-not-be-logged',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    delete (globalThis as Record<string, unknown>).__TOOL_PAGE_READINESS_LOGGING_ENABLED__;
+  });
+
   it('enables hasExtractionContext for valid youtube-lf-script extraction context', () => {
     const actor = createYoutubeToolPageActor();
 

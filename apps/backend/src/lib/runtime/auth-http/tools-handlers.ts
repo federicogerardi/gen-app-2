@@ -25,6 +25,10 @@ import {
   resolveStepDependencyIds,
 } from '../tool-workflow-registry';
 import { parseArtifactReadProjection } from './projects-handlers';
+import type {
+  AuthHttpWriteErrorFn,
+  AuthHttpWriteSuccessFn,
+} from './support';
 
 const MAX_BRIEF_UPLOAD_BYTES = 2 * 1024 * 1024;
 
@@ -51,23 +55,6 @@ type ToolOrchestrationRequestBody = {
   requestId?: unknown;
   idempotencyKey?: unknown;
 };
-
-type WriteError = (
-  response: ServerResponse,
-  statusCode: number,
-  code:
-    | 'bad_request'
-    | 'unauthorized'
-    | 'forbidden'
-    | 'method_not_allowed'
-    | 'not_found'
-    | 'conflict'
-    | 'service_unavailable'
-    | 'internal',
-  message: string,
-) => void;
-
-type WriteSuccess = (response: ServerResponse, statusCode: number, data: Record<string, unknown>) => void;
 
 const normalizeMimeType = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -110,8 +97,8 @@ export type CreateToolsHandlersDependencies = {
     response: ServerResponse,
   ) => Promise<AuthSessionPrincipal | null>;
   requireQueryRepositories: (response: ServerResponse) => UserQueryRepositoryBundle | null;
-  writeError: WriteError;
-  writeSuccess: WriteSuccess;
+  writeError: AuthHttpWriteErrorFn;
+  writeSuccess: AuthHttpWriteSuccessFn;
 };
 
 export type ToolsHandlers = {

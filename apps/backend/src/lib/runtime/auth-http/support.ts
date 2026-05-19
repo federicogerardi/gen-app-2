@@ -30,6 +30,19 @@ export type AuthHttpErrorBody = {
 
 export type AuthHttpResponseBody = AuthHttpSuccessBody | AuthHttpErrorBody;
 
+export type AuthHttpWriteSuccessFn = (
+  response: ServerResponse,
+  statusCode: number,
+  data: Record<string, unknown>,
+) => void;
+
+export type AuthHttpWriteErrorFn = (
+  response: ServerResponse,
+  statusCode: number,
+  code: AuthHttpErrorCode,
+  message: string,
+) => void;
+
 export type LoginRequestBody = {
   email?: unknown;
   password?: unknown;
@@ -99,7 +112,7 @@ const writeJson = (
   response.end(JSON.stringify(body));
 };
 
-export const writeSuccess = (
+export const writeSuccess: AuthHttpWriteSuccessFn = (
   response: ServerResponse,
   statusCode: number,
   data: Record<string, unknown>,
@@ -107,7 +120,7 @@ export const writeSuccess = (
   writeJson(response, statusCode, { ok: true, data });
 };
 
-export const writeError = (
+export const writeError: AuthHttpWriteErrorFn = (
   response: ServerResponse,
   statusCode: number,
   code: AuthHttpErrorCode,

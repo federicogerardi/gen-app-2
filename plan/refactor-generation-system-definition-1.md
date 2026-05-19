@@ -1,16 +1,16 @@
 ---
 goal: Atomize generation-system.definition.ts into DDD-aligned GenerationSystem machine modules
-version: 1.0
+version: 1.1
 date_created: 2026-05-19
 last_updated: 2026-05-19
 owner: Backend Architecture
-status: 'Planned'
+status: 'Completed'
 tags: [refactor, architecture, backend, xstate, ddd, generation]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-green)
 
 This plan decomposes `apps/backend/src/lib/machines/generation-system.definition.ts` without changing the public `generationSystemMachine` export boundary exposed by `apps/backend/src/lib/machines/generation-system.machine.ts`. The current definition file is **1089 LOC** and still concentrates machine-private types, invoke-output decoding, runtime defaults, actions, guards, actor adapters, and the full state-node tree in one mutation surface.
 
@@ -57,11 +57,11 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Create `apps/backend/src/lib/machines/generation-system.types.ts`. Move the machine-local types currently declared in `generation-system.definition.ts:29-145`: `GenerationSystemInput`, `GenerationMachineContext`, `IdempotencyDoneOutput`, `UsageDoneOutput`, `OwnershipDoneOutput`, `StreamDoneOutput`, `ExtractionDoneOutput`, `ToolDoneOutput`, `CacheRequestMetaParams`, `SetValidationDataParams`, `CacheReplayPayloadParams`, `CacheStreamResultParams`, `CacheExtractionResultParams`, `QueueFallbackDecisionParams`. Replace the local `RouteType` alias with `import type { RouteType } from './generation-routing'`. |  |  |
-| TASK-002 | Create `apps/backend/src/lib/machines/generation-system.events.ts`. Move the invoke-output readers and decoder helpers currently declared in `generation-system.definition.ts:147-232`: `getIdempotencyDoneOutput`, `getUsageDoneOutput`, `getOwnershipDoneOutput`, `getStreamDoneOutput`, `getStreamResultParams`, `isEmptyStreamSuccess`, `getExtractionDoneOutput`, `getExtractionResultParams`, `getToolDoneOutput`, `getFallbackDoneOutput`, `isExtractionPayloadSemanticallyValid`, `getInvokeFailureReason`, `getReplayPayloadParams`. Type all exports using the moved types from `generation-system.types.ts`. |  |  |
-| TASK-003 | Create `apps/backend/src/lib/machines/generation-system.runtime.ts`. Move the runtime default helpers currently declared in `generation-system.definition.ts:233-251`: `defaultArtifactIdFactory`, `normalizeOutputFormat`, `defaultResponseBuilder`. `normalizeOutputFormat` remains the single formatter normalizer for `RequestReceivedEvent.input.outputFormat` inside this machine. |  |  |
-| TASK-004 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to import the moved types/helpers from Phase 1 and delete the original inline declarations. No state-node movement is allowed in this phase. |  |  |
-| TASK-005 | Validation Phase 1: run `npm --workspace apps/backend run typecheck` and `node --import tsx --test apps/backend/src/lib/tests/generation-system.runtime.test.ts`. Both commands must pass before Phase 2 starts. |  |  |
+| TASK-001 | Create `apps/backend/src/lib/machines/generation-system.types.ts`. Move the machine-local types currently declared in `generation-system.definition.ts:29-145`: `GenerationSystemInput`, `GenerationMachineContext`, `IdempotencyDoneOutput`, `UsageDoneOutput`, `OwnershipDoneOutput`, `StreamDoneOutput`, `ExtractionDoneOutput`, `ToolDoneOutput`, `CacheRequestMetaParams`, `SetValidationDataParams`, `CacheReplayPayloadParams`, `CacheStreamResultParams`, `CacheExtractionResultParams`, `QueueFallbackDecisionParams`. Replace the local `RouteType` alias with `import type { RouteType } from './generation-routing'`. | Yes | 2026-05-19 |
+| TASK-002 | Create `apps/backend/src/lib/machines/generation-system.events.ts`. Move the invoke-output readers and decoder helpers currently declared in `generation-system.definition.ts:147-232`: `getIdempotencyDoneOutput`, `getUsageDoneOutput`, `getOwnershipDoneOutput`, `getStreamDoneOutput`, `getStreamResultParams`, `isEmptyStreamSuccess`, `getExtractionDoneOutput`, `getExtractionResultParams`, `getToolDoneOutput`, `getFallbackDoneOutput`, `isExtractionPayloadSemanticallyValid`, `getInvokeFailureReason`, `getReplayPayloadParams`. Type all exports using the moved types from `generation-system.types.ts`. | Yes | 2026-05-19 |
+| TASK-003 | Create `apps/backend/src/lib/machines/generation-system.runtime.ts`. Move the runtime default helpers currently declared in `generation-system.definition.ts:233-251`: `defaultArtifactIdFactory`, `normalizeOutputFormat`, `defaultResponseBuilder`. `normalizeOutputFormat` remains the single formatter normalizer for `RequestReceivedEvent.input.outputFormat` inside this machine. | Yes | 2026-05-19 |
+| TASK-004 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to import the moved types/helpers from Phase 1 and delete the original inline declarations. No state-node movement is allowed in this phase. | Yes | 2026-05-19 |
+| TASK-005 | Validation Phase 1: run `npm --workspace apps/backend run typecheck` and `node --import tsx --test apps/backend/src/lib/tests/generation-system.runtime.test.ts`. Both commands must pass before Phase 2 starts. | Yes | 2026-05-19 |
 
 ### Implementation Phase 2
 
@@ -69,11 +69,11 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Create `apps/backend/src/lib/machines/generation-system.actions.ts`. Move the full actions object currently declared in `generation-system.definition.ts:261-412`. Export it as a single `generationSystemActions` object preserving all current action keys: `cacheRequestMeta`, `setUserId`, `setValidationData`, `setFailureReason`, `setAmbiguousRoutingFailure`, `setMissingRegistrySelectorFailure`, `setExtractionFailedFailure`, `setWorkflowFailedFailure`, `setIdempotencyConflictFailure`, `setUsageFailedFailure`, `setOwnershipFailedFailure`, `setStreamFailureFailure`, `setPersistenceFinalizeFailedFailure`, `cacheReplayPayload`, `cacheArtifactId`, `ensureArtifactId`, `cacheSyntheticChunk`, `cacheStreamResult`, `cacheExtractionResult`, `drivePersistenceFinalizeSuccess`, `drivePersistenceFinalizeFailure`, `setFailureFromInvokeOutput`, `queueFallbackDecision`, `applyFallbackDecision`, `setFallbackPolicyFailure`, `cacheToolArtifactFromOutput`, `appendStreamChunk`, `resetVolatileContext`. |  |  |
-| TASK-007 | Create `apps/backend/src/lib/machines/generation-system.guards.ts`. Move the full guards object currently declared in `generation-system.definition.ts:433-460`. Export it as `generationSystemGuards` preserving the current guard keys and semantics, including `streamOutputIsEmptySuccess` and `toolOutputIsCompleted`. |  |  |
-| TASK-008 | Create `apps/backend/src/lib/machines/generation-system.actors.ts`. Move the actor-source definitions currently declared in `generation-system.definition.ts:462-540`: `invokeIdempotency`, `invokeUsage`, `invokeOwnership`, `invokeStream`, `invokePersistence`, `invokeExtraction`, `invokeToolWorkflow`, `invokeFallbackPolicy`, `markCompletedIdempotency`, `markFailedIdempotency`. The module must continue importing the existing canonical submachines: `idempotencyCoordinatorMachine`, `usageMachine`, `streamTransportMachine`, `persistenceBatchMachine`, `toolWorkflowMachine`, and `generationFallbackActor`. |  |  |
-| TASK-009 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to consume `generationSystemActions`, `generationSystemGuards`, and `generationSystemActors` instead of inline declarations. The `setup({ types, actions, guards, actors })` API shape must remain unchanged. |  |  |
-| TASK-010 | Validation Phase 2: run `npm --workspace apps/backend run typecheck` and `npm --workspace apps/backend run test:integration`. Acceptance criterion: `generation-system.runtime.test.ts` and all existing backend integration tests keep passing with no behavior changes. |  |  |
+| TASK-006 | Create `apps/backend/src/lib/machines/generation-system.actions.ts`. Move the full actions object currently declared in `generation-system.definition.ts:261-412`. Export it as a single `generationSystemActions` object preserving all current action keys: `cacheRequestMeta`, `setUserId`, `setValidationData`, `setFailureReason`, `setAmbiguousRoutingFailure`, `setMissingRegistrySelectorFailure`, `setExtractionFailedFailure`, `setWorkflowFailedFailure`, `setIdempotencyConflictFailure`, `setUsageFailedFailure`, `setOwnershipFailedFailure`, `setStreamFailureFailure`, `setPersistenceFinalizeFailedFailure`, `cacheReplayPayload`, `cacheArtifactId`, `ensureArtifactId`, `cacheSyntheticChunk`, `cacheStreamResult`, `cacheExtractionResult`, `drivePersistenceFinalizeSuccess`, `drivePersistenceFinalizeFailure`, `setFailureFromInvokeOutput`, `queueFallbackDecision`, `applyFallbackDecision`, `setFallbackPolicyFailure`, `cacheToolArtifactFromOutput`, `appendStreamChunk`, `resetVolatileContext`. | Yes | 2026-05-19 |
+| TASK-007 | Create `apps/backend/src/lib/machines/generation-system.guards.ts`. Move the full guards object currently declared in `generation-system.definition.ts:433-460`. Export it as `generationSystemGuards` preserving the current guard keys and semantics, including `streamOutputIsEmptySuccess` and `toolOutputIsCompleted`. | Yes | 2026-05-19 |
+| TASK-008 | Create `apps/backend/src/lib/machines/generation-system.actors.ts`. Move the actor-source definitions currently declared in `generation-system.definition.ts:462-540`: `invokeIdempotency`, `invokeUsage`, `invokeOwnership`, `invokeStream`, `invokePersistence`, `invokeExtraction`, `invokeToolWorkflow`, `invokeFallbackPolicy`, `markCompletedIdempotency`, `markFailedIdempotency`. The module must continue importing the existing canonical submachines: `idempotencyCoordinatorMachine`, `usageMachine`, `streamTransportMachine`, `persistenceBatchMachine`, `toolWorkflowMachine`, and `generationFallbackActor`. | Yes | 2026-05-19 |
+| TASK-009 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to consume `generationSystemActions`, `generationSystemGuards`, and `generationSystemActors` instead of inline declarations. The `setup({ types, actions, guards, actors })` API shape must remain unchanged. | Yes | 2026-05-19 |
+| TASK-010 | Validation Phase 2: run `npm --workspace apps/backend run typecheck` and `npm --workspace apps/backend run test:integration`. Acceptance criterion: `generation-system.runtime.test.ts` and all existing backend integration tests keep passing with no behavior changes. | Yes | 2026-05-19 |
 
 ### Implementation Phase 3
 
@@ -81,11 +81,11 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Create `apps/backend/src/lib/machines/generation-system.request.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:580-798` for `idle`, `gateway`, `preGenerationGuards`, and `routing`. Export them as a typed object fragment that can be spread into the root `states` object. Preserve the exact transition targets, especially the nested `preGenerationGuards.idempotency -> ownershipCheck -> usage` chain. |  |  |
-| TASK-012 | Create `apps/backend/src/lib/machines/generation-system.execution.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:799-979` for `extractionFlow`, `toolGenerationFlow`, `genericGenerationFlow`, and `streaming`. Preserve the current workaround branch in `toolGenerationFlow` at `:837-844` where `resolveWorkflowRunMode(context) === 'new'` bypasses `toolWorkflowMachine` and goes directly to `streaming`. |  |  |
-| TASK-013 | Create `apps/backend/src/lib/machines/generation-system.persistence.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:980-1088` for `resolvingFallbackPolicy`, `persistingSuccess`, `persistingFailure`, `finalizeIdempotencySuccess`, `finalizeIdempotencyFailure`, `completed`, and `failed`. Preserve the fallback -> persistence -> idempotency settlement order exactly. |  |  |
-| TASK-014 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to compose the imported state fragments into the final `states` object. The only logic remaining in the file after this task should be the root `setup(...)`, root `context(...)`, and assembly of imported fragments. |  |  |
-| TASK-015 | Validation Phase 3: run `npm --workspace apps/backend run typecheck` and `node --import tsx --test apps/backend/src/lib/tests/generation-system.runtime.test.ts`. Acceptance criterion: runtime state progression, replay handling, fallback behavior, and persistence finalization remain unchanged. |  |  |
+| TASK-011 | Create `apps/backend/src/lib/machines/generation-system.request.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:580-798` for `idle`, `gateway`, `preGenerationGuards`, and `routing`. Export them as a typed object fragment that can be spread into the root `states` object. Preserve the exact transition targets, especially the nested `preGenerationGuards.idempotency -> ownershipCheck -> usage` chain. | Yes | 2026-05-19 |
+| TASK-012 | Create `apps/backend/src/lib/machines/generation-system.execution.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:799-979` for `extractionFlow`, `toolGenerationFlow`, `genericGenerationFlow`, and `streaming`. Preserve the current workaround branch in `toolGenerationFlow` at `:837-844` where `resolveWorkflowRunMode(context) === 'new'` bypasses `toolWorkflowMachine` and goes directly to `streaming`. | Yes | 2026-05-19 |
+| TASK-013 | Create `apps/backend/src/lib/machines/generation-system.persistence.states.ts`. Move the state-node definitions currently declared in `generation-system.definition.ts:980-1088` for `resolvingFallbackPolicy`, `persistingSuccess`, `persistingFailure`, `finalizeIdempotencySuccess`, `finalizeIdempotencyFailure`, `completed`, and `failed`. Preserve the fallback -> persistence -> idempotency settlement order exactly. | Yes | 2026-05-19 |
+| TASK-014 | Update `apps/backend/src/lib/machines/generation-system.definition.ts` to compose the imported state fragments into the final `states` object. The only logic remaining in the file after this task should be the root `setup(...)`, root `context(...)`, and assembly of imported fragments. | Yes | 2026-05-19 |
+| TASK-015 | Validation Phase 3: run `npm --workspace apps/backend run typecheck` and `node --import tsx --test apps/backend/src/lib/tests/generation-system.runtime.test.ts`. Acceptance criterion: runtime state progression, replay handling, fallback behavior, and persistence finalization remain unchanged. | Yes | 2026-05-19 |
 
 ### Implementation Phase 4
 
@@ -93,9 +93,9 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-016 | Reduce `apps/backend/src/lib/machines/generation-system.definition.ts` to a thin composition file. Final target content: imports, `setup({ types, actions, guards, actors })`, root `context`, and `states: { ...requestStates, ...executionStates, ...persistenceStates }`. Target <= 250 LOC excluding imports and blank lines. |  |  |
-| TASK-017 | Keep `apps/backend/src/lib/machines/generation-system.machine.ts` unchanged as `export { generationSystemMachine } from './generation-system.definition';`. Do not move helper-module exports into `apps/backend/src/lib/machines/index.ts` unless a direct consumer is introduced and verified. |  |  |
-| TASK-018 | Run final validation: `npm --workspace apps/backend run typecheck`, `npm --workspace apps/backend run test:integration`, and `npm --workspace apps/backend run test`. Then run the mandatory normalized LOC gate for REQ-005/REQ-006 with: `awk 'BEGIN{in_import=0;count=0} /^[[:space:]]*import[[:space:]]/{in_import=1} in_import{ if ($0 ~ /;[[:space:]]*$/) in_import=0; next } /^[[:space:]]*$/ {next} {count++} END{print count}' apps/backend/src/lib/machines/generation-system.definition.ts` and the same command for each newly created `generation-system.*.ts` module. Acceptance criterion: all commands pass, `generation-system.definition.ts <= 250`, each new module `<= 300`, and the public machine import path remains unchanged for all current consumers. |  |  |
+| TASK-016 | Reduce `apps/backend/src/lib/machines/generation-system.definition.ts` to a thin composition file. Final target content: imports, `setup({ types, actions, guards, actors })`, root `context`, and `states: { ...requestStates, ...executionStates, ...persistenceStates }`. Target <= 250 LOC excluding imports and blank lines. | Yes | 2026-05-19 |
+| TASK-017 | Keep `apps/backend/src/lib/machines/generation-system.machine.ts` unchanged as `export { generationSystemMachine } from './generation-system.definition';`. Do not move helper-module exports into `apps/backend/src/lib/machines/index.ts` unless a direct consumer is introduced and verified. | Yes | 2026-05-19 |
+| TASK-018 | Run final validation: `npm --workspace apps/backend run typecheck`, `npm --workspace apps/backend run test:integration`, and `npm --workspace apps/backend run test`. Then run the mandatory normalized LOC gate for REQ-005/REQ-006 with: `awk 'BEGIN{in_import=0;count=0} /^[[:space:]]*import[[:space:]]/{in_import=1} in_import{ if ($0 ~ /;[[:space:]]*$/) in_import=0; next } /^[[:space:]]*$/ {next} {count++} END{print count}' apps/backend/src/lib/machines/generation-system.definition.ts` and the same command for each newly created `generation-system.*.ts` module. Acceptance criterion: all commands pass, `generation-system.definition.ts <= 250`, each new module `<= 300`, and the public machine import path remains unchanged for all current consumers. | Yes | 2026-05-19 |
 
 ---
 
@@ -166,3 +166,34 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 - [docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
 - [plan/refactor-architecture-weaknesses-remediation-1.md](./refactor-architecture-weaknesses-remediation-1.md)
 - [plan/process-auth-http-finding-closure-ddd-1.md](./process-auth-http-finding-closure-ddd-1.md)
+
+---
+
+## 9. Execution Closure (2026-05-19)
+
+### Delivery Summary
+- `generation-system.definition.ts` has been reduced to a thin composition root (`setup + context + states spread`) and no longer owns helper/actor/action/state internals.
+- Machine-private concerns are split into dedicated modules: types, event decoders, runtime helpers, actions, guards, actors, and lifecycle state fragments.
+- Public export boundary is unchanged: `generation-system.machine.ts` remains the canonical re-export surface.
+
+### Validation Summary
+- `npm --workspace apps/backend run typecheck` ✅
+- `node --import tsx --test apps/backend/src/lib/tests/generation-system.runtime.test.ts` ✅ (22 pass / 0 fail)
+- `npm --workspace apps/backend run test:integration` ✅ (91 pass / 0 fail)
+- `npm --workspace apps/backend run test` ✅ (131 pass / 0 fail)
+
+### Normalized LOC Gate (REQ-008)
+- `apps/backend/src/lib/machines/generation-system.definition.ts`: **47** (target <= 250) ✅
+- `apps/backend/src/lib/machines/generation-system.types.ts`: **102** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.events.ts`: **68** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.runtime.ts`: **15** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.actions.ts`: **271** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.guards.ts`: **30** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.actors.ts`: **86** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.request.states.ts`: **245** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.execution.states.ts`: **186** (target <= 300) ✅
+- `apps/backend/src/lib/machines/generation-system.persistence.states.ts`: **116** (target <= 300) ✅
+
+### Requirement Outcome
+- REQ-001..REQ-008: **Satisfied**.
+- DDD-001..DDD-003, CON-001..CON-003, PAT-001..PAT-002: **Satisfied**.

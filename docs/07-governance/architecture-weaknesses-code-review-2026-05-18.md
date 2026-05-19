@@ -12,11 +12,10 @@ owner: Architecture Review
 - Severity-first architecture review across backend, frontend, contracts, and governance alignment.
 - Evidence-based findings only, with direct file references.
 
-## Findings
+## Open Findings
 
 | Severity | Weakness | Evidence |
 | --- | --- | --- |
-| High | Generation orchestrator remains a monolithic state machine definition with mixed concerns. | `apps/backend/src/lib/machines/generation-system.definition.ts` (1089 LOC), fallback/persistence cluster `:920-1040` |
 | High | Frontend Tool page orchestration still concentrates readiness policy, hydration projection, and UI policy. | `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (1021 LOC), `apps/frontend/src/features/tools/machines/tool-page.machine.ts:565-860` |
 | High | Excessive debug logging persists in sensitive hydrate and external integration paths. Admin publish-issue path is gated (see closure below). | `apps/backend/src/lib/runtime/node-server.ts:158-162`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:113-194`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:88-165` |
 | Medium | Type-safety erosion via open unions and broad request payload shape remains. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:116-123` |
@@ -25,6 +24,7 @@ owner: Architecture Review
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- Generation orchestrator monolith finding is closed: the previous single-file machine definition has been decomposed into typed helper modules and state fragments, with `generation-system.definition.ts` reduced to thin root composition (`setup + context + states spread`). Closure evidence: plan `plan/refactor-generation-system-definition-1.md` updated to `Completed` on 2026-05-19, normalized LOC gate passed (`definition=47`, each extracted module <= 300), and regression gates passed (`typecheck`, runtime test suite, integration suite, backend full suite).
 - CSRF fail-open finding is closed: startup now fails closed when CSRF trusted origins resolve to empty or include `*`, and request-time guard no longer bypasses CSRF on empty origin list. Evidence: `apps/backend/src/lib/runtime/node-server.ts:142-174`, `apps/backend/src/lib/runtime/node-server.ts:215-227`, `apps/backend/src/lib/tests/runtime.node-server.test.ts:457-548`, `docs/02-design/adr/csrf-fail-closed-startup-invariant-adr.md`, `docs/04-testing/streaming-generator-debug-runbook.md:132-142`.
 - Contracts isolation breach is closed: `packages/contracts/src/parity.guard.ts` is package-local and no longer imports `apps/*` types.
 - Model availability fail-open on DB read error is closed: startup check now fails closed (`fallback=deny`) in `apps/backend/src/server.ts:92-103`.
@@ -40,11 +40,11 @@ owner: Architecture Review
 
 ### Still Open / Updated
 - ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
-- Generation and ToolPage orchestration remain large single-point mutation surfaces.
+- ToolPage orchestration remains a large single-point mutation surface.
 - ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **REDUCED**: admin publish-issue path fully gated; hydrate and external integration paths remain (defer to subsequent review).
 
 ## Priority Remediation Order (Updated 2026-05-19)
-1. ~~Split `generation-system.definition.ts` and `tool-page.machine.ts`~~ (auth-http closure frees review capacity) → now prioritize Generation and ToolPage orchestration decomposition.
-2. ~~Reduce or gate verbose debug logs in admin publish-issue~~ **DONE** → focus on hydrate and external integration paths.
-3. ~~Reduce residual auth-http size concentration~~ **DONE** → activate `packages/domain` or consolidate cross-context models using decomposed auth-http as foundation pattern.
-4. Activate `packages/domain` and establish canonical cross-context model consolidation now that the auth-http surface has been successfully decomposed and validated with full test coverage.
+1. Prioritize ToolPage orchestration decomposition (`apps/frontend/src/features/tools/machines/tool-page.machine.ts`) now that Generation and auth-http decompositions are closed.
+2. Reduce or gate verbose debug logs remaining in hydrate and external integration paths.
+3. Activate `packages/domain` and establish canonical cross-context model consolidation using the decomposed Generation/auth-http surfaces as the reference pattern.
+4. Keep Generation orchestrator decomposition under anti-regression watch (normalized LOC + regression gates) during future feature work.

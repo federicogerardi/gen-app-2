@@ -134,6 +134,17 @@ const isCsrfProtectedMethod = (
   return protectedMethods.includes(method.toUpperCase());
 };
 
+/**
+ * Resolves and normalizes the CSRF trusted origins from the provided options.
+ * Resolution priority: csrf.trustedOrigins → cors.allowedOrigins → [] (empty).
+ * Values are trimmed and de-duplicated; trailing slashes are removed via normalizeOrigin.
+ */
+const resolveCsrfTrustedOrigins = (options: NodeRuntimeServerOptions): string[] => {
+  const raw = options.csrf?.trustedOrigins ?? options.cors?.allowedOrigins ?? [];
+  const normalized = raw.map(normalizeOrigin);
+  return [...new Set(normalized)];
+};
+
 export const createNodeRuntimeRequestHandler = (
   options: NodeRuntimeServerOptions,
 ): ((request: IncomingMessage, response: ServerResponse) => Promise<void>) => {
@@ -148,8 +159,20 @@ export const createNodeRuntimeRequestHandler = (
   const csrfEnabled = options.csrf?.enabled ?? true;
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];
   const csrfExcludePaths = options.csrf?.excludePaths ?? ['/auth/login', '/auth/google/start', '/auth/google/callback'];
-  const csrfTrustedOrigins = options.csrf?.trustedOrigins ?? options.cors?.allowedOrigins ?? [];
+  // Canonical resolution of CSRF trusted origins — single path used at both startup and request time.
+  const csrfTrustedOrigins = resolveCsrfTrustedOrigins(options);
   const debugGenerationLogs = options.debugGenerationLogs ?? false;
+
+  // Startup invariants: fail fast rather than silently disabling CSRF at request time (fail-closed policy).
+  // Deferring these checks to per-request execution would allow a misconfigured server to silently
+  // bypass CSRF protection for every request when origins are empty or a wildcard is present.
+  if (csrfEnabled && csrfTrustedOrigins.length === 0) {
+    throw new Error('Invalid CSRF configuration: trustedOrigins must be non-empty when CSRF is enabled');
+  }
+
+  if (csrfEnabled && csrfTrustedOrigins.includes('*')) {
+    throw new Error('Invalid CSRF configuration: trustedOrigins cannot include "*" when CSRF is enabled');
+  }
 
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const path = normalizePath(request.url);
@@ -190,7 +213,6 @@ export const createNodeRuntimeRequestHandler = (
 
     if (
       csrfEnabled
-      && csrfTrustedOrigins.length > 0
       && isCsrfProtectedMethod(request.method ?? 'GET', csrfProtectedMethods)
       && !csrfExcludePaths.includes(path)
     ) {

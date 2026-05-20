@@ -4,7 +4,6 @@ import type { AuthHandlers } from './auth-handlers';
 import type { AdminHandlers } from './admin-handlers';
 import type { ProjectsHandlers } from './projects-handlers';
 import type { PublicHandlers } from './public-handlers';
-import type { AuthHttpWriteErrorFn } from './support';
 import type { ToolsHandlers } from './tools-handlers';
 import { buildAuthRoutes } from './auth-http-auth-routes';
 import { buildPublicRoutes } from './auth-http-public-routes';
@@ -18,7 +17,7 @@ export type HandleAuthHttpRequestResult = {
 };
 
 export type RouteEntry = {
-  method: string | null;
+  method: string | string[];
   pattern: string | RegExp;
   handler: (request: IncomingMessage, response: ServerResponse, ...matches: string[]) => Promise<void>;
 };
@@ -29,7 +28,6 @@ export type AllHandlerGroups = {
   projectsHandlers: ProjectsHandlers;
   publicHandlers: PublicHandlers;
   toolsHandlers: ToolsHandlers;
-  writeError: AuthHttpWriteErrorFn;
 };
 
 export const buildRouteTable = ({
@@ -38,13 +36,12 @@ export const buildRouteTable = ({
   projectsHandlers,
   publicHandlers,
   toolsHandlers,
-  writeError,
 }: AllHandlerGroups): RouteEntry[] => {
   return [
     ...buildAuthRoutes(authHandlers),
-    ...buildAdminRoutes(adminHandlers, writeError),
+    ...buildAdminRoutes(adminHandlers),
     ...buildPublicRoutes(publicHandlers),
-    ...buildProjectsRoutes(projectsHandlers, writeError),
+    ...buildProjectsRoutes(projectsHandlers),
     ...buildToolsRoutes(toolsHandlers),
   ];
 };

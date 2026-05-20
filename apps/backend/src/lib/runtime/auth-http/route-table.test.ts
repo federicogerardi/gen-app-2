@@ -28,7 +28,6 @@ describe('Route order and dispatch semantics', () => {
       projectsHandlers: {} as any,
       publicHandlers: {} as any,
       toolsHandlers: {} as any,
-      writeError: () => {},
     };
 
     const routeTable = buildRouteTable(mockHandlers);
@@ -55,7 +54,6 @@ describe('Route order and dispatch semantics', () => {
       projectsHandlers: {} as any,
       publicHandlers: {} as any,
       toolsHandlers: {} as any,
-      writeError: () => {},
     };
 
     const routeTable = buildRouteTable(mockHandlers);
@@ -74,7 +72,6 @@ describe('Route order and dispatch semantics', () => {
       projectsHandlers: {} as any,
       publicHandlers: {} as any,
       toolsHandlers: {} as any,
-      writeError: () => {},
     };
 
     const routeTable = buildRouteTable(mockHandlers);
@@ -84,5 +81,40 @@ describe('Route order and dispatch semantics', () => {
     const result = await dispatchRequest(routeTable, mockRequest as IncomingMessage, mockResponse as ServerResponse);
 
     expect(result.handled).toBe(false);
+  });
+
+  it('returns centralized 405 when path matches but method is not allowed', async () => {
+    const methodNotAllowed = vi.fn();
+    const routeTable = [
+      {
+        method: 'GET',
+        pattern: '/api/models',
+        handler: async () => {
+          throw new Error('handler should not be called for invalid method');
+        },
+      },
+    ];
+
+    mockRequest.url = '/api/models';
+    mockRequest.method = 'POST';
+    mockResponse.setHeader = vi.fn();
+
+    const result = await dispatchRequest(
+      routeTable,
+      mockRequest as IncomingMessage,
+      mockResponse as ServerResponse,
+      (response, statusCode, code, message) => {
+        methodNotAllowed({ response, statusCode, code, message });
+      },
+    );
+
+    expect(result.handled).toBe(true);
+    expect(mockResponse.setHeader).toHaveBeenCalledWith('Allow', 'GET');
+    expect(methodNotAllowed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 405,
+        code: 'method_not_allowed',
+      }),
+    );
   });
 });

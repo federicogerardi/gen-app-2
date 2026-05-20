@@ -1,43 +1,34 @@
 import type { ProjectsHandlers } from './projects-handlers';
-import type { AuthHttpWriteErrorFn } from './support';
 import type { RouteEntry } from './route-table';
 
 export const buildProjectsRoutes = (
   projectsHandlers: ProjectsHandlers,
-  writeError: AuthHttpWriteErrorFn,
 ): RouteEntry[] => {
   return [
     {
-      method: null,
+      method: 'GET',
       pattern: '/api/projects',
-      handler: async (request, response) => {
-        if (request.method === 'GET') {
-          await projectsHandlers.handleProjectsList(request, response);
-          return;
-        }
-
-        if (request.method === 'POST') {
-          await projectsHandlers.handleProjectsCreate(request, response);
-          return;
-        }
-
-        writeError(response, 405, 'method_not_allowed', 'Method not allowed for /api/projects');
-      },
+      handler: projectsHandlers.handleProjectsList,
     },
     {
-      method: null,
+      method: 'POST',
+      pattern: '/api/projects',
+      handler: projectsHandlers.handleProjectsCreate,
+    },
+    {
+      method: 'GET',
       pattern: /^\/api\/projects\/([^/]+)$/,
       handler: async (request, response, projectId) => {
         await projectsHandlers.handleProjectById(request, response, decodeURIComponent(projectId ?? ''));
       },
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/api/artifacts',
       handler: projectsHandlers.handleArtifactsList,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: /^\/api\/artifacts\/([^/]+)\/download$/,
       handler: async (request, response, artifactId) => {
         await projectsHandlers.handleArtifactDownload(
@@ -48,7 +39,7 @@ export const buildProjectsRoutes = (
       },
     },
     {
-      method: null,
+      method: 'GET',
       pattern: /^\/api\/artifacts\/([^/]+)$/,
       handler: async (request, response, artifactId) => {
         await projectsHandlers.handleArtifactById(request, response, decodeURIComponent(artifactId ?? ''));

@@ -4,27 +4,27 @@ import type { RouteEntry } from './route-table';
 export const buildAuthRoutes = (authHandlers: AuthHandlers): RouteEntry[] => {
   return [
     {
-      method: null,
+      method: 'POST',
       pattern: '/auth/login',
       handler: authHandlers.handleLogin,
     },
     {
-      method: null,
+      method: 'POST',
       pattern: '/auth/logout',
       handler: authHandlers.handleLogout,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/auth/session',
       handler: authHandlers.handleSession,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/auth/google/start',
       handler: authHandlers.handleGoogleOAuthStart,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/auth/google/callback',
       handler: authHandlers.handleGoogleOAuthCallback,
     },

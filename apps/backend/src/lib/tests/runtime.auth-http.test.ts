@@ -369,6 +369,30 @@ test('auth HTTP runtime supports login, session and logout flow', async () => {
   assert.equal(sessionAfterLogoutBody.ok, false);
 });
 
+test('auth HTTP runtime enforces method at routing layer for /api/projects', async () => {
+  const runtime = createAuthHttpRuntime({
+    repositories: createAuthStubRepositories(),
+    passwordHashing: createDefaultPasswordHashRuntime(),
+    sessionCookies: createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' }),
+    now: () => new Date('2026-05-21T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-method-gate-001' },
+  });
+
+  const response = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'PATCH',
+      url: '/api/projects',
+    }) as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 405);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+  assert.equal((body.error as { code?: string }).code, 'method_not_allowed');
+});
+
 test('auth HTTP runtime rejects invalid credentials', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();

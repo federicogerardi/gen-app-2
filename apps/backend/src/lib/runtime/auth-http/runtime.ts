@@ -254,7 +254,6 @@ export const createAuthHttpRuntime = (
     projectsHandlers,
     publicHandlers,
     toolsHandlers,
-    writeError,
   });
 
   return {
@@ -263,7 +262,7 @@ export const createAuthHttpRuntime = (
       response: ServerResponse,
     ): Promise<HandleAuthHttpRequestResult> {
       try {
-        return await dispatchRequest(routeTable, request, response);
+        return await dispatchRequest(routeTable, request, response, writeError);
       } catch (err) {
         console.error(`[auth-http] unhandled error for ${request.method} ${request.url}:`, err);
         if (!response.writableEnded && !response.destroyed) {

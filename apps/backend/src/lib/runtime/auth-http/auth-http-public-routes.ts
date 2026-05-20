@@ -4,17 +4,17 @@ import type { RouteEntry } from './route-table';
 export const buildPublicRoutes = (publicHandlers: PublicHandlers): RouteEntry[] => {
   return [
     {
-      method: null,
+      method: 'GET',
       pattern: '/api/models',
       handler: publicHandlers.handleModelsList,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/api/changelog',
       handler: publicHandlers.handleListPublishedChangelog,
     },
     {
-      method: null,
+      method: 'POST',
       pattern: '/api/user-reports',
       handler: publicHandlers.handleCreateUserReport,
     },

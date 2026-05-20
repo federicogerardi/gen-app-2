@@ -1,6 +1,6 @@
 ---
 status: active
-version: 2.2
+version: 2.3
 last-reviewed: 2026-05-21
 next-review-date: 2026-08-21
 owner: Architecture Review
@@ -22,11 +22,6 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 
 ### MEDIUM
 
-- **HTTP Method Enforcement Distributed Across Handlers**
-  - **Anchor**: `apps/backend/src/lib/runtime/auth-http/auth-http-tools-routes.ts:7`, `:22`; `apps/backend/src/lib/runtime/auth-http/route-dispatch.ts:13`
-  - **Problem**: Route entries with `method: null` delegate the HTTP method constraint to individual handlers, rather than enforcing at routing layer.
-  - **Impact**: Fragile over time; easy to forget method guard in a new handler and inadvertently allow unintended HTTP verbs.
-
 - **GenerationRequestInput Contract Too Permissive**
   - **Anchor**: `packages/contracts/src/index.ts:115` (open index signature on `GenerationRequestInput`)
   - **Problem**: Arbitrary keys can flow through the FE-BE boundary without governance.
@@ -42,6 +37,14 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **HTTP Method Enforcement Distributed Across Handlers is CLOSED** (executed 2026-05-21):
+  - Route table now uses explicit HTTP methods for auth/public/projects/tools/admin entries (no `method: null` wildcard routes).
+  - Router dispatch now enforces method constraints centrally and emits deterministic `405 method_not_allowed` with `Allow` header when path matches but verb is unsupported.
+  - Projects/admin route definitions were normalized to method-specific entries, removing route-level verb branching wrappers as primary enforcement mechanism.
+  - Regression coverage added for centralized 405 dispatch behavior and auth-http integration path.
+  - **Validation**: backend typecheck ✅, auth-http suite ✅ (`28 pass / 0 fail`) including explicit routing-layer method enforcement test.
+  - Closure evidence anchors: `apps/backend/src/lib/runtime/auth-http/route-dispatch.ts`, `apps/backend/src/lib/runtime/auth-http/route-table.ts`, `apps/backend/src/lib/runtime/auth-http/runtime.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-auth-routes.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-public-routes.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-projects-routes.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-tools-routes.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-admin-routes.ts`, `apps/backend/src/lib/tests/runtime.auth-http.test.ts`.
+
 - **Frontend Fallback Session/Artifact Listing Not Paginated is CLOSED** (executed 2026-05-21):
   - Frontend artifact fallback now uses shared paginated retrieval (`listArtifactsPaginated`) instead of single unbounded fetch.
   - Session fallback path (`listSessions` when sessions endpoint capability is unavailable) now iterates artifact pages with deterministic `limit/offset` progression.
@@ -122,11 +125,10 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Priority Remediation Order (Updated 2026-05-20)
 
 ### Tier 2 (Robustness — Handle Before Production Scale)
-1. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
-2. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
+1. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
 
 ### Tier 4 (Code Quality)
-3. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+2. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -160,8 +162,8 @@ If prioritized for remediation:
 - `docs/02-design/adr/` will host ADR documents for architectural changes (e.g., session query refactoring, HTTP routing layer).
 
 ### Summary
-Architecture has improved significantly since prior reviews (12 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
-1. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
+Architecture has improved significantly since prior reviews (13 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
+1. **Boundary Robustness**: Contract permissiveness at FE-BE boundary still increases drift risk over time.
 2. **Code Quality**: Type safety gaps remain in selected frontend orchestration hooks.
 
-All 4 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing load and change velocity in production.
+All 3 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing load and change velocity in production.

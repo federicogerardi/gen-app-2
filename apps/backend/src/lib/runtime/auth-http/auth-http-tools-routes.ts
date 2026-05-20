@@ -4,27 +4,27 @@ import type { RouteEntry } from './route-table';
 export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => {
   return [
     {
-      method: null,
+      method: 'POST',
       pattern: '/api/tools/briefs',
       handler: toolsHandlers.handleToolsBriefUpload,
     },
     {
-      method: null,
+      method: 'POST',
       pattern: '/api/tools/hydrate',
       handler: toolsHandlers.handleToolsHydrate,
     },
     {
-      method: null,
+      method: 'POST',
       pattern: '/api/tools/orchestrate',
       handler: toolsHandlers.handleToolsOrchestrate,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: '/api/tools/sessions',
       handler: toolsHandlers.handleToolsSessionsList,
     },
     {
-      method: null,
+      method: 'GET',
       pattern: /^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/,
       handler: async (request, response, sessionId, stepKey) => {
         await toolsHandlers.handleToolsSessionStepArtifact(
@@ -36,7 +36,7 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
       },
     },
     {
-      method: null,
+      method: 'GET',
       pattern: /^\/api\/tools\/sessions\/([^/]+)\/download$/,
       handler: async (request, response, sessionId) => {
         await toolsHandlers.handleToolsSessionDownload(
@@ -47,7 +47,7 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
       },
     },
     {
-      method: null,
+      method: 'GET',
       pattern: /^\/api\/tools\/sessions\/([^/]+)$/,
       handler: async (request, response, sessionId) => {
         await toolsHandlers.handleToolsSessionArtifacts(

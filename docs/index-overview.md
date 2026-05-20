@@ -95,6 +95,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 ### Active Reviews
 
 - [architecture-weaknesses-code-review-2026-05-18](./07-governance/architecture-weaknesses-code-review-2026-05-18.md)
+- [architecture-weaknesses-code-review-2026-05-21](./07-governance/architecture-weaknesses-code-review-2026-05-21.md)
 
 ## Archive Registry
 

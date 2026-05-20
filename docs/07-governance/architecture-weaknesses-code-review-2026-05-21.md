@@ -34,17 +34,31 @@ owner: Architecture Review
 ### HIGH
 
 - N+1 query pattern in tools hydrate candidate resolution.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Candidate list plus per-candidate detail fetch (`Promise.all` + repeated `getArtifactByIdForUser`) in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts).
+  - Candidate list retrieval starts with `listArtifactsByUser` in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L181).
+  - Coherence filtering now performs one batch detail read through `getArtifactsByIdsForUser` in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L199), replacing per-candidate fan-out.
+  - Ranked winner resolution keeps a single final detail fetch (`bestDetail`) in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L242).
+  - Repository implementation confirms batch SQL support via `id = ANY(...)` in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1353).
+  - Effective query shape in `resolvedBriefingId` path is reduced from `1 + N + 1` to `1 + 1 + 1` (plus optional source-artifact pre-read).
+  - Validation gates passed after refactor:
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test` (exit code 0, 153 pass / 0 fail).
 - Risk:
-  - Latency and DB pressure scale linearly with historical extraction volume, impacting relaunch/resume path stability.
+  - Closed for hydrate candidate filtering scope. Residual risk remains only for future regressions that reintroduce per-candidate detail fan-out.
 
 - Production dependency composition allows fail-open fallback to synthetic LLM adapter.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Runtime dependency chain selects synthetic adapter when env-backed OpenRouter adapter is unavailable in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts).
-  - OpenRouter env factory returns null without `OPENROUTER_API_KEY` in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts).
+  - Adapter resolution now separates explicit adapter and env-backed OpenRouter adapter before fallback in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1548) and [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1551).
+  - Production guard is fail-closed: when no real adapter is available and `NODE_ENV=production`, runtime throws `production_llm_adapter_missing` in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1557).
+  - Synthetic adapter fallback is now restricted to non-production execution paths in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1575).
+  - OpenRouter env factory behavior remains explicit (`null` without `OPENROUTER_API_KEY`) in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L271), [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L272), [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L273), and [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L274).
+  - Validation gates passed after refactor:
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test` (exit code 0, 153 pass / 0 fail).
 - Risk:
-  - Misconfiguration can silently degrade real generation behavior into synthetic output in production-like runtime composition.
+  - Closed for production fail-open scope. Residual risk remains only for explicit non-production fallback behavior or future regressions that remove the production guard.
 
 - Idempotency completion is a late non-guarded step in tools orchestrate flow.
 - Evidence:

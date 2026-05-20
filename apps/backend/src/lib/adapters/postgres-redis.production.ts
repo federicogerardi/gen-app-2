@@ -1545,8 +1545,19 @@ export const createPostgresRedisProductionDependencies = (
   clients: PostgresRedisProductionClients,
   options: PostgresRedisProductionOptions = {},
 ): PostgresRedisAdapterDependencies => {
-  const llm =
-    options.llm?.adapter ?? createOpenRouterLlmStreamAdapterFromEnv() ?? createSyntheticLlmStreamAdapter();
+  const explicitLlmAdapter = options.llm?.adapter;
+  const openRouterLlmAdapter = explicitLlmAdapter
+    ? null
+    : createOpenRouterLlmStreamAdapterFromEnv();
+
+  const llm = explicitLlmAdapter ?? openRouterLlmAdapter;
+  if (!llm) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'production_llm_adapter_missing: provide options.llm.adapter or set OPENROUTER_API_KEY',
+      );
+    }
+  }
 
   return {
     ownership: new PostgresProjectOwnershipRepository(clients.pg, options.persistence),
@@ -1561,7 +1572,7 @@ export const createPostgresRedisProductionDependencies = (
       options.runtime,
       options.stream,
     ),
-    llm,
+    llm: llm ?? createSyntheticLlmStreamAdapter(),
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
   };
 };

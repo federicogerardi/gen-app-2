@@ -189,26 +189,30 @@ export const createToolsHydrateHandlers = (
       return;
     }
 
+    const candidateById = new Map(
+      candidates.map((candidate) => [candidate.artifactId, candidate] as const),
+    );
+
     const eligibleCandidates =
       resolvedBriefingId != null
         ? (
-          await Promise.all(
-            candidates.map(async (candidate) => {
-              const detail = await queries.artifacts.getArtifactByIdForUser(
-                principal.user.id,
-                candidate.artifactId,
-                { includeInput: true },
-              );
-              const explicitBriefingId =
-                typeof detail?.input.briefingId === 'string'
-                  ? detail.input.briefingId.trim()
-                  : '';
-              const candidateBriefingId =
-                explicitBriefingId.length > 0 ? explicitBriefingId : candidate.artifactId;
-              return candidateBriefingId === resolvedBriefingId ? candidate : null;
-            }),
+          await queries.artifacts.getArtifactsByIdsForUser(
+            principal.user.id,
+            candidates.map((candidate) => candidate.artifactId),
+            { includeInput: true },
           )
-        ).filter((candidate): candidate is (typeof candidates)[number] => candidate != null)
+        )
+          .filter((detail) => {
+            const explicitBriefingId =
+              typeof detail.input.briefingId === 'string'
+                ? detail.input.briefingId.trim()
+                : '';
+            const candidateBriefingId =
+              explicitBriefingId.length > 0 ? explicitBriefingId : detail.artifactId;
+            return candidateBriefingId === resolvedBriefingId;
+          })
+          .map((detail) => candidateById.get(detail.artifactId))
+          .filter((candidate): candidate is (typeof candidates)[number] => candidate != null)
         : candidates;
 
     if (resolvedBriefingId != null && eligibleCandidates.length === 0) {

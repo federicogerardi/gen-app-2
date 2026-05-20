@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../adapters';
+import { parseExtractionContent as parseCanonicalExtractionContent } from '../../machines/generation/extraction-parsers';
 import type { AuthSessionPrincipal } from '../../types/auth';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 import {
-  parseExtractionContent,
   parsedFormatFromInput,
 } from './tools-hydration-parser';
 
@@ -50,6 +50,25 @@ export const createToolsHydrateHandlers = (
     if (process.env.NODE_ENV !== 'production') {
       console.debug(message, payload ?? '');
     }
+  };
+
+  // Parser ownership rule: hydration extraction payload parsing must reuse
+  // the canonical Generation parser to avoid semantic drift across runtime paths.
+  const resolveExtractionToolKeyFromInput = (input: Record<string, unknown>): string | null => {
+    const directToolKey = typeof input.toolKey === 'string' ? input.toolKey.trim() : '';
+    if (directToolKey.length > 0) {
+      return directToolKey;
+    }
+
+    const toolWorkflow = input.toolWorkflow;
+    if (toolWorkflow && typeof toolWorkflow === 'object' && !Array.isArray(toolWorkflow)) {
+      const nestedToolKey = (toolWorkflow as Record<string, unknown>).toolKey;
+      if (typeof nestedToolKey === 'string' && nestedToolKey.trim().length > 0) {
+        return nestedToolKey.trim();
+      }
+    }
+
+    return null;
   };
 
   const handleToolsHydrate = async (
@@ -107,7 +126,10 @@ export const createToolsHydrateHandlers = (
             ? artifact.input.briefingId.trim()
             : artifact.artifactId;
 
-          const extractionPayload = parseExtractionContent(artifact.content);
+          const extractionPayload = parseCanonicalExtractionContent(
+            artifact.content,
+            resolveExtractionToolKeyFromInput(artifact.input),
+          );
           const normalizedText = typeof artifact.input.briefingText === 'string' && artifact.input.briefingText.trim().length > 0
             ? artifact.input.briefingText
             : (typeof artifact.input.normalizedText === 'string' ? artifact.input.normalizedText : '');
@@ -227,7 +249,10 @@ export const createToolsHydrateHandlers = (
       ? bestDetail.input.briefingId.trim()
       : bestDetail.artifactId;
 
-    const extractionPayload = parseExtractionContent(bestDetail.content);
+    const extractionPayload = parseCanonicalExtractionContent(
+      bestDetail.content,
+      resolveExtractionToolKeyFromInput(bestDetail.input),
+    );
     const normalizedText = typeof bestDetail.input.briefingText === 'string' && bestDetail.input.briefingText.trim().length > 0
       ? bestDetail.input.briefingText
       : (typeof bestDetail.input.normalizedText === 'string' ? bestDetail.input.normalizedText : '');

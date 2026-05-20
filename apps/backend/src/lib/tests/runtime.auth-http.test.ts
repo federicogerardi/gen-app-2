@@ -14,6 +14,7 @@ import {
   createDefaultSessionCookieRuntime,
   type GoogleOAuthRuntime,
 } from '../runtime';
+import { parseExtractionContent as parseCanonicalExtractionContent } from '../machines/generation/extraction-parsers';
 
 class MockIncomingMessage extends EventEmitter {
   method: string;
@@ -2704,6 +2705,424 @@ test('auth HTTP runtime hydrate keeps coherence on content-artifact resume path'
   assert.equal(hydration.extractionArtifactId, 'artifact-extract-brief-target');
   assert.equal(hydration.briefingId, 'brief-target');
   assert.deepEqual(hydration.extractionPayload, { topic: 'target' });
+});
+
+test('auth HTTP runtime hydrate parses youtube markdown extraction with canonical fields', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-007',
+    now: () => new Date('2026-05-11T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-007',
+    email: 'hydrate7@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-7'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-007', {
+    name: 'Hydrate Project 7',
+  });
+
+  const youtubeMarkdown = [
+    '## Knowledge Content',
+    '- Foundational strategy',
+    '## Avatar',
+    '- Founder',
+    '## Pain Point',
+    '- Low conversion',
+    '## Purchase Process Type',
+    '- Assisted',
+    '## Offer',
+    '- Audit',
+    '## Proof',
+    '- Case studies',
+    '## Tone',
+    '- Consultative',
+    '## Target Duration Minutes',
+    '- 15',
+    '## Proprietary Methodology Disclosure',
+    '- Non emerso dal documento.',
+  ].join('\n');
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-youtube-001',
+      requestId: 'req-extract-youtube-001',
+      userId: 'user-hydrate-007',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        toolKey: 'youtube-lf-script',
+        briefingId: 'brief-youtube-001',
+        briefingText: 'youtube brief text',
+      },
+      content: youtubeMarkdown,
+      failureReason: null,
+      createdAt: '2026-05-11T10:00:00.000Z',
+      updatedAt: '2026-05-11T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-11T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-007' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate7@example.com',
+    password: 'Hydrate-Pass-7',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        sourceArtifactId: 'artifact-extract-youtube-001',
+        resolvedBriefingId: 'brief-youtube-001',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionPayload: Record<string, unknown> };
+  }).hydration;
+  assert.deepEqual(hydration.extractionPayload, {
+    knowledge_content: 'Foundational strategy',
+    avatar: 'Founder',
+    pain_point: 'Low conversion',
+    purchase_process_type: 'Assisted',
+    offer: 'Audit',
+    proof: 'Case studies',
+    tone: 'Consultative',
+    target_duration_minutes: '15',
+    proprietary_methodology_disclosure: null,
+  });
+});
+
+test('auth HTTP runtime hydrate payload matches canonical parser for non-youtube extraction content', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-008',
+    now: () => new Date('2026-05-12T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-008',
+    email: 'hydrate8@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-8'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-008', {
+    name: 'Hydrate Project 8',
+  });
+
+  const extractionContent = '{"message":"ok","segment":"b2b"}';
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-parity-json-001',
+      requestId: 'req-extract-parity-json-001',
+      userId: 'user-hydrate-008',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        toolKey: 'funnel-pages',
+        briefingId: 'brief-parity-json-001',
+        briefingText: 'parity json text',
+      },
+      content: extractionContent,
+      failureReason: null,
+      createdAt: '2026-05-12T10:00:00.000Z',
+      updatedAt: '2026-05-12T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-12T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-008' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate8@example.com',
+    password: 'Hydrate-Pass-8',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        sourceArtifactId: 'artifact-extract-parity-json-001',
+        resolvedBriefingId: 'brief-parity-json-001',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionPayload: Record<string, unknown> };
+  }).hydration;
+
+  assert.deepEqual(
+    hydration.extractionPayload,
+    parseCanonicalExtractionContent(extractionContent, 'funnel-pages'),
+  );
+});
+
+test('auth HTTP runtime hydrate payload matches canonical parser for youtube extraction content', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-009',
+    now: () => new Date('2026-05-13T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-009',
+    email: 'hydrate9@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-9'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-009', {
+    name: 'Hydrate Project 9',
+  });
+
+  const youtubeContent = [
+    '## Knowledge Content',
+    '- Script framework',
+    '## Avatar',
+    '- Founder',
+    '## Pain Point',
+    '- No retention',
+    '## Purchase Process Type',
+    '- Considered',
+    '## Offer',
+    '- Trial',
+    '## Proof',
+    '- Testimonials',
+    '## Tone',
+    '- Direct',
+    '## Target Duration Minutes',
+    '- 12',
+    '## Proprietary Methodology Disclosure',
+    '- Framework 7',
+  ].join('\n');
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-parity-youtube-001',
+      requestId: 'req-extract-parity-youtube-001',
+      userId: 'user-hydrate-009',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        toolKey: 'youtube-lf-script',
+        briefingId: 'brief-parity-youtube-001',
+        briefingText: 'parity youtube text',
+      },
+      content: youtubeContent,
+      failureReason: null,
+      createdAt: '2026-05-13T10:00:00.000Z',
+      updatedAt: '2026-05-13T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-13T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-009' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate9@example.com',
+    password: 'Hydrate-Pass-9',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        sourceArtifactId: 'artifact-extract-parity-youtube-001',
+        resolvedBriefingId: 'brief-parity-youtube-001',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionPayload: Record<string, unknown> };
+  }).hydration;
+
+  assert.deepEqual(
+    hydration.extractionPayload,
+    parseCanonicalExtractionContent(youtubeContent, 'youtube-lf-script'),
+  );
+});
+
+test('auth HTTP runtime hydrate response shape remains stable for hydration payload contract', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-010',
+    now: () => new Date('2026-05-14T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-010',
+    email: 'hydrate10@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-10'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-010', {
+    name: 'Hydrate Project 10',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-shape-001',
+      requestId: 'req-extract-shape-001',
+      userId: 'user-hydrate-010',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        toolKey: 'funnel-pages',
+        briefingId: 'brief-shape-001',
+        briefingText: 'shape text',
+        parsedFormat: 'txt',
+      },
+      content: '{"alpha":"one"}',
+      failureReason: null,
+      createdAt: '2026-05-14T10:00:00.000Z',
+      updatedAt: '2026-05-14T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-14T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-010' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate10@example.com',
+    password: 'Hydrate-Pass-10',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        sourceArtifactId: 'artifact-extract-shape-001',
+        resolvedBriefingId: 'brief-shape-001',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: {
+      extractionArtifactId: string;
+      extractionPayload: Record<string, unknown>;
+      briefingId: string;
+      normalizedText: string;
+      parsedFormat: string;
+    };
+  }).hydration;
+
+  assert.equal(typeof hydration.extractionArtifactId, 'string');
+  assert.equal(typeof hydration.briefingId, 'string');
+  assert.equal(typeof hydration.normalizedText, 'string');
+  assert.equal(typeof hydration.parsedFormat, 'string');
+  assert.equal(typeof hydration.extractionPayload, 'object');
 });
 
 test('auth HTTP runtime supports feedback-center report/changelog endpoints with auth and normalization', async () => {

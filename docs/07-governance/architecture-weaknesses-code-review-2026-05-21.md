@@ -17,16 +17,19 @@ owner: Architecture Review
 ### CRITICAL
 
 - Parsing inconsistency for ExtractionContext between hydrate path and canonical Generation parser.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Hydrate path imports and uses a local parser that only accepts content input and does not receive tool identity in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L6) and [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L110).
-  - The same hydrate path repeats that parser usage in ranked fallback resolution in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L230).
-  - Local hydrate parser signature is content-only, JSON-first (direct/fenced/object-slice), with no tool-aware branch in [tools-hydration-parser.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydration-parser.ts#L47).
-  - Canonical Generation parser is tool-aware: it normalizes tool key and applies youtube-specific markdown extraction for youtube-lf-script in [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L96) and [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L98).
-  - Youtube parsing semantics in Generation are materially different (section-heading + bullet mapping, null normalization for missing markers) in [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L38).
-  - Frontend readiness enforces youtube mandatory extraction fields (`knowledge_content`, `avatar`, `pain_point`, `offer`, `proof`) in [extraction-context-validity.ts](../../apps/frontend/src/features/tools/machines/extraction-context-validity.ts#L3), [extraction-context-validity.ts](../../apps/frontend/src/features/tools/machines/extraction-context-validity.ts#L46), and [extraction-context-validity.ts](../../apps/frontend/src/features/tools/machines/extraction-context-validity.ts#L88).
-  - Hydration validation path consumes `hydrationResult.extractionPayload` under tool-specific validity checks in [tool-page-readiness.ts](../../apps/frontend/src/features/tools/machines/tool-page-readiness.ts#L91).
+  - Hydrate path now imports canonical Generation parser directly (`parseCanonicalExtractionContent`) in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L4).
+  - Both hydrate parse call sites (direct extraction-source and ranked fallback) now pass tool identity resolved from input in [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L122) and [tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L249).
+  - Local hydrate parser module now keeps only parsed-format utility and no ExtractionContext parser duplicate in [tools-hydration-parser.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydration-parser.ts#L1).
+  - Canonical parser retains youtube-specific markdown semantics and now also preserves non-youtube compatibility for historical payload envelopes/fenced/object-slice JSON in [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L24), [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L57), and [extraction-parsers.ts](../../apps/backend/src/lib/machines/generation/extraction-parsers.ts#L128).
+  - Regression coverage for hydrate parity and response-shape stability is present in [runtime.auth-http.test.ts](../../apps/backend/src/lib/tests/runtime.auth-http.test.ts#L2160).
+  - Validation gates passed after the fix:
+    - `node --import tsx --test apps/backend/src/lib/tests/runtime.auth-http.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test` (exit code 0, 153 pass / 0 fail).
 - Risk:
-  - Hydration may reconstruct non-equivalent ExtractionContext payloads versus Generation canonical parsing for youtube-lf-script, causing semantic drift in HydrationResult and tool readiness evaluation.
+  - Closed for parser-parity scope. Residual risk remains only for future uncontrolled parser edits that bypass canonical module ownership.
 
 ### HIGH
 

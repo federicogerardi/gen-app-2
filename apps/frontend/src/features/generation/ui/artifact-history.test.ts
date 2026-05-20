@@ -68,8 +68,8 @@ describe('artifact history', () => {
     const relaunch = buildRelaunchRequest(sourceArtifact);
     expect(relaunch.requestId).not.toBe(sourceArtifact.sourceRequest.requestId);
     expect(relaunch.idempotencyKey).toBeUndefined();
-    expect(relaunch.input['relaunchFromArtifactId']).toBe('art-relaunch');
-    expect(relaunch.input['relaunchMode']).toBeUndefined();
+    expect(relaunch.input.relaunchFromArtifactId).toBe('art-relaunch');
+    expect(relaunch.input.relaunchMode).toBeUndefined();
   });
 
   it('builds tool entry query with required and optional relaunch fields', () => {

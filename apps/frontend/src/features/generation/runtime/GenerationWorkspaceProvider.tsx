@@ -22,7 +22,10 @@ import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-hi
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { listArtifactsPaginated } from '../../artifacts/runtime/artifacts-client';
 
-const readInputString = (request: GenerationRequest, key: string): string | null => {
+const readInputString = (
+  request: GenerationRequest,
+  key: 'briefingFileName' | 'sourceArtifactId',
+): string | null => {
   const value = request.input[key];
   if (typeof value !== 'string') {
     return null;

@@ -124,13 +124,13 @@ const normalizeWorkflowTypeCandidate = (
 const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
   const input = artifact.input;
   const toolWorkflowInput =
-    input && typeof input['toolWorkflow'] === 'object' && input['toolWorkflow'] !== null
-      ? (input['toolWorkflow'] as Record<string, unknown>)
+    input && typeof input.toolWorkflow === 'object' && input.toolWorkflow !== null
+      ? (input.toolWorkflow as Record<string, unknown>)
       : null;
 
   return (
     normalizeToolKeyCandidate(artifact.toolKey) ??
-    normalizeToolKeyCandidate(input?.['toolKey']) ??
+    normalizeToolKeyCandidate(input?.toolKey) ??
     normalizeToolKeyCandidate(toolWorkflowInput?.['toolKey']) ??
     normalizeToolKeyCandidate(toolWorkflowInput?.['workflowType']) ??
     normalizeToolKeyCandidate(artifact.workflowType)

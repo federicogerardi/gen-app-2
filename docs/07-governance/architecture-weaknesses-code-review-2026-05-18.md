@@ -22,10 +22,7 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 
 ### MEDIUM
 
-- **GenerationRequestInput Contract Too Permissive**
-  - **Anchor**: `packages/contracts/src/index.ts:115` (open index signature on `GenerationRequestInput`)
-  - **Problem**: Arbitrary keys can flow through the FE-BE boundary without governance.
-  - **Impact**: Reduces value of typed boundary; increases risk of ungoverned fields in production.
+- No open MEDIUM findings.
 
 ### LOW
 
@@ -37,6 +34,13 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **GenerationRequestInput Contract Too Permissive is CLOSED** (executed 2026-05-21):
+  - `GenerationRequestInput` contract is now explicitly governed and no longer accepts arbitrary keys via index signature.
+  - Cross-boundary metadata keys are modeled explicitly (`toolWorkflow`, `resolvedPromptTemplate`, `resolvedPromptSource`) and legacy relaunch alias is retained as deprecated (`relaunchMode`) for backward-compat migration.
+  - Frontend runtime/tests updated to consume typed fields directly rather than relying on open index access for canonical keys.
+  - **Validation**: backend typecheck ✅, frontend typecheck ✅.
+  - Closure evidence anchors: `packages/contracts/src/index.ts`, `apps/frontend/src/features/artifacts/runtime/artifacts-client.ts`, `apps/frontend/src/features/generation/ui/artifact-history.test.ts`.
+
 - **HTTP Method Enforcement Distributed Across Handlers is CLOSED** (executed 2026-05-21):
   - Route table now uses explicit HTTP methods for auth/public/projects/tools/admin entries (no `method: null` wildcard routes).
   - Router dispatch now enforces method constraints centrally and emits deterministic `405 method_not_allowed` with `Allow` header when path matches but verb is unsupported.
@@ -105,8 +109,8 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
   - `integrations/github-issues.ts` verbose integration tracing moved from direct `console.debug` calls to a centralized local `debugLog()` utility gated by `NODE_ENV !== 'production'`; failure-path `console.error` logs remain active for operational diagnostics.
   - Closure evidence anchors: `apps/backend/src/lib/runtime/node-server.ts:165-188`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:49-55`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:119-127`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:200-210`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:83-89`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:94-174`.
   - **Validation**: backend TypeScript typecheck ✅ passing; backend test suite **131 pass / 0 fail** ✅.
-- **Type-safety erosion via open unions and broad request payload shape is CLOSED as accepted risk under governance controls** (executed 2026-05-19):
-  - DDD decision `DDD-073` classifies open-union (`RegistryBacked*`) and broad payload (`GenerationRequestInput` index signature) as an intentional infrastructure compatibility boundary, not canonical domain typing.
+- **Type-safety erosion via open unions is CLOSED as accepted risk under governance controls** (executed 2026-05-19):
+  - DDD decision `DDD-073` classifies open-union (`RegistryBacked*`) as an intentional infrastructure compatibility boundary, not canonical domain typing.
   - Mandatory guardrails are documented and evidenced: canonical key/workflow guards in `packages/contracts/src/tool-workflows.ts`, normalization/projection controls in `apps/backend/src/lib/runtime/request-contract.ts`, and existing declassification baseline in DDD-018.
   - Closure evidence anchors: `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:106-124`, `packages/contracts/src/tool-workflows.ts`, `apps/backend/src/lib/runtime/request-contract.ts`, `docs/07-governance/domain-naming-decision-log.md` (DDD-018, DDD-073).
 
@@ -120,15 +124,12 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 - ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
 - ~~ToolPage orchestration remains a large single-point mutation surface.~~ **CLOSED**: decomposed into dedicated readiness/view-model/progress/hydration modules with thin composer (`338` LOC) and full regression evidence.
 - ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **CLOSED**: admin publish-issue, hydrate, external integration, and runtime request/response lifecycle debug/verbose traces are now gated for production-sensitive paths; error-path diagnostics intentionally remain active.
-- ~~Type-safety erosion via open unions and broad request payload shape remains.~~ **CLOSED (accepted risk)**: governed by DDD-073 as intentional compatibility boundary with mandatory runtime guardrails (`tool-workflows` guards + `request-contract` normalization) and DDD-018 declassification baseline.
+- ~~Type-safety erosion via open unions remains.~~ **CLOSED (accepted risk)**: governed by DDD-073 as intentional compatibility boundary with mandatory runtime guardrails (`tool-workflows` guards + `request-contract` normalization) and DDD-018 declassification baseline.
 
 ## Priority Remediation Order (Updated 2026-05-20)
 
-### Tier 2 (Robustness — Handle Before Production Scale)
-1. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
-
 ### Tier 4 (Code Quality)
-2. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+1. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -163,7 +164,6 @@ If prioritized for remediation:
 
 ### Summary
 Architecture has improved significantly since prior reviews (13 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
-1. **Boundary Robustness**: Contract permissiveness at FE-BE boundary still increases drift risk over time.
-2. **Code Quality**: Type safety gaps remain in selected frontend orchestration hooks.
+1. **Code Quality**: Type safety gaps remain in selected frontend orchestration hooks.
 
 All 3 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing load and change velocity in production.

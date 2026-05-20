@@ -96,6 +96,7 @@ export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/dom
  *   - stepDependencyArtifactIds: Prior step artifact IDs for multi-step workflow
  */
 export type GenerationRequestInput = {
+  // Canonical generation dispatch fields
   prompt?: string;
   step?: ToolStep | string;
   intent?: WorkflowRunMode;
@@ -111,8 +112,37 @@ export type GenerationRequestInput = {
   stepDependencyArtifactIdsByStep?: Partial<Record<ToolStep, string>>;
   stepDependencyArtifactContentsByStep?: Partial<Record<ToolStep, string>>;
   sourceArtifactId?: string | null;
+  checkpointArtifactId?: string | null;
   relaunchFromArtifactId?: string | null;
-  [key: string]: unknown;
+  normalizedText?: string;
+  parsedFormat?: 'txt' | 'md' | 'docx';
+
+  // Canonical extraction envelope persisted by backend adapters.
+  extraction?: {
+    payload?: Record<string, unknown>;
+    normalizedText?: string;
+    parsedFormat?: 'txt' | 'md' | 'docx';
+  };
+
+  // Persisted orchestration metadata envelope used by artifact/session projections.
+  toolWorkflow?: {
+    toolKey?: ToolKey;
+    workflowType?: ToolWorkflowType | 'extraction';
+    stepKey?: ToolStep | string;
+    artifactRole?: 'step' | 'final';
+    runMode?: WorkflowRunMode;
+    sessionId?: string;
+    dependsOnSteps?: string[];
+    dependencyArtifactIds?: string[];
+    dependencyArtifactIdsByStep?: Partial<Record<ToolStep, string>>;
+  };
+
+  // Backend enrichment fields attached in request normalization.
+  resolvedPromptTemplate?: string;
+  resolvedPromptSource?: string;
+
+  /** @deprecated Legacy relaunch alias retained for backward-compat reads. */
+  relaunchMode?: WorkflowRunMode;
 };
 
 type GenerationRequestBase = {

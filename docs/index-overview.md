@@ -90,6 +90,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 ### Active Runbooks
 
 - [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+- [orchestrate-scalability-benchmark-2026-05-21](./04-testing/orchestrate-scalability-benchmark-2026-05-21.md)
 
 ### Active Reviews
 

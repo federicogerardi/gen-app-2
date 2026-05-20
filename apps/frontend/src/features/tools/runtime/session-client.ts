@@ -56,6 +56,7 @@ type SessionsListResponse = {
   ok?: boolean;
   data?: {
     sessions?: SessionSummary[];
+    nextCursor?: string;
   };
 };
 

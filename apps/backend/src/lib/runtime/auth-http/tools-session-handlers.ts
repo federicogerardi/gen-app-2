@@ -71,14 +71,41 @@ export const createToolsSessionHandlers = (
       return;
     }
 
-    const projectIdParam = parseRequestUrl(request).searchParams.get('projectId');
+    const searchParams = parseRequestUrl(request).searchParams;
+    const projectIdParam = searchParams.get('projectId');
     const projectId = projectIdParam && projectIdParam.trim().length > 0 ? projectIdParam.trim() : null;
 
+    const limitParam = searchParams.get('limit');
+    let limit: number | undefined;
+    if (limitParam && limitParam.trim().length > 0) {
+      const parsed = Number.parseInt(limitParam, 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        writeError(response, 400, 'bad_request', 'limit must be a positive integer');
+        return;
+      }
+
+      limit = Math.min(parsed, 500);
+    }
+
+    const cursorParam = searchParams.get('cursor');
+    const cursor = cursorParam && cursorParam.trim().length > 0 ? cursorParam.trim() : null;
+    if (cursor && !SessionQueryAdapter.decodeCursor(cursor)) {
+      writeError(response, 400, 'bad_request', 'Invalid sessions cursor');
+      return;
+    }
+
     const adapter = new SessionQueryAdapter(queries.artifacts);
-    const sessions: SessionListEntry[] = await adapter.fetchSessionsList(principal.user.id, projectId);
+    const page = await adapter.fetchSessionsList(principal.user.id, projectId, {
+      ...(typeof limit === 'number' ? { limit } : {}),
+      ...(cursor ? { cursor } : {}),
+    });
+    const sessions: SessionListEntry[] = page.sessions;
 
     await repositories.sessions.touchSession(principal.session.id, now());
-    writeSuccess(response, 200, { sessions });
+    writeSuccess(response, 200, {
+      sessions,
+      ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
+    });
   };
 
   const handleToolsSessionArtifacts = async (

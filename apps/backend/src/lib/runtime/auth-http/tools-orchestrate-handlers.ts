@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { TOOL_WORKFLOW_BY_TOOL_KEY } from '@gen-app-2/contracts';
 
 import type {
   AuthRepositoryBundle,
@@ -32,6 +33,8 @@ export type CreateToolsOrchestrateHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
   idempotency: IdempotencyAdapter | null;
   now: () => Date;
+  toolsOrchestrateTimeoutMs: number;
+  toolsOrchestrateArtifactScanLimit: number;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (
     request: IncomingMessage,
@@ -53,6 +56,8 @@ export const createToolsOrchestrateHandlers = (
     repositories,
     idempotency,
     now,
+    toolsOrchestrateTimeoutMs,
+    toolsOrchestrateArtifactScanLimit,
     parseJsonBody,
     requireSessionPrincipal,
     requireQueryRepositories,
@@ -118,7 +123,11 @@ export const createToolsOrchestrateHandlers = (
 
     const correlationId = `orchestrate:${randomUUID()}`;
     const route = '/api/tools/orchestrate';
-    const deadline = createGenerationRouteDeadline(3000);
+    const deadlineMs = toolsOrchestrateTimeoutMs;
+    const artifactScanLimit = toolsOrchestrateArtifactScanLimit;
+    const deadline = createGenerationRouteDeadline(deadlineMs);
+    const routeStartedAtMs = Date.now();
+    const workflowType = TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;
     const idempotencyInput = buildToolsOrchestrateIdempotencyInput({
       requestId: body.requestId,
       userId: principal.user.id,
@@ -130,6 +139,17 @@ export const createToolsOrchestrateHandlers = (
     let stepDependencyArtifactIds: string[] = [];
     let dependencyArtifactIdsByStep: Record<string, string> = {};
     let idempotencyClaimed = false;
+    let artifactSummaryCount = 0;
+    let artifactDetailBatchCount = 0;
+
+    const withOrchestrateMeta = (meta: Record<string, unknown>): Record<string, unknown> => ({
+      ...meta,
+      deadlineMs,
+      artifactScanLimit,
+      elapsedMs: Date.now() - routeStartedAtMs,
+      artifactSummaryCount,
+      artifactDetailBatchCount,
+    });
 
     if (idempotencyInput) {
       if (!idempotency) {
@@ -193,17 +213,23 @@ export const createToolsOrchestrateHandlers = (
         route,
         correlationId,
         async () => {
-          const allCompleted = await queries.artifacts.listArtifactsByUser(principal.user.id, {
-            projectId,
-            status: 'completed',
-          });
+          const allCompleted = await queries.artifacts.listRecentCompletedArtifactsForToolByUser(
+            principal.user.id,
+            {
+              projectId,
+              workflowType,
+              limit: artifactScanLimit,
+            },
+          );
+          artifactSummaryCount = allCompleted.length;
 
           const completedArtifactsByStep = await buildCompletedArtifactsByStep(
             principal.user.id,
             toolKey,
             allCompleted,
-            async (userId, artifactId) => {
-              return queries.artifacts.getArtifactByIdForUser(userId, artifactId, { includeInput: true });
+            async (userId, artifactIds) => {
+              artifactDetailBatchCount += 1;
+              return queries.artifacts.getArtifactsByIdsForUser(userId, artifactIds, { includeInput: true });
             },
             route,
             correlationId,
@@ -215,6 +241,17 @@ export const createToolsOrchestrateHandlers = (
             targetStep,
             completedArtifactsByStep,
           );
+        },
+        {
+          info: (message, meta) => {
+            console.info(message, withOrchestrateMeta(meta));
+          },
+          warn: (message, meta) => {
+            console.warn(message, withOrchestrateMeta(meta));
+          },
+          error: (message, meta) => {
+            console.error(message, withOrchestrateMeta(meta));
+          },
         },
       ));
     } catch (error) {

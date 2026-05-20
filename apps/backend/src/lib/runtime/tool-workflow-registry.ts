@@ -123,12 +123,16 @@ export const buildCompletedArtifactsByStep = async (
   userId: string,
   toolKey: SupportedToolWorkflow,
   summaries: CompletedToolArtifactSummary[],
-  getArtifactDetail: (userId: string, artifactId: string) => Promise<CompletedToolArtifactDetail | null>,
+  getArtifactDetails: (
+    userId: string,
+    artifactIds: string[],
+  ) => Promise<CompletedToolArtifactDetail[]>,
   route: string,
   correlationId: string,
   deadline?: GenerationRouteDeadline,
 ): Promise<Record<string, string>> => {
   const completedArtifactsByStep: Record<string, string> = {};
+  const unresolvedArtifactIds: string[] = [];
   const toolArtifacts = summaries.filter(
     (artifact) => normalizeToolWorkflowKey(artifact.workflowType) === toolKey && artifact.artifactType !== 'extraction',
   );
@@ -144,7 +148,28 @@ export const buildCompletedArtifactsByStep = async (
       continue;
     }
 
-    const detail = await getArtifactDetail(userId, summary.artifactId);
+    unresolvedArtifactIds.push(summary.artifactId);
+  }
+
+  if (unresolvedArtifactIds.length === 0) {
+    return completedArtifactsByStep;
+  }
+
+  if (deadline) {
+    assertGenerationRouteDeadline(deadline, route, correlationId);
+  }
+
+  const detailResults = await getArtifactDetails(userId, unresolvedArtifactIds);
+  const detailsByArtifactId = new Map<string, CompletedToolArtifactDetail>(
+    detailResults.map((detail) => [detail.artifactId, detail]),
+  );
+
+  for (const artifactId of unresolvedArtifactIds) {
+    if (deadline) {
+      assertGenerationRouteDeadline(deadline, route, correlationId);
+    }
+
+    const detail = detailsByArtifactId.get(artifactId);
     if (!detail) {
       continue;
     }

@@ -1,6 +1,10 @@
 import type { ArtifactQueryRepository } from './postgres-redis.interfaces';
 import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
-import type { ArtifactReadProjection, SessionListEntry } from '../types/artifacts';
+import type {
+  ArtifactReadProjection,
+  SessionListCursor,
+  SessionListEntry,
+} from '../types/artifacts';
 
 export type SessionArtifactEntry = {
   artifactId: string;
@@ -25,6 +29,11 @@ export type SessionArtifactGroup = {
 };
 
 export type { SessionListEntry };
+
+export type SessionListPage = {
+  sessions: SessionListEntry[];
+  nextCursor: string | null;
+};
 
 const readToolWorkflow = (input: Record<string, unknown>): Record<string, unknown> => {
   const candidate = input.toolWorkflow;
@@ -70,6 +79,35 @@ const deriveToolKeyFromWorkflowType = (workflowType: string | null): string | nu
 
 export class SessionQueryAdapter {
   constructor(private readonly artifactQueries: ArtifactQueryRepository) {}
+
+  static encodeCursor(cursor: SessionListCursor): string {
+    return Buffer.from(JSON.stringify(cursor), 'utf-8').toString('base64url');
+  }
+
+  static decodeCursor(cursor: string): SessionListCursor | null {
+    try {
+      const decoded = Buffer.from(cursor, 'base64url').toString('utf-8');
+      const parsed = JSON.parse(decoded) as Record<string, unknown>;
+      if (typeof parsed.updatedAt !== 'string' || typeof parsed.sessionId !== 'string') {
+        return null;
+      }
+
+      if (parsed.updatedAt.trim().length === 0 || parsed.sessionId.trim().length === 0) {
+        return null;
+      }
+
+      if (Number.isNaN(Date.parse(parsed.updatedAt))) {
+        return null;
+      }
+
+      return {
+        updatedAt: parsed.updatedAt,
+        sessionId: parsed.sessionId,
+      };
+    } catch {
+      return null;
+    }
+  }
 
   async fetchSessionArtifacts(
     sessionId: string,
@@ -127,8 +165,24 @@ export class SessionQueryAdapter {
     };
   }
 
-  async fetchSessionsList(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
-    return this.artifactQueries.listSessionSummaries(userId, projectId);
+  async fetchSessionsList(
+    userId: string,
+    projectId: string | null,
+    options: { limit?: number; cursor?: string | null } = {},
+  ): Promise<SessionListPage> {
+    const decodedCursor = options.cursor
+      ? SessionQueryAdapter.decodeCursor(options.cursor)
+      : null;
+
+    const page = await this.artifactQueries.listSessionSummaries(userId, projectId, {
+      ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
+      ...(decodedCursor ? { cursor: decodedCursor } : {}),
+    });
+
+    return {
+      sessions: page.entries,
+      nextCursor: page.nextCursor ? SessionQueryAdapter.encodeCursor(page.nextCursor) : null,
+    };
   }
 
   async fetchStepArtifact(

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.8
+version: 2.0
 last-reviewed: 2026-05-20
-next-review-date: 2026-08-20
+next-review-date: 2026-08-21
 owner: Architecture Review
 ---
 
@@ -14,19 +14,11 @@ owner: Architecture Review
 
 ## Open Findings
 
-Severity-first ranking of active findings identified in 2026-05-20 refresh. All findings are evidence-based with direct anchor paths.
+Severity-first ranking of active findings identified in 2026-05-21 refresh. All findings are evidence-based with direct anchor paths.
 
 ### HIGH
 
-- **Orchestration Step Scalability and Structural Timeout Risk**
-  - **Anchor**: `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts:121`, `:196`; `apps/backend/src/lib/tool-workflow-registry.ts:132`, `:147`
-  - **Problem**: Each `POST /tools/orchestrate` call scans all completed artifacts for the project; depending on data availability, an N+1 pattern on `getArtifactDetail` can trigger. Hard-coded 3000 ms deadline is fragile under production load.
-  - **Impact**: Strong degradation on large projects with long artifact history; timeout failures become structural under concurrent load rather than transient.
-
-- **Session Listing Fragmentation and Hard-Coded Truncation**
-  - **Anchor**: `apps/backend/src/lib/adapters/postgres-redis.production.ts:1339`, `:1375`, `:1377`
-  - **Problem**: `GROUP BY` includes `workflow_type` alongside `session_id`. If a session has data inconsistencies or workflow evolution, the same session appears duplicated across rows. Additionally, `LIMIT 500` is hard-coded without pagination support.
-  - **Impact**: UX inconsistency; loss of visibility on long session history; UI may show fragmented session entries instead of unified session lifecycle.
+- No open HIGH findings.
 
 ### MEDIUM
 
@@ -60,6 +52,23 @@ Severity-first ranking of active findings identified in 2026-05-20 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **Session Listing Fragmentation and Hard-Coded Truncation is CLOSED** (executed 2026-05-20):
+  - Session summary aggregation in production repository now groups by `session_id, project_id` (no workflow fragmentation) and resolves `toolKey` from latest artifact in-session using deterministic ordering.
+  - `/api/tools/sessions` now supports cursor pagination (`limit`, `cursor`) with deterministic ordering (`updatedAt DESC, sessionId DESC`) and optional `nextCursor` response field.
+  - Session listing contract updated end-to-end in backend adapters/runtime (`SessionListCursor`, `SessionListPage`) with compatibility preserved for existing clients (`sessions` payload unchanged, `nextCursor` additive).
+  - Regression coverage added for SQL shape + pagination contract and auth-http endpoint behavior (cursor success path + invalid cursor 400), plus adapter-level dedup and cursor flow tests.
+  - **Validation**: backend typecheck ✅, auth-http suite ✅ (`27 pass / 0 fail`), session integration suite ✅ (`4 pass / 0 fail`), postgres query repository suite ✅ (`2 pass / 0 fail`), frontend typecheck ✅.
+  - Closure evidence anchors: `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/session-query.adapter.ts`, `apps/backend/src/lib/runtime/auth-http/tools-session-handlers.ts`, `apps/backend/src/lib/tests/runtime.auth-http.test.ts`, `apps/backend/src/lib/tests/generation-session.integration.test.ts`, `apps/backend/src/lib/tests/postgres-artifact-query-repository.test.ts`, `apps/frontend/src/features/tools/runtime/session-client.ts`.
+
+- **Orchestration Step Scalability and Structural Timeout Risk is CLOSED** (executed 2026-05-21, Phase 1-4 complete):
+  - `/api/tools/orchestrate` deadline is now configurable (`TOOLS_ORCHESTRATE_TIMEOUT_MS`) with deterministic fallback to 3000 ms through runtime config resolution.
+  - Completed artifact lookup is now bounded and workflow-filtered (`listRecentCompletedArtifactsForToolByUser`) with configurable limit (`TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT`), replacing broad completed-history scans.
+  - Step fallback resolution removed per-item N+1 detail fetch pattern: `buildCompletedArtifactsByStep` now applies two-pass strategy with batch detail fetch (`getArtifactsByIdsForUser`) and deterministic first-hit selection.
+  - Regression coverage expanded: orchestrate timeout default/custom/invalid fallback tests, bounded lookup usage test, large-history deterministic ordering test, and dedicated registry batch-fallback deterministic tests.
+  - Benchmark evidence recorded in `docs/04-testing/orchestrate-scalability-benchmark-2026-05-21.md` with concurrent runs over 1k/5k/10k datasets; timeout and error counts remain zero in all scenarios.
+  - **Validation**: backend typecheck ✅ passing, focused orchestrate suite ✅ passing (`32 pass / 0 fail`), registry suite ✅ passing (`3 pass / 0 fail`), backend full suite ✅ passing (`142 pass / 0 fail`).
+  - Closure evidence anchors: `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts`, `apps/backend/src/lib/runtime/auth-http/runtime.ts`, `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`, `apps/backend/src/lib/runtime/tool-workflow-registry.ts`, `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/runtime.tool-workflow-registry.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.benchmark.ts`, `docs/04-testing/orchestrate-scalability-benchmark-2026-05-21.md`, `plan/process-orchestration-timeout-risk-closure-1.md`.
+
 - **Hydration Non-Determinism vs. Requested Briefing is CLOSED** (executed 2026-05-20, DDD-075 enforcement complete):
   - `/api/tools/hydrate` candidate selection now enforces briefing coherence when `resolvedBriefingId` is provided, before source exact-match and recency ranking.
   - Legacy compatibility preserved for artifacts without explicit `input.briefingId` by using `artifactId` fallback identity.
@@ -107,18 +116,14 @@ Severity-first ranking of active findings identified in 2026-05-20 refresh. All 
 
 ## Priority Remediation Order (Updated 2026-05-20)
 
-### Tier 1 (Scalability — Address Before High Load)
-1. **Optimize Orchestration Scan and Deadline** — Cache completed artifacts per session, reduce N+1 on detail fetches, increase deadline budget or make it configurable. Measure: orchestrate p99 latency and memory on 10k+ artifact projects.
-2. **Add Session Listing Pagination** — Move `GROUP BY workflow_type` logic to a separate aggregate query; paginate session list with proper cursor; add integration tests for session lifecycle mutations.
-
 ### Tier 2 (Robustness — Handle Before Production Scale)
-3. **Optimize Step-Artifact Fetch** — Add backend query projection to fetch single step without loading entire session. Measure: latency on 100+ step sessions.
-4. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
-5. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
-6. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
+1. **Optimize Step-Artifact Fetch** — Add backend query projection to fetch single step without loading entire session. Measure: latency on 100+ step sessions.
+2. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
+3. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
+4. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
 
 ### Tier 4 (Code Quality)
-8. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+5. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -126,23 +131,24 @@ Severity-first ranking of active findings identified in 2026-05-20 refresh. All 
 - **Ongoing**: Anti-regression watches for Generation/ToolPage decompositions and logging-gate coverage continue through feature work cycles.
 
 ### Historical Closures (Completed 2026-05-19 – 2026-05-20)
-1. ~~Activate `packages/domain`~~ **DONE** (DDD-074, 2026-05-20): `ArtifactType`, `ArtifactStatus`, `OutputFormat`, `WorkflowRunMode`, `ArtifactRole` consolidated into `packages/domain`; consumers updated; 0 typecheck errors.
-2. Keep Generation and ToolPage decompositions under anti-regression watch (normalized LOC + regression gates) during future feature work.
-3. Keep logging-gate coverage under regression watch so production-sensitive paths do not reintroduce ungated verbose logs.
+1. ~~Optimize Orchestration Scan and Deadline~~ **DONE** (2026-05-21): deadline is configurable, completed lookup is bounded+workflow-filtered, N+1 detail fallback replaced by batch fetch path; validation and benchmark evidence recorded.
+2. ~~Activate `packages/domain`~~ **DONE** (DDD-074, 2026-05-20): `ArtifactType`, `ArtifactStatus`, `OutputFormat`, `WorkflowRunMode`, `ArtifactRole` consolidated into `packages/domain`; consumers updated; 0 typecheck errors.
+3. Keep Generation and ToolPage decompositions under anti-regression watch (normalized LOC + regression gates) during future feature work.
+4. Keep logging-gate coverage under regression watch so production-sensitive paths do not reintroduce ungated verbose logs.
 
 ---
 
-## Assumptions and Open Questions (2026-05-20)
+## Assumptions and Open Questions (2026-05-21)
 
 ### Review Methodology
-- This review is static-code and contract analysis; **no load benchmarks or stress tests executed**.
-- Evidence is file-path anchored to current source state (2026-05-20).
+- This review is static-code and contract analysis plus local synthetic benchmark evidence for `/api/tools/orchestrate`.
+- Evidence is file-path anchored to current source state (2026-05-21).
 - Impact assessments are based on domain contract semantics and architectural patterns, not instrumented profiling.
 
 ### Next Steps (Optional)
 If prioritized for remediation:
 - **Tier 1 (Correctness)** findings can be resolved with targeted patches and domain-logic verification tests (no architectural refactoring).
-- **Tier 2 (Scalability)** findings require load-test baselines (p50, p99, p99.9 latency; memory; query cost) before and after optimization to validate impact reduction.
+- **Tier 2 (Scalability)** remaining findings require load-test baselines (p50, p99, p99.9 latency; memory; query cost) before and after optimization to validate impact reduction.
 - **Tier 3 (Robustness)** findings can be resolved with schema/routing changes and integration-level regression tests.
 
 ### Governance Integration
@@ -151,8 +157,8 @@ If prioritized for remediation:
 - `docs/02-design/adr/` will host ADR documents for architectural changes (e.g., session query refactoring, HTTP routing layer).
 
 ### Summary
-Architecture has improved significantly since prior reviews (9 major findings closed 2026-05-19 – 2026-05-20). However, concrete weaknesses remain in two areas:
-1. **Scalability**: Orchestration and session queries must handle historical artifact volumes and concurrent load.
+Architecture has improved significantly since prior reviews (11 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
+1. **Scalability**: Frontend fallback listing and step-artifact projection paths still require pagination/projection optimization for larger histories.
 2. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
 
-All 8 findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.
+All 6 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.

@@ -1452,6 +1452,203 @@ test('auth HTTP runtime session detail includes content only when requested via 
   assert.equal(fullSession.artifacts[0]?.content, 'session content payload');
 });
 
+test('auth HTTP runtime sessions list supports cursor pagination and does not fragment a session by workflow type', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub();
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'member-session-list-001',
+    email: 'member.session.list@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Session-List-1'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-session-a-old',
+      requestId: 'req-session-a-old',
+      userId: 'member-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-list-a',
+      stepKey: 'optin',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          toolKey: 'funnel-pages',
+          stepKey: 'optin',
+        },
+      },
+      content: 'session a old',
+      failureReason: null,
+      createdAt: '2026-05-24T10:00:00.000Z',
+      updatedAt: '2026-05-24T10:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-session-a-new',
+      requestId: 'req-session-a-new',
+      userId: 'member-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'nextland',
+      sessionId: 'sess-list-a',
+      stepKey: 'landing',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          toolKey: 'nextland',
+          stepKey: 'landing',
+        },
+      },
+      content: 'session a new',
+      failureReason: null,
+      createdAt: '2026-05-24T10:01:00.000Z',
+      updatedAt: '2026-05-24T10:01:00.000Z',
+    },
+    {
+      artifactId: 'artifact-session-b',
+      requestId: 'req-session-b',
+      userId: 'member-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-list-b',
+      stepKey: 'quiz',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          toolKey: 'funnel-pages',
+          stepKey: 'quiz',
+        },
+      },
+      content: 'session b',
+      failureReason: null,
+      createdAt: '2026-05-24T10:02:00.000Z',
+      updatedAt: '2026-05-24T10:02:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-24T10:30:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-session-list-001' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'member.session.list@example.com',
+    password: 'Member-Session-List-1',
+  });
+
+  const firstPageResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/tools/sessions?projectId=project-session-list-001&limit=1',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    firstPageResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(firstPageResponse.statusCode, 200);
+  const firstPageBody = firstPageResponse.jsonBody();
+  const firstPageData = firstPageBody.data as {
+    sessions: Array<{ sessionId: string; artifactCount: number }>;
+    nextCursor?: string;
+  };
+  assert.equal(firstPageData.sessions.length, 1);
+  assert.equal(firstPageData.sessions[0]?.sessionId, 'sess-list-b');
+  assert.equal(typeof firstPageData.nextCursor, 'string');
+
+  const secondPageResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: `/api/tools/sessions?projectId=project-session-list-001&limit=1&cursor=${encodeURIComponent(firstPageData.nextCursor ?? '')}`,
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    secondPageResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(secondPageResponse.statusCode, 200);
+  const secondPageBody = secondPageResponse.jsonBody();
+  const secondPageData = secondPageBody.data as {
+    sessions: Array<{ sessionId: string; artifactCount: number }>;
+    nextCursor?: string;
+  };
+  assert.equal(secondPageData.sessions.length, 1);
+  assert.equal(secondPageData.sessions[0]?.sessionId, 'sess-list-a');
+  assert.equal(secondPageData.sessions[0]?.artifactCount, 2);
+  assert.equal(secondPageData.nextCursor, undefined);
+});
+
+test('auth HTTP runtime sessions list rejects invalid cursor format', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  await repositories.users.createUser({
+    id: 'member-session-list-002',
+    email: 'member.session.list.2@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Member-Session-List-2'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: new ProjectQueryRepositoryStub(),
+      artifacts: new ArtifactQueryRepositoryStub(),
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-24T10:30:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-session-list-002' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'member.session.list.2@example.com',
+    password: 'Member-Session-List-2',
+  });
+
+  const response = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'GET',
+      url: '/api/tools/sessions?cursor=not-a-valid-cursor',
+      headers: { cookie: cookieHeader },
+    }) as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+});
+
 test('auth HTTP runtime supports /api/tools/briefs upload with parser for markdown files', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();

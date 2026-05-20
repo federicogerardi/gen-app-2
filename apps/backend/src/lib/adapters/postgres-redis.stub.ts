@@ -17,8 +17,9 @@ import type {
   ArtifactDetail,
   ArtifactListFilters,
   ArtifactReadProjection,
+  SessionListCursor,
+  SessionListPage,
   ArtifactSummary,
-  SessionListEntry,
 } from '../types/artifacts';
 import type {
   CreateProjectInput,
@@ -468,6 +469,50 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     return filtered.slice(offset, end);
   }
 
+  async listRecentCompletedArtifactsForToolByUser(
+    userId: string,
+    input: { projectId: string; workflowType: string; limit: number },
+  ): Promise<ArtifactSummary[]> {
+    const limit = Number.isFinite(input.limit) && input.limit > 0
+      ? Math.trunc(input.limit)
+      : 0;
+
+    if (limit <= 0) {
+      return [];
+    }
+
+    return [...this.artifacts.values()]
+      .filter((artifact) => {
+        return artifact.userId === userId
+          && artifact.projectId === input.projectId
+          && artifact.status === 'completed'
+          && artifact.workflowType === input.workflowType;
+      })
+      .sort((left, right) => {
+        if (left.updatedAt === right.updatedAt) {
+          return right.artifactId.localeCompare(left.artifactId);
+        }
+        return right.updatedAt.localeCompare(left.updatedAt);
+      })
+      .slice(0, limit)
+      .map((artifact) => ({
+        artifactId: artifact.artifactId,
+        requestId: artifact.requestId,
+        userId: artifact.userId,
+        projectId: artifact.projectId,
+        artifactType: artifact.artifactType,
+        status: artifact.status,
+        model: artifact.model,
+        workflowType: artifact.workflowType,
+        sessionId: artifact.sessionId ?? null,
+        stepKey: artifact.stepKey ?? null,
+        artifactRole: artifact.artifactRole ?? null,
+        runMode: artifact.runMode ?? null,
+        createdAt: artifact.createdAt,
+        updatedAt: artifact.updatedAt,
+      }));
+  }
+
   async getArtifactByIdForUser(
     userId: string,
     artifactId: string,
@@ -479,6 +524,23 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     }
 
     return this.mapToDetail(artifact, projection);
+  }
+
+  async getArtifactsByIdsForUser(
+    userId: string,
+    artifactIds: string[],
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    if (artifactIds.length === 0) {
+      return [];
+    }
+
+    return artifactIds
+      .map((artifactId) => this.artifacts.get(artifactId))
+      .filter((artifact): artifact is StubArtifactQueryRecord => {
+        return artifact !== undefined && artifact.userId === userId;
+      })
+      .map((artifact) => this.mapToDetail(artifact, projection));
   }
 
   async getArtifactById(
@@ -504,7 +566,11 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       .map((artifact) => this.mapToDetail(artifact, projection));
   }
 
-  async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+  async listSessionSummaries(
+    userId: string,
+    projectId: string | null,
+    options: { limit?: number; cursor?: SessionListCursor | null } = {},
+  ): Promise<SessionListPage> {
     const bySession = new Map<string, {
       projectId: string;
       toolKey: string | null;
@@ -540,7 +606,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       }
     }
 
-    return [...bySession.entries()]
+    const sorted = [...bySession.entries()]
       .map(([sessionId, data]) => ({
         sessionId,
         projectId: data.projectId,
@@ -549,7 +615,46 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         artifactCount: data.count,
         updatedAt: new Date(data.updatedAtMs).toISOString(),
       }))
-      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+      .sort((a, b) => {
+        const byUpdatedAt = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+        if (byUpdatedAt !== 0) {
+          return byUpdatedAt;
+        }
+
+        return b.sessionId.localeCompare(a.sessionId);
+      });
+
+    const limit = Number.isFinite(options.limit) && (options.limit ?? 0) > 0
+      ? Math.trunc(options.limit as number)
+      : 500;
+    const cursor = options.cursor ?? null;
+
+    const filtered = cursor
+      ? sorted.filter((entry) => {
+        const entryUpdatedAtMs = Date.parse(entry.updatedAt);
+        const cursorUpdatedAtMs = Date.parse(cursor.updatedAt);
+        if (entryUpdatedAtMs < cursorUpdatedAtMs) {
+          return true;
+        }
+        if (entryUpdatedAtMs > cursorUpdatedAtMs) {
+          return false;
+        }
+
+        return entry.sessionId < cursor.sessionId;
+      })
+      : sorted;
+
+    const pageSlice = filtered.slice(0, limit + 1);
+    const hasMore = pageSlice.length > limit;
+    const pageEntries = hasMore ? pageSlice.slice(0, limit) : pageSlice;
+    const last = pageEntries[pageEntries.length - 1];
+
+    return {
+      entries: pageEntries,
+      nextCursor: hasMore && last
+        ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
+        : null,
+    };
   }
 
   seed(records: StubArtifactQueryRecord[]): void {

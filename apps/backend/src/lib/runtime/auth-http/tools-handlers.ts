@@ -31,6 +31,8 @@ export type CreateToolsHandlersDependencies = {
   repositories: AuthRepositoryBundle;
   idempotency: IdempotencyAdapter | null;
   now: () => Date;
+  toolsOrchestrateTimeoutMs: number;
+  toolsOrchestrateArtifactScanLimit: number;
   parseRequestUrl: (request: IncomingMessage) => URL;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (

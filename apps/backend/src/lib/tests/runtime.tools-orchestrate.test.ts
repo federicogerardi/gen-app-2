@@ -82,7 +82,13 @@ class MockServerResponse extends EventEmitter {
 
 const FIXED_NOW = new Date('2026-05-04T10:00:00.000Z');
 
-const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
+const buildRuntime = (
+  artifactStub: ArtifactQueryRepositoryStub,
+  options: {
+    toolsOrchestrateTimeoutMs?: number;
+    toolsOrchestrateArtifactScanLimit?: number;
+  } = {},
+) => {
   const repositories = createAuthStubRepositories();
   const generationAdapters = createInMemoryGenerationAdapters();
   const hasher = createDefaultPasswordHashRuntime();
@@ -105,6 +111,12 @@ const buildRuntime = (artifactStub: ArtifactQueryRepositoryStub) => {
         artifacts: artifactStub,
       },
       idempotency: generationAdapters.idempotency,
+      ...(typeof options.toolsOrchestrateTimeoutMs === 'number'
+        ? { toolsOrchestrateTimeoutMs: options.toolsOrchestrateTimeoutMs }
+        : {}),
+      ...(typeof options.toolsOrchestrateArtifactScanLimit === 'number'
+        ? { toolsOrchestrateArtifactScanLimit: options.toolsOrchestrateArtifactScanLimit }
+        : {}),
       passwordHashing: hasher,
       sessionCookies,
       now: () => FIXED_NOW,
@@ -160,6 +172,32 @@ const POST_ORCHESTRATE = (cookie: string, body: object) =>
     headers: { cookie },
     body: JSON.stringify(body),
   });
+
+const captureOrchestrateStartMeta = async (
+  run: () => Promise<void>,
+): Promise<Record<string, unknown> | null> => {
+  const originalInfo = console.info;
+  let startMeta: Record<string, unknown> | null = null;
+
+  console.info = ((message: string, meta: Record<string, unknown>) => {
+    if (
+      message === '[gen-route][start]'
+      && meta
+      && typeof meta === 'object'
+      && meta.route === '/api/tools/orchestrate'
+    ) {
+      startMeta = meta;
+    }
+    originalInfo(message, meta);
+  }) as typeof console.info;
+
+  try {
+    await run();
+    return startMeta;
+  } finally {
+    console.info = originalInfo;
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Stub artifact records for funnel-pages
@@ -572,4 +610,214 @@ test('/api/tools/orchestrate returns 409 when idempotency slot is already claime
   await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
 
   assert.equal(res.statusCode, 409);
+});
+
+test('/api/tools/orchestrate uses default timeout config when env key is absent', async () => {
+  const originalTimeoutEnv = process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+  delete process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+
+  try {
+    const artifactStub = new ArtifactQueryRepositoryStub();
+    const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+    const cookie = await createAndLoginUser(runtime, repositories, hasher);
+    const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+    artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+    const startMeta = await captureOrchestrateStartMeta(async () => {
+      const req = POST_ORCHESTRATE(cookie, {
+        projectId,
+        toolKey: 'funnel-pages',
+        targetStep: 'quiz',
+      });
+      const res = new MockServerResponse();
+      await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+      assert.equal(res.statusCode, 200);
+    });
+
+    assert.ok(startMeta);
+    assert.equal(startMeta.deadlineMs, 3000);
+    assert.equal(startMeta.artifactSummaryCount, 0);
+    assert.equal(startMeta.artifactDetailBatchCount, 0);
+    assert.equal(typeof startMeta.elapsedMs, 'number');
+  } finally {
+    if (typeof originalTimeoutEnv === 'string') {
+      process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;
+    } else {
+      delete process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+    }
+  }
+});
+
+test('/api/tools/orchestrate uses custom timeout from env key when valid', async () => {
+  const originalTimeoutEnv = process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+  process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = '6500';
+
+  try {
+    const artifactStub = new ArtifactQueryRepositoryStub();
+    const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+    const cookie = await createAndLoginUser(runtime, repositories, hasher);
+    const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+    artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+    const startMeta = await captureOrchestrateStartMeta(async () => {
+      const req = POST_ORCHESTRATE(cookie, {
+        projectId,
+        toolKey: 'funnel-pages',
+        targetStep: 'quiz',
+      });
+      const res = new MockServerResponse();
+      await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+      assert.equal(res.statusCode, 200);
+    });
+
+    assert.ok(startMeta);
+    assert.equal(startMeta.deadlineMs, 6500);
+  } finally {
+    if (typeof originalTimeoutEnv === 'string') {
+      process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;
+    } else {
+      delete process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+    }
+  }
+});
+
+test('/api/tools/orchestrate falls back to default timeout when env key is invalid', async () => {
+  const originalTimeoutEnv = process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+  process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = '0';
+
+  try {
+    const artifactStub = new ArtifactQueryRepositoryStub();
+    const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+    const cookie = await createAndLoginUser(runtime, repositories, hasher);
+    const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+    artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+    const startMeta = await captureOrchestrateStartMeta(async () => {
+      const req = POST_ORCHESTRATE(cookie, {
+        projectId,
+        toolKey: 'funnel-pages',
+        targetStep: 'quiz',
+      });
+      const res = new MockServerResponse();
+      await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+      assert.equal(res.statusCode, 200);
+    });
+
+    assert.ok(startMeta);
+    assert.equal(startMeta.deadlineMs, 3000);
+  } finally {
+    if (typeof originalTimeoutEnv === 'string') {
+      process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;
+    } else {
+      delete process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS;
+    }
+  }
+});
+
+test('/api/tools/orchestrate uses bounded completed lookup and does not call broad list endpoint', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const boundedCalls: Array<{ projectId: string; workflowType: string; limit: number }> = [];
+  const originalBounded = artifactStub.listRecentCompletedArtifactsForToolByUser.bind(artifactStub);
+  artifactStub.listRecentCompletedArtifactsForToolByUser = async (userId, input) => {
+    boundedCalls.push(input);
+    return originalBounded(userId, input);
+  };
+
+  artifactStub.listArtifactsByUser = async () => {
+    throw new Error('listArtifactsByUser must not be used by /api/tools/orchestrate');
+  };
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    toolsOrchestrateArtifactScanLimit: 7,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([
+    { ...OPTIN_ARTIFACT, projectId },
+    { ...QUIZ_ARTIFACT, projectId },
+  ]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'vsl',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(boundedCalls.length, 1);
+  assert.deepEqual(boundedCalls[0], {
+    projectId,
+    workflowType: 'funnel_pages',
+    limit: 7,
+  });
+});
+
+test('/api/tools/orchestrate applies bounded ordering deterministically on large history', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    toolsOrchestrateArtifactScanLimit: 2,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  const records: StubArtifactQueryRecord[] = [];
+  for (let i = 0; i < 1200; i += 1) {
+    records.push({
+      artifactId: `art-noise-${String(i).padStart(4, '0')}`,
+      requestId: `req-noise-${String(i).padStart(4, '0')}`,
+      userId: 'user-orch-001',
+      projectId,
+      artifactType: 'content',
+      status: i % 2 === 0 ? 'completed' : 'failed',
+      model: 'gpt-4o',
+      workflowType: 'nextland',
+      input: { toolWorkflow: { stepKey: 'landing' }, step: 'landing' },
+      content: '{"noise":true}',
+      failureReason: i % 2 === 0 ? null : 'error',
+      createdAt: `2026-05-03T08:${String(i % 60).padStart(2, '0')}:00.000Z`,
+      updatedAt: `2026-05-03T08:${String(i % 60).padStart(2, '0')}:00.000Z`,
+    });
+  }
+
+  records.push({
+    ...OPTIN_ARTIFACT,
+    artifactId: 'art-optin-newest',
+    requestId: 'req-optin-newest',
+    projectId,
+    updatedAt: '2026-05-04T10:00:02.000Z',
+  });
+  records.push({
+    ...QUIZ_ARTIFACT,
+    artifactId: 'art-quiz-newest',
+    requestId: 'req-quiz-newest',
+    projectId,
+    updatedAt: '2026-05-04T10:00:03.000Z',
+  });
+  records.push({
+    ...OPTIN_ARTIFACT,
+    artifactId: 'art-optin-older',
+    requestId: 'req-optin-older',
+    projectId,
+    updatedAt: '2026-05-04T10:00:01.000Z',
+  });
+
+  artifactStub.seed(records);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'vsl',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-newest', 'art-quiz-newest']);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    optin: 'art-optin-newest',
+    quiz: 'art-quiz-newest',
+  });
 });

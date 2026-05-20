@@ -2,8 +2,9 @@ import type {
   ArtifactDetail,
   ArtifactListFilters,
   ArtifactReadProjection,
+  SessionListCursor,
+  SessionListPage,
   ArtifactSummary,
-  SessionListEntry,
 } from '../types/artifacts';
 import type {
   IdempotencyCoordinatorInput,
@@ -67,6 +68,10 @@ export interface ArtifactQueryRepository {
   listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
   countArtifacts(filters: ArtifactListFilters): Promise<number>;
   listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
+  listRecentCompletedArtifactsForToolByUser(
+    userId: string,
+    input: { projectId: string; workflowType: string; limit: number },
+  ): Promise<ArtifactSummary[]>;
   countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number>;
   getArtifactById(artifactId: string, projection?: ArtifactReadProjection): Promise<ArtifactDetail | null>;
   getArtifactByIdForUser(
@@ -74,12 +79,21 @@ export interface ArtifactQueryRepository {
     artifactId: string,
     projection?: ArtifactReadProjection,
   ): Promise<ArtifactDetail | null>;
+  getArtifactsByIdsForUser(
+    userId: string,
+    artifactIds: string[],
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail[]>;
   listArtifactDetailsBySession(
     userId: string,
     sessionId: string,
     projection?: ArtifactReadProjection,
   ): Promise<ArtifactDetail[]>;
-  listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]>;
+  listSessionSummaries(
+    userId: string,
+    projectId: string | null,
+    options?: { limit?: number; cursor?: SessionListCursor | null },
+  ): Promise<SessionListPage>;
 }
 
 export interface PostgresRedisAdapterDependencies {

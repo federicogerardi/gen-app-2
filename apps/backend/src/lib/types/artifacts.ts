@@ -51,6 +51,16 @@ export type SessionListEntry = {
   updatedAt: string;
 };
 
+export type SessionListCursor = {
+  updatedAt: string;
+  sessionId: string;
+};
+
+export type SessionListPage = {
+  entries: SessionListEntry[];
+  nextCursor: SessionListCursor | null;
+};
+
 export type ArtifactDetail = ArtifactSummary & {
   userId: string | null;
   input: Record<string, unknown>;

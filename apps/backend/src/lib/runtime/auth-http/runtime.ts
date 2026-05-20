@@ -55,6 +55,10 @@ import {
   type HandleAuthHttpRequestResult,
 } from './route-table';
 import { createToolsHandlers } from './tools-handlers';
+import {
+  resolveToolsOrchestrateArtifactScanLimit,
+  resolveToolsOrchestrateTimeoutMs,
+} from './tools-orchestrate-config';
 import { createAdminHandlers } from './admin-handlers';
 import { assertGitHubApiConfig, readGitHubApiConfigFromEnv } from '../integrations/github-config';
 
@@ -70,6 +74,8 @@ export type AuthHttpRuntimeOptions = {
   googleOAuth?: GoogleOAuthRuntime | null;
   googleOAuthStateTtlMs?: number;
   googleOAuthSuccessRedirectPath?: string;
+  toolsOrchestrateTimeoutMs?: number;
+  toolsOrchestrateArtifactScanLimit?: number;
   idGenerator?: AuthIdGenerator;
   now?: () => Date;
   sessionTtlMs?: number;
@@ -87,6 +93,10 @@ export const createAuthHttpRuntime = (
   const sessionTtlMs = options.sessionTtlMs ?? DEFAULT_SESSION_TTL_MS;
   const googleOAuthStateTtlMs = options.googleOAuthStateTtlMs ?? 10 * 60 * 1000;
   const googleOAuthSuccessRedirectPath = options.googleOAuthSuccessRedirectPath ?? '/';
+  const toolsOrchestrateTimeoutMs = resolveToolsOrchestrateTimeoutMs(options.toolsOrchestrateTimeoutMs);
+  const toolsOrchestrateArtifactScanLimit = resolveToolsOrchestrateArtifactScanLimit(
+    options.toolsOrchestrateArtifactScanLimit,
+  );
   const sessionCookies = options.sessionCookies ?? createDefaultSessionCookieRuntime();
   const passwordHashing = options.passwordHashing ?? createDefaultPasswordHashRuntime();
   const googleOAuth = options.googleOAuth ?? createGoogleOAuthRuntimeFromEnv();
@@ -211,6 +221,8 @@ export const createAuthHttpRuntime = (
     repositories,
     idempotency,
     now,
+    toolsOrchestrateTimeoutMs,
+    toolsOrchestrateArtifactScanLimit,
     parseRequestUrl,
     parseJsonBody,
     requireSessionPrincipal,

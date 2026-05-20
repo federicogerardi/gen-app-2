@@ -8,8 +8,10 @@ import {
   type ArtifactDetail,
   type ArtifactListFilters,
   type ArtifactReadProjection,
-  type ArtifactSummary,
+  type SessionListCursor,
+  type SessionListPage,
   type SessionListEntry,
+  type ArtifactSummary,
 } from '../types/artifacts';
 import {
   mapProjectRowToDetail,
@@ -1201,6 +1203,54 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
   }
 
+  async listRecentCompletedArtifactsForToolByUser(
+    userId: string,
+    input: { projectId: string; workflowType: string; limit: number },
+  ): Promise<ArtifactSummary[]> {
+    const limit = Number.isFinite(input.limit) && input.limit > 0
+      ? Math.trunc(input.limit)
+      : 0;
+
+    if (limit <= 0) {
+      return [];
+    }
+
+    const query = `
+      SELECT
+        a.id,
+        a.request_id,
+        a.user_id,
+        u.email AS user_email,
+        a.project_id,
+        a.type,
+        a.status,
+        a.model,
+        a.workflow_type,
+        a.session_id,
+        a.step_key,
+        a.artifact_role,
+        a.run_mode,
+        a.created_at,
+        a.updated_at
+      FROM ${this.artifactsTableName} a
+      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
+      WHERE a.user_id = $1
+        AND a.project_id = $2
+        AND a.status = 'completed'
+        AND a.workflow_type = $3
+      ORDER BY a.updated_at DESC, a.id DESC
+      LIMIT $4
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [
+      userId,
+      input.projectId,
+      input.workflowType,
+      limit,
+    ]);
+    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+  }
+
   async countArtifacts(filters: ArtifactListFilters): Promise<number> {
     const where: string[] = [];
     const params: unknown[] = [];
@@ -1300,6 +1350,28 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
+  async getArtifactsByIdsForUser(
+    userId: string,
+    artifactIds: string[],
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    if (artifactIds.length === 0) {
+      return [];
+    }
+
+    const select = this.buildProjectedDetailSelect(projection);
+    const query = `
+      SELECT
+        ${select}
+      FROM ${this.artifactsTableName}
+      WHERE user_id = $1
+        AND id = ANY($2::text[])
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, artifactIds]);
+    return result.rows.map((row) => mapArtifactRowToDetail(row));
+  }
+
   async getArtifactById(
     artifactId: string,
     projection: ArtifactReadProjection = {},
@@ -1336,7 +1408,11 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return result.rows.map((row) => mapArtifactRowToDetail(row));
   }
 
-  async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+  async listSessionSummaries(
+    userId: string,
+    projectId: string | null,
+    options: { limit?: number; cursor?: SessionListCursor | null } = {},
+  ): Promise<SessionListPage> {
     const where: string[] = [
       'user_id = $1',
       "session_id IS NOT NULL",
@@ -1349,36 +1425,81 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       where.push(`project_id = $${params.length}`);
     }
 
+    const limit = Number.isFinite(options.limit) && (options.limit ?? 0) > 0
+      ? Math.trunc(options.limit as number)
+      : 500;
+    const cursor = options.cursor ?? null;
+
+    const cursorFilter = cursor
+      ? `
+      WHERE (
+        grouped.updated_at < $${params.length + 1}::timestamptz
+        OR (
+          grouped.updated_at = $${params.length + 1}::timestamptz
+          AND grouped.session_id < $${params.length + 2}
+        )
+      )`
+      : '';
+
+    if (cursor) {
+      params.push(cursor.updatedAt);
+      params.push(cursor.sessionId);
+    }
+
+    params.push(limit + 1);
+    const limitParam = `$${params.length}`;
+
     type SessionRow = {
       session_id: string;
       project_id: string | null;
       workflow_type: string | null;
       artifact_count: string;
       updated_at: Date | string;
-      status: string;
+      status: 'generating' | 'failed' | 'completed';
     };
 
     const query = `
+      WITH grouped AS (
+        SELECT
+          session_id,
+          project_id,
+          COUNT(*) AS artifact_count,
+          MAX(updated_at) AS updated_at,
+          CASE
+            WHEN BOOL_OR(status = 'generating') THEN 'generating'
+            WHEN BOOL_OR(status = 'failed') THEN 'failed'
+            ELSE 'completed'
+          END AS status
+        FROM ${this.artifactsTableName}
+        WHERE ${where.join(' AND ')}
+        GROUP BY session_id, project_id
+      )
       SELECT
-        session_id,
-        project_id,
-        workflow_type,
-        COUNT(*) AS artifact_count,
-        MAX(updated_at) AS updated_at,
-        CASE
-          WHEN BOOL_OR(status = 'generating') THEN 'generating'
-          WHEN BOOL_OR(status = 'failed') THEN 'failed'
-          ELSE 'completed'
-        END AS status
-      FROM ${this.artifactsTableName}
-      WHERE ${where.join(' AND ')}
-      GROUP BY session_id, project_id, workflow_type
-      ORDER BY MAX(updated_at) DESC
-      LIMIT 500
+        grouped.session_id,
+        grouped.project_id,
+        latest.workflow_type,
+        grouped.artifact_count,
+        grouped.updated_at,
+        grouped.status
+      FROM grouped
+      LEFT JOIN LATERAL (
+        SELECT a.workflow_type
+        FROM ${this.artifactsTableName} a
+        WHERE a.user_id = $1
+          AND a.session_id = grouped.session_id
+          AND a.project_id = grouped.project_id
+        ORDER BY a.updated_at DESC, a.id DESC
+        LIMIT 1
+      ) latest ON TRUE
+      ${cursorFilter}
+      ORDER BY grouped.updated_at DESC, grouped.session_id DESC
+      LIMIT ${limitParam}
     `;
 
     const result: QueryResult<SessionRow> = await this.pg.query(query, params);
-    return result.rows.map((row): SessionListEntry => ({
+    const rows = result.rows.slice(0, limit);
+    const hasMore = result.rows.length > limit;
+    const entries: SessionListEntry[] = rows.map((row) => ({
       sessionId: row.session_id,
       projectId: row.project_id ?? '',
       toolKey: normalizeToolWorkflowKey(row.workflow_type),
@@ -1386,6 +1507,14 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       artifactCount: parseInt(row.artifact_count, 10),
       updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.updated_at.toISOString(),
     }));
+
+    const last = entries[entries.length - 1];
+    return {
+      entries,
+      nextCursor: hasMore && last
+        ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
+        : null,
+    };
   }
 }
 

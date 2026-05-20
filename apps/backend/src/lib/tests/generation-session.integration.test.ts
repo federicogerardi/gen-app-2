@@ -216,3 +216,86 @@ test('SessionQueryAdapter respects projection contract for content payload', asy
   assert.ok(stepFull);
   assert.equal(stepFull.content, 'projected session content');
 });
+
+test('SessionQueryAdapter fetchSessionsList returns one summary per session and supports cursor pagination', async () => {
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-sess-a-old',
+      requestId: 'req-sess-a-old',
+      userId: 'user-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter:auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-A',
+      stepKey: 'optin',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: { toolWorkflow: { toolKey: 'funnel-pages', stepKey: 'optin' } },
+      content: '',
+      failureReason: null,
+      createdAt: '2026-05-08T09:00:00.000Z',
+      updatedAt: '2026-05-08T09:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-sess-a-new',
+      requestId: 'req-sess-a-new',
+      userId: 'user-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter:auto',
+      workflowType: 'nextland',
+      sessionId: 'sess-A',
+      stepKey: 'landing',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: { toolWorkflow: { toolKey: 'nextland', stepKey: 'landing' } },
+      content: '',
+      failureReason: null,
+      createdAt: '2026-05-08T09:01:00.000Z',
+      updatedAt: '2026-05-08T09:01:00.000Z',
+    },
+    {
+      artifactId: 'artifact-sess-b',
+      requestId: 'req-sess-b',
+      userId: 'user-session-list-001',
+      projectId: 'project-session-list-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter:auto',
+      workflowType: 'funnel_pages',
+      sessionId: 'sess-B',
+      stepKey: 'quiz',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: { toolWorkflow: { toolKey: 'funnel-pages', stepKey: 'quiz' } },
+      content: '',
+      failureReason: null,
+      createdAt: '2026-05-08T09:02:00.000Z',
+      updatedAt: '2026-05-08T09:02:00.000Z',
+    },
+  ]);
+
+  const adapter = new SessionQueryAdapter(artifactQueries);
+
+  const firstPage = await adapter.fetchSessionsList('user-session-list-001', 'project-session-list-001', {
+    limit: 1,
+  });
+
+  assert.equal(firstPage.sessions.length, 1);
+  assert.equal(firstPage.sessions[0]?.sessionId, 'sess-B');
+  assert.ok(firstPage.nextCursor);
+
+  const secondPage = await adapter.fetchSessionsList('user-session-list-001', 'project-session-list-001', {
+    limit: 1,
+    cursor: firstPage.nextCursor,
+  });
+
+  assert.equal(secondPage.sessions.length, 1);
+  assert.equal(secondPage.sessions[0]?.sessionId, 'sess-A');
+  assert.equal(secondPage.sessions[0]?.artifactCount, 2);
+  assert.equal(secondPage.nextCursor, null);
+});

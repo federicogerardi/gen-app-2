@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.5
+version: 1.6
 last-reviewed: 2026-05-19
 next-review-date: 2026-08-18
 owner: Architecture Review
@@ -16,7 +16,6 @@ owner: Architecture Review
 
 | Severity | Weakness | Evidence |
 | --- | --- | --- |
-| Medium | Type-safety erosion via open unions and broad request payload shape remains. | `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:116-123` |
 | Medium | Shared domain package remains inactive, so cross-context model consolidation is still deferred. | `packages/domain/README.md:11-20`, `packages/domain/package.json:8` |
 
 ## Evidence Refresh Delta (2026-05-19)
@@ -42,11 +41,16 @@ owner: Architecture Review
   - `integrations/github-issues.ts` verbose integration tracing moved from direct `console.debug` calls to a centralized local `debugLog()` utility gated by `NODE_ENV !== 'production'`; failure-path `console.error` logs remain active for operational diagnostics.
   - Closure evidence anchors: `apps/backend/src/lib/runtime/node-server.ts:165-188`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:49-55`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:119-127`, `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:200-210`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:83-89`, `apps/backend/src/lib/runtime/integrations/github-issues.ts:94-174`.
   - **Validation**: backend TypeScript typecheck ✅ passing; backend test suite **131 pass / 0 fail** ✅.
+- **Type-safety erosion via open unions and broad request payload shape is CLOSED as accepted risk under governance controls** (executed 2026-05-19):
+  - DDD decision `DDD-073` classifies open-union (`RegistryBacked*`) and broad payload (`GenerationRequestInput` index signature) as an intentional infrastructure compatibility boundary, not canonical domain typing.
+  - Mandatory guardrails are documented and evidenced: canonical key/workflow guards in `packages/contracts/src/tool-workflows.ts`, normalization/projection controls in `apps/backend/src/lib/runtime/request-contract.ts`, and existing declassification baseline in DDD-018.
+  - Closure evidence anchors: `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:106-124`, `packages/contracts/src/tool-workflows.ts`, `apps/backend/src/lib/runtime/request-contract.ts`, `docs/07-governance/domain-naming-decision-log.md` (DDD-018, DDD-073).
 
 ### Still Open / Updated
 - ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
 - ~~ToolPage orchestration remains a large single-point mutation surface.~~ **CLOSED**: decomposed into dedicated readiness/view-model/progress/hydration modules with thin composer (`338` LOC) and full regression evidence.
 - ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **CLOSED**: admin publish-issue, hydrate, external integration, and runtime request/response lifecycle debug/verbose traces are now gated for production-sensitive paths; error-path diagnostics intentionally remain active.
+- ~~Type-safety erosion via open unions and broad request payload shape remains.~~ **CLOSED (accepted risk)**: governed by DDD-073 as intentional compatibility boundary with mandatory runtime guardrails (`tool-workflows` guards + `request-contract` normalization) and DDD-018 declassification baseline.
 
 ## Priority Remediation Order (Updated 2026-05-19)
 1. Activate `packages/domain` and establish canonical cross-context model consolidation using the decomposed Generation/auth-http/tool-page surfaces as the reference pattern.

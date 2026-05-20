@@ -101,6 +101,37 @@ test('usageMachine rejects with usage_conflict when adapter reports conflict', a
   actor.stop();
 });
 
+test('usageMachine rejects with usage_failed when adapter throws', async () => {
+  const adapters = createInMemoryGenerationAdapters(5);
+  adapters.usage.claimUsage = async () => {
+    throw new Error('forced usage adapter error');
+  };
+
+  const actor = createActor(usageMachine, {
+    input: {
+      requestId: 'req-usage-failed-on-error',
+      userId: 'seed-user-001',
+      artifactType: 'content',
+      workflowType: null,
+      registrySnapshotRef: 'snapshot:seed' as never,
+      runtime: {
+        now: fixedNow,
+      },
+      adapters: {
+        usage: adapters.usage,
+      },
+    },
+  });
+
+  actor.start();
+  const outputPromise = toPromise(actor) as Promise<UsageRejectedEvent>;
+  await waitFor(actor, (s) => s.matches('rejected'));
+  const output = await outputPromise;
+  assert.equal(output.type, 'USAGE_REJECTED');
+  assert.equal(output.reason, 'usage_failed');
+  actor.stop();
+});
+
 test('usageMachine parallel claims with shared quota are deterministic', async () => {
   const adapters = createInMemoryGenerationAdapters(1);
 

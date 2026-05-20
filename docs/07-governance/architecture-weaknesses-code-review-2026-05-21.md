@@ -77,14 +77,25 @@ owner: Architecture Review
 ### MEDIUM
 
 - Quota claim conflict path swallows infrastructure error details.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Generic catch maps to `hasConflict: true` without diagnostic details in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts).
+  - Quota claim catch path now returns explicit infra-failure reason `usage_failed` (no synthetic `hasConflict: true` coercion) in [postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L398).
+  - Usage actor fallback now preserves `usage_failed` for adapter errors and missing rejection reasons in [usage.machine.ts](../../apps/backend/src/lib/machines/usage.machine.ts#L53), [usage.machine.ts](../../apps/backend/src/lib/machines/usage.machine.ts#L83), and [usage.machine.ts](../../apps/backend/src/lib/machines/usage.machine.ts#L120).
+  - Runtime error contract now maps `usage_failed` explicitly to retryable backend failure semantics in [error-contract.ts](../../apps/backend/src/lib/runtime/error-contract.ts#L49).
+  - Regression coverage added for repository catch-path behavior and downstream mappings in [postgres-redis.usage-repository.test.ts](../../apps/backend/src/lib/tests/postgres-redis.usage-repository.test.ts#L8), [usage.machine.test.ts](../../apps/backend/src/lib/tests/usage.machine.test.ts#L104), and [runtime.contracts.test.ts](../../apps/backend/src/lib/tests/runtime.contracts.test.ts#L69).
+  - Validation gates passed after remediation:
+    - `npm --workspace apps/backend run test -- src/lib/tests/postgres-redis.usage-repository.test.ts src/lib/tests/usage.machine.test.ts src/lib/tests/runtime.contracts.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test` (exit code 0).
 - Risk:
-  - Reduced observability and slower root-cause analysis under transactional or infrastructure failures.
+  - Closed for quota-claim observability scope. Residual risk remains only for future regressions that collapse infra failures back into quota/conflict paths.
 
 - Frontend artifact reload fallback silently ignores backend failures.
 - Evidence:
-  - Explicit silent ignore branch in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx).
+  - Persisted artifact reload is executed via `listArtifactsPaginated(...)` in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L214), with state update only on success in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L219).
+  - Reload failure branch is explicitly silent (`.catch(() => {})`) with inline comment "silently ignore" in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L223) and [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L224).
+  - Artifacts client surfaces backend list failures as thrown errors (`Unable to list artifacts (HTTP ...)`) in [artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L328), but this error is absorbed by the provider catch branch above.
+  - Workspace contract exposed by `GenerationArtifactsWorkspaceValue` has no error channel for reload failures (only `artifacts` + `reloadArtifacts`) in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L82), [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L83), and [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L84).
+  - No dedicated provider-level regression test was found for persisted artifact reload failure visibility (`GenerationWorkspaceProvider` test file absent under frontend tests), increasing drift risk on this behavior.
 - Risk:
   - UI may present partially stale state without explicit error channel, masking backend degradation.
 
@@ -109,7 +120,7 @@ owner: Architecture Review
 2. Remove N+1 in hydrate ranking: replace per-candidate detail fan-out with bounded batched projection strategy.
 3. Enforce fail-closed LLM adapter policy for production runtime composition.
 4. Harden orchestrate idempotency completion path with explicit error contract and rollback/compensation strategy.
-5. Strengthen observability: avoid silent catches on quota and frontend persisted-artifact reload paths.
+5. Strengthen observability: close silent fallback paths in frontend persisted-artifact reload flow.
 
 ## Validation Gates
 

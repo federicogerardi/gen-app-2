@@ -393,11 +393,10 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
         ...(claimResult.resetDate ? { resetDate: claimResult.resetDate } : {}),
       });
     } catch {
-      return resolveClaimUsageDecision({
-        rateLimitExceeded: false,
-        quotaAvailable: false,
-        hasConflict: true,
-      });
+      return {
+        granted: false,
+        reason: 'usage_failed',
+      };
     }
   }
 }

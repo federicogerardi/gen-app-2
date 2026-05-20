@@ -66,6 +66,12 @@ test('mapFailureReasonToBackendError preserves canonical mappings', () => {
     retryable: true,
   });
 
+  assert.deepEqual(mapFailureReasonToBackendError('usage_failed'), {
+    code: 'generation_failed',
+    message: 'Usage claim infrastructure failure',
+    retryable: true,
+  });
+
   assert.deepEqual(mapFailureReasonToBackendError('extraction_context_insufficient'), {
     code: 'validation_failed',
     message: 'Extraction context is insufficient for the selected tool',

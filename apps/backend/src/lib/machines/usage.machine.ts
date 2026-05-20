@@ -50,8 +50,8 @@ export const usageMachine = setup({
     setRejectionReason: assign({
       rejectionReason: (_, params: { reason: string }) => params.reason,
     }),
-    setRateLimitedRejectionReason: assign({
-      rejectionReason: 'rate_limited',
+    setUsageFailedRejectionReason: assign({
+      rejectionReason: 'usage_failed',
     }),
   },
 }).createMachine({
@@ -80,14 +80,14 @@ export const usageMachine = setup({
             actions: {
               type: 'setRejectionReason',
               params: ({ event }) => ({
-                reason: getClaimUsageResult(event).reason ?? 'rate_limited',
+                reason: getClaimUsageResult(event).reason ?? 'usage_failed',
               }),
             },
           },
         ],
         onError: {
           target: 'rejected',
-          actions: 'setRateLimitedRejectionReason',
+          actions: 'setUsageFailedRejectionReason',
         },
       },
       on: {
@@ -117,7 +117,7 @@ export const usageMachine = setup({
           requestId: context.input.requestId,
           sourceActor: 'usageMachine',
           timestamp: getNow(context.input).toISOString(),
-          reason: context.rejectionReason ?? 'rate_limited',
+          reason: context.rejectionReason ?? 'usage_failed',
         };
         return event;
       },

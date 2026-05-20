@@ -46,6 +46,14 @@ export const mapFailureReasonToBackendError = (
     };
   }
 
+  if (failureReason === 'usage_failed') {
+    return {
+      code: 'generation_failed',
+      message: 'Usage claim infrastructure failure',
+      retryable: true,
+    };
+  }
+
   if (failureReason === 'extraction_context_insufficient') {
     return {
       code: 'validation_failed',

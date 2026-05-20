@@ -1,6 +1,6 @@
 ---
 status: active
-version: 2.1
+version: 2.2
 last-reviewed: 2026-05-21
 next-review-date: 2026-08-21
 owner: Architecture Review
@@ -22,11 +22,6 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 
 ### MEDIUM
 
-- **Frontend Fallback Session/Artifact Listing Not Paginated**
-  - **Anchor**: `apps/frontend/src/features/generation/GenerationWorkspaceProvider.tsx:211`, `:212`; `apps/frontend/src/lib/session/session-client.ts:154`, `:156`
-  - **Problem**: In fallback, all artifacts by type/status/project are requested, then sorted and aggregated client-side.
-  - **Impact**: Non-linear network and memory costs; risk of browser performance regressions.
-
 - **HTTP Method Enforcement Distributed Across Handlers**
   - **Anchor**: `apps/backend/src/lib/runtime/auth-http/auth-http-tools-routes.ts:7`, `:22`; `apps/backend/src/lib/runtime/auth-http/route-dispatch.ts:13`
   - **Problem**: Route entries with `method: null` delegate the HTTP method constraint to individual handlers, rather than enforcing at routing layer.
@@ -47,6 +42,14 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **Frontend Fallback Session/Artifact Listing Not Paginated is CLOSED** (executed 2026-05-21):
+  - Frontend artifact fallback now uses shared paginated retrieval (`listArtifactsPaginated`) instead of single unbounded fetch.
+  - Session fallback path (`listSessions` when sessions endpoint capability is unavailable) now iterates artifact pages with deterministic `limit/offset` progression.
+  - Generation workspace persisted artifact reload path now uses the same paginated retrieval strategy, avoiding non-linear one-shot payload growth.
+  - Regression coverage added for fallback pagination behavior in session client and paginated artifacts runtime tests.
+  - **Validation**: frontend typecheck ✅, focused frontend runtime tests ✅ (`11 pass / 0 fail`).
+  - Closure evidence anchors: `apps/frontend/src/features/artifacts/runtime/artifacts-client.ts`, `apps/frontend/src/features/tools/runtime/session-client.ts`, `apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`, `apps/frontend/src/features/tools/runtime/session-client.test.ts`, `apps/frontend/src/features/artifacts/runtime/artifacts-client.test.ts`.
+
 - **Step-Artifact Endpoint Not Optimized is CLOSED** (executed 2026-05-21):
   - `SessionQueryAdapter.fetchStepArtifact(...)` no longer loads full session artifacts; it now uses dedicated repository projection `getArtifactDetailBySessionStep(...)`.
   - Production adapter now executes a step-level query with session + step filter and `LIMIT 1`, avoiding in-memory filtering over full session payloads.
@@ -119,12 +122,11 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Priority Remediation Order (Updated 2026-05-20)
 
 ### Tier 2 (Robustness — Handle Before Production Scale)
-1. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
-2. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
-3. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
+1. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
+2. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
 
 ### Tier 4 (Code Quality)
-4. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+3. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -158,8 +160,8 @@ If prioritized for remediation:
 - `docs/02-design/adr/` will host ADR documents for architectural changes (e.g., session query refactoring, HTTP routing layer).
 
 ### Summary
-Architecture has improved significantly since prior reviews (11 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
-1. **Scalability**: Frontend fallback listing still requires pagination optimization for larger histories.
-2. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
+Architecture has improved significantly since prior reviews (12 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
+1. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
+2. **Code Quality**: Type safety gaps remain in selected frontend orchestration hooks.
 
-All 5 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.
+All 4 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing load and change velocity in production.

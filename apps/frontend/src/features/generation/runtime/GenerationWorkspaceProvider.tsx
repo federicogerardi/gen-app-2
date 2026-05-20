@@ -20,7 +20,7 @@ import type { GenerationRequest } from '../contracts/backend-stream';
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
+import { listArtifactsPaginated } from '../../artifacts/runtime/artifacts-client';
 
 const readInputString = (request: GenerationRequest, key: string): string | null => {
   const value = request.input[key];
@@ -208,7 +208,7 @@ const useGenerationArtifactsState = (
       return;
     }
 
-    void listArtifacts(
+    void listArtifactsPaginated(
       { type: 'all', status: 'all', projectId: 'all' },
       { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
     )

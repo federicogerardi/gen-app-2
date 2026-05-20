@@ -153,6 +153,8 @@ export type ListArtifactsResult = {
   totalResults: number;
 };
 
+const DEFAULT_ARTIFACTS_PAGE_SIZE = 200;
+
 const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): GenerationArtifact[] => {
   const filtered = artifacts.filter((artifact) => {
     if (filters.type && filters.type !== 'all' && artifact.artifactType !== filters.type) {
@@ -328,6 +330,51 @@ export const listArtifacts = async (
 
     throw error;
   }
+};
+
+export const listArtifactsPaginated = async (
+  filters: Omit<ArtifactQuery, 'limit' | 'offset'>,
+  options: ArtifactsClientOptions = {},
+  pageSize = DEFAULT_ARTIFACTS_PAGE_SIZE,
+): Promise<ListArtifactsResult> => {
+  const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0
+    ? Math.trunc(pageSize)
+    : DEFAULT_ARTIFACTS_PAGE_SIZE;
+
+  let offset = 0;
+  let totalResults = 0;
+  const artifacts: GenerationArtifact[] = [];
+
+  while (true) {
+    const page = await listArtifacts(
+      {
+        ...filters,
+        limit: normalizedPageSize,
+        offset,
+      },
+      options,
+    );
+
+    if (offset === 0) {
+      totalResults = page.totalResults;
+    }
+
+    artifacts.push(...page.artifacts);
+
+    if (page.artifacts.length === 0) {
+      break;
+    }
+
+    offset += page.artifacts.length;
+    if (artifacts.length >= totalResults) {
+      break;
+    }
+  }
+
+  return {
+    artifacts,
+    totalResults,
+  };
 };
 
 export const getArtifactById = async (

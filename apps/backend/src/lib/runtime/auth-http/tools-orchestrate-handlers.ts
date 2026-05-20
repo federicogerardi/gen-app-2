@@ -139,6 +139,7 @@ export const createToolsOrchestrateHandlers = (
     let stepDependencyArtifactIds: string[] = [];
     let dependencyArtifactIdsByStep: Record<string, string> = {};
     let idempotencyClaimed = false;
+    let idempotencyCompletionPending = false;
     let artifactSummaryCount = 0;
     let artifactDetailBatchCount = 0;
 
@@ -254,6 +255,21 @@ export const createToolsOrchestrateHandlers = (
           },
         },
       ));
+
+      if (idempotencyInput && idempotency && idempotencyClaimed) {
+        idempotencyCompletionPending = true;
+        await idempotency.markCompleted(
+          idempotencyInput,
+          `orchestrate:${toolKey}:${targetStep}`,
+          JSON.stringify({
+            toolKey,
+            targetStep,
+            stepDependencyArtifactIds,
+            dependencyArtifactIdsByStep,
+          }),
+        );
+        idempotencyCompletionPending = false;
+      }
     } catch (error) {
       if (idempotencyInput && idempotency && idempotencyClaimed) {
         await idempotency.markFailed(idempotencyInput);
@@ -264,21 +280,13 @@ export const createToolsOrchestrateHandlers = (
         return;
       }
 
+      if (idempotencyCompletionPending) {
+        writeError(response, 500, 'internal', 'Failed idempotency completion for orchestrate request');
+        return;
+      }
+
       writeError(response, 500, 'internal', 'Failed to orchestrate tool dependencies');
       return;
-    }
-
-    if (idempotencyInput && idempotency && idempotencyClaimed) {
-      await idempotency.markCompleted(
-        idempotencyInput,
-        `orchestrate:${toolKey}:${targetStep}`,
-        JSON.stringify({
-          toolKey,
-          targetStep,
-          stepDependencyArtifactIds,
-          dependencyArtifactIdsByStep,
-        }),
-      );
     }
 
     await repositories.sessions.touchSession(principal.session.id, now());

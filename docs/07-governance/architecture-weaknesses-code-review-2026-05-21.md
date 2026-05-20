@@ -61,10 +61,18 @@ owner: Architecture Review
   - Closed for production fail-open scope. Residual risk remains only for explicit non-production fallback behavior or future regressions that remove the production guard.
 
 - Idempotency completion is a late non-guarded step in tools orchestrate flow.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - `markCompleted` executes after successful orchestration response assembly in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts).
+  - Handler now tracks idempotency completion phase explicitly via `idempotencyCompletionPending` in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L142).
+  - `markCompleted` is moved into the guarded execution path and wrapped by the same error boundary used by orchestration in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L260) and [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L261).
+  - Failure contract is now explicit for late completion failures: `Failed idempotency completion for orchestrate request` in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L283) and [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L284).
+  - Compensation path is deterministic: `markFailed` is invoked on guarded failure after idempotency claim in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L275).
+  - Success response remains emitted only after guarded idempotency completion in [tools-orchestrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts#L291), removing the prior unguarded late-step gap.
+  - Validation gates passed after refactor:
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.tools-orchestrate.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test` (exit code 0, 153 pass / 0 fail).
 - Risk:
-  - Late idempotency persistence failures can produce success/failure ambiguity and inconsistent replay behavior.
+  - Closed for non-guarded late completion scope. Residual risk remains only for future regressions that move idempotency completion outside guarded flow.
 
 ### MEDIUM
 

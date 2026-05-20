@@ -120,6 +120,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const currentRunningStep = runController.currentRunningStep;
   const streamingStep = runController.streamingStep;
   const dispatchError = runController.dispatchError;
+  const artifactsReloadError = generationArtifacts.artifactsReloadError;
 
   useEffect(() => {
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
@@ -144,6 +145,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     projectsLoading,
     briefingError,
     dispatchError,
+    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,

@@ -90,14 +90,18 @@ owner: Architecture Review
   - Closed for quota-claim observability scope. Residual risk remains only for future regressions that collapse infra failures back into quota/conflict paths.
 
 - Frontend artifact reload fallback silently ignores backend failures.
+- Status: CLOSED (2026-05-21).
 - Evidence:
   - Persisted artifact reload is executed via `listArtifactsPaginated(...)` in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L214), with state update only on success in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L219).
-  - Reload failure branch is explicitly silent (`.catch(() => {})`) with inline comment "silently ignore" in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L223) and [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L224).
-  - Artifacts client surfaces backend list failures as thrown errors (`Unable to list artifacts (HTTP ...)`) in [artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L328), but this error is absorbed by the provider catch branch above.
-  - Workspace contract exposed by `GenerationArtifactsWorkspaceValue` has no error channel for reload failures (only `artifacts` + `reloadArtifacts`) in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L82), [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L83), and [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L84).
-  - No dedicated provider-level regression test was found for persisted artifact reload failure visibility (`GenerationWorkspaceProvider` test file absent under frontend tests), increasing drift risk on this behavior.
+  - Reload failure branch no longer swallows errors silently: provider now captures and stores reload error message in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L231).
+  - Artifacts client surfaces backend list failures as thrown errors (`Unable to list artifacts (HTTP ...)`) in [artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L328), and provider catch now propagates them into workspace/UI error state.
+  - Workspace artifacts contract now exposes explicit error channel `artifactsReloadError` alongside data/reload handlers in [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L85) and [GenerationWorkspaceProvider.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx#L251).
+  - Tool workspace UI now surfaces persisted reload failures through explicit inline feedback in [ToolPageTemplate.tsx](../../apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx#L67) and [ToolPageTemplate.tsx](../../apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx#L257).
+  - Dedicated provider-level regression coverage is now present in [GenerationWorkspaceProvider.test.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.test.tsx#L45) and [GenerationWorkspaceProvider.test.tsx](../../apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.test.tsx#L63).
+  - Validation gates passed after remediation:
+    - `npm --workspace apps/frontend run test -- src/features/generation/runtime/GenerationWorkspaceProvider.test.tsx src/features/tools/runtime/useToolPage.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx` (exit code 0, 3 files / 28 tests passed).
 - Risk:
-  - UI may present partially stale state without explicit error channel, masking backend degradation.
+  - Closed for frontend persisted-artifact reload observability scope. Residual risk remains only for future regressions that remove or bypass `artifactsReloadError` propagation.
 
 - Runtime auth-http module includes dead imports/constants.
 - Evidence:
@@ -120,7 +124,7 @@ owner: Architecture Review
 2. Remove N+1 in hydrate ranking: replace per-candidate detail fan-out with bounded batched projection strategy.
 3. Enforce fail-closed LLM adapter policy for production runtime composition.
 4. Harden orchestrate idempotency completion path with explicit error contract and rollback/compensation strategy.
-5. Strengthen observability: close silent fallback paths in frontend persisted-artifact reload flow.
+5. Improve static hygiene: remove dead imports/constants in auth-http runtime boundary.
 
 ## Validation Gates
 

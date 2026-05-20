@@ -54,6 +54,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectsLoading,
     briefingError,
     dispatchError,
+    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -256,6 +257,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
+              {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
 
                 {/* DispatchError ownership contract:
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).

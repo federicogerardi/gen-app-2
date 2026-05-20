@@ -82,6 +82,7 @@ type FrontendStreamSend = (event: FrontendStreamEvent) => void;
 export type GenerationArtifactsWorkspaceValue = {
   artifacts: GenerationArtifact[];
   reloadArtifacts: () => void;
+  artifactsReloadError: string | null;
 };
 
 export type GenerationProjectWorkspaceValue = {
@@ -112,6 +113,7 @@ const useGenerationArtifactsState = (
 ) => {
   const [liveArtifacts, setLiveArtifacts] = useState<GenerationArtifact[]>([]);
   const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
+  const [artifactsReloadError, setArtifactsReloadError] = useState<string | null>(null);
 
   useEffect(() => {
     const artifactId = snapshot.context.artifactId;
@@ -204,6 +206,7 @@ const useGenerationArtifactsState = (
 
     setLiveArtifacts([]);
     setPersistedArtifacts([]);
+    setArtifactsReloadError(null);
   }, [auth.session]);
 
   const reloadPersistedArtifacts = useCallback(() => {
@@ -211,17 +214,24 @@ const useGenerationArtifactsState = (
       return;
     }
 
+    setArtifactsReloadError(null);
+
     void listArtifactsPaginated(
       { type: 'all', status: 'all', projectId: 'all' },
       { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
     )
       .then((fetched) => {
+        setArtifactsReloadError(null);
         setPersistedArtifacts(
           fetched.artifacts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
         );
       })
-      .catch(() => {
-        // silently ignore — dashboard will show in-memory artifacts as fallback
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : 'Unable to reload artifacts';
+        setArtifactsReloadError(message);
       });
   }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
 
@@ -238,6 +248,7 @@ const useGenerationArtifactsState = (
   return {
     artifacts,
     reloadArtifacts: reloadPersistedArtifacts,
+    artifactsReloadError,
   } satisfies GenerationArtifactsWorkspaceValue;
 };
 

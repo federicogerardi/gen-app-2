@@ -1,6 +1,6 @@
 ---
 status: active
-version: 2.3
+version: 2.4
 last-reviewed: 2026-05-21
 next-review-date: 2026-08-21
 owner: Architecture Review
@@ -26,14 +26,17 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 
 ### LOW
 
-- **Type-Safety Loss in Frontend Tool Page Controller**
-  - **Anchor**: `apps/frontend/src/features/tools/hooks/useToolPageRunController.ts:37`
-  - **Problem**: `toolPageSend` is typed as `any`.
-  - **Impact**: Silent regressions on machine events and weaker coupling with XState model.
+- No open LOW findings.
 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **Type-Safety Loss in Frontend Tool Page Controller is CLOSED** (executed 2026-05-21):
+  - `toolPageSend` in `useToolPageRunController` is now typed with canonical machine event union (`ToolPageEvent`) instead of `any`.
+  - Event dispatch from runtime controller is now compile-time coupled to `toolPageMachine` contract, preventing silent event-shape regressions.
+  - **Validation**: frontend typecheck ✅.
+  - Closure evidence anchors: `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts`, `apps/frontend/src/features/tools/machines/tool-page.types.ts`.
+
 - **GenerationRequestInput Contract Too Permissive is CLOSED** (executed 2026-05-21):
   - `GenerationRequestInput` contract is now explicitly governed and no longer accepts arbitrary keys via index signature.
   - Cross-boundary metadata keys are modeled explicitly (`toolWorkflow`, `resolvedPromptTemplate`, `resolvedPromptSource`) and legacy relaunch alias is retained as deprecated (`relaunchMode`) for backward-compat migration.
@@ -128,8 +131,7 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 
 ## Priority Remediation Order (Updated 2026-05-20)
 
-### Tier 4 (Code Quality)
-1. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+- No open remediation items in this review snapshot.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -163,7 +165,4 @@ If prioritized for remediation:
 - `docs/02-design/adr/` will host ADR documents for architectural changes (e.g., session query refactoring, HTTP routing layer).
 
 ### Summary
-Architecture has improved significantly since prior reviews (13 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
-1. **Code Quality**: Type safety gaps remain in selected frontend orchestration hooks.
-
-All 3 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing load and change velocity in production.
+Architecture has improved significantly since prior reviews. In this snapshot, all tracked findings are closed with implementation evidence and validation gates recorded.

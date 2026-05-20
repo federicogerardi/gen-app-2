@@ -5,6 +5,7 @@ import type { GenerationArtifactsWorkspaceValue, GenerationProjectWorkspaceValue
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 import type { HydrationResult, ReadinessSnapshot, ToolPageViewModel } from '../machines/tool-page.machine';
+import type { ToolPageEvent } from '../machines/tool-page.types';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
@@ -34,7 +35,7 @@ type UseToolPageRunControllerArgs = {
   readinessSnapshot: ReadinessSnapshot;
   completedStepsForFlow: Set<ToolStep>;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
-  toolPageSend: (event: any) => void;
+  toolPageSend: (event: ToolPageEvent) => void;
   sessionId: string;
 };
 

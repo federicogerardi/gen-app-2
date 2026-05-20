@@ -566,6 +566,40 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       .map((artifact) => this.mapToDetail(artifact, projection));
   }
 
+  async getArtifactDetailBySessionStep(
+    userId: string,
+    sessionId: string,
+    stepKey: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const readStepFromInput = (artifact: StubArtifactQueryRecord): string | null => {
+      const toolWorkflow = artifact.input?.toolWorkflow;
+      if (toolWorkflow && typeof toolWorkflow === 'object' && !Array.isArray(toolWorkflow)) {
+        const toolWorkflowStep = (toolWorkflow as { stepKey?: unknown }).stepKey;
+        if (typeof toolWorkflowStep === 'string' && toolWorkflowStep.trim().length > 0) {
+          return toolWorkflowStep.trim();
+        }
+      }
+
+      const directStep = artifact.input?.step;
+      if (typeof directStep === 'string' && directStep.trim().length > 0) {
+        return directStep.trim();
+      }
+
+      return null;
+    };
+
+    const match = [...this.artifacts.values()]
+      .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .find((artifact) => {
+        const resolvedStepKey = artifact.stepKey ?? readStepFromInput(artifact);
+        return resolvedStepKey === stepKey;
+      });
+
+    return match ? this.mapToDetail(match, projection) : null;
+  }
+
   async listSessionSummaries(
     userId: string,
     projectId: string | null,

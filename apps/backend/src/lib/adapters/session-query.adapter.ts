@@ -1,6 +1,7 @@
 import type { ArtifactQueryRepository } from './postgres-redis.interfaces';
 import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 import type {
+  ArtifactDetail,
   ArtifactReadProjection,
   SessionListCursor,
   SessionListEntry,
@@ -80,6 +81,28 @@ const deriveToolKeyFromWorkflowType = (workflowType: string | null): string | nu
 export class SessionQueryAdapter {
   constructor(private readonly artifactQueries: ArtifactQueryRepository) {}
 
+  private mapDetailToSessionArtifactEntry(artifact: ArtifactDetail): SessionArtifactEntry {
+    const toolWorkflow = readToolWorkflow(artifact.input);
+    const stepFromInput = readString(toolWorkflow.stepKey) ?? readString(artifact.input.step);
+    const toolKeyFromInput = readString(toolWorkflow.toolKey) ?? readString(artifact.input.toolKey);
+    const toolKeyFromWorkflow = deriveToolKeyFromWorkflowType(artifact.workflowType);
+
+    return {
+      artifactId: artifact.artifactId,
+      requestId: artifact.requestId,
+      projectId: artifact.projectId,
+      stepKey: artifact.stepKey ?? stepFromInput,
+      artifactRole: artifact.artifactRole ?? readArtifactRole(toolWorkflow.artifactRole),
+      runMode: artifact.runMode ?? readRunMode(toolWorkflow.runMode),
+      status: artifact.status,
+      content: artifact.content,
+      failureReason: artifact.failureReason,
+      updatedAt: artifact.updatedAt,
+      workflowType: artifact.workflowType,
+      toolKey: toolKeyFromInput ?? toolKeyFromWorkflow,
+    };
+  }
+
   static encodeCursor(cursor: SessionListCursor): string {
     return Buffer.from(JSON.stringify(cursor), 'utf-8').toString('base64url');
   }
@@ -130,27 +153,7 @@ export class SessionQueryAdapter {
     }
 
     const artifacts: SessionArtifactEntry[] = details
-      .map((artifact) => {
-        const toolWorkflow = readToolWorkflow(artifact.input);
-        const stepFromInput = readString(toolWorkflow.stepKey) ?? readString(artifact.input.step);
-        const toolKeyFromInput = readString(toolWorkflow.toolKey) ?? readString(artifact.input.toolKey);
-        const toolKeyFromWorkflow = deriveToolKeyFromWorkflowType(artifact.workflowType);
-
-        return {
-          artifactId: artifact.artifactId,
-          requestId: artifact.requestId,
-          projectId: artifact.projectId,
-          stepKey: artifact.stepKey ?? stepFromInput,
-          artifactRole: artifact.artifactRole ?? readArtifactRole(toolWorkflow.artifactRole),
-          runMode: artifact.runMode ?? readRunMode(toolWorkflow.runMode),
-          status: artifact.status,
-          content: artifact.content,
-          failureReason: artifact.failureReason,
-          updatedAt: artifact.updatedAt,
-          workflowType: artifact.workflowType,
-          toolKey: toolKeyFromInput ?? toolKeyFromWorkflow,
-        };
-      })
+      .map((artifact) => this.mapDetailToSessionArtifactEntry(artifact))
       .sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
 
     if (artifacts.length === 0) {
@@ -191,8 +194,8 @@ export class SessionQueryAdapter {
     userId: string,
     projection: ArtifactReadProjection = {},
   ): Promise<SessionArtifactEntry | null> {
-    const group = await this.fetchSessionArtifacts(sessionId, userId, projection);
-    if (!group) {
+    const normalizedSessionId = sessionId.trim();
+    if (normalizedSessionId.length === 0) {
       return null;
     }
 
@@ -201,7 +204,13 @@ export class SessionQueryAdapter {
       return null;
     }
 
-    const match = group.artifacts.find((artifact) => artifact.stepKey === normalizedStepKey);
-    return match ?? null;
+    const detail = await this.artifactQueries.getArtifactDetailBySessionStep(
+      userId,
+      normalizedSessionId,
+      normalizedStepKey,
+      projection,
+    );
+
+    return detail ? this.mapDetailToSessionArtifactEntry(detail) : null;
   }
 }

@@ -299,3 +299,52 @@ test('SessionQueryAdapter fetchSessionsList returns one summary per session and 
   assert.equal(secondPage.sessions[0]?.artifactCount, 2);
   assert.equal(secondPage.nextCursor, null);
 });
+
+test('SessionQueryAdapter fetchStepArtifact uses step-level repository query', async () => {
+  class StepOnlyArtifactQueryRepositoryStub extends ArtifactQueryRepositoryStub {
+    override async listArtifactDetailsBySession(): Promise<never> {
+      throw new Error('fetchStepArtifact should not load the full session list');
+    }
+  }
+
+  const artifactQueries = new StepOnlyArtifactQueryRepositoryStub();
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-step-only-1',
+      requestId: 'req-step-only-1',
+      userId: 'user-step-only-001',
+      projectId: 'project-step-only-001',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter:auto',
+      workflowType: 'youtube_lf_script',
+      sessionId: 'sess-step-only',
+      stepKey: 'packaging',
+      artifactRole: 'step',
+      runMode: 'new',
+      input: {
+        toolWorkflow: {
+          stepKey: 'packaging',
+          toolKey: 'youtube-lf-script',
+        },
+      },
+      content: 'packaging content',
+      failureReason: null,
+      createdAt: '2026-05-08T13:00:00.000Z',
+      updatedAt: '2026-05-08T13:00:00.000Z',
+    },
+  ]);
+
+  const adapter = new SessionQueryAdapter(artifactQueries);
+  const stepArtifact = await adapter.fetchStepArtifact(
+    'sess-step-only',
+    'packaging',
+    'user-step-only-001',
+    { includeContent: true },
+  );
+
+  assert.ok(stepArtifact);
+  assert.equal(stepArtifact.artifactId, 'artifact-step-only-1');
+  assert.equal(stepArtifact.stepKey, 'packaging');
+  assert.equal(stepArtifact.content, 'packaging content');
+});

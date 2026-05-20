@@ -89,6 +89,12 @@ export interface ArtifactQueryRepository {
     sessionId: string,
     projection?: ArtifactReadProjection,
   ): Promise<ArtifactDetail[]>;
+  getArtifactDetailBySessionStep(
+    userId: string,
+    sessionId: string,
+    stepKey: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail | null>;
   listSessionSummaries(
     userId: string,
     projectId: string | null,

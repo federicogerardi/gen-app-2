@@ -1408,6 +1408,29 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     return result.rows.map((row) => mapArtifactRowToDetail(row));
   }
 
+  async getArtifactDetailBySessionStep(
+    userId: string,
+    sessionId: string,
+    stepKey: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const select = this.buildProjectedDetailSelect(projection);
+    const query = `
+      SELECT
+        ${select}
+      FROM ${this.artifactsTableName}
+      WHERE user_id = $1
+        AND session_id = $2
+        AND COALESCE(step_key, input_json->'toolWorkflow'->>'stepKey', input_json->>'step') = $3
+      ORDER BY updated_at ASC, id ASC
+      LIMIT 1
+    `;
+
+    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, sessionId, stepKey]);
+    const row = result.rows[0];
+    return row ? mapArtifactRowToDetail(row) : null;
+  }
+
   async listSessionSummaries(
     userId: string,
     projectId: string | null,

@@ -1,7 +1,7 @@
 ---
 status: active
-version: 2.0
-last-reviewed: 2026-05-20
+version: 2.1
+last-reviewed: 2026-05-21
 next-review-date: 2026-08-21
 owner: Architecture Review
 ---
@@ -21,11 +21,6 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 - No open HIGH findings.
 
 ### MEDIUM
-
-- **Step-Artifact Endpoint Not Optimized**
-  - **Anchor**: `apps/backend/src/lib/adapters/session-query.adapter.ts:134`, `:140`
-  - **Problem**: `fetchStepArtifact` calls `fetchSessionArtifacts` (which loads entire session) then filters in-memory for a single step.
-  - **Impact**: Avoidable overhead on long sessions, especially with `includeContent=true`.
 
 - **Frontend Fallback Session/Artifact Listing Not Paginated**
   - **Anchor**: `apps/frontend/src/features/generation/GenerationWorkspaceProvider.tsx:211`, `:212`; `apps/frontend/src/lib/session/session-client.ts:154`, `:156`
@@ -52,6 +47,13 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **Step-Artifact Endpoint Not Optimized is CLOSED** (executed 2026-05-21):
+  - `SessionQueryAdapter.fetchStepArtifact(...)` no longer loads full session artifacts; it now uses dedicated repository projection `getArtifactDetailBySessionStep(...)`.
+  - Production adapter now executes a step-level query with session + step filter and `LIMIT 1`, avoiding in-memory filtering over full session payloads.
+  - Stub adapter aligned to the same step-level query contract; integration regression confirms the step endpoint path no longer depends on `listArtifactDetailsBySession(...)`.
+  - **Validation**: backend typecheck ✅, session integration suite ✅ (`5 pass / 0 fail`), postgres query repository suite ✅ (`3 pass / 0 fail`), auth-http suite ✅ (`27 pass / 0 fail`).
+  - Closure evidence anchors: `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/adapters/session-query.adapter.ts`, `apps/backend/src/lib/tests/generation-session.integration.test.ts`, `apps/backend/src/lib/tests/postgres-artifact-query-repository.test.ts`.
+
 - **Session Listing Fragmentation and Hard-Coded Truncation is CLOSED** (executed 2026-05-20):
   - Session summary aggregation in production repository now groups by `session_id, project_id` (no workflow fragmentation) and resolves `toolKey` from latest artifact in-session using deterministic ordering.
   - `/api/tools/sessions` now supports cursor pagination (`limit`, `cursor`) with deterministic ordering (`updatedAt DESC, sessionId DESC`) and optional `nextCursor` response field.
@@ -117,13 +119,12 @@ Severity-first ranking of active findings identified in 2026-05-21 refresh. All 
 ## Priority Remediation Order (Updated 2026-05-20)
 
 ### Tier 2 (Robustness — Handle Before Production Scale)
-1. **Optimize Step-Artifact Fetch** — Add backend query projection to fetch single step without loading entire session. Measure: latency on 100+ step sessions.
-2. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
-3. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
-4. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
+1. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
+2. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
+3. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
 
 ### Tier 4 (Code Quality)
-5. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
+4. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
 
 ### Validation Gates
 - **Before Merge**: Correctness (Tier 1) and Robustness (Tier 3 routing) fixes must pass all existing test suites + new regression tests specific to the finding.
@@ -158,7 +159,7 @@ If prioritized for remediation:
 
 ### Summary
 Architecture has improved significantly since prior reviews (11 major findings closed 2026-05-19 – 2026-05-21). However, concrete weaknesses remain in two areas:
-1. **Scalability**: Frontend fallback listing and step-artifact projection paths still require pagination/projection optimization for larger histories.
+1. **Scalability**: Frontend fallback listing still requires pagination optimization for larger histories.
 2. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
 
-All 6 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.
+All 5 remaining findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.

@@ -65,3 +65,28 @@ test('listSessionSummaries groups by session only and applies cursor-based pagin
     26,
   ]);
 });
+
+test('getArtifactDetailBySessionStep queries one step artifact without loading full session', async () => {
+  let capturedSql = '';
+  let capturedParams: unknown[] = [];
+
+  const pg = {
+    query: async (sql: string, params: unknown[]) => {
+      capturedSql = sql;
+      capturedParams = params;
+      return { rows: [] };
+    },
+  };
+
+  const repository = new PostgresArtifactQueryRepository(
+    pg as unknown as ConstructorParameters<typeof PostgresArtifactQueryRepository>[0],
+  );
+
+  await repository.getArtifactDetailBySessionStep('user-001', 'sess-001', 'packaging');
+
+  assert.match(capturedSql, /WHERE user_id = \$1\s+AND session_id = \$2/);
+  assert.match(capturedSql, /COALESCE\(step_key, input_json->'toolWorkflow'->>'stepKey', input_json->>'step'\) = \$3/);
+  assert.match(capturedSql, /ORDER BY updated_at ASC, id ASC/);
+  assert.match(capturedSql, /LIMIT 1/);
+  assert.deepEqual(capturedParams, ['user-001', 'sess-001', 'packaging']);
+});

@@ -3,8 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "commonjs",
-  "description": "Shared domain package placeholder",
+  "description": "Cross-context canonical domain primitives (DDD-074)",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
-    "typecheck": "echo 'No sources yet'"
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

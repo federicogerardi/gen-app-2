@@ -1,7 +1,7 @@
 ---
 status: active
-version: 1.6
-last-reviewed: 2026-05-19
+version: 1.7
+last-reviewed: 2026-05-20
 next-review-date: 2026-08-18
 owner: Architecture Review
 ---
@@ -14,9 +14,7 @@ owner: Architecture Review
 
 ## Open Findings
 
-| Severity | Weakness | Evidence |
-| --- | --- | --- |
-| Medium | Shared domain package remains inactive, so cross-context model consolidation is still deferred. | `packages/domain/README.md:11-20`, `packages/domain/package.json:8` |
+*(No open findings — all medium/high severity items closed as of 2026-05-20. See Evidence Refresh Delta for closure evidence.)*
 
 ## Evidence Refresh Delta (2026-05-19)
 
@@ -46,13 +44,19 @@ owner: Architecture Review
   - Mandatory guardrails are documented and evidenced: canonical key/workflow guards in `packages/contracts/src/tool-workflows.ts`, normalization/projection controls in `apps/backend/src/lib/runtime/request-contract.ts`, and existing declassification baseline in DDD-018.
   - Closure evidence anchors: `apps/backend/src/lib/types/xstate.ts:5-7`, `packages/contracts/src/index.ts:106-124`, `packages/contracts/src/tool-workflows.ts`, `apps/backend/src/lib/runtime/request-contract.ts`, `docs/07-governance/domain-naming-decision-log.md` (DDD-018, DDD-073).
 
-### Still Open / Updated
+- **Shared domain package inactive finding is CLOSED** (executed 2026-05-20, DDD-074):
+  - `packages/domain` activated with `packages/domain/src/index.ts` exporting five canonical cross-context Value Objects: `ArtifactType`, `ArtifactStatus`, `OutputFormat`, `WorkflowRunMode`, `ArtifactRole` — each with companion const array for runtime guard use.
+  - `packages/contracts` now imports and re-exports `ArtifactType`, `OutputFormat`, `WorkflowRunMode` from `@gen-app-2/domain` (DDD-023 authority chain preserved, parity guard unaffected).
+  - `apps/backend/src/lib/types/artifact.ts` now imports all five from domain and re-exports; three inline duplicate definitions (`ArtifactType`, `ArtifactStatus`, `OutputFormat`) removed.
+  - `apps/backend/src/lib/types/xstate.ts` local `WorkflowRunMode` definition removed; now imports from `@gen-app-2/domain` directly.
+  - `ArtifactRole` promoted to first canonical named type (previously only inline `'step' | 'final'` unions in adapter files).
+  - **Validation**: TypeScript typecheck ✅ passing on all four workspaces (`@gen-app-2/domain`, `@gen-app-2/contracts`, `@gen-app-2/backend`, `gen-app-2-frontend`) with 0 errors. DDD-074 registered in decision log.
 - ~~Backend auth-http risk is reduced from monolithic parent modules to two residual concentration points: `route-table.ts` as a central ordered mutation surface and `admin-feedback-center-handlers.ts` as the last oversized child module.~~ **CLOSED**: route-table.ts decomposed to thin composer (51 LOC) + 5 group modules (316 LOC); admin-feedback-center-handlers.ts retains handlers but console.debug fully gated via `NODE_ENV` check. All test coverage added per plan.
 - ~~ToolPage orchestration remains a large single-point mutation surface.~~ **CLOSED**: decomposed into dedicated readiness/view-model/progress/hydration modules with thin composer (`338` LOC) and full regression evidence.
 - ~~Operational logging volume in admin publish-issue, hydrate, and external integration paths remains above governance target for production-sensitive flows.~~ **CLOSED**: admin publish-issue, hydrate, external integration, and runtime request/response lifecycle debug/verbose traces are now gated for production-sensitive paths; error-path diagnostics intentionally remain active.
 - ~~Type-safety erosion via open unions and broad request payload shape remains.~~ **CLOSED (accepted risk)**: governed by DDD-073 as intentional compatibility boundary with mandatory runtime guardrails (`tool-workflows` guards + `request-contract` normalization) and DDD-018 declassification baseline.
 
-## Priority Remediation Order (Updated 2026-05-19)
-1. Activate `packages/domain` and establish canonical cross-context model consolidation using the decomposed Generation/auth-http/tool-page surfaces as the reference pattern.
+## Priority Remediation Order (Updated 2026-05-20)
+1. ~~Activate `packages/domain`~~ **DONE** (DDD-074, 2026-05-20): `ArtifactType`, `ArtifactStatus`, `OutputFormat`, `WorkflowRunMode`, `ArtifactRole` consolidated into `packages/domain`; consumers updated; 0 typecheck errors.
 2. Keep Generation and ToolPage decompositions under anti-regression watch (normalized LOC + regression gates) during future feature work.
 3. Keep logging-gate coverage under regression watch so production-sensitive paths do not reintroduce ungated verbose logs.

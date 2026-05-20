@@ -59,20 +59,12 @@ import type {
 } from './tool-workflows';
 
 // =====================================================================
-// Value Objects
+// Value Objects — re-exported from @gen-app-2/domain (DDD-074)
 // =====================================================================
 
-/**
- * Canonical artifact type classifier.
- * DDD-001: Artifact is the canonical term; ArtifactType determines output handling.
- */
-export type ArtifactType = 'content' | 'seo' | 'code' | 'extraction';
-
-/**
- * Output formatting contract for streamed response.
- */
-export type OutputFormat = 'plain' | 'json' | 'markdown';
-export type WorkflowRunMode = 'new' | 'resume' | 'regenerate';
+// Import for local use in GenerationRequest type definitions
+import type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
+export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
 
 // =====================================================================
 // Domain Commands

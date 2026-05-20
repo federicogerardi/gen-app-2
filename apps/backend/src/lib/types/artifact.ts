@@ -1,15 +1,30 @@
 /**
  * Centralized artifact type definitions and enums.
  * Single source of truth for type consistency across streams, guards, and audit.
+ *
+ * ArtifactType, ArtifactStatus, OutputFormat, ArtifactRole, WorkflowRunMode are
+ * canonical cross-context Value Objects defined in @gen-app-2/domain (DDD-074).
+ * The const arrays are re-exported here for runtime guard usage within this package.
  */
 
-/** Artifact category—determines output handling, agent selection, and audit classification. */
-export const ARTIFACT_TYPES = ['content', 'seo', 'code', 'extraction'] as const;
-export type ArtifactType = (typeof ARTIFACT_TYPES)[number];
-
-/** Artifact processing state—lifecycle of a generation. */
-export const ARTIFACT_STATUSES = ['generating', 'completed', 'failed'] as const;
-export type ArtifactStatus = (typeof ARTIFACT_STATUSES)[number];
+// Cross-context domain primitives — authoritative source: @gen-app-2/domain (DDD-074)
+// Import into local scope for use in guards/functions below, then re-export.
+import {
+  ARTIFACT_TYPES,
+  ARTIFACT_STATUSES,
+  OUTPUT_FORMATS,
+  ARTIFACT_ROLES,
+  WORKFLOW_RUN_MODES,
+} from '@gen-app-2/domain';
+import type { ArtifactType, ArtifactStatus, OutputFormat, ArtifactRole, WorkflowRunMode } from '@gen-app-2/domain';
+export {
+  ARTIFACT_TYPES,
+  ARTIFACT_STATUSES,
+  OUTPUT_FORMATS,
+  ARTIFACT_ROLES,
+  WORKFLOW_RUN_MODES,
+};
+export type { ArtifactType, ArtifactStatus, OutputFormat, ArtifactRole, WorkflowRunMode };
 
 /** Failure reason—audit trail for why an artifact failed or was abandoned. */
 export const ARTIFACT_FAILURE_REASONS = [
@@ -45,10 +60,6 @@ export type ToolWorkflow = (typeof TOOL_WORKFLOWS)[number];
 /** Quota history event status—records the outcome of a generation attempt. */
 export const QUOTA_EVENT_STATUSES = ['success', 'error', 'rate_limited'] as const;
 export type QuotaEventStatus = (typeof QUOTA_EVENT_STATUSES)[number];
-
-/** Output format for streaming responses. */
-export const OUTPUT_FORMATS = ['plain', 'json', 'markdown'] as const;
-export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
 /** Allowed lifecycle transitions for persisted artifacts. */
 export const ARTIFACT_STATUS_TRANSITIONS: Record<ArtifactStatus, readonly ArtifactStatus[]> = {

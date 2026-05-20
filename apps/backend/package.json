@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@gen-app-2/contracts": "*",
+    "@gen-app-2/domain": "*",
     "docx": "^9.5.1",
     "ioredis": "^5.8.2",
     "mammoth": "^1.12.0",

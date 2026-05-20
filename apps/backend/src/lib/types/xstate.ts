@@ -1,4 +1,5 @@
 import type { ArtifactType, OutputFormat, ToolWorkflow } from './artifact';
+import type { WorkflowRunMode } from '@gen-app-2/domain';
 
 export type IsoTimestamp = string;
 
@@ -18,7 +19,7 @@ export type RequestRegistrySelector =
     registrySnapshotRef: RegistrySnapshotRef;
   };
 
-export type WorkflowRunMode = 'new' | 'resume' | 'regenerate';
+export type { WorkflowRunMode } from '@gen-app-2/domain';
 export type WorkflowStepStatus = 'idle' | 'running' | 'done' | 'error' | 'skipped';
 export type ExtractionResponseMode = 'structured' | 'text';
 

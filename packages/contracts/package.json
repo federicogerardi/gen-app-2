@@ -11,7 +11,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@gen-app-2/domain": "*"
+  },
   "devDependencies": {
     "typescript": "^6.0.3"
   }

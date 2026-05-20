@@ -11,6 +11,7 @@ export type AuthHttpErrorCode =
   | 'forbidden'
   | 'method_not_allowed'
   | 'not_found'
+  | 'no_extraction_for_briefing'
   | 'conflict'
   | 'service_unavailable'
   | 'internal';

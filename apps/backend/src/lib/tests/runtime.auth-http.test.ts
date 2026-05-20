@@ -1949,6 +1949,7 @@ test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', 
     body: JSON.stringify({
       projectId: project.id,
       sourceArtifactId: 'artifact-extract-fenced-001',
+      resolvedBriefingId: 'brief-hydrate-001',
       intent: 'regenerate',
     }),
   });
@@ -1965,6 +1966,523 @@ test('auth HTTP runtime hydrates extraction artifact from fenced JSON payload', 
     offer: 'audit',
     audience: 'b2b',
   });
+});
+
+test('auth HTTP runtime hydrate filters by resolvedBriefingId and ignores newer unrelated extraction artifacts', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-002',
+    now: () => new Date('2026-05-06T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-002',
+    email: 'hydrate2@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-2'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-002', {
+    name: 'Hydrate Project 2',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-brief-a-older',
+      requestId: 'req-extract-brief-a-older',
+      userId: 'user-hydrate-002',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-a',
+        briefingText: 'brief a text',
+      },
+      content: '{"payload":{"topic":"A"}}',
+      failureReason: null,
+      createdAt: '2026-05-06T09:00:00.000Z',
+      updatedAt: '2026-05-06T09:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-extract-brief-b-newer',
+      requestId: 'req-extract-brief-b-newer',
+      userId: 'user-hydrate-002',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-b',
+        briefingText: 'brief b text',
+      },
+      content: '{"payload":{"topic":"B"}}',
+      failureReason: null,
+      createdAt: '2026-05-06T10:00:00.000Z',
+      updatedAt: '2026-05-06T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-06T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-002' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate2@example.com',
+    password: 'Hydrate-Pass-2',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        resolvedBriefingId: 'brief-a',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionArtifactId: string; briefingId: string; extractionPayload: Record<string, unknown> };
+  }).hydration;
+  assert.equal(hydration.extractionArtifactId, 'artifact-extract-brief-a-older');
+  assert.equal(hydration.briefingId, 'brief-a');
+  assert.deepEqual(hydration.extractionPayload, { topic: 'A' });
+});
+
+test('auth HTTP runtime hydrate returns no_extraction_for_briefing when resolvedBriefingId has no coherent candidate', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-003',
+    now: () => new Date('2026-05-07T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-003',
+    email: 'hydrate3@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-3'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-003', {
+    name: 'Hydrate Project 3',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-brief-x',
+      requestId: 'req-extract-brief-x',
+      userId: 'user-hydrate-003',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-x',
+        briefingText: 'brief x text',
+      },
+      content: '{"payload":{"topic":"X"}}',
+      failureReason: null,
+      createdAt: '2026-05-07T10:00:00.000Z',
+      updatedAt: '2026-05-07T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-07T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-003' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate3@example.com',
+    password: 'Hydrate-Pass-3',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        resolvedBriefingId: 'brief-missing',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 404);
+  const payload = hydrateResponse.jsonBody();
+  assert.equal(payload.ok, false);
+  assert.equal((payload.error as { code: string }).code, 'no_extraction_for_briefing');
+});
+
+test('auth HTTP runtime hydrate supports legacy fallback where resolvedBriefingId matches artifactId', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-004',
+    now: () => new Date('2026-05-08T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-004',
+    email: 'hydrate4@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-4'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-004', {
+    name: 'Hydrate Project 4',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'legacy-brief-id',
+      requestId: 'req-legacy-brief-id',
+      userId: 'user-hydrate-004',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingText: 'legacy brief text',
+      },
+      content: '{"payload":{"topic":"legacy"}}',
+      failureReason: null,
+      createdAt: '2026-05-08T09:00:00.000Z',
+      updatedAt: '2026-05-08T09:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-extract-other-briefing',
+      requestId: 'req-extract-other-briefing',
+      userId: 'user-hydrate-004',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-other',
+        briefingText: 'other brief text',
+      },
+      content: '{"payload":{"topic":"other"}}',
+      failureReason: null,
+      createdAt: '2026-05-08T10:00:00.000Z',
+      updatedAt: '2026-05-08T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-08T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-004' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate4@example.com',
+    password: 'Hydrate-Pass-4',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        resolvedBriefingId: 'legacy-brief-id',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionArtifactId: string; briefingId: string; extractionPayload: Record<string, unknown> };
+  }).hydration;
+  assert.equal(hydration.extractionArtifactId, 'legacy-brief-id');
+  assert.equal(hydration.briefingId, 'legacy-brief-id');
+  assert.deepEqual(hydration.extractionPayload, { topic: 'legacy' });
+});
+
+test('auth HTTP runtime hydrate prioritizes sourceExtractionArtifactId within coherent candidates', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-005',
+    now: () => new Date('2026-05-09T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-005',
+    email: 'hydrate5@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-5'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-005', {
+    name: 'Hydrate Project 5',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-brief-target-old-source',
+      requestId: 'req-extract-brief-target-old-source',
+      userId: 'user-hydrate-005',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-target',
+        briefingText: 'brief target source text',
+      },
+      content: '{"payload":{"topic":"source"}}',
+      failureReason: null,
+      createdAt: '2026-05-09T08:00:00.000Z',
+      updatedAt: '2026-05-09T08:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-extract-brief-target-newer',
+      requestId: 'req-extract-brief-target-newer',
+      userId: 'user-hydrate-005',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-target',
+        briefingText: 'brief target newer text',
+      },
+      content: '{"payload":{"topic":"newer"}}',
+      failureReason: null,
+      createdAt: '2026-05-09T10:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-09T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-005' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate5@example.com',
+    password: 'Hydrate-Pass-5',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        resolvedBriefingId: 'brief-target',
+        sourceExtractionArtifactId: 'artifact-extract-brief-target-old-source',
+        intent: 'regenerate',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionArtifactId: string; briefingId: string; extractionPayload: Record<string, unknown> };
+  }).hydration;
+  assert.equal(hydration.extractionArtifactId, 'artifact-extract-brief-target-old-source');
+  assert.equal(hydration.briefingId, 'brief-target');
+  assert.deepEqual(hydration.extractionPayload, { topic: 'source' });
+});
+
+test('auth HTTP runtime hydrate keeps coherence on content-artifact resume path', async () => {
+  const hasher = createDefaultPasswordHashRuntime();
+  const repositories = createAuthStubRepositories();
+  const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+  const projectQueries = new ProjectQueryRepositoryStub({
+    randomId: () => 'project-hydrate-006',
+    now: () => new Date('2026-05-10T10:00:00.000Z'),
+  });
+  const artifactQueries = new ArtifactQueryRepositoryStub();
+
+  await repositories.users.createUser({
+    id: 'user-hydrate-006',
+    email: 'hydrate6@example.com',
+    role: 'member',
+    status: 'active',
+    passwordHash: await hasher.hashPassword('Hydrate-Pass-6'),
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const project = await projectQueries.createProjectForUser('user-hydrate-006', {
+    name: 'Hydrate Project 6',
+  });
+
+  artifactQueries.seed([
+    {
+      artifactId: 'artifact-extract-brief-target',
+      requestId: 'req-extract-brief-target',
+      userId: 'user-hydrate-006',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-target',
+        briefingText: 'target briefing text',
+      },
+      content: '{"payload":{"topic":"target"}}',
+      failureReason: null,
+      createdAt: '2026-05-10T08:00:00.000Z',
+      updatedAt: '2026-05-10T08:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-extract-brief-other-newer',
+      requestId: 'req-extract-brief-other-newer',
+      userId: 'user-hydrate-006',
+      projectId: project.id,
+      artifactType: 'extraction',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'extraction',
+      input: {
+        briefingId: 'brief-other',
+        briefingText: 'other briefing text',
+      },
+      content: '{"payload":{"topic":"other"}}',
+      failureReason: null,
+      createdAt: '2026-05-10T10:00:00.000Z',
+      updatedAt: '2026-05-10T10:00:00.000Z',
+    },
+    {
+      artifactId: 'artifact-content-resume-source',
+      requestId: 'req-content-resume-source',
+      userId: 'user-hydrate-006',
+      projectId: project.id,
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      workflowType: 'funnel_pages',
+      input: {
+        briefingId: 'brief-target',
+        extractionArtifactId: 'artifact-extract-brief-target',
+      },
+      content: 'content artifact output',
+      failureReason: null,
+      createdAt: '2026-05-10T09:00:00.000Z',
+      updatedAt: '2026-05-10T09:00:00.000Z',
+    },
+  ]);
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    queryRepositories: {
+      projects: projectQueries,
+      artifacts: artifactQueries,
+    },
+    passwordHashing: hasher,
+    sessionCookies,
+    now: () => new Date('2026-05-10T10:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'session-hydrate-006' },
+  });
+
+  const cookieHeader = await loginAndReadCookie(runtime, {
+    email: 'hydrate6@example.com',
+    password: 'Hydrate-Pass-6',
+  });
+
+  const hydrateResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/tools/hydrate',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({
+        projectId: project.id,
+        sourceArtifactId: 'artifact-content-resume-source',
+        resolvedBriefingId: 'brief-target',
+        intent: 'resume',
+      }),
+    }) as unknown as IncomingMessage,
+    hydrateResponse as unknown as ServerResponse,
+  );
+
+  assert.equal(hydrateResponse.statusCode, 200);
+  const payload = hydrateResponse.jsonBody();
+  const hydration = (payload.data as {
+    hydration: { extractionArtifactId: string; briefingId: string; extractionPayload: Record<string, unknown> };
+  }).hydration;
+  assert.equal(hydration.extractionArtifactId, 'artifact-extract-brief-target');
+  assert.equal(hydration.briefingId, 'brief-target');
+  assert.deepEqual(hydration.extractionPayload, { topic: 'target' });
 });
 
 test('auth HTTP runtime supports feedback-center report/changelog endpoints with auth and normalization', async () => {

@@ -167,13 +167,49 @@ export const createToolsHydrateHandlers = (
       return;
     }
 
-    const ranked = [...candidates].sort((a, b) => {
+    const eligibleCandidates =
+      resolvedBriefingId != null
+        ? (
+          await Promise.all(
+            candidates.map(async (candidate) => {
+              const detail = await queries.artifacts.getArtifactByIdForUser(
+                principal.user.id,
+                candidate.artifactId,
+                { includeInput: true },
+              );
+              const explicitBriefingId =
+                typeof detail?.input.briefingId === 'string'
+                  ? detail.input.briefingId.trim()
+                  : '';
+              const candidateBriefingId =
+                explicitBriefingId.length > 0 ? explicitBriefingId : candidate.artifactId;
+              return candidateBriefingId === resolvedBriefingId ? candidate : null;
+            }),
+          )
+        ).filter((candidate): candidate is (typeof candidates)[number] => candidate != null)
+        : candidates;
+
+    if (resolvedBriefingId != null && eligibleCandidates.length === 0) {
+      writeError(
+        response,
+        404,
+        'no_extraction_for_briefing',
+        'No extraction artifact found for resolved briefing',
+      );
+      return;
+    }
+
+    const ranked = [...eligibleCandidates].sort((a, b) => {
       const aIsSource = sourceExtractionArtifactId != null && a.artifactId === sourceExtractionArtifactId ? 1 : 0;
       const bIsSource = sourceExtractionArtifactId != null && b.artifactId === sourceExtractionArtifactId ? 1 : 0;
       if (aIsSource !== bIsSource) {
         return bIsSource - aIsSource;
       }
-      return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+      const updatedAtDelta = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+      if (updatedAtDelta !== 0) {
+        return updatedAtDelta;
+      }
+      return a.artifactId.localeCompare(b.artifactId);
     });
 
     const best = ranked[0]!;

@@ -16,14 +16,6 @@ owner: Architecture Review
 
 Severity-first ranking of active findings identified in 2026-05-20 refresh. All findings are evidence-based with direct anchor paths.
 
-### CRITICAL
-
-- **Hydration Non-Determinism vs. Requested Briefing**
-  - **Anchor**: `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:95`, `:148`, `:170`
-  - **Problem**: `resolvedBriefingId` is resolved but not used in final candidate selection. Ranking considers only `sourceExtractionArtifactId` and recency; briefing context is discarded.
-  - **Impact**: In fallback scenarios, a recent extraction artifact may be semantically incoherent with the requested briefing, risking `GenerationRequest` execution on wrong context. This violates the domain contract that `ExtractionContext` must be consistent with the `GenerationRequest.briefingPayload`.
-  - **Domain Risk**: `ExtractionContext` and `Briefing` are canonical paired concepts (`docs/01-requirements/domain-ubiquitous-language-glossary.md`); misalignment is a correctness failure, not a performance issue.
-
 ### HIGH
 
 - **Orchestration Step Scalability and Structural Timeout Risk**
@@ -68,6 +60,14 @@ Severity-first ranking of active findings identified in 2026-05-20 refresh. All 
 ## Evidence Refresh Delta (2026-05-19)
 
 ### Closed Since Previous Review
+- **Hydration Non-Determinism vs. Requested Briefing is CLOSED** (executed 2026-05-20, DDD-075 enforcement complete):
+  - `/api/tools/hydrate` candidate selection now enforces briefing coherence when `resolvedBriefingId` is provided, before source exact-match and recency ranking.
+  - Legacy compatibility preserved for artifacts without explicit `input.briefingId` by using `artifactId` fallback identity.
+  - New explicit no-match branch returns HTTP 404 with code `no_extraction_for_briefing`.
+  - Deterministic ranking includes stable tie-break after recency for equal timestamps.
+  - Regression coverage expanded in `runtime.auth-http.test.ts` with five hydration scenarios (multi-briefing filter, no-match 404, legacy fallback, source priority, content-artifact resume coherence) plus updated fenced JSON baseline request.
+  - **Validation**: backend typecheck ✅ passing (`npm --workspace apps/backend run typecheck`), focused hydrate test file ✅ passing (`136 pass / 0 fail`), backend full suite ✅ passing (`136 pass / 0 fail`).
+  - Closure evidence anchors: `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts`, `apps/backend/src/lib/runtime/auth-http/support.ts`, `apps/backend/src/lib/tests/runtime.auth-http.test.ts`, `plan/process-hydration-briefing-coherence-finding-closure-1.md`.
 - ToolPage orchestration concentration finding is closed: `apps/frontend/src/features/tools/machines/tool-page.machine.ts` was decomposed into dedicated policy/projection modules (`tool-page-view-model.ts`, `tool-page-readiness.ts`, `tool-page-progress.ts`, `tool-page-hydration.ts`) plus thin-assignment/type support modules (`tool-page-machine-assignments.ts`, `tool-page.types.ts`), keeping behavior unchanged for start/resume/regenerate/reset/hydrate/progress flows. Closure gates passed on 2026-05-19: composer LOC threshold met (`tool-page.machine.ts=338` <= 350), each extracted module <= 300 LOC (`179`, `127`, `189`, `72`), frontend build passed, focused regressions passed, machine SEC-001 logging gate passed, new direct unit tests for readiness/hydration passed, and full frontend suite passed (`47` files, `313` tests).
 - Generation orchestrator monolith finding is closed: the previous single-file machine definition has been decomposed into typed helper modules and state fragments, with `generation-system.definition.ts` reduced to thin root composition (`setup + context + states spread`). Closure evidence: plan `plan/refactor-generation-system-definition-1.md` updated to `Completed` on 2026-05-19, normalized LOC gate passed (`definition=47`, each extracted module <= 300), and regression gates passed (`typecheck`, runtime test suite, integration suite, backend full suite).
 - CSRF fail-open finding is closed: startup now fails closed when CSRF trusted origins resolve to empty or include `*`, and request-time guard no longer bypasses CSRF on empty origin list. Evidence: `apps/backend/src/lib/runtime/node-server.ts:142-174`, `apps/backend/src/lib/runtime/node-server.ts:215-227`, `apps/backend/src/lib/tests/runtime.node-server.test.ts:457-548`, `docs/02-design/adr/csrf-fail-closed-startup-invariant-adr.md`, `docs/04-testing/streaming-generator-debug-runbook.md:132-142`.
@@ -107,18 +107,15 @@ Severity-first ranking of active findings identified in 2026-05-20 refresh. All 
 
 ## Priority Remediation Order (Updated 2026-05-20)
 
-### Tier 1 (Correctness — Block Feature Work)
-1. **Fix Hydration Non-Determinism** — Ensure `resolvedBriefingId` ranking is used in candidate selection; add `ExtractionContext` semantic validation before artifact reuse. Impact: Domain correctness. Target: v1.next (before expanding session reuse features).
+### Tier 1 (Scalability — Address Before High Load)
+1. **Optimize Orchestration Scan and Deadline** — Cache completed artifacts per session, reduce N+1 on detail fetches, increase deadline budget or make it configurable. Measure: orchestrate p99 latency and memory on 10k+ artifact projects.
+2. **Add Session Listing Pagination** — Move `GROUP BY workflow_type` logic to a separate aggregate query; paginate session list with proper cursor; add integration tests for session lifecycle mutations.
 
-### Tier 2 (Scalability — Address Before High Load)
-2. **Optimize Orchestration Scan and Deadline** — Cache completed artifacts per session, reduce N+1 on detail fetches, increase deadline budget or make it configurable. Measure: orchestrate p99 latency and memory on 10k+ artifact projects.
-3. **Add Session Listing Pagination** — Move `GROUP BY workflow_type` logic to a separate aggregate query; paginate session list with proper cursor; add integration tests for session lifecycle mutations.
-
-### Tier 3 (Robustness — Handle Before Production Scale)
-4. **Optimize Step-Artifact Fetch** — Add backend query projection to fetch single step without loading entire session. Measure: latency on 100+ step sessions.
-5. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
-6. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
-7. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
+### Tier 2 (Robustness — Handle Before Production Scale)
+3. **Optimize Step-Artifact Fetch** — Add backend query projection to fetch single step without loading entire session. Measure: latency on 100+ step sessions.
+4. **Add Frontend Pagination** — Implement cursor-based pagination for session/artifact fallback lists; benchmark network and memory on 1k+ artifact workspaces.
+5. **Enforce HTTP Methods at Router Layer** — Move method validation from handlers to `route-dispatch.ts` or routing table definition; add routing-layer regression tests.
+6. **Restrict GenerationRequestInput Schema** — Remove index signature; define exhaustive known keys with `@deprecated` alias mechanism for backward-compat migration. Validate against `tool-workflows` registry at boundary.
 
 ### Tier 4 (Code Quality)
 8. **Restore Type Safety in ToolPageRunController** — Replace `any` with precise `XState.Actor` type for `toolPageSend`.
@@ -154,9 +151,8 @@ If prioritized for remediation:
 - `docs/02-design/adr/` will host ADR documents for architectural changes (e.g., session query refactoring, HTTP routing layer).
 
 ### Summary
-Architecture has improved significantly since prior reviews (8 major findings closed 2026-05-19 – 2026-05-20). However, concrete weaknesses remain in three areas:
-1. **Determinism & Correctness**: Hydration logic must respect briefing semantics.
-2. **Scalability**: Orchestration and session queries must handle historical artifact volumes and concurrent load.
-3. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
+Architecture has improved significantly since prior reviews (9 major findings closed 2026-05-19 – 2026-05-20). However, concrete weaknesses remain in two areas:
+1. **Scalability**: Orchestration and session queries must handle historical artifact volumes and concurrent load.
+2. **Boundary Robustness**: Contract permissiveness and distributed method enforcement increase drift risk over time.
 
 All 8 findings are resolvable without massive rewrites; however, they should be addressed before significantly increasing session/artifact volumes or load in production.

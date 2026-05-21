@@ -2,15 +2,15 @@
 goal: Unified StatusBadge component for all lifecycle/state status rendering in the frontend
 version: 1.1
 date_created: 2026-05-17
-last_updated: 2026-05-21 (as-is alignment)
+last_updated: 2026-05-21 (implementation verified end-to-end)
 owner: frontend
-status: 'In progress'
+status: Completed
 tags: [feature, refactor, ui, frontend, design-system]
 ---
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 The frontend renders entity status values (`ArtifactLifecycleStatus`, `AuthUserStatus`, model
 status, changelog status, report status, etc.) as plain unstyled text in multiple table and list
@@ -81,7 +81,7 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 | TASK-006c | `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx:198-199` — replace `<span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>{group.status}</span>` with `<StatusBadge status={group.status} />` and remove the `.ui-runtime-badge ui-artifact-status-tag` className coupling | yes | 2026-05-21 |
 | TASK-007 | `apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx` — (a) replace `<span>{artifact.status}</span>` (line 122) in the list row with `<StatusBadge status={artifact.status} />`; (b) line 137 uses `formatMeta(appCopy.ui.labels.status.toLowerCase(), selectedArtifact.status)` which returns a plain `string` — replace the entire `<p>` with `<p className={uiPrimitives.metaLine}><span>{appCopy.ui.labels.status}: </span><StatusBadge status={selectedArtifact.status} /></p>` to avoid passing JSX into a string-returning function | yes | 2026-05-21 |
 | TASK-008 | `apps/frontend/src/features/admin/activity/ActivityLogTable.tsx` — replace `<span className={uiPrimitives.metaLine}>{item.status}</span>` (line 26) with `<StatusBadge status={item.status} />` | yes | 2026-05-21 |
-| TASK-009 | `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` — replace `statusLabel(session.status)` plain string (line 125) with `<StatusBadge status={session.status} label={statusLabel(session.status)} />` so the Italian label is shown but the variant is resolved from the raw status | partial | 2026-05-21 |
+| TASK-009 | `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` — replace `statusLabel(session.status)` plain string (line 125) with `<StatusBadge status={session.status} label={statusLabel(session.status)} />` so the Italian label is shown but the variant is resolved from the raw status | yes | 2026-05-21 |
 | TASK-010 | `apps/frontend/src/features/admin/ui/AdminUserTableRow.tsx:43` — `formatMeta('Status', user.status)` returns a plain `string` and cannot wrap JSX. Replace `<td>{formatMeta('Status', user.status)}</td>` with `<td><StatusBadge status={user.status} /></td>` (the column header already reads "Status", so the label prefix is redundant) | yes | 2026-05-21 |
 | TASK-011 | `apps/frontend/src/features/admin/llm/LLMTable.tsx` / `AdminModelTableRow.tsx` — replace `{model.status}` (line 23 of `AdminModelTableRow.tsx`) with `<StatusBadge status={model.status} />` | yes | 2026-05-21 |
 | TASK-012 | `apps/frontend/src/features/admin/changelog/ChangelogTable.tsx` — replace `row.status` plain string (line 44) with `<StatusBadge status={row.status} />` | yes | 2026-05-21 |
@@ -93,15 +93,15 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Run `npm --workspace apps/frontend run build` and confirm zero TypeScript/build errors | pending | |
-| TASK-015 | Run existing frontend tests (`npm --workspace apps/frontend run test`) to confirm no regressions | pending | |
+| TASK-014 | Run `npm --workspace apps/frontend run build` and confirm zero TypeScript/build errors | yes | 2026-05-21 |
+| TASK-015 | Run existing frontend tests (`npm --workspace apps/frontend run test`) to confirm no regressions | yes | 2026-05-21 |
 
 ### As-Is Evidence Snapshot (2026-05-21)
 
 - `StatusBadge` component exists at `apps/frontend/src/app/ui/StatusBadge.tsx`.
 - `uiPrimitives.statusBadge` exists at `apps/frontend/src/app/ui/primitives.tsx`.
 - Badge CSS classes exist at `apps/frontend/src/styles.css` (`.ui-status-badge*`).
-- Call-site migration is broadly completed; remaining delta is localized-label usage in `SessionsListingSection` (TASK-009 partial).
+- Call-site migration is completed, including sessions listing status rendering through `StatusBadge`.
 
 ---
 

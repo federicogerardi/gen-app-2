@@ -89,7 +89,7 @@ This implementation plan closes the critical security weakness where CSRF protec
 
 - **FILE-001**: `apps/backend/src/lib/runtime/node-server.ts` — add CSRF configuration resolver, startup invariants, and fail-open guard removal.
 - **FILE-002**: `apps/backend/src/lib/tests/runtime.node-server.test.ts` — add startup invariant and runtime request-path regression tests.
-- **FILE-003**: `plan/architecture-csrf-fail-open-closure-1.md` — this implementation plan.
+- **FILE-003**: `./architecture-csrf-fail-open-closure-1.md` — this implementation plan.
 - **FILE-004**: `docs/04-testing/streaming-generator-debug-runbook.md` — add pre-deploy CSRF configuration gate checklist.
 - **FILE-005**: `docs/02-design/adr/csrf-fail-closed-startup-invariant-adr.md` — architecture decision record for fail-closed CSRF startup behavior.
 

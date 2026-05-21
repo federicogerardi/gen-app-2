@@ -123,7 +123,7 @@ This plan decomposes `apps/backend/src/lib/adapters/postgres-redis.production.ts
 
 ## 8. Related Specifications / Further Reading
 
-- `plan/review-architecture-severe-2026-05-21-1.md`
+- `./review-architecture-severe-2026-05-21-1.md`
 - `docs/07-governance/domain-naming-decision-log.md`
 - `docs/02-design/domain-bounded-context-map.md`
 

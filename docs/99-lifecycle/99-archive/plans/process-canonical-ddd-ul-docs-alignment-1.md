@@ -2,15 +2,15 @@
 goal: Canonical DDD UL Documentation Alignment For Planning And Operations Determinism
 version: 1.1
 date_created: 2026-05-18
-last_updated: 2026-05-21 (as-is alignment)
+last_updated: 2026-05-21 (completed alignment)
 owner: Domain Architecture
-status: In progress
+status: Completed
 tags: [process, ddd, ubiquitous-language, documentation, governance, operations]
 ---
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan aligns canonical DDD and Ubiquitous Language documentation with current runtime behavior and repository structure to improve consistency, coherence, compactness, and deterministic execution during planning and operations.
 
@@ -70,9 +70,9 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, replace legacy source evidence path prefixes with current equivalents using the Phase 1 mapping table while preserving semantic evidence scope. | partial | 2026-05-21 |
-| TASK-012 | In docs/02-design/domain-bounded-context-map.md, normalize legacy source evidence paths to current prefixes and keep only verifiable path references. | partial | 2026-05-21 |
-| TASK-013 | In docs/07-governance/domain-naming-decision-log.md, normalize legacy source evidence paths to current prefixes and remove stale references that cannot be validated in the workspace. | partial | 2026-05-21 |
+| TASK-011 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, replace legacy source evidence path prefixes with current equivalents using the Phase 1 mapping table while preserving semantic evidence scope. | yes | 2026-05-21 |
+| TASK-012 | In docs/02-design/domain-bounded-context-map.md, normalize legacy source evidence paths to current prefixes and keep only verifiable path references. | yes | 2026-05-21 |
+| TASK-013 | In docs/07-governance/domain-naming-decision-log.md, normalize legacy source evidence paths to current prefixes and remove stale references that cannot be validated in the workspace. | yes | 2026-05-21 |
 
 ### Implementation Phase 5
 
@@ -82,13 +82,13 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 |------|-------------|-----------|------|
 | TASK-014 | Run ID-scoped deterministic checks for ArtifactRelaunch policy across canonical docs using expected + forbidden clauses. Expected in relaunch-init semantics: prefilled-regenerate, regenerate-current-step, intent='regenerate'. Forbidden in relaunch-init semantics: start-generation as effective post-hydration action. | yes | 2026-05-21 |
 | TASK-015 | Run ID-scoped deterministic checks for DDD-C-007, DDD-031, DDD-051, and DDD-019 using expected + forbidden clauses per entry. Expected: resolved-documented/implemented-runtime wording aligned to runtime evidence. Forbidden: stale open/pending/zero-caller claims that contradict current runtime. | yes | 2026-05-21 |
-| TASK-016 | Run exact legacy-root evidence path checks with anchored backticked patterns to avoid false positives on current paths (apps/frontend/src, apps/backend/src/lib, packages/infra-db/migrations). Legacy targets: frontend/src, src/lib, src/server.ts, db/migrations. | pending | |
+| TASK-016 | Run exact legacy-root evidence path checks with anchored backticked patterns to avoid false positives on current paths (apps/frontend/src, apps/backend/src/lib, packages/infra-db/migrations). Legacy targets: frontend/src, src/lib, src/server.ts, db/migrations. | yes | 2026-05-21 |
 
 ## 9. As-Is Residual Drift (2026-05-21)
 
 - Canonical docs are aligned for DDD-020, DDD-C-007, DDD-031, DDD-051, DDD-019.
-- Legacy evidence paths are still present in canonical documents and keep TASK-011/012/013 only partial.
-- TASK-016 remains open until legacy-root path checks return zero matches.
+- Legacy evidence path normalization is complete across the canonical document set.
+- TASK-011, TASK-012, TASK-013, and TASK-016 are closed.
 
 ## 3. Alternatives
 
@@ -113,7 +113,7 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
   Description: Align ArtifactRelaunch translation and integration constraints with updated DDD-020 rule; normalize evidence paths.
 - **FILE-003**: docs/07-governance/domain-naming-decision-log.md
   Description: Update DDD-020, DDD-019, DDD-031, DDD-051, DDD-C-007 states and normalize evidence paths.
-- **FILE-004**: plan/process-canonical-ddd-ul-docs-alignment-1.md
+- **FILE-004**: ./process-canonical-ddd-ul-docs-alignment-1.md
   Description: This implementation plan file.
 
 ## 6. Testing

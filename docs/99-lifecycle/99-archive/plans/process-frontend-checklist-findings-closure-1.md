@@ -16,7 +16,7 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 ## 1. Requirements & Constraints
 
-- **REQ-001**: Close all findings still marked Open or Partial in plan/apps-frontend-unification-dead-code-checklist-1.md.
+- **REQ-001**: Close all findings still marked Open or Partial in ./apps-frontend-unification-dead-code-checklist-1.md.
 - **REQ-002**: Keep one canonical runtime surface for tool generation entry and remove legacy console surfaces when migration is complete.
 - **REQ-003**: Converge query hooks to one canonical shared abstraction and retain existing runtime semantics.
 - **REQ-004**: Converge tool label and route metadata to one canonical source used by Dashboard, Sessions, Artifact relaunch, and Navigation.
@@ -91,7 +91,7 @@ This implementation plan closes all remaining Open and Partial findings in the f
 | TASK-021 | Run npm --workspace apps/frontend run typecheck after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
 | TASK-022 | Run npm --workspace apps/frontend run test after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
 | TASK-023 | Run npm --workspace apps/frontend run build after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
-| TASK-024 | Update plan/apps-frontend-unification-dead-code-checklist-1.md statuses from Open or Partial to Done only when corresponding code change and validation evidence are both present. | Yes | 2026-05-21 |
+| TASK-024 | Update ./apps-frontend-unification-dead-code-checklist-1.md statuses from Open or Partial to Done only when corresponding code change and validation evidence are both present. | Yes | 2026-05-21 |
 | TASK-025 | Mark Validation Checklist and Expected Outcomes entries Done with direct evidence for each row, including command results and impacted file references. | Yes | 2026-05-21 |
 
 ## 3. Alternatives
@@ -110,7 +110,7 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 ## 5. Files
 
-- **FILE-001**: plan/apps-frontend-unification-dead-code-checklist-1.md
+- **FILE-001**: ./apps-frontend-unification-dead-code-checklist-1.md
 - **FILE-002**: apps/frontend/src/app/routing/app-router.tsx
 - **FILE-003**: apps/frontend/src/app/routing/app-router.test.tsx
 - **FILE-004**: apps/frontend/src/features/generation/pages/GenerationConsolePage.tsx
@@ -164,7 +164,7 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 ## 8. Related Specifications / Further Reading
 
-- plan/apps-frontend-unification-dead-code-checklist-1.md
+- ./apps-frontend-unification-dead-code-checklist-1.md
 - docs/01-requirements/domain-ubiquitous-language-glossary.md
 - docs/02-design/domain-bounded-context-map.md
 - docs/07-governance/domain-naming-decision-log.md

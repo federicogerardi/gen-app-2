@@ -136,4 +136,4 @@ This implementation plan defines deterministic phases to close the High architec
 - docs/01-requirements/domain-ubiquitous-language-glossary.md
 - docs/02-design/domain-bounded-context-map.md
 - docs/07-governance/domain-naming-decision-log.md
-- plan/refactor-generation-system-definition-1.md
+- ./refactor-generation-system-definition-1.md

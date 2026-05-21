@@ -23,7 +23,7 @@ owner: Architecture Review
 | F-02 | GenerationRequestInput remains permissive for core domain fields | Medium | Low | Closed after runtime hardening (compatibility envelope preserved by DDD-073) | P3 |
 | F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Closed after typed done-output remediation | P2 |
 | F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Closed after explicit default projection hardening | P2 |
-| F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | DDD-critical path stability risk | P2 |
+| F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | Closed after named comparator extraction | P2 |
 | F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Documented transition (DDD-051/DDD-052) | P3 |
 | F-07 | Deprecated hydration compatibility path remains active | Medium | Low | Technical debt with bounded DDD risk | P3 |
 | F-08 | Hydration debug logging enabled for non-production environments | Low | None | Operational hygiene concern | P4 |
@@ -116,6 +116,14 @@ owner: Architecture Review
   - Coherence filter activation: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L197)
   - Coherence no-match branch: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L218)
   - Ranked selection chain: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L228)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Named hydrate ranking comparator now isolates source-priority, recency, and artifactId tie-breakers: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L74)
+  - Ranked selection now delegates to the named comparator instead of inlining precedence logic: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L247)
+- Closure validation evidence:
+  - Auth HTTP runtime hydrate ranking regression coverage: [apps/backend/src/lib/tests/runtime.auth-http.test.ts](../../apps/backend/src/lib/tests/runtime.auth-http.test.ts#L2193)
+  - Auth HTTP runtime source-priority hydrate regression coverage: [apps/backend/src/lib/tests/runtime.auth-http.test.ts](../../apps/backend/src/lib/tests/runtime.auth-http.test.ts#L2482)
+  - Auth HTTP runtime content-artifact coherence hydrate regression coverage: [apps/backend/src/lib/tests/runtime.auth-http.test.ts](../../apps/backend/src/lib/tests/runtime.auth-http.test.ts#L2587)
 
 ### MEDIUM
 

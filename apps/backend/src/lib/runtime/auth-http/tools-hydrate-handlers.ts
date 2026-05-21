@@ -71,6 +71,25 @@ export const createToolsHydrateHandlers = (
     return null;
   };
 
+  const compareHydrateExtractionCandidates = (
+    sourceExtractionArtifactId: string | null,
+    left: { artifactId: string; updatedAt: string },
+    right: { artifactId: string; updatedAt: string },
+  ): number => {
+    const leftIsSource = sourceExtractionArtifactId != null && left.artifactId === sourceExtractionArtifactId ? 1 : 0;
+    const rightIsSource = sourceExtractionArtifactId != null && right.artifactId === sourceExtractionArtifactId ? 1 : 0;
+    if (leftIsSource !== rightIsSource) {
+      return rightIsSource - leftIsSource;
+    }
+
+    const updatedAtDelta = Date.parse(right.updatedAt) - Date.parse(left.updatedAt);
+    if (updatedAtDelta !== 0) {
+      return updatedAtDelta;
+    }
+
+    return left.artifactId.localeCompare(right.artifactId);
+  };
+
   const handleToolsHydrate = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -225,17 +244,8 @@ export const createToolsHydrateHandlers = (
       return;
     }
 
-    const ranked = [...eligibleCandidates].sort((a, b) => {
-      const aIsSource = sourceExtractionArtifactId != null && a.artifactId === sourceExtractionArtifactId ? 1 : 0;
-      const bIsSource = sourceExtractionArtifactId != null && b.artifactId === sourceExtractionArtifactId ? 1 : 0;
-      if (aIsSource !== bIsSource) {
-        return bIsSource - aIsSource;
-      }
-      const updatedAtDelta = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
-      if (updatedAtDelta !== 0) {
-        return updatedAtDelta;
-      }
-      return a.artifactId.localeCompare(b.artifactId);
+    const ranked = [...eligibleCandidates].sort((left, right) => {
+      return compareHydrateExtractionCandidates(sourceExtractionArtifactId, left, right);
     });
 
     const best = ranked[0]!;

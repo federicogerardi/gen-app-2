@@ -24,6 +24,7 @@ This companion snapshot is aligned with the shared-governance status captured in
 | F-02 | GenerationRequestInput permissive boundary for dispatch-critical fields | Closed after runtime hardening | Closed after runtime hardening | Symmetric |
 | F-03 | Type safety erosion in briefing upload machine through forced event casts | Closed after typed done-output remediation | Closed after typed done-output remediation | Symmetric |
 | F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | Closed after explicit default projection hardening | Closed after explicit default projection hardening | Symmetric |
+| F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | Closed after named comparator extraction | Closed after named comparator extraction | Symmetric |
 
 ### Shared Hardening Sequence Alignment
 
@@ -31,7 +32,7 @@ The residual hardening sequence for open architectural work is intentionally sym
 
 1. Optional follow-up: tighten compile-time GenerationRequestInput contract after compatibility deprecation window (DDD-073).
 
-The F-03 and F-04 remediations are already reflected in the severe snapshot and should be treated as part of the shared aligned state.
+The F-03, F-04, and F-05 remediations are already reflected in the severe snapshot and should be treated as part of the shared aligned state.
 
 ## Findings (Severity-First)
 

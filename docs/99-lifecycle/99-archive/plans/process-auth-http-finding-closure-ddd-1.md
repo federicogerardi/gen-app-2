@@ -6,6 +6,8 @@ last_updated: 2026-05-19
 date_completed: 2026-05-19
 owner: Architecture Review
 status: Completed
+last-reviewed: 2026-05-21
+next-review-date: 2026-08-21
 tags: [process, architecture, ddd, refactor, verification]
 ---
 

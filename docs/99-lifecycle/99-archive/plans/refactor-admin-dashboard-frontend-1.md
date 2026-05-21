@@ -5,6 +5,8 @@ date_created: 2026-05-17
 date_completed: 2026-05-17
 owner: frontend team
 status: 'Completed'
+last-reviewed: 2026-05-21
+next-review-date: 2026-08-21
 tags: [refactor, frontend, admin, dashboard, ux, architecture]
 ---
 

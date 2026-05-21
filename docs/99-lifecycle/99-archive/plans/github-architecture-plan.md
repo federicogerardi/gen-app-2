@@ -5,6 +5,8 @@ date_created: 2026-05-18
 last_updated: 2026-05-18
 owner: Backend Platform Team
 status: Completed
+last-reviewed: 2026-05-21
+next-review-date: 2026-08-21
 tags: [architecture, reliability, security, quota, budget, idempotency, parallelization]
 ---
 

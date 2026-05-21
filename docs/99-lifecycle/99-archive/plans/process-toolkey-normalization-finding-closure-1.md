@@ -5,6 +5,8 @@ date_created: 2026-05-21
 last_updated: 2026-05-21
 owner: Architecture Review
 status: 'Completed'
+last-reviewed: 2026-05-21
+next-review-date: 2026-08-21
 tags: [process, architecture, frontend, backend, contracts, ddd]
 ---
 

@@ -61,14 +61,6 @@ export type ToolFormState = {
 };
 
 /**
- * Validation result for form submission
- */
-export type ToolFormValidation = {
-  isValid: boolean;
-  errors: Record<string, string>;
-};
-
-/**
  * Registry of all supported tool configurations
  * Add new tools by registering here
  */
@@ -409,28 +401,4 @@ export const mapToolStepToCardConfig = (
     };
   }
   return stepConfig;
-};
-
-/**
- * Validation rules for form submission
- */
-export const validateToolForm = (state: ToolFormState): ToolFormValidation => {
-  const errors: Record<string, string> = {};
-
-  if (!state.projectId.trim()) {
-    errors.projectId = 'Project required';
-  }
-
-  if (!state.briefingFileName) {
-    errors.briefing = 'Briefing file required';
-  }
-
-  if (state.selectedSteps.size === 0) {
-    errors.steps = 'Select at least one step';
-  }
-
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
-  };
 };

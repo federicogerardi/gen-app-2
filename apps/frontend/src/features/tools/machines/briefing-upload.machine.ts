@@ -227,7 +227,17 @@ export const briefingUploadMachine = setup({
 
       return isAllowedBriefingExtension(context.angleDetectorFile.name);
     },
-    hasValidProject: ({ context }) => context.projectId.trim().length > 0,
+    canUploadBriefing: ({ context }) => {
+      return context.projectId.trim().length > 0 && (
+        !!context.file
+        && (context.toolKey !== 'angle-generator' || !!context.angleDetectorFile)
+        && isAllowedBriefingExtension(context.file.name)
+        && (
+          context.toolKey !== 'angle-generator'
+          || (context.angleDetectorFile ? isAllowedBriefingExtension(context.angleDetectorFile.name) : false)
+        )
+      );
+    },
     hasUserId: ({ context }) => context.userId != null,
     extractionResultIsValid: ({ context, event }) => {
       const output = readExtractionDoneOutput(event);
@@ -391,15 +401,7 @@ export const briefingUploadMachine = setup({
     validating: {
       always: [
         {
-          guard: ({ context }) =>
-            !!context.file
-            && (context.toolKey !== 'angle-generator' || !!context.angleDetectorFile)
-            && isAllowedBriefingExtension(context.file.name)
-            && (
-              context.toolKey !== 'angle-generator'
-              || (context.angleDetectorFile ? isAllowedBriefingExtension(context.angleDetectorFile.name) : false)
-            )
-            && context.projectId.trim().length > 0,
+          guard: 'canUploadBriefing',
           target: 'uploading',
         },
         {

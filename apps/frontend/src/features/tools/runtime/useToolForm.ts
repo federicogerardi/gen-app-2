@@ -8,7 +8,6 @@ import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import {
   getToolFormConfig,
   getAvailableSteps,
-  validateToolForm,
   type ToolFormState,
 } from './tool-form-architecture';
 
@@ -30,13 +29,10 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     stepArtifactIds: {},
   });
 
-  const validation = validateToolForm(formState);
-
   return {
     formState,
     setFormState,
     config,
-    validation,
   };
 };
 

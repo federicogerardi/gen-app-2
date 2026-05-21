@@ -133,12 +133,12 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 13. `apps/frontend/src/features/tools/runtime/useToolForm.ts`
 
-- Status: **Partial**
-- Evidence: `useProjectsLoader` removal is complete; `validation` is still returned from `useToolFormInit`; `useAvailableSteps` remains in active use.
+- Status: **Done**
+- Evidence: `useToolFormInit` now exposes only runtime-used state/config (`validation` return removed) and `useAvailableSteps` remains the canonical step-availability hook consumed by `useToolPage`.
 
 - [x] Remove `useProjectsLoader` after `useProjectsQuery` becomes the canonical loader for tool pages.
-- [ ] Remove unused validation return values if they are not consumed by runtime code.
-- [ ] Keep `useAvailableSteps` only if it remains the canonical step-availability hook.
+- [x] Remove unused validation return values if they are not consumed by runtime code.
+- [x] Keep `useAvailableSteps` only if it remains the canonical step-availability hook.
 
 ### 14. `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
 
@@ -151,59 +151,59 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 15. `apps/frontend/src/features/tools/runtime/useToolPage.ts`
 
-- Status: **Partial**
-- Evidence: local session-id generator removed in favor of shared helper via context/machine integration; full duplicate-id audit (request/session/run) remains open.
+- Status: **Done**
+- Evidence: request/session/run id generation remains centralized through shared helpers (`generateSessionId`, `generateRequestId`) with no local `createSessionId` implementation in runtime hooks.
 
-- [ ] Replace local `createSessionId` generation with a shared identity helper.
-- [ ] Keep the current orchestration flow intact while removing helper duplication.
-- [ ] Re-check that no duplicate request/session/run-id generators remain after consolidation.
+- [x] Replace local `createSessionId` generation with a shared identity helper.
+- [x] Keep the current orchestration flow intact while removing helper duplication.
+- [x] Re-check that no duplicate request/session/run-id generators remain after consolidation.
 
 ### 16. `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
 
-- Status: **Partial**
-- Evidence: uses shared `generateSessionId`; historical hydration helper cleanup (`collectCompletedStepsByTool` review) not completed in this plan.
+- Status: **Done**
+- Evidence: machine session id bootstrap uses shared `generateSessionId`; hydration helper review confirmed `collectCompletedStepsByTool` remains required for historical (non-session-endpoint) artifact projection in `tool-page-progress.ts`.
 
-- [ ] Replace local `createSessionId` generation with the same shared identity helper used by `useToolPage`.
-- [ ] Review whether `collectCompletedStepsByTool` is still required once session-aware hydration is fully canonicalized.
-- [ ] Preserve current readiness and hydration semantics while reducing historical fallback drift where safe.
+- [x] Replace local `createSessionId` generation with the same shared identity helper used by `useToolPage`.
+- [x] Review whether `collectCompletedStepsByTool` is still required once session-aware hydration is fully canonicalized.
+- [x] Preserve current readiness and hydration semantics while reducing historical fallback drift where safe.
 
 ### 17. `apps/frontend/src/app/runtime/shared-utils.ts`
 
-- Status: **Partial**
-- Evidence: shared utility file is active source for `generateSessionId` and `isAllowedBriefingExtension`; full duplicate-reader/normalizer retirement across codebase remains open.
+- Status: **Done**
+- Evidence: `shared-utils.ts` is now the single runtime source for identifier and field/file helpers (`generateRequestId`, `generateSessionId`, `normalizeIdentifier`, `readInputField`, `isAllowedBriefingExtension`), with no duplicate implementations in `apps/frontend/src` runtime modules.
 
-- [ ] Promote this file to the single source of truth for shared frontend helpers.
-- [ ] Add the canonical session-id helper here if session-id generation remains frontend-owned.
-- [ ] Keep briefing-extension validation here as the only live implementation.
-- [ ] Verify no duplicate identifier-normalization or input-field readers remain elsewhere.
+- [x] Promote this file to the single source of truth for shared frontend helpers.
+- [x] Add the canonical session-id helper here if session-id generation remains frontend-owned.
+- [x] Keep briefing-extension validation here as the only live implementation.
+- [x] Verify no duplicate identifier-normalization or input-field readers remain elsewhere.
 
 ### 18. `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
 
-- Status: **Partial**
-- Evidence: duplicate briefing-extension helper is no longer used here; broader dead-type/ownership cleanup is still pending.
+- Status: **Done**
+- Evidence: duplicate briefing-extension helper remains retired; dead form-validation surface (`ToolFormValidation`, `validateToolForm`) removed; `toolFormRegistry` remains canonical configuration source.
 
-- [ ] Remove the duplicate `isAllowedBriefingExtension` helper after centralization in `shared-utils.ts`.
-- [ ] Remove dead exported types with no runtime consumers (`ProjectsLoadingState`, `BriefingUploadState`, `ToolFormSubmitData`) if no external dependency remains.
-- [ ] Reassess whether `validateToolForm` still belongs here once `useToolForm` cleanup is complete.
-- [ ] Keep `toolFormRegistry` as the canonical source for tool configuration.
+- [x] Remove the duplicate `isAllowedBriefingExtension` helper after centralization in `shared-utils.ts`.
+- [x] Remove dead exported types with no runtime consumers (`ProjectsLoadingState`, `BriefingUploadState`, `ToolFormSubmitData`) if no external dependency remains.
+- [x] Reassess whether `validateToolForm` still belongs here once `useToolForm` cleanup is complete.
+- [x] Keep `toolFormRegistry` as the canonical source for tool configuration.
 
 ### 19. `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`
 
-- Status: **Partial**
-- Evidence: briefing validation is wired to shared helper `isAllowedBriefingExtension`; redundant validation path cleanup was not completed as explicit refactor.
+- Status: **Done**
+- Evidence: validation path was deduplicated to canonical named guard (`canUploadBriefing`) while keeping `isAllowedBriefingExtension` as single extension validator.
 
-- [ ] Repoint briefing-file validation to the shared helper only.
-- [ ] Remove any redundant validation logic left after helper consolidation.
-- [ ] Preserve current extraction and validity behavior.
+- [x] Repoint briefing-file validation to the shared helper only.
+- [x] Remove any redundant validation logic left after helper consolidation.
+- [x] Preserve current extraction and validity behavior.
 
 ### 20. `apps/frontend/src/features/generation/ui/tool-ux-state.ts`
 
-- Status: **Partial**
-- Evidence: canonical module remains active and reused by legacy + tool surfaces; minimum runtime/test public surface was not reduced yet.
+- Status: **Done**
+- Evidence: test-only derivation helpers/types were removed; module now exposes only runtime-used canonical UI types and `derivePrimaryActionLabel`.
 
-- [ ] Identify which exports are still required by runtime code and which survive only for tests or legacy compatibility.
-- [ ] Remove dead derivation helpers if `toolPageMachine.context.viewModel` is the only canonical runtime source.
-- [ ] Keep only the minimum public surface still needed by live consumers.
+- [x] Identify which exports are still required by runtime code and which survive only for tests or legacy compatibility.
+- [x] Remove dead derivation helpers if `toolPageMachine.context.viewModel` is the only canonical runtime source.
+- [x] Keep only the minimum public surface still needed by live consumers.
 
 ### 21. `apps/frontend/src/features/tools/runtime/tool-ux-state.ts`
 
@@ -367,9 +367,9 @@ This checklist translates the current `apps/frontend` unification report into an
 - Evidence: canonical shared metadata helpers now drive labels/routes/navigation across dashboard, sessions, artifact-history, and main navigation.
 - [ ] One canonical shared tool metadata source.
 
-- Status: **Partial**
-- Evidence: shared helper centralization is in progress (`generateSessionId`, briefing extension validation), while duplicate identifier/read helpers still remain in other modules.
-- [ ] One canonical shared helper source for identifier generation and file validation.
+- Status: **Done**
+- Evidence: shared helper centralization is complete (`generateRequestId`, `generateSessionId`, `normalizeIdentifier`, `readInputField`, `isAllowedBriefingExtension`) with runtime duplicates retired.
+- [x] One canonical shared helper source for identifier generation and file validation.
 
 - Status: **Done**
 - Evidence: obsolete shim/rollout/module wrappers were removed (`tool-ux-state` shim, `ui-rollout`, `AppButton`/`AppCard`/`AppInput`/`AppModal`).

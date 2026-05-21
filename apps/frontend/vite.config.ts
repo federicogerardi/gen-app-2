@@ -1,8 +1,45 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 
+const isAdminUsersPath = (url: string): boolean => {
+  const path = url.split('?')[0] ?? '/';
+  return path === '/admin/users' || path.startsWith('/admin/users/');
+};
+
+const isDocumentNavigation = (method: string | undefined, accept: string | undefined, secFetchDest: string | undefined): boolean => {
+  if (method !== 'GET' && method !== 'HEAD') {
+    return false;
+  }
+
+  if (secFetchDest?.toLowerCase() === 'document') {
+    return true;
+  }
+
+  return (accept ?? '').includes('text/html');
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'admin-users-refresh-spa-fallback',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          const currentUrl = req.url ?? '/';
+          const accept = typeof req.headers.accept === 'string' ? req.headers.accept : undefined;
+          const secFetchDest = typeof req.headers['sec-fetch-dest'] === 'string'
+            ? req.headers['sec-fetch-dest']
+            : undefined;
+
+          if (isAdminUsersPath(currentUrl) && isDocumentNavigation(req.method, accept, secFetchDest)) {
+            req.url = '/admin';
+          }
+
+          next();
+        });
+      },
+    },
+  ],
   server: {
     port: 5173,
     proxy: {

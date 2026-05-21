@@ -62,6 +62,25 @@ function isProxyPath(urlPath) {
   );
 }
 
+function isAdminUsersPath(urlPath) {
+  return urlPath === '/admin/users' || urlPath.startsWith('/admin/users/');
+}
+
+function isDocumentNavigation(request, method) {
+  if (method !== 'GET' && method !== 'HEAD') {
+    return false;
+  }
+
+  const secFetchDest = request.headers['sec-fetch-dest'];
+  const accept = request.headers.accept ?? '';
+
+  if (typeof secFetchDest === 'string' && secFetchDest.toLowerCase() === 'document') {
+    return true;
+  }
+
+  return typeof accept === 'string' && accept.includes('text/html');
+}
+
 // TASK-020: logger sintetico — non espone header, cookie o body.
 function logReq(type, method, path) {
   console.log(`[req] ${type} ${method} ${path}`);
@@ -197,7 +216,7 @@ const server = createServer((request, response) => {
   }
 
   // (2) Proxy verso backend interno — qualunque metodo HTTP
-  if (isProxyPath(path)) {
+  if (isProxyPath(path) && !(isAdminUsersPath(path) && isDocumentNavigation(request, method))) {
     handleProxy(request, response, BACKEND_INTERNAL_URL);
     return;
   }

@@ -1,4 +1,5 @@
 import {
+  useCallback,
   createContext,
   useContext,
   useMemo,
@@ -51,17 +52,17 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
     snapshot.matches('loggingOut') ||
     snapshot.matches('refreshing');
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = useCallback(async (email: string, password: string): Promise<void> => {
     send({ type: 'LOGIN', email, password });
-  };
+  }, [send]);
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     send({ type: 'LOGOUT' });
-  };
+  }, [send]);
 
-  const refresh = async (): Promise<void> => {
+  const refresh = useCallback(async (): Promise<void> => {
     send({ type: 'REFRESH' });
-  };
+  }, [send]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({
@@ -75,8 +76,16 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
       logout,
       refresh,
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiBaseUrl, capabilities, snapshot.context.session, snapshot.context.error, loading],
+    [
+      apiBaseUrl,
+      capabilities,
+      snapshot.context.session,
+      snapshot.context.error,
+      loading,
+      login,
+      logout,
+      refresh,
+    ],
   );
 
   return (

@@ -7,6 +7,7 @@ import {
   buildIdempotencyRedisLockKey,
   createPostgresRedisProductionGenerationAdapters,
 } from '../adapters';
+import { createSmokeCleanup } from './smoke-cleanup';
 
 const requiredEnv = (name: 'DATABASE_URL'): string => {
   const value = process.env[name];
@@ -30,6 +31,8 @@ const run = async () => {
 
   const pg = new Pool({ connectionString: databaseUrl });
   const redis = new Redis(redisUrl);
+  const cleanup = createSmokeCleanup();
+
   const artifactId = 'artifact-smoke-001';
   const idemInput = {
     requestId: 'seed-request-claimed-001',
@@ -40,6 +43,17 @@ const run = async () => {
     registrySnapshotRef: 'snapshot:smoke' as never,
   };
   const lockKey = buildIdempotencyRedisLockKey('generation:idempotency', idemInput, 'generation');
+
+  cleanup.register(async () => {
+    await redis.del(lockKey);
+    await pg.query(
+      `DELETE FROM request_idempotency WHERE user_id = $1 AND project_id = $2 AND endpoint = $3 AND idempotency_key = $4`,
+      [idemInput.userId, idemInput.projectId, 'generation', idemInput.idempotencyKey],
+    );
+    await pg.query(`DELETE FROM artifacts WHERE id = $1`, [artifactId]);
+    await redis.quit();
+    await pg.end();
+  });
 
   try {
     const adapters = createPostgresRedisProductionGenerationAdapters({ pg, redis });
@@ -73,14 +87,7 @@ const run = async () => {
 
     console.log('Smoke OK: claimed -> completed -> replay');
   } finally {
-    await redis.del(lockKey);
-    await pg.query(
-      `DELETE FROM request_idempotency WHERE user_id = $1 AND project_id = $2 AND endpoint = $3 AND idempotency_key = $4`,
-      [idemInput.userId, idemInput.projectId, 'generation', idemInput.idempotencyKey],
-    );
-    await pg.query(`DELETE FROM artifacts WHERE id = $1`, [artifactId]);
-    await redis.quit();
-    await pg.end();
+    await cleanup.run();
   }
 };
 

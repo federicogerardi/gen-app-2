@@ -32,8 +32,11 @@ const run = async () => {
   const pg = new Pool({ connectionString: databaseUrl });
   const redis = new Redis(redisUrl);
 
+  const usageRedisKeyPrefix = 'generation:usage:smoke-conflict';
+  let lockKey: string | null = null;
+  let concurrentUserId: string | null = null;
+
   try {
-    const usageRedisKeyPrefix = 'generation:usage:smoke-conflict';
     const adapters = createPostgresRedisProductionGenerationAdapters(
       { pg, redis },
       {
@@ -66,14 +69,14 @@ const run = async () => {
       [idemInput.userId, idemInput.projectId, 'generation', idemInput.idempotencyKey],
     );
 
-    const lockKey = buildIdempotencyRedisLockKey('generation:idempotency', idemInput, 'generation');
+    lockKey = buildIdempotencyRedisLockKey('generation:idempotency', idemInput, 'generation');
     await redis.set(lockKey, 'lock-present', 'EX', 900, 'NX');
 
     const result = await adapters.idempotency.checkAndClaim(idemInput);
     assert.equal(result.status, 'conflict');
 
     const runSuffix = randomUUID().slice(0, 8);
-    const concurrentUserId = `seed-user-concurrency-${runSuffix}`;
+    concurrentUserId = `seed-user-concurrency-${runSuffix}`;
     const concurrentProjectId = `seed-project-concurrency-${runSuffix}`;
     const concurrentEmail = `seed-user-concurrency-${runSuffix}@example.com`;
 
@@ -123,6 +126,15 @@ const run = async () => {
     console.log('Smoke OK: lock present -> conflict');
     console.log('Smoke OK: parallel usage claims -> one grant, one quota_exhausted');
   } finally {
+    if (lockKey) {
+      await redis.del(lockKey);
+    }
+
+    if (concurrentUserId) {
+      await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
+      await pg.query(`DELETE FROM users WHERE id = $1`, [concurrentUserId]);
+    }
+
     await redis.quit();
     await pg.end();
   }

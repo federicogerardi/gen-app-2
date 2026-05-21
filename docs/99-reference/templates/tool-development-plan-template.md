@@ -57,15 +57,15 @@ Primary evidence anchors:
 
 In scope:
 
-- [Describe the tool capability, workflow, or runtime change.]
-- [List the exact FE/BE/doc surfaces affected.]
-- [List the exact validation gates for the change.]
+- Define and propagate one canonical Tool identity set: `ToolKey` (kebab-case), `ToolWorkflow` (snake_case), `DisplayLabel`, and canonical `ToolStep` sequence.
+- Implement deterministic FE/BE coverage for the new Tool across Tool Workspace runtime, backend orchestration, session listing/detail projections, and relaunch route resolution.
+- Execute the mandatory validation gates in Section 4 with explicit pass/fail evidence in Section 5 outputs.
 
 Out of scope:
 
 - New domain term creation without DDD approval.
 - Unrelated refactors outside the smallest affected tool surface.
-- Non-tool features not needed for this change.
+- Features unrelated to Tool runtime or required parity surfaces. Exception: session archive/detail and relaunch parity are always in scope for a new Tool.
 
 ## 2. Session Entry Gate
 
@@ -86,6 +86,23 @@ Pass criteria:
 - No ambiguity on the canonical terms for this change.
 - No unresolved terminology conflict.
 - No unresolved architecture constraint that would invalidate the plan.
+
+## 2b. Deterministic Inputs (Mandatory)
+
+Before starting Phase A, define these variables once and reuse them in docs, code, tests, and run logs.
+
+```bash
+export TOOL_KEY='<kebab-case-tool-key>'
+export TOOL_WORKFLOW='<snake_case_tool_workflow>'
+export TOOL_DISPLAY_LABEL='<Tool Display Label>'
+```
+
+Input rules:
+
+- `TOOL_KEY` must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`.
+- `TOOL_WORKFLOW` must match `^[a-z0-9]+(?:_[a-z0-9]+)*$`.
+- `TOOL_DISPLAY_LABEL` must match approved DDD display naming.
+- All three inputs must appear in glossary/decision-log evidence before implementation commits.
 
 ## 3. End-to-End Flow Under Plan
 
@@ -122,6 +139,8 @@ Checklist:
 - Confirm payload validation and normalization rules.
 - Confirm timeout, idempotency, and error handling behavior.
 - Confirm that any new backend path is registered in the canonical runtime registry.
+- Confirm backend session projections map canonical tool identity (`/api/tools/sessions` and `/api/tools/sessions/{sessionId}`) for the new Tool.
+- Confirm artifact-role classification and step ordering support include the new Tool final step semantics.
 
 Primary evidence anchors:
 
@@ -187,13 +206,17 @@ DDD conformity checklist:
 
 Run from repository root.
 
+Mandatory precondition:
+
+- Export deterministic inputs from Section 2b in the current shell session.
+
 | Step | Command | Purpose | Pass Criteria |
 |------|---------|---------|---------------|
-| EXEC-000 | `[Add DDD and spec verification commands here]` | DDD baseline integrity gate | Every command returns exit code 0 |
+| EXEC-000 | `test -n "$TOOL_KEY" && test -n "$TOOL_WORKFLOW" && test -n "$TOOL_DISPLAY_LABEL" && test -f docs/01-requirements/domain-ubiquitous-language-glossary.md && test -f docs/02-design/domain-bounded-context-map.md && test -f docs/07-governance/domain-naming-decision-log.md && test -f docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md && test -f docs/02-design/specifications/tool-page-frontend-runtime-spec.md && rg -n "$TOOL_KEY|$TOOL_WORKFLOW|$TOOL_DISPLAY_LABEL" docs/01-requirements/domain-ubiquitous-language-glossary.md docs/07-governance/domain-naming-decision-log.md` | DDD baseline integrity gate | Exit code 0 and at least one match in each DDD doc set |
 | EXEC-001 | `npm run typecheck --workspaces --if-present` | Global static baseline | Exit code 0 |
-| EXEC-002 | `[Add focused backend test command here]` | Backend regression net | Exit code 0 and no failing tests |
-| EXEC-003 | `[Add benchmark or load command here if needed]` | Runtime scalability baseline | Required metrics are within target |
-| EXEC-004 | `[Add focused frontend test command here]` | Frontend Tool Workspace regression net | Exit code 0 and no failing tests |
+| EXEC-002 | `npm --workspace apps/backend run test -- src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/runtime.tools-orchestrate.test.ts src/lib/tests/runtime.auth-http.test.ts` | Backend regression net | Exit code 0 and no failing tests |
+| EXEC-003 | `npm --workspace apps/backend run bench:orchestrate` | Runtime scalability baseline | Exit code 0 and benchmark summary logged in OUT-001 |
+| EXEC-004 | `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx src/features/artifacts/ui/SessionsListingSection.test.tsx src/features/generation/ui/SessionArtifactTabs.test.tsx src/features/generation/ui/artifact-history.test.ts` | Frontend parity regression net (Tool Workspace + Session Summary/Relaunch) | Exit code 0 and no failing tests |
 | EXEC-005 | `npm --workspace apps/frontend run build` | Frontend publication gate | Exit code 0 |
 | EXEC-006 | `npm run build` | End-to-end repo build gate | Exit code 0 |
 
@@ -215,7 +238,10 @@ Required outputs for every Tool plan:
 
 Source of truth:
 
-- `[Add the canonical runtime spec or architecture spec here]`
+- `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
+- `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
+- `docs/01-requirements/domain-ubiquitous-language-glossary.md`
+- `docs/07-governance/domain-naming-decision-log.md`
 
 Execution policy:
 
@@ -223,49 +249,49 @@ Execution policy:
 - Do not start coding tasks outside the approved plan boundary.
 - Preserve canonical DDD terms and payload invariants.
 
-### Track A - [Short label]
+### Track A - Contracts and Canonical Identity
 
-- [ ] A-001: [Describe the first FE or contract task.]
-- [ ] A-002: [Describe the second FE or contract task.]
-- [ ] A-003: [Describe the serializer, validator, or mapping task.]
+- [ ] A-001: Add `TOOL_KEY` and `TOOL_WORKFLOW` to contracts registry (`packages/contracts/src/tool-workflows.ts`) with canonical `ToolStep` order and dependencies.
+- [ ] A-002: Add canonical extraction field maps (instruction/readiness) for the new Tool where required by DDD policy.
+- [ ] A-003: Add deterministic FE label/route resolution support for `TOOL_KEY` and aliases only where approved in decision log.
 
 Acceptance for Track A:
 
-- [ ] A-AC-001: [Define the exact expected behavior.]
-- [ ] A-AC-002: [Define the backward-compatibility requirement, if any.]
+- [ ] A-AC-001: `resolveToolWorkflowType(TOOL_KEY)` and reverse mapping are stable and type-safe.
+- [ ] A-AC-002: `getToolLabel` and `getToolRoute` resolve canonical values for both `TOOL_KEY` and approved aliases.
 
-### Track B - [Short label]
+### Track B - Backend Runtime and Session Projections
 
-- [ ] B-001: [Describe the backend validation or orchestration task.]
-- [ ] B-002: [Describe the deterministic guard or normalization rule.]
-- [ ] B-003: [Describe the response or persistence shape.]
+- [ ] B-001: Register backend runtime support for `TOOL_KEY` in orchestration/normalization paths (`tool-workflow-registry`, `workflow-normalizers`, handlers).
+- [ ] B-002: Add deterministic final-step artifact role mapping for the new Tool.
+- [ ] B-003: Validate session list/detail projections return canonical tool identity usable by FE label/route resolvers.
 
 Acceptance for Track B:
 
-- [ ] B-AC-001: [Define the exact expected response or state.]
-- [ ] B-AC-002: [Define the failure-mode expectation.]
-- [ ] B-AC-003: [Define the compatibility requirement.]
+- [ ] B-AC-001: `/api/tools/sessions` and `/api/tools/sessions/{sessionId}` carry tool identity that resolves to `TOOL_KEY` deterministically.
+- [ ] B-AC-002: Backend rejects unsupported tool identifiers with explicit validation error (no silent fallback).
+- [ ] B-AC-003: Existing tools remain behaviorally unchanged under focused backend regression suite.
 
-### Track C - [Short label]
+### Track C - Frontend Tool Workspace and Session Surfaces
 
-- [ ] C-001: [Describe the FE/BE assembly or dispatch task.]
-- [ ] C-002: [Describe the merged payload or orchestration input task.]
-- [ ] C-003: [Describe the single-dispatch or single-source-of-truth invariant.]
+- [ ] C-001: Add Tool Workspace registration/configuration for `TOOL_KEY` (page route, form config, steps, guidance).
+- [ ] C-002: Ensure generation dispatch and relaunch route assembly resolve to `/tools/$TOOL_KEY` from canonical identity sources.
+- [ ] C-003: Ensure FE step ordering/rendering supports the new Tool in session detail tabs and history projections.
 - [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
 
 Acceptance for Track C:
 
-- [ ] C-AC-001: [Define the single-request or single-path invariant.]
-- [ ] C-AC-002: [Define the merged payload or canonical output expectation.]
-- [ ] C-AC-003: [Define the non-regression requirement for existing tools.]
+- [ ] C-AC-001: Tool route assembly uses one canonical resolver path (no local divergent mappers).
+- [ ] C-AC-002: Session detail relaunch source selection is deterministic (final-step preferred, then valid-step fallback).
+- [ ] C-AC-003: Existing supported tools still pass the same list/detail/relaunch UI assertions.
 - [ ] C-AC-004: Session summary surfaces never expose raw workflow identifiers as final UI labels for the target Tool.
 - [ ] C-AC-005: Relaunch CTA is enabled whenever tool-route resolution succeeds and stream is not active.
 
 ### Track D - Test Cases
 
-- [ ] D-001: [Describe focused unit tests for the new behavior.]
-- [ ] D-002: [Describe integration or runtime tests for the touched path.]
-- [ ] D-003: [Describe contract or regression tests for canonical shape.]
+- [ ] D-001: Add/update unit tests for tool label/route normalization and canonical mappings.
+- [ ] D-002: Add/update frontend session detail tests covering title/details parity and relaunch CTA behavior for the new Tool.
+- [ ] D-003: Add/update backend normalization/orchestration tests for final-step role and tool identity mapping.
 - [ ] D-004: Add/update session summary tests for the target Tool on both list and detail pages.
 - [ ] D-005: Add/update relaunch route-resolution test coverage for the target Tool.
 
@@ -293,12 +319,12 @@ Acceptance for DDD Impact Gate:
 
 ## 6. Risks and Controls
 
-- RISK-001: [Describe the main architectural risk.]
-  - Control: [Describe the mitigation.]
-- RISK-002: [Describe the main DDD or naming risk.]
-  - Control: [Describe the mitigation.]
-- RISK-003: [Describe the main validation or rollout risk.]
-  - Control: [Describe the mitigation.]
+- RISK-001: Cross-surface drift where Tool Workspace works but Session Summary/Relaunch remains inconsistent.
+  - Control: Mandatory Track C parity tasks + EXEC-004 targeted session suites.
+- RISK-002: Canonical naming drift (`TOOL_KEY`/`TOOL_WORKFLOW` mismatch across FE/BE/docs).
+  - Control: EXEC-000 grep gate + X-001..X-005 DDD impact gate before implementation sign-off.
+- RISK-003: Regression on existing tools after adding new tool paths.
+  - Control: D-AC-003 non-regression pair requirement and workspace-wide typecheck/build gates.
 
 ## 7. References
 
@@ -307,4 +333,6 @@ Acceptance for DDD Impact Gate:
 - `docs/07-governance/domain-naming-decision-log.md`
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
-- `[Add any plan-specific benchmark, architecture, or test docs here]`
+- `docs/04-testing/orchestrate-scalability-benchmark-2026-05-21.md`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx`
+- `apps/frontend/src/features/artifacts/ui/SessionsListingSection.test.tsx`

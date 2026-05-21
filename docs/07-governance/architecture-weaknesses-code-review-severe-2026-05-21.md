@@ -1,0 +1,177 @@
+---
+status: active
+version: 1.0
+last-reviewed: 2026-05-21
+next-review-date: 2026-08-21
+owner: Architecture Review
+---
+
+# Severe Architecture Weaknesses Review 2026-05-21
+
+## Scope
+- Severe, evidence-first architecture review across Frontend/UI, Generation, and shared contracts.
+- DDD-first review aligned with canonical terms and bounded-context ownership.
+- Static analysis only; no implementation edits performed in this review.
+
+## Findings (Normalized Severity: Architecture + DDD)
+
+### Severity Summary Table
+
+| ID | Finding | Architecture Severity | DDD Severity | DDD Status | Priority |
+| --- | --- | --- | --- | --- | --- |
+| F-01 | Duplicate ToolKey normalization policy across Frontend and Backend boundaries | Critical | High | Governance-gap risk (cross-context) | P1 |
+| F-02 | GenerationRequestInput remains permissive for core domain fields | Medium | Low | Accepted risk boundary (DDD-073) | P3 |
+| F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Implementation safety debt | P2 |
+| F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Projection-contract ambiguity risk | P2 |
+| F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | DDD-critical path stability risk | P2 |
+| F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Documented transition (DDD-051/DDD-052) | P3 |
+| F-07 | Deprecated hydration compatibility path remains active | Medium | Low | Technical debt with bounded DDD risk | P3 |
+| F-08 | Hydration debug logging enabled for non-production environments | Low | None | Operational hygiene concern | P4 |
+
+### CRITICAL
+
+1. Duplicate ToolKey normalization policy across Frontend and Backend boundaries.
+- Normalized severity: **Architecture = Critical | DDD = High**.
+- Impacted concept: ToolKey.
+- Why weak: two normalization authorities increase boundary drift risk.
+- Evidence:
+  - Frontend local normalizer: [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L67)
+  - Frontend read path using local normalization: [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L124)
+  - Backend canonical normalizer: [apps/backend/src/lib/runtime/workflow-normalizers.ts](../../apps/backend/src/lib/runtime/workflow-normalizers.ts#L22)
+
+2. GenerationRequestInput remains permissive for core domain fields.
+- Normalized severity: **Architecture = Medium | DDD = Low (accepted risk boundary)**.
+- Impacted concept: GenerationRequestInput.
+- Why weak: boundary typing still allows runtime drift for critical dispatch fields.
+- Evidence:
+  - Contract type declaration: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L98)
+  - Step field accepts broad shape: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L101)
+  - Tone field accepts broad shape: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L103)
+
+### HIGH
+
+1. Type safety erosion in briefing upload machine through forced event casts.
+- Normalized severity: **Architecture = High | DDD = Low**.
+- Impacted concepts: BriefingUpload, ExtractionContext.
+- Why weak: as unknown as casts reduce compile-time safety on async machine output handling.
+- Evidence:
+  - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L149)
+  - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L314)
+  - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L390)
+
+2. Artifact detail projection is fail-soft and can silently return empty input/content.
+- Normalized severity: **Architecture = High | DDD = Medium**.
+- Impacted concept: Artifact read model projection.
+- Why weak: includeInput/includeContent projection can degrade data shape without explicit consumer signal.
+- Evidence:
+  - Projection selector builder: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1042)
+  - Conditional input projection: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1059)
+  - Conditional content projection: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1060)
+
+3. Hydration ranking logic is correct but extension-fragile due to imperative ordering.
+- Normalized severity: **Architecture = High | DDD = Medium**.
+- Impacted concepts: HydrationResult, ExtractionContext coherence.
+- Why weak: ranking and coherence filters are hand-ordered in one path and prone to precedence regressions when extended.
+- Evidence:
+  - Coherence filter activation: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L197)
+  - Coherence no-match branch: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L218)
+  - Ranked selection chain: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L228)
+
+### MEDIUM
+
+1. Session listing maintains dual semantics (canonical endpoint plus artifact-derived fallback).
+- Normalized severity: **Architecture = Medium | DDD = Low (documented transition)**.
+- Impacted concepts: GenerationSession, SessionSummary.
+- Why weak: fallback grouping policy can diverge from canonical backend session semantics over time.
+- Evidence:
+  - Frontend fallback mapper: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L93)
+  - Canonical endpoint branch: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L141)
+  - Fallback execution branch: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L170)
+
+2. Deprecated hydration compatibility path remains active.
+- Normalized severity: **Architecture = Medium | DDD = Low**.
+- Impacted concepts: StepHydration, ToolStepOrchestration.
+- Why weak: legacy path increases mutation surface and cognitive load.
+- Evidence:
+  - Deprecated path warning: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L183)
+  - Legacy helper still exported: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L217)
+  - Canonical backend orchestration path already used: [apps/frontend/src/features/tools/runtime/useToolPageRunController.ts](../../apps/frontend/src/features/tools/runtime/useToolPageRunController.ts#L121)
+
+### LOW
+
+1. Hydration debug logging is enabled for all non-production environments.
+- Normalized severity: **Architecture = Low | DDD = None**.
+- Impacted concept: operational observability governance.
+- Why weak: coarse debug gate can create noise and metadata exposure in staging/test.
+- Evidence:
+  - Debug helper declaration: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L49)
+  - Environment gate: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L50)
+  - Debug output call: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L51)
+
+## Governance Alignment Notes
+- Existing governance snapshots report no currently open findings:
+  - [docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md](./architecture-weaknesses-code-review-2026-05-18.md)
+  - [docs/07-governance/architecture-weaknesses-code-review-2026-05-21.md](./architecture-weaknesses-code-review-2026-05-21.md)
+- This severe review records residual structural weaknesses that remain relevant for preventive hardening.
+
+## Recommended Next Hardening Sequence
+1. Unify ToolKey normalization authority at contract-boundary level.
+2. Tighten GenerationRequestInput typing for dispatch-critical fields.
+3. Remove forced casts in BriefingUpload machine by explicit done-event typing.
+4. Introduce explicit projection contracts for artifact list/detail includeInput/includeContent behavior.
+
+## DDD Impact Verification (2026-05-21)
+
+This section verifies the DDD impact of each finding against the canonical reference set:
+- `docs/01-requirements/domain-ubiquitous-language-glossary.md`
+- `docs/02-design/domain-bounded-context-map.md`
+- `docs/07-governance/domain-naming-decision-log.md`
+
+### Impact Matrix
+
+1. Duplicate ToolKey normalization policy across Frontend and Backend boundaries.
+- DDD references: DDD-029, DDD-071, DDD-C-005.
+- DDD impact: **governance-gap risk (cross-context)**.
+- Verification: `ToolKey` remains canonical and naming is aligned; risk is architectural because FE normalization is not contract-owned, while DDD-071 formalizes canonical ownership only for BE runtime normalization.
+
+2. GenerationRequestInput remains permissive for core domain fields.
+- DDD references: DDD-073, DDD-023, DDD-032.
+- DDD impact: **accepted-risk boundary, not canonical drift**.
+- Verification: permissive envelope is explicitly documented as compatibility boundary (DDD-073). This is a hardening opportunity, not a DDD conflict.
+
+3. Type safety erosion in briefing upload machine through forced event casts.
+- DDD references: `BriefingUpload` glossary entry, DDD-007.
+- DDD impact: **implementation safety debt, low direct DDD impact**.
+- Verification: ubiquitous language remains consistent; weakness is compile-time robustness in actor event typing.
+
+4. Artifact detail projection is fail-soft and can silently return empty input/content.
+- DDD references: `ToolWorkflowPersistenceMetadata` glossary entry, DDD-034, DDD-050.
+- DDD impact: **projection-contract ambiguity risk**.
+- Verification: canonical terms are preserved, but projection semantics can weaken deterministic read expectations if not explicit to consumers.
+
+5. Hydration ranking logic extension-fragile due to imperative ordering.
+- DDD references: DDD-075, DDD-038.
+- DDD impact: **stability risk on a DDD-critical path**.
+- Verification: current logic is DDD-compliant; risk concerns future extensibility and precedence regressions rather than current semantic drift.
+
+6. Session listing dual semantics (canonical endpoint plus artifact-derived fallback).
+- DDD references: DDD-051, DDD-052, `SessionSummary` glossary entry.
+- DDD impact: **transitional policy (documented), not drift**.
+- Verification: fallback derivation from artifacts is explicitly allowed during transition; monitor for rollout completion to retire fallback.
+
+7. Deprecated hydration compatibility path remains active.
+- DDD references: DDD-028, DDD-031, DDD-C-007.
+- DDD impact: **technical debt with bounded DDD risk**.
+- Verification: BE orchestration authority is preserved; residual deprecated FE helpers increase maintenance surface but do not currently violate canonical ownership.
+
+8. Hydration debug logging in non-production environments.
+- DDD references: none (operational concern).
+- DDD impact: **no direct DDD impact**.
+- Verification: this is observability governance and runtime hygiene, outside ubiquitous-language consistency scope.
+
+### DDD Conclusion
+
+- **Confirmed DDD drift requiring canonical action now**: none.
+- **Architecture hardening with DDD sensitivity**: ToolKey normalization authority, hydration-ranking extensibility, artifact projection contract clarity.
+- **Accepted/governed compatibility areas**: permissive `GenerationRequestInput` boundary (DDD-073), SessionSummary fallback transition (DDD-051/DDD-052).
+

@@ -28,7 +28,7 @@ type GenerationRoutingContext = {
 
 export const getRegistrySelector = (context: GenerationRoutingContext) => {
   const registrySnapshotRef =
-    (context.registrySnapshotRef ?? `snapshot:${context.requestId}`) as never;
+    context.registrySnapshotRef ?? `snapshot:${context.requestId}`;
 
   if (context.registryVersion) {
     return {

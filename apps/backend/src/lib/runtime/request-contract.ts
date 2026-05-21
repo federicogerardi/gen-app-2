@@ -200,20 +200,21 @@ export const buildRequestReceivedEvent = (
   const withIdempotency = request.idempotencyKey
     ? { idempotencyKey: request.idempotencyKey }
     : {};
+  const resolvedRegistrySnapshotRef = request.registrySnapshotRef ?? 'snapshot:default';
 
   if (request.registryVersion) {
     return {
       ...common,
       ...withIdempotency,
-      registryVersion: request.registryVersion as never,
-      registrySnapshotRef: request.registrySnapshotRef as never,
+      registryVersion: request.registryVersion,
+      registrySnapshotRef: resolvedRegistrySnapshotRef,
     };
   }
 
   return {
     ...common,
     ...withIdempotency,
-    registrySnapshotRef: (request.registrySnapshotRef ?? 'snapshot:default') as never,
+    registrySnapshotRef: resolvedRegistrySnapshotRef,
   };
 };
 
@@ -227,8 +228,8 @@ export const buildValidationOkEvent = (
 ): ValidationOkEvent => ({
   type: 'VALIDATION_OK',
   workflowType: request.workflowType ?? null,
-  registryVersion: (request.registryVersion ?? null) as never,
-  registrySnapshotRef: (request.registrySnapshotRef ?? null) as never,
+  registryVersion: request.registryVersion ?? null,
+  registrySnapshotRef: request.registrySnapshotRef ?? null,
 });
 
 export const buildToolsOrchestrateIdempotencyInput = (input: {
@@ -257,6 +258,6 @@ export const buildToolsOrchestrateIdempotencyInput = (input: {
     projectId: input.projectId,
     workflowType: resolveToolWorkflowType(input.toolKey),
     idempotencyKey,
-    registrySnapshotRef: 'snapshot:default' as never,
+    registrySnapshotRef: 'snapshot:default',
   };
 };

@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -68,8 +68,25 @@ owner: Architecture Review
   - `GenerationRequest`, `ToolStep`, `ToneProfile`, `LlmModelId`.
 
 ### 3. Medium-High — Type-safety bypass through forced `as never` casts in request boundary
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Removed `as never` casts from request enrichment boundary and validation event mapping in `request-contract.ts`.
+  - Removed `as never` cast from registry selector fallback derivation in `generation-routing.ts`.
+  - Normalized registry selector scalar aliases in `xstate.ts` to concrete `string` types, eliminating cast-only bridges while preserving compatibility semantics.
+- Validation evidence:
+  - `npm --workspace apps/backend run typecheck` passed.
+  - `npm --workspace apps/backend run test -- src/lib/tests/runtime.tool-prompts.test.ts` passed.
 - Evidence:
-  - `apps/backend/src/lib/runtime/request-contract.ts` uses multiple `as never` casts for registry fields.
+  - Direct bypass in request boundary (`apps/backend/src/lib/runtime/request-contract.ts`):
+    - `registryVersion: request.registryVersion as never`.
+    - `registrySnapshotRef: request.registrySnapshotRef as never`.
+    - fallback/default variants also cast through `as never` (`registrySnapshotRef`, `registryVersion`).
+  - Upstream parser accepts raw string values for registry fields without semantic validation (`apps/backend/src/lib/runtime/generation-request-node.ts`):
+    - `if (typeof payload.registryVersion === 'string') request.registryVersion = payload.registryVersion`.
+    - `if (typeof payload.registrySnapshotRef === 'string') request.registrySnapshotRef = payload.registrySnapshotRef`.
+  - Pattern is not isolated to one file: routing helper also forces selector typing with `as never` when deriving fallback snapshot ref (`apps/backend/src/lib/machines/generation-routing.ts`).
+  - Runtime guard on selector presence checks only truthiness (`event.registryVersion || event.registrySnapshotRef`) and does not enforce canonical shape (`apps/backend/src/lib/machines/generation-system.guards.ts`).
+  - Current focused tests around request enrichment (`apps/backend/src/lib/tests/runtime.tool-prompts.test.ts`) validate prompt/model/tone/step normalization but do not add negative coverage for invalid registry selector shape propagation.
 - Architectural weakness:
   - Type system signal is reduced at a critical integration boundary.
   - Potentially masks contract drift or incorrect enrichment logic.
@@ -116,20 +133,20 @@ owner: Architecture Review
 
 ## Open Questions
 1. Should session step endpoints be fully centralized via `buildApiPaths` to remove route duplication?
-2. What is the rollout plan to remove remaining `as never` casts in the request enrichment boundary while preserving compatibility?
-3. Which incremental decomposition slices should be prioritized first for `postgres-redis.production.ts` to reduce blast radius without delaying delivery?
+2. Which incremental decomposition slices should be prioritized first for `postgres-redis.production.ts` to reduce blast radius without delaying delivery?
+3. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
 
 ## Executive Summary
 - No new open Critical issue was confirmed in this pass.
 - Two High findings are now closed in this cycle:
   - hydrate scalability hardening,
   - `GenerationRequest` compile-time contract hardening.
-- The dominant residual risk profile is now concentrated in Medium / Medium-High areas:
-  - type-safety bypass through `as never` casts,
+- Finding 3 is now closed in this cycle:
+  - request-boundary type-safety hardening with cast removal.
+- The dominant residual risk profile is now concentrated in Medium areas:
   - backend adapter concentration,
   - technical governance gates.
 - Recommended next hardening wave:
-  1. Remove forced type escapes (`as never`) from request enrichment path.
-  2. Decompose backend adapter monolith into bounded infra modules.
-  3. Centralize frontend session step path authority through `buildApiPaths`.
-  4. Restore lint/unused-symbol guardrails across workspaces.
+  1. Decompose backend adapter monolith into bounded infra modules.
+  2. Centralize frontend session step path authority through `buildApiPaths`.
+  3. Restore lint/unused-symbol guardrails across workspaces.

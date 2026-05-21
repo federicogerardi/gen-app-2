@@ -6,8 +6,8 @@ export type IsoTimestamp = string;
 export type RegistryBackedArtifactType = ArtifactType | (string & {});
 export type RegistryBackedWorkflowType = ToolWorkflow | (string & {}) | null;
 export type RegistryBackedToolKey = ToolWorkflow | (string & {});
-export type RegistryVersion = string & {};
-export type RegistrySnapshotRef = string & {};
+export type RegistryVersion = string;
+export type RegistrySnapshotRef = string;
 
 export type RequestRegistrySelector =
   | {

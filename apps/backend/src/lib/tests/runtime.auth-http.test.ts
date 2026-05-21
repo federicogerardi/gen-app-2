@@ -1021,7 +1021,7 @@ test('auth HTTP runtime applies session role scope on /api/artifacts listing', a
     passwordAlgo: hasher.passwordAlgorithm,
   });
 
-  const project = await projectQueries.createProjectForUser('user-hydrate-001', {
+  await projectQueries.createProjectForUser('user-hydrate-001', {
     name: 'Hydrate Project',
   });
 
@@ -1165,7 +1165,7 @@ test('auth HTTP runtime applies session role scope on /api/artifacts/:id detail'
     passwordAlgo: hasher.passwordAlgorithm,
   });
 
-  const project = await projectQueries.createProjectForUser('user-hydrate-001', {
+  await projectQueries.createProjectForUser('user-hydrate-001', {
     name: 'Hydrate Project',
   });
 

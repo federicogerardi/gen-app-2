@@ -46,7 +46,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     briefingSnapshot,
     briefingStatus,
     briefingError,
-    normalizedProjectId,
     workspaceExtractionContext,
     machineHydrationResult,
     effectiveBriefingFileName,

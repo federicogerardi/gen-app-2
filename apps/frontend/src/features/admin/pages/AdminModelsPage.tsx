@@ -7,7 +7,7 @@ import {
   LoadingStateMessage,
 } from '../../../app/ui/primitives';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { LLMTable, type AdminLlmModelRow } from '../llm/LLMTable';
+import { LLMTable } from '../llm/LLMTable';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 import { AdminModelCreateForm } from '../ui/AdminModelCreateForm';
 import { adminModelFormSchema, type AdminModelFormValues } from '../runtime/admin-models-form';

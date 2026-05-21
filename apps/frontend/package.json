@@ -11,6 +11,7 @@
     "start:server": "node server.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:forms": "vitest run src/features/auth/ui/LoginForm.test.tsx src/features/generation/ui/GenerationForm.test.tsx",

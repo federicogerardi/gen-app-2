@@ -5,6 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "test": "node --import tsx --test src/lib/tests/*.test.ts",
     "test:watch": "node --import tsx --test --watch src/lib/tests/*.test.ts",
     "test:unit": "node --import tsx --test src/lib/tests/generation.extraction-parsers.test.ts src/lib/tests/generation-legacy-compat.test.ts src/lib/tests/runtime.download-serializers.test.ts src/lib/tests/runtime.query-mappers.test.ts src/lib/tests/runtime.tool-prompts.test.ts src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/user-report-github-link.adapter.test.ts src/lib/tests/openrouter.adapter.test.ts",

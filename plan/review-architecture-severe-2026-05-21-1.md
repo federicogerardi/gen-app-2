@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -146,11 +146,25 @@ owner: Architecture Review
   - `SessionSummary`, `SessionArtifactGroup`, API boundary governance.
 
 ### 6. Medium — Incomplete quality gates for structural debt prevention
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Added local workspace `lint` scripts for frontend and backend, aligned with root orchestration.
+  - Removed unused imports/variables surfaced by `noUnused*` checks, including session-client hygiene drift.
+  - Enabled `noUnusedLocals` and `noUnusedParameters` enforcement in root, frontend, and backend TypeScript configs.
+- Validation evidence:
+  - `npm --workspace apps/frontend run lint` passed.
+  - `npm --workspace apps/backend run lint` passed.
+  - `npm run lint --workspaces --if-present` passed.
+  - `npm run typecheck --workspaces --if-present` passed.
 - Evidence:
   - Root `package.json` defines workspace lint orchestration.
   - `apps/frontend/package.json` and `apps/backend/package.json` have no local `lint` script.
   - `apps/frontend/src/features/tools/runtime/session-client.ts` keeps an unused import.
   - `tsconfig` files do not enforce `noUnusedLocals` / `noUnusedParameters`.
+  - Remediation implementation:
+    - `apps/frontend/package.json` and `apps/backend/package.json` now define local `lint` scripts.
+    - `apps/frontend/src/features/tools/runtime/session-client.ts` unused import removed.
+    - `tsconfig.json`, `apps/frontend/tsconfig.json`, and `apps/backend/tsconfig.json` now enforce `noUnusedLocals` and `noUnusedParameters`.
 - Architectural weakness:
   - Dead code and small hygiene regressions can pass CI undetected.
 - Impacted concepts:
@@ -164,9 +178,6 @@ owner: Architecture Review
 - Impacted concepts:
   - Frontend Auth state consistency.
 
-## Open Questions
-1. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
-
 ## Executive Summary
 - No new open Critical issue was confirmed in this pass.
 - Two High findings are now closed in this cycle:
@@ -178,7 +189,9 @@ owner: Architecture Review
   - backend adapter decomposition into bounded modules with facade wiring parity.
 - Finding 5 is now closed in this cycle:
   - frontend session client endpoint authority centralized through `buildApiPaths`.
-- The dominant residual risk profile is now concentrated in Medium areas:
-  - technical governance gates.
+- Finding 6 is now closed in this cycle:
+  - lint and noUnused quality gates restored across workspaces.
+- The dominant residual risk profile is now concentrated in Low-Medium areas:
+  - frontend auth hook dependency suppression.
 - Recommended next hardening wave:
-  1. Restore lint/unused-symbol guardrails across workspaces.
+  1. Address React hook dependency suppression in auth provider.

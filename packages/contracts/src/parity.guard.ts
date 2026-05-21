@@ -68,4 +68,21 @@ const _updateUserReportStatusCommandTypeExists: UpdateUserReportStatusCommandFro
 type PublishUserReportIssueCommandFromIndex = import('./index').PublishUserReportIssueCommand;
 const _publishUserReportIssueCommandTypeExists: PublishUserReportIssueCommandFromIndex | null = null;
 
+void [
+	_artifactTypeParity,
+	_outputFormatParity,
+	_generationRequestTypeExists,
+	_backendStreamEventTypeExists,
+	_productChangelogStatusParity,
+	_userReportCategoryParity,
+	_userReportStatusParity,
+	_productChangelogDtoTypeExists,
+	_userReportDtoTypeExists,
+	_gitHubIssueLinkDtoTypeExists,
+	_createProductChangelogCommandTypeExists,
+	_createUserReportCommandTypeExists,
+	_updateUserReportStatusCommandTypeExists,
+	_publishUserReportIssueCommandTypeExists,
+];
+
 export {};

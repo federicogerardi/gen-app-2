@@ -5,7 +5,6 @@ import {
   requestJson,
 } from '../../../app/runtime/http-client';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
-import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
 
 type SessionClientOptions = {
   apiBaseUrl?: string;

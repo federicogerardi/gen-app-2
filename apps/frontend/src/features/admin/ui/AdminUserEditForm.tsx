@@ -2,7 +2,6 @@ import { Button as MuiButton } from '@mui/material';
 import type { FieldErrors, UseFormHandleSubmit, UseFormRegister } from 'react-hook-form';
 
 import { appCopy } from '../../../app/copy/system';
-import { uiPrimitives } from '../../../app/ui/primitives';
 import { AdminUserFormFields } from './AdminUserFormFields';
 import { type AdminUserFormValues } from '../runtime/admin-user-form';
 import type { AdminUsersBusyAction } from '../runtime/useAdminUsersMutations';

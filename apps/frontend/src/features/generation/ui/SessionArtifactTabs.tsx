@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, IconButton } from '@mui/material';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
-import type { SupportedTool, ToolStep } from '../../tools/machines/tool-flow.machine';
+import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import {
   sortByCanonicalStepOrder,
   type SessionArtifactEntry,

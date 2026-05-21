@@ -47,7 +47,7 @@ describe('Route order and dispatch semantics', () => {
     const mockHandlers: AllHandlerGroups = {
       authHandlers: {} as any,
       adminHandlers: {
-        handleAdminGetUser: async (req: IncomingMessage, res: ServerResponse, userId: string) => {
+        handleAdminGetUser: async (_request: IncomingMessage, _response: ServerResponse, userId: string) => {
           getUserCalled(userId);
         },
       } as any,

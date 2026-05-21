@@ -5,7 +5,6 @@
 
 import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
-import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
 
 /**
  * Configuration for a tool page form

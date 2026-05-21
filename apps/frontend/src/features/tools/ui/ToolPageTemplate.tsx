@@ -71,7 +71,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleBriefingReset,
-    navigate,
   } = useToolPage(props);
 
   // Zod schema per validazione form tool page

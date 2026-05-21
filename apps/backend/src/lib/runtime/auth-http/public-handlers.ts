@@ -12,7 +12,6 @@ import type { Pool } from 'pg';
 import {
   parseJsonBody,
   parseOptionalNonEmptyString,
-  parseRequestUrl,
   writeError,
   writeSuccess,
 } from './support';

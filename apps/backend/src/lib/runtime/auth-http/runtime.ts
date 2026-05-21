@@ -8,8 +8,6 @@ import type {
 } from '../../adapters';
 import type {
   AuthSessionPrincipal,
-  AuthUserRole,
-  AuthUserStatus,
 } from '../../types/auth';
 import {
   DEFAULT_SESSION_TTL_MS,

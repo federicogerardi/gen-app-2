@@ -9,7 +9,6 @@ import { generationSystemRequestStates } from './generation-system.request.state
 import {
   defaultArtifactIdFactory,
   defaultResponseBuilder,
-  normalizeOutputFormat,
 } from './generation-system.runtime';
 import type {
   GenerationMachineContext,

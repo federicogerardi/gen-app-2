@@ -2,8 +2,7 @@ import { Button as MuiButton, MenuItem, TextField } from '@mui/material';
 import type { FieldErrors, UseFormHandleSubmit, UseFormRegister, UseFormReset } from 'react-hook-form';
 
 import { appCopy } from '../../../app/copy/system';
-import { uiPrimitives } from '../../../app/ui/primitives';
-import { adminModelFormSchema, type AdminModelFormValues } from '../runtime/admin-models-form';
+import { type AdminModelFormValues } from '../runtime/admin-models-form';
 import type { AdminModelsBusyAction } from '../runtime/useAdminModelsMutations';
 import { AdminModelFormShell } from './AdminModelFormShell';
 

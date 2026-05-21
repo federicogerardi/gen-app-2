@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createActor, toPromise, waitFor } from 'xstate';
+import { createActor, toPromise } from 'xstate';
 
 import { createInMemoryGenerationAdapters } from '../adapters';
 import { idempotencyCoordinatorMachine } from '../machines';

@@ -52,6 +52,66 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Tool File Instructions Section | Deterministic inline guidance accordion inside the Tool Workspace Page Setup Panel that lists only the required fields for a specific tool. The section is driven by registry metadata, appears only when tool instructions exist, and is closed by default. | Tool Workspace Page setup area, directly below upload/form controls | Popover guidance, tabbed instructions |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
 
+### 2.1 Extraction Field Key-To-Label Operational Convergence Matrix
+
+This matrix operationalizes DDD-079 in UI guidance.
+
+Rules:
+
+- Contract-facing identifiers must be `ExtractionFieldKey` (English snake_case).
+- UI copy may render localized `ExtractionFieldLabel` (it-IT) derived from keys.
+- Mixed required-field lists (labels + raw keys in the same list) are transitional drift and must be converged tool by tool.
+- `provisional` rows below are documentation-level convergence targets; they are not runtime contract changes.
+
+#### 2.1.1 youtube-lf-script (contract-backed)
+
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `knowledge_content` | Knowledge content | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `avatar` | Avatar | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `purchase_process_type` | Purchase process type | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `offer` | Offer | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `target_duration_minutes` | Target duration (minutes) | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+
+#### 2.1.2 funnel-pages (label-only legacy, provisional convergence)
+
+| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `funnel_goal` | Obiettivo del funnel | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `offer` | Offerta | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `proof` | Proof o testimonianze | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `primary_cta` | CTA principale | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+
+#### 2.1.3 nextland (label-only legacy, provisional convergence)
+
+| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `website_goal` | Obiettivo del sito | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `brand_or_company` | Brand o azienda | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `offer_or_service` | Offerta o servizio | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `required_sections` | Sezioni richieste | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+
+#### 2.1.4 angle-generator (label-only legacy, provisional convergence)
+
+| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `goal` | Obiettivo | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `product_or_service` | Prodotto o servizio | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `market` | Mercato | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `pain_point` | Pain point | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `proof` | Proof | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `creative_constraints` | Vincoli creativi | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+
+Convergence gate:
+
+- Before runtime adoption of any `provisional` key, register the canonical term in `docs/07-governance/domain-naming-decision-log.md`.
+
 ## 3. Canonical Page Archetypes
 
 All frontend pages must map to exactly one archetype before implementation.

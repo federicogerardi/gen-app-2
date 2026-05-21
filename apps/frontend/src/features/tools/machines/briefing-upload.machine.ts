@@ -2,6 +2,7 @@ import { assign, fromPromise, setup, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
+import type { RunExtractionResult, UploadBriefResult } from '../runtime/tools-client';
 import type { SupportedTool } from './tool-flow.machine';
 import { isExtractionContextValidForTool } from './extraction-context-validity';
 
@@ -79,6 +80,63 @@ const readErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const readUploadDoneOutput = (event: unknown): UploadBriefResult | null => {
+  if (!event || typeof event !== 'object' || !('output' in event)) {
+    return null;
+  }
+
+  const output = (event as { output?: unknown }).output;
+  if (!output || typeof output !== 'object') {
+    return null;
+  }
+
+  const candidate = output as Partial<UploadBriefResult>;
+  if (
+    typeof candidate.briefingId !== 'string'
+    || typeof candidate.fileName !== 'string'
+    || typeof candidate.normalizedText !== 'string'
+  ) {
+    return null;
+  }
+
+  if (
+    candidate.parsedFormat !== 'txt'
+    && candidate.parsedFormat !== 'md'
+    && candidate.parsedFormat !== 'docx'
+  ) {
+    return null;
+  }
+
+  return candidate as UploadBriefResult;
+};
+
+const readExtractionDoneOutput = (event: unknown): RunExtractionResult | null => {
+  if (!event || typeof event !== 'object' || !('output' in event)) {
+    return null;
+  }
+
+  const output = (event as { output?: unknown }).output;
+  if (!output || typeof output !== 'object') {
+    return null;
+  }
+
+  const candidate = output as Partial<RunExtractionResult>;
+  if (
+    typeof candidate.artifactId !== 'string'
+    || !candidate.payload
+    || typeof candidate.payload !== 'object'
+    || Array.isArray(candidate.payload)
+  ) {
+    return null;
+  }
+
+  return {
+    artifactId: candidate.artifactId,
+    content: typeof candidate.content === 'string' ? candidate.content : '',
+    payload: candidate.payload as Record<string, unknown>,
+  };
+};
+
 export const briefingUploadMachine = setup({
   types: {
     context: {} as BriefingUploadContext,
@@ -146,15 +204,11 @@ export const briefingUploadMachine = setup({
     hasValidProject: ({ context }) => context.projectId.trim().length > 0,
     hasUserId: ({ context }) => context.userId != null,
     extractionResultIsValid: ({ context, event }) => {
-      const doneEvent = event as unknown as {
-        output?: {
-          payload?: Record<string, unknown>;
-        };
-      };
+      const output = readExtractionDoneOutput(event);
 
       return isExtractionContextValidForTool(
         context.toolKey,
-        doneEvent.output?.payload ?? null,
+        output?.payload ?? null,
         context.normalizedText,
       );
     },
@@ -311,21 +365,22 @@ export const briefingUploadMachine = setup({
             guard: 'hasUserId',
             target: 'extracting',
             actions: assign(({ context, event }) => {
-              const doneEvent = event as unknown as {
-                output: {
-                  briefingId: string;
-                  fileName: string;
-                  normalizedText: string;
-                  parsedFormat: 'txt' | 'md' | 'docx';
+              const output = readUploadDoneOutput(event);
+              if (!output) {
+                return {
+                  ...context,
+                  error: 'Errore durante upload',
+                  file: null,
+                  fileName: null,
                 };
-              };
+              }
 
               return {
                 ...context,
-                briefingId: doneEvent.output.briefingId,
-                fileName: doneEvent.output.fileName,
-                normalizedText: doneEvent.output.normalizedText,
-                parsedFormat: doneEvent.output.parsedFormat,
+                briefingId: output.briefingId,
+                fileName: output.fileName,
+                normalizedText: output.normalizedText,
+                parsedFormat: output.parsedFormat,
                 error: null,
               };
             }),
@@ -387,17 +442,20 @@ export const briefingUploadMachine = setup({
             guard: 'extractionResultIsValid',
             target: 'ready',
             actions: assign(({ context, event }) => {
-              const doneEvent = event as unknown as {
-                output: {
-                  artifactId: string;
-                  payload: Record<string, unknown>;
+              const output = readExtractionDoneOutput(event);
+              if (!output) {
+                return {
+                  ...context,
+                  error: 'Errore durante estrazione',
+                  file: null,
+                  fileName: null,
                 };
-              };
+              }
 
               return {
                 ...context,
-                extractionArtifactId: doneEvent.output.artifactId,
-                extractionPayload: doneEvent.output.payload,
+                extractionArtifactId: output.artifactId,
+                extractionPayload: output.payload,
                 error: null,
               };
             }),

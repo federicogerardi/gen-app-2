@@ -20,8 +20,8 @@ owner: Architecture Review
 | ID | Finding | Architecture Severity | DDD Severity | DDD Status | Priority |
 | --- | --- | --- | --- | --- | --- |
 | F-01 | Duplicate ToolKey normalization policy across Frontend and Backend boundaries | Critical | High | Governance-gap risk (cross-context) | P1 |
-| F-02 | GenerationRequestInput remains permissive for core domain fields | Medium | Low | Accepted risk boundary (DDD-073) | P3 |
-| F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Implementation safety debt | P2 |
+| F-02 | GenerationRequestInput remains permissive for core domain fields | Medium | Low | Closed after runtime hardening (compatibility envelope preserved by DDD-073) | P3 |
+| F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Closed after typed done-output remediation | P2 |
 | F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Projection-contract ambiguity risk | P2 |
 | F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | DDD-critical path stability risk | P2 |
 | F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Documented transition (DDD-051/DDD-052) | P3 |
@@ -55,10 +55,19 @@ owner: Architecture Review
 - Normalized severity: **Architecture = Medium | DDD = Low (accepted risk boundary)**.
 - Impacted concept: GenerationRequestInput.
 - Why weak: boundary typing still allows runtime drift for critical dispatch fields.
-- Evidence:
+- Evidence (historical snapshot at review time):
   - Contract type declaration: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L98)
   - Step field accepts broad shape: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L101)
   - Tone field accepts broad shape: [packages/contracts/src/index.ts](../../packages/contracts/src/index.ts#L103)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Request normalization hardening for dispatch-critical step and tone fields: [apps/backend/src/lib/runtime/request-contract.ts](../../apps/backend/src/lib/runtime/request-contract.ts#L107)
+  - Canonical tone policy gate for generation plus extraction override: [apps/backend/src/lib/runtime/request-contract.ts](../../apps/backend/src/lib/runtime/request-contract.ts#L123)
+  - Runtime request enrichment now applies canonicalized step and tone before dispatch: [apps/backend/src/lib/runtime/request-contract.ts](../../apps/backend/src/lib/runtime/request-contract.ts#L140)
+- Closure validation evidence:
+  - Backend typecheck: `npm --workspace @gen-app-2/backend run typecheck` (pass)
+  - Focused request-contract regression tests: `node --import tsx --test src/lib/tests/runtime.tool-prompts.test.ts` (pass, 9/9) in `apps/backend`
+  - New canonicalization checks: [apps/backend/src/lib/tests/runtime.tool-prompts.test.ts](../../apps/backend/src/lib/tests/runtime.tool-prompts.test.ts#L112), [apps/backend/src/lib/tests/runtime.tool-prompts.test.ts](../../apps/backend/src/lib/tests/runtime.tool-prompts.test.ts#L133)
 
 ### HIGH
 
@@ -66,10 +75,20 @@ owner: Architecture Review
 - Normalized severity: **Architecture = High | DDD = Low**.
 - Impacted concepts: BriefingUpload, ExtractionContext.
 - Why weak: as unknown as casts reduce compile-time safety on async machine output handling.
-- Evidence:
+- Evidence (historical snapshot at review time):
   - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L149)
   - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L314)
   - [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L390)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Typed upload done-output parser replaces cast-based extraction: [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L83)
+  - Typed extraction done-output parser replaces cast-based extraction: [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L113)
+  - Guard now validates extraction payload through typed done-output reader: [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L206)
+  - Upload and extraction onDone actions now consume typed output readers (no forced casts): [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L368), [apps/frontend/src/features/tools/machines/briefing-upload.machine.ts](../../apps/frontend/src/features/tools/machines/briefing-upload.machine.ts#L445)
+- Closure validation evidence:
+  - Forced-cast removal verification: `rg -n "as unknown as" apps/frontend/src/features/tools/machines/briefing-upload.machine.ts` (no matches)
+  - Frontend typecheck: `npm --workspace apps/frontend run typecheck` (pass)
+  - Focused machine regression suite: `npm --workspace apps/frontend run test -- --reporter=verbose src/features/tools/machines/briefing-upload.machine.test.ts` (pass, 12/12)
 
 2. Artifact detail projection is fail-soft and can silently return empty input/content.
 - Normalized severity: **Architecture = High | DDD = Medium**.
@@ -127,10 +146,8 @@ owner: Architecture Review
 - This severe review records residual structural weaknesses that remain relevant for preventive hardening.
 
 ## Recommended Next Hardening Sequence
-1. Unify ToolKey normalization authority at contract-boundary level.
-2. Tighten GenerationRequestInput typing for dispatch-critical fields.
-3. Remove forced casts in BriefingUpload machine by explicit done-event typing.
-4. Introduce explicit projection contracts for artifact list/detail includeInput/includeContent behavior.
+1. Introduce explicit projection contracts for artifact list/detail includeInput/includeContent behavior.
+2. Optional follow-up: tighten compile-time `GenerationRequestInput` contract after compatibility deprecation window (DDD-073).
 
 ## DDD Impact Verification (2026-05-21)
 
@@ -148,13 +165,13 @@ This section verifies the DDD impact of each finding against the canonical refer
 
 2. GenerationRequestInput remains permissive for core domain fields.
 - DDD references: DDD-073, DDD-023, DDD-032.
-- DDD impact: **accepted-risk boundary, not canonical drift**.
-- Verification: permissive envelope is explicitly documented as compatibility boundary (DDD-073). This is a hardening opportunity, not a DDD conflict.
+- DDD impact: **closed with runtime hardening, no canonical drift**.
+- Verification: permissive envelope remains explicitly documented as compatibility boundary (DDD-073), while dispatch-critical runtime normalization for `step` and `tone` is now enforced in backend request normalization.
 
 3. Type safety erosion in briefing upload machine through forced event casts.
 - DDD references: `BriefingUpload` glossary entry, DDD-007.
-- DDD impact: **implementation safety debt, low direct DDD impact**.
-- Verification: ubiquitous language remains consistent; weakness is compile-time robustness in actor event typing.
+- DDD impact: **closed with typed done-output remediation, no canonical drift**.
+- Verification: ubiquitous language remains consistent and async done-event handling now uses typed output readers without forced casts.
 
 4. Artifact detail projection is fail-soft and can silently return empty input/content.
 - DDD references: `ToolWorkflowPersistenceMetadata` glossary entry, DDD-034, DDD-050.
@@ -185,5 +202,5 @@ This section verifies the DDD impact of each finding against the canonical refer
 
 - **Confirmed DDD drift requiring canonical action now**: none.
 - **Architecture hardening with DDD sensitivity**: ToolKey normalization authority, hydration-ranking extensibility, artifact projection contract clarity.
-- **Accepted/governed compatibility areas**: permissive `GenerationRequestInput` boundary (DDD-073), SessionSummary fallback transition (DDD-051/DDD-052).
+- **Accepted/governed compatibility areas**: compile-time permissive `GenerationRequestInput` envelope (DDD-073) and SessionSummary fallback transition (DDD-051/DDD-052).
 

@@ -12,6 +12,28 @@ owner: Architecture Review
 - Severe architecture review focused on runtime reliability, boundary consistency, scalability, and operational safety.
 - Evidence-based findings only, anchored to current workspace files.
 
+## Snapshot Symmetry With Severe Review (2026-05-21)
+
+This companion snapshot is aligned with the shared-governance status captured in [docs/07-governance/architecture-weaknesses-code-review-severe-2026-05-21.md](./architecture-weaknesses-code-review-severe-2026-05-21.md).
+
+### Shared Finding Status Alignment
+
+| Shared ID | Finding | Companion Status | Severe Snapshot Status | Alignment |
+| --- | --- | --- | --- | --- |
+| F-01 | Duplicate ToolKey normalization policy across Frontend and Backend boundaries | Closed | Closed | Symmetric |
+| F-02 | GenerationRequestInput permissive boundary for dispatch-critical fields | Closed after runtime hardening | Closed after runtime hardening | Symmetric |
+| F-03 | Type safety erosion in briefing upload machine through forced event casts | Closed after typed done-output remediation | Closed after typed done-output remediation | Symmetric |
+
+### Shared Hardening Sequence Alignment
+
+The residual hardening sequence for open architectural work is intentionally symmetric with [docs/07-governance/architecture-weaknesses-code-review-severe-2026-05-21.md](./architecture-weaknesses-code-review-severe-2026-05-21.md):
+
+1. Remove forced casts in BriefingUpload machine by explicit done-event typing.
+2. Introduce explicit projection contracts for artifact list or detail includeInput and includeContent behavior.
+3. Optional follow-up: tighten compile-time GenerationRequestInput contract after compatibility deprecation window (DDD-073).
+
+The F-03 remediation is already reflected in the severe snapshot and should be treated as part of the shared aligned state.
+
 ## Findings (Severity-First)
 
 ### CRITICAL

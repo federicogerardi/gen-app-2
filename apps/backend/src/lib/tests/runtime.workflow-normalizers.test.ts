@@ -10,7 +10,11 @@ import {
 test('normalizeToolWorkflowKey maps canonical aliases', () => {
   assert.equal(normalizeToolWorkflowKey('hl_funnel'), 'funnel-pages');
   assert.equal(normalizeToolWorkflowKey('funnel_pages'), 'funnel-pages');
+  assert.equal(normalizeToolWorkflowKey('funnelpages'), 'funnel-pages');
   assert.equal(normalizeToolWorkflowKey('youtube_lf_script'), 'youtube-lf-script');
+  assert.equal(normalizeToolWorkflowKey('youtube-long-form'), 'youtube-lf-script');
+  assert.equal(normalizeToolWorkflowKey('youtube_long_form'), 'youtube-lf-script');
+  assert.equal(normalizeToolWorkflowKey('YOUTUBE_LONG_FORM'), 'youtube-lf-script');
   assert.equal(normalizeToolWorkflowKey('thank-you'), 'thank_you');
   assert.equal(normalizeToolWorkflowKey('thankyou'), 'thank_you');
 });

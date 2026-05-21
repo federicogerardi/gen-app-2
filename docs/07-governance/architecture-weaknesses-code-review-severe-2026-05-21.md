@@ -34,10 +34,22 @@ owner: Architecture Review
 - Normalized severity: **Architecture = Critical | DDD = High**.
 - Impacted concept: ToolKey.
 - Why weak: two normalization authorities increase boundary drift risk.
-- Evidence:
-  - Frontend local normalizer: [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L67)
-  - Frontend read path using local normalization: [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L124)
-  - Backend canonical normalizer: [apps/backend/src/lib/runtime/workflow-normalizers.ts](../../apps/backend/src/lib/runtime/workflow-normalizers.ts#L22)
+- Evidence (historical snapshot at review time):
+  - Frontend local normalizer path (before closure): [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L67)
+  - Frontend read path using local normalization (before closure): [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L124)
+  - Backend canonical normalizer baseline: [apps/backend/src/lib/runtime/workflow-normalizers.ts](../../apps/backend/src/lib/runtime/workflow-normalizers.ts#L22)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Contract-level canonical ToolKey normalizer introduced: [packages/contracts/src/tool-workflows.ts](../../packages/contracts/src/tool-workflows.ts#L121)
+  - Contract-level canonical workflow candidate resolver introduced: [packages/contracts/src/tool-workflows.ts](../../packages/contracts/src/tool-workflows.ts#L144)
+  - Backend normalizer delegated to contracts authority: [apps/backend/src/lib/runtime/workflow-normalizers.ts](../../apps/backend/src/lib/runtime/workflow-normalizers.ts#L28)
+  - Frontend artifacts read path converged to contracts authority: [apps/frontend/src/features/artifacts/runtime/artifacts-client.ts](../../apps/frontend/src/features/artifacts/runtime/artifacts-client.ts#L77)
+- Closure validation evidence:
+  - Contracts typecheck: `npm --workspace @gen-app-2/contracts run typecheck` (pass)
+  - Backend focused normalization tests: `npm --workspace @gen-app-2/backend run test -- src/lib/tests/runtime.workflow-normalizers.test.ts` (pass)
+  - Frontend focused artifacts client tests: `npm --workspace apps/frontend run test -- --reporter=verbose src/features/artifacts/runtime/artifacts-client.test.ts` (pass, 11/11)
+  - Backend typecheck: `npm --workspace @gen-app-2/backend run typecheck` (pass)
+  - Frontend typecheck: `npm --workspace apps/frontend run typecheck` (pass)
 
 2. GenerationRequestInput remains permissive for core domain fields.
 - Normalized severity: **Architecture = Medium | DDD = Low (accepted risk boundary)**.

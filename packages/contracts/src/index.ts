@@ -27,6 +27,8 @@ export {
   isGenerationRouteToolKey,
   isToolKey,
   isToolWorkflowType,
+  normalizeToolKeyCandidate,
+  resolveGenerationWorkflowTypeCandidate,
   resolveToolKeyFromWorkflowType,
   resolveToolWorkflowType,
   TOOL_KEYS,

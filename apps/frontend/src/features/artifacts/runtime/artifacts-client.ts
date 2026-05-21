@@ -1,7 +1,7 @@
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import {
-  isToolKey,
-  isToolWorkflowType,
+  normalizeToolKeyCandidate,
+  resolveGenerationWorkflowTypeCandidate,
   resolveToolWorkflowType,
   type GenerationWorkflowType,
   type ToolKey,
@@ -64,39 +64,6 @@ type BackendArtifact = {
   completedAt?: string | null;
 };
 
-const normalizeToolKeyCandidate = (value: unknown): ToolKey | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  if (normalized === 'extraction') {
-    return null;
-  }
-
-  if (normalized === 'funnel_pages') {
-    return 'funnel-pages';
-  }
-
-  if (normalized === 'youtube_lf_script') {
-    return 'youtube-lf-script';
-  }
-
-  if (normalized === 'youtube-long-form') {
-    return 'youtube-lf-script';
-  }
-
-  if (normalized === 'youtube_long_form') {
-    return 'youtube-lf-script';
-  }
-
-  return isToolKey(normalized) ? normalized : null;
-};
-
 const normalizeWorkflowTypeCandidate = (
   value: unknown,
 ): GenerationWorkflowType | null => {
@@ -104,21 +71,15 @@ const normalizeWorkflowTypeCandidate = (
     return null;
   }
 
-  const normalized = value.trim();
-  if (normalized.length === 0) {
+  return resolveGenerationWorkflowTypeCandidate(value);
+};
+
+const readNormalizedToolKey = (value: unknown): ToolKey | null => {
+  if (typeof value !== 'string') {
     return null;
   }
 
-  if (normalized === 'extraction') {
-    return 'extraction';
-  }
-
-  const normalizedToolKey = normalizeToolKeyCandidate(normalized);
-  if (normalizedToolKey) {
-    return resolveToolWorkflowType(normalizedToolKey);
-  }
-
-  return isToolWorkflowType(normalized) ? normalized : null;
+  return normalizeToolKeyCandidate(value);
 };
 
 const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
@@ -129,11 +90,11 @@ const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
       : null;
 
   return (
-    normalizeToolKeyCandidate(artifact.toolKey) ??
-    normalizeToolKeyCandidate(input?.toolKey) ??
-    normalizeToolKeyCandidate(toolWorkflowInput?.['toolKey']) ??
-    normalizeToolKeyCandidate(toolWorkflowInput?.['workflowType']) ??
-    normalizeToolKeyCandidate(artifact.workflowType)
+    readNormalizedToolKey(artifact.toolKey) ??
+    readNormalizedToolKey(input?.toolKey) ??
+    readNormalizedToolKey(toolWorkflowInput?.['toolKey']) ??
+    readNormalizedToolKey(toolWorkflowInput?.['workflowType']) ??
+    readNormalizedToolKey(artifact.workflowType)
   );
 };
 

@@ -184,6 +184,66 @@ describe('artifacts-client – listArtifacts', () => {
     expect(result.artifacts[0]?.toolKey).toBe('funnel-pages');
     expect(result.artifacts[1]?.toolKey).toBe('youtube-lf-script');
   });
+
+  it('normalizes legacy aliases with one canonical mapping across toolKey and workflowType', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          artifacts: [
+            {
+              artifactId: 'a5',
+              requestId: 'r5',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              workflowType: 'hl_funnel',
+              input: {},
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+            {
+              artifactId: 'a6',
+              requestId: 'r6',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              workflowType: 'YOUTUBE_LONG_FORM',
+              input: {},
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+            {
+              artifactId: 'a7',
+              requestId: 'r7',
+              projectId: 'p1',
+              artifactType: 'content',
+              status: 'completed',
+              model: 'gpt-4',
+              toolKey: 'youtube-long-form',
+              workflowType: 'youtube_lf_script',
+              input: {},
+              content: 'content',
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+        },
+      }),
+    } as Response);
+
+    const result = await listArtifacts(allQuery, { capabilities: { artifacts: true } });
+    expect(result.artifacts[0]?.toolKey).toBe('funnel-pages');
+    expect(result.artifacts[1]?.toolKey).toBe('youtube-lf-script');
+    expect(result.artifacts[2]?.toolKey).toBe('youtube-lf-script');
+    expect(result.artifacts[0]?.sourceRequest.workflowType).toBe('funnel_pages');
+    expect(result.artifacts[1]?.sourceRequest.workflowType).toBe('youtube_lf_script');
+  });
 });
 
 describe('artifacts-client – getArtifactById', () => {

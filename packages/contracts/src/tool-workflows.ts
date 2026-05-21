@@ -107,6 +107,60 @@ export const isGenerationRequestToolKey = (
 export const isToolWorkflowType = (value: string): value is ToolWorkflowType =>
   Object.prototype.hasOwnProperty.call(TOOL_KEY_BY_WORKFLOW_TYPE, value);
 
+const normalizeStringCandidate = (
+  value: string | null | undefined,
+): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+};
+
+export const normalizeToolKeyCandidate = (
+  value: string | null | undefined,
+): ToolKey | null => {
+  const normalized = normalizeStringCandidate(value);
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
+    return 'funnel-pages';
+  }
+
+  if (
+    normalized === 'youtube_lf_script'
+    || normalized === 'youtube-long-form'
+    || normalized === 'youtube_long_form'
+  ) {
+    return 'youtube-lf-script';
+  }
+
+  return isToolKey(normalized) ? normalized : null;
+};
+
+export const resolveGenerationWorkflowTypeCandidate = (
+  value: string | null | undefined,
+): GenerationWorkflowType | null => {
+  const normalized = normalizeStringCandidate(value);
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === 'extraction') {
+    return 'extraction';
+  }
+
+  const normalizedToolKey = normalizeToolKeyCandidate(normalized);
+  if (normalizedToolKey) {
+    return resolveToolWorkflowType(normalizedToolKey);
+  }
+
+  return isToolWorkflowType(normalized) ? normalized : null;
+};
+
 export const resolveToolWorkflowType = (toolKey: ToolKey): ToolWorkflowType =>
   TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;
 

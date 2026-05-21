@@ -1,3 +1,9 @@
+import {
+  isToolWorkflowType,
+  normalizeToolKeyCandidate,
+  resolveToolKeyFromWorkflowType,
+} from '@gen-app-2/contracts';
+
 const normalizeValue = (value: string | null | undefined): string | null => {
   if (typeof value !== 'string') {
     return null;
@@ -25,12 +31,13 @@ export const normalizeToolWorkflowKey = (value: string | null | undefined): stri
     return null;
   }
 
-  if (normalized === 'funnel_pages' || normalized === 'hl_funnel' || normalized === 'funnelpages') {
-    return 'funnel-pages';
+  const normalizedToolKey = normalizeToolKeyCandidate(normalized);
+  if (normalizedToolKey) {
+    return normalizedToolKey;
   }
 
-  if (normalized === 'youtube_lf_script') {
-    return 'youtube-lf-script';
+  if (isToolWorkflowType(normalized)) {
+    return resolveToolKeyFromWorkflowType(normalized);
   }
 
   if (normalized === 'thank-you' || normalized === 'thankyou') {

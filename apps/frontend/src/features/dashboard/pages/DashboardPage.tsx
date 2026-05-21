@@ -8,6 +8,7 @@ import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery'
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { ErrorStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
 const formatSessionToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
@@ -31,7 +32,7 @@ export const DashboardPage = () => {
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';
   const projectNameById = new Map(projectsQuery.data.map((project) => [project.id, project.name]));
-  const recentSessions = sessionsQuery.data.slice(0, 5);
+  const recentSessions = sessionsQuery.data.slice(0, UI_CONFIG.limits.dashboardRecentSessionsCount);
 
   if (hasNoProjects || previewZeroState) {
     return (

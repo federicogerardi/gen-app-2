@@ -22,10 +22,16 @@ const parseInteger = (raw: string | undefined, fallback: number): number => {
   return parsed;
 };
 
+const shouldEmitGitHubConfigDiagnostics = (): boolean => {
+  return process.env.GITHUB_DEBUG_DIAGNOSTICS === '1' && process.env.NODE_ENV !== 'production';
+};
+
 export const readGitHubApiConfigFromEnv = (): GitHubApiConfig | null => {
   const token = process.env.GITHUB_TOKEN?.trim() ?? '';
   if (!token) {
-    console.debug('[readGitHubApiConfigFromEnv] GITHUB_TOKEN not set, GitHub integration disabled');
+    if (shouldEmitGitHubConfigDiagnostics()) {
+      console.debug('[readGitHubApiConfigFromEnv] GitHub integration disabled: missing token');
+    }
     return null;
   }
 
@@ -43,16 +49,15 @@ export const readGitHubApiConfigFromEnv = (): GitHubApiConfig | null => {
     retryBaseDelayMs: parseInteger(process.env.GITHUB_API_RETRY_BASE_DELAY_MS, 300),
   };
 
-  console.debug('[readGitHubApiConfigFromEnv] GitHub config loaded', {
-    owner: config.owner,
-    repo: config.repo,
-    apiBaseUrl: config.apiBaseUrl,
-    apiVersion: config.apiVersion,
-    timeoutMs: config.timeoutMs,
-    maxRetries: config.maxRetries,
-    retryBaseDelayMs: config.retryBaseDelayMs,
-    tokenLength: token.length,
-  });
+  if (shouldEmitGitHubConfigDiagnostics()) {
+    console.debug('[readGitHubApiConfigFromEnv] GitHub config loaded', {
+      hasOwner: Boolean(config.owner),
+      hasRepo: Boolean(config.repo),
+      timeoutMs: config.timeoutMs,
+      maxRetries: config.maxRetries,
+      retryBaseDelayMs: config.retryBaseDelayMs,
+    });
+  }
 
   return config;
 };

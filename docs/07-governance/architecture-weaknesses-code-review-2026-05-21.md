@@ -117,11 +117,18 @@ owner: Architecture Review
 ### LOW
 
 - Debug logging can expose partial business content/context metadata in non-production/debug configurations.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Context/message debug traces in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts).
-  - GitHub integration config debug emits token-length metadata in [github-config.ts](../../apps/backend/src/lib/runtime/integrations/github-config.ts).
+  - OpenRouter diagnostics are now gated by explicit opt-in (`OPENROUTER_DEBUG_DIAGNOSTICS=1`) and non-production execution in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L24).
+  - OpenRouter context diagnostics were sanitized to coarse booleans (`hasBriefingText`, `hasExtractionPayloadObject`) with no content-length or payload-shape leakage in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L109).
+  - OpenRouter final-message diagnostics no longer log message length/prefix and now expose only `hasContextBlock` and `messageCount` in [openrouter.adapter.ts](../../apps/backend/src/lib/adapters/openrouter.adapter.ts#L168).
+  - GitHub config diagnostics are now gated by explicit opt-in (`GITHUB_DEBUG_DIAGNOSTICS=1`) and non-production execution in [github-config.ts](../../apps/backend/src/lib/runtime/integrations/github-config.ts#L23).
+  - GitHub config logs are sanitized to presence flags and retry settings only (`hasOwner`, `hasRepo`, timing/retry fields), removing direct owner/repo/token-derived metadata exposure in [github-config.ts](../../apps/backend/src/lib/runtime/integrations/github-config.ts#L55).
+  - Validation gates passed after remediation:
+    - `npm --workspace apps/backend run test -- src/lib/tests/openrouter.adapter.test.ts` (exit code 0).
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (exit code 0).
 - Risk:
-  - Information exposure in logs if debug toggles are enabled in sensitive environments.
+  - Closed for debug-log exposure scope. Residual risk remains only for future regressions that log request content or token-derived metadata without sanitization.
 
 ## Recommended Remediation Order
 

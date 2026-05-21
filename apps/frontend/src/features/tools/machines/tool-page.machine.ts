@@ -98,7 +98,7 @@ export const toolPageMachine = setup({
     sendBriefingSelected: sendTo(
       'briefingActor',
       ({ event }) => (event.type === 'BRIEFING_FILE_SELECTED'
-        ? { type: 'FILE_SELECTED', file: event.file }
+        ? { type: 'FILE_SELECTED', file: event.file, source: event.source }
         : { type: 'RESET' }),
     ),
     sendBriefingReset: sendTo('briefingActor', { type: 'RESET' }),

@@ -134,6 +134,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     handleRunControllerPrimaryAction();
   }, [handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, navigate, sessionId]);
   const handleBriefingFileSelected = useCallback((file: File) => toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file }), [toolPageSend]);
+  const handleAngleDetectorFileSelected = useCallback((file: File) => toolPageSend({
+    type: 'BRIEFING_FILE_SELECTED',
+    file,
+    source: 'angle-detector',
+  }), [toolPageSend]);
   const handleBriefingReset = useCallback(() => toolPageSend({ type: 'BRIEFING_RESET' }), [toolPageSend]);
 
   return {
@@ -147,6 +152,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
+    angleDetectorFileName: briefingSnapshot.context.angleDetectorFileName,
     machineViewModel,
     isGenerating,
     readinessSnapshot,
@@ -162,6 +168,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
+    handleAngleDetectorFileSelected,
     handleBriefingReset,
     navigate,
   };

@@ -88,6 +88,19 @@ test('resolveToolPrompt loads nextland step prompt', () => {
   assert.match(resolved.prompt, /PROMPT NEXTLAND THANK-YOU GENERATOR/i);
 });
 
+test('resolveToolPrompt loads angle-generator context-and-angle-matrix prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'angle-generator',
+    workflowType: 'angle_generator',
+    artifactType: 'content',
+    stepKey: 'context-and-angle-matrix',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /prompt_context_and_angle_matrix\.md$/);
+  assert.match(resolved.prompt, /CONTEXT AND ANGLE MATRIX/i);
+});
+
 test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {
   const event = buildRequestReceivedEvent({
     requestId: 'req-youtube-extraction-001',
@@ -106,6 +119,28 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.equal(input.tone, 'analitico');
+});
+
+test('buildRequestReceivedEvent resolves angle-generator extraction prompt from extraction target tool key', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-angle-extraction-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'extraction',
+    model: 'openrouter/auto',
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    input: {
+      toolKey: 'angle-generator',
+      briefingText: 'Brief testo',
+    },
+    registrySnapshotRef: 'snapshot:angle-extraction',
+  } as unknown as BackendGenerationRequest);
+
+  const input = event.input as Record<string, unknown>;
+  assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.match(String(input.resolvedPromptSource), /angle-generator/);
   assert.equal(input.tone, 'analitico');
 });
 

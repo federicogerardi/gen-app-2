@@ -197,34 +197,34 @@ Execution policy:
 
 ### Track A - FE Upload Flow (`POST /api/tools/briefs` payload)
 
-- [ ] A-001: Extend FE upload contract type in `apps/frontend/src/features/tools/runtime/tools-client.ts` to support two file envelopes (`briefing`, `angleDetector`) when `toolKey = angle-generator`.
-- [ ] A-002: Keep backward compatibility for existing tools (`funnel-pages`, `nextland`, `youtube-lf-script`) by preserving current single-file upload path.
-- [ ] A-003: Implement deterministic branch in FE upload serializer:
+- [x] A-001: Extend FE upload contract type in `apps/frontend/src/features/tools/runtime/tools-client.ts` to support two file envelopes (`briefing`, `angleDetector`) when `toolKey = angle-generator`.
+- [x] A-002: Keep backward compatibility for existing tools (`funnel-pages`, `nextland`, `youtube-lf-script`) by preserving current single-file upload path.
+- [x] A-003: Implement deterministic branch in FE upload serializer:
   - `toolKey != angle-generator` -> current payload unchanged
   - `toolKey == angle-generator` -> send dual-file payload as defined in runtime spec 5.1.2
-- [ ] A-004: Enforce FE pre-submit guard for angle-generator: block upload if either `briefing` or `angleDetector` file is missing.
-- [ ] A-005: Normalize and include metadata per file (`fileName`, `mimeType`, `contentBase64`) for both envelopes.
+- [x] A-004: Enforce FE pre-submit guard for angle-generator: block upload if either `briefing` or `angleDetector` file is missing.
+- [x] A-005: Normalize and include metadata per file (`fileName`, `mimeType`, `contentBase64`) for both envelopes.
 
 Acceptance for Track A:
 
-- [ ] A-AC-001: FE request body shape exactly matches runtime spec 5.1.2 dual-file example.
-- [ ] A-AC-002: Existing tools still emit old single-file shape with no regression.
+- [x] A-AC-001: FE request body shape exactly matches runtime spec 5.1.2 dual-file example.
+- [x] A-AC-002: Existing tools still emit old single-file shape with no regression.
 
 ### Track B - BE Parsing and Validation (`/api/tools/briefs`)
 
-- [ ] B-001: Extend request body parser in `apps/backend/src/lib/runtime/auth-http/tools-brief-handlers.ts` to accept dual-file payload for `toolKey = angle-generator`.
-- [ ] B-002: Add deterministic validator matrix:
+- [x] B-001: Extend request body parser in `apps/backend/src/lib/runtime/auth-http/tools-brief-handlers.ts` to accept dual-file payload for `toolKey = angle-generator`.
+- [x] B-002: Add deterministic validator matrix:
   - For `angle-generator`: both file envelopes required
   - For other tool keys: legacy single-file payload accepted
-- [ ] B-003: Reuse existing parse and size guards on each file independently (empty payload, max bytes, parse failure).
-- [ ] B-004: Build normalized response envelope containing both parsed outputs for `angle-generator` (`briefing` + `angleDetector`) and `knowledgeSourcesCount = 2`.
-- [ ] B-005: Preserve existing response contract for non-angle-generator tools (no breaking changes).
+- [x] B-003: Reuse existing parse and size guards on each file independently (empty payload, max bytes, parse failure).
+- [x] B-004: Build normalized response envelope containing both parsed outputs for `angle-generator` (`briefing` + `angleDetector`) and `knowledgeSourcesCount = 2`.
+- [x] B-005: Preserve existing response contract for non-angle-generator tools (no breaking changes).
 
 Acceptance for Track B:
 
-- [ ] B-AC-001: `angle-generator` dual-file upload returns HTTP 201 with both normalized sections.
-- [ ] B-AC-002: missing one of two files returns deterministic HTTP 400 validation error.
-- [ ] B-AC-003: legacy upload contract remains valid for existing tools.
+- [x] B-AC-001: `angle-generator` dual-file upload returns HTTP 201 with both normalized sections.
+- [x] B-AC-002: missing one of two files returns deterministic HTTP 400 validation error.
+- [x] B-AC-003: legacy upload contract remains valid for existing tools.
 
 ### Track C - Extraction Assembly Request (single LLM job)
 
@@ -242,26 +242,26 @@ Acceptance for Track C:
 
 ### Track D - Test Cases (blocking)
 
-- [ ] D-001: FE unit tests in `apps/frontend/src/features/tools/runtime/tools-client.test.ts`:
+- [x] D-001: FE unit tests in `apps/frontend/src/features/tools/runtime/tools-client.test.ts`:
   - dual-file payload serialization for `angle-generator`
   - fallback legacy serialization for existing tools
 - [ ] D-002: FE runtime tests in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts`:
   - pre-submit guard when one file is missing
   - single extraction dispatch invariant
-- [ ] D-003: BE route tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` (or focused tools handler suite):
+- [x] D-003: BE route tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` (or focused tools handler suite):
   - 201 dual-file success response
   - 400 on missing `angleDetector`
   - 400 on missing `briefing`
   - legacy single-file success path unchanged
 - [ ] D-004: Contract tests for request assembly ensuring `GenerationRequest.input.extractionPayload.knowledgeSources` is present for `angle-generator` only.
-- [ ] D-005: XState machine tests for impacted paths:
+- [x] D-005: XState machine tests for impacted paths:
   - dual-source readiness guard coverage in `tool-page.machine`
   - upload guard coverage in `briefing-upload.machine`
   - single extraction dispatch invariant under repeated trigger attempts
 
 Acceptance for Track D:
 
-- [ ] D-AC-001: all new tests pass.
+- [x] D-AC-001: all new tests pass.
 - [ ] D-AC-002: no regressions in existing FE/BE suites from EXEC-001..EXEC-006.
 
 ## 5d. XState Impact Gate (blocking for touched FE runtime)
@@ -290,6 +290,12 @@ Objective:
 - Provide a deterministic prompt pack for `angle-generator` with one shared root prompt and one prompt per runtime phase (`extraction` + 3 generation steps).
 - Keep alignment with DDD-077 and DDD-078: dual-source extraction input and single extraction job.
 
+Implementation timing baseline (benchmark):
+
+- Start: 2026-05-21 13:56:15 CEST
+- End: 2026-05-21 14:00:58 CEST
+- Elapsed: 00:04:43
+
 Target runtime folder:
 
 - `apps/backend/src/lib/runtime/tool-prompts/angle-generator/`
@@ -308,6 +314,19 @@ Resolver mapping to add in runtime prompt index:
 - `angle-generator:angle-prioritization` -> `src/lib/runtime/tool-prompts/angle-generator/prompt_angle_prioritization.md`
 - `angle-generator:creative-activation` -> `src/lib/runtime/tool-prompts/angle-generator/prompt_creative_activation.md`
 - Extraction dispatch for `input.toolKey = angle-generator` must resolve `prompt_extraction.md` (tool-specific extraction override).
+
+## 5f. Track A/B Implementation Timing (benchmark)
+
+- Start: 2026-05-21 14:06:15 CEST
+- End: 2026-05-21 14:14:38 CEST
+- Elapsed: 00:08:23
+
+Scope completed in this window:
+
+- FE dual-file upload branch + guard for `angle-generator` (with backward-compatible legacy path)
+- FE XState upload flow support for secondary `AngleDetectorFile`
+- BE dual-file parser/validator and normalized response envelope for `angle-generator`
+- Focused FE/BE test execution with passing outcomes
 
 ### Prompt Content - `prompt_root.md`
 

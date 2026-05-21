@@ -81,6 +81,77 @@ describe('tools-client', () => {
     expect(result.parsedFormat).toBe('md');
   });
 
+  it('uploadBrief posts dual-file payload for angle-generator and returns metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          briefing: {
+            briefingId: 'brief-angle-001',
+            projectId: 'project-001',
+            toolKey: 'angle-generator',
+            fileName: 'briefing.md',
+            mimeType: 'text/markdown',
+            size: 100,
+            parsedFormat: 'md',
+            normalizedText: 'briefing text',
+            charCount: 100,
+            wordCount: 15,
+          },
+          angleDetector: {
+            fileName: 'angle-detector.md',
+            mimeType: 'text/markdown',
+            size: 80,
+            parsedFormat: 'md',
+            normalizedText: 'angle detector text',
+            charCount: 80,
+            wordCount: 12,
+          },
+          knowledgeSourcesCount: 2,
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await uploadBrief(
+      {
+        projectId: 'project-001',
+        toolKey: 'angle-generator',
+        file: new File(['briefing text'], 'briefing.md', { type: 'text/markdown' }),
+        angleDetectorFile: new File(['angle detector text'], 'angle-detector.md', { type: 'text/markdown' }),
+      },
+      {
+        capabilities: { toolsUpload: true },
+      },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const request = fetchMock.mock.calls[0]?.[1] as { body?: string };
+    expect(request.body).toBeDefined();
+    const parsedBody = JSON.parse(request.body ?? '{}') as {
+      briefing?: { fileName?: string };
+      angleDetector?: { fileName?: string };
+    };
+    expect(parsedBody.briefing?.fileName).toBe('briefing.md');
+    expect(parsedBody.angleDetector?.fileName).toBe('angle-detector.md');
+    expect(result.knowledgeSourcesCount).toBe(2);
+    expect(result.angleDetector?.fileName).toBe('angle-detector.md');
+  });
+
+  it('uploadBrief throws when angle-generator is missing angle detector file', async () => {
+    await expect(uploadBrief(
+      {
+        projectId: 'project-001',
+        toolKey: 'angle-generator',
+        file: new File(['briefing text'], 'briefing.md', { type: 'text/markdown' }),
+      },
+      {
+        capabilities: { toolsUpload: true },
+      },
+    )).rejects.toThrow('Angle Detector file required for angle-generator');
+  });
+
   it('runExtraction consumes stream events and returns artifact payload', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });

@@ -262,9 +262,9 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~400–58
 
 **Debug logging** (DEV only): two `console.info` calls — one before (entry state) and one after (dispatched request fields, including `briefingTextLength` and `extractionPayloadKeys`).
 
-### 5.1 Angle Generator Dual-File Extraction Payload Contract (Pre-Implementation)
+### 5.1 Angle Generator Dual-File Extraction Payload Contract (Implemented)
 
-> Normative target contract for `ToolKey = angle-generator` based on DDD-078. This section defines BE/FE payload expectations before code implementation.
+> Normative contract for `ToolKey = angle-generator` based on DDD-078. FE/BE implementation now follows this payload and validation model.
 
 #### 5.1.1 Scope and invariants
 
@@ -276,9 +276,9 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~400–58
 
 #### 5.1.2 FE -> BE upload contract (`POST /api/tools/briefs`)
 
-Current baseline (implemented): one file payload (`fileName`, `mimeType`, `contentBase64`) in `tools-client.ts` and `tools-brief-handlers.ts`.
+Single-file payload remains the baseline for non-`angle-generator` tools.
 
-Target payload for `angle-generator` (pre-implementation):
+Implemented payload for `angle-generator`:
 
 ```json
 {
@@ -304,7 +304,7 @@ Validation rules:
 - `briefing` and `angleDetector` both required for `angle-generator`.
 - Both files must pass existing size and parse constraints.
 
-Target response contract:
+Implemented response contract:
 
 ```json
 {

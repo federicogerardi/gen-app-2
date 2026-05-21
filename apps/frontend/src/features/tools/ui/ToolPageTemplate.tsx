@@ -57,6 +57,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
+    angleDetectorFileName,
     machineViewModel,
     isGenerating,
     readinessSnapshot,
@@ -70,6 +71,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
+    handleAngleDetectorFileSelected,
     handleBriefingReset,
   } = useToolPage(props);
 
@@ -79,6 +81,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     model: z.string().min(1, 'Model richiesto'),
     tone: z.string().min(1, 'Tone richiesto'),
     briefingFile: z.any().optional(),
+    angleDetectorFile: z.any().optional(),
   });
 
   const {
@@ -93,6 +96,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       briefingFile: undefined,
+      angleDetectorFile: undefined,
     },
     mode: 'onChange',
   });
@@ -255,6 +259,33 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 )}
               />
 
+              {props.toolKey === 'angle-generator' ? (
+                <Controller
+                  name="angleDetectorFile"
+                  control={control}
+                  render={({ field }) => (
+                    <div>
+                      <UploadFieldButton
+                        label="Angle Detector File"
+                        disabled={!formState.projectId.trim() || isStreamActive}
+                        icon={<Upload size={16} aria-hidden="true" />}
+                        accept=".docx,.txt,.md"
+                        currentFileName={angleDetectorFileName ?? undefined}
+                        onFileSelected={(file) => {
+                          field.onChange(file);
+                          if (file) {
+                            handleAngleDetectorFileSelected(file);
+                          } else {
+                            handleBriefingReset();
+                          }
+                        }}
+                      />
+                      {errors.angleDetectorFile ? <span className={uiPrimitives.error}>{errors.angleDetectorFile.message as string}</span> : null}
+                    </div>
+                  )}
+                />
+              ) : null}
+
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
               {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
 
@@ -278,6 +309,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   }));
                   if (data.briefingFile instanceof File) {
                     handleBriefingFileSelected(data.briefingFile);
+                  }
+                  if (props.toolKey === 'angle-generator' && data.angleDetectorFile instanceof File) {
+                    handleAngleDetectorFileSelected(data.angleDetectorFile);
                   }
                   handlePrimaryAction();
                 })}

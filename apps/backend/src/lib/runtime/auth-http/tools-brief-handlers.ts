@@ -16,6 +16,26 @@ type CreateToolBriefRequestBody = {
   fileName?: unknown;
   mimeType?: unknown;
   contentBase64?: unknown;
+  briefing?: unknown;
+  angleDetector?: unknown;
+};
+
+type BriefUploadEnvelope = {
+  fileName: string;
+  mimeType: string | null;
+  contentBase64: string;
+};
+
+type ParsedUploadedBrief = {
+  fileName: string;
+  mimeType: string | null;
+  fileBuffer: Buffer;
+  parsedBrief: {
+    format: 'txt' | 'md' | 'docx';
+    normalizedText: string;
+    charCount: number;
+    wordCount: number;
+  };
 };
 
 const normalizeMimeType = (value: unknown): string | null => {
@@ -25,6 +45,75 @@ const normalizeMimeType = (value: unknown): string | null => {
 
   const normalized = value.trim().toLowerCase();
   return normalized.length > 0 ? normalized : null;
+};
+
+const parseEnvelope = (value: unknown): BriefUploadEnvelope | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as {
+    fileName?: unknown;
+    mimeType?: unknown;
+    contentBase64?: unknown;
+  };
+  const fileName = typeof candidate.fileName === 'string' ? candidate.fileName.trim() : '';
+  const contentBase64 = typeof candidate.contentBase64 === 'string' ? candidate.contentBase64.trim() : '';
+  if (!fileName || !contentBase64) {
+    return null;
+  }
+
+  return {
+    fileName,
+    mimeType: normalizeMimeType(candidate.mimeType),
+    contentBase64,
+  };
+};
+
+const parseLegacyEnvelope = (body: CreateToolBriefRequestBody): BriefUploadEnvelope | null => {
+  const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
+  const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
+  if (!fileName || !contentBase64) {
+    return null;
+  }
+
+  return {
+    fileName,
+    mimeType: normalizeMimeType(body.mimeType),
+    contentBase64,
+  };
+};
+
+const parseUploadedBriefEnvelope = async (
+  envelope: BriefUploadEnvelope,
+): Promise<ParsedUploadedBrief> => {
+  let fileBuffer: Buffer;
+  try {
+    fileBuffer = Buffer.from(envelope.contentBase64, 'base64');
+  } catch {
+    throw new BriefParseError('Invalid base64 payload');
+  }
+
+  if (fileBuffer.length === 0) {
+    throw new BriefParseError('Uploaded brief is empty');
+  }
+
+  if (fileBuffer.length > MAX_BRIEF_UPLOAD_BYTES) {
+    throw new BriefParseError('Uploaded brief is too large');
+  }
+
+  const parsedBrief = await parseBriefInput({
+    fileName: envelope.fileName,
+    mimeType: envelope.mimeType,
+    content: fileBuffer,
+  });
+
+  return {
+    fileName: envelope.fileName,
+    mimeType: envelope.mimeType,
+    fileBuffer,
+    parsedBrief,
+  };
 };
 
 export type CreateToolsBriefHandlersDependencies = {
@@ -94,16 +183,12 @@ export const createToolsBriefHandlers = (
     const toolKeyFromQuery = normalizeToolWorkflowKey(rawToolKeyFromQuery) ?? '';
     const toolKey = toolKeyFromBody || toolKeyFromQuery;
     const submittedToolKey = rawToolKeyFromBody || rawToolKeyFromQuery;
-    const fileName = typeof body.fileName === 'string' ? body.fileName.trim() : '';
-    const mimeType = normalizeMimeType(body.mimeType);
-    const contentBase64 = typeof body.contentBase64 === 'string' ? body.contentBase64.trim() : '';
-
-    if (!projectId || !fileName || !contentBase64 || !toolKey) {
-      writeError(response, 400, 'bad_request', 'projectId, toolKey, fileName and contentBase64 are required');
+    if (!projectId || !toolKey) {
+      writeError(response, 400, 'bad_request', 'projectId and toolKey are required');
       return;
     }
 
-    if (!isSupportedToolWorkflow(toolKey)) {
+    if (!isSupportedToolWorkflow(toolKey) && toolKey !== 'angle-generator') {
       writeError(response, 400, 'bad_request', `Unsupported toolKey: ${submittedToolKey} (normalized to: ${toolKey})`);
       return;
     }
@@ -114,31 +199,34 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    let fileBuffer: Buffer;
+    const isAngleGenerator = toolKey === 'angle-generator';
+    const briefingEnvelope = isAngleGenerator ? parseEnvelope(body.briefing) : parseLegacyEnvelope(body);
+    const angleDetectorEnvelope = isAngleGenerator ? parseEnvelope(body.angleDetector) : null;
+
+    if (!briefingEnvelope) {
+      writeError(
+        response,
+        400,
+        'bad_request',
+        isAngleGenerator
+          ? 'For angle-generator, briefing.fileName and briefing.contentBase64 are required'
+          : 'projectId, toolKey, fileName and contentBase64 are required',
+      );
+      return;
+    }
+
+    if (isAngleGenerator && !angleDetectorEnvelope) {
+      writeError(response, 400, 'bad_request', 'For angle-generator, angleDetector.fileName and angleDetector.contentBase64 are required');
+      return;
+    }
+
+    let parsedBriefing: ParsedUploadedBrief;
+    let parsedAngleDetector: ParsedUploadedBrief | null = null;
     try {
-      fileBuffer = Buffer.from(contentBase64, 'base64');
-    } catch {
-      writeError(response, 400, 'bad_request', 'Invalid base64 payload');
-      return;
-    }
-
-    if (fileBuffer.length === 0) {
-      writeError(response, 400, 'bad_request', 'Uploaded brief is empty');
-      return;
-    }
-
-    if (fileBuffer.length > MAX_BRIEF_UPLOAD_BYTES) {
-      writeError(response, 400, 'bad_request', 'Uploaded brief is too large');
-      return;
-    }
-
-    let parsedBrief;
-    try {
-      parsedBrief = await parseBriefInput({
-        fileName,
-        mimeType,
-        content: fileBuffer,
-      });
+      parsedBriefing = await parseUploadedBriefEnvelope(briefingEnvelope);
+      if (isAngleGenerator && angleDetectorEnvelope) {
+        parsedAngleDetector = await parseUploadedBriefEnvelope(angleDetectorEnvelope);
+      }
     } catch (error) {
       if (error instanceof BriefParseError) {
         writeError(response, 400, 'bad_request', error.message);
@@ -152,18 +240,47 @@ export const createToolsBriefHandlers = (
     const briefingId = `brief_${randomUUID()}`;
 
     await repositories.sessions.touchSession(principal.session.id, now());
+
+    if (isAngleGenerator && parsedAngleDetector) {
+      writeSuccess(response, 201, {
+        briefing: {
+          briefingId,
+          projectId,
+          toolKey,
+          fileName: parsedBriefing.fileName,
+          mimeType: parsedBriefing.mimeType,
+          size: parsedBriefing.fileBuffer.length,
+          parsedFormat: parsedBriefing.parsedBrief.format,
+          normalizedText: parsedBriefing.parsedBrief.normalizedText,
+          charCount: parsedBriefing.parsedBrief.charCount,
+          wordCount: parsedBriefing.parsedBrief.wordCount,
+        },
+        angleDetector: {
+          fileName: parsedAngleDetector.fileName,
+          mimeType: parsedAngleDetector.mimeType,
+          size: parsedAngleDetector.fileBuffer.length,
+          parsedFormat: parsedAngleDetector.parsedBrief.format,
+          normalizedText: parsedAngleDetector.parsedBrief.normalizedText,
+          charCount: parsedAngleDetector.parsedBrief.charCount,
+          wordCount: parsedAngleDetector.parsedBrief.wordCount,
+        },
+        knowledgeSourcesCount: 2,
+      });
+      return;
+    }
+
     writeSuccess(response, 201, {
       briefing: {
         briefingId,
         projectId,
         toolKey: toolKey || null,
-        fileName,
-        mimeType,
-        size: fileBuffer.length,
-        parsedFormat: parsedBrief.format,
-        normalizedText: parsedBrief.normalizedText,
-        charCount: parsedBrief.charCount,
-        wordCount: parsedBrief.wordCount,
+        fileName: parsedBriefing.fileName,
+        mimeType: parsedBriefing.mimeType,
+        size: parsedBriefing.fileBuffer.length,
+        parsedFormat: parsedBriefing.parsedBrief.format,
+        normalizedText: parsedBriefing.parsedBrief.normalizedText,
+        charCount: parsedBriefing.parsedBrief.charCount,
+        wordCount: parsedBriefing.parsedBrief.wordCount,
       },
     });
   };

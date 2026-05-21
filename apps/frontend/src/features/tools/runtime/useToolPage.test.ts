@@ -43,6 +43,7 @@ const mocks = vi.hoisted(() => {
     context: {
       error: null as string | null,
       fileName: null as string | null,
+      angleDetectorFileName: null as string | null,
       briefingId: null as string | null,
       extractionArtifactId: null as string | null,
       extractionPayload: null as Record<string, unknown> | null,

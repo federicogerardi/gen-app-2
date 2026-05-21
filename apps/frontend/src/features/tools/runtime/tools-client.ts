@@ -50,6 +50,17 @@ export type UploadBriefInput = {
   projectId: string;
   toolKey: ToolKey;
   file: File;
+  angleDetectorFile?: File;
+};
+
+export type UploadBriefAngleDetectorResult = {
+  fileName: string;
+  mimeType: string | null;
+  size: number;
+  parsedFormat: 'txt' | 'md' | 'docx';
+  normalizedText: string;
+  charCount: number;
+  wordCount: number;
 };
 
 export type UploadBriefResult = {
@@ -63,6 +74,8 @@ export type UploadBriefResult = {
   normalizedText: string;
   charCount: number;
   wordCount: number;
+  angleDetector?: UploadBriefAngleDetectorResult;
+  knowledgeSourcesCount?: number;
 };
 
 export type RunExtractionInput = {
@@ -115,6 +128,8 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
     ok?: boolean;
     data?: {
       briefing?: UploadBriefResult;
+      angleDetector?: UploadBriefAngleDetectorResult;
+      knowledgeSourcesCount?: number;
     };
   };
 
@@ -123,7 +138,11 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
     throw new Error('Invalid tools upload response payload');
   }
 
-  return briefing;
+  return {
+    ...briefing,
+    angleDetector: body.data?.angleDetector,
+    knowledgeSourcesCount: body.data?.angleDetector ? (body.data.knowledgeSourcesCount ?? 2) : undefined,
+  };
 };
 
 const resolveExtractionPayloadFromArtifact = (artifact: GenerationArtifact): Record<string, unknown> => {
@@ -180,6 +199,36 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
+  const isAngleGenerator = input.toolKey === 'angle-generator';
+  const angleDetectorFile = input.angleDetectorFile;
+
+  if (isAngleGenerator && !angleDetectorFile) {
+    throw new Error('Angle Detector file required for angle-generator');
+  }
+
+  const bodyPayload = isAngleGenerator
+    ? {
+      projectId: input.projectId,
+      toolKey: input.toolKey,
+      briefing: {
+        fileName: input.file.name,
+        mimeType: input.file.type || null,
+        contentBase64,
+      },
+      angleDetector: {
+        fileName: angleDetectorFile?.name ?? null,
+        mimeType: angleDetectorFile?.type || null,
+        contentBase64: angleDetectorFile ? await toBase64(angleDetectorFile) : null,
+      },
+    }
+    : {
+      projectId: input.projectId,
+      toolKey: input.toolKey,
+      fileName: input.file.name,
+      mimeType: input.file.type || null,
+      contentBase64,
+    };
+
   try {
     const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
       method: 'POST',
@@ -187,13 +236,7 @@ export const uploadBrief = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        projectId: input.projectId,
-        toolKey: input.toolKey,
-        fileName: input.file.name,
-        mimeType: input.file.type || null,
-        contentBase64,
-      }),
+      body: JSON.stringify(bodyPayload),
     });
 
     return parseUploadBriefResponse(payload);

@@ -19,6 +19,8 @@ const briefingMachineSeed = vi.hoisted(() => ({
     userId: 'seed-user-001',
     file: null as File | null,
     fileName: null as string | null,
+    angleDetectorFile: null as File | null,
+    angleDetectorFileName: null as string | null,
     briefingId: 'brief-001' as string | null,
     extractionArtifactId: 'artifact-extract-001' as string | null,
     extractionPayload: { schemaVersion: 'extraction.v1' } as Record<string, unknown> | null,
@@ -52,7 +54,7 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         error: string | null;
       },
       events: {} as
-        | { type: 'FILE_SELECTED'; file: File }
+        | { type: 'FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
         | {

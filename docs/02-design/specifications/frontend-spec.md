@@ -196,7 +196,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 - `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage` e `AdminUsersPage` usano i query hooks condivisi.
 - `ProjectDetailPage` usa `SessionsListingSection` con sorgente `SessionSummary[]` filtrata per `projectId`.
-- Il pattern `useEffect + IIFE async` e stato eliminato da queste pagine e resta confinato ai punti dove la logica e ancora specifica (ad esempio `GenerationConsolePage`).
+- Il pattern `useEffect + IIFE async` è stato eliminato da queste pagine. Non è più presente in nessun punto del codebase attivo (`GenerationConsolePage` è deprecata, DDD-071, 2026-05-21).
 
 ### SessionSummary / Artifacts / Projects Navigation Contract (DDD-051, DDD-052)
 

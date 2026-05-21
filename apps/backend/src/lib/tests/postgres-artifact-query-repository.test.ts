@@ -90,3 +90,25 @@ test('getArtifactDetailBySessionStep queries one step artifact without loading f
   assert.match(capturedSql, /LIMIT 1/);
   assert.deepEqual(capturedParams, ['user-001', 'sess-001', 'packaging']);
 });
+
+test('artifact detail queries include input and content by default', async () => {
+  let capturedSql = '';
+
+  const pg = {
+    query: async (sql: string) => {
+      capturedSql = sql;
+      return { rows: [] };
+    },
+  };
+
+  const repository = new PostgresArtifactQueryRepository(
+    pg as unknown as ConstructorParameters<typeof PostgresArtifactQueryRepository>[0],
+  );
+
+  await repository.getArtifactById('artifact-001');
+
+  assert.match(capturedSql, /input_json,/);
+  assert.match(capturedSql, /content,/);
+  assert.doesNotMatch(capturedSql, /NULL::jsonb AS input_json/);
+  assert.doesNotMatch(capturedSql, /''::text AS content/);
+});

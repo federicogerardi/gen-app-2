@@ -1333,7 +1333,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
   async getArtifactByIdForUser(
     userId: string,
     artifactId: string,
-    projection: ArtifactReadProjection = {},
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
   ): Promise<ArtifactDetail | null> {
     const select = this.buildProjectedDetailSelect(projection);
     const query = `
@@ -1352,7 +1355,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
   async getArtifactsByIdsForUser(
     userId: string,
     artifactIds: string[],
-    projection: ArtifactReadProjection = {},
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
   ): Promise<ArtifactDetail[]> {
     if (artifactIds.length === 0) {
       return [];
@@ -1373,7 +1379,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
   async getArtifactById(
     artifactId: string,
-    projection: ArtifactReadProjection = {},
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
   ): Promise<ArtifactDetail | null> {
     const select = this.buildProjectedDetailSelect(projection);
     const query = `
@@ -1392,7 +1401,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
   async listArtifactDetailsBySession(
     userId: string,
     sessionId: string,
-    projection: ArtifactReadProjection = {},
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
   ): Promise<ArtifactDetail[]> {
     const select = this.buildProjectedDetailSelect(projection);
     const query = `
@@ -1411,7 +1423,10 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     userId: string,
     sessionId: string,
     stepKey: string,
-    projection: ArtifactReadProjection = {},
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
   ): Promise<ArtifactDetail | null> {
     const select = this.buildProjectedDetailSelect(projection);
     const query = `

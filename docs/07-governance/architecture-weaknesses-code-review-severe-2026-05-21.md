@@ -22,7 +22,7 @@ owner: Architecture Review
 | F-01 | Duplicate ToolKey normalization policy across Frontend and Backend boundaries | Critical | High | Governance-gap risk (cross-context) | P1 |
 | F-02 | GenerationRequestInput remains permissive for core domain fields | Medium | Low | Closed after runtime hardening (compatibility envelope preserved by DDD-073) | P3 |
 | F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Closed after typed done-output remediation | P2 |
-| F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Projection-contract ambiguity risk | P2 |
+| F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Closed after explicit default projection hardening | P2 |
 | F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | DDD-critical path stability risk | P2 |
 | F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Documented transition (DDD-051/DDD-052) | P3 |
 | F-07 | Deprecated hydration compatibility path remains active | Medium | Low | Technical debt with bounded DDD risk | P3 |
@@ -98,6 +98,15 @@ owner: Architecture Review
   - Projection selector builder: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1042)
   - Conditional input projection: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1059)
   - Conditional content projection: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1060)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Artifact detail queries now default to including input and content in the repository boundary: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1336)
+  - Batch detail artifact queries now default to including input and content in the repository boundary: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1355)
+  - Session-scoped detail queries now default to including input and content in the repository boundary: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1395)
+  - Detail projection keeps opt-out behavior only when a caller explicitly supplies a narrower projection: [apps/backend/src/lib/adapters/postgres-redis.production.ts](../../apps/backend/src/lib/adapters/postgres-redis.production.ts#L1042)
+- Closure validation evidence:
+  - Backend focused repository regression test: `npm --workspace @gen-app-2/backend run test -- src/lib/tests/postgres-artifact-query-repository.test.ts` (pass)
+  - Default detail projection regression coverage: [apps/backend/src/lib/tests/postgres-artifact-query-repository.test.ts](../../apps/backend/src/lib/tests/postgres-artifact-query-repository.test.ts#L84)
 
 3. Hydration ranking logic is correct but extension-fragile due to imperative ordering.
 - Normalized severity: **Architecture = High | DDD = Medium**.
@@ -146,8 +155,7 @@ owner: Architecture Review
 - This severe review records residual structural weaknesses that remain relevant for preventive hardening.
 
 ## Recommended Next Hardening Sequence
-1. Introduce explicit projection contracts for artifact list/detail includeInput/includeContent behavior.
-2. Optional follow-up: tighten compile-time `GenerationRequestInput` contract after compatibility deprecation window (DDD-073).
+1. Tighten compile-time `GenerationRequestInput` contract after compatibility deprecation window (DDD-073).
 
 ## DDD Impact Verification (2026-05-21)
 

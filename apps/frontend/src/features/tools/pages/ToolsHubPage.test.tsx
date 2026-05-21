@@ -5,12 +5,9 @@ import { ToolsHubPage } from './ToolsHubPage';
 
 vi.mock('../runtime/tool-form-architecture', () => ({
   getEnabledToolNavigationItems: () => ([
-    { toolKey: 'funnel-pages', to: '/tools/funnel-pages', label: 'Hotlead Funnel' },
-    { toolKey: 'youtube-lf-script', to: '/tools/youtube-lf-script', label: 'YouTube LF Script' },
+    { toolKey: 'funnel-pages', to: '/tools/funnel-pages', label: 'Hotlead Funnel', description: 'Desc funnel' },
+    { toolKey: 'youtube-lf-script', to: '/tools/youtube-lf-script', label: 'YouTube LF Script', description: 'Desc youtube' },
   ]),
-  getToolFormConfig: (toolKey: string) => ({
-    defaultPrompt: `Prompt for ${toolKey}`,
-  }),
 }));
 
 describe('ToolsHubPage', () => {
@@ -20,10 +17,12 @@ describe('ToolsHubPage', () => {
     </MemoryRouter>,
   );
 
-  it('renders enabled tool links and excludes disabled tools', () => {
+  it('renders one card per enabled tool', () => {
     renderPage();
 
     expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
+    expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
+    expect(screen.getByText('YouTube LF Script')).toBeInTheDocument();
     expect(screen.queryByText('Nextland')).toBeNull();
   });
 
@@ -54,7 +53,6 @@ describe('ToolsHubPage', () => {
 
     renderPage();
 
-    expect(screen.getByRole('table')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
   });
 });

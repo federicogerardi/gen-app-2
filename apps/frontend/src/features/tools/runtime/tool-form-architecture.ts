@@ -121,6 +121,7 @@ export type ToolNavigationItem = {
   toolKey: SupportedTool;
   to: string;
   label: string;
+  description: string;
 };
 
 const toolNavigationLabelByKey: Record<SupportedTool, string> = {
@@ -130,11 +131,19 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'angle-generator': appCopy.ui.navigation.angleGenerator,
 };
 
+const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
+  'funnel-pages': 'Crea landing page, quiz e VSL per la tua pipeline di acquisizione.',
+  nextland: 'Genera le pagine del sito Nextland a partire dal tuo brief di progetto.',
+  'youtube-lf-script': 'Produci script video long-form guidato da una struttura passo passo.',
+  'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
+};
+
 export const getEnabledToolNavigationItems = (): ToolNavigationItem[] => (
   getEnabledToolKeys().map((toolKey) => ({
     toolKey,
     to: `/tools/${toolKey}`,
     label: toolNavigationLabelByKey[toolKey],
+    description: toolNavigationDescriptionByKey[toolKey],
   }))
 );
 

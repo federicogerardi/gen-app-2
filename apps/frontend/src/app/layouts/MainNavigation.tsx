@@ -4,9 +4,6 @@ import {
   LayoutDashboard,
   FolderOpen,
   Zap,
-  Map,
-  Clapperboard,
-  Target,
   Archive,
   Settings,
   ChevronLeft,
@@ -15,8 +12,6 @@ import {
   X,
 } from 'lucide-react';
 import { appCopy, appNavigation } from '../copy/system';
-import { isToolEnabled } from '../../features/tools/runtime/tool-form-architecture';
-import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
 import './MainNavigation.css';
 
@@ -34,10 +29,7 @@ type MainNavigationProps = {
 const navIcons: Record<string, NavIcon> = {
   '/dashboard': LayoutDashboard,
   '/dashboard/projects': FolderOpen,
-  '/tools/funnel-pages': Zap,
-  '/tools/nextland': Map,
-  '/tools/youtube-lf-script': Clapperboard,
-  '/tools/angle-generator': Target,
+  '/tools': Zap,
   '/sessionsummary': Archive,
   '/artifacts': Archive,
   '/admin': Settings,
@@ -51,11 +43,7 @@ export const MainNavigation = ({
   onCloseMobile,
   onLogout,
 }: MainNavigationProps) => {
-  const visibleItems = appNavigation.filter(
-    (item) => (!('adminOnly' in item && item.adminOnly) || isAdmin)
-      && (!item.to.startsWith('/tools/')
-      || isToolEnabled(item.to.replace('/tools/', '') as SupportedTool)),
-  );
+  const visibleItems = appNavigation.filter((item) => (!('adminOnly' in item && item.adminOnly) || isAdmin));
 
   return (
     <Surface

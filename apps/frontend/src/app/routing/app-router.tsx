@@ -14,6 +14,7 @@ const DashboardPage = lazy(() => import('../../features/dashboard/pages/Dashboar
 const ProjectsListPage = lazy(() => import('../../features/projects/pages/ProjectsListPage').then(m => ({ default: m.ProjectsListPage })));
 const NewProjectPage = lazy(() => import('../../features/projects/pages/NewProjectPage').then(m => ({ default: m.NewProjectPage })));
 const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const ToolsHubPage = lazy(() => import('../../features/tools/pages/ToolsHubPage').then(m => ({ default: m.ToolsHubPage })));
 const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages/pages/FunnelPagesToolPage').then(m => ({ default: m.FunnelPagesToolPage })));
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
@@ -114,6 +115,10 @@ export const createAppRouter = () => createBrowserRouter([
       {
         path: '/dashboard/projects/:id',
         element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
+      },
+      {
+        path: '/tools',
+        element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
       },
       ...TOOL_ROUTES.map(({ path, component: ToolPage }) => ({
         path,

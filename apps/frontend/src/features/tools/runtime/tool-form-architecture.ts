@@ -4,6 +4,7 @@
  */
 
 import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
+import { appCopy } from '../../../app/copy/system';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 
 /**
@@ -115,6 +116,27 @@ export const getEnabledToolKeys = (): SupportedTool[] => {
 export const isToolEnabled = (toolKey: SupportedTool): boolean => {
   return toolFormRegistry[toolKey].status === 'enabled';
 };
+
+export type ToolNavigationItem = {
+  toolKey: SupportedTool;
+  to: string;
+  label: string;
+};
+
+const toolNavigationLabelByKey: Record<SupportedTool, string> = {
+  'funnel-pages': appCopy.ui.navigation.funnelPages,
+  nextland: appCopy.ui.navigation.nextland,
+  'youtube-lf-script': appCopy.ui.navigation.youtubeLfScript,
+  'angle-generator': appCopy.ui.navigation.angleGenerator,
+};
+
+export const getEnabledToolNavigationItems = (): ToolNavigationItem[] => (
+  getEnabledToolKeys().map((toolKey) => ({
+    toolKey,
+    to: `/tools/${toolKey}`,
+    label: toolNavigationLabelByKey[toolKey],
+  }))
+);
 
 /**
  * Get config for a tool

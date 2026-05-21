@@ -36,11 +36,13 @@ export const appCopy = {
     },
     navigation: {
       dashboard: 'Dashboard',
+      tools: 'Tools',
       projects: 'Projects',
       funnelPages: 'Hotlead Funnel',
       nextland: 'Nextland',
       youtubeLfScript: 'YouTube LF Script',
       angleGenerator: 'Angle Generator',
+      toolsConsole: 'Tools Console',
       feedbackCenter: 'Feedback',
       sessionSummary: 'Sessions',
       artifacts: 'Artifacts',
@@ -57,6 +59,7 @@ export const appCopy = {
       openSessionArchive: "Torna all'archivio",
       backToList: 'Torna alla lista',
       openDetail: 'Apri dettaglio',
+      openToolWorkspace: 'Apri workspace',
       openArtifact: 'Apri artifact',
       openContextProject: 'Apri progetto',
       newProject: 'Nuovo progetto',
@@ -114,6 +117,7 @@ export const appCopy = {
       outputFormat: 'Formato di output',
       workflowType: 'Tipo di flusso',
       toolKey: 'Tool',
+      toolsConsoleDescription: 'Per i tool guidati usa la lista qui sotto. Tools Console resta disponibile per flussi manuali o avanzati.',
       idempotencyKey: 'Chiave di idempotenza',
       registrySnapshotRef: 'Versione di riferimento',
       type: 'Tipo',
@@ -156,6 +160,7 @@ export const appCopy = {
     },
     states: {
       loadingProjects: 'Caricamento progetti...',
+      noToolsAvailable: 'Nessun tool disponibile.',
       loadingUsers: 'Caricamento utenti...',
       loadingModels: 'Caricamento modelli...',
       loadingArtifact: 'Caricamento artifact...',
@@ -311,7 +316,7 @@ export const appCopy = {
         },
         tools: {
           title: 'Generazione per la tua strategia',
-          body: 'Hotlead Funnel per generare lead e moltiplicare i risultati. Lo strumento giusto, secondo la tua strategia.',
+            body: 'Apri Tools come hub centrale per i percorsi guidati. Tools Console resta disponibile come percorso avanzato per flussi manuali.',
         },
           recentSessions: {
             title: 'La tua storia di risultati',
@@ -384,10 +389,7 @@ export const appCopy = {
 
 export const appNavigation = [
   { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true },
-  { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
-  { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
-  { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
-  { to: '/tools/angle-generator', label: appCopy.ui.navigation.angleGenerator, end: false },
+  { to: '/tools', label: appCopy.ui.navigation.tools, end: false },
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },

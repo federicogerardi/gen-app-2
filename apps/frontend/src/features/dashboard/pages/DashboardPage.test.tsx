@@ -55,8 +55,10 @@ describe('DashboardPage', () => {
 
   it('renders shortcut links to tools', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getAllByText(/hotlead funnel/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText(/nextland/i)).not.toBeInTheDocument();
+    const toolsLinks = screen.getAllByRole('link', { name: appCopy.ui.navigation.tools });
+
+    expect(toolsLinks.length).toBeGreaterThan(0);
+    expect(toolsLinks[0]).toHaveAttribute('href', '/tools');
   });
 
   it('shows empty state when no recent sessions', () => {

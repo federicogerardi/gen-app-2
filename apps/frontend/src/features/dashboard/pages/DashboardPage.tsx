@@ -101,8 +101,8 @@ export const DashboardPage = () => {
         <AppCard title={appCopy.editorial.dashboard.cards.tools.title} className="ui-dashboard-card-with-cta">
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.tools.body}</p>
-            <Link to="/tools/funnel-pages" className="ui-dashboard-card-cta-link ui-button">
-              {appCopy.ui.navigation.funnelPages}
+            <Link to="/tools" className="ui-dashboard-card-cta-link ui-button">
+              {appCopy.ui.navigation.tools}
             </Link>
           </div>
         </AppCard>

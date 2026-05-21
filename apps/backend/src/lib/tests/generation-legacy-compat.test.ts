@@ -14,7 +14,7 @@ test('SessionQueryAdapter ignores legacy artifacts without session metadata', as
       projectId: 'project-legacy-001',
       artifactType: 'content',
       status: 'completed',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       workflowType: 'funnel_pages',
       input: {
         toolWorkflow: {

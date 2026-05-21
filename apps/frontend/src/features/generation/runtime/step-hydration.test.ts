@@ -5,13 +5,14 @@ import {
   collectCompletedStepsBySession,
 } from './step-hydration';
 import type { GenerationArtifact } from '../ui/artifact-history';
+import type { ToolStep } from '@gen-app-2/contracts';
 
 const createArtifact = (
   partial: Partial<GenerationArtifact> & {
     artifactId: string;
     requestId: string;
     updatedAt: string;
-    step: string;
+    step: ToolStep;
   },
 ): GenerationArtifact => ({
   artifactId: partial.artifactId,
@@ -23,7 +24,7 @@ const createArtifact = (
   runMode: partial.runMode ?? 'new',
   artifactType: partial.artifactType ?? 'content',
   status: partial.status ?? 'completed',
-  model: partial.model ?? 'openrouter:auto',
+  model: partial.model ?? 'openrouter/auto',
   toolKey: partial.toolKey ?? 'funnel-pages',
   workflowType: partial.workflowType ?? 'funnel-pages',
   content: partial.content ?? 'content',
@@ -35,7 +36,7 @@ const createArtifact = (
     projectId: partial.projectId ?? 'project-001',
     ...(partial.sessionId ? { sessionId: partial.sessionId } : {}),
     artifactType: partial.artifactType ?? 'content',
-    model: 'openrouter:auto',
+    model: 'openrouter/auto',
     toolKey: 'funnel-pages',
     workflowType: 'funnel_pages',
     input: {

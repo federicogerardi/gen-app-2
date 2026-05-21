@@ -13,6 +13,10 @@ import {
   uploadBrief,
 } from '../../tools/runtime/tools-client';
 import {
+  normalizeModelForPayload,
+  normalizeToneProfile,
+} from '../../tools/runtime/tool-page-runtime-utils';
+import {
   generateRequestId,
   isAllowedBriefingExtension,
 } from '../../../app/runtime/shared-utils';
@@ -174,10 +178,10 @@ export const GenerationForm = ({
       userId,
       projectId: projectId.trim(),
       artifactType,
-      model,
+      model: normalizeModelForPayload(model, 'openrouter/auto'),
       input: {
         prompt,
-        tone,
+        tone: normalizeToneProfile(tone),
         notes,
         intent,
         briefingFileName: briefingFileName ?? null,

@@ -63,7 +63,7 @@ export const defaultMapGenerationRequest = (
     userId: requireStringField(payload, 'userId'),
     projectId: requireStringField(payload, 'projectId'),
     artifactType: requireStringField(payload, 'artifactType') as BackendGenerationRequest['artifactType'],
-    model: requireStringField(payload, 'model'),
+    model: requireStringField(payload, 'model') as BackendGenerationRequest['model'],
     input: requireObjectField(payload, 'input'),
     toolKey:
       rawToolKey && (isToolKey(rawToolKey) || isGenerationRouteToolKey(rawToolKey))

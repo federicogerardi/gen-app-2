@@ -92,7 +92,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -121,7 +121,7 @@ describe('tools-client', () => {
     await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       tone: 'Casual',
       briefingId: 'brief-001',
@@ -150,7 +150,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -179,7 +179,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -207,7 +207,7 @@ describe('tools-client', () => {
     await expect(runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -251,7 +251,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'youtube-lf-script',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -290,7 +290,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -318,7 +318,7 @@ describe('tools-client', () => {
       const result = await runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -341,7 +341,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -356,7 +356,7 @@ describe('tools-client', () => {
       );      await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -375,7 +375,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -395,7 +395,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -472,7 +472,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',

@@ -1,30 +1,32 @@
+import type { LlmModelId, ToneProfile } from '@gen-app-2/contracts';
+
 const TONE_PROFILE_DEFAULT = 'Professional';
 const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
 
-export const normalizeModelForPayload = (model: string, fallbackModel: string): string => {
+export const normalizeModelForPayload = (model: string, fallbackModel: string): LlmModelId => {
   const normalized = model.trim();
   if (normalized.length === 0) {
-    return fallbackModel;
+    return normalizeModelForPayload(fallbackModel, 'openrouter/auto');
   }
 
   if (normalized.includes('/')) {
-    return normalized;
+    return normalized as LlmModelId;
   }
 
   if (normalized.includes(':')) {
     const [provider, ...rest] = normalized.split(':');
     if (provider && rest.length > 0) {
-      return `${provider}/${rest.join(':')}`;
+      return `${provider}/${rest.join(':')}` as LlmModelId;
     }
   }
 
-  return normalized;
+  return `openrouter/${normalized}` as LlmModelId;
 };
 
 export const normalizeToneProfile = (
   tone: string,
-  fallbackTone: string = TONE_PROFILE_DEFAULT,
-): string => {
+  fallbackTone: ToneProfile = TONE_PROFILE_DEFAULT,
+): ToneProfile => {
   const normalized = tone.trim().toLowerCase();
   if (normalized.length === 0) {
     return fallbackTone;

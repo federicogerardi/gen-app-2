@@ -21,6 +21,26 @@ import {
 } from '../../../app/runtime/http-client';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
 
+const normalizeExtractionModel = (model: string): GenerationRequest['model'] => {
+  const normalized = model.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized as GenerationRequest['model'];
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}` as GenerationRequest['model'];
+    }
+  }
+
+  return `openrouter/${normalized}` as GenerationRequest['model'];
+};
+
 type ToolsClientOptions = {
   apiBaseUrl?: string;
   capabilities?: Partial<BackendCapabilities>;
@@ -195,7 +215,7 @@ export const runExtraction = async (
     userId: input.userId,
     projectId: input.projectId,
     artifactType: 'extraction',
-    model: input.model,
+    model: normalizeExtractionModel(input.model),
     toolKey: 'extraction',
     workflowType: 'extraction',
     input: {

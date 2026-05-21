@@ -60,6 +60,10 @@ import type {
   ToolWorkflowType,
 } from './tool-workflows';
 
+export type ToneProfile = 'Professional' | 'Casual' | 'Formal' | 'Technical';
+export type LlmModelId = `${string}/${string}`;
+export type RequestTone = ToneProfile | 'analitico';
+
 // =====================================================================
 // Value Objects — re-exported from @gen-app-2/domain (DDD-074)
 // =====================================================================
@@ -100,9 +104,9 @@ export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/dom
 export type GenerationRequestInput = {
   // Canonical generation dispatch fields
   prompt?: string;
-  step?: ToolStep | string;
+  step?: ToolStep;
   intent?: WorkflowRunMode;
-  tone?: string;
+  tone?: RequestTone;
   notes?: string;
   toolKey?: ToolKey;
   briefingId?: string | null;
@@ -130,7 +134,7 @@ export type GenerationRequestInput = {
   toolWorkflow?: {
     toolKey?: ToolKey;
     workflowType?: ToolWorkflowType | 'extraction';
-    stepKey?: ToolStep | string;
+    stepKey?: ToolStep;
     artifactRole?: 'step' | 'final';
     runMode?: WorkflowRunMode;
     sessionId?: string;
@@ -142,9 +146,6 @@ export type GenerationRequestInput = {
   // Backend enrichment fields attached in request normalization.
   resolvedPromptTemplate?: string;
   resolvedPromptSource?: string;
-
-  /** @deprecated Legacy relaunch alias retained for backward-compat reads. */
-  relaunchMode?: WorkflowRunMode;
 };
 
 type GenerationRequestBase = {
@@ -156,7 +157,7 @@ type GenerationRequestBase = {
   sessionId?: string;
   artifactType: ArtifactType;
   // LlmModelId — see DDD-056
-  model: string;
+  model: LlmModelId;
   idempotencyKey?: string;
   outputFormat?: OutputFormat;
   registryVersion?: string;

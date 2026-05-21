@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildRequestReceivedEvent } from '../runtime/request-contract';
+import { buildRequestReceivedEvent, type BackendGenerationRequest } from '../runtime/request-contract';
 import { resolveToolPrompt } from '../runtime/tool-prompts';
 
 test('resolveToolPrompt loads funnel optin prompt from markdown files', () => {
@@ -23,7 +23,7 @@ test('buildRequestReceivedEvent injects resolved prompt and source when prompt i
     userId: 'seed-user-001',
     projectId: 'seed-project-001',
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     toolKey: 'funnel-pages',
     workflowType: 'funnel_pages',
     briefingId: 'briefing-001',
@@ -50,7 +50,7 @@ test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter
     userId: 'seed-user-001',
     projectId: 'seed-project-001',
     artifactType: 'content',
-    model: 'openrouter:auto',
+    model: 'openrouter/auto',
     input: {
       prompt: 'normalize me',
     },
@@ -123,7 +123,7 @@ test('buildRequestReceivedEvent canonicalizes generation tone profile and step k
       tone: 'formal',
     },
     registrySnapshotRef: 'snapshot:generation-normalization',
-  });
+  } as unknown as BackendGenerationRequest);
 
   const input = event.input as Record<string, unknown>;
   assert.equal(input.step, 'thank_you');
@@ -144,7 +144,7 @@ test('buildRequestReceivedEvent drops invalid step and non-canonical generation 
       tone: 'direct',
     },
     registrySnapshotRef: 'snapshot:generation-normalization',
-  });
+  } as unknown as BackendGenerationRequest);
 
   const input = event.input as Record<string, unknown>;
   assert.equal(Object.hasOwn(input, 'step'), false);

@@ -82,6 +82,26 @@ const readNormalizedToolKey = (value: unknown): ToolKey | null => {
   return normalizeToolKeyCandidate(value);
 };
 
+const normalizeModelId = (value: string): GenerationRequest['model'] => {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized as GenerationRequest['model'];
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}` as GenerationRequest['model'];
+    }
+  }
+
+  return `openrouter/${normalized}` as GenerationRequest['model'];
+};
+
 const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
   const input = artifact.input;
   const toolWorkflowInput =
@@ -155,7 +175,7 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
     userId: artifact.userId ?? '',
     projectId: artifact.projectId,
     artifactType: artifact.artifactType,
-    model: artifact.model,
+    model: normalizeModelId(artifact.model),
     input: artifact.input ?? {},
     toolKey,
     workflowType:
@@ -195,7 +215,7 @@ const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => 
     runMode,
     artifactType: artifact.artifactType,
     status: artifact.status,
-    model: artifact.model,
+    model: normalizeModelId(artifact.model),
     toolKey,
     workflowType: artifact.workflowType,
     ownerUsername: ownerEmail,

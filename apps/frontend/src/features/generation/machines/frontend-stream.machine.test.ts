@@ -2,13 +2,14 @@ import { createActor, fromCallback, waitFor } from 'xstate';
 import { describe, expect, it, vi } from 'vitest';
 import { frontendStreamMachine } from './frontend-stream.machine';
 import { createStreamLogger } from '../runtime/stream-logger';
+import type { GenerationRequest } from '../contracts/backend-stream';
 
-const createRequest = (requestId: string) => ({
+const createRequest = (requestId: string): GenerationRequest => ({
   requestId,
   userId: 'user-1',
   projectId: 'project-1',
   artifactType: 'content' as const,
-  model: 'openrouter:auto',
+  model: 'openrouter/auto',
   input: { prompt: 'test' },
   registrySnapshotRef: 'snapshot:default',
 });
@@ -611,7 +612,7 @@ describe('CHECKPOINT_UPSERTED and EXTRACTION_UPSERTED events', () => {
       projectId: 'proj-1',
       status: 'generating',
       extractionContextAvailable: false,
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       workflowType: null,
       toolKey: null,
       contentPreview: 'Hello',

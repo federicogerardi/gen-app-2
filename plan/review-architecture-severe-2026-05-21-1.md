@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -15,6 +15,14 @@ owner: Architecture Review
 ## Findings (Ordered by Severity)
 
 ### 1. High — Hydration candidate scan is unbounded and ranked in memory
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Hydrate candidate query is now explicitly capped via dedicated scan-limit configuration and dependency wiring.
+  - In-memory full-array ranking was replaced with deterministic linear best-candidate selection.
+  - Regression coverage was added to assert limit propagation in hydrate path.
+- Validation evidence:
+  - `npm --workspace apps/backend run typecheck` passed.
+  - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` passed.
 - Evidence:
   - Hydrate candidate retrieval has no explicit cap in the call site:
     - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:203` calls `listArtifactsByUser(...)` with `{ type, status, projectId }` only (no `limit`, no `offset`).
@@ -37,6 +45,17 @@ owner: Architecture Review
   - `HydrationResult`, `ExtractionContext` (selection path stability and performance).
 
 ### 2. High — GenerationRequest contract remains permissive for core domain fields
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Shared contract hardened for dispatch-critical fields:
+    - `model` tightened to canonical `LlmModelId` shape.
+    - `tone` tightened to canonical request union (`RequestTone`) aligned with `ToneProfile` + extraction operational tone.
+    - Deprecated `relaunchMode` removed from request boundary.
+  - Frontend request builders and artifact/source-request mappers now normalize legacy free-form model/tone input to canonical contract values before dispatch.
+  - Targeted test fixtures were updated to canonical model/tone literals.
+- Validation evidence:
+  - `npm run typecheck --workspaces --if-present` passed.
+  - Targeted changed-test run completed with green result after fixture alignment (20/20).
 - Evidence:
   - `packages/contracts/src/index.ts`: `step?: ToolStep | string`.
   - `packages/contracts/src/index.ts`: `tone?: string`.
@@ -96,18 +115,21 @@ owner: Architecture Review
   - Frontend Auth state consistency.
 
 ## Open Questions
-1. Is the unbounded hydrate scan intentional for completeness, or should the endpoint enforce a deterministic capped window?
-2. Is there a planned window to tighten `GenerationRequestInput` compile-time constraints after compatibility sunset?
-3. Should session step endpoints be fully centralized via `buildApiPaths` to remove route duplication?
+1. Should session step endpoints be fully centralized via `buildApiPaths` to remove route duplication?
+2. What is the rollout plan to remove remaining `as never` casts in the request enrichment boundary while preserving compatibility?
+3. Which incremental decomposition slices should be prioritized first for `postgres-redis.production.ts` to reduce blast radius without delaying delivery?
 
 ## Executive Summary
 - No new open Critical issue was confirmed in this pass.
-- The dominant residual risk profile is High/Medium and concentrated in:
-  - hydrate scalability,
-  - permissive contract typing,
+- Two High findings are now closed in this cycle:
+  - hydrate scalability hardening,
+  - `GenerationRequest` compile-time contract hardening.
+- The dominant residual risk profile is now concentrated in Medium / Medium-High areas:
+  - type-safety bypass through `as never` casts,
+  - backend adapter concentration,
   - technical governance gates.
 - Recommended next hardening wave:
-  1. Cap and optimize hydrate candidate selection.
-  2. Tighten compile-time request contract for canonical fields.
-  3. Remove forced type escapes (`as never`) from request enrichment path.
+  1. Remove forced type escapes (`as never`) from request enrichment path.
+  2. Decompose backend adapter monolith into bounded infra modules.
+  3. Centralize frontend session step path authority through `buildApiPaths`.
   4. Restore lint/unused-symbol guardrails across workspaces.

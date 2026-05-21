@@ -1,12 +1,14 @@
 ---
 goal: Contesto implementativo verificato per il piano di scomposizione auth-http
-version: 1.0
+version: 1.1
 date_created: 2026-05-19
-last_updated: 2026-05-19
+last_updated: 2026-05-21 (as-is alignment)
 owner: Backend Architecture
-status: 'Ready'
+status: archived
+last-reviewed: 2026-05-21
+next-review-date: 2027-05-21
 tags: [refactor, architecture, backend, context]
-source_plan: plan/refactor-auth-http-monolith-1.md
+source_plan: ./refactor-architecture-weaknesses-remediation-1.md
 ---
 
 # Introduction
@@ -14,6 +16,8 @@ source_plan: plan/refactor-auth-http-monolith-1.md
 Questo documento traduce il piano `refactor-auth-http-monolith-1.md` in un contesto implementativo verificato sul codice attuale. Non ripete il piano: registra solo le evidenze utili per eseguirlo con il minor numero di letture aggiuntive possibile.
 
 Obiettivo operativo: ridurre il rischio di drift durante l'implementazione chiarendo in anticipo quali assunzioni del piano sono già confermate, quali vanno corrette, quali moduli controllano davvero il comportamento runtime, e quali comandi/test sono eseguibili nel repository corrente.
+
+Nota as-is (2026-05-21): il refactor target e la decomposizione `auth-http` risultano completati; questo documento resta come record di contesto verificato e tracciabilita tecnica.
 
 ---
 

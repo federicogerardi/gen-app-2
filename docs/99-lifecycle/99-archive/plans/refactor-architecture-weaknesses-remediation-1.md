@@ -1,18 +1,22 @@
 ---
 goal: Remediate all Critical and High architecture weaknesses identified in the 2026-05-18 code review
-version: 1.0
+version: 1.1
 date_created: 2026-05-18
-last_updated: 2026-05-18
+last_updated: 2026-05-21 (as-is alignment)
 owner: Architecture Review
-status: 'In progress'
+status: archived
+last-reviewed: 2026-05-21
+next-review-date: 2027-05-21
 tags: [architecture, refactor, security, chore]
 ---
 
 # Introduction
 
-![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
-This plan addresses all Critical and High severity findings from [`docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md`](../docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md). Findings are resolved in priority order: monolith decomposition → fail-open/fallback removal → contracts boundary restoration → debug surface removal → DDD governance closure. Each phase has measurable acceptance gates and can be worked on independently unless inter-phase dependencies are declared.
+This plan addresses all Critical and High severity findings from [`docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md`](../../../07-governance/architecture-weaknesses-code-review-2026-05-18.md). Findings are resolved in priority order: monolith decomposition → fail-open/fallback removal → contracts boundary restoration → debug surface removal → DDD governance closure. Each phase has measurable acceptance gates and can be worked on independently unless inter-phase dependencies are declared.
+
+As-is update (2026-05-21): all phases in this plan are completed in code, with remaining work shifted to documentation/status normalization only.
 
 ---
 
@@ -297,8 +301,8 @@ Scope confirmation: all cross-boundary `import(...)` occurrences in `packages/co
 
 ## 8. Related Specifications / Further Reading
 
-- [Architecture Weaknesses Code Review 2026-05-18](../docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md)
-- [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-- [Frontend Data Access Layer ADR](../docs/02-design/adr/frontend-data-access-layer-adr.md)
+- [Architecture Weaknesses Code Review 2026-05-18](../../../07-governance/architecture-weaknesses-code-review-2026-05-18.md)
+- [Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+- [Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+- [Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+- [Frontend Data Access Layer ADR](../../../02-design/adr/frontend-data-access-layer-adr.md)

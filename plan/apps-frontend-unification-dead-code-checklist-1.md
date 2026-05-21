@@ -1,10 +1,10 @@
 ---
 goal: Ordered Operational Checklist For apps/frontend Unification, Deduplication, And Dead Code Removal
-version: 1.0
+version: 1.1
 date_created: 2026-05-16
-last_updated: 2026-05-16
+last_updated: 2026-05-21 (as-is alignment)
 owner: Frontend Platform
-status: active
+status: in-progress
 last-reviewed: 2026-05-16
 next-review-date: 2026-08-16
 tags: [plan, frontend, unification, deduplication, dead-code, cleanup]
@@ -24,10 +24,10 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 1. `apps/frontend/src/app/routing/app-router.tsx`
 
-- [ ] Confirm whether `/tools/console` must remain supported or be removed.
+- [x] Confirm whether `/tools/console` must remain supported or be removed.
 - [ ] If removal is approved, delete the lazy import for `GenerationConsolePage`.
 - [ ] Remove the `/tools/console` route entry.
-- [ ] Verify no remaining navigation or deep-link expectations depend on `/tools/console`.
+- [x] Verify no remaining navigation or deep-link expectations depend on `/tools/console`.
 
 ### 2. `apps/frontend/src/features/generation/pages/GenerationConsolePage.tsx`
 
@@ -97,7 +97,7 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 13. `apps/frontend/src/features/tools/runtime/useToolForm.ts`
 
-- [ ] Remove `useProjectsLoader` after `useProjectsQuery` becomes the canonical loader for tool pages.
+- [x] Remove `useProjectsLoader` after `useProjectsQuery` becomes the canonical loader for tool pages.
 - [ ] Remove unused validation return values if they are not consumed by runtime code.
 - [ ] Keep `useAvailableSteps` only if it remains the canonical step-availability hook.
 
@@ -242,3 +242,15 @@ This checklist translates the current `apps/frontend` unification report into an
 - [ ] One canonical shared tool metadata source.
 - [ ] One canonical shared helper source for identifier generation and file validation.
 - [ ] Removal of obsolete wrappers, shims, and feature-flag branches that no longer have runtime value.
+
+## As-Is Progress Snapshot (2026-05-21)
+
+- `StatusBadge` rollout and most status rendering unification are already implemented.
+- Monolith runtime files targeted by related frontend architecture plans were already reduced (`tool-page.machine.ts`, `useToolPageRunController.ts`, `useToolPage.ts`).
+- `/tools/console` currently remains as a redirect route to `/tools`; legacy page files still exist.
+- `useProjectsLoader` is no longer referenced in `apps/frontend/src`.
+- Remaining open clusters in this checklist:
+	- console-path file removal and hard cleanup,
+	- shared tool-metadata convergence (`SessionsListingSection` local `toolLabel` mapping still present),
+	- retirement decision for UI rollout toggle (`ui-rollout.ts`, `App.tsx`, and README rollout notes),
+	- re-export shim retirement in `apps/frontend/src/features/tools/runtime/tool-ux-state.ts`.

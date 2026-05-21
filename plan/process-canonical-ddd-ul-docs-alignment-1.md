@@ -1,16 +1,16 @@
 ---
 goal: Canonical DDD UL Documentation Alignment For Planning And Operations Determinism
-version: 1.0
+version: 1.1
 date_created: 2026-05-18
-last_updated: 2026-05-18
+last_updated: 2026-05-21 (as-is alignment)
 owner: Domain Architecture
-status: Planned
+status: In progress
 tags: [process, ddd, ubiquitous-language, documentation, governance, operations]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
 
 This plan aligns canonical DDD and Ubiquitous Language documentation with current runtime behavior and repository structure to improve consistency, coherence, compactness, and deterministic execution during planning and operations.
 
@@ -39,9 +39,9 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Verify canonical documents exist and are editable at docs/01-requirements/domain-ubiquitous-language-glossary.md, docs/02-design/domain-bounded-context-map.md, docs/07-governance/domain-naming-decision-log.md. |  |  |
-| TASK-002 | Validate runtime anchor points used for alignment: apps/frontend/src/features/tools/machines/tool-page.machine.ts (prefilled-regenerate -> regenerate-current-step), apps/frontend/src/features/tools/runtime/useToolPageRunController.ts (orchestrateToolStep call), apps/backend/src/lib/runtime/auth-http.ts (/api/tools/orchestrate and /api/tools/sessions handlers). |  |  |
-| TASK-003 | Build legacy-to-current path mapping table for evidence normalization: frontend/src -> apps/frontend/src, src/lib -> apps/backend/src/lib, src/server.ts -> apps/backend/src/server.ts, db/migrations -> packages/infra-db/migrations. |  |  |
+| TASK-001 | Verify canonical documents exist and are editable at docs/01-requirements/domain-ubiquitous-language-glossary.md, docs/02-design/domain-bounded-context-map.md, docs/07-governance/domain-naming-decision-log.md. | yes | 2026-05-21 |
+| TASK-002 | Validate runtime anchor points used for alignment: apps/frontend/src/features/tools/machines/tool-page.machine.ts (prefilled-regenerate -> regenerate-current-step), apps/frontend/src/features/tools/runtime/useToolPageRunController.ts (orchestrateToolStep call), apps/backend/src/lib/runtime/auth-http.ts (/api/tools/orchestrate and /api/tools/sessions handlers). | yes | 2026-05-21 |
+| TASK-003 | Build legacy-to-current path mapping table for evidence normalization: frontend/src -> apps/frontend/src, src/lib -> apps/backend/src/lib, src/server.ts -> apps/backend/src/server.ts, db/migrations -> packages/infra-db/migrations. | yes | 2026-05-21 |
 
 ### Implementation Phase 2
 
@@ -49,9 +49,9 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-004 | In docs/07-governance/domain-naming-decision-log.md, update DDD-020 decision text so post-hydration relaunch action in prefilled-regenerate state is regenerate-current-step and start-generation is constrained to intent=new first-time generation. |  |  |
-| TASK-005 | In docs/02-design/domain-bounded-context-map.md, update Shared Concepts row ArtifactRelaunch and Integration Constraint row ArtifactRelaunch default runtime intent to remove contradictory start-generation wording and match DDD-020 updated rule. |  |  |
-| TASK-006 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, verify ArtifactRelaunch entry remains authoritative and add one explicit cross-reference to updated DDD-020 text to prevent future divergence. |  |  |
+| TASK-004 | In docs/07-governance/domain-naming-decision-log.md, update DDD-020 decision text so post-hydration relaunch action in prefilled-regenerate state is regenerate-current-step and start-generation is constrained to intent=new first-time generation. | yes | 2026-05-21 |
+| TASK-005 | In docs/02-design/domain-bounded-context-map.md, update Shared Concepts row ArtifactRelaunch and Integration Constraint row ArtifactRelaunch default runtime intent to remove contradictory start-generation wording and match DDD-020 updated rule. | yes | 2026-05-21 |
+| TASK-006 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, verify ArtifactRelaunch entry remains authoritative and add one explicit cross-reference to updated DDD-020 text to prevent future divergence. | yes | 2026-05-21 |
 
 ### Implementation Phase 3
 
@@ -59,10 +59,10 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-007 | In docs/07-governance/domain-naming-decision-log.md, update DDD-C-007 status from open to resolved-documented with evidence that apps/frontend/src/features/tools/runtime/useToolPageRunController.ts invokes orchestrateToolStep and apps/backend/src/lib/runtime/auth-http.ts serves /api/tools/orchestrate. |  |  |
-| TASK-008 | In docs/07-governance/domain-naming-decision-log.md, update DDD-031 status narrative from target-only to implemented-runtime provisional, preserving any residual cleanup scope as separate follow-up note. |  |  |
-| TASK-009 | In docs/07-governance/domain-naming-decision-log.md, revise DDD-051 implementation status text to mark /api/tools/sessions listing as implemented in apps/backend/src/lib/runtime/auth-http.ts and remove pending-rollout wording. |  |  |
-| TASK-010 | In docs/07-governance/domain-naming-decision-log.md, revise DDD-019 narrative to declare shared source in packages/contracts/src/tool-workflows.ts via TOOL_STEP_ORDER consumed by FE and BE projections. |  |  |
+| TASK-007 | In docs/07-governance/domain-naming-decision-log.md, update DDD-C-007 status from open to resolved-documented with evidence that apps/frontend/src/features/tools/runtime/useToolPageRunController.ts invokes orchestrateToolStep and apps/backend/src/lib/runtime/auth-http.ts serves /api/tools/orchestrate. | yes | 2026-05-21 |
+| TASK-008 | In docs/07-governance/domain-naming-decision-log.md, update DDD-031 status narrative from target-only to implemented-runtime provisional, preserving any residual cleanup scope as separate follow-up note. | yes | 2026-05-21 |
+| TASK-009 | In docs/07-governance/domain-naming-decision-log.md, revise DDD-051 implementation status text to mark /api/tools/sessions listing as implemented in apps/backend/src/lib/runtime/auth-http.ts and remove pending-rollout wording. | yes | 2026-05-21 |
+| TASK-010 | In docs/07-governance/domain-naming-decision-log.md, revise DDD-019 narrative to declare shared source in packages/contracts/src/tool-workflows.ts via TOOL_STEP_ORDER consumed by FE and BE projections. | yes | 2026-05-21 |
 
 ### Implementation Phase 4
 
@@ -70,9 +70,9 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, replace legacy source evidence path prefixes with current equivalents using the Phase 1 mapping table while preserving semantic evidence scope. |  |  |
-| TASK-012 | In docs/02-design/domain-bounded-context-map.md, normalize legacy source evidence paths to current prefixes and keep only verifiable path references. |  |  |
-| TASK-013 | In docs/07-governance/domain-naming-decision-log.md, normalize legacy source evidence paths to current prefixes and remove stale references that cannot be validated in the workspace. |  |  |
+| TASK-011 | In docs/01-requirements/domain-ubiquitous-language-glossary.md, replace legacy source evidence path prefixes with current equivalents using the Phase 1 mapping table while preserving semantic evidence scope. | partial | 2026-05-21 |
+| TASK-012 | In docs/02-design/domain-bounded-context-map.md, normalize legacy source evidence paths to current prefixes and keep only verifiable path references. | partial | 2026-05-21 |
+| TASK-013 | In docs/07-governance/domain-naming-decision-log.md, normalize legacy source evidence paths to current prefixes and remove stale references that cannot be validated in the workspace. | partial | 2026-05-21 |
 
 ### Implementation Phase 5
 
@@ -80,9 +80,15 @@ This plan aligns canonical DDD and Ubiquitous Language documentation with curren
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Run ID-scoped deterministic checks for ArtifactRelaunch policy across canonical docs using expected + forbidden clauses. Expected in relaunch-init semantics: prefilled-regenerate, regenerate-current-step, intent='regenerate'. Forbidden in relaunch-init semantics: start-generation as effective post-hydration action. |  |  |
-| TASK-015 | Run ID-scoped deterministic checks for DDD-C-007, DDD-031, DDD-051, and DDD-019 using expected + forbidden clauses per entry. Expected: resolved-documented/implemented-runtime wording aligned to runtime evidence. Forbidden: stale open/pending/zero-caller claims that contradict current runtime. |  |  |
-| TASK-016 | Run exact legacy-root evidence path checks with anchored backticked patterns to avoid false positives on current paths (apps/frontend/src, apps/backend/src/lib, packages/infra-db/migrations). Legacy targets: frontend/src, src/lib, src/server.ts, db/migrations. |  |  |
+| TASK-014 | Run ID-scoped deterministic checks for ArtifactRelaunch policy across canonical docs using expected + forbidden clauses. Expected in relaunch-init semantics: prefilled-regenerate, regenerate-current-step, intent='regenerate'. Forbidden in relaunch-init semantics: start-generation as effective post-hydration action. | yes | 2026-05-21 |
+| TASK-015 | Run ID-scoped deterministic checks for DDD-C-007, DDD-031, DDD-051, and DDD-019 using expected + forbidden clauses per entry. Expected: resolved-documented/implemented-runtime wording aligned to runtime evidence. Forbidden: stale open/pending/zero-caller claims that contradict current runtime. | yes | 2026-05-21 |
+| TASK-016 | Run exact legacy-root evidence path checks with anchored backticked patterns to avoid false positives on current paths (apps/frontend/src, apps/backend/src/lib, packages/infra-db/migrations). Legacy targets: frontend/src, src/lib, src/server.ts, db/migrations. | pending | |
+
+## 9. As-Is Residual Drift (2026-05-21)
+
+- Canonical docs are aligned for DDD-020, DDD-C-007, DDD-031, DDD-051, DDD-019.
+- Legacy evidence paths are still present in canonical documents and keep TASK-011/012/013 only partial.
+- TASK-016 remains open until legacy-root path checks return zero matches.
 
 ## 3. Alternatives
 

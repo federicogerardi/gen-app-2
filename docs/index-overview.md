@@ -8,9 +8,9 @@ owner: Documentation Archivist
 
 # Documentation Index Overview
 
-Data: 2026-05-16  
+Data: 2026-05-21  
 Stato: publication-ready  
-Versione indice: 2.7
+Versione indice: 2.8
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -28,7 +28,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 
 - Scope: as-is state — public repository
 - Root documentale: docs/
-- Last review date: 2026-05-07
+- Last review date: 2026-05-21
 - Next review date: 2026-08-07
 
 ## Section Map
@@ -60,6 +60,10 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md)
 - [domain-bounded-context-map](./02-design/domain-bounded-context-map.md)
 - [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md)
+
+### Templates
+
+- [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
 
 **Visual representations**: [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md) provides Mermaid diagrams and cross-referenced documentation for the Generation context Tool flow, grounded in all 37 canonical DDD terms (DDD-001 through DDD-037).
 
@@ -135,6 +139,12 @@ Archive folder is maintained for future reference and historical context. See [9
 - [refactor-generation-system-definition-1](./99-lifecycle/99-archive/plans/refactor-generation-system-definition-1.md)
 - [refactor-toolpage-extraction-readiness-gate-plan-1](./99-lifecycle/99-archive/plans/refactor-toolpage-extraction-readiness-gate-plan-1.md)
 - [upgrade-frontend-ui-unification-plan-1](./99-lifecycle/99-archive/plans/upgrade-frontend-ui-unification-plan-1.md)
+- [refactor-architecture-weaknesses-remediation-1](./99-lifecycle/99-archive/plans/refactor-architecture-weaknesses-remediation-1.md)
+- [refactor-auth-http-monolith-context-1](./99-lifecycle/99-archive/plans/refactor-auth-http-monolith-context-1.md)
+
+### Archived Resources
+
+- [youtube-lf-script-prompts-index-mapping](./99-lifecycle/99-archive/resources/youtube-lf-script-prompts/index-mapping.md)
 
 ---
 

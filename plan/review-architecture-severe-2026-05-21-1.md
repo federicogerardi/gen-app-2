@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.6
+version: 1.7
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -24,18 +24,18 @@ owner: Architecture Review
   - `npm --workspace apps/backend run typecheck` passed.
   - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` passed.
 - Evidence:
-  - Hydrate candidate retrieval has no explicit cap in the call site:
-    - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:203` calls `listArtifactsByUser(...)` with `{ type, status, projectId }` only (no `limit`, no `offset`).
-  - In briefing-coherence mode, hydrate expands the full candidate set into a second wide read:
-    - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:221` calls `getArtifactsByIdsForUser(...)` with `candidates.map(...)` over the entire candidate array.
-  - Final selection is performed via in-memory ranking over all eligible rows:
-    - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:250` executes `const ranked = [...eligibleCandidates].sort(...)`.
+  - Hydrate candidate retrieval is now capped in the call site:
+    - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:209` calls `listArtifactsByUser(...)` with explicit `limit: toolsHydrateArtifactScanLimit`.
+  - Hydrate limit config is centralized and wired from runtime:
+    - `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts:3` defines `DEFAULT_TOOLS_HYDRATE_ARTIFACT_SCAN_LIMIT`.
+    - `apps/backend/src/lib/runtime/auth-http/runtime.ts:90-91` resolves and injects `toolsHydrateArtifactScanLimit`.
+  - Candidate selection is now deterministic linear best-candidate selection (no full-array sort):
+    - `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts:252-258` computes `best` via `compareHydrateExtractionCandidates(...)` loop.
   - Repository query only applies SQL pagination when the caller provides it:
     - `apps/backend/src/lib/adapters/postgres-redis.production.ts:1167` conditionally adds `LIMIT`.
     - `apps/backend/src/lib/adapters/postgres-redis.production.ts:1169` builds `LIMIT $...` into the query only in that branch.
-  - Comparative boundary evidence (asymmetry with orchestrate path):
-    - Orchestrate has a dedicated cap (`DEFAULT_TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT = 1000`) in `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts:2`.
-    - Hydrate handler has no equivalent scan-limit config in `apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts`.
+  - Comparative boundary evidence (symmetry with orchestrate path):
+    - Orchestrate and hydrate share dedicated scan-limit config ownership in `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts`.
   - Operational evidence gap:
     - Backend scripts expose `bench:orchestrate` only (`apps/backend/package.json:13`); no hydrate benchmark gate is present.
 - Architectural weakness:
@@ -57,10 +57,11 @@ owner: Architecture Review
   - `npm run typecheck --workspaces --if-present` passed.
   - Targeted changed-test run completed with green result after fixture alignment (20/20).
 - Evidence:
-  - `packages/contracts/src/index.ts`: `step?: ToolStep | string`.
-  - `packages/contracts/src/index.ts`: `tone?: string`.
-  - `packages/contracts/src/index.ts`: `model: string`.
-  - `packages/contracts/src/index.ts`: deprecated `relaunchMode` still present.
+  - `packages/contracts/src/index.ts:74` defines `LlmModelId = \`${string}/${string}\`` and replaces free-form `model: string`.
+  - `packages/contracts/src/index.ts:75` defines `RequestTone = ToneProfile | 'analitico'`.
+  - `packages/contracts/src/index.ts:119` uses `tone?: RequestTone`.
+  - `packages/contracts/src/index.ts:170` uses `model: LlmModelId`.
+  - Deprecated `relaunchMode` is absent from current `GenerationRequest` boundary in `packages/contracts/src/index.ts`.
 - Architectural weakness:
   - Compile-time guarantees are weak for dispatch-critical fields.
   - Correctness relies heavily on runtime normalization.
@@ -77,14 +78,12 @@ owner: Architecture Review
   - `npm --workspace apps/backend run typecheck` passed.
   - `npm --workspace apps/backend run test -- src/lib/tests/runtime.tool-prompts.test.ts` passed.
 - Evidence:
-  - Direct bypass in request boundary (`apps/backend/src/lib/runtime/request-contract.ts`):
-    - `registryVersion: request.registryVersion as never`.
-    - `registrySnapshotRef: request.registrySnapshotRef as never`.
-    - fallback/default variants also cast through `as never` (`registrySnapshotRef`, `registryVersion`).
+  - `as never` casts are absent in current request boundary and routing helpers:
+    - `apps/backend/src/lib/runtime/request-contract.ts` contains no `as never` usage.
+    - `apps/backend/src/lib/machines/generation-routing.ts` contains no `as never` usage.
   - Upstream parser accepts raw string values for registry fields without semantic validation (`apps/backend/src/lib/runtime/generation-request-node.ts`):
     - `if (typeof payload.registryVersion === 'string') request.registryVersion = payload.registryVersion`.
     - `if (typeof payload.registrySnapshotRef === 'string') request.registrySnapshotRef = payload.registrySnapshotRef`.
-  - Pattern is not isolated to one file: routing helper also forces selector typing with `as never` when deriving fallback snapshot ref (`apps/backend/src/lib/machines/generation-routing.ts`).
   - Runtime guard on selector presence checks only truthiness (`event.registryVersion || event.registrySnapshotRef`) and does not enforce canonical shape (`apps/backend/src/lib/machines/generation-system.guards.ts`).
   - Current focused tests around request enrichment (`apps/backend/src/lib/tests/runtime.tool-prompts.test.ts`) validate prompt/model/tone/step normalization but do not add negative coverage for invalid registry selector shape propagation.
 - Architectural weakness:
@@ -158,9 +157,10 @@ owner: Architecture Review
   - `npm run typecheck --workspaces --if-present` passed.
 - Evidence:
   - Root `package.json` defines workspace lint orchestration.
-  - `apps/frontend/package.json` and `apps/backend/package.json` have no local `lint` script.
-  - `apps/frontend/src/features/tools/runtime/session-client.ts` keeps an unused import.
-  - `tsconfig` files do not enforce `noUnusedLocals` / `noUnusedParameters`.
+  - Local lint scripts are now present:
+    - `apps/frontend/package.json` defines `lint`.
+    - `apps/backend/package.json` defines `lint`.
+  - NoUnused enforcement is now enabled in root/frontend/backend tsconfig files (`noUnusedLocals`, `noUnusedParameters`).
   - Remediation implementation:
     - `apps/frontend/package.json` and `apps/backend/package.json` now define local `lint` scripts.
     - `apps/frontend/src/features/tools/runtime/session-client.ts` unused import removed.

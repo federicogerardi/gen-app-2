@@ -253,8 +253,9 @@ describe('briefingUploadMachine', () => {
 
   it('requires both files for angle-generator before upload', async () => {
     const actor = createAngleMachineActor();
+    const briefing = new File(['brief'], 'brief.md', { type: 'text/markdown' });
 
-    actor.send({ type: 'FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
+    actor.send({ type: 'FILE_SELECTED', file: briefing });
 
     await waitFor(
       actor,
@@ -263,8 +264,64 @@ describe('briefingUploadMachine', () => {
     );
 
     expect(mockedUploadBrief).not.toHaveBeenCalled();
-    expect(actor.getSnapshot().context.file).toBeNull();
+    expect(actor.getSnapshot().context.file).toBe(briefing);
+    expect(actor.getSnapshot().context.fileName).toBe('brief.md');
     expect(actor.getSnapshot().context.angleDetectorFile).toBeNull();
+  });
+
+  it('accepts briefing-first then angle-detector and continues to extraction', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-angle-2',
+      projectId: 'project-1',
+      toolKey: 'angle-generator',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      size: 20,
+      parsedFormat: 'md',
+      normalizedText: 'brief text',
+      charCount: 20,
+      wordCount: 4,
+      angleDetector: {
+        fileName: 'angle-detector.md',
+        mimeType: 'text/markdown',
+        size: 22,
+        parsedFormat: 'md',
+        normalizedText: 'angle detector text',
+        charCount: 22,
+        wordCount: 4,
+      },
+      knowledgeSourcesCount: 2,
+    });
+    mockedRunExtraction.mockResolvedValue({
+      artifactId: 'artifact-angle-2',
+      content: '{"ok":true}',
+      payload: { ok: true },
+    });
+
+    const actor = createAngleMachineActor();
+    const briefing = new File(['brief'], 'brief.md', { type: 'text/markdown' });
+    const angleDetector = new File(['angle'], 'angle-detector.md', { type: 'text/markdown' });
+
+    actor.send({ type: 'FILE_SELECTED', file: briefing });
+
+    await waitFor(
+      actor,
+      (snapshot) => snapshot.matches('idle')
+        && snapshot.context.error === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
+    );
+
+    actor.send({ type: 'FILE_SELECTED', file: angleDetector, source: 'angle-detector' });
+
+    await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+
+    expect(mockedUploadBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolKey: 'angle-generator',
+        file: briefing,
+        angleDetectorFile: angleDetector,
+      }),
+      expect.any(Object),
+    );
   });
 
   it('uploads angle-generator when both files are selected', async () => {

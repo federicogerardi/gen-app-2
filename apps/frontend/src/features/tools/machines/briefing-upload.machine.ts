@@ -203,6 +203,10 @@ export const briefingUploadMachine = setup({
   },
   guards: {
     isAngleDetectorSelection: ({ event }) => event.type === 'FILE_SELECTED' && event.source === 'angle-detector',
+    isAngleDetectorSelectionWithBriefing: ({ context, event }) =>
+      event.type === 'FILE_SELECTED'
+      && event.source === 'angle-detector'
+      && !!context.file,
     isValidExtension: ({ context }) => {
       if (!context.file) {
         return false;
@@ -362,6 +366,11 @@ export const briefingUploadMachine = setup({
       on: {
         FILE_SELECTED: [
           {
+            guard: 'isAngleDetectorSelectionWithBriefing',
+            target: 'validating',
+            actions: 'cacheSelectedFile',
+          },
+          {
             guard: 'isAngleDetectorSelection',
             actions: 'cacheSelectedFile',
           },
@@ -406,10 +415,7 @@ export const briefingUploadMachine = setup({
           target: 'idle',
           actions: assign({
             error: () => 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
-            file: () => null,
-            fileName: () => null,
-            angleDetectorFile: () => null,
-            angleDetectorFileName: () => null,
+            // Keep selected briefing in context to allow progressive two-file completion.
             angleDetectorNormalizedText: () => null,
             angleDetectorParsedFormat: () => null,
           }),
@@ -616,6 +622,11 @@ export const briefingUploadMachine = setup({
     ready: {
       on: {
         FILE_SELECTED: [
+          {
+            guard: 'isAngleDetectorSelectionWithBriefing',
+            target: 'validating',
+            actions: 'cacheSelectedFile',
+          },
           {
             guard: 'isAngleDetectorSelection',
             actions: 'cacheSelectedFile',

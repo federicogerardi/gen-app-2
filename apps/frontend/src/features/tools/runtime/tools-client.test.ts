@@ -554,6 +554,65 @@ describe('tools-client', () => {
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
   });
+
+  it('runExtraction includes knowledgeSources extraction payload for angle-generator', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-angle-001', artifactId: 'artifact-angle-001' } });
+      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-001', chunk: '{"ok":true}', sequence: 1 } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-001', status: 'completed', reason: null } });
+    });
+
+    await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'angle-generator',
+      briefingId: 'brief-001',
+      briefingText: 'merged context',
+      extractionPayload: {
+        knowledgeSources: [
+          { kind: 'briefing', fileName: 'briefing.md', parsedFormat: 'md' },
+          { kind: 'angle-detector', fileName: 'angle-detector.md', parsedFormat: 'md' },
+        ],
+      },
+    });
+
+    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+    const request = streamGenerationMock.mock.calls[0]?.[0] as {
+      input: { extractionPayload?: { knowledgeSources?: unknown[] } };
+      toolKey: string;
+      workflowType: string;
+    };
+    expect(request.toolKey).toBe('extraction');
+    expect(request.workflowType).toBe('extraction');
+    expect(Array.isArray(request.input.extractionPayload?.knowledgeSources)).toBe(true);
+    expect(request.input.extractionPayload?.knowledgeSources).toHaveLength(2);
+  });
+
+  it('runExtraction keeps single dispatch for angle-generator extraction request', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-angle-002', artifactId: 'artifact-angle-002' } });
+      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-002', chunk: '{"ok":true}', sequence: 1 } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-002', status: 'completed', reason: null } });
+    });
+
+    await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'angle-generator',
+      briefingId: 'brief-001',
+      briefingText: 'merged context',
+      extractionPayload: {
+        knowledgeSources: [
+          { kind: 'briefing', fileName: 'briefing.md', parsedFormat: 'md' },
+          { kind: 'angle-detector', fileName: 'angle-detector.md', parsedFormat: 'md' },
+        ],
+      },
+    });
+
+    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('orchestrateToolStep', () => {

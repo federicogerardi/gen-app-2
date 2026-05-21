@@ -21,6 +21,8 @@ export type BriefingUploadContext = {
   extractionPayload: Record<string, unknown> | null;
   normalizedText: string | null;
   parsedFormat: 'txt' | 'md' | 'docx' | null;
+  angleDetectorNormalizedText: string | null;
+  angleDetectorParsedFormat: 'txt' | 'md' | 'docx' | null;
   error: string | null;
 };
 
@@ -161,7 +163,7 @@ export const briefingUploadMachine = setup({
           projectId: input.projectId,
           toolKey: input.toolKey,
           file: input.file,
-          angleDetectorFile: input.angleDetectorFile ?? undefined,
+          ...(input.angleDetectorFile ? { angleDetectorFile: input.angleDetectorFile } : {}),
         },
         {
           apiBaseUrl: input.apiBaseUrl,
@@ -176,6 +178,7 @@ export const briefingUploadMachine = setup({
         toolKey: SupportedTool;
         briefingId: string;
         briefingText: string;
+        extractionPayload: Record<string, unknown>;
         apiBaseUrl: string;
         capabilities: Partial<BackendCapabilities>;
       };
@@ -188,6 +191,7 @@ export const briefingUploadMachine = setup({
           model: 'openrouter/auto',
           briefingId: input.briefingId,
           briefingText: input.briefingText,
+          extractionPayload: input.extractionPayload,
           registrySnapshotRef: 'snapshot:default',
         },
         {
@@ -247,6 +251,8 @@ export const briefingUploadMachine = setup({
           extractionPayload: null,
           normalizedText: null,
           parsedFormat: null,
+          angleDetectorNormalizedText: null,
+          angleDetectorParsedFormat: null,
           error: null,
         };
       }
@@ -260,6 +266,8 @@ export const briefingUploadMachine = setup({
         extractionPayload: null,
         normalizedText: null,
         parsedFormat: null,
+        angleDetectorNormalizedText: null,
+        angleDetectorParsedFormat: null,
         error: null,
       };
     }),
@@ -274,6 +282,8 @@ export const briefingUploadMachine = setup({
       extractionPayload: null,
       normalizedText: null,
       parsedFormat: null,
+      angleDetectorNormalizedText: null,
+      angleDetectorParsedFormat: null,
       error: null,
     })),
     syncInput: assign(({ context, event }) => {
@@ -337,6 +347,8 @@ export const briefingUploadMachine = setup({
     extractionPayload: null,
     normalizedText: null,
     parsedFormat: null,
+    angleDetectorNormalizedText: null,
+    angleDetectorParsedFormat: null,
     error: null,
   }),
   initial: 'idle',
@@ -398,6 +410,8 @@ export const briefingUploadMachine = setup({
             fileName: () => null,
             angleDetectorFile: () => null,
             angleDetectorFileName: () => null,
+            angleDetectorNormalizedText: () => null,
+            angleDetectorParsedFormat: () => null,
           }),
         },
         {
@@ -408,6 +422,8 @@ export const briefingUploadMachine = setup({
             fileName: () => null,
             angleDetectorFile: () => null,
             angleDetectorFileName: () => null,
+            angleDetectorNormalizedText: () => null,
+            angleDetectorParsedFormat: () => null,
           }),
         },
       ],
@@ -452,6 +468,8 @@ export const briefingUploadMachine = setup({
                 angleDetectorFileName: output.angleDetector?.fileName ?? context.angleDetectorFileName,
                 normalizedText: output.normalizedText,
                 parsedFormat: output.parsedFormat,
+                angleDetectorNormalizedText: output.angleDetector?.normalizedText ?? null,
+                angleDetectorParsedFormat: output.angleDetector?.parsedFormat ?? null,
                 error: null,
               };
             }),
@@ -465,6 +483,8 @@ export const briefingUploadMachine = setup({
               fileName: null,
               angleDetectorFile: null,
               angleDetectorFileName: null,
+              angleDetectorNormalizedText: null,
+              angleDetectorParsedFormat: null,
             })),
           },
         ],
@@ -477,6 +497,8 @@ export const briefingUploadMachine = setup({
             fileName: null,
             angleDetectorFile: null,
             angleDetectorFileName: null,
+            angleDetectorNormalizedText: null,
+            angleDetectorParsedFormat: null,
           })),
         },
       },
@@ -508,7 +530,25 @@ export const briefingUploadMachine = setup({
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           briefingId: context.briefingId!,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          briefingText: context.normalizedText!,
+          briefingText: context.toolKey === 'angle-generator' && context.angleDetectorNormalizedText
+            ? `${context.normalizedText!}\n\n---\n\n${context.angleDetectorNormalizedText}`
+            : context.normalizedText!,
+          extractionPayload: context.toolKey === 'angle-generator'
+            ? {
+              knowledgeSources: [
+                {
+                  kind: 'briefing',
+                  fileName: context.fileName,
+                  parsedFormat: context.parsedFormat,
+                },
+                {
+                  kind: 'angle-detector',
+                  fileName: context.angleDetectorFileName,
+                  parsedFormat: context.angleDetectorParsedFormat,
+                },
+              ],
+            }
+            : {},
           apiBaseUrl: context.apiBaseUrl,
           capabilities: context.capabilities,
         }),
@@ -526,6 +566,8 @@ export const briefingUploadMachine = setup({
                   fileName: null,
                   angleDetectorFile: null,
                   angleDetectorFileName: null,
+                  angleDetectorNormalizedText: null,
+                  angleDetectorParsedFormat: null,
                 };
               }
 
@@ -545,6 +587,8 @@ export const briefingUploadMachine = setup({
               fileName: null,
               angleDetectorFile: null,
               angleDetectorFileName: null,
+              angleDetectorNormalizedText: null,
+              angleDetectorParsedFormat: null,
               briefingId: null,
               extractionArtifactId: null,
               extractionPayload: null,
@@ -563,6 +607,8 @@ export const briefingUploadMachine = setup({
             fileName: null,
             angleDetectorFile: null,
             angleDetectorFileName: null,
+            angleDetectorNormalizedText: null,
+            angleDetectorParsedFormat: null,
           })),
         },
       },

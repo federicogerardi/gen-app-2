@@ -94,6 +94,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'angle-generator': {
+    toolKey: 'angle-generator',
+    status: 'enabled',
+    displayName: 'Angle Generator',
+    defaultPrompt: 'Genera angoli marketing prioritizzati e attivabili a partire dal contesto estratto.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['angle-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['angle-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 export const getEnabledToolKeys = (): SupportedTool[] => {
@@ -210,6 +222,23 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Outro Structure',
       description: 'Final recap, gap closure, and CTA finale',
       expectedOutputFormat: 'Markdown outro framework',
+    },
+  },
+  'angle-generator': {
+    'context-and-angle-matrix': {
+      displayName: 'Context and Angle Matrix',
+      description: 'Mappa contesto e costruisce la matrice degli angle rilevanti',
+      expectedOutputFormat: 'Markdown con matrice angle strutturata',
+    },
+    'angle-prioritization': {
+      displayName: 'Angle Prioritization',
+      description: 'Valuta e priorizza gli angle in base a impatto e differenziazione',
+      expectedOutputFormat: 'Markdown con ranking e motivazioni',
+    },
+    'creative-activation': {
+      displayName: 'Creative Activation',
+      description: 'Trasforma gli angle prioritari in asset creativi attivabili',
+      expectedOutputFormat: 'Markdown con headline e attivazioni creative',
     },
   },
 };

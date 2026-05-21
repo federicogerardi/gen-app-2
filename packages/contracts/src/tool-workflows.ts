@@ -28,6 +28,15 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'outro-structure', dependencies: ['native-cta-embeds'] },
     ],
   },
+  'angle-generator': {
+    toolKey: 'angle-generator',
+    workflowType: 'angle_generator',
+    steps: [
+      { key: 'context-and-angle-matrix', dependencies: [] },
+      { key: 'angle-prioritization', dependencies: ['context-and-angle-matrix'] },
+      { key: 'creative-activation', dependencies: ['angle-prioritization'] },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -136,6 +145,10 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'youtube_long_form'
   ) {
     return 'youtube-lf-script';
+  }
+
+  if (normalized === 'angle_generator' || normalized === 'anglegenerator') {
+    return 'angle-generator';
   }
 
   return isToolKey(normalized) ? normalized : null;

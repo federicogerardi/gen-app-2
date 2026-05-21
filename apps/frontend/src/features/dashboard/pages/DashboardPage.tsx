@@ -13,6 +13,7 @@ const formatSessionToolName = (toolKey: string | null): string => {
   if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
   if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
   if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
+  if (toolKey === 'angle-generator') return appCopy.ui.navigation.angleGenerator;
   return toolKey ?? 'Tool non disponibile';
 };
 

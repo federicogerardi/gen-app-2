@@ -17,6 +17,7 @@ const ProjectDetailPage = lazy(() => import('../../features/projects/pages/Proje
 const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages/pages/FunnelPagesToolPage').then(m => ({ default: m.FunnelPagesToolPage })));
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
+const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-generator/pages/AngleGeneratorToolPage').then(m => ({ default: m.AngleGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -34,6 +35,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
   nextland: NextlandToolPage,
   'youtube-lf-script': YoutubeLfScriptToolPage,
+  'angle-generator': AngleGeneratorToolPage,
 };
 
 /**

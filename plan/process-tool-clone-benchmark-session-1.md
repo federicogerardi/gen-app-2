@@ -4,7 +4,7 @@ version: 1.1
 date_created: 2026-05-21
 last_updated: 2026-05-21
 owner: Platform Architecture
-status: in-progress
+status: completed
 tags: [plan, tool-workspace, benchmark, backend, frontend, modularity, scalability, unification]
 ---
 
@@ -228,24 +228,24 @@ Acceptance for Track B:
 
 ### Track C - Extraction Assembly Request (single LLM job)
 
-- [ ] C-001: Update FE extraction assembly path (`runExtraction` input composition) to merge normalized texts from both sources for `angle-generator`.
-- [ ] C-002: Populate `GenerationRequest.input.briefingText` with merged context for angle-generator.
-- [ ] C-003: Populate `GenerationRequest.input.extractionPayload` with `knowledgeSources` metadata envelope (briefing + angle-detector source descriptors).
-- [ ] C-004: Keep extraction dispatch as one request (`artifactType = extraction`, `toolKey = extraction`, `workflowType = extraction`) with `input.toolKey = angle-generator`.
-- [ ] C-005: Prohibit dual independent extraction invocations in FE orchestration path.
+- [x] C-001: Update FE extraction assembly path (`runExtraction` input composition) to merge normalized texts from both sources for `angle-generator`.
+- [x] C-002: Populate `GenerationRequest.input.briefingText` with merged context for angle-generator.
+- [x] C-003: Populate `GenerationRequest.input.extractionPayload` with `knowledgeSources` metadata envelope (briefing + angle-detector source descriptors).
+- [x] C-004: Keep extraction dispatch as one request (`artifactType = extraction`, `toolKey = extraction`, `workflowType = extraction`) with `input.toolKey = angle-generator`.
+- [x] C-005: Prohibit dual independent extraction invocations in FE orchestration path.
 
 Acceptance for Track C:
 
-- [ ] C-AC-001: one extraction dispatch request per angle-generator run.
-- [ ] C-AC-002: merged `briefingText` and `knowledgeSources` payload present in request.
-- [ ] C-AC-003: no behavior changes for non-angle-generator extraction flow.
+- [x] C-AC-001: one extraction dispatch request per angle-generator run.
+- [x] C-AC-002: merged `briefingText` and `knowledgeSources` payload present in request.
+- [x] C-AC-003: no behavior changes for non-angle-generator extraction flow.
 
 ### Track D - Test Cases (blocking)
 
 - [x] D-001: FE unit tests in `apps/frontend/src/features/tools/runtime/tools-client.test.ts`:
   - dual-file payload serialization for `angle-generator`
   - fallback legacy serialization for existing tools
-- [ ] D-002: FE runtime tests in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts`:
+- [x] D-002: FE runtime tests in `apps/frontend/src/features/tools/runtime/useToolPage.test.ts`:
   - pre-submit guard when one file is missing
   - single extraction dispatch invariant
 - [x] D-003: BE route tests in `apps/backend/src/lib/tests/runtime.auth-http.test.ts` (or focused tools handler suite):
@@ -253,7 +253,7 @@ Acceptance for Track C:
   - 400 on missing `angleDetector`
   - 400 on missing `briefing`
   - legacy single-file success path unchanged
-- [ ] D-004: Contract tests for request assembly ensuring `GenerationRequest.input.extractionPayload.knowledgeSources` is present for `angle-generator` only.
+- [x] D-004: Contract tests for request assembly ensuring `GenerationRequest.input.extractionPayload.knowledgeSources` is present for `angle-generator` only.
 - [x] D-005: XState machine tests for impacted paths:
   - dual-source readiness guard coverage in `tool-page.machine`
   - upload guard coverage in `briefing-upload.machine`
@@ -262,26 +262,26 @@ Acceptance for Track C:
 Acceptance for Track D:
 
 - [x] D-AC-001: all new tests pass.
-- [ ] D-AC-002: no regressions in existing FE/BE suites from EXEC-001..EXEC-006.
+- [x] D-AC-002: no regressions in existing FE/BE suites from EXEC-001..EXEC-006.
 
 ## 5d. XState Impact Gate (blocking for touched FE runtime)
 
 This gate applies to every change that touches Tool Workspace machine logic for `angle-generator`.
 
-- [ ] X-001: Event and context contracts are explicit in impacted machines (`tool-page.machine`, `briefing-upload.machine`) for dual-source input (`BriefingFile` + `AngleDetectorFile`).
-- [ ] X-002: Readiness guard for `angle-generator` blocks progression if one source is missing; legacy tools keep current single-source behavior.
-- [ ] X-003: Transition semantics are deterministic:
+- [x] X-001: Event and context contracts are explicit in impacted machines (`tool-page.machine`, `briefing-upload.machine`) for dual-source input (`BriefingFile` + `AngleDetectorFile`).
+- [x] X-002: Readiness guard for `angle-generator` blocks progression if one source is missing; legacy tools keep current single-source behavior.
+- [x] X-003: Transition semantics are deterministic:
   - internal transitions remain default behavior
   - `reenter: true` is used only where required and justified
   - `always` transitions (if present) are bounded and cannot loop indefinitely
-- [ ] X-004: Side effects are kept out of `assign`; async and effectful work remains in actions/invoked actor logic.
-- [ ] X-005: Actor input lifecycle is deterministic in React integration: if machine input can change after mount, synchronization is event-driven and covered by tests.
+- [x] X-004: Side effects are kept out of `assign`; async and effectful work remains in actions/invoked actor logic.
+- [x] X-005: Actor input lifecycle is deterministic in React integration: if machine input can change after mount, synchronization is event-driven and covered by tests.
 
 Acceptance for XState Impact Gate:
 
-- [ ] X-AC-001: machine-level tests pass for all touched states/events/guards.
-- [ ] X-AC-002: no regression in FE runtime tests (`useToolPage.test.ts`) and machine suites listed in EXEC-004.
-- [ ] X-AC-003: no XState v4 legacy pattern introduced in touched files (for example runtime wiring via `interpret`).
+- [x] X-AC-001: machine-level tests pass for all touched states/events/guards.
+- [x] X-AC-002: no regression in FE runtime tests (`useToolPage.test.ts`) and machine suites listed in EXEC-004.
+- [x] X-AC-003: no XState v4 legacy pattern introduced in touched files (for example runtime wiring via `interpret`).
 
 ## 5e. Prompt Root and Runtime Prompt Pack (copy-ready)
 

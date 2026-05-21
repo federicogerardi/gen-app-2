@@ -247,7 +247,7 @@ describe('useToolPage', () => {
     );
   });
 
-  it('exposes semantic briefing handlers and streamingStep without leaking internals', () => {
+  it('exposes semantic briefing handlers (including angle-detector source) and streamingStep without leaking internals', () => {
     mocks.generation.isStreamActive = true;
     mocks.generation.snapshot.context.lastRequest = {
       input: { step: 'optin' },
@@ -256,14 +256,18 @@ describe('useToolPage', () => {
     const { result } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
 
     const file = new File(['brief'], 'brief.md', { type: 'text/markdown' });
+    const angleDetectorFile = new File(['angle'], 'angle-detector.md', { type: 'text/markdown' });
     act(() => {
       result.current.handleBriefingFileSelected(file);
+      result.current.handleAngleDetectorFileSelected(angleDetectorFile);
       result.current.handleBriefingReset();
     });
 
     expect(result.current.streamingStep).toBe('optin');
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file });
+    expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file: angleDetectorFile, source: 'angle-detector' });
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_RESET' });
+    expect(mocks.generation.start).not.toHaveBeenCalled();
 
     expect('toolPageSend' in result.current).toBe(false);
     expect('generationSnapshot' in result.current).toBe(false);

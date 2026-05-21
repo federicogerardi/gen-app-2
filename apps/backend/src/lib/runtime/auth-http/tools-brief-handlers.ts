@@ -91,15 +91,15 @@ const parseUploadedBriefEnvelope = async (
   try {
     fileBuffer = Buffer.from(envelope.contentBase64, 'base64');
   } catch {
-    throw new BriefParseError('Invalid base64 payload');
+    throw new BriefParseError('unsupported_format', 'Invalid base64 payload');
   }
 
   if (fileBuffer.length === 0) {
-    throw new BriefParseError('Uploaded brief is empty');
+    throw new BriefParseError('empty_content', 'Uploaded brief is empty');
   }
 
   if (fileBuffer.length > MAX_BRIEF_UPLOAD_BYTES) {
-    throw new BriefParseError('Uploaded brief is too large');
+    throw new BriefParseError('unsupported_format', 'Uploaded brief is too large');
   }
 
   const parsedBrief = await parseBriefInput({

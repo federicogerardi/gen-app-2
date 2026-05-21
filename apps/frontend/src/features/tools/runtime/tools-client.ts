@@ -50,7 +50,7 @@ export type UploadBriefInput = {
   projectId: string;
   toolKey: ToolKey;
   file: File;
-  angleDetectorFile?: File;
+  angleDetectorFile?: File | null;
 };
 
 export type UploadBriefAngleDetectorResult = {
@@ -87,6 +87,7 @@ export type RunExtractionInput = {
   notes?: string;
   briefingId: string;
   briefingText: string;
+  extractionPayload?: Record<string, unknown>;
   extractionArtifactId?: string | null;
   stepDependencyArtifactIds?: string[];
   idempotencyKey?: string;
@@ -138,10 +139,11 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
     throw new Error('Invalid tools upload response payload');
   }
 
+  const angleDetector = body.data?.angleDetector;
   return {
     ...briefing,
-    angleDetector: body.data?.angleDetector,
-    knowledgeSourcesCount: body.data?.angleDetector ? (body.data.knowledgeSourcesCount ?? 2) : undefined,
+    ...(angleDetector ? { angleDetector } : {}),
+    ...(angleDetector ? { knowledgeSourcesCount: body.data?.knowledgeSourcesCount ?? 2 } : {}),
   };
 };
 
@@ -267,6 +269,7 @@ export const runExtraction = async (
       toolKey: input.toolKey,
       briefingId: input.briefingId,
       briefingText: input.briefingText,
+      extractionPayload: input.extractionPayload ?? {},
       extractionArtifactId: input.extractionArtifactId ?? null,
       stepDependencyArtifactIds: input.stepDependencyArtifactIds ?? [],
     },

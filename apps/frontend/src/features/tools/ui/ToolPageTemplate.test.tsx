@@ -15,7 +15,7 @@ const briefingMachineSeed = vi.hoisted(() => ({
     projectId: 'project-001',
     toolKey: 'funnel-pages',
     apiBaseUrl: '',
-    capabilities: {},
+    capabilities: {} as Record<string, unknown>,
     userId: 'seed-user-001',
     file: null as File | null,
     fileName: null as string | null,
@@ -25,7 +25,9 @@ const briefingMachineSeed = vi.hoisted(() => ({
     extractionArtifactId: 'artifact-extract-001' as string | null,
     extractionPayload: { schemaVersion: 'extraction.v1' } as Record<string, unknown> | null,
     normalizedText: 'brief text' as string | null,
-    parsedFormat: 'md' as string | null,
+    parsedFormat: 'md' as 'txt' | 'md' | 'docx' | null,
+    angleDetectorNormalizedText: null as string | null,
+    angleDetectorParsedFormat: null as 'txt' | 'md' | 'docx' | null,
     error: null as string | null,
   },
 }));
@@ -46,11 +48,15 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         userId: string | null;
         file: File | null;
         fileName: string | null;
+        angleDetectorFile: File | null;
+        angleDetectorFileName: string | null;
         briefingId: string | null;
         extractionArtifactId: string | null;
         extractionPayload: Record<string, unknown> | null;
         normalizedText: string | null;
-        parsedFormat: string | null;
+        parsedFormat: 'txt' | 'md' | 'docx' | null;
+        angleDetectorNormalizedText: string | null;
+        angleDetectorParsedFormat: 'txt' | 'md' | 'docx' | null;
         error: string | null;
       },
       events: {} as
@@ -64,7 +70,7 @@ vi.mock('../machines/briefing-upload.machine', async () => {
             briefingId?: string | null;
             fileName?: string | null;
             normalizedText?: string | null;
-            parsedFormat?: string | null;
+            parsedFormat?: 'txt' | 'md' | 'docx' | null;
           },
       input: {} as {
         toolKey: string;
@@ -778,11 +784,15 @@ describe('ToolPageTemplate restore flow', () => {
       userId: 'seed-user-001',
       file: null,
       fileName: null,
+      angleDetectorFile: null,
+      angleDetectorFileName: null,
       briefingId: 'brief-001',
       extractionArtifactId: 'artifact-extract-001',
       extractionPayload: { schemaVersion: 'extraction.v1' },
       normalizedText: 'brief text',
       parsedFormat: 'md',
+      angleDetectorNormalizedText: null,
+      angleDetectorParsedFormat: null,
       error: null,
     };
 

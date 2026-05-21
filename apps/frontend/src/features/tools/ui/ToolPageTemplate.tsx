@@ -57,7 +57,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
-    angleDetectorFileName,
     machineViewModel,
     isGenerating,
     readinessSnapshot,
@@ -270,7 +269,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         disabled={!formState.projectId.trim() || isStreamActive}
                         icon={<Upload size={16} aria-hidden="true" />}
                         accept=".docx,.txt,.md"
-                        currentFileName={angleDetectorFileName ?? undefined}
                         onFileSelected={(file) => {
                           field.onChange(file);
                           if (file) {

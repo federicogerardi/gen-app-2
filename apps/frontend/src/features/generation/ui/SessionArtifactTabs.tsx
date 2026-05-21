@@ -15,7 +15,10 @@ type SessionArtifactTabsProps = {
 };
 
 const isSupportedTool = (value: string | null | undefined): value is SupportedTool => {
-  return value === 'funnel-pages' || value === 'nextland' || value === 'youtube-lf-script';
+  return value === 'funnel-pages'
+    || value === 'nextland'
+    || value === 'youtube-lf-script'
+    || value === 'angle-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {

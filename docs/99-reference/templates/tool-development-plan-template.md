@@ -143,6 +143,9 @@ Checklist:
 - Confirm readiness, dispatch, and error behavior.
 - Confirm any new upload or input controls are aligned with the runtime spec.
 - Confirm the UI uses canonical UI vocabulary and no new local synonyms.
+- Confirm Session Summary list parity for the new Tool: `/sessionsummary` must render the Tool display label (not raw `ToolKey` or fallback technical value) in the Tool column.
+- Confirm Session Summary detail parity for the new Tool: `/sessionsummary/{sessionId}` must resolve the same Tool display label in title and metadata without falling back to generic unavailability copy.
+- Confirm relaunch parity for the new Tool from session detail: `Relaunch` CTA must resolve a valid Tool route and remain enabled when stream is idle and artifact detail is available.
 
 Primary evidence anchors:
 
@@ -152,6 +155,12 @@ Primary evidence anchors:
 - `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
 - `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`
 - `apps/frontend/src/features/tools/machines/`
+- `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.tsx`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+- `apps/frontend/src/features/sessionsummary/runtime/session-summary-domain.ts`
+- `apps/frontend/src/features/generation/ui/artifact-history.ts`
+- `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx`
 
 ### Phase D - Validation and Publication Readiness
 
@@ -166,6 +175,7 @@ Checklist:
 - Build passes.
 - Benchmark or runtime gate passes if the change affects orchestration or load-sensitive behavior.
 - DDD conformity is confirmed for all touched names and payloads.
+- Session archive/detail parity passes for the new Tool (`/sessionsummary` list label, `/sessionsummary/{sessionId}` title + metadata label, relaunch CTA enabled-state and route resolution).
 
 DDD conformity checklist:
 
@@ -241,23 +251,29 @@ Acceptance for Track B:
 - [ ] C-001: [Describe the FE/BE assembly or dispatch task.]
 - [ ] C-002: [Describe the merged payload or orchestration input task.]
 - [ ] C-003: [Describe the single-dispatch or single-source-of-truth invariant.]
+- [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
 
 Acceptance for Track C:
 
 - [ ] C-AC-001: [Define the single-request or single-path invariant.]
 - [ ] C-AC-002: [Define the merged payload or canonical output expectation.]
 - [ ] C-AC-003: [Define the non-regression requirement for existing tools.]
+- [ ] C-AC-004: Session summary surfaces never expose raw workflow identifiers as final UI labels for the target Tool.
+- [ ] C-AC-005: Relaunch CTA is enabled whenever tool-route resolution succeeds and stream is not active.
 
 ### Track D - Test Cases
 
 - [ ] D-001: [Describe focused unit tests for the new behavior.]
 - [ ] D-002: [Describe integration or runtime tests for the touched path.]
 - [ ] D-003: [Describe contract or regression tests for canonical shape.]
+- [ ] D-004: Add/update session summary tests for the target Tool on both list and detail pages.
+- [ ] D-005: Add/update relaunch route-resolution test coverage for the target Tool.
 
 Acceptance for Track D:
 
 - [ ] D-AC-001: All new tests pass.
 - [ ] D-AC-002: No regressions in existing suites.
+- [ ] D-AC-003: Session summary and relaunch coverage includes the target Tool and at least one previously supported Tool (non-regression pair).
 
 ## 5d. DDD Impact Gate
 

@@ -42,7 +42,15 @@ const toHumanReadableDate = (isoLike: string): string => {
 
 const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
   const finalizedArtifacts = group.artifacts.filter((artifact) => artifact.artifactRole === 'final');
-  const candidateArtifacts = finalizedArtifacts.length > 0 ? finalizedArtifacts : group.artifacts;
+  const steppedArtifacts = group.artifacts.filter((artifact) => {
+    const stepKey = artifact.stepKey?.trim();
+    return typeof stepKey === 'string' && stepKey.length > 0;
+  });
+  const candidateArtifacts = finalizedArtifacts.length > 0
+    ? finalizedArtifacts
+    : steppedArtifacts.length > 0
+      ? steppedArtifacts
+      : group.artifacts;
 
   const latestArtifact = [...candidateArtifacts].sort(
     (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),

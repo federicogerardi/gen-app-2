@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getAvailableSteps } from './tool-form-architecture';
+import {
+  getAvailableSteps,
+  getToolLabel,
+  getToolRoute,
+} from './tool-form-architecture';
 
 describe('getAvailableSteps', () => {
   it('returns only incomplete steps whose dependencies are satisfied for funnel-pages', () => {
@@ -19,5 +23,10 @@ describe('getAvailableSteps', () => {
     expect(getAvailableSteps('youtube-lf-script', new Set())).toEqual(['pre-script-analysis']);
     expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis']))).toEqual(['packaging']);
     expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis', 'packaging']))).toEqual(['intro-structure']);
+  });
+
+  it('normalizes workflow-form tool identifiers to canonical label and route', () => {
+    expect(getToolLabel('angle_generator')).toBe('Angle Generator');
+    expect(getToolRoute('angle_generator')).toBe('/tools/angle-generator');
   });
 });

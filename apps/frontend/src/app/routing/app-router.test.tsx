@@ -86,10 +86,6 @@ vi.mock('../../features/tools/pages/ToolsHubPage', () => ({
   ToolsHubPage: () => <h1>Tools hub</h1>,
 }));
 
-vi.mock('../../features/generation/pages/GenerationConsolePage', () => ({
-  GenerationConsolePage: () => <h1>Tools console</h1>,
-}));
-
 vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
   ArtifactsPage: () => (
     <div data-testid="artifacts-listing">
@@ -123,13 +119,13 @@ describe('app router – integration', () => {
     router.dispose();
   });
 
-  it('keeps /tools/console reachable as dedicated route', async () => {
+  it('redirects /tools/console to /tools hub', async () => {
     window.history.pushState({}, '', '/tools/console');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole('heading', { name: /tools console/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /tools hub/i })).toBeInTheDocument();
     router.dispose();
   });
 

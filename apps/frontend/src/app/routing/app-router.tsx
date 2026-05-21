@@ -29,8 +29,6 @@ const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModel
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
-const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
-
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -126,7 +124,7 @@ export const createAppRouter = () => createBrowserRouter([
       })),
       {
         path: '/tools/console',
-        element: <Suspense fallback={<PageLoader />}><GenerationConsolePage /></Suspense>,
+        element: <Navigate to="/tools" replace />,
       },
       {
         path: '/artifacts',

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToolsHubPage } from './ToolsHubPage';
 
@@ -24,16 +24,13 @@ describe('ToolsHubPage', () => {
     renderPage();
 
     expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
-    expect(screen.getByRole('link', { name: 'Tools Console' })).toBeInTheDocument();
     expect(screen.queryByText('Nextland')).toBeNull();
   });
 
-  it('keeps /tools/console outside table rows', () => {
+  it('does not expose a Tools Console link', () => {
     renderPage();
 
-    const table = screen.getByRole('table');
-    expect(within(table).queryByRole('link', { name: 'Tools Console' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Tools Console' })).toHaveAttribute('href', '/tools/console');
+    expect(screen.queryByRole('link', { name: 'Tools Console' })).toBeNull();
   });
 
   it('renders keyboard-focusable workspace actions', () => {
@@ -58,6 +55,6 @@ describe('ToolsHubPage', () => {
     renderPage();
 
     expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Tools Console' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
   });
 });

@@ -55,15 +55,7 @@ export const ToolsHubPage = () => {
 
           return null;
         }}
-        toolbarNode={(
-          <div className={uiPrimitives.stack}>
-            <p className={uiPrimitives.metaLine}>{appCopy.ui.labels.toolsConsoleDescription}</p>
-            <Link to="/tools/console" className={uiPrimitives.inlineLink}>
-              {appCopy.ui.navigation.toolsConsole}
-            </Link>
-          </div>
-        )}
-      />
+        />
     </Surface>
   );
 };

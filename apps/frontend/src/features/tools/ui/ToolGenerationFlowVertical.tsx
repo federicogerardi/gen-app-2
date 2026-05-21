@@ -23,6 +23,7 @@ export interface ToolGenerationFlowVerticalProps {
   briefingStatus: BriefingStatus;
   readinessReasonCodes: ReadonlyArray<ReadinessReasonCode>;
   briefingError: string | null;
+  briefingGuidance?: string | null;
   steps: FlowStepProgress[];
   completedStepsCount: number;
   totalStepsCount: number;
@@ -150,6 +151,7 @@ export const ToolGenerationFlowVertical = ({
   briefingStatus,
   readinessReasonCodes,
   briefingError,
+  briefingGuidance = null,
   steps,
   completedStepsCount,
   totalStepsCount,
@@ -210,6 +212,8 @@ export const ToolGenerationFlowVertical = ({
         ? 'Estrazione'
         : undefined;
 
+  const guidanceMessage = briefingGuidance ?? null;
+
   const progressPct = totalStepsCount > 0
     ? (completedStepsCount / totalStepsCount) * 100
     : 0;
@@ -232,6 +236,11 @@ export const ToolGenerationFlowVertical = ({
       {phase === 'input' && (
         <div className="ui-fv-section">
           <Label>Requisiti</Label>
+          {guidanceMessage ? (
+            <p className="ui-fv-inline-guidance" role="status">
+              {guidanceMessage}
+            </p>
+          ) : null}
           <ul className="ui-fv-checklist">
             <ReqItem
               status={projectReqStatus}

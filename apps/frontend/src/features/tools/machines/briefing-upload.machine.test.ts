@@ -310,7 +310,12 @@ describe('briefingUploadMachine', () => {
         && snapshot.context.error === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
     );
 
+    expect(actor.getSnapshot().context.error).toBe('Per angle-generator carica sia BriefingFile sia AngleDetectorFile.');
+
     actor.send({ type: 'FILE_SELECTED', file: angleDetector, source: 'angle-detector' });
+
+    await waitFor(actor, (snapshot) => snapshot.matches('extracting'));
+    expect(actor.getSnapshot().context.error).toBeNull();
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 

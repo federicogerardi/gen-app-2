@@ -53,6 +53,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
+    briefingGuidance,
     dispatchError,
     artifactsReloadError,
     effectiveBriefingStatus,
@@ -285,6 +286,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
+              {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}
               {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
 
                 {/* DispatchError ownership contract:
@@ -327,6 +329,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               briefingStatus={effectiveBriefingStatus}
               readinessReasonCodes={readinessSnapshot.reasonCodes}
               briefingError={briefingError}
+              briefingGuidance={briefingGuidance}
               steps={toolConfig.steps.map((step) => ({
                 step,
                 displayName: mapToolStepToCardConfig(props.toolKey, step).displayName,

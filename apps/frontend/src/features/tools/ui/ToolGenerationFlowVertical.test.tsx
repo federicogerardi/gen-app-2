@@ -9,6 +9,7 @@ const baseProps: ToolGenerationFlowVerticalProps = {
   briefingStatus: 'idle',
   readinessReasonCodes: [],
   briefingError: null,
+  briefingGuidance: null,
   steps: [],
   completedStepsCount: 0,
   totalStepsCount: 3,
@@ -68,5 +69,19 @@ describe('ToolGenerationFlowVertical readiness reason mapping', () => {
 
     expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
     expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
+  });
+
+  it('renders neutral angle-generator guidance without error styling when awaiting the second file', () => {
+    render(
+      <ToolGenerationFlowVertical
+        {...baseProps}
+        projectName="Project 001"
+        briefingStatus="ready"
+        briefingGuidance="Brief pronto. Carica Angle Detector File per continuare."
+      />,
+    );
+
+    expect(screen.getByText('Brief pronto. Carica Angle Detector File per continuare.')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

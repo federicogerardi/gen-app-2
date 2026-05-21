@@ -75,7 +75,11 @@ export const useToolPageContext = ({
     : briefingSnapshot.matches('extracting')
       ? 'extracting'
       : briefingSnapshot.matches('ready') ? 'ready' : 'idle';
-  const briefingError = mapInlineDispatchError(briefingSnapshot.context.error);
+  const briefingUploadMessage = briefingSnapshot.context.error?.trim() ?? null;
+  const briefingGuidance = toolKey === 'angle-generator' && briefingUploadMessage === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.'
+    ? 'Brief pronto. Carica Angle Detector File per continuare.'
+    : null;
+  const briefingError = briefingGuidance ? null : mapInlineDispatchError(briefingUploadMessage);
   const normalizedProjectId = formState.projectId.trim();
   const workspaceExtractionContext = normalizedProjectId
     ? generationProject.getExtractionContext(normalizedProjectId)
@@ -207,6 +211,7 @@ export const useToolPageContext = ({
     briefingSnapshot,
     briefingStatus,
     briefingError,
+    briefingGuidance,
     normalizedProjectId,
     workspaceExtractionContext,
     machineHydrationResult,

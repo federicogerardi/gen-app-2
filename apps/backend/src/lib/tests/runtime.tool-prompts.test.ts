@@ -106,6 +106,49 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.equal(input.tone, 'analitico');
+});
+
+test('buildRequestReceivedEvent canonicalizes generation tone profile and step key aliases', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-generation-normalization-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'content',
+    model: 'openrouter/auto',
+    toolKey: 'nextland',
+    workflowType: 'nextland',
+    input: {
+      step: 'thank-you',
+      tone: 'formal',
+    },
+    registrySnapshotRef: 'snapshot:generation-normalization',
+  });
+
+  const input = event.input as Record<string, unknown>;
+  assert.equal(input.step, 'thank_you');
+  assert.equal(input.tone, 'Formal');
+});
+
+test('buildRequestReceivedEvent drops invalid step and non-canonical generation tone', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-generation-normalization-002',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'content',
+    model: 'openrouter/auto',
+    toolKey: 'funnel-pages',
+    workflowType: 'funnel_pages',
+    input: {
+      step: 'landing',
+      tone: 'direct',
+    },
+    registrySnapshotRef: 'snapshot:generation-normalization',
+  });
+
+  const input = event.input as Record<string, unknown>;
+  assert.equal(Object.hasOwn(input, 'step'), false);
+  assert.equal(Object.hasOwn(input, 'tone'), false);
 });
 
 test('resolveToolPrompt falls back to canonical extraction prompt for non-youtube extraction', () => {

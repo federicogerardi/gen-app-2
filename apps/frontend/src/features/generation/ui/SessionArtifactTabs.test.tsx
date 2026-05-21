@@ -59,26 +59,16 @@ describe('SessionArtifactTabs', () => {
       toolKey: 'angle-generator',
       artifacts: [
         {
+          ...group.artifacts[1],
           artifactId: 'a-creative',
-          requestId: 'r-creative',
-          projectId: 'p-1',
           stepKey: 'creative-activation',
-          artifactRole: 'final',
-          status: 'completed',
           content: 'Creative activation content',
-          updatedAt: '2026-05-09T10:01:00.000Z',
-          failureReason: null,
         },
         {
+          ...group.artifacts[0],
           artifactId: 'a-context',
-          requestId: 'r-context',
-          projectId: 'p-1',
           stepKey: 'context-and-angle-matrix',
-          artifactRole: 'step',
-          status: 'completed',
           content: 'Context and angle matrix content',
-          updatedAt: '2026-05-09T10:00:00.000Z',
-          failureReason: null,
         },
       ],
     };

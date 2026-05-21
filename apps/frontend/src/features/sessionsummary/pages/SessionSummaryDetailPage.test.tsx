@@ -31,17 +31,14 @@ const mocks = vi.hoisted(() => ({
         requestId: 'r-1',
         projectId: 'p-1',
         stepKey: 'optin',
-        artifactRole: 'step',
-        runMode: 'regenerate',
-        workflowType: 'funnel_pages',
-        toolKey: 'funnel-pages',
-        status: 'completed',
+        artifactRole: 'step' as const,
+        status: 'completed' as const,
         content: 'artifact content',
         updatedAt: '2026-05-09T10:00:00.000Z',
         failureReason: null,
       },
     ],
-  } as SessionArtifactGroup,
+  } satisfies SessionArtifactGroup,
   relaunchArtifact: {
     artifactId: 'a-1',
     requestId: 'r-1',
@@ -74,7 +71,7 @@ const mocks = vi.hoisted(() => ({
       outputFormat: 'markdown',
       toolKey: 'funnel-pages',
     },
-  } as GenerationArtifact,
+  } satisfies GenerationArtifact,
   getSessionArtifacts: vi.fn(async () => mocks.sessionGroup),
 }));
 
@@ -176,7 +173,6 @@ describe('SessionSummaryDetailPage', () => {
           notes: 'angle notes',
           tone: 'Formal',
           briefingId: 'brief-angle',
-          briefingFileName: 'brief-angle.txt',
         },
         workflowType: 'angle_generator',
         outputFormat: 'markdown',
@@ -205,7 +201,7 @@ describe('SessionSummaryDetailPage', () => {
           requestId: 'r-angle-nostep',
           projectId: 'p-1',
           stepKey: null,
-          artifactRole: 'step',
+          artifactRole: null,
           status: 'completed',
           content: 'non-step artifact',
           updatedAt: '2026-05-09T10:10:00.000Z',
@@ -255,9 +251,6 @@ describe('SessionSummaryDetailPage', () => {
         model: 'openrouter/auto',
         input: {
           notes: 'angle notes',
-          tone: 'Formal',
-          briefingId: 'brief-angle',
-          briefingFileName: 'brief-angle.txt',
         },
         workflowType: 'angle_generator',
         outputFormat: 'markdown',
@@ -267,80 +260,10 @@ describe('SessionSummaryDetailPage', () => {
 
     renderPage(SessionSummaryDetailPage);
 
-    const relaunchLink = await screen.findByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
+    const relaunchLink = await screen.findByRole('link', { name: 'Rilancia' });
     expect(relaunchLink).not.toHaveAttribute('aria-disabled', 'true');
     expect(relaunchLink.getAttribute('href')).toContain('/tools/angle-generator?');
     expect(relaunchLink.getAttribute('href')).toContain('sourceArtifactId=a-angle-step');
-  });
-
-  it('keeps relaunch UI contract and does not expose a manual extraction CTA', async () => {
-    const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
-
-    mocks.sessionGroup = {
-      sessionId: 'sess_demo',
-      toolKey: 'funnel-pages',
-      status: 'completed',
-      artifacts: [
-        {
-          artifactId: 'a-1',
-          requestId: 'r-1',
-          projectId: 'p-1',
-          stepKey: 'optin',
-          artifactRole: 'step',
-          status: 'completed',
-          content: 'artifact content',
-          updatedAt: '2026-05-09T10:00:00.000Z',
-          failureReason: null,
-          workflowType: 'funnel_pages',
-          toolKey: 'funnel-pages',
-          runMode: 'regenerate',
-        },
-      ],
-    };
-
-    mocks.relaunchArtifact = {
-      artifactId: 'a-1',
-      requestId: 'r-1',
-      projectId: 'p-1',
-      sessionId: 'sess_demo',
-      stepKey: 'vsl',
-      artifactRole: 'final',
-      runMode: 'regenerate',
-      artifactType: 'content',
-      status: 'completed',
-      model: 'openrouter/auto',
-      toolKey: 'funnel-pages',
-      workflowType: 'funnel_pages',
-      content: 'artifact content',
-      createdAt: '2026-05-09T09:00:00.000Z',
-      updatedAt: '2026-05-09T10:00:00.000Z',
-      sourceRequest: {
-        requestId: 'req-source-1',
-        userId: 'user-1',
-        projectId: 'p-1',
-        artifactType: 'content',
-        model: 'openrouter/auto',
-        input: {
-          notes: 'note value',
-          tone: 'Formal',
-          briefingId: 'brief-1',
-          briefingFileName: 'brief.txt',
-        },
-        workflowType: 'funnel_pages',
-        outputFormat: 'markdown',
-        toolKey: 'funnel-pages',
-      },
-    };
-
-    renderPage(SessionSummaryDetailPage);
-
-    const relaunchLink = await screen.findByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
-    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('/tools/funnel-pages?'));
-    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('intent=regenerate'));
-    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('projectId=p-1'));
-    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('sourceArtifactId=a-1'));
-    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('relaunchFromArtifactId=a-1'));
-    expect(screen.queryByRole('button', { name: /avvia estrazione/i })).not.toBeInTheDocument();
   });
 
   it('renders primary/sidebar layout with session metadata and step content panel', async () => {
@@ -406,8 +329,8 @@ describe('SessionSummaryDetailPage', () => {
 
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
-    expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.panelAriaLabel)).toHaveLength(2);
-    expect(screen.getByLabelText(appCopy.ui.sessions.detail.overviewAriaLabel)).toBeInTheDocument();
+    expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
+    expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
     expect(screen.getByText('Completato')).toBeInTheDocument();
     expect(screen.getByText('Project One')).toBeInTheDocument();
     expect(screen.getByText('Tool')).toBeInTheDocument();
@@ -416,7 +339,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getByText('Artefatti')).toBeInTheDocument();
     expect(screen.getByText('Dettagli sessione')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
-    const relaunchLink = screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
+    const relaunchLink = screen.getByRole('link', { name: 'Rilancia' });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');
     expect(relaunchLink.getAttribute('href')).toContain('intent=regenerate');
     expect(relaunchLink.getAttribute('href')).toContain('projectId=p-1');

@@ -3,7 +3,11 @@
  * Enables scalable, reusable form construction for multi-step tools
  */
 
-import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
+import {
+  TOOL_STEP_DEPENDENCIES,
+  TOOL_STEP_ORDER,
+  normalizeToolKeyCandidate,
+} from '@gen-app-2/contracts';
 import { appCopy } from '../../../app/copy/system';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
 import type { ExtractionFieldKey } from './extraction-field-matrix';
@@ -229,6 +233,11 @@ export const getToolLabel = (toolKey: string | null): string => {
     return '—';
   }
 
+  const normalizedToolKey = normalizeToolKeyCandidate(toolKey);
+  if (normalizedToolKey && normalizedToolKey in toolNavigationLabelByKey) {
+    return toolNavigationLabelByKey[normalizedToolKey as SupportedTool];
+  }
+
   if (toolKey in toolNavigationLabelByKey) {
     return toolNavigationLabelByKey[toolKey as SupportedTool];
   }
@@ -239,6 +248,11 @@ export const getToolLabel = (toolKey: string | null): string => {
 export const getToolRoute = (toolKey: string | null): string | null => {
   if (toolKey === null) {
     return null;
+  }
+
+  const normalizedToolKey = normalizeToolKeyCandidate(toolKey);
+  if (normalizedToolKey && normalizedToolKey in toolRouteByKey) {
+    return toolRouteByKey[normalizedToolKey as SupportedTool];
   }
 
   if (toolKey in toolRouteByKey) {

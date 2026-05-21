@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -94,8 +94,28 @@ owner: Architecture Review
   - `GenerationRequest`, `RegistrySnapshotRef`, `RegistryVersion`.
 
 ### 4. Medium — Backend adapter concentration (monolithic infra file)
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Decomposed monolithic adapter into bounded repository modules and shared helper/type seams.
+  - Reduced `postgres-redis.production.ts` to composition facade while preserving factory exports and wiring semantics.
+  - Preserved runtime behavior for usage, ownership, idempotency, stream session, artifact persistence, and query projections.
+- Validation evidence:
+  - `npm --workspace apps/backend run typecheck` passed.
+  - `npm --workspace apps/backend run test -- src/lib/tests/runtime.index.test.ts` passed.
+  - `npm --workspace apps/backend run test -- src/lib/tests/runtime.query-mappers.test.ts` passed.
+  - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` passed.
 - Evidence:
   - `apps/backend/src/lib/adapters/postgres-redis.production.ts` contains multiple repositories and helper layers in one file (1600+ LOC).
+  - Implemented decomposition modules:
+    - `apps/backend/src/lib/adapters/postgres-redis.shared.types.ts`
+    - `apps/backend/src/lib/adapters/postgres-redis.sql.utils.ts`
+    - `apps/backend/src/lib/adapters/postgres-redis.usage.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres.project-ownership.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres-redis.idempotency.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres-redis.stream.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres.artifact.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres.project-query.repository.ts`
+    - `apps/backend/src/lib/adapters/postgres.artifact-query.repository.ts`
 - Architectural weakness:
   - High coupling and larger change blast radius.
   - Harder ownership boundaries and more fragile targeted testing.
@@ -133,8 +153,7 @@ owner: Architecture Review
 
 ## Open Questions
 1. Should session step endpoints be fully centralized via `buildApiPaths` to remove route duplication?
-2. Which incremental decomposition slices should be prioritized first for `postgres-redis.production.ts` to reduce blast radius without delaying delivery?
-3. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
+2. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
 
 ## Executive Summary
 - No new open Critical issue was confirmed in this pass.
@@ -143,10 +162,11 @@ owner: Architecture Review
   - `GenerationRequest` compile-time contract hardening.
 - Finding 3 is now closed in this cycle:
   - request-boundary type-safety hardening with cast removal.
+- Finding 4 is now closed in this cycle:
+  - backend adapter decomposition into bounded modules with facade wiring parity.
 - The dominant residual risk profile is now concentrated in Medium areas:
-  - backend adapter concentration,
+  - frontend session client path-authority drift,
   - technical governance gates.
 - Recommended next hardening wave:
-  1. Decompose backend adapter monolith into bounded infra modules.
-  2. Centralize frontend session step path authority through `buildApiPaths`.
-  3. Restore lint/unused-symbol guardrails across workspaces.
+  1. Centralize frontend session step path authority through `buildApiPaths`.
+  2. Restore lint/unused-symbol guardrails across workspaces.

@@ -119,16 +119,6 @@ describe('app router – integration', () => {
     router.dispose();
   });
 
-  it('redirects /tools/console to /tools hub', async () => {
-    window.history.pushState({}, '', '/tools/console');
-    const router = createAppRouter();
-
-    render(<RouterProvider router={router} />);
-
-    expect(await screen.findByRole('heading', { name: /tools hub/i })).toBeInTheDocument();
-    router.dispose();
-  });
-
   it('follows SPA flow tool completed -> CTA -> artifacts listing', async () => {
     window.history.pushState({}, '', '/tools/funnel-pages');
     const router = createAppRouter();

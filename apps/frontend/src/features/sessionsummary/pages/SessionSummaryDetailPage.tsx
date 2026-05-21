@@ -24,13 +24,9 @@ import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 
-const formatToolName = (toolKey: string | null): string => {
-  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
-  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
-  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
-  return toolKey ?? 'Tool non disponibile';
-};
+const formatToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
 const toHumanReadableDate = (isoLike: string): string => {
   const date = new Date(isoLike);

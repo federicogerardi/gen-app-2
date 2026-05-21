@@ -1,5 +1,6 @@
 import type { ArtifactType, GenerationRequest } from '../contracts/backend-stream';
 import { generateRequestId, normalizeIdentifier, readInputField } from '../../../app/runtime/shared-utils';
+import { getToolRoute } from '../../tools/runtime/tool-form-architecture';
 
 export type ArtifactLifecycleStatus = 'generating' | 'completed' | 'failed';
 export type ArtifactPeriodFilter = 'all' | '7d' | '30d' | '90d';
@@ -97,16 +98,11 @@ export const resolveToolRouteFromArtifact = (artifact: GenerationArtifact): stri
     normalizeIdentifier(artifact.sourceRequest.workflowType),
   ];
 
-  if (candidates.includes('funnel-pages')) {
-    return '/tools/funnel-pages';
-  }
-
-  if (candidates.includes('nextland')) {
-    return '/tools/nextland';
-  }
-
-  if (candidates.includes('youtube-lf-script')) {
-    return '/tools/youtube-lf-script';
+  for (const candidate of candidates) {
+    const route = getToolRoute(candidate);
+    if (route !== null) {
+      return route;
+    }
   }
 
   return null;

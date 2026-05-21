@@ -4,8 +4,8 @@
  */
 
 import { PrimaryCtaButton, SecondaryCtaButton } from '../../../app/ui/CtaButtons';
-import type { PrimaryActionPolicy, SecondaryActionFlags } from '../runtime/tool-ux-state';
-import { derivePrimaryActionLabel } from '../runtime/tool-ux-state';
+import type { PrimaryActionPolicy, SecondaryActionFlags } from '../../generation/ui/tool-ux-state';
+import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 interface ToolActionButtonsProps {
   primaryPolicy: PrimaryActionPolicy;

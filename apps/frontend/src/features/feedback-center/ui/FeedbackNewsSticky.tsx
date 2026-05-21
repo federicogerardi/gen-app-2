@@ -3,7 +3,7 @@ import { Bell, X, Send } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
-import { useAsyncQuery } from '../../../app/runtime/queries/useAsyncQuery';
+import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import type {
   ProductChangelogDto,
@@ -57,12 +57,11 @@ export const FeedbackNewsSticky = () => {
     return result.data;
   }, [auth.apiBaseUrl, auth.capabilities]);
 
-  const changelogQuery = useAsyncQuery<ProductChangelogDto[]>({
-    enabled: Boolean(auth.session),
+  const changelogQuery = useSWRQuery<ProductChangelogDto[]>({
+    key: auth.session ? [auth.apiBaseUrl, auth.capabilities, 'feedback-news'] : null,
+    fetcher: listPublishedChangelogQuery,
     emptyData: [],
     errorMessage: 'Impossibile caricare il changelog pubblicato.',
-    dependencyKey: `feedback-news:${auth.apiBaseUrl}`,
-    query: listPublishedChangelogQuery,
   });
 
   const visibleChangelog = useMemo(

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
-import { useAsyncQuery } from '../../../app/runtime/queries/useAsyncQuery';
+import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import type { UserReportCategory, UserReportStatus } from '../../feedback-center/contracts/feedback-center-contract';
 import { listAdminUserReports } from '../../feedback-center/runtime/feedback-center-client';
 
@@ -37,11 +37,10 @@ export const useAdminUserReportsQuery = ({
     return result.data;
   }, [apiBaseUrl, capabilities, statusFilter, categoryFilter]);
 
-  return useAsyncQuery({
-    enabled: true,
+  return useSWRQuery({
+    key: [apiBaseUrl, capabilities, statusFilter, categoryFilter, 'admin-user-reports'],
+    fetcher: query,
     emptyData: [],
     errorMessage: 'Unable to load admin user reports',
-    dependencyKey: JSON.stringify([apiBaseUrl, capabilities, statusFilter, categoryFilter]),
-    query,
   });
 };

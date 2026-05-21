@@ -3,7 +3,7 @@ import type {
   CanonicalToolUiState,
   PrimaryActionPolicy,
   SecondaryActionFlags,
-} from '../runtime/tool-ux-state';
+} from '../../generation/ui/tool-ux-state';
 import type { SupportedTool, ToolStep, ToolStepStatus } from './tool-flow.machine';
 import type { ToolPageProgressState } from './tool-page-progress';
 import type { ReadinessSnapshot } from './tool-page-readiness';

@@ -1,4 +1,4 @@
-import type { CanonicalToolUiState } from '../runtime/tool-ux-state';
+import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
 import type { ToolStep, ToolStepStatus } from '../machines/tool-flow.machine';
 import type { ReadinessReasonCode } from '../machines/tool-page.machine';
 

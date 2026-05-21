@@ -225,10 +225,41 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
 };
 
+const toolRouteByKey: Record<SupportedTool, string> = {
+  'funnel-pages': '/tools/funnel-pages',
+  nextland: '/tools/nextland',
+  'youtube-lf-script': '/tools/youtube-lf-script',
+  'angle-generator': '/tools/angle-generator',
+};
+
+export const getToolLabel = (toolKey: string | null): string => {
+  if (toolKey === null) {
+    return '—';
+  }
+
+  if (toolKey in toolNavigationLabelByKey) {
+    return toolNavigationLabelByKey[toolKey as SupportedTool];
+  }
+
+  return toolKey;
+};
+
+export const getToolRoute = (toolKey: string | null): string | null => {
+  if (toolKey === null) {
+    return null;
+  }
+
+  if (toolKey in toolRouteByKey) {
+    return toolRouteByKey[toolKey as SupportedTool];
+  }
+
+  return null;
+};
+
 export const getEnabledToolNavigationItems = (): ToolNavigationItem[] => (
   getEnabledToolKeys().map((toolKey) => ({
     toolKey,
-    to: `/tools/${toolKey}`,
+    to: toolRouteByKey[toolKey],
     label: toolNavigationLabelByKey[toolKey],
     description: toolNavigationDescriptionByKey[toolKey],
   }))

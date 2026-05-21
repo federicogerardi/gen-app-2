@@ -317,7 +317,7 @@ export const appCopy = {
         },
         tools: {
           title: 'Generazione per la tua strategia',
-            body: 'Apri Tools come hub centrale per i percorsi guidati. Tools Console resta disponibile come percorso avanzato per flussi manuali.',
+            body: 'Apri Tools come hub centrale per i percorsi guidati e per l\'orchestrazione canonica delle generazioni.',
         },
           recentSessions: {
             title: 'La tua storia di risultati',
@@ -387,12 +387,3 @@ export const appCopy = {
     },
   },
 } as const;
-
-export const appNavigation = [
-  { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true },
-  { to: '/tools', label: appCopy.ui.navigation.tools, end: false },
-  { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
-  { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
-  { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },
-  { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true },
-] as const;

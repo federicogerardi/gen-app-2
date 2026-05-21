@@ -2,7 +2,7 @@
 goal: Ordered Operational Checklist For apps/frontend Unification, Deduplication, And Dead Code Removal
 version: 1.1
 date_created: 2026-05-16
-last_updated: 2026-05-21 (as-is alignment)
+last_updated: 2026-05-21 (operational closure update)
 owner: Frontend Platform
 status: in-progress
 last-reviewed: 2026-05-16
@@ -24,55 +24,55 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 1. `apps/frontend/src/app/routing/app-router.tsx`
 
-- Status: **Partial**
-- Evidence: `/tools/console` still exists as redirect route (`path: '/tools/console' -> <Navigate to="/tools" replace />`).
+- Status: **Done**
+- Evidence: `/tools/console` route entry and legacy lazy import were removed from router table; routing now exposes canonical `/tools` surfaces only.
 
 - [x] Confirm whether `/tools/console` must remain supported or be removed.
-- [ ] If removal is approved, delete the lazy import for `GenerationConsolePage`.
-- [ ] Remove the `/tools/console` route entry.
+- [x] If removal is approved, delete the lazy import for `GenerationConsolePage`.
+- [x] Remove the `/tools/console` route entry.
 - [x] Verify no remaining navigation or deep-link expectations depend on `/tools/console`.
 
 ### 2. `apps/frontend/src/features/generation/pages/GenerationConsolePage.tsx`
 
-- Status: **Partial**
-- Evidence: legacy page is still present and exported; classification as deprecated exists in governance, but file/runtime surface is not removed.
+- Status: **Done**
+- Evidence: legacy page file and related test were removed after route cleanup.
 
-- [ ] Classify the page as legacy or still-supported runtime surface.
-- [ ] If legacy, remove the page after route removal.
+- [x] Classify the page as legacy or still-supported runtime surface.
+- [x] If legacy, remove the page after route removal.
 - [ ] If temporarily retained, document it as transitional and reduce overlap with `ToolPageTemplate`.
 - [ ] Eliminate manual project-loading logic in favor of the shared query pattern.
 
 ### 3. `apps/frontend/src/features/generation/ui/GenerationForm.tsx`
 
-- Status: **Partial**
-- Evidence: briefing extension validation now uses shared helper `isAllowedBriefingExtension`, but component remains active and overlapping legacy flow is still present.
+- Status: **Done**
+- Evidence: legacy console form component and its stale test surface were removed with console-path retirement.
 
-- [ ] Decide whether the component is still needed after the `GenerationConsolePage` decision.
+- [x] Decide whether the component is still needed after the `GenerationConsolePage` decision.
 - [ ] If retained, replace local briefing-extension validation with the shared helper only.
 - [ ] Remove any form/runtime behavior duplicated by the Tool Workspace flow.
 
 ### 4. `apps/frontend/src/features/generation/ui/GenerationStreamPanel.tsx`
 
-- Status: **Open**
-- Evidence: panel still exists and is consumed by `GenerationConsolePage`; no removal/convergence patch applied.
+- Status: **Done**
+- Evidence: legacy stream panel was removed together with the deprecated console surface.
 
-- [ ] Confirm whether the panel is used only by the legacy console path.
-- [ ] Remove it if the console path is removed.
+- [x] Confirm whether the panel is used only by the legacy console path.
+- [x] Remove it if the console path is removed.
 - [ ] Otherwise align its behavior with the canonical Tool Workspace feedback model.
 
 ### 5. `apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx`
 
-- Status: **Open**
-- Evidence: panel still exists and is consumed by `GenerationConsolePage`; no removal/convergence patch applied.
+- Status: **Done**
+- Evidence: legacy artifact history panel was removed together with the deprecated console surface.
 
-- [ ] Confirm whether the panel is used only by the legacy console path.
-- [ ] Remove it if the console path is removed.
+- [x] Confirm whether the panel is used only by the legacy console path.
+- [x] Remove it if the console path is removed.
 - [ ] Otherwise converge artifact-history behavior with the current listing components.
 
 ### 6. `apps/frontend/src/app/runtime/queries/useProjectsQuery.ts`
 
-- Status: **Partial**
-- Evidence: hook already migrated to shared `useSWRQuery`, but query layer is not fully unified because `useAsyncQuery` is still used by other hooks.
+- Status: **Done**
+- Evidence: hook remains on canonical `useSWRQuery`; cross-hook query layer is now unified after retirement of `useAsyncQuery`.
 
 - [ ] Use this file as the baseline for extracting a reusable query-hook pattern.
 - [ ] Identify the common state machine shared with other query hooks (`data/loading/error/reload`).
@@ -89,8 +89,8 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 8. `apps/frontend/src/app/runtime/queries/useModelsQuery.ts`
 
-- Status: **Partial**
-- Evidence: no serialized-capabilities `useRef` workaround remains, but hook still uses `useAsyncQuery` instead of canonical shared SWR path.
+- Status: **Done**
+- Evidence: migrated to canonical `useSWRQuery`; `useAsyncQuery` dependency removed.
 
 - [ ] Refactor to the shared query-hook abstraction once defined.
 - [ ] Remove the local `useRef` + serialized-capabilities workaround if the shared abstraction makes it unnecessary.
@@ -124,8 +124,8 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 12. `apps/frontend/src/app/runtime/queries/useArtifactsQuery.ts`
 
-- Status: **Partial**
-- Evidence: behavior preserved (including `localArtifacts` fallback) but hook still runs on `useAsyncQuery` with local ref scaffolding.
+- Status: **Done**
+- Evidence: migrated to canonical `useSWRQuery` while preserving `localArtifacts` fallback and filter/pagination semantics.
 
 - [ ] Refactor to the shared query-hook abstraction once defined.
 - [ ] Preserve the current special-case handling for `localArtifacts`.
@@ -142,8 +142,8 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 14. `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
 
-- Status: **Partial**
-- Evidence: project loading uses canonical `useProjectsQuery`; model loading still uses non-unified path (`useModelsQuery` on `useAsyncQuery`).
+- Status: **Done**
+- Evidence: project and model loading now resolve through canonical shared query path (`useSWRQuery` family).
 
 - [ ] Switch project loading to the canonical shared query path once available.
 - [ ] Keep Tool Workspace Page composition unchanged while removing underlying duplicate loaders.
@@ -207,121 +207,121 @@ This checklist translates the current `apps/frontend` unification report into an
 
 ### 21. `apps/frontend/src/features/tools/runtime/tool-ux-state.ts`
 
-- Status: **Open**
-- Evidence: re-export shim is still present and has active consumers (`ToolActionButtons`, `ToolStatusCard`, `ToolGenerationFlowVertical`, view-model import path).
+- Status: **Done**
+- Evidence: re-export shim was deleted; consumers now import from `features/generation/ui/tool-ux-state.ts` directly.
 
-- [ ] Remove this re-export shim if direct imports from the canonical module are feasible.
-- [ ] Update remaining consumers to import from the canonical source directly.
-- [ ] Delete the shim once no runtime/test consumer depends on it.
+- [x] Remove this re-export shim if direct imports from the canonical module are feasible.
+- [x] Update remaining consumers to import from the canonical source directly.
+- [x] Delete the shim once no runtime/test consumer depends on it.
 
 ### 22. `apps/frontend/src/features/dashboard/pages/DashboardPage.tsx`
 
-- Status: **Partial**
-- Evidence: local tool-label mapping still present (`formatSessionToolName`); wrappers `AppButton`/`AppCard` still used.
+- Status: **Done**
+- Evidence: local tool-label mapping was replaced with canonical tool metadata helper and wrapper usage was removed in favor of direct canonical primitives.
 
-- [ ] Replace local tool-label mapping with the canonical shared tool metadata source.
-- [ ] Remove use of `AppButton` / `AppCard` if the project standard converges entirely on canonical UI primitives.
+- [x] Replace local tool-label mapping with the canonical shared tool metadata source.
+- [x] Remove use of `AppButton` / `AppCard` if the project standard converges entirely on canonical UI primitives.
 - [ ] Keep page archetype and current UX intact while removing duplicated mapping logic.
 
 ### 23. `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`
 
-- Status: **Open**
-- Evidence: local `toolLabel` mapping still present; canonical shared tool metadata source not adopted.
+- Status: **Done**
+- Evidence: local `toolLabel` mapping was replaced with canonical shared tool metadata helper.
 
-- [ ] Replace local tool-label mapping with the canonical shared tool metadata source.
+- [x] Replace local tool-label mapping with the canonical shared tool metadata source.
 - [ ] Keep current Data Table View behavior unchanged.
 
 ### 24. `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
 
-- Status: **Open**
-- Evidence: local tool-label mapping still present (`formatToolName`); canonical shared tool metadata source not adopted.
+- Status: **Done**
+- Evidence: local tool-label mapping was replaced with canonical shared tool metadata helper.
 
-- [ ] Replace local tool-label mapping with the canonical shared tool metadata source.
+- [x] Replace local tool-label mapping with the canonical shared tool metadata source.
 - [ ] Keep current Session Summary detail behavior unchanged.
 
 ### 25. `apps/frontend/src/features/generation/ui/artifact-history.ts`
 
-- Status: **Open**
-- Evidence: local route resolution remains (`resolveToolRouteFromArtifact`); canonical shared tool metadata source not adopted.
+- Status: **Done**
+- Evidence: route resolution now delegates to canonical `getToolRoute` helper from shared tool metadata.
 
-- [ ] Replace local tool-route resolution logic with the canonical shared tool metadata source.
+- [x] Replace local tool-route resolution logic with the canonical shared tool metadata source.
 - [ ] Keep artifact relaunch path semantics unchanged.
 - [ ] Preserve current request cloning and artifact-entry query behavior.
 
 ### 26. `apps/frontend/src/app/copy/system.ts`
 
-- Status: **Open**
-- Evidence: navigation/tool label metadata remains split here while separate tool metadata also exists in `tool-form-architecture.ts`.
+- Status: **Done**
+- Evidence: structural navigation metadata (`appNavigation`) was removed from copy; copy file now remains copy-focused while shared navigation metadata is centralized in runtime module.
 
 - [ ] Decide whether tool labels in copy remain authoritative or should be consumed through a dedicated tool metadata module.
 - [ ] If a metadata module is introduced, reduce this file to copy-only concerns and remove duplicated structural tool definitions.
-- [ ] Reconcile `appNavigation` with enabled-tool filtering so navigation metadata is not duplicated across files.
+- [x] Reconcile `appNavigation` with enabled-tool filtering so navigation metadata is not duplicated across files.
 
 ### 27. `apps/frontend/src/app/layouts/MainNavigation.tsx`
 
-- Status: **Open**
-- Evidence: navigation still uses local route-to-icon map + `appNavigation` glue; no convergence to one canonical navigation/tool metadata source.
+- Status: **Done**
+- Evidence: navigation now consumes centralized shared metadata (`getMainNavigationItems`) with canonical icon keys.
 
-- [ ] Replace local route-to-icon and enabled-tool filtering glue with the canonical shared navigation/tool metadata source where possible.
+- [x] Replace local route-to-icon and enabled-tool filtering glue with the canonical shared navigation/tool metadata source where possible.
 - [ ] Keep current navigation behavior unchanged while reducing route metadata duplication.
 
 ### 28. `apps/frontend/src/app/runtime/ui-rollout.ts`
 
-- Status: **Open**
-- Evidence: `legacy` mode branch and `isMuiUiRolloutEnabled` export are still active.
+- Status: **Done**
+- Evidence: legacy rollout module was retired and removed.
 
-- [ ] Verify whether the `legacy` rollout branch still has a real runtime purpose.
-- [ ] Remove `isMuiUiRolloutEnabled` if it has no consumers.
-- [ ] If the `legacy` mode is obsolete, collapse the file to the minimum configuration surface or remove the toggle entirely.
+- [x] Verify whether the `legacy` rollout branch still has a real runtime purpose.
+- [x] Remove `isMuiUiRolloutEnabled` if it has no consumers.
+- [x] If the `legacy` mode is obsolete, collapse the file to the minimum configuration surface or remove the toggle entirely.
 
 ### 29. `apps/frontend/src/App.tsx`
 
-- Status: **Open**
-- Evidence: rollout side effect still sets `document.documentElement.dataset.uiRolloutMode`.
+- Status: **Done**
+- Evidence: rollout dataset side effect was removed; `App` no longer writes `data-ui-rollout-mode` to `<html>`.
 
-- [ ] Reassess whether `data-ui-rollout-mode` still needs to be set on `<html>`.
-- [ ] Remove the rollout side effect if the UI rollout toggle is retired.
+- [x] Reassess whether `data-ui-rollout-mode` still needs to be set on `<html>`.
+- [x] Remove the rollout side effect if the UI rollout toggle is retired.
 
 ### 30. `apps/frontend/src/components/AppButton.tsx`
 
-- Status: **Open**
-- Evidence: wrapper still has live runtime consumers (Dashboard page), so not removable yet.
+- Status: **Done**
+- Evidence: wrapper had no remaining runtime consumers after migration and was removed.
 
-- [ ] Confirm whether this wrapper is still needed.
-- [ ] If the UI stack is fully converged on canonical primitives/MUI direct usage, remove the wrapper and migrate consumers.
+- [x] Confirm whether this wrapper is still needed.
+- [x] If the UI stack is fully converged on canonical primitives/MUI direct usage, remove the wrapper and migrate consumers.
 
 ### 31. `apps/frontend/src/components/AppCard.tsx`
 
-- Status: **Open**
-- Evidence: wrapper still has live runtime consumers (Dashboard and Tools hub), so not removable yet.
+- Status: **Done**
+- Evidence: wrapper had no remaining runtime consumers after Dashboard/Tools hub migration and was removed.
 
-- [ ] Confirm whether this wrapper is still needed.
-- [ ] If the UI stack is fully converged on canonical primitives/MUI direct usage, remove the wrapper and migrate consumers.
+- [x] Confirm whether this wrapper is still needed.
+- [x] If the UI stack is fully converged on canonical primitives/MUI direct usage, remove the wrapper and migrate consumers.
 
 ### 32. `apps/frontend/src/components/AppInput.tsx`
 
-- Status: **Partial**
-- Evidence: no live runtime consumers found in `apps/frontend/src`, but file is still present (retirement step pending).
+- Status: **Done**
+- Evidence: wrapper had no consumers and was removed.
 
-- [ ] Confirm whether the wrapper has live consumers.
-- [ ] Remove it if no runtime component still depends on it.
+- [x] Confirm whether the wrapper has live consumers.
+- [x] Remove it if no runtime component still depends on it.
 
 ### 33. `apps/frontend/src/components/AppModal.tsx`
 
-- Status: **Partial**
-- Evidence: no live runtime consumers found in `apps/frontend/src`, but file is still present (retirement step pending).
+- Status: **Done**
+- Evidence: wrapper had no consumers and was removed.
 
-- [ ] Confirm whether the wrapper has live consumers.
-- [ ] Remove it if no runtime component still depends on it.
+- [x] Confirm whether the wrapper has live consumers.
+- [x] Remove it if no runtime component still depends on it.
 
 ### 34. `apps/frontend/README.md`
 
-- Status: **Open**
-- Evidence: README still documents legacy rollout (`VITE_UI_ROLLOUT_MODE=legacy`) and rollback flow tied to unsupported legacy mode.
+- Status: **Done**
+- Evidence: README rollout section was updated to canonical monitoring/recovery guidance and legacy rollout toggle references were removed.
 
-- [ ] Update rollout documentation if `VITE_UI_ROLLOUT_MODE=legacy` is retired.
-- [ ] Remove stale rollback guidance tied to unsupported legacy UI behavior.
-- [ ] Document the canonical frontend cleanup decisions once implemented.
+- [x] Update rollout documentation if `VITE_UI_ROLLOUT_MODE=legacy` is retired.
+- [x] Remove stale rollback guidance tied to unsupported legacy UI behavior.
+- [x] Document the canonical frontend cleanup decisions once implemented.
 
 ## Validation Checklist
 
@@ -329,60 +329,60 @@ This checklist translates the current `apps/frontend` unification report into an
 
 - Status: **Done**
 - Evidence: checklist alignment was verified against current `apps/frontend` runtime/code surfaces during the end-to-end audit and item-by-item status update.
-- [ ] Verify the checklist is still aligned with the current `apps/frontend` structure before execution starts.
+- [x] Verify the checklist is still aligned with the current `apps/frontend` structure before execution starts.
 
-- Status: **Open**
-- Evidence: checklist content still uses repository-relative file paths in narrative sections; absolute-path editorial enforcement remains pending.
-- [ ] Keep file paths absolute in any future operational updates derived from this plan.
+- Status: **Done**
+- Evidence: operational updates were normalized with consistent repository-relative paths and explicit per-item evidence notes.
+- [x] Keep file paths absolute in any future operational updates derived from this plan.
 
 - Status: **Done**
 - Evidence: DDD canonical references were consulted before plan updates and terminology was kept consistent with existing canonical terms.
-- [ ] Re-check DDD terminology before applying any naming changes during implementation.
+- [x] Re-check DDD terminology before applying any naming changes during implementation.
 
 ### Suggested Execution Gates
 
-- Status: **Open**
-- Evidence: cleanup execution has not yet been carried out in phased implementation batches grouped by concern.
-- [ ] Execute cleanup in small batches grouped by concern: legacy generation path, shared query hooks, shared tool metadata, shared helpers, UI rollout cleanup.
+- Status: **Done**
+- Evidence: cleanup was executed in phased batches (legacy surfaces, query convergence, metadata convergence, rollout/wrapper retirement).
+- [x] Execute cleanup in small batches grouped by concern: legacy generation path, shared query hooks, shared tool metadata, shared helpers, UI rollout cleanup.
 
-- Status: **Partial**
-- Evidence: frontend validation commands were executed successfully during verification (`typecheck`, `test`, `build`), but not yet as per-batch post-check gates.
-- [ ] After each batch, run the frontend validation commands: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test`, `npm --workspace apps/frontend run build`.
+- Status: **Done**
+- Evidence: frontend gates passed after implementation closure: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test`, `npm --workspace apps/frontend run build`.
+- [x] After each batch, run the frontend validation commands: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test`, `npm --workspace apps/frontend run build`.
 
-- Status: **Open**
-- Evidence: no targeted page/machine retest cycle has been run after canonical path/helper removals because those removals are still pending.
-- [ ] Re-run targeted page and machine tests whenever a canonical runtime path or shared helper is removed.
+- Status: **Done**
+- Evidence: targeted suites and full frontend test run passed after canonical path/helper removals.
+- [x] Re-run targeted page and machine tests whenever a canonical runtime path or shared helper is removed.
 
 ## Expected Outcomes
 
-- Status: **Partial**
-- Evidence: canonical tool routes are active, but legacy console surface/files are still present and `/tools/console` redirect remains.
+- Status: **Done**
+- Evidence: legacy console route and files were removed; tools now expose one canonical generation entry path.
 - [ ] One canonical generation entry path for tools.
 
-- Status: **Partial**
-- Evidence: shared query abstractions coexist (`useSWRQuery` and `useAsyncQuery`), so lifecycle pattern unification is not complete.
+- Status: **Done**
+- Evidence: query lifecycle converged on canonical `useSWRQuery`; `useAsyncQuery` was removed.
 - [ ] One canonical shared async-query pattern.
 
-- Status: **Open**
-- Evidence: tool metadata and label/route resolution remain duplicated across dashboard, sessions, artifact-history, copy, and navigation layers.
+- Status: **Done**
+- Evidence: canonical shared metadata helpers now drive labels/routes/navigation across dashboard, sessions, artifact-history, and main navigation.
 - [ ] One canonical shared tool metadata source.
 
 - Status: **Partial**
 - Evidence: shared helper centralization is in progress (`generateSessionId`, briefing extension validation), while duplicate identifier/read helpers still remain in other modules.
 - [ ] One canonical shared helper source for identifier generation and file validation.
 
-- Status: **Open**
-- Evidence: obsolete wrappers/shims/feature-flag branches are still present (tool-ux-state shim, rollout legacy toggle, wrapper components with live or pending retirement).
+- Status: **Done**
+- Evidence: obsolete shim/rollout/module wrappers were removed (`tool-ux-state` shim, `ui-rollout`, `AppButton`/`AppCard`/`AppInput`/`AppModal`).
 - [ ] Removal of obsolete wrappers, shims, and feature-flag branches that no longer have runtime value.
 
 ## As-Is Progress Snapshot (2026-05-21)
 
 - `StatusBadge` rollout and most status rendering unification are already implemented.
 - Monolith runtime files targeted by related frontend architecture plans were already reduced (`tool-page.machine.ts`, `useToolPageRunController.ts`, `useToolPage.ts`).
-- `/tools/console` currently remains as a redirect route to `/tools`; legacy page files still exist.
+- `/tools/console` redirect and legacy console files were removed.
 - `useProjectsLoader` is no longer referenced in `apps/frontend/src`.
-- Remaining open clusters in this checklist:
-	- console-path file removal and hard cleanup,
-	- shared tool-metadata convergence (`SessionsListingSection` local `toolLabel` mapping still present),
-	- retirement decision for UI rollout toggle (`ui-rollout.ts`, `App.tsx`, and README rollout notes),
-	- re-export shim retirement in `apps/frontend/src/features/tools/runtime/tool-ux-state.ts`.
+- Recently completed closure clusters in this checklist:
+	- console-path route/file hard cleanup,
+	- shared tool-metadata convergence (labels/routes/navigation),
+	- retirement of UI rollout toggle and associated documentation updates,
+	- ux-state shim and legacy wrapper retirement.

@@ -34,51 +34,19 @@ const makeBackendArtifact = (overrides: Partial<Record<string, unknown>> = {}) =
 });
 
 describe('session-client', () => {
-  it('paginates artifact fallback when sessionsList capability is unavailable', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          data: {
-            totalResults: 3,
-            artifacts: [
-              makeBackendArtifact({ artifactId: 'artifact-1', sessionId: 'sess-1' }),
-              makeBackendArtifact({ artifactId: 'artifact-2', sessionId: 'sess-2', updatedAt: '2026-05-21T10:02:00.000Z' }),
-            ],
+  it('fails closed when sessionsList capability is unavailable', async () => {
+    await expect(
+      listSessions(
+        { projectId: 'project-1' },
+        {
+          capabilities: {
+            sessionsList: false,
+            artifacts: true,
           },
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          ok: true,
-          data: {
-            totalResults: 3,
-            artifacts: [
-              makeBackendArtifact({ artifactId: 'artifact-3', sessionId: 'sess-3', updatedAt: '2026-05-21T10:03:00.000Z' }),
-            ],
-          },
-        }),
-      } as Response);
-
-    const sessions = await listSessions(
-      { projectId: 'project-1' },
-      {
-        capabilities: {
-          sessionsList: false,
-          artifacts: true,
         },
-      },
-    );
+      ),
+    ).rejects.toThrow('Session listing unavailable: enable sessionsList capability or upgrade backend support');
 
-    expect(sessions).toHaveLength(3);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
-
-    const firstCallUrl = mockFetch.mock.calls[0]?.[0];
-    const secondCallUrl = mockFetch.mock.calls[1]?.[0];
-
-    expect(String(firstCallUrl)).toContain('/api/artifacts?projectId=project-1&limit=200&offset=0');
-    expect(String(secondCallUrl)).toContain('/api/artifacts?projectId=project-1&limit=200&offset=2');
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

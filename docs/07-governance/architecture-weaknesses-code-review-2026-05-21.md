@@ -25,6 +25,8 @@ This companion snapshot is aligned with the shared-governance status captured in
 | F-03 | Type safety erosion in briefing upload machine through forced event casts | Closed after typed done-output remediation | Closed after typed done-output remediation | Symmetric |
 | F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | Closed after explicit default projection hardening | Closed after explicit default projection hardening | Symmetric |
 | F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | Closed after named comparator extraction | Closed after named comparator extraction | Symmetric |
+| F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Closed after fail-closed canonical session listing | Closed after fail-closed canonical session listing | Symmetric |
+| F-07 | Deprecated hydration compatibility path remains active | Closed after session-strict hydration selector cleanup | Closed after session-strict hydration selector cleanup | Symmetric |
 
 ### Shared Hardening Sequence Alignment
 
@@ -32,7 +34,7 @@ The residual hardening sequence for open architectural work is intentionally sym
 
 1. Optional follow-up: tighten compile-time GenerationRequestInput contract after compatibility deprecation window (DDD-073).
 
-The F-03, F-04, and F-05 remediations are already reflected in the severe snapshot and should be treated as part of the shared aligned state.
+The F-03, F-04, F-05, F-06, and F-07 remediations are already reflected in the severe snapshot and should be treated as part of the shared aligned state.
 
 ## Findings (Severity-First)
 

@@ -73,7 +73,7 @@ describe('step-hydration session-aware selectors', () => {
     expect(byStep.quiz?.artifactId).toBe('sess1-quiz');
   });
 
-  it('buildLatestArtifactByStep keeps legacy fallback rows when session-tagged rows are missing', () => {
+  it('buildLatestArtifactByStep ignores legacy fallback rows when session-tagged rows are requested', () => {
     const artifacts: GenerationArtifact[] = [
       createArtifact({ artifactId: 'legacy-optin', requestId: 'r-legacy', sessionId: null, step: 'optin', updatedAt: '2026-05-09T10:00:00.000Z' }),
       createArtifact({ artifactId: 'session-quiz', requestId: 'r-session', sessionId: 'sess-3', step: 'quiz', updatedAt: '2026-05-09T10:01:00.000Z' }),
@@ -81,7 +81,7 @@ describe('step-hydration session-aware selectors', () => {
 
     const byStep = buildLatestArtifactByStep(artifacts, 'funnel-pages', 'project-001', 'sess-3');
 
-    expect(byStep.optin?.artifactId).toBe('legacy-optin');
+    expect(byStep.optin).toBeUndefined();
     expect(byStep.quiz?.artifactId).toBe('session-quiz');
   });
 });

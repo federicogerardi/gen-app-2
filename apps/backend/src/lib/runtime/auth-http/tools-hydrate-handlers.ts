@@ -46,8 +46,12 @@ export const createToolsHydrateHandlers = (
     writeSuccess,
   } = deps;
 
+  const shouldEmitHydrateDiagnostics = (): boolean => {
+    return process.env.HYDRATE_DEBUG_DIAGNOSTICS === '1' && process.env.NODE_ENV !== 'production';
+  };
+
   const debugLog = (message: string, payload?: unknown): void => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (shouldEmitHydrateDiagnostics()) {
       console.debug(message, payload ?? '');
     }
   };
@@ -158,10 +162,9 @@ export const createToolsHydrateHandlers = (
           const hasText = normalizedText.trim().length > 0;
 
           debugLog('[auth-http] hydrate direct extraction artifact resolved', {
-            sourceArtifactId,
-            artifactId: artifact.artifactId,
             projectId,
-            briefingId,
+            hasSourceArtifactId: sourceArtifactId != null,
+            hasResolvedBriefingId: resolvedBriefingId != null,
             normalizedTextLength: normalizedText.trim().length,
             extractionPayloadKeys: Object.keys(extractionPayload).length,
             parsedFormat,
@@ -273,13 +276,12 @@ export const createToolsHydrateHandlers = (
     const parsedFormat = parsedFormatFromInput(bestDetail.input);
 
     debugLog('[auth-http] hydrate ranked extraction artifact resolved', {
-      sourceArtifactId,
-      sourceExtractionArtifactId,
-      resolvedBriefingId,
       rankedCandidateCount: ranked.length,
-      selectedArtifactId: bestDetail.artifactId,
       projectId,
-      briefingId,
+      hasSourceArtifactId: sourceArtifactId != null,
+      hasSourceExtractionArtifactId: sourceExtractionArtifactId != null,
+      hasResolvedBriefingId: resolvedBriefingId != null,
+      selectedArtifactId: bestDetail.artifactId,
       normalizedTextLength: normalizedText.trim().length,
       extractionPayloadKeys: Object.keys(extractionPayload).length,
       parsedFormat,

@@ -24,9 +24,9 @@ owner: Architecture Review
 | F-03 | Type safety erosion in briefing upload machine through forced event casts | High | Low | Closed after typed done-output remediation | P2 |
 | F-04 | Artifact detail projection is fail-soft and can silently return empty input/content | High | Medium | Closed after explicit default projection hardening | P2 |
 | F-05 | Hydration ranking logic is extension-fragile due to imperative ordering | High | Medium | Closed after named comparator extraction | P2 |
-| F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Documented transition (DDD-051/DDD-052) | P3 |
-| F-07 | Deprecated hydration compatibility path remains active | Medium | Low | Technical debt with bounded DDD risk | P3 |
-| F-08 | Hydration debug logging enabled for non-production environments | Low | None | Operational hygiene concern | P4 |
+| F-06 | Session listing dual semantics (canonical endpoint plus artifact-derived fallback) | Medium | Low | Closed after fail-closed canonical session listing | P3 |
+| F-07 | Deprecated hydration compatibility path remains active | Medium | Low | Closed after session-strict hydration selector cleanup | P3 |
+| F-08 | Hydration debug logging enabled for non-production environments | Low | None | Closed after opt-in sanitized diagnostics gating | P4 |
 
 ### CRITICAL
 
@@ -135,15 +135,26 @@ owner: Architecture Review
   - Frontend fallback mapper: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L93)
   - Canonical endpoint branch: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L141)
   - Fallback execution branch: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L170)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Session listing now fails closed when the canonical sessions endpoint is unavailable instead of deriving summaries from artifacts: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L141)
+  - Artifact-derived session fallback helper was removed from the production session-listing path: [apps/frontend/src/features/tools/runtime/session-client.ts](../../apps/frontend/src/features/tools/runtime/session-client.ts#L132)
+- Closure validation evidence:
+  - Frontend focused session-client regression test: `npm --workspace apps/frontend run test -- --reporter=verbose src/features/tools/runtime/session-client.test.ts` (pass)
 
 2. Deprecated hydration compatibility path remains active.
 - Normalized severity: **Architecture = Medium | DDD = Low**.
 - Impacted concepts: StepHydration, ToolStepOrchestration.
 - Why weak: legacy path increases mutation surface and cognitive load.
 - Evidence:
-  - Deprecated path warning: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L183)
-  - Legacy helper still exported: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L217)
-  - Canonical backend orchestration path already used: [apps/frontend/src/features/tools/runtime/useToolPageRunController.ts](../../apps/frontend/src/features/tools/runtime/useToolPageRunController.ts#L121)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Deprecated warning removed from tool-step compatibility selector: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L176)
+  - Legacy fallback rows removed from session-aware latest-artifact selection: [apps/frontend/src/features/generation/runtime/step-hydration.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.ts#L217)
+  - Canonical backend orchestration path remains the live step execution authority: [apps/frontend/src/features/tools/runtime/useToolPageRunController.ts](../../apps/frontend/src/features/tools/runtime/useToolPageRunController.ts#L121)
+- Closure validation evidence:
+  - Session-aware hydration regression coverage: [apps/frontend/src/features/generation/runtime/step-hydration.test.ts](../../apps/frontend/src/features/generation/runtime/step-hydration.test.ts#L76)
+  - Frontend focused step-hydration regression suite: `npm --workspace apps/frontend run test -- --reporter=verbose src/features/generation/runtime/step-hydration.test.ts` (pass, 3/3)
 
 ### LOW
 
@@ -152,15 +163,19 @@ owner: Architecture Review
 - Impacted concept: operational observability governance.
 - Why weak: coarse debug gate can create noise and metadata exposure in staging/test.
 - Evidence:
-  - Debug helper declaration: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L49)
-  - Environment gate: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L50)
-  - Debug output call: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L51)
+- Closure status (2026-05-21): **Closed**.
+- Closure implementation evidence:
+  - Hydrate diagnostics now require explicit `HYDRATE_DEBUG_DIAGNOSTICS=1` opt-in outside production: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L49)
+  - Hydrate debug output now emits sanitized booleans and counts instead of direct identifiers: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L164)
+  - Ranked hydrate diagnostics remain sanitized in the same opt-in path: [apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts](../../apps/backend/src/lib/runtime/auth-http/tools-hydrate-handlers.ts#L278)
+- Closure validation evidence:
+  - Backend focused auth-http regression test: `npm --workspace @gen-app-2/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (pass)
 
 ## Governance Alignment Notes
 - Existing governance snapshots report no currently open findings:
   - [docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md](./architecture-weaknesses-code-review-2026-05-18.md)
   - [docs/07-governance/architecture-weaknesses-code-review-2026-05-21.md](./architecture-weaknesses-code-review-2026-05-21.md)
-- This severe review records residual structural weaknesses that remain relevant for preventive hardening.
+- This severe review records the historical findings and their closed remediations for preventive hardening.
 
 ## Recommended Next Hardening Sequence
 1. Tighten compile-time `GenerationRequestInput` contract after compatibility deprecation window (DDD-073).
@@ -212,11 +227,11 @@ This section verifies the DDD impact of each finding against the canonical refer
 8. Hydration debug logging in non-production environments.
 - DDD references: none (operational concern).
 - DDD impact: **no direct DDD impact**.
-- Verification: this is observability governance and runtime hygiene, outside ubiquitous-language consistency scope.
+- Verification: opt-in sanitized diagnostics now keep runtime observability separate from request payload content and identifiers.
 
 ### DDD Conclusion
 
 - **Confirmed DDD drift requiring canonical action now**: none.
-- **Architecture hardening with DDD sensitivity**: ToolKey normalization authority, hydration-ranking extensibility, artifact projection contract clarity.
+- **Architecture hardening with DDD sensitivity**: ToolKey normalization authority, hydration-ranking extensibility, artifact projection contract clarity, sanitized hydrate diagnostics.
 - **Accepted/governed compatibility areas**: compile-time permissive `GenerationRequestInput` envelope (DDD-073) and SessionSummary fallback transition (DDD-051/DDD-052).
 

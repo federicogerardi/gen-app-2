@@ -30,6 +30,17 @@ export type ToolFormConfig = {
   };
 };
 
+export type ToolFileInstructionsConfig = {
+  title: string;
+  summary: string;
+  requiredFiles: readonly string[];
+  requiredFields: readonly string[];
+  optionalFields: readonly string[];
+  examples: readonly string[];
+  notes: readonly string[];
+  stepConstraints: readonly string[];
+};
+
 /**
  * Tool form state that maps to step dependencies and generation
  */
@@ -106,6 +117,70 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
+  },
+};
+
+export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
+  'funnel-pages': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un solo BriefingFile completo: il funnel viene costruito a partire da obiettivo, target e offerta.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFields: ['Obiettivo del funnel', 'Target', 'Offerta', 'Proof o testimonianze', 'CTA principale'],
+    optionalFields: ['Vincoli di tono', 'Riferimenti visual', 'Esempi di competitor', 'Note sul funnel attuale'],
+    examples: [
+      'Obiettivo: generare lead qualificati per il prodotto principale.',
+      'Target: imprenditori e marketer che cercano una landing ad alta conversione.',
+    ],
+    notes: ['Se un campo non è disponibile, scrivi "non disponibile" invece di ometterlo.'],
+    stepConstraints: ['Gli step optin, quiz e vsl devono restare coerenti con lo stesso brief.'],
+  },
+  nextland: {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Usa un BriefingFile ordinato e descrittivo per definire sito, sezioni e risultato atteso.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFields: ['Obiettivo del sito', 'Brand o azienda', 'Target', 'Offerta o servizio', 'Sezioni richieste'],
+    optionalFields: ['Tone of voice', 'Referenze di stile', 'Vincoli di copy', 'Materiali già esistenti'],
+    examples: [
+      'Obiettivo: presentare il brand e portare l’utente alla pagina contatto.',
+      'Sezioni richieste: hero, proof, servizi, CTA finale.',
+    ],
+    notes: ['Indica chiaramente quali pagine o blocchi devono essere prodotti.', 'Evita richieste implicite: la pagina deve poter essere ricostruita solo dal brief.'],
+    stepConstraints: ['Gli step landing e thank_you devono usare la stessa base informativa del BriefingFile.'],
+  },
+  'youtube-lf-script': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Compila il brief con i campi canonici richiesti per l’estrazione e la generazione dello script long-form.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFields: [
+      'knowledge_content',
+      'avatar',
+      'pain_point',
+      'purchase_process_type',
+      'offer',
+      'proof',
+      'target_duration_minutes',
+      'proprietary_methodology_disclosure',
+    ],
+    optionalFields: ['Link o riferimenti di supporto', 'Note sul posizionamento', 'Vincoli editoriali'],
+    examples: [
+      'knowledge_content: punti chiave della conoscenza da trasformare in script.',
+      'target_duration_minutes: 12.',
+    ],
+    notes: ['I campi mancanti devono essere espliciti e valorizzati a null nel payload estratto.', 'Il tone del brief non sostituisce il ToneProfile di generazione.'],
+    stepConstraints: ['La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.'],
+  },
+  'angle-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica due file complementari: un BriefingFile e un AngleDetectorFile coerenti tra loro.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)', 'AngleDetectorFile (.docx, .txt, .md)'],
+    requiredFields: ['Obiettivo', 'Prodotto o servizio', 'Mercato', 'Target', 'Pain point', 'Proof', 'Vincoli creativi'],
+    optionalFields: ['Tone of voice', 'Esempi di angoli già usati', 'Benchmark o competitor', 'Note strategiche'],
+    examples: [
+      'Briefing: descrizione del brand e del prodotto da posizionare.',
+      'Angle detector: insight di mercato e segnali competitivi da confrontare con il brief.',
+    ],
+    notes: ['I due file devono descrivere lo stesso contesto di lavoro.', 'Se uno dei due file manca, la generazione non è pronta.'],
+    stepConstraints: ['La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
 };
 

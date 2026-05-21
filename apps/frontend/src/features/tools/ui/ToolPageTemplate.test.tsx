@@ -451,6 +451,20 @@ describe('ToolPageTemplate wiring', () => {
     expect(secondRequest.input.step).toBe('quiz');
   });
 
+  it('renders the file instructions section for the active tool', () => {
+    renderTemplate({ toolKey: 'angle-generator' });
+
+    const accordion = screen.getByTestId('tool-file-instructions-accordion');
+    expect(accordion).not.toHaveAttribute('open');
+    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
+
+    expect(accordion).toHaveAttribute('open');
+    expect(screen.getByText('Obiettivo')).toBeInTheDocument();
+    expect(screen.getByText('Prodotto o servizio')).toBeInTheDocument();
+    expect(screen.getByText('Vincoli creativi')).toBeInTheDocument();
+    expect(screen.queryByText('Tone of voice')).toBeNull();
+  });
+
   it('persists extraction context and grows step dependency context incrementally across steps', async () => {
     availableStepsState.steps = ['optin'];
     generationState.artifacts = [defaultExtractionArtifact];

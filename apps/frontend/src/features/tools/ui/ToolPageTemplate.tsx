@@ -15,9 +15,11 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
+import { selectToolFileInstructions } from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
+import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 
 const toneProfileOptions = [
   { value: 'Professional', label: 'Professional' },
@@ -74,6 +76,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleAngleDetectorFileSelected,
     handleBriefingReset,
   } = useToolPage(props);
+  const toolFileInstructions = selectToolFileInstructions(props.toolKey);
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
@@ -284,6 +287,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   )}
                 />
               ) : null}
+
+              <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
               {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}

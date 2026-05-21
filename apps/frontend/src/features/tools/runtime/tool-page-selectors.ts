@@ -12,7 +12,12 @@ import type {
 } from '../machines/tool-page.machine';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
-import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
+import {
+  toolFileInstructionsRegistry,
+  type ToolFileInstructionsConfig,
+  type ToolFormConfig,
+  type ToolFormState,
+} from './tool-form-architecture';
 import {
   isEmptyPayload,
   mapInlineDispatchError,
@@ -347,3 +352,7 @@ export const selectInterruptedStep = (
   currentRunningStep: ToolStep | null,
   lastRequestedStep: ToolStep | null,
 ): ToolStep | null => currentRunningStep ?? lastRequestedStep;
+
+export const selectToolFileInstructions = (
+  toolKey: SupportedTool,
+): ToolFileInstructionsConfig | null => toolFileInstructionsRegistry[toolKey] ?? null;

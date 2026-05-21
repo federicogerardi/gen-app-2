@@ -125,6 +125,9 @@ export const appCopy = {
       period: 'Periodo',
       page: 'Pagina',
     },
+    toolInstructions: {
+      title: 'Istruzioni compilazione file',
+    },
     meta: {
       phase: 'phase',
       extraction: 'extraction',

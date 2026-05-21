@@ -55,12 +55,14 @@ Implementation notes:
 frontend/src/features/tools/
 ├── runtime/
 │   ├── tool-form-architecture.ts      # Registry + ToolFormConfig types
+│   ├── tool-page-selectors.ts         # Derived page selectors, including tool file instructions
 │   ├── tool-ux-state.ts               # Canonical state derivation
 │   ├── tool-generation-engine.ts      # Unchanged
 │   ├── tools-client.ts                # Unchanged
 │   └── useToolForm.ts                 # Hook utilities: useProjectsLoader, useToolUiState, form helpers
 ├── ui/
 │   ├── ToolPageTemplate.tsx           # Orchestration component (~150 lines)
+│   ├── ToolFileInstructionsSection.tsx # Registry-driven default-closed accordion for required fields only
 │   ├── ToolGenerationFlowVertical.tsx # Unified flow/status right column
 │   ├── ToolStatusCard.tsx             # Legacy reusable component
 │   ├── ToolStepCard.tsx               # Legacy reusable component
@@ -96,7 +98,8 @@ frontend/src/features/tools/
         ▼                                  ▼
       ToolGenerationFlowVertical       ToolPageTemplate.render()
       (Checklist + progress +         ├─ Form (Project, Model, Tone, Notes)
-       step statuses unificati)       ├─ Briefing upload input (events -> machine actor)
+        step statuses unificati)       ├─ Briefing upload input (events -> machine actor)
+                                       ├─ Tool File Instructions Section (registry-driven, default-closed accordion, required fields only)
                       ├─ Flow state da selector macchina
                       └─ ToolActionButtons (CTA adaptivi)
 ```

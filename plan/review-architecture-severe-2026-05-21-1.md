@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.5
+version: 1.6
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -171,6 +171,14 @@ owner: Architecture Review
   - CI maintainability and long-term architecture integrity.
 
 ### 7. Low-Medium — React hook dependency suppression in auth provider
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Removed `react-hooks/exhaustive-deps` suppression from `AuthSessionProvider` memoized context value.
+  - Stabilized `login`, `logout`, and `refresh` callbacks with `useCallback`, then declared them explicitly in `useMemo` dependency array.
+  - Preserved provider behavior while restoring dependency transparency for future maintenance.
+- Validation evidence:
+  - `npm --workspace apps/frontend run typecheck` passed.
+  - `npm run typecheck --workspaces --if-present` passed.
 - Evidence:
   - `apps/frontend/src/app/providers/AuthSessionProvider.tsx` disables exhaustive-deps for memoized context value.
 - Architectural weakness:
@@ -191,7 +199,6 @@ owner: Architecture Review
   - frontend session client endpoint authority centralized through `buildApiPaths`.
 - Finding 6 is now closed in this cycle:
   - lint and noUnused quality gates restored across workspaces.
-- The dominant residual risk profile is now concentrated in Low-Medium areas:
-  - frontend auth hook dependency suppression.
-- Recommended next hardening wave:
-  1. Address React hook dependency suppression in auth provider.
+- Finding 7 is now closed in this cycle:
+  - auth provider hook dependency suppression removed with stable callback memoization.
+- No open Critical/High/Medium findings remain in this review pass.

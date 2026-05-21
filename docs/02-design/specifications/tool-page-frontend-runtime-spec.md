@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-05-11
-last-reviewed: 2026-05-11
+last-reviewed: 2026-05-21
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
@@ -30,6 +30,7 @@ type: ai-first-runtime-spec
 | Presentation component | `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` | Pure presentation: form + layout + CTA rendering |
 | Generation workspace | `apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx` | React context — per-project `ExtractionContext` + stream state |
 | Generation dispatch + assembly | `apps/frontend/src/features/tools/runtime/tools-client.ts` | `orchestrateToolStep`, `createStepRequest`, extraction assembly |
+| Brief upload endpoint (BE) | `apps/backend/src/lib/runtime/auth-http/tools-brief-handlers.ts` | `/api/tools/briefs` payload validation and normalized text response |
 | Step hydration | `apps/frontend/src/features/generation/runtime/step-hydration.ts` | Read projections over `GenerationArtifact` history |
 | Artifact client | `apps/frontend/src/features/artifacts/runtime/artifacts-client.ts` | `getArtifactById` — single artifact fetch with local cache |
 
@@ -261,6 +262,96 @@ File: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (lines ~400–58
 
 **Debug logging** (DEV only): two `console.info` calls — one before (entry state) and one after (dispatched request fields, including `briefingTextLength` and `extractionPayloadKeys`).
 
+### 5.1 Angle Generator Dual-File Extraction Payload Contract (Pre-Implementation)
+
+> Normative target contract for `ToolKey = angle-generator` based on DDD-078. This section defines BE/FE payload expectations before code implementation.
+
+#### 5.1.1 Scope and invariants
+
+- Applies only to `ToolKey = angle-generator`.
+- Extraction remains a single LLM invocation.
+- Extraction input context must be assembled from exactly two uploaded sources:
+  - `BriefingFile` (existing source)
+  - `AngleDetectorFile` (new market-analysis source)
+
+#### 5.1.2 FE -> BE upload contract (`POST /api/tools/briefs`)
+
+Current baseline (implemented): one file payload (`fileName`, `mimeType`, `contentBase64`) in `tools-client.ts` and `tools-brief-handlers.ts`.
+
+Target payload for `angle-generator` (pre-implementation):
+
+```json
+{
+  "projectId": "proj_...",
+  "toolKey": "angle-generator",
+  "briefing": {
+    "fileName": "briefing.md",
+    "mimeType": "text/markdown",
+    "contentBase64": "..."
+  },
+  "angleDetector": {
+    "fileName": "angle-detector.md",
+    "mimeType": "text/markdown",
+    "contentBase64": "..."
+  }
+}
+```
+
+Validation rules:
+
+- `projectId` required.
+- `toolKey` required and normalized to `angle-generator`.
+- `briefing` and `angleDetector` both required for `angle-generator`.
+- Both files must pass existing size and parse constraints.
+
+Target response contract:
+
+```json
+{
+  "briefing": {
+    "briefingId": "brief_...",
+    "projectId": "proj_...",
+    "toolKey": "angle-generator",
+    "fileName": "briefing.md",
+    "mimeType": "text/markdown",
+    "parsedFormat": "md",
+    "normalizedText": "..."
+  },
+  "angleDetector": {
+    "fileName": "angle-detector.md",
+    "mimeType": "text/markdown",
+    "parsedFormat": "md",
+    "normalizedText": "..."
+  },
+  "knowledgeSourcesCount": 2
+}
+```
+
+#### 5.1.3 FE -> BE extraction dispatch contract (`GenerationRequest`)
+
+For `angle-generator` extraction dispatch:
+
+- `request.artifactType = 'extraction'`
+- `request.toolKey = 'extraction'`
+- `request.workflowType = 'extraction'`
+- `request.input.toolKey = 'angle-generator'`
+- `request.input.briefingText` must contain merged normalized context from both files.
+- `request.input.extractionPayload` must include source metadata envelope:
+
+```json
+{
+  "knowledgeSources": [
+    { "kind": "briefing", "fileName": "briefing.md", "parsedFormat": "md" },
+    { "kind": "angle-detector", "fileName": "angle-detector.md", "parsedFormat": "md" }
+  ]
+}
+```
+
+Execution rule:
+
+- BE extraction path consumes a single request and returns one `ExtractionContext` output.
+- Executing two independent extraction jobs for the two files is non-compliant with DDD-078.
+
 ---
 
 ## 6. CANCEL_GENERATION Recovery Path
@@ -362,4 +453,5 @@ All props come from `useToolPage` return value. Selected mapping:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |

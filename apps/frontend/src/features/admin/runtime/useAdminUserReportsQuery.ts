@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 
-import { appCopy } from '../../../app/copy/system';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import type { UserReportCategory, UserReportStatus } from '../../feedback-center/contracts/feedback-center-contract';
@@ -42,6 +41,6 @@ export const useAdminUserReportsQuery = ({
     key: [apiBaseUrl, capabilities, statusFilter, categoryFilter, 'admin-user-reports'],
     fetcher: query,
     emptyData: [],
-    errorMessage: appCopy.ui.fallbackErrors.loadAdminUserReports,
+    errorMessage: 'Unable to load admin user reports',
   });
 };

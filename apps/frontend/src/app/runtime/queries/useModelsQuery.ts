@@ -1,5 +1,4 @@
 import type { BackendCapabilities } from '../backend-capabilities';
-import { appCopy } from '../../copy/system';
 import {
   listEnabledModels,
   type LlmModelOption,
@@ -22,6 +21,6 @@ export const useModelsQuery = (options: UseModelsQueryOptions): SWRQueryResult<L
       capabilities: options.capabilities as BackendCapabilities,
     }),
     emptyData: [],
-    errorMessage: appCopy.ui.fallbackErrors.loadModels,
+    errorMessage: 'Unable to load models',
   });
 };

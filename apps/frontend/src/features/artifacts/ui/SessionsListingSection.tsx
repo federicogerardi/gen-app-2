@@ -12,9 +12,8 @@ import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
-import { UI_CONFIG } from '../../../app/config/ui-config';
 
-const pageSize = UI_CONFIG.pagination.sessionsPageSize;
+const pageSize = 10;
 
 type SessionsListingSectionProps = {
   title: string;
@@ -108,7 +107,7 @@ export const SessionsListingSection = ({
             ? fixedProjectName
             : null)
           ?? projectNameById[session.projectId]
-          ?? appCopy.ui.states.projectUnavailable;
+          ?? 'Progetto non disponibile';
 
         if (columnKey === 'tool') return <strong>{getToolLabel(session.toolKey)}</strong>;
         if (columnKey === 'status') return <StatusBadge status={session.status} />;

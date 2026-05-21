@@ -2,15 +2,15 @@
 goal: Progressive Closure Plan For Remaining Findings In Frontend Unification Checklist
 version: 1.0
 date_created: 2026-05-21
-last_updated: 2026-05-21
+last_updated: 2026-05-21 (execution complete)
 owner: Frontend Platform
-status: 'Planned'
+status: Completed
 tags: [process, frontend, checklist, refactor, deduplication, cleanup]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This implementation plan closes all remaining Open and Partial findings in the frontend unification checklist using deterministic, phased execution. The plan preserves canonical DDD terminology and applies incremental validation gates after each batch.
 
@@ -40,11 +40,11 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Remove /tools/console route from apps/frontend/src/app/routing/app-router.tsx by deleting the route object with path /tools/console and its Navigate redirect element. |  |  |
-| TASK-002 | Delete apps/frontend/src/features/generation/pages/GenerationConsolePage.tsx and apps/frontend/src/features/generation/pages/GenerationConsolePage.test.tsx after TASK-001 is merged. |  |  |
-| TASK-003 | Delete legacy console-only UI files apps/frontend/src/features/generation/ui/GenerationForm.tsx, apps/frontend/src/features/generation/ui/GenerationStreamPanel.tsx, and apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx if no import consumers remain. |  |  |
-| TASK-004 | Remove legacy console references in editorial copy by updating apps/frontend/src/app/copy/system.ts under editorial.dashboard.cards.tools.body and any residual tools console text. |  |  |
-| TASK-005 | Update routing tests in apps/frontend/src/app/routing/app-router.test.tsx by removing /tools/console redirect assertions and replacing with canonical /tools hub assertions. |  |  |
+| TASK-001 | Remove /tools/console route from apps/frontend/src/app/routing/app-router.tsx by deleting the route object with path /tools/console and its Navigate redirect element. | Yes | 2026-05-21 |
+| TASK-002 | Delete apps/frontend/src/features/generation/pages/GenerationConsolePage.tsx and apps/frontend/src/features/generation/pages/GenerationConsolePage.test.tsx after TASK-001 is merged. | Yes | 2026-05-21 |
+| TASK-003 | Delete legacy console-only UI files apps/frontend/src/features/generation/ui/GenerationForm.tsx, apps/frontend/src/features/generation/ui/GenerationStreamPanel.tsx, and apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx if no import consumers remain. | Yes | 2026-05-21 |
+| TASK-004 | Remove legacy console references in editorial copy by updating apps/frontend/src/app/copy/system.ts under editorial.dashboard.cards.tools.body and any residual tools console text. | Yes | 2026-05-21 |
+| TASK-005 | Update routing tests in apps/frontend/src/app/routing/app-router.test.tsx by removing /tools/console redirect assertions and replacing with canonical /tools hub assertions. | Yes | 2026-05-21 |
 
 ### Implementation Phase 2
 
@@ -52,11 +52,11 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Refactor apps/frontend/src/app/runtime/queries/useModelsQuery.ts to use useSWRQuery from apps/frontend/src/app/runtime/queries/useSWRQuery.ts, preserving enabled behavior and existing error message text. |  |  |
-| TASK-007 | Refactor apps/frontend/src/app/runtime/queries/useArtifactsQuery.ts to use useSWRQuery while preserving localArtifacts fallback and filter pagination semantics. |  |  |
-| TASK-008 | Remove apps/frontend/src/app/runtime/queries/useAsyncQuery.ts after TASK-006 and TASK-007 and after confirming zero import consumers via workspace search. |  |  |
-| TASK-009 | Align query option handling signatures across useProjectsQuery, useSessionsQuery, useModelsQuery, useAdminUsersQuery, useProjectDetailQuery, useArtifactDetailQuery, and useArtifactsQuery by enforcing a consistent enabled default contract. |  |  |
-| TASK-010 | Validate all query consumers compile unchanged in apps/frontend/src/features/dashboard/pages/DashboardPage.tsx, apps/frontend/src/features/projects/pages/ProjectsListPage.tsx, apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx, and apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx. |  |  |
+| TASK-006 | Refactor apps/frontend/src/app/runtime/queries/useModelsQuery.ts to use useSWRQuery from apps/frontend/src/app/runtime/queries/useSWRQuery.ts, preserving enabled behavior and existing error message text. | Yes | 2026-05-21 |
+| TASK-007 | Refactor apps/frontend/src/app/runtime/queries/useArtifactsQuery.ts to use useSWRQuery while preserving localArtifacts fallback and filter pagination semantics. | Yes | 2026-05-21 |
+| TASK-008 | Remove apps/frontend/src/app/runtime/queries/useAsyncQuery.ts after TASK-006 and TASK-007 and after confirming zero import consumers via workspace search. | Yes | 2026-05-21 |
+| TASK-009 | Align query option handling signatures across useProjectsQuery, useSessionsQuery, useModelsQuery, useAdminUsersQuery, useProjectDetailQuery, useArtifactDetailQuery, and useArtifactsQuery by enforcing a consistent enabled default contract. | Yes | 2026-05-21 |
+| TASK-010 | Validate all query consumers compile unchanged in apps/frontend/src/features/dashboard/pages/DashboardPage.tsx, apps/frontend/src/features/projects/pages/ProjectsListPage.tsx, apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx, and apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx. | Yes | 2026-05-21 |
 
 ### Implementation Phase 3
 
@@ -64,11 +64,11 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Introduce a canonical tool metadata export in apps/frontend/src/features/tools/runtime/tool-form-architecture.ts that includes label and route for each enabled SupportedTool. |  |  |
-| TASK-012 | Replace local tool label resolvers in apps/frontend/src/features/dashboard/pages/DashboardPage.tsx, apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx, and apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx with the canonical metadata export from TASK-011. |  |  |
-| TASK-013 | Replace resolveToolRouteFromArtifact logic in apps/frontend/src/features/generation/ui/artifact-history.ts to use canonical metadata mapping from TASK-011. |  |  |
-| TASK-014 | Remove re-export shim file apps/frontend/src/features/tools/runtime/tool-ux-state.ts by moving all imports to apps/frontend/src/features/generation/ui/tool-ux-state.ts and deleting shim consumers in ToolActionButtons, ToolStatusCard, ToolGenerationFlowVertical, and tool-page-view-model. |  |  |
-| TASK-015 | Simplify tool form architecture exports in apps/frontend/src/features/tools/runtime/tool-form-architecture.ts by removing dead types ProjectsLoadingState, BriefingUploadState, and ToolFormSubmitData when no consumers remain. |  |  |
+| TASK-011 | Introduce a canonical tool metadata export in apps/frontend/src/features/tools/runtime/tool-form-architecture.ts that includes label and route for each enabled SupportedTool. | Yes | 2026-05-21 |
+| TASK-012 | Replace local tool label resolvers in apps/frontend/src/features/dashboard/pages/DashboardPage.tsx, apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx, and apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx with the canonical metadata export from TASK-011. | Yes | 2026-05-21 |
+| TASK-013 | Replace resolveToolRouteFromArtifact logic in apps/frontend/src/features/generation/ui/artifact-history.ts to use canonical metadata mapping from TASK-011. | Yes | 2026-05-21 |
+| TASK-014 | Remove re-export shim file apps/frontend/src/features/tools/runtime/tool-ux-state.ts by moving all imports to apps/frontend/src/features/generation/ui/tool-ux-state.ts and deleting shim consumers in ToolActionButtons, ToolStatusCard, ToolGenerationFlowVertical, and tool-page-view-model. | Yes | 2026-05-21 |
+| TASK-015 | Simplify tool form architecture exports in apps/frontend/src/features/tools/runtime/tool-form-architecture.ts by removing dead types ProjectsLoadingState, BriefingUploadState, and ToolFormSubmitData when no consumers remain. | Yes | 2026-05-21 |
 
 ### Implementation Phase 4
 
@@ -76,11 +76,11 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-016 | Remove legacy rollout mode support from apps/frontend/src/app/runtime/ui-rollout.ts by collapsing resolveUiRolloutMode to mui-only and removing isMuiUiRolloutEnabled export if unused. |  |  |
-| TASK-017 | Remove data-ui-rollout-mode side effect from apps/frontend/src/App.tsx and ensure no consumer relies on documentElement dataset uiRolloutMode. |  |  |
-| TASK-018 | Retire unused wrappers apps/frontend/src/components/AppInput.tsx and apps/frontend/src/components/AppModal.tsx when import search confirms zero consumers. |  |  |
-| TASK-019 | Evaluate wrappers apps/frontend/src/components/AppButton.tsx and apps/frontend/src/components/AppCard.tsx; either replace remaining consumers in DashboardPage and ToolsHubPage with canonical primitives or mark wrappers as canonical and close finding with explicit rationale in checklist. |  |  |
-| TASK-020 | Update apps/frontend/README.md by removing legacy rollback instructions tied to VITE_UI_ROLLOUT_MODE=legacy and documenting final canonical cleanup decisions and validation gate commands. |  |  |
+| TASK-016 | Remove legacy rollout mode support from apps/frontend/src/app/runtime/ui-rollout.ts by collapsing resolveUiRolloutMode to mui-only and removing isMuiUiRolloutEnabled export if unused. | Yes | 2026-05-21 |
+| TASK-017 | Remove data-ui-rollout-mode side effect from apps/frontend/src/App.tsx and ensure no consumer relies on documentElement dataset uiRolloutMode. | Yes | 2026-05-21 |
+| TASK-018 | Retire unused wrappers apps/frontend/src/components/AppInput.tsx and apps/frontend/src/components/AppModal.tsx when import search confirms zero consumers. | Yes | 2026-05-21 |
+| TASK-019 | Evaluate wrappers apps/frontend/src/components/AppButton.tsx and apps/frontend/src/components/AppCard.tsx; either replace remaining consumers in DashboardPage and ToolsHubPage with canonical primitives or mark wrappers as canonical and close finding with explicit rationale in checklist. | Yes | 2026-05-21 |
+| TASK-020 | Update apps/frontend/README.md by removing legacy rollback instructions tied to VITE_UI_ROLLOUT_MODE=legacy and documenting final canonical cleanup decisions and validation gate commands. | Yes | 2026-05-21 |
 
 ### Implementation Phase 5
 
@@ -88,11 +88,11 @@ This implementation plan closes all remaining Open and Partial findings in the f
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-021 | Run npm --workspace apps/frontend run typecheck after each completed phase and record result in checklist evidence notes. |  |  |
-| TASK-022 | Run npm --workspace apps/frontend run test after each completed phase and record result in checklist evidence notes. |  |  |
-| TASK-023 | Run npm --workspace apps/frontend run build after each completed phase and record result in checklist evidence notes. |  |  |
-| TASK-024 | Update plan/apps-frontend-unification-dead-code-checklist-1.md statuses from Open or Partial to Done only when corresponding code change and validation evidence are both present. |  |  |
-| TASK-025 | Mark Validation Checklist and Expected Outcomes entries Done with direct evidence for each row, including command results and impacted file references. |  |  |
+| TASK-021 | Run npm --workspace apps/frontend run typecheck after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
+| TASK-022 | Run npm --workspace apps/frontend run test after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
+| TASK-023 | Run npm --workspace apps/frontend run build after each completed phase and record result in checklist evidence notes. | Yes | 2026-05-21 |
+| TASK-024 | Update plan/apps-frontend-unification-dead-code-checklist-1.md statuses from Open or Partial to Done only when corresponding code change and validation evidence are both present. | Yes | 2026-05-21 |
+| TASK-025 | Mark Validation Checklist and Expected Outcomes entries Done with direct evidence for each row, including command results and impacted file references. | Yes | 2026-05-21 |
 
 ## 3. Alternatives
 

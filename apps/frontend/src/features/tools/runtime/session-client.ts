@@ -142,8 +142,20 @@ export const getStepArtifact = async (
   stepKey: string,
   options: SessionClientOptions = {},
 ): Promise<SessionArtifact> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const baseStepPath = buildApiPaths(capabilities).tools.sessions.byStep(
+    encodeURIComponent(sessionId),
+    encodeURIComponent(stepKey),
+  );
+  const stepPath = baseStepPath
+    ? `${baseStepPath}?includeContent=1`
+    : null;
+
+  if (!stepPath) {
+    throw new Error('Session endpoint unavailable: enable sessionsDetail capability or upgrade backend support');
+  }
+
   try {
-    const stepPath = `/api/tools/sessions/${encodeURIComponent(sessionId)}/step/${encodeURIComponent(stepKey)}?includeContent=1`;
     const payload = await requestJson<SessionResponse>(
       joinApiPath(
         options.apiBaseUrl ?? '',

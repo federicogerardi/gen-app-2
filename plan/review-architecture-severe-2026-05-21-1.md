@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 last-reviewed: 2026-05-21
 owner: Architecture Review
 ---
@@ -123,9 +123,22 @@ owner: Architecture Review
   - Adapter boundary quality (`ArtifactQueryRepository`, `RedisQuotaRepository`, `RedisIdempotencyRepository`, persistence concerns).
 
 ### 5. Medium — Session client boundary inconsistency in frontend
+- Status: resolved (2026-05-21)
+- Resolution summary:
+  - Centralized session step endpoint authority in `buildApiPaths` via `tools.sessions.byStep(sessionId, stepKey)`.
+  - Removed hardcoded step path construction from `session-client.ts` and switched `getStepArtifact` to capability-driven route resolution.
+  - Added fail-closed gating for step artifact calls when `sessionsDetail` capability is unavailable.
+- Validation evidence:
+  - `npm --workspace apps/frontend run test -- src/app/runtime/api-paths.test.ts` passed.
+  - `npm --workspace apps/frontend run test -- src/features/tools/runtime/session-client.test.ts` passed.
+  - `npm --workspace apps/frontend run typecheck` passed.
 - Evidence:
   - `apps/frontend/src/features/tools/runtime/session-client.ts` uses capability-driven `buildApiPaths` for list/detail.
   - The same file builds step endpoint with hardcoded string path.
+  - Remediation implementation:
+    - `apps/frontend/src/app/runtime/api-paths.ts` now exposes `tools.sessions.byStep(...)`.
+    - `apps/frontend/src/features/tools/runtime/session-client.ts` now resolves step endpoint through `buildApiPaths(capabilities).tools.sessions.byStep(...)`.
+    - `apps/frontend/src/features/tools/runtime/session-client.test.ts` adds coverage for capability fail-closed and centralized step path use.
 - Architectural weakness:
   - Inconsistent route authority in one module.
   - Higher drift risk when API paths evolve.
@@ -152,8 +165,7 @@ owner: Architecture Review
   - Frontend Auth state consistency.
 
 ## Open Questions
-1. Should session step endpoints be fully centralized via `buildApiPaths` to remove route duplication?
-2. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
+1. Should lint/unused-symbol guardrails be enforced first via package-level scripts or via stricter TypeScript compiler flags in CI?
 
 ## Executive Summary
 - No new open Critical issue was confirmed in this pass.
@@ -164,9 +176,9 @@ owner: Architecture Review
   - request-boundary type-safety hardening with cast removal.
 - Finding 4 is now closed in this cycle:
   - backend adapter decomposition into bounded modules with facade wiring parity.
+- Finding 5 is now closed in this cycle:
+  - frontend session client endpoint authority centralized through `buildApiPaths`.
 - The dominant residual risk profile is now concentrated in Medium areas:
-  - frontend session client path-authority drift,
   - technical governance gates.
 - Recommended next hardening wave:
-  1. Centralize frontend session step path authority through `buildApiPaths`.
-  2. Restore lint/unused-symbol guardrails across workspaces.
+  1. Restore lint/unused-symbol guardrails across workspaces.

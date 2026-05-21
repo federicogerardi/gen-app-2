@@ -7,6 +7,7 @@ import {
   PostgresArtifactQueryRepository,
   PostgresProjectQueryRepository,
 } from './index';
+import { createSmokeCleanup } from './smoke-cleanup';
 
 const requiredEnv = (name: 'DATABASE_URL'): string => {
   const value = process.env[name];
@@ -19,14 +20,35 @@ const requiredEnv = (name: 'DATABASE_URL'): string => {
 const run = async () => {
   const databaseUrl = requiredEnv('DATABASE_URL');
   const pg = new Pool({ connectionString: databaseUrl });
+  const cleanup = createSmokeCleanup();
 
   const ownUserId = 'seed-user-001';
   const otherUserId = 'seed-user-queries-002';
   const ownProjectId = `seed-project-query-own-${randomUUID()}`;
   const otherProjectId = `seed-project-query-other-${randomUUID()}`;
+  let createdProjectId: string | null = null;
 
   const ownArtifactId = `artifact-query-own-${randomUUID()}`;
   const otherArtifactId = `artifact-query-other-${randomUUID()}`;
+
+  cleanup.register(async () => {
+    await pg.query(`DELETE FROM users WHERE id = $1`, [otherUserId]);
+  });
+  cleanup.register(async () => {
+    const projectIds = [ownProjectId, otherProjectId, createdProjectId].filter(
+      (projectId): projectId is string => projectId !== null,
+    );
+    await pg.query(
+      `DELETE FROM projects WHERE id = ANY($1::text[])`,
+      [projectIds],
+    );
+  });
+  cleanup.register(async () => {
+    await pg.query(
+      `DELETE FROM artifacts WHERE id = ANY($1::text[])`,
+      [[ownArtifactId, otherArtifactId]],
+    );
+  });
 
   const projectQueries = new PostgresProjectQueryRepository(pg);
   const artifactQueries = new PostgresArtifactQueryRepository(pg);
@@ -121,6 +143,7 @@ const run = async () => {
     const createdProject = await projectQueries.createProjectForUser(ownUserId, {
       name: `Created Query Project ${randomUUID()}`,
     });
+    createdProjectId = createdProject.id;
     const readCreatedProject = await projectQueries.getProjectByIdForUser(ownUserId, createdProject.id);
     assert.ok(readCreatedProject);
     assert.equal(readCreatedProject.id, createdProject.id);
@@ -144,17 +167,8 @@ const run = async () => {
     assert.equal(readOtherArtifactAsOwn, null);
 
     console.log('Smoke OK: query repositories projects/artifacts are scoped and filtered correctly');
-
-    await pg.query(
-      `DELETE FROM artifacts WHERE id = ANY($1::text[])`,
-      [[ownArtifactId, otherArtifactId]],
-    );
-    await pg.query(
-      `DELETE FROM projects WHERE id = ANY($1::text[])`,
-      [[ownProjectId, otherProjectId, createdProject.id]],
-    );
-    await pg.query(`DELETE FROM users WHERE id = $1`, [otherUserId]);
   } finally {
+    await cleanup.run();
     await pg.end();
   }
 };

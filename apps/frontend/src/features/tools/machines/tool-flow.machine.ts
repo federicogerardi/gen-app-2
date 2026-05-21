@@ -1,18 +1,12 @@
 import { assign, setup } from 'xstate';
+import {
+  TOOL_KEYS,
+  TOOL_STEP_ORDER,
+  type ToolKey as SupportedTool,
+  type ToolStep,
+} from '@gen-app-2/contracts';
 
-export type SupportedTool = 'funnel-pages' | 'nextland' | 'youtube-lf-script';
-export type ToolStep =
-  | 'optin'
-  | 'quiz'
-  | 'vsl'
-  | 'landing'
-  | 'thank_you'
-  | 'pre-script-analysis'
-  | 'packaging'
-  | 'intro-structure'
-  | 'body-structure'
-  | 'native-cta-embeds'
-  | 'outro-structure';
+export type { SupportedTool, ToolStep };
 export type ToolStepStatus = 'idle' | 'running' | 'done' | 'error';
 
 export type ToolFlowContext = {
@@ -22,12 +16,14 @@ export type ToolFlowContext = {
   stepStatus: Record<ToolStep, ToolStepStatus>;
   retriesByStep: Record<ToolStep, number>;
   maxRetries: number;
+  autoStart: boolean;
   errorMessage: string | null;
 };
 
 type ToolFlowInput = {
   tool: SupportedTool;
   maxRetries?: number;
+  autoStart?: boolean;
 };
 
 type ToolFlowEvent =
@@ -37,46 +33,16 @@ type ToolFlowEvent =
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' };
 
-export const toolStepOrder: Record<SupportedTool, ToolStep[]> = {
-  'funnel-pages': ['optin', 'quiz', 'vsl'],
-  nextland: ['landing', 'thank_you'],
-  'youtube-lf-script': [
-    'pre-script-analysis',
-    'packaging',
-    'intro-structure',
-    'body-structure',
-    'native-cta-embeds',
-    'outro-structure',
-  ],
-};
+export const toolStepOrder = TOOL_STEP_ORDER;
 
-const initialStatus: Record<ToolStep, ToolStepStatus> = {
-  optin: 'idle',
-  quiz: 'idle',
-  vsl: 'idle',
-  landing: 'idle',
-  thank_you: 'idle',
-  'pre-script-analysis': 'idle',
-  packaging: 'idle',
-  'intro-structure': 'idle',
-  'body-structure': 'idle',
-  'native-cta-embeds': 'idle',
-  'outro-structure': 'idle',
-};
+const buildDefaultRecord = <TValue,>(value: TValue): Record<ToolStep, TValue> =>
+  Object.fromEntries(
+    TOOL_KEYS.flatMap((toolKey) => toolStepOrder[toolKey].map((step) => [step, value] as const)),
+  ) as Record<ToolStep, TValue>;
 
-const initialRetries: Record<ToolStep, number> = {
-  optin: 0,
-  quiz: 0,
-  vsl: 0,
-  landing: 0,
-  thank_you: 0,
-  'pre-script-analysis': 0,
-  packaging: 0,
-  'intro-structure': 0,
-  'body-structure': 0,
-  'native-cta-embeds': 0,
-  'outro-structure': 0,
-};
+const initialStatus = buildDefaultRecord<ToolStepStatus>('idle');
+
+const initialRetries = buildDefaultRecord(0);
 
 export const toolFlowMachine = setup({
   types: {
@@ -196,10 +162,23 @@ export const toolFlowMachine = setup({
       ...initialRetries,
     },
     maxRetries: input.maxRetries ?? 3,
+    autoStart: input.autoStart === true,
     errorMessage: null,
   }),
-  initial: 'idle',
+  initial: 'booting',
   states: {
+    booting: {
+      always: [
+        {
+          guard: ({ context }) => context.autoStart,
+          target: 'running',
+          actions: 'setCurrentStepRunning',
+        },
+        {
+          target: 'idle',
+        },
+      ],
+    },
     idle: {
       on: {
         START: {

@@ -11,9 +11,9 @@ const relaunchSourceArtifact: GenerationArtifact = {
   projectId: 'proj-console-1',
   artifactType: 'content',
   status: 'completed',
-  model: 'gpt-4',
+  model: 'openrouter/gpt-4',
   toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
+  workflowType: 'funnel_pages',
   content: 'artifact content',
   createdAt: '2026-04-24T00:00:00.000Z',
   updatedAt: '2026-04-24T00:00:00.000Z',
@@ -22,15 +22,15 @@ const relaunchSourceArtifact: GenerationArtifact = {
     userId: 'user-1',
     projectId: 'proj-console-1',
     artifactType: 'content',
-    model: 'gpt-4',
+    model: 'openrouter/gpt-4',
     input: {
-      tone: 'friendly',
+      tone: 'Formal',
       notes: 'legacy-note',
       briefingId: 'brief-legacy',
       briefingFileName: 'brief-legacy.md',
     },
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     registrySnapshotRef: 'snapshot:default',
   },
 };
@@ -130,7 +130,7 @@ describe('GenerationConsolePage', () => {
     expect(location).toHaveTextContent('sourceArtifactId=art-console-1');
     expect(location).toHaveTextContent('briefingId=brief-legacy');
     expect(location).toHaveTextContent('relaunchFromArtifactId=art-console-1');
-    expect(location).toHaveTextContent('tone=friendly');
+    expect(location).toHaveTextContent('tone=Formal');
     expect(location).toHaveTextContent('notes=legacy-note');
     expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
   });

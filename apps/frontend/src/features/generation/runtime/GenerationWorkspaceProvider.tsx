@@ -6,18 +6,26 @@ import {
   useEffect,
   useMemo,
   useState,
+  type Context,
   type ReactNode,
 } from 'react';
-import { frontendStreamMachine, type FrontendStreamStatus, type ExtractionContext } from '../machines/frontend-stream.machine';
+import {
+  frontendStreamMachine,
+  type FrontendStreamStatus,
+  type ExtractionContext,
+} from '../machines/frontend-stream.machine';
 
 export type { ExtractionContext };
 import type { GenerationRequest } from '../contracts/backend-stream';
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
+import { listArtifactsPaginated } from '../../artifacts/runtime/artifacts-client';
 
-const readInputString = (request: GenerationRequest, key: string): string | null => {
+const readInputString = (
+  request: GenerationRequest,
+  key: 'briefingFileName' | 'sourceArtifactId',
+): string | null => {
   const value = request.input[key];
   if (typeof value !== 'string') {
     return null;
@@ -53,45 +61,59 @@ const getStreamStatus = (
   return 'failed';
 };
 
-type GenerationWorkspaceValue = {
+export type GenerationStreamWorkspaceValue = {
   snapshot: ReturnType<typeof frontendStreamMachine.transition>;
   streamStatus: FrontendStreamStatus;
   isStreamActive: boolean;
   terminalCompletedStep: string | null;
   terminalFailedStep: string | null;
   checkpoints: ToolCheckpoint[];
-  artifacts: GenerationArtifact[];
-  focusedProjectId: string | null;
-  extractionByProject: Record<string, ExtractionContext>;
-  setFocusedProjectId: (projectId: string | null) => void;
-  upsertExtractionContext: (context: ExtractionContext) => void;
-  getExtractionContext: (projectId: string) => ExtractionContext | null;
   start: (request: GenerationRequest) => void;
   retry: () => void;
   cancel: () => void;
   reset: () => void;
   relaunch: (artifact: GenerationArtifact) => void;
-  reloadArtifacts: () => void;
 };
 
+type FrontendStreamSnapshot = ReturnType<typeof frontendStreamMachine.transition>;
+type FrontendStreamEvent = Parameters<typeof frontendStreamMachine.transition>[1];
+type FrontendStreamSend = (event: FrontendStreamEvent) => void;
+
+export type GenerationArtifactsWorkspaceValue = {
+  artifacts: GenerationArtifact[];
+  reloadArtifacts: () => void;
+  artifactsReloadError: string | null;
+};
+
+export type GenerationProjectWorkspaceValue = {
+  focusedProjectId: string | null;
+  extractionByProject: Record<string, ExtractionContext>;
+  setFocusedProjectId: (projectId: string | null) => void;
+  upsertExtractionContext: (context: ExtractionContext) => void;
+  getExtractionContext: (projectId: string) => ExtractionContext | null;
+};
+
+type GenerationWorkspaceValue =
+  & GenerationStreamWorkspaceValue
+  & GenerationArtifactsWorkspaceValue
+  & GenerationProjectWorkspaceValue;
+
 const GenerationWorkspaceContext = createContext<GenerationWorkspaceValue | null>(null);
+const GenerationStreamWorkspaceContext = createContext<GenerationStreamWorkspaceValue | null>(null);
+const GenerationArtifactsWorkspaceContext = createContext<GenerationArtifactsWorkspaceValue | null>(
+  null,
+);
+const GenerationProjectWorkspaceContext = createContext<GenerationProjectWorkspaceValue | null>(null);
 
-export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode }) => {
-  const auth = useAuthSession();
-  const [artifacts, setArtifacts] = useState<GenerationArtifact[]>([]);
+const useGenerationArtifactsState = (
+  auth: ReturnType<typeof useAuthSession>,
+  snapshot: FrontendStreamSnapshot,
+  send: FrontendStreamSend,
+  streamStatus: FrontendStreamStatus,
+) => {
+  const [liveArtifacts, setLiveArtifacts] = useState<GenerationArtifact[]>([]);
   const [persistedArtifacts, setPersistedArtifacts] = useState<GenerationArtifact[]>([]);
-  const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
-
-  const [snapshot, send] = useMachine(frontendStreamMachine, {
-    input: {
-      apiBaseUrl: auth.apiBaseUrl,
-      maxReconnectAttempts: 3,
-      reconnectBaseDelayMs: 500,
-      reconnectMaxDelayMs: 4000,
-    },
-  });
-
-  const streamStatus = getStreamStatus(snapshot);
+  const [artifactsReloadError, setArtifactsReloadError] = useState<string | null>(null);
 
   useEffect(() => {
     const artifactId = snapshot.context.artifactId;
@@ -130,7 +152,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
 
     send({ type: 'CHECKPOINT_UPSERTED', checkpoint: nextCheckpoint });
 
-    setArtifacts((prev) => {
+    setLiveArtifacts((prev) => {
       const nowIso = new Date().toISOString();
       const artifactStatus: GenerationArtifact['status'] = (() => {
         if (streamStatus === 'completed') {
@@ -170,6 +192,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       return clone;
     });
   }, [
+    send,
     snapshot.context.artifactId,
     snapshot.context.content,
     snapshot.context.lastRequest,
@@ -181,63 +204,124 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       return;
     }
 
-    send({ type: 'RESET' });
-    setFocusedProjectId(null);
+    setLiveArtifacts([]);
     setPersistedArtifacts([]);
-  }, [auth.session, send]);
+    setArtifactsReloadError(null);
+  }, [auth.session]);
 
   const reloadPersistedArtifacts = useCallback(() => {
     if (!auth.session) {
       return;
     }
 
-    void listArtifacts(
+    setArtifactsReloadError(null);
+
+    void listArtifactsPaginated(
       { type: 'all', status: 'all', projectId: 'all' },
       { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities },
-    ).then((fetched) => {
-      setPersistedArtifacts(
-        fetched.artifacts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-      );
-    }).catch(() => {
-      // silently ignore — dashboard will show in-memory artifacts as fallback
-    });
+    )
+      .then((fetched) => {
+        setArtifactsReloadError(null);
+        setPersistedArtifacts(
+          fetched.artifacts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+        );
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : 'Unable to reload artifacts';
+        setArtifactsReloadError(message);
+      });
   }, [auth.apiBaseUrl, auth.capabilities, auth.session]);
 
   useEffect(() => {
     reloadPersistedArtifacts();
   }, [reloadPersistedArtifacts]);
 
-  // Merge persisted (DB) artifacts with in-memory stream artifacts.
-  // In-memory entries take precedence (they're the live/most-recent version).
-  const mergedArtifacts = useMemo<GenerationArtifact[]>(() => {
-    const inMemoryIds = new Set(artifacts.map((a) => a.artifactId));
-    const dbOnly = persistedArtifacts.filter((a) => !inMemoryIds.has(a.artifactId));
-    return [...artifacts, ...dbOnly].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [artifacts, persistedArtifacts]);
+  const artifacts = useMemo<GenerationArtifact[]>(() => {
+    const inMemoryIds = new Set(liveArtifacts.map((artifact) => artifact.artifactId));
+    const dbOnly = persistedArtifacts.filter((artifact) => !inMemoryIds.has(artifact.artifactId));
+    return [...liveArtifacts, ...dbOnly].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }, [liveArtifacts, persistedArtifacts]);
 
-  const value = useMemo<GenerationWorkspaceValue>(() => {
-    return {
+  return {
+    artifacts,
+    reloadArtifacts: reloadPersistedArtifacts,
+    artifactsReloadError,
+  } satisfies GenerationArtifactsWorkspaceValue;
+};
+
+const useGenerationProjectState = (
+  auth: ReturnType<typeof useAuthSession>,
+  snapshot: FrontendStreamSnapshot,
+  send: FrontendStreamSend,
+) => {
+  const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!auth.session) {
+      setFocusedProjectId(null);
+    }
+  }, [auth.session]);
+
+  const upsertExtractionContext = useCallback(
+    (context: ExtractionContext) => {
+      send({ type: 'EXTRACTION_UPSERTED', context });
+    },
+    [send],
+  );
+
+  const getExtractionContext = useCallback(
+    (projectId: string): ExtractionContext | null => {
+      const normalized = projectId.trim();
+      if (!normalized) {
+        return null;
+      }
+
+      return snapshot.context.extractionByProject[normalized] ?? null;
+    },
+    [snapshot.context.extractionByProject],
+  );
+
+  return {
+    focusedProjectId,
+    extractionByProject: snapshot.context.extractionByProject,
+    setFocusedProjectId,
+    upsertExtractionContext,
+    getExtractionContext,
+  } satisfies GenerationProjectWorkspaceValue;
+};
+
+export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode }) => {
+  const auth = useAuthSession();
+  const [snapshot, send] = useMachine(frontendStreamMachine, {
+    input: {
+      apiBaseUrl: auth.apiBaseUrl,
+      maxReconnectAttempts: 3,
+      reconnectBaseDelayMs: 500,
+      reconnectMaxDelayMs: 4000,
+    },
+  });
+
+  const streamStatus = getStreamStatus(snapshot);
+
+  useEffect(() => {
+    if (auth.session) {
+      return;
+    }
+
+    send({ type: 'RESET' });
+  }, [auth.session, send]);
+
+  const streamValue = useMemo<GenerationStreamWorkspaceValue>(
+    () => ({
       snapshot,
       streamStatus,
       isStreamActive: snapshot.matches('active'),
       terminalCompletedStep: snapshot.context.terminalCompletedStep,
       terminalFailedStep: snapshot.context.terminalFailedStep,
       checkpoints: snapshot.context.checkpoints,
-      artifacts: mergedArtifacts,
-      focusedProjectId,
-      extractionByProject: snapshot.context.extractionByProject,
-      setFocusedProjectId,
-      upsertExtractionContext: (context) => {
-        send({ type: 'EXTRACTION_UPSERTED', context });
-      },
-      getExtractionContext: (projectId) => {
-        const normalized = projectId.trim();
-        if (!normalized) {
-          return null;
-        }
-
-        return snapshot.context.extractionByProject[normalized] ?? null;
-      },
       start: (request) => send({ type: 'REQUEST_START', request }),
       retry: () => send({ type: 'RETRY' }),
       cancel: () => send({ type: 'CANCEL' }),
@@ -246,22 +330,55 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
         const nextRequest = buildRelaunchRequest(artifact);
         send({ type: 'REQUEST_START', request: nextRequest });
       },
-      reloadArtifacts: reloadPersistedArtifacts,
-    };
-  }, [mergedArtifacts, focusedProjectId, reloadPersistedArtifacts, send, snapshot, streamStatus]);
+    }),
+    [send, snapshot, streamStatus],
+  );
+
+  const artifactsValue = useGenerationArtifactsState(auth, snapshot, send, streamStatus);
+  const projectValue = useGenerationProjectState(auth, snapshot, send);
+
+  const value = useMemo<GenerationWorkspaceValue>(
+    () => ({
+      ...streamValue,
+      ...artifactsValue,
+      ...projectValue,
+    }),
+    [artifactsValue, projectValue, streamValue],
+  );
 
   return (
-    <GenerationWorkspaceContext value={value}>
-      {children}
-    </GenerationWorkspaceContext>
+    <GenerationWorkspaceContext.Provider value={value}>
+      <GenerationStreamWorkspaceContext.Provider value={streamValue}>
+        <GenerationArtifactsWorkspaceContext.Provider value={artifactsValue}>
+          <GenerationProjectWorkspaceContext.Provider value={projectValue}>
+            {children}
+          </GenerationProjectWorkspaceContext.Provider>
+        </GenerationArtifactsWorkspaceContext.Provider>
+      </GenerationStreamWorkspaceContext.Provider>
+    </GenerationWorkspaceContext.Provider>
   );
 };
 
-export const useGenerationWorkspace = (): GenerationWorkspaceValue => {
-  const value = useContext(GenerationWorkspaceContext);
+const useRequiredContext = <TValue,>(
+  context: Context<TValue | null>,
+  hookName: string,
+): TValue => {
+  const value = useContext(context);
   if (!value) {
-    throw new Error('useGenerationWorkspace must be used inside GenerationWorkspaceProvider');
+    throw new Error(`${hookName} must be used inside GenerationWorkspaceProvider`);
   }
 
   return value;
 };
+
+export const useGenerationStreamWorkspace = (): GenerationStreamWorkspaceValue =>
+  useRequiredContext(GenerationStreamWorkspaceContext, 'useGenerationStreamWorkspace');
+
+export const useGenerationArtifactsWorkspace = (): GenerationArtifactsWorkspaceValue =>
+  useRequiredContext(GenerationArtifactsWorkspaceContext, 'useGenerationArtifactsWorkspace');
+
+export const useGenerationProjectWorkspace = (): GenerationProjectWorkspaceValue =>
+  useRequiredContext(GenerationProjectWorkspaceContext, 'useGenerationProjectWorkspace');
+
+export const useGenerationWorkspace = (): GenerationWorkspaceValue =>
+  useRequiredContext(GenerationWorkspaceContext, 'useGenerationWorkspace');

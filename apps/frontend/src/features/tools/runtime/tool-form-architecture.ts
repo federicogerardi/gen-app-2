@@ -3,8 +3,10 @@
  * Enables scalable, reusable form construction for multi-step tools
  */
 
+import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
+import { appCopy } from '../../../app/copy/system';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
-import type { ExtractionContext } from '../../generation/machines/frontend-stream.machine';
+import type { ExtractionFieldKey } from './extraction-field-matrix';
 
 /**
  * Configuration for a tool page form
@@ -27,6 +29,19 @@ export type ToolFormConfig = {
   defaults: {
     registrySnapshotRef: string;
   };
+};
+
+export type ToolFileInstructionsConfig = {
+  title: string;
+  summary: string;
+  requiredFiles: readonly string[];
+  requiredFieldKeys: readonly ExtractionFieldKey[];
+  // Deprecated alias retained for one deprecation cycle.
+  requiredFields?: readonly string[];
+  optionalFields: readonly string[];
+  examples: readonly string[];
+  notes: readonly string[];
+  stepConstraints: readonly string[];
 };
 
 /**
@@ -64,12 +79,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'Hotlead Funnel',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: ['optin', 'quiz', 'vsl'] as const,
-    stepDependencies: {
-      optin: [],
-      quiz: ['optin'],
-      vsl: ['optin', 'quiz'],
-    },
+    steps: TOOL_STEP_ORDER['funnel-pages'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['funnel-pages'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -80,11 +91,8 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'Nextland',
     defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: ['landing', 'thank_you'] as const,
-    stepDependencies: {
-      landing: [],
-      thank_you: ['landing'],
-    },
+    steps: TOOL_STEP_ORDER.nextland,
+    stepDependencies: TOOL_STEP_DEPENDENCIES.nextland,
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -95,25 +103,96 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     displayName: 'YouTube LF Script',
     defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
-    steps: [
-      'pre-script-analysis',
-      'packaging',
-      'intro-structure',
-      'body-structure',
-      'native-cta-embeds',
-      'outro-structure',
-    ] as const,
-    stepDependencies: {
-      'pre-script-analysis': [],
-      packaging: ['pre-script-analysis'],
-      'intro-structure': ['packaging'],
-      'body-structure': ['intro-structure'],
-      'native-cta-embeds': ['body-structure'],
-      'outro-structure': ['native-cta-embeds'],
-    },
+    steps: TOOL_STEP_ORDER['youtube-lf-script'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-lf-script'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
+  },
+  'angle-generator': {
+    toolKey: 'angle-generator',
+    status: 'enabled',
+    displayName: 'Angle Generator',
+    defaultPrompt: 'Genera angoli marketing prioritizzati e attivabili a partire dal contesto estratto.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['angle-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['angle-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+};
+
+export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
+  'funnel-pages': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un solo BriefingFile completo: il funnel viene costruito a partire da obiettivo, target e offerta.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFieldKeys: ['funnel_goal', 'target_audience', 'offer', 'proof', 'primary_cta'],
+    optionalFields: ['Vincoli di tono', 'Riferimenti visual', 'Esempi di competitor', 'Note sul funnel attuale'],
+    examples: [
+      'Obiettivo: generare lead qualificati per il prodotto principale.',
+      'Target: imprenditori e marketer che cercano una landing ad alta conversione.',
+    ],
+    notes: ['Se un campo non è disponibile, scrivi "non disponibile" invece di ometterlo.'],
+    stepConstraints: ['Gli step optin, quiz e vsl devono restare coerenti con lo stesso brief.'],
+  },
+  nextland: {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Usa un BriefingFile ordinato e descrittivo per definire sito, sezioni e risultato atteso.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFieldKeys: ['website_goal', 'brand_or_company', 'target_audience', 'offer_or_service', 'required_sections'],
+    optionalFields: ['Tone of voice', 'Referenze di stile', 'Vincoli di copy', 'Materiali già esistenti'],
+    examples: [
+      'Obiettivo: presentare il brand e portare l’utente alla pagina contatto.',
+      'Sezioni richieste: hero, proof, servizi, CTA finale.',
+    ],
+    notes: ['Indica chiaramente quali pagine o blocchi devono essere prodotti.', 'Evita richieste implicite: la pagina deve poter essere ricostruita solo dal brief.'],
+    stepConstraints: ['Gli step landing e thank_you devono usare la stessa base informativa del BriefingFile.'],
+  },
+  'youtube-lf-script': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Compila il brief con i campi canonici richiesti per l’estrazione e la generazione dello script long-form.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFieldKeys: [
+      'knowledge_content',
+      'avatar',
+      'pain_point',
+      'purchase_process_type',
+      'offer',
+      'proof',
+      'target_duration_minutes',
+      'proprietary_methodology_disclosure',
+    ],
+    optionalFields: ['Link o riferimenti di supporto', 'Note sul posizionamento', 'Vincoli editoriali'],
+    examples: [
+      'knowledge_content: punti chiave della conoscenza da trasformare in script.',
+      'target_duration_minutes: 12.',
+    ],
+    notes: ['I campi mancanti devono essere espliciti e valorizzati a null nel payload estratto.', 'Il tone del brief non sostituisce il ToneProfile di generazione.'],
+    stepConstraints: ['La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.'],
+  },
+  'angle-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica due file complementari: un BriefingFile e un AngleDetectorFile coerenti tra loro.',
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)', 'AngleDetectorFile (.docx, .txt, .md)'],
+    requiredFieldKeys: [
+      'goal',
+      'product_or_service',
+      'market',
+      'target_audience',
+      'pain_point',
+      'offer',
+      'proof',
+      'creative_constraints',
+    ],
+    optionalFields: ['Tone of voice', 'Esempi di angoli già usati', 'Benchmark o competitor', 'Note strategiche'],
+    examples: [
+      'Briefing: descrizione del brand e del prodotto da posizionare.',
+      'Angle detector: insight di mercato e segnali competitivi da confrontare con il brief.',
+    ],
+    notes: ['I due file devono descrivere lo stesso contesto di lavoro.', 'Se uno dei due file manca, la generazione non è pronta.'],
+    stepConstraints: ['La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
 };
 
@@ -124,6 +203,36 @@ export const getEnabledToolKeys = (): SupportedTool[] => {
 export const isToolEnabled = (toolKey: SupportedTool): boolean => {
   return toolFormRegistry[toolKey].status === 'enabled';
 };
+
+export type ToolNavigationItem = {
+  toolKey: SupportedTool;
+  to: string;
+  label: string;
+  description: string;
+};
+
+const toolNavigationLabelByKey: Record<SupportedTool, string> = {
+  'funnel-pages': appCopy.ui.navigation.funnelPages,
+  nextland: appCopy.ui.navigation.nextland,
+  'youtube-lf-script': appCopy.ui.navigation.youtubeLfScript,
+  'angle-generator': appCopy.ui.navigation.angleGenerator,
+};
+
+const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
+  'funnel-pages': 'Crea landing page, quiz e VSL per la tua pipeline di acquisizione.',
+  nextland: 'Genera le pagine del sito Nextland a partire dal tuo brief di progetto.',
+  'youtube-lf-script': 'Produci script video long-form guidato da una struttura passo passo.',
+  'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
+};
+
+export const getEnabledToolNavigationItems = (): ToolNavigationItem[] => (
+  getEnabledToolKeys().map((toolKey) => ({
+    toolKey,
+    to: `/tools/${toolKey}`,
+    label: toolNavigationLabelByKey[toolKey],
+    description: toolNavigationDescriptionByKey[toolKey],
+  }))
+);
 
 /**
  * Get config for a tool
@@ -231,6 +340,23 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Outro Structure',
       description: 'Final recap, gap closure, and CTA finale',
       expectedOutputFormat: 'Markdown outro framework',
+    },
+  },
+  'angle-generator': {
+    'context-and-angle-matrix': {
+      displayName: 'Context and Angle Matrix',
+      description: 'Mappa contesto e costruisce la matrice degli angle rilevanti',
+      expectedOutputFormat: 'Markdown con matrice angle strutturata',
+    },
+    'angle-prioritization': {
+      displayName: 'Angle Prioritization',
+      description: 'Valuta e priorizza gli angle in base a impatto e differenziazione',
+      expectedOutputFormat: 'Markdown con ranking e motivazioni',
+    },
+    'creative-activation': {
+      displayName: 'Creative Activation',
+      description: 'Trasforma gli angle prioritari in asset creativi attivabili',
+      expectedOutputFormat: 'Markdown con headline e attivazioni creative',
     },
   },
 };

@@ -223,12 +223,13 @@ Cross-context contract for FE navigation:
 | UI concern | FE route namespace | Generation projection | Backend endpoint |
 |---|---|---|---|
 | Project contextual history | `/dashboard/projects/{projectId}` | `SessionSummary[]` filtered by project | `GET /api/tools/sessions?projectId={projectId}` |
-| Session aggregate archive/detail | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}` |
-| Artifact archive/detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` |
+| Session aggregate archive/detail | `/sessionsummary`, `/sessionsummary/{sessionId}` | `SessionSummary`, `SessionArtifactGroup` | `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}` (default slim projection; full content only when `includeContent=true`) |
+| Artifact archive/detail | `/artifacts`, `/artifacts/{artifactId}` | `GenerationArtifact` | `GET /api/artifacts`, `GET /api/artifacts/{artifactId}` (default slim projection; full payload only when `includeInput=true` and/or `includeContent=true`) |
 
 Implementation rollout note:
 - Session detail endpoints are already exposed in backend runtime.
 - Session list endpoint (`GET /api/tools/sessions`) remains the canonical target while transitional FE derivation from artifact listing is temporarily allowed.
+- Runtime projection policy is explicit: read/list endpoints return minimal payload by default to reduce query and transport cost; FE callers that require full `GenerationRequest` input or full artifact content must request it with the include flags above.
 
 ---
 

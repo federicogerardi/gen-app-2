@@ -31,7 +31,7 @@ test('openrouter adapter normalizes legacy colon model ids', async () => {
     const events = [] as Array<{ type: string }>;
     for await (const event of adapter.streamText({
       requestId: 'req-openrouter-normalize-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       outputFormat: 'json',
       requestInput: { prompt: 'Hello' },
     })) {

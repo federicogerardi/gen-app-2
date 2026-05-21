@@ -104,7 +104,7 @@ describe('ArtifactsPage', () => {
     );
 
     expect(await screen.findByText('content')).toBeInTheDocument();
-    expect(screen.getByText('Project One')).toBeInTheDocument();
+    expect(screen.getByText('u1')).toBeInTheDocument();
   });
 
   it('shows load error when API request fails', async () => {

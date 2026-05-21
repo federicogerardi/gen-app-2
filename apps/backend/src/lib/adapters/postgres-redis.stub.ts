@@ -16,8 +16,10 @@ import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters
 import type {
   ArtifactDetail,
   ArtifactListFilters,
+  ArtifactReadProjection,
+  SessionListCursor,
+  SessionListPage,
   ArtifactSummary,
-  SessionListEntry,
 } from '../types/artifacts';
 import type {
   CreateProjectInput,
@@ -29,6 +31,7 @@ import type {
   ArtifactQueryRepository,
   PostgresArtifactRepository,
   PostgresRedisAdapterDependencies,
+  ProjectOwnershipRepository,
   ProjectQueryRepository,
   ProductionAdapterRuntime,
   RedisIdempotencyRepository,
@@ -36,6 +39,7 @@ import type {
   RedisStreamSessionRepository,
 } from './postgres-redis.interfaces';
 import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
+import { resolveClaimUsageDecision } from './postgres-redis.shared';
 
 type StubQuotaBucket = {
   limit: number;
@@ -78,14 +82,14 @@ export type StubArtifactQueryRecord = {
   artifactType: ArtifactSummary['artifactType'];
   status: ArtifactSummary['status'];
   model: string;
-  workflowType: string | null;
+  workflowType: ArtifactSummary['workflowType'];
   sessionId?: string | null;
   stepKey?: string | null;
   artifactRole?: 'step' | 'final' | null;
   runMode?: 'new' | 'resume' | 'regenerate' | null;
   input: Record<string, unknown>;
   content: string;
-  failureReason: string | null;
+  failureReason: ArtifactDetail['failureReason'];
   createdAt: string;
   updatedAt: string;
 };
@@ -102,12 +106,26 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
     };
 
     if (current.used >= current.limit) {
-      return { granted: false, reason: 'quota_exhausted' };
+      return resolveClaimUsageDecision({
+        rateLimitExceeded: false,
+        quotaAvailable: false,
+        hasConflict: false,
+      });
     }
 
     current.used += 1;
     this.buckets.set(input.userId, current);
-    return { granted: true };
+    return resolveClaimUsageDecision({
+      rateLimitExceeded: false,
+      quotaAvailable: true,
+      hasConflict: false,
+    });
+  }
+}
+
+export class ProjectOwnershipRepositoryStub implements ProjectOwnershipRepository {
+  async checkProjectOwnership(_input: { userId: string; projectId: string }) {
+    return { owned: true };
   }
 }
 
@@ -268,6 +286,106 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
 export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
   private readonly artifacts = new Map<string, StubArtifactQueryRecord>();
 
+  private mapToDetail(
+    artifact: StubArtifactQueryRecord,
+    projection: ArtifactReadProjection = {},
+  ): ArtifactDetail {
+    return {
+      artifactId: artifact.artifactId,
+      requestId: artifact.requestId,
+      userId: artifact.userId,
+      projectId: artifact.projectId,
+      artifactType: artifact.artifactType,
+      status: artifact.status,
+      model: artifact.model,
+      workflowType: artifact.workflowType,
+      sessionId: artifact.sessionId ?? null,
+      stepKey: artifact.stepKey ?? null,
+      artifactRole: artifact.artifactRole ?? null,
+      runMode: artifact.runMode ?? null,
+      input: projection.includeInput === true ? artifact.input : {},
+      content: projection.includeContent === true ? artifact.content : '',
+      failureReason: artifact.failureReason,
+      createdAt: artifact.createdAt,
+      updatedAt: artifact.updatedAt,
+    };
+  }
+
+  async countArtifacts(filters: ArtifactListFilters): Promise<number> {
+    return [...this.artifacts.values()].filter((artifact) => {
+      if (filters.type && artifact.artifactType !== filters.type) {
+        return false;
+      }
+
+      if (filters.status && artifact.status !== filters.status) {
+        return false;
+      }
+
+      if (filters.projectId && artifact.projectId !== filters.projectId) {
+        return false;
+      }
+
+      if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+        return false;
+      }
+
+      if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+        return false;
+      }
+
+      return true;
+    }).length;
+  }
+
+  async listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
+    const filtered = [...this.artifacts.values()]
+      .filter((artifact) => {
+        if (filters.type && artifact.artifactType !== filters.type) {
+          return false;
+        }
+
+        if (filters.status && artifact.status !== filters.status) {
+          return false;
+        }
+
+        if (filters.projectId && artifact.projectId !== filters.projectId) {
+          return false;
+        }
+
+        if (filters.from && Date.parse(artifact.updatedAt) < Date.parse(filters.from)) {
+          return false;
+        }
+
+        if (filters.to && Date.parse(artifact.updatedAt) > Date.parse(filters.to)) {
+          return false;
+        }
+
+        return true;
+      })
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((artifact) => ({
+        artifactId: artifact.artifactId,
+        requestId: artifact.requestId,
+        userId: artifact.userId,
+        projectId: artifact.projectId,
+        artifactType: artifact.artifactType,
+        status: artifact.status,
+        model: artifact.model,
+        workflowType: artifact.workflowType,
+        sessionId: artifact.sessionId ?? null,
+        stepKey: artifact.stepKey ?? null,
+        artifactRole: artifact.artifactRole ?? null,
+        runMode: artifact.runMode ?? null,
+        createdAt: artifact.createdAt,
+        updatedAt: artifact.updatedAt,
+      }));
+
+    const offset = typeof filters.offset === 'number' ? filters.offset : 0;
+    const end = typeof filters.limit === 'number' ? offset + filters.limit : undefined;
+
+    return filtered.slice(offset, end);
+  }
+
   async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {
     return [...this.artifacts.values()].filter((artifact) => {
       if (artifact.userId !== userId) {
@@ -331,6 +449,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       .map((artifact) => ({
         artifactId: artifact.artifactId,
         requestId: artifact.requestId,
+        userId: artifact.userId,
         projectId: artifact.projectId,
         artifactType: artifact.artifactType,
         status: artifact.status,
@@ -350,37 +469,32 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
     return filtered.slice(offset, end);
   }
 
-  async getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null> {
-    const artifact = this.artifacts.get(artifactId);
-    if (!artifact || artifact.userId !== userId) {
-      return null;
+  async listRecentCompletedArtifactsForToolByUser(
+    userId: string,
+    input: { projectId: string; workflowType: string; limit: number },
+  ): Promise<ArtifactSummary[]> {
+    const limit = Number.isFinite(input.limit) && input.limit > 0
+      ? Math.trunc(input.limit)
+      : 0;
+
+    if (limit <= 0) {
+      return [];
     }
 
-    return {
-      artifactId: artifact.artifactId,
-      requestId: artifact.requestId,
-      userId: artifact.userId,
-      projectId: artifact.projectId,
-      artifactType: artifact.artifactType,
-      status: artifact.status,
-      model: artifact.model,
-      workflowType: artifact.workflowType,
-      sessionId: artifact.sessionId ?? null,
-      stepKey: artifact.stepKey ?? null,
-      artifactRole: artifact.artifactRole ?? null,
-      runMode: artifact.runMode ?? null,
-      input: artifact.input,
-      content: artifact.content,
-      failureReason: artifact.failureReason,
-      createdAt: artifact.createdAt,
-      updatedAt: artifact.updatedAt,
-    };
-  }
-
-  async listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]> {
     return [...this.artifacts.values()]
-      .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
-      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .filter((artifact) => {
+        return artifact.userId === userId
+          && artifact.projectId === input.projectId
+          && artifact.status === 'completed'
+          && artifact.workflowType === input.workflowType;
+      })
+      .sort((left, right) => {
+        if (left.updatedAt === right.updatedAt) {
+          return right.artifactId.localeCompare(left.artifactId);
+        }
+        return right.updatedAt.localeCompare(left.updatedAt);
+      })
+      .slice(0, limit)
       .map((artifact) => ({
         artifactId: artifact.artifactId,
         requestId: artifact.requestId,
@@ -394,15 +508,103 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         stepKey: artifact.stepKey ?? null,
         artifactRole: artifact.artifactRole ?? null,
         runMode: artifact.runMode ?? null,
-        input: artifact.input,
-        content: artifact.content,
-        failureReason: artifact.failureReason,
         createdAt: artifact.createdAt,
         updatedAt: artifact.updatedAt,
       }));
   }
 
-  async listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]> {
+  async getArtifactByIdForUser(
+    userId: string,
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact || artifact.userId !== userId) {
+      return null;
+    }
+
+    return this.mapToDetail(artifact, projection);
+  }
+
+  async getArtifactsByIdsForUser(
+    userId: string,
+    artifactIds: string[],
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    if (artifactIds.length === 0) {
+      return [];
+    }
+
+    return artifactIds
+      .map((artifactId) => this.artifacts.get(artifactId))
+      .filter((artifact): artifact is StubArtifactQueryRecord => {
+        return artifact !== undefined && artifact.userId === userId;
+      })
+      .map((artifact) => this.mapToDetail(artifact, projection));
+  }
+
+  async getArtifactById(
+    artifactId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) {
+      return null;
+    }
+
+    return this.mapToDetail(artifact, projection);
+  }
+
+  async listArtifactDetailsBySession(
+    userId: string,
+    sessionId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    return [...this.artifacts.values()]
+      .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .map((artifact) => this.mapToDetail(artifact, projection));
+  }
+
+  async getArtifactDetailBySessionStep(
+    userId: string,
+    sessionId: string,
+    stepKey: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail | null> {
+    const readStepFromInput = (artifact: StubArtifactQueryRecord): string | null => {
+      const toolWorkflow = artifact.input?.toolWorkflow;
+      if (toolWorkflow && typeof toolWorkflow === 'object' && !Array.isArray(toolWorkflow)) {
+        const toolWorkflowStep = (toolWorkflow as { stepKey?: unknown }).stepKey;
+        if (typeof toolWorkflowStep === 'string' && toolWorkflowStep.trim().length > 0) {
+          return toolWorkflowStep.trim();
+        }
+      }
+
+      const directStep = artifact.input?.step;
+      if (typeof directStep === 'string' && directStep.trim().length > 0) {
+        return directStep.trim();
+      }
+
+      return null;
+    };
+
+    const match = [...this.artifacts.values()]
+      .filter((artifact) => artifact.userId === userId && artifact.sessionId === sessionId)
+      .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+      .find((artifact) => {
+        const resolvedStepKey = artifact.stepKey ?? readStepFromInput(artifact);
+        return resolvedStepKey === stepKey;
+      });
+
+    return match ? this.mapToDetail(match, projection) : null;
+  }
+
+  async listSessionSummaries(
+    userId: string,
+    projectId: string | null,
+    options: { limit?: number; cursor?: SessionListCursor | null } = {},
+  ): Promise<SessionListPage> {
     const bySession = new Map<string, {
       projectId: string;
       toolKey: string | null;
@@ -438,7 +640,7 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
       }
     }
 
-    return [...bySession.entries()]
+    const sorted = [...bySession.entries()]
       .map(([sessionId, data]) => ({
         sessionId,
         projectId: data.projectId,
@@ -447,7 +649,46 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         artifactCount: data.count,
         updatedAt: new Date(data.updatedAtMs).toISOString(),
       }))
-      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+      .sort((a, b) => {
+        const byUpdatedAt = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+        if (byUpdatedAt !== 0) {
+          return byUpdatedAt;
+        }
+
+        return b.sessionId.localeCompare(a.sessionId);
+      });
+
+    const limit = Number.isFinite(options.limit) && (options.limit ?? 0) > 0
+      ? Math.trunc(options.limit as number)
+      : 500;
+    const cursor = options.cursor ?? null;
+
+    const filtered = cursor
+      ? sorted.filter((entry) => {
+        const entryUpdatedAtMs = Date.parse(entry.updatedAt);
+        const cursorUpdatedAtMs = Date.parse(cursor.updatedAt);
+        if (entryUpdatedAtMs < cursorUpdatedAtMs) {
+          return true;
+        }
+        if (entryUpdatedAtMs > cursorUpdatedAtMs) {
+          return false;
+        }
+
+        return entry.sessionId < cursor.sessionId;
+      })
+      : sorted;
+
+    const pageSlice = filtered.slice(0, limit + 1);
+    const hasMore = pageSlice.length > limit;
+    const pageEntries = hasMore ? pageSlice.slice(0, limit) : pageSlice;
+    const last = pageEntries[pageEntries.length - 1];
+
+    return {
+      entries: pageEntries,
+      nextCursor: hasMore && last
+        ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
+        : null,
+    };
   }
 
   seed(records: StubArtifactQueryRecord[]): void {
@@ -467,6 +708,7 @@ export const createPostgresRedisStubDependencies = (
   const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
 
   return {
+    ownership: new ProjectOwnershipRepositoryStub(),
     quota: new RedisQuotaRepositoryStub(defaultQuotaLimit),
     idempotency: new RedisIdempotencyRepositoryStub(),
     stream: new RedisStreamSessionRepositoryStub(runtime),

@@ -178,11 +178,6 @@ export const collectCompletedStepsByTool = (
   toolKey: SupportedTool,
   projectId: string,
 ): Set<ToolStep> => {
-  // Deprecated compatibility path.
-  if (typeof window !== 'undefined' && import.meta.env.PROD) {
-    console.warn('[step-hydration] collectCompletedStepsByTool is deprecated; use collectCompletedStepsBySession(sessionId).');
-  }
-
   if (!projectId.trim()) {
     return new Set();
   }
@@ -232,13 +227,7 @@ export const buildLatestArtifactByStep = (
         return true;
       }
 
-      if (artifact.sessionId === normalizedSessionId) {
-        return true;
-      }
-
-      // Backward-compatible fallback: if no artifacts are session-tagged yet,
-      // keep historical behavior and allow legacy rows.
-      return artifact.sessionId === null || artifact.sessionId === undefined;
+      return artifact.sessionId === normalizedSessionId;
     })
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 

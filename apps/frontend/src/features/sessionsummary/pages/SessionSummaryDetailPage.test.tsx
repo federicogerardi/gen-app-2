@@ -79,7 +79,7 @@ vi.mock('../../../app/runtime/queries/useArtifactDetailQuery', () => ({
         model: 'openrouter/auto',
         input: {
           notes: 'note value',
-          tone: 'direct',
+          tone: 'Formal',
           briefingId: 'brief-1',
           briefingFileName: 'brief.txt',
         },

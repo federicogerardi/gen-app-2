@@ -14,7 +14,7 @@ const request: GenerationRequest = {
   userId: 'user-1',
   projectId: 'project-1',
   artifactType: 'content',
-  model: 'openrouter:auto',
+  model: 'openrouter/auto',
   input: { prompt: 'seed' },
   toolKey: 'funnel-pages',
   workflowType: 'funnel_pages',
@@ -27,7 +27,7 @@ const artifact = (overrides: Partial<GenerationArtifact>): GenerationArtifact =>
   projectId: 'project-1',
   artifactType: 'content',
   status: 'completed',
-  model: 'openrouter:auto',
+  model: 'openrouter/auto',
   toolKey: 'funnel-pages',
   workflowType: 'funnel_pages',
   content: 'hello',
@@ -68,8 +68,7 @@ describe('artifact history', () => {
     const relaunch = buildRelaunchRequest(sourceArtifact);
     expect(relaunch.requestId).not.toBe(sourceArtifact.sourceRequest.requestId);
     expect(relaunch.idempotencyKey).toBeUndefined();
-    expect(relaunch.input['relaunchFromArtifactId']).toBe('art-relaunch');
-    expect(relaunch.input['relaunchMode']).toBeUndefined();
+    expect(relaunch.input.relaunchFromArtifactId).toBe('art-relaunch');
   });
 
   it('builds tool entry query with required and optional relaunch fields', () => {
@@ -80,7 +79,7 @@ describe('artifact history', () => {
         ...request,
         input: {
           prompt: 'seed',
-          tone: 'friendly',
+          tone: 'Formal',
           notes: 'keep CTA concise',
           briefingId: 'brief-42',
           briefingFileName: 'brief.md',
@@ -94,7 +93,7 @@ describe('artifact history', () => {
     expect(query.get('projectId')).toBe('project-42');
     expect(query.get('sourceArtifactId')).toBe('art-route');
     expect(query.get('relaunchFromArtifactId')).toBe('art-route');
-    expect(query.get('tone')).toBe('friendly');
+    expect(query.get('tone')).toBe('Formal');
     expect(query.get('notes')).toBe('keep CTA concise');
     expect(query.get('briefingId')).toBe('brief-42');
     expect(query.get('briefingFileName')).toBe('brief.md');
@@ -108,7 +107,7 @@ describe('artifact history', () => {
         ...request,
         input: {
           prompt: 'seed',
-          tone: 'friendly',
+          tone: 'Formal',
           notes: 'stale note',
           briefingId: 'brief-stale',
           extractionArtifactId: 'ext-stale',
@@ -180,7 +179,7 @@ describe('artifact history', () => {
         toolKey: 'funnel-pages',
         input: {
           prompt: 'seed',
-          tone: 'friendly',
+          tone: 'Formal',
           notes: 'carry-over',
           briefingId: 'brief-1',
           extractionArtifactId: 'ext-1',

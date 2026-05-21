@@ -2,6 +2,7 @@
 status: active
 version: 1.0
 last-reviewed: 2026-05-16
+next-review-date: 2026-08-01
 owner: Frontend Platform Team
 ---
 
@@ -556,7 +557,7 @@ Allowed as UI copy only (not persisted as canonical values):
 ## 10. Evidence Sources
 
 - Admin role gate behavior: `apps/frontend/src/features/admin/routing/admin-guard.tsx:7-9`
-- Existing admin handler surface: `apps/backend/src/lib/runtime/auth-http/admin-handlers.ts:3-13`
+- Existing admin handler surface: `apps/backend/src/lib/runtime/auth-http/admin-feedback-center-handlers.ts`, `apps/backend/src/lib/runtime/auth-http/public-handlers.ts`
 - Canonical feedback channel model in runtime: `apps/frontend/src/app/runtime/feedback-channel-map.ts:1-25`
 - Canonical UI archetypes and feedback matrix: `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - Canonical role terms: `docs/01-requirements/domain-ubiquitous-language-glossary.md`

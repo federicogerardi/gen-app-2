@@ -1,5 +1,6 @@
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import type { ToolKey, ToolStep } from '@gen-app-2/contracts';
 import {
   streamGeneration,
   GenerationTransportError,
@@ -13,12 +14,33 @@ import {
   parseExtractionArtifactContent,
   readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
+import { normalizeExtractionFieldKeysForTool } from './extraction-field-matrix';
 import {
   isHttpClientError,
   joinApiPath,
   requestJson,
 } from '../../../app/runtime/http-client';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
+
+const normalizeExtractionModel = (model: string): GenerationRequest['model'] => {
+  const normalized = model.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized as GenerationRequest['model'];
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}` as GenerationRequest['model'];
+    }
+  }
+
+  return `openrouter/${normalized}` as GenerationRequest['model'];
+};
 
 type ToolsClientOptions = {
   apiBaseUrl?: string;
@@ -27,8 +49,19 @@ type ToolsClientOptions = {
 
 export type UploadBriefInput = {
   projectId: string;
-  toolKey: string;
+  toolKey: ToolKey;
   file: File;
+  angleDetectorFile?: File | null;
+};
+
+export type UploadBriefAngleDetectorResult = {
+  fileName: string;
+  mimeType: string | null;
+  size: number;
+  parsedFormat: 'txt' | 'md' | 'docx';
+  normalizedText: string;
+  charCount: number;
+  wordCount: number;
 };
 
 export type UploadBriefResult = {
@@ -42,17 +75,20 @@ export type UploadBriefResult = {
   normalizedText: string;
   charCount: number;
   wordCount: number;
+  angleDetector?: UploadBriefAngleDetectorResult;
+  knowledgeSourcesCount?: number;
 };
 
 export type RunExtractionInput = {
   userId: string;
   projectId: string;
   model: string;
-  toolKey: string;
+  toolKey: ToolKey;
   tone?: string;
   notes?: string;
   briefingId: string;
   briefingText: string;
+  extractionPayload?: Record<string, unknown>;
   extractionArtifactId?: string | null;
   stepDependencyArtifactIds?: string[];
   idempotencyKey?: string;
@@ -94,6 +130,8 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
     ok?: boolean;
     data?: {
       briefing?: UploadBriefResult;
+      angleDetector?: UploadBriefAngleDetectorResult;
+      knowledgeSourcesCount?: number;
     };
   };
 
@@ -102,7 +140,12 @@ const parseUploadBriefResponse = (payload: unknown): UploadBriefResult => {
     throw new Error('Invalid tools upload response payload');
   }
 
-  return briefing;
+  const angleDetector = body.data?.angleDetector;
+  return {
+    ...briefing,
+    ...(angleDetector ? { angleDetector } : {}),
+    ...(angleDetector ? { knowledgeSourcesCount: body.data?.knowledgeSourcesCount ?? 2 } : {}),
+  };
 };
 
 const resolveExtractionPayloadFromArtifact = (artifact: GenerationArtifact): Record<string, unknown> => {
@@ -131,18 +174,20 @@ const mapExtractionFailureReasonToCode = (reason: string): string => {
 };
 
 const assertExtractionResultIsValid = (
-  toolKey: string,
+  toolKey: ToolKey,
   payload: Record<string, unknown>,
   normalizedText: string,
-): void => {
+): Record<string, unknown> => {
+  const normalizedPayload = normalizeExtractionFieldKeysForTool(toolKey, payload);
+
   if (
     isExtractionContextValidForTool(
       toolKey as SupportedTool,
-      payload,
+      normalizedPayload,
       normalizedText,
     )
   ) {
-    return;
+    return normalizedPayload;
   }
 
   throw new Error('extraction_context_insufficient');
@@ -159,6 +204,36 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
+  const isAngleGenerator = input.toolKey === 'angle-generator';
+  const angleDetectorFile = input.angleDetectorFile;
+
+  if (isAngleGenerator && !angleDetectorFile) {
+    throw new Error('Angle Detector file required for angle-generator');
+  }
+
+  const bodyPayload = isAngleGenerator
+    ? {
+      projectId: input.projectId,
+      toolKey: input.toolKey,
+      briefing: {
+        fileName: input.file.name,
+        mimeType: input.file.type || null,
+        contentBase64,
+      },
+      angleDetector: {
+        fileName: angleDetectorFile?.name ?? null,
+        mimeType: angleDetectorFile?.type || null,
+        contentBase64: angleDetectorFile ? await toBase64(angleDetectorFile) : null,
+      },
+    }
+    : {
+      projectId: input.projectId,
+      toolKey: input.toolKey,
+      fileName: input.file.name,
+      mimeType: input.file.type || null,
+      contentBase64,
+    };
+
   try {
     const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
       method: 'POST',
@@ -166,13 +241,7 @@ export const uploadBrief = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        projectId: input.projectId,
-        toolKey: input.toolKey,
-        fileName: input.file.name,
-        mimeType: input.file.type || null,
-        contentBase64,
-      }),
+      body: JSON.stringify(bodyPayload),
     });
 
     return parseUploadBriefResponse(payload);
@@ -194,7 +263,7 @@ export const runExtraction = async (
     userId: input.userId,
     projectId: input.projectId,
     artifactType: 'extraction',
-    model: input.model,
+    model: normalizeExtractionModel(input.model),
     toolKey: 'extraction',
     workflowType: 'extraction',
     input: {
@@ -203,6 +272,7 @@ export const runExtraction = async (
       toolKey: input.toolKey,
       briefingId: input.briefingId,
       briefingText: input.briefingText,
+      extractionPayload: input.extractionPayload ?? {},
       extractionArtifactId: input.extractionArtifactId ?? null,
       stepDependencyArtifactIds: input.stepDependencyArtifactIds ?? [],
     },
@@ -285,8 +355,11 @@ export const runExtraction = async (
   if (content.trim().length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
-      const payload = resolveExtractionPayloadFromArtifact(recovered);
-      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
+      const payload = assertExtractionResultIsValid(
+        input.toolKey,
+        resolveExtractionPayloadFromArtifact(recovered),
+        input.briefingText,
+      );
       return {
         artifactId: recovered.artifactId,
         content: recovered.content,
@@ -301,8 +374,11 @@ export const runExtraction = async (
   if (Object.keys(parsedPayload).length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
-      const payload = resolveExtractionPayloadFromArtifact(recovered);
-      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
+      const payload = assertExtractionResultIsValid(
+        input.toolKey,
+        resolveExtractionPayloadFromArtifact(recovered),
+        input.briefingText,
+      );
       return {
         artifactId: recovered.artifactId,
         content,
@@ -313,26 +389,30 @@ export const runExtraction = async (
     throw new Error('extraction_context_insufficient');
   }
 
-  assertExtractionResultIsValid(input.toolKey, parsedPayload, input.briefingText);
+  const normalizedPayload = assertExtractionResultIsValid(
+    input.toolKey,
+    parsedPayload,
+    input.briefingText,
+  );
 
   return {
     artifactId,
     content,
-    payload: parsedPayload,
+    payload: normalizedPayload,
   };
 };
 
 export type OrchestrationResult = {
-  toolKey: string;
-  targetStep: string;
+  toolKey: ToolKey;
+  targetStep: ToolStep;
   stepDependencyArtifactIds: string[];
-  dependencyArtifactIdsByStep: Record<string, string>;
+  dependencyArtifactIdsByStep: Partial<Record<ToolStep, string>>;
 };
 
 export const orchestrateToolStep = async (
   projectId: string,
-  toolKey: string,
-  targetStep: string,
+  toolKey: ToolKey,
+  targetStep: ToolStep,
   options: ToolsClientOptions = {},
 ): Promise<OrchestrationResult> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);

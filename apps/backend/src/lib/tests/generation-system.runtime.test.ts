@@ -50,6 +50,10 @@ const waitForTerminalState = async (
   }
 };
 
+const eventNamesInOrder = (result: Awaited<ReturnType<typeof runBackendGenerationSession>>): string[] => {
+  return result.streamEvents.map((event) => event.event);
+};
+
 test('generation root happy path completes', async () => {
   const adapters = createInMemoryGenerationAdapters();
 
@@ -59,7 +63,7 @@ test('generation root happy path completes', async () => {
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'hello world' },
       workflowType: null,
       idempotencyKey: 'idem-root-happy-001',
@@ -95,7 +99,7 @@ test('backend session emits incremental chunk events while streaming', async () 
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'incremental stream' },
       workflowType: null,
       idempotencyKey: 'idem-root-incremental-001',
@@ -132,7 +136,7 @@ test('generation fails when stream completes with empty output', async () => {
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'empty output case' },
       workflowType: null,
       idempotencyKey: 'idem-root-empty-output-001',
@@ -158,7 +162,7 @@ test('generation root failure path fails on usage rejection', async () => {
     projectId: 'seed-project-001',
     toolKey: null,
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'failure case', outputFormat: 'plain' },
     workflowType: null,
     idempotencyKey: 'idem-root-failure-001',
@@ -172,6 +176,42 @@ test('generation root failure path fails on usage rejection', async () => {
   actor.stop();
 });
 
+test('generation root does not claim usage when ownership check rejects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageCalls = 0;
+
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageCalls += 1;
+    return originalClaimUsage(input);
+  };
+
+  adapters.ownership.checkProjectOwnership = async () => ({
+    owned: false,
+    reason: 'ownership_forbidden',
+  });
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-ownership-reject-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'ownership reject' },
+      workflowType: null,
+      idempotencyKey: 'idem-root-ownership-reject-001',
+      registrySnapshotRef: 'snapshot:root-ownership-reject',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error?.code, 'generation_failed');
+  assert.equal(result.error?.message, 'ownership_forbidden');
+  assert.equal(usageCalls, 0);
+});
+
 test('generation root extraction flow completes from invoke input bootstrap', async () => {
   const adapters = createInMemoryGenerationAdapters();
 
@@ -181,7 +221,7 @@ test('generation root extraction flow completes from invoke input bootstrap', as
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'extraction',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       briefingId: 'briefing-root-001',
       extractionArtifactId: 'artifact-extraction-root-001',
       stepDependencyArtifactIds: ['artifact-dep-root-001'],
@@ -226,7 +266,7 @@ test('generation root extraction flow persists as extraction artifact with struc
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       briefingId: 'briefing-persistence-001',
       input: {
         prompt: 'extract this',
@@ -259,7 +299,7 @@ test('generation extraction fails with validation_failed when semantic extractio
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'extraction',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       briefingId: 'briefing-empty-001',
       input: {
         prompt: '',
@@ -286,10 +326,10 @@ test('generation root tool flow completes from invoke input bootstrap', async ()
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'tool run' },
-      toolKey: 'landing_page',
-      workflowType: 'landing_page',
+      toolKey: 'nextland',
+      workflowType: 'nextland',
       idempotencyKey: 'idem-root-tool-001',
       registrySnapshotRef: 'snapshot:root-tool',
     },
@@ -312,7 +352,7 @@ test('generation root fails when registry selector is missing', async () => {
     projectId: 'seed-project-001',
     toolKey: null,
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'missing selector', outputFormat: 'plain' },
     workflowType: null,
     idempotencyKey: 'idem-root-missing-selector-001',
@@ -338,7 +378,7 @@ test('generation root completes replay path on idempotency replay', async () => 
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'replay me' },
       workflowType: null,
       idempotencyKey: 'idem-root-replay-001',
@@ -373,18 +413,18 @@ test('generation root does not invoke tool workflow when idempotency replays', a
     type: 'REQUEST_RECEIVED',
     requestId: 'req-root-tool-replay-001',
     projectId: 'seed-project-001',
-    toolKey: 'landing_page',
+    toolKey: 'nextland',
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'tool run', outputFormat: 'plain' },
-    workflowType: 'landing_page',
+    workflowType: 'nextland',
     idempotencyKey: 'idem-root-tool-replay-001',
     registrySnapshotRef: 'snapshot:root-tool-replay' as never,
   });
   actor.send({ type: 'AUTH_OK', userId: 'seed-user-001' });
   actor.send({
     type: 'VALIDATION_OK',
-    workflowType: 'landing_page',
+    workflowType: 'nextland',
     registryVersion: null as never,
     registrySnapshotRef: 'snapshot:root-tool-replay' as never,
   });
@@ -415,18 +455,18 @@ test('generation root does not invoke tool workflow when usage is rejected', asy
     type: 'REQUEST_RECEIVED',
     requestId: 'req-root-tool-usage-rejected-001',
     projectId: 'seed-project-001',
-    toolKey: 'landing_page',
+    toolKey: 'nextland',
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'tool run', outputFormat: 'plain' },
-    workflowType: 'landing_page',
+    workflowType: 'nextland',
     idempotencyKey: 'idem-root-tool-usage-rejected-001',
     registrySnapshotRef: 'snapshot:root-tool-usage-rejected' as never,
   });
   actor.send({ type: 'AUTH_OK', userId: 'seed-user-001' });
   actor.send({
     type: 'VALIDATION_OK',
-    workflowType: 'landing_page',
+    workflowType: 'nextland',
     registryVersion: null as never,
     registrySnapshotRef: 'snapshot:root-tool-usage-rejected' as never,
   });
@@ -454,7 +494,7 @@ test('generation root fails on idempotency conflict branch', async () => {
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'conflict me' },
       workflowType: null,
       idempotencyKey: 'idem-root-conflict-001',
@@ -476,7 +516,7 @@ test('generation root fails on usage rejected branch', async () => {
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'reject usage' },
       workflowType: null,
       idempotencyKey: 'idem-root-usage-rejected-001',
@@ -501,7 +541,7 @@ test('generation root fails on stream failure branch', async () => {
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'break stream' },
       workflowType: null,
       idempotencyKey: 'idem-root-stream-failure-001',
@@ -537,7 +577,7 @@ test('generation root reaches terminal state on persistence finalize failure bra
     projectId: 'seed-project-001',
     toolKey: null,
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'force persistence failure', outputFormat: 'plain' },
     workflowType: null,
     idempotencyKey: 'idem-root-persistence-failure-001',
@@ -579,9 +619,9 @@ test('generation root executes Funnel step chain with dependency metadata and fi
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       briefingId: 'briefing-funnel-001',
       extractionArtifactId: 'artifact-extraction-funnel-001',
       input: { step: 'optin', intent: 'new' },
@@ -597,9 +637,9 @@ test('generation root executes Funnel step chain with dependency metadata and fi
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       briefingId: 'briefing-funnel-001',
       extractionArtifactId: 'artifact-extraction-funnel-001',
       stepDependencyArtifactIds: [optin.artifactId ?? ''],
@@ -616,9 +656,9 @@ test('generation root executes Funnel step chain with dependency metadata and fi
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       briefingId: 'briefing-funnel-001',
       extractionArtifactId: 'artifact-extraction-funnel-001',
       stepDependencyArtifactIds: [optin.artifactId ?? '', quiz.artifactId ?? ''],
@@ -669,7 +709,7 @@ test('generation root executes Nextland step chain with dependency metadata and 
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'nextland',
       workflowType: 'nextland',
       briefingId: 'briefing-nextland-001',
@@ -687,7 +727,7 @@ test('generation root executes Nextland step chain with dependency metadata and 
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'nextland',
       workflowType: 'nextland',
       briefingId: 'briefing-nextland-001',
@@ -733,9 +773,9 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'youtube-lf-script',
-      workflowType: 'youtube-lf-script',
+      workflowType: 'youtube_lf_script',
       briefingId: 'briefing-youtube-001',
       extractionArtifactId: 'artifact-extraction-youtube-001',
       input: { step: 'pre-script-analysis', intent: 'new' },
@@ -751,9 +791,9 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'youtube-lf-script',
-      workflowType: 'youtube-lf-script',
+      workflowType: 'youtube_lf_script',
       briefingId: 'briefing-youtube-001',
       extractionArtifactId: 'artifact-extraction-youtube-001',
       stepDependencyArtifactIds: [preScriptAnalysis.artifactId ?? ''],
@@ -770,9 +810,9 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       toolKey: 'youtube-lf-script',
-      workflowType: 'youtube-lf-script',
+      workflowType: 'youtube_lf_script',
       briefingId: 'briefing-youtube-001',
       extractionArtifactId: 'artifact-extraction-youtube-001',
       stepDependencyArtifactIds: [preScriptAnalysis.artifactId ?? '', packaging.artifactId ?? ''],
@@ -801,4 +841,95 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
   assert.equal(packagingWorkflow.artifactRole, 'step');
   assert.equal(outroWorkflow.stepKey, 'outro-structure');
   assert.equal(outroWorkflow.artifactRole, 'final');
+});
+
+test('generation runtime keeps artifact lifecycle generating -> completed with stable SSE order for youtube-lf-script', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const terminalPersistenceStateByArtifactId = new Map<string, string>();
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+
+  adapters.persistence.finalizeSuccess = async (input) => {
+    terminalPersistenceStateByArtifactId.set(input.artifactId, 'completed');
+    await originalFinalizeSuccess(input);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-task009-youtube-lifecycle-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      toolKey: 'youtube-lf-script',
+      workflowType: 'youtube_lf_script',
+      briefingId: 'briefing-task009-youtube-001',
+      extractionArtifactId: 'artifact-extraction-task009-youtube-001',
+      input: { step: 'outro-structure', intent: 'new' },
+      idempotencyKey: 'idem-root-task009-youtube-lifecycle-001',
+      registrySnapshotRef: 'snapshot:root-task009-youtube',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'completed');
+  assert.ok(result.artifactId);
+  assert.deepEqual(eventNamesInOrder(result), ['start', 'chunk', 'terminal']);
+  const terminalEvent = result.streamEvents[result.streamEvents.length - 1];
+  assert.equal(terminalEvent?.event, 'terminal');
+  assert.equal(terminalEvent?.data.status, 'completed');
+  assert.equal(result.streamEvents[0]?.event, 'start');
+
+  assert.equal(
+    terminalPersistenceStateByArtifactId.get(result.artifactId as string),
+    'completed',
+  );
+});
+
+test('generation runtime keeps artifact lifecycle generating -> failed with terminal failed status', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const terminalPersistenceStateByArtifactId = new Map<string, string>();
+  const originalFinalizeFailure = adapters.persistence.finalizeFailure;
+
+  adapters.llm.streamText = async function* () {
+    yield { type: 'chunk', chunk: 'transient chunk' } as const;
+    throw new Error('forced stream mid-flight failure');
+  };
+
+  adapters.persistence.finalizeFailure = async (input, reason) => {
+    terminalPersistenceStateByArtifactId.set(input.artifactId, 'failed');
+    await originalFinalizeFailure(input, reason);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-task009-failed-lifecycle-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel_pages',
+      briefingId: 'briefing-task009-failed-001',
+      extractionArtifactId: 'artifact-extraction-task009-failed-001',
+      input: { step: 'optin', intent: 'new' },
+      idempotencyKey: 'idem-root-task009-failed-lifecycle-001',
+      registrySnapshotRef: 'snapshot:root-task009-failed',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.ok(result.artifactId);
+  const eventNames = eventNamesInOrder(result);
+  assert.equal(eventNames[0], 'start');
+  assert.equal(eventNames[eventNames.length - 1], 'terminal');
+  const terminalEvent = result.streamEvents[result.streamEvents.length - 1];
+  assert.equal(terminalEvent?.event, 'terminal');
+  assert.equal(terminalEvent?.data.status, 'failed');
+  assert.equal(result.streamEvents[0]?.event, 'start');
+
+  assert.equal(
+    terminalPersistenceStateByArtifactId.get(result.artifactId as string),
+    'failed',
+  );
 });

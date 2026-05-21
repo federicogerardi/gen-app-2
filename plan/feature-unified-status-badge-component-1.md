@@ -1,16 +1,16 @@
 ---
 goal: Unified StatusBadge component for all lifecycle/state status rendering in the frontend
-version: 1.0
+version: 1.1
 date_created: 2026-05-17
-last_updated: 2026-05-17 (rev 2)
+last_updated: 2026-05-21 (as-is alignment)
 owner: frontend
-status: 'Planned'
+status: 'In progress'
 tags: [feature, refactor, ui, frontend, design-system]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In progress](https://img.shields.io/badge/status-In%20progress-yellow)
 
 The frontend renders entity status values (`ArtifactLifecycleStatus`, `AuthUserStatus`, model
 status, changelog status, report status, etc.) as plain unstyled text in multiple table and list
@@ -56,10 +56,10 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Add CSS variables for missing semantic badge colours in `:root` (warning amber, info blue, neutral muted) in `styles.css` — mirror the existing `--badge-success-*` pattern | | |
-| TASK-002 | Add the same variables for `[data-theme='dark']` overrides in `styles.css` | | |
-| TASK-003 | Add `.ui-status-badge` base class (pill shape, mono font, uppercase, 11px) with `.ui-status-badge--success`, `--error`, `--warning`, `--info`, `--neutral` modifier classes in `styles.css` | | |
-| TASK-003b | Remove dead CSS in `styles.css:1202-1228`: delete `.ui-artifact-status-tag`, `.ui-artifact-status-tag.is-completed`, `.ui-artifact-status-tag.is-failed`, `.ui-artifact-status-tag.is-generating` — these are superseded by `StatusBadge`. Run after all call-site replacements (Phase 3) are complete | | |
+| TASK-001 | Add CSS variables for missing semantic badge colours in `:root` (warning amber, info blue, neutral muted) in `styles.css` — mirror the existing `--badge-success-*` pattern | yes | 2026-05-21 |
+| TASK-002 | Add the same variables for `[data-theme='dark']` overrides in `styles.css` | yes | 2026-05-21 |
+| TASK-003 | Add `.ui-status-badge` base class (pill shape, mono font, uppercase, 11px) with `.ui-status-badge--success`, `--error`, `--warning`, `--info`, `--neutral` modifier classes in `styles.css` | yes | 2026-05-21 |
+| TASK-003b | Remove dead CSS in `styles.css:1202-1228`: delete `.ui-artifact-status-tag`, `.ui-artifact-status-tag.is-completed`, `.ui-artifact-status-tag.is-failed`, `.ui-artifact-status-tag.is-generating` — these are superseded by `StatusBadge`. Run after all call-site replacements (Phase 3) are complete | yes | 2026-05-21 |
 
 ### Implementation Phase 2 — StatusBadge Component & Primitives
 
@@ -67,8 +67,8 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-004 | Add `statusBadge: 'ui-status-badge'` entry to `uiPrimitives` object in `apps/frontend/src/app/ui/primitives.tsx` | | |
-| TASK-005 | Create `apps/frontend/src/app/ui/StatusBadge.tsx` with: type `StatusBadgeVariant = 'success' \| 'error' \| 'warning' \| 'info' \| 'neutral'`; a `STATUS_VARIANT_MAP` lookup table covering all status values in REQ-001; props `{ status: string; label?: string; className?: string }`; renders `<span className={cx(uiPrimitives.statusBadge, 'ui-status-badge--' + variant, className)}>{label ?? status}</span>` | | |
+| TASK-004 | Add `statusBadge: 'ui-status-badge'` entry to `uiPrimitives` object in `apps/frontend/src/app/ui/primitives.tsx` | yes | 2026-05-21 |
+| TASK-005 | Create `apps/frontend/src/app/ui/StatusBadge.tsx` with: type `StatusBadgeVariant = 'success' \| 'error' \| 'warning' \| 'info' \| 'neutral'`; a `STATUS_VARIANT_MAP` lookup table covering all status values in REQ-001; props `{ status: string; label?: string; className?: string }`; renders `<span className={cx(uiPrimitives.statusBadge, 'ui-status-badge--' + variant, className)}>{label ?? status}</span>` | yes | 2026-05-21 |
 
 ### Implementation Phase 3 — Call-Site Replacement
 
@@ -76,16 +76,16 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | `apps/frontend/src/features/artifacts/ui/ArtifactsListingSection.tsx` — replace `artifact.status` plain string (line 177) with `<StatusBadge status={artifact.status} />` | | |
-| TASK-006b | `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx:232` — replace `<span className={\`ui-runtime-badge ui-artifact-status-tag is-${artifact.status}\`}>{artifact.status}</span>` with `<StatusBadge status={artifact.status} />` and remove the `.ui-runtime-badge ui-artifact-status-tag` className coupling | | |
-| TASK-006c | `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx:198-199` — replace `<span className={\`ui-runtime-badge ui-artifact-status-tag is-${group.status}\`}>{group.status}</span>` with `<StatusBadge status={group.status} />` and remove the `.ui-runtime-badge ui-artifact-status-tag` className coupling | | |
-| TASK-007 | `apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx` — (a) replace `<span>{artifact.status}</span>` (line 122) in the list row with `<StatusBadge status={artifact.status} />`; (b) line 137 uses `formatMeta(appCopy.ui.labels.status.toLowerCase(), selectedArtifact.status)` which returns a plain `string` — replace the entire `<p>` with `<p className={uiPrimitives.metaLine}><span>{appCopy.ui.labels.status}: </span><StatusBadge status={selectedArtifact.status} /></p>` to avoid passing JSX into a string-returning function | | |
-| TASK-008 | `apps/frontend/src/features/admin/activity/ActivityLogTable.tsx` — replace `<span className={uiPrimitives.metaLine}>{item.status}</span>` (line 26) with `<StatusBadge status={item.status} />` | | |
-| TASK-009 | `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` — replace `statusLabel(session.status)` plain string (line 125) with `<StatusBadge status={session.status} label={statusLabel(session.status)} />` so the Italian label is shown but the variant is resolved from the raw status | | |
-| TASK-010 | `apps/frontend/src/features/admin/ui/AdminUserTableRow.tsx:43` — `formatMeta('Status', user.status)` returns a plain `string` and cannot wrap JSX. Replace `<td>{formatMeta('Status', user.status)}</td>` with `<td><StatusBadge status={user.status} /></td>` (the column header already reads "Status", so the label prefix is redundant) | | |
-| TASK-011 | `apps/frontend/src/features/admin/llm/LLMTable.tsx` / `AdminModelTableRow.tsx` — replace `{model.status}` (line 23 of `AdminModelTableRow.tsx`) with `<StatusBadge status={model.status} />` | | |
-| TASK-012 | `apps/frontend/src/features/admin/changelog/ChangelogTable.tsx` — replace `row.status` plain string (line 44) with `<StatusBadge status={row.status} />` | | |
-| TASK-013 | `apps/frontend/src/features/admin/reports/ReportsTable.tsx` — replace `row.status` plain string (line 53-55) with `<StatusBadge status={row.status} />` | | |
+| TASK-006 | `apps/frontend/src/features/artifacts/ui/ArtifactsListingSection.tsx` — replace `artifact.status` plain string (line 177) with `<StatusBadge status={artifact.status} />` | yes | 2026-05-21 |
+| TASK-006b | `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx:232` — replace `<span className={`ui-runtime-badge ui-artifact-status-tag is-${artifact.status}`}>{artifact.status}</span>` with `<StatusBadge status={artifact.status} />` and remove the `.ui-runtime-badge ui-artifact-status-tag` className coupling | yes | 2026-05-21 |
+| TASK-006c | `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx:198-199` — replace `<span className={`ui-runtime-badge ui-artifact-status-tag is-${group.status}`}>{group.status}</span>` with `<StatusBadge status={group.status} />` and remove the `.ui-runtime-badge ui-artifact-status-tag` className coupling | yes | 2026-05-21 |
+| TASK-007 | `apps/frontend/src/features/generation/ui/ArtifactHistoryPanel.tsx` — (a) replace `<span>{artifact.status}</span>` (line 122) in the list row with `<StatusBadge status={artifact.status} />`; (b) line 137 uses `formatMeta(appCopy.ui.labels.status.toLowerCase(), selectedArtifact.status)` which returns a plain `string` — replace the entire `<p>` with `<p className={uiPrimitives.metaLine}><span>{appCopy.ui.labels.status}: </span><StatusBadge status={selectedArtifact.status} /></p>` to avoid passing JSX into a string-returning function | yes | 2026-05-21 |
+| TASK-008 | `apps/frontend/src/features/admin/activity/ActivityLogTable.tsx` — replace `<span className={uiPrimitives.metaLine}>{item.status}</span>` (line 26) with `<StatusBadge status={item.status} />` | yes | 2026-05-21 |
+| TASK-009 | `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx` — replace `statusLabel(session.status)` plain string (line 125) with `<StatusBadge status={session.status} label={statusLabel(session.status)} />` so the Italian label is shown but the variant is resolved from the raw status | partial | 2026-05-21 |
+| TASK-010 | `apps/frontend/src/features/admin/ui/AdminUserTableRow.tsx:43` — `formatMeta('Status', user.status)` returns a plain `string` and cannot wrap JSX. Replace `<td>{formatMeta('Status', user.status)}</td>` with `<td><StatusBadge status={user.status} /></td>` (the column header already reads "Status", so the label prefix is redundant) | yes | 2026-05-21 |
+| TASK-011 | `apps/frontend/src/features/admin/llm/LLMTable.tsx` / `AdminModelTableRow.tsx` — replace `{model.status}` (line 23 of `AdminModelTableRow.tsx`) with `<StatusBadge status={model.status} />` | yes | 2026-05-21 |
+| TASK-012 | `apps/frontend/src/features/admin/changelog/ChangelogTable.tsx` — replace `row.status` plain string (line 44) with `<StatusBadge status={row.status} />` | yes | 2026-05-21 |
+| TASK-013 | `apps/frontend/src/features/admin/reports/ReportsTable.tsx` — replace `row.status` plain string (line 53-55) with `<StatusBadge status={row.status} />` | yes | 2026-05-21 |
 
 ### Implementation Phase 4 — Validation
 
@@ -93,8 +93,15 @@ colour-coded pill badge, and to replace all plain-text status occurrences with i
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-014 | Run `npm --workspace apps/frontend run build` and confirm zero TypeScript/build errors | | |
-| TASK-015 | Run existing frontend tests (`npm --workspace apps/frontend run test`) to confirm no regressions | | |
+| TASK-014 | Run `npm --workspace apps/frontend run build` and confirm zero TypeScript/build errors | pending | |
+| TASK-015 | Run existing frontend tests (`npm --workspace apps/frontend run test`) to confirm no regressions | pending | |
+
+### As-Is Evidence Snapshot (2026-05-21)
+
+- `StatusBadge` component exists at `apps/frontend/src/app/ui/StatusBadge.tsx`.
+- `uiPrimitives.statusBadge` exists at `apps/frontend/src/app/ui/primitives.tsx`.
+- Badge CSS classes exist at `apps/frontend/src/styles.css` (`.ui-status-badge*`).
+- Call-site migration is broadly completed; remaining delta is localized-label usage in `SessionsListingSection` (TASK-009 partial).
 
 ---
 

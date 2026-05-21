@@ -2,6 +2,7 @@
 status: draft
 version: 1.1
 last-reviewed: 2026-05-16
+next-review-date: 2026-06-15
 owner: Frontend + Backend Platform
 ---
 
@@ -60,7 +61,8 @@ DDD-051 alignment: the canonical aggregate-listing contract is `GET /api/tools/s
 DDD-052 alignment: route and endpoint ownership must remain separated — session aggregate navigation uses `sessionsummary` frontend namespace and `/api/tools/sessions*` backend contracts; artifact history/detail remains under `artifacts` frontend namespace and `/api/artifacts*` backend contracts.
 
 Implementation points:
-- `apps/backend/src/lib/runtime/auth-http.ts`
+- `apps/backend/src/lib/runtime/auth-http/route-table.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-session-handlers.ts`
 - `apps/backend/src/lib/adapters/session-query.adapter.ts`
 
 ### Heuristic fallback (legacy compatibility)

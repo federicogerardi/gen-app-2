@@ -21,7 +21,7 @@ const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationAr
   projectId: 'proj-1',
   artifactType: 'content',
   status: 'completed',
-  model: 'gpt-4',
+  model: 'openrouter/gpt-4',
   toolKey: null,
   workflowType: null,
   content: 'Hello artifact',
@@ -32,7 +32,7 @@ const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationAr
     userId: 'user-1',
     projectId: 'proj-1',
     artifactType: 'content',
-    model: 'gpt-4',
+    model: 'openrouter/gpt-4',
     input: {},
     toolKey: null,
     workflowType: null,
@@ -132,7 +132,7 @@ describe('ArtifactDetailPage', () => {
         userId: 'user-1',
         projectId: 'proj-1',
         artifactType: 'content',
-        model: 'gpt-4',
+        model: 'openrouter/gpt-4',
         input: {},
         toolKey: null,
         workflowType: 'funnel_pages',
@@ -150,10 +150,10 @@ describe('ArtifactDetailPage', () => {
         userId: 'user-1',
         projectId: 'proj-1',
         artifactType: 'content',
-        model: 'gpt-4',
+        model: 'openrouter/gpt-4',
         input: { tone: 'Professional' },
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
       },
     });
 
@@ -183,21 +183,21 @@ describe('ArtifactDetailPage', () => {
   it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
     artifactDetailBag.artifact = makeArtifact({
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       sourceRequest: {
         requestId: 'req-1',
         userId: 'user-1',
         projectId: 'proj-1',
         artifactType: 'content',
-        model: 'gpt-4',
+        model: 'openrouter/gpt-4',
         input: {
-          tone: 'friendly',
+          tone: 'Formal',
           notes: 'old-note',
           briefingId: 'brief-legacy',
           briefingFileName: 'brief-legacy.md',
         },
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         registrySnapshotRef: 'snapshot:default',
       },
     });
@@ -220,7 +220,7 @@ describe('ArtifactDetailPage', () => {
     expect(location).toHaveTextContent('sourceArtifactId=art-1');
     expect(location).toHaveTextContent('briefingId=brief-legacy');
     expect(location).toHaveTextContent('relaunchFromArtifactId=art-1');
-    expect(location).toHaveTextContent('tone=friendly');
+    expect(location).toHaveTextContent('tone=Formal');
     expect(location).toHaveTextContent('notes=old-note');
     expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
   });

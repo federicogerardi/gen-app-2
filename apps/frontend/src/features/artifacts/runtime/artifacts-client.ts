@@ -1,4 +1,11 @@
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
+import {
+  normalizeToolKeyCandidate,
+  resolveGenerationWorkflowTypeCandidate,
+  resolveToolWorkflowType,
+  type GenerationWorkflowType,
+  type ToolKey,
+} from '@gen-app-2/contracts';
 import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import type { GenerationRequest } from '../../generation/contracts/backend-stream';
@@ -27,6 +34,9 @@ type ArtifactsClientOptions = {
 type BackendArtifact = {
   artifactId: string;
   requestId: string;
+  userId?: string | null;
+  userEmail?: string | null;
+  user_email?: string | null;
   projectId: string;
   sessionId?: string | null;
   session_id?: string | null;
@@ -54,52 +64,57 @@ type BackendArtifact = {
   completedAt?: string | null;
 };
 
-const normalizeToolKeyCandidate = (value: unknown): string | null => {
+const normalizeWorkflowTypeCandidate = (
+  value: unknown,
+): GenerationWorkflowType | null => {
   if (typeof value !== 'string') {
     return null;
   }
 
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  if (normalized === 'extraction') {
-    return null;
-  }
-
-  if (normalized === 'funnel_pages') {
-    return 'funnel-pages';
-  }
-
-  if (normalized === 'youtube_lf_script') {
-    return 'youtube-lf-script';
-  }
-
-  if (normalized === 'youtube-long-form') {
-    return 'youtube-lf-script';
-  }
-
-  if (normalized === 'youtube_long_form') {
-    return 'youtube-lf-script';
-  }
-
-  return normalized;
+  return resolveGenerationWorkflowTypeCandidate(value);
 };
 
-const readToolKey = (artifact: BackendArtifact): string | null => {
+const readNormalizedToolKey = (value: unknown): ToolKey | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  return normalizeToolKeyCandidate(value);
+};
+
+const normalizeModelId = (value: string): GenerationRequest['model'] => {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return 'openrouter/auto';
+  }
+
+  if (normalized.includes('/')) {
+    return normalized as GenerationRequest['model'];
+  }
+
+  if (normalized.includes(':')) {
+    const [provider, ...rest] = normalized.split(':');
+    if (provider && rest.length > 0) {
+      return `${provider}/${rest.join(':')}` as GenerationRequest['model'];
+    }
+  }
+
+  return `openrouter/${normalized}` as GenerationRequest['model'];
+};
+
+const readToolKey = (artifact: BackendArtifact): ToolKey | null => {
   const input = artifact.input;
   const toolWorkflowInput =
-    input && typeof input['toolWorkflow'] === 'object' && input['toolWorkflow'] !== null
-      ? (input['toolWorkflow'] as Record<string, unknown>)
+    input && typeof input.toolWorkflow === 'object' && input.toolWorkflow !== null
+      ? (input.toolWorkflow as Record<string, unknown>)
       : null;
 
   return (
-    normalizeToolKeyCandidate(artifact.toolKey) ??
-    normalizeToolKeyCandidate(input?.['toolKey']) ??
-    normalizeToolKeyCandidate(toolWorkflowInput?.['toolKey']) ??
-    normalizeToolKeyCandidate(toolWorkflowInput?.['workflowType']) ??
-    normalizeToolKeyCandidate(artifact.workflowType)
+    readNormalizedToolKey(artifact.toolKey) ??
+    readNormalizedToolKey(input?.toolKey) ??
+    readNormalizedToolKey(toolWorkflowInput?.['toolKey']) ??
+    readNormalizedToolKey(toolWorkflowInput?.['workflowType']) ??
+    readNormalizedToolKey(artifact.workflowType)
   );
 };
 
@@ -118,6 +133,8 @@ export type ListArtifactsResult = {
   artifacts: GenerationArtifact[];
   totalResults: number;
 };
+
+const DEFAULT_ARTIFACTS_PAGE_SIZE = 200;
 
 const applyQuery = (artifacts: GenerationArtifact[], filters: ArtifactQuery): GenerationArtifact[] => {
   const filtered = artifacts.filter((artifact) => {
@@ -155,13 +172,15 @@ const toSourceRequest = (artifact: BackendArtifact): GenerationRequest => {
 
   return {
     requestId: artifact.requestId,
-    userId: '',
+    userId: artifact.userId ?? '',
     projectId: artifact.projectId,
     artifactType: artifact.artifactType,
-    model: artifact.model,
+    model: normalizeModelId(artifact.model),
     input: artifact.input ?? {},
     toolKey,
-    workflowType: artifact.workflowType,
+    workflowType:
+      normalizeWorkflowTypeCandidate(artifact.workflowType)
+      ?? (toolKey ? resolveToolWorkflowType(toolKey) : null),
   };
 };
 
@@ -179,6 +198,7 @@ const readDiagnosticString = (a: string | null | undefined, b: string | null | u
 
 const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => {
   const toolKey = readToolKey(artifact);
+  const ownerEmail = readDiagnosticString(artifact.userEmail, artifact.user_email);
 
   const sessionId = readDiagnosticString(artifact.sessionId, artifact.session_id);
   const stepKey = readDiagnosticString(artifact.stepKey, artifact.step_key);
@@ -195,9 +215,10 @@ const toGenerationArtifact = (artifact: BackendArtifact): GenerationArtifact => 
     runMode,
     artifactType: artifact.artifactType,
     status: artifact.status,
-    model: artifact.model,
+    model: normalizeModelId(artifact.model),
     toolKey,
     workflowType: artifact.workflowType,
+    ownerUsername: ownerEmail,
     content: artifact.content ?? '',
     createdAt: artifact.createdAt,
     updatedAt: artifact.updatedAt,
@@ -292,6 +313,51 @@ export const listArtifacts = async (
   }
 };
 
+export const listArtifactsPaginated = async (
+  filters: Omit<ArtifactQuery, 'limit' | 'offset'>,
+  options: ArtifactsClientOptions = {},
+  pageSize = DEFAULT_ARTIFACTS_PAGE_SIZE,
+): Promise<ListArtifactsResult> => {
+  const normalizedPageSize = Number.isFinite(pageSize) && pageSize > 0
+    ? Math.trunc(pageSize)
+    : DEFAULT_ARTIFACTS_PAGE_SIZE;
+
+  let offset = 0;
+  let totalResults = 0;
+  const artifacts: GenerationArtifact[] = [];
+
+  while (true) {
+    const page = await listArtifacts(
+      {
+        ...filters,
+        limit: normalizedPageSize,
+        offset,
+      },
+      options,
+    );
+
+    if (offset === 0) {
+      totalResults = page.totalResults;
+    }
+
+    artifacts.push(...page.artifacts);
+
+    if (page.artifacts.length === 0) {
+      break;
+    }
+
+    offset += page.artifacts.length;
+    if (artifacts.length >= totalResults) {
+      break;
+    }
+  }
+
+  return {
+    artifacts,
+    totalResults,
+  };
+};
+
 export const getArtifactById = async (
   id: string,
   options: ArtifactsClientOptions = {},
@@ -304,7 +370,8 @@ export const getArtifactById = async (
   }
 
   try {
-    const payload = await requestJson<ArtifactsResponse>(joinApiPath(options.apiBaseUrl ?? '', path), {
+    const detailPath = `${path}?includeInput=1&includeContent=1`;
+    const payload = await requestJson<ArtifactsResponse>(joinApiPath(options.apiBaseUrl ?? '', detailPath), {
       method: 'GET',
       credentials: 'include',
     });

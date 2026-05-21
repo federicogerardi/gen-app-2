@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import { uiPrimitives } from '../../../app/ui/primitives';
 import { ReportsTable } from '../reports/ReportsTable';
 import { useAdminUserReportsQuery } from '../runtime/useAdminUserReportsQuery';
 import { useAdminUserReportsMutations } from '../runtime/useAdminUserReportsMutations';

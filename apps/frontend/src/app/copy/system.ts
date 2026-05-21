@@ -36,10 +36,12 @@ export const appCopy = {
     },
     navigation: {
       dashboard: 'Dashboard',
+      tools: 'Tools',
       projects: 'Projects',
       funnelPages: 'Hotlead Funnel',
       nextland: 'Nextland',
       youtubeLfScript: 'YouTube LF Script',
+      angleGenerator: 'Angle Generator',
       feedbackCenter: 'Feedback',
       sessionSummary: 'Sessions',
       artifacts: 'Artifacts',
@@ -56,6 +58,7 @@ export const appCopy = {
       openSessionArchive: "Torna all'archivio",
       backToList: 'Torna alla lista',
       openDetail: 'Apri dettaglio',
+      openToolWorkspace: 'Apri workspace',
       openArtifact: 'Apri artifact',
       openContextProject: 'Apri progetto',
       newProject: 'Nuovo progetto',
@@ -118,8 +121,12 @@ export const appCopy = {
       type: 'Tipo',
       status: 'Stato',
       project: 'Progetto',
+      user: 'Utente',
       period: 'Periodo',
       page: 'Pagina',
+    },
+    toolInstructions: {
+      title: 'Istruzioni compilazione file',
     },
     meta: {
       phase: 'phase',
@@ -154,6 +161,7 @@ export const appCopy = {
     },
     states: {
       loadingProjects: 'Caricamento progetti...',
+      noToolsAvailable: 'Nessun tool disponibile.',
       loadingUsers: 'Caricamento utenti...',
       loadingModels: 'Caricamento modelli...',
       loadingArtifact: 'Caricamento artifact...',
@@ -163,6 +171,7 @@ export const appCopy = {
       noArtifactSelected: 'Seleziona un artefatto per vedere il dettaglio.',
       noArtifactFound: 'Artefatto non trovato.',
       noArtifactsAvailable: 'Nessun artefatto disponibile.',
+      userUnavailable: 'Utente non disponibile',
       noProjectFound: 'Progetto non trovato.',
       noProjectArtifacts: 'Nessun artefatto collegato al progetto.',
       noProjectsAvailable: 'Nessun progetto disponibile.',
@@ -308,7 +317,7 @@ export const appCopy = {
         },
         tools: {
           title: 'Generazione per la tua strategia',
-          body: 'Hotlead Funnel per generare lead e moltiplicare i risultati. Lo strumento giusto, secondo la tua strategia.',
+            body: 'Apri Tools come hub centrale per i percorsi guidati. Tools Console resta disponibile come percorso avanzato per flussi manuali.',
         },
           recentSessions: {
             title: 'La tua storia di risultati',
@@ -370,15 +379,18 @@ export const appCopy = {
         orderRule: 'Ordine step obbligatorio: pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure',
         defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
       },
+      angleGenerator: {
+        title: 'Angle Generator Tool',
+        orderRule: 'Ordine step obbligatorio: context-and-angle-matrix -> angle-prioritization -> creative-activation',
+        defaultPrompt: 'Genera angle prioritizzati e attivazioni creative coerenti al contesto estratto.',
+      },
     },
   },
 } as const;
 
 export const appNavigation = [
   { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true },
-  { to: '/tools/funnel-pages', label: appCopy.ui.navigation.funnelPages, end: false },
-  { to: '/tools/nextland', label: appCopy.ui.navigation.nextland, end: false },
-  { to: '/tools/youtube-lf-script', label: appCopy.ui.navigation.youtubeLfScript, end: false },
+  { to: '/tools', label: appCopy.ui.navigation.tools, end: false },
   { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true },
   { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false },
   { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true },

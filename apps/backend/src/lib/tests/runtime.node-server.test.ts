@@ -80,6 +80,8 @@ class MockServerResponse extends EventEmitter {
   }
 }
 
+const alwaysModelAvailable = async (): Promise<boolean> => true;
+
 test('node runtime dispatcher routes auth request to auth runtime', async () => {
   const repositories = createAuthStubRepositories();
   const authRuntime = createAuthHttpRuntime({
@@ -91,6 +93,8 @@ test('node runtime dispatcher routes auth request to auth runtime', async () => 
   const requestHandler = createNodeRuntimeRequestHandler({
     generationAdapters: createInMemoryGenerationAdapters(),
     authRuntime,
+    checkModelAvailability: alwaysModelAvailable,
+    csrf: { enabled: false },
   });
 
   const request = new MockIncomingMessage({ method: 'GET', url: '/auth/session' });
@@ -128,6 +132,8 @@ test('node runtime dispatcher routes generation stream to SSE runtime', async ()
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
+    csrf: { enabled: false },
   });
 
   const requestPayload = {
@@ -135,7 +141,7 @@ test('node runtime dispatcher routes generation stream to SSE runtime', async ()
     userId: 'seed-user-001',
     projectId: 'seed-project-001',
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     input: { prompt: 'node server runtime' },
     workflowType: null,
     idempotencyKey: 'idem-node-server-001',
@@ -171,6 +177,8 @@ test('node runtime dispatcher returns 404 for unknown route', async () => {
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
+    csrf: { enabled: false },
   });
 
   const request = new MockIncomingMessage({ method: 'GET', url: '/unknown' });
@@ -194,6 +202,7 @@ test('node runtime dispatcher handles CORS preflight for allowed origin', async 
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['https://frontend.codespaces.example.com'],
       allowCredentials: true,
@@ -225,10 +234,12 @@ test('node runtime dispatcher supports wildcard CORS when credentials are disabl
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['*'],
       allowCredentials: false,
     },
+    csrf: { enabled: false },
   });
 
   const request = new MockIncomingMessage({
@@ -256,6 +267,7 @@ test('node runtime dispatcher blocks CSRF for unsafe method with untrusted origi
       passwordHashing: createDefaultPasswordHashRuntime(),
       sessionCookies: createDefaultSessionCookieRuntime(),
     }),
+    checkModelAvailability: alwaysModelAvailable,
     cors: {
       allowedOrigins: ['https://frontend.codespaces.example.com'],
       allowCredentials: true,
@@ -276,7 +288,7 @@ test('node runtime dispatcher blocks CSRF for unsafe method with untrusted origi
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'csrf check' },
       registrySnapshotRef: 'snapshot:csrf-check',
     }),
@@ -302,10 +314,252 @@ test('node runtime request handler rejects wildcard origins when credentials are
         passwordHashing: createDefaultPasswordHashRuntime(),
         sessionCookies: createDefaultSessionCookieRuntime(),
       }),
+      checkModelAvailability: alwaysModelAvailable,
       cors: {
         allowedOrigins: ['*'],
         allowCredentials: true,
       },
     });
   }, /Invalid CORS configuration/);
+});
+
+test('node runtime dispatcher denies generation stream for forbidden ownership without usage side effects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageClaims = 0;
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageClaims += 1;
+    return originalClaimUsage(input);
+  };
+
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: adapters,
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: alwaysModelAvailable,
+    checkProjectOwnership: async () => ({ owned: false, reason: 'ownership_forbidden' }),
+    csrf: { enabled: false },
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-ownership-forbidden-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'ownership forbidden' },
+      registrySnapshotRef: 'snapshot:ownership-forbidden',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(usageClaims, 0);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('node runtime dispatcher returns not_found when project is missing without usage side effects', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let usageClaims = 0;
+  const originalClaimUsage = adapters.usage.claimUsage;
+  adapters.usage.claimUsage = async (input) => {
+    usageClaims += 1;
+    return originalClaimUsage(input);
+  };
+
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: adapters,
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: alwaysModelAvailable,
+    checkProjectOwnership: async () => ({ owned: false, reason: 'project_not_found' }),
+    csrf: { enabled: false },
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-project-not-found-001',
+      userId: 'seed-user-001',
+      projectId: 'missing-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'project not found' },
+      registrySnapshotRef: 'snapshot:project-not-found',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 404);
+  assert.equal(usageClaims, 0);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('node runtime dispatcher rejects unavailable model with 422', async () => {
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: createInMemoryGenerationAdapters(),
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: async () => false,
+    csrf: { enabled: false },
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    body: JSON.stringify({
+      requestId: 'req-node-server-model-unavailable-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'unavailable-model',
+      input: { prompt: 'model guard check' },
+      registrySnapshotRef: 'snapshot:model-guard',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 422);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+});
+
+test('createNodeRuntimeRequestHandler throws when CSRF enabled and resolved trusted origins are empty', () => {
+  assert.throws(() => {
+    createNodeRuntimeRequestHandler({
+      generationAdapters: createInMemoryGenerationAdapters(),
+      authRuntime: createAuthHttpRuntime({
+        repositories: createAuthStubRepositories(),
+        passwordHashing: createDefaultPasswordHashRuntime(),
+        sessionCookies: createDefaultSessionCookieRuntime(),
+      }),
+      checkModelAvailability: alwaysModelAvailable,
+      // Neither csrf.trustedOrigins nor cors.allowedOrigins provided — resolves to empty.
+      csrf: { enabled: true },
+    });
+  }, /Invalid CSRF configuration: trustedOrigins must be non-empty/);
+});
+
+test('createNodeRuntimeRequestHandler throws when CSRF enabled and trustedOrigins contains wildcard', () => {
+  assert.throws(() => {
+    createNodeRuntimeRequestHandler({
+      generationAdapters: createInMemoryGenerationAdapters(),
+      authRuntime: createAuthHttpRuntime({
+        repositories: createAuthStubRepositories(),
+        passwordHashing: createDefaultPasswordHashRuntime(),
+        sessionCookies: createDefaultSessionCookieRuntime(),
+      }),
+      checkModelAvailability: alwaysModelAvailable,
+      csrf: { enabled: true, trustedOrigins: ['*'] },
+    });
+  }, /Invalid CSRF configuration: trustedOrigins cannot include "\*"/);
+});
+
+test('node runtime dispatcher returns 403 when CSRF enabled and origin is missing', async () => {
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: createInMemoryGenerationAdapters(),
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: alwaysModelAvailable,
+    cors: {
+      allowedOrigins: ['https://frontend.example.com'],
+      allowCredentials: true,
+    },
+    csrf: {
+      enabled: true,
+      trustedOrigins: ['https://frontend.example.com'],
+    },
+  });
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/generation/stream',
+    // No origin header — missing origin must be treated as untrusted.
+    body: JSON.stringify({
+      requestId: 'req-csrf-no-origin-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'csrf missing origin' },
+      registrySnapshotRef: 'snapshot:csrf-no-origin',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  assert.equal(response.statusCode, 403);
+  const body = response.jsonBody();
+  assert.equal(body.ok, false);
+  assert.equal((body.error as Record<string, unknown>)?.code, 'forbidden');
+});
+
+test('node runtime dispatcher bypasses CSRF gate for excluded paths', async () => {
+  const requestHandler = createNodeRuntimeRequestHandler({
+    generationAdapters: createInMemoryGenerationAdapters(),
+    authRuntime: createAuthHttpRuntime({
+      repositories: createAuthStubRepositories(),
+      passwordHashing: createDefaultPasswordHashRuntime(),
+      sessionCookies: createDefaultSessionCookieRuntime(),
+    }),
+    checkModelAvailability: alwaysModelAvailable,
+    csrf: {
+      enabled: true,
+      trustedOrigins: ['https://frontend.example.com'],
+      excludePaths: ['/auth/login'],
+    },
+  });
+
+  // POST to an excluded path with no origin — must not be blocked by CSRF gate.
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/auth/login',
+    // No origin header.
+  });
+  const response = new MockServerResponse();
+
+  await requestHandler(
+    request as unknown as IncomingMessage,
+    response as unknown as ServerResponse,
+  );
+
+  // Auth runtime handles this route; we only assert it was NOT rejected with 403 by CSRF.
+  assert.notEqual(response.statusCode, 403);
 });

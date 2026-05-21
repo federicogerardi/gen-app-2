@@ -80,12 +80,18 @@ const mapStatusToErrorCode = (status: number): PublishGitHubIssueErrorCode => {
 
 const shouldRetryStatus = (status: number): boolean => status === 429 || status >= 500;
 
+const debugLog = (message: string, payload?: unknown): void => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.debug(message, payload ?? '');
+  }
+};
+
 export const publishGitHubIssue = async (
   config: GitHubApiConfig,
   input: PublishGitHubIssueInput,
 ): Promise<PublishGitHubIssueResult> => {
   const endpoint = `${config.apiBaseUrl.replace(/\/$/, '')}/repos/${encodeURIComponent(input.owner)}/${encodeURIComponent(input.repo)}/issues`;
-  console.debug('[publishGitHubIssue] Starting GitHub API request', {
+  debugLog('[publishGitHubIssue] Starting GitHub API request', {
     endpoint,
     owner: input.owner,
     repo: input.repo,
@@ -99,12 +105,12 @@ export const publishGitHubIssue = async (
 
   let attempt = 0;
   while (attempt <= config.maxRetries) {
-    console.debug(`[publishGitHubIssue] Attempt ${attempt + 1} of ${config.maxRetries + 1}...`);
+    debugLog(`[publishGitHubIssue] Attempt ${attempt + 1} of ${config.maxRetries + 1}...`);
     const abortController = new AbortController();
     const timeout = setTimeout(() => abortController.abort(), config.timeoutMs);
 
     try {
-      console.debug('[publishGitHubIssue] Sending fetch request...', { endpoint });
+      debugLog('[publishGitHubIssue] Sending fetch request...', { endpoint });
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -122,7 +128,7 @@ export const publishGitHubIssue = async (
       });
 
       clearTimeout(timeout);
-      console.debug('[publishGitHubIssue] Response received', { status: response.status, statusText: response.statusText });
+      debugLog('[publishGitHubIssue] Response received', { status: response.status, statusText: response.statusText });
 
       if (response.status >= 200 && response.status < 300) {
         const payload = await response.json() as {
@@ -130,7 +136,7 @@ export const publishGitHubIssue = async (
           html_url: string;
           url: string;
         };
-        console.debug('[publishGitHubIssue] Success response parsed', { issueNumber: payload.number, issueUrl: payload.html_url });
+        debugLog('[publishGitHubIssue] Success response parsed', { issueNumber: payload.number, issueUrl: payload.html_url });
 
         return {
           issueNumber: payload.number,
@@ -141,14 +147,14 @@ export const publishGitHubIssue = async (
 
       if (shouldRetryStatus(response.status) && attempt < config.maxRetries) {
         const backoffMs = config.retryBaseDelayMs * (2 ** attempt);
-        console.debug('[publishGitHubIssue] Retryable status, backing off...', { status: response.status, backoffMs, nextAttempt: attempt + 1 });
+        debugLog('[publishGitHubIssue] Retryable status, backing off...', { status: response.status, backoffMs, nextAttempt: attempt + 1 });
         await sleep(backoffMs);
         attempt += 1;
         continue;
       }
 
       const message = await parseIssueErrorMessage(response);
-      console.debug('[publishGitHubIssue] Non-retryable error response', { status: response.status, message });
+      debugLog('[publishGitHubIssue] Non-retryable error response', { status: response.status, message });
       throw new PublishGitHubIssueError(mapStatusToErrorCode(response.status), response.status, message);
     } catch (error) {
       clearTimeout(timeout);
@@ -158,11 +164,11 @@ export const publishGitHubIssue = async (
         throw error;
       }
 
-      console.debug('[publishGitHubIssue] Unexpected error caught', { error: error instanceof Error ? { message: error.message, name: error.name } : error });
+      debugLog('[publishGitHubIssue] Unexpected error caught', { error: error instanceof Error ? { message: error.message, name: error.name } : error });
 
       if (attempt < config.maxRetries) {
         const backoffMs = config.retryBaseDelayMs * (2 ** attempt);
-        console.debug('[publishGitHubIssue] Retrying after unexpected error...', { backoffMs, nextAttempt: attempt + 1 });
+        debugLog('[publishGitHubIssue] Retrying after unexpected error...', { backoffMs, nextAttempt: attempt + 1 });
         await sleep(backoffMs);
         attempt += 1;
         continue;

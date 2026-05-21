@@ -21,20 +21,66 @@
  *   - Backend authority: src/lib/runtime/request-contract.ts, stream-contract.ts
  */
 
+export {
+  EXTRACTION_FIELD_KEYS,
+  InstructionRequiredExtractionFieldKeysByTool,
+  isExtractionFieldKey,
+  LegacyExtractionFieldAliasByTool,
+  normalizeExtractionFieldKeysForTool,
+  ReadinessRequiredExtractionFieldKeysByTool,
+} from './extraction-fields';
+export type { ExtractionFieldKey } from './extraction-fields';
+
+export {
+  GENERATION_ROUTE_TOOL_KEY,
+  isGenerationRequestToolKey,
+  isGenerationRouteToolKey,
+  isToolKey,
+  isToolWorkflowType,
+  normalizeToolKeyCandidate,
+  resolveGenerationWorkflowTypeCandidate,
+  resolveToolKeyFromWorkflowType,
+  resolveToolWorkflowType,
+  TOOL_KEYS,
+  TOOL_KEY_BY_WORKFLOW_TYPE,
+  TOOL_STEP_DEPENDENCIES,
+  TOOL_STEP_ORDER,
+  TOOL_WORKFLOW_BY_TOOL_KEY,
+  TOOL_WORKFLOW_DEFINITIONS,
+} from './tool-workflows';
+export type {
+  GenerationRequestToolKey,
+  GenerationRouteToolKey,
+  GenerationWorkflowType,
+  ToolKey,
+  ToolStep,
+  ToolWorkflowDefinition,
+  ToolWorkflowStepDefinition,
+  ToolWorkflowStepDependencyMap,
+  ToolWorkflowStepOrder,
+  ToolWorkflowType,
+} from './tool-workflows';
+
+import type {
+  GenerationRequestToolKey,
+  GenerationRouteToolKey,
+  GenerationWorkflowType,
+  ToolKey,
+  ToolStep,
+  ToolWorkflowType,
+} from './tool-workflows';
+
+export type ToneProfile = 'Professional' | 'Casual' | 'Formal' | 'Technical';
+export type LlmModelId = `${string}/${string}`;
+export type RequestTone = ToneProfile | 'analitico';
+
 // =====================================================================
-// Value Objects
+// Value Objects — re-exported from @gen-app-2/domain (DDD-074)
 // =====================================================================
 
-/**
- * Canonical artifact type classifier.
- * DDD-001: Artifact is the canonical term; ArtifactType determines output handling.
- */
-export type ArtifactType = 'content' | 'seo' | 'code' | 'extraction';
-
-/**
- * Output formatting contract for streamed response.
- */
-export type OutputFormat = 'plain' | 'json' | 'markdown';
+// Import for local use in GenerationRequest type definitions
+import type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
+export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
 
 // =====================================================================
 // Domain Commands
@@ -65,7 +111,54 @@ export type OutputFormat = 'plain' | 'json' | 'markdown';
  *   - extractionArtifactId: Optional prior extraction artifact ID for context recovery
  *   - stepDependencyArtifactIds: Prior step artifact IDs for multi-step workflow
  */
-export type GenerationRequest = {
+export type GenerationRequestInput = {
+  // Canonical generation dispatch fields
+  prompt?: string;
+  step?: ToolStep;
+  intent?: WorkflowRunMode;
+  tone?: RequestTone;
+  notes?: string;
+  toolKey?: ToolKey;
+  briefingId?: string | null;
+  briefingText?: string;
+  briefingFileName?: string | null;
+  extractionArtifactId?: string | null;
+  extractionPayload?: Record<string, unknown>;
+  stepDependencyArtifactIds?: string[] | null;
+  stepDependencyArtifactIdsByStep?: Partial<Record<ToolStep, string>>;
+  stepDependencyArtifactContentsByStep?: Partial<Record<ToolStep, string>>;
+  sourceArtifactId?: string | null;
+  checkpointArtifactId?: string | null;
+  relaunchFromArtifactId?: string | null;
+  normalizedText?: string;
+  parsedFormat?: 'txt' | 'md' | 'docx';
+
+  // Canonical extraction envelope persisted by backend adapters.
+  extraction?: {
+    payload?: Record<string, unknown>;
+    normalizedText?: string;
+    parsedFormat?: 'txt' | 'md' | 'docx';
+  };
+
+  // Persisted orchestration metadata envelope used by artifact/session projections.
+  toolWorkflow?: {
+    toolKey?: ToolKey;
+    workflowType?: ToolWorkflowType | 'extraction';
+    stepKey?: ToolStep;
+    artifactRole?: 'step' | 'final';
+    runMode?: WorkflowRunMode;
+    sessionId?: string;
+    dependsOnSteps?: string[];
+    dependencyArtifactIds?: string[];
+    dependencyArtifactIdsByStep?: Partial<Record<ToolStep, string>>;
+  };
+
+  // Backend enrichment fields attached in request normalization.
+  resolvedPromptTemplate?: string;
+  resolvedPromptSource?: string;
+};
+
+type GenerationRequestBase = {
   requestId: string;
   userId: string;
   projectId: string;
@@ -74,10 +167,7 @@ export type GenerationRequest = {
   sessionId?: string;
   artifactType: ArtifactType;
   // LlmModelId — see DDD-056
-  model: string;
-  input: Record<string, unknown>;
-  toolKey?: string | null;
-  workflowType?: string | null;
+  model: LlmModelId;
   idempotencyKey?: string;
   outputFormat?: OutputFormat;
   registryVersion?: string;
@@ -86,6 +176,36 @@ export type GenerationRequest = {
   extractionArtifactId?: string | null;
   stepDependencyArtifactIds?: string[] | null;
 };
+
+export type ToolGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput;
+  toolKey: ToolKey;
+  workflowType: ToolWorkflowType;
+};
+
+export type ExtractionGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput & {
+    toolKey?: ToolKey;
+  };
+  toolKey: GenerationRouteToolKey;
+  workflowType: 'extraction';
+};
+
+export type GenericGenerationRequest = GenerationRequestBase & {
+  input: GenerationRequestInput;
+  toolKey?: null;
+  workflowType?: null;
+};
+
+export type GenerationRequest =
+  | ToolGenerationRequest
+  | ExtractionGenerationRequest
+  | GenericGenerationRequest
+  | (GenerationRequestBase & {
+      input: GenerationRequestInput;
+      toolKey?: GenerationRequestToolKey | null;
+      workflowType?: GenerationWorkflowType | null;
+    });
 
 // =====================================================================
 // Domain Events
@@ -198,4 +318,3 @@ export type PublishUserReportIssueCommand = {
   title?: string;
   body?: string;
 };
-

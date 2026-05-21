@@ -5,6 +5,9 @@ export const createPostgresRedisGenerationAdapters = (
   dependencies: PostgresRedisAdapterDependencies,
 ): GenerationAdapters => {
   return {
+    ownership: {
+      checkProjectOwnership: (input) => dependencies.ownership.checkProjectOwnership(input),
+    },
     usage: {
       claimUsage: (input) => dependencies.quota.claimUsage(input),
     },

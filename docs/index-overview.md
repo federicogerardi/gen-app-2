@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 2.7
-last-reviewed: 2026-05-16
+version: 2.8
+last-reviewed: 2026-05-21
 next-review-date: 2026-08-16
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-05-16  
+Data: 2026-05-21  
 Stato: publication-ready  
-Versione indice: 2.7
+Versione indice: 2.8
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -20,7 +20,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 >
 > 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico, 39 termini su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 22 decisioni nomenclatura approvate, termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 71 decisioni nomenclatura approvate (DDD-001–DDD-071), termini deprecati e alias backward-compat
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
@@ -28,7 +28,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 
 - Scope: as-is state — public repository
 - Root documentale: docs/
-- Last review date: 2026-05-07
+- Last review date: 2026-05-21
 - Next review date: 2026-08-07
 
 ## Section Map
@@ -49,7 +49,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 | --- | --- | --- | --- |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-11 | 2026-08-03 |
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-07 | 2026-08-03 |
-| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-11 | 2026-08-03 |
+| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-21 | 2026-08-03 |
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 
@@ -60,6 +60,10 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md)
 - [domain-bounded-context-map](./02-design/domain-bounded-context-map.md)
 - [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md)
+
+### Templates
+
+- [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
 
 **Visual representations**: [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md) provides Mermaid diagrams and cross-referenced documentation for the Generation context Tool flow, grounded in all 37 canonical DDD terms (DDD-001 through DDD-037).
 
@@ -72,6 +76,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 - [tool-page-frontend-runtime-spec](./02-design/specifications/tool-page-frontend-runtime-spec.md) — **AI-first deterministic reference for Tool Page runtime (useToolPage, machines, ExtractionContextBridge, DispatchError)**
 - [admin-changelog-and-user-reporting-spec](./02-design/specifications/admin-changelog-and-user-reporting-spec.md) — **DDD-first implemented specification for ProductChangelog, UserReport, and FeedbackCenterMachine**
+- [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) — **Operational deployment architecture, networking, proxy headers, rollback**
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
@@ -89,6 +94,13 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 ### Active Runbooks
 
 - [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+- [orchestrate-scalability-benchmark-2026-05-21](./04-testing/orchestrate-scalability-benchmark-2026-05-21.md)
+
+### Active Reviews
+
+- [architecture-weaknesses-code-review-2026-05-18](./07-governance/architecture-weaknesses-code-review-2026-05-18.md)
+- [architecture-weaknesses-code-review-2026-05-21](./07-governance/architecture-weaknesses-code-review-2026-05-21.md)
+- [architecture-weaknesses-code-review-severe-2026-05-21](./07-governance/architecture-weaknesses-code-review-severe-2026-05-21.md)
 
 ## Archive Registry
 
@@ -100,13 +112,39 @@ Archive folder is maintained for future reference and historical context. See [9
 - [feature-pagetool-artifact-aggregation-plan-1](./99-lifecycle/99-archive/plans/feature-pagetool-artifact-aggregation-plan-1.md)
 - [feature-frontend-feedback-system-unification-plan-1](./99-lifecycle/99-archive/plans/feature-frontend-feedback-system-unification-plan-1.md)
 - [feature-download-artifact-sessionsummary-plan-1](./99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-plan-1.md)
+- [feature-download-artifact-sessionsummary-1](./99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-1.md)
+- [feature-admin-changelog-user-reporting-1](./99-lifecycle/99-archive/plans/feature-admin-changelog-user-reporting-1.md)
+- [feature-extraction-field-naming-runtime-convergence-1](./99-lifecycle/99-archive/plans/feature-extraction-field-naming-runtime-convergence-1.md)
+- [feature-tool-page-file-instructions-1](./99-lifecycle/99-archive/plans/feature-tool-page-file-instructions-1.md)
 - [feature-youtube-long-form-tool-plan-1](./99-lifecycle/99-archive/plans/feature-youtube-long-form-tool-plan-1.md)
+- [github-architecture-plan](./99-lifecycle/99-archive/plans/github-architecture-plan.md)
+- [architecture-csrf-fail-open-closure-1](./99-lifecycle/99-archive/plans/architecture-csrf-fail-open-closure-1.md)
+- [process-auth-http-finding-closure-ddd-1](./99-lifecycle/99-archive/plans/process-auth-http-finding-closure-ddd-1.md)
+- [process-hydration-briefing-coherence-finding-closure-1](./99-lifecycle/99-archive/plans/process-hydration-briefing-coherence-finding-closure-1.md)
+- [process-hydration-parser-parity-finding-closure-1](./99-lifecycle/99-archive/plans/process-hydration-parser-parity-finding-closure-1.md)
+- [process-orchestration-timeout-risk-closure-1](./99-lifecycle/99-archive/plans/process-orchestration-timeout-risk-closure-1.md)
+- [process-quota-claim-conflict-finding-closure-1](./99-lifecycle/99-archive/plans/process-quota-claim-conflict-finding-closure-1.md)
+- [process-tool-clone-benchmark-session-1](./99-lifecycle/99-archive/plans/process-tool-clone-benchmark-session-1.md)
+- [process-tool-page-finding-closure-1](./99-lifecycle/99-archive/plans/process-tool-page-finding-closure-1.md)
+- [process-toolkey-normalization-finding-closure-1](./99-lifecycle/99-archive/plans/process-toolkey-normalization-finding-closure-1.md)
 - [refactor-backend-frontend-atomization-plan-1](./99-lifecycle/99-archive/plans/refactor-backend-frontend-atomization-plan-1.md)
 - [refactor-backend-frontend-atomization-plan-2](./99-lifecycle/99-archive/plans/refactor-backend-frontend-atomization-plan-2.md)
+- [refactor-admin-dashboard-frontend-1](./99-lifecycle/99-archive/plans/refactor-admin-dashboard-frontend-1.md)
+- [refactor-auth-http-monolith-1](./99-lifecycle/99-archive/plans/refactor-auth-http-monolith-1.md)
+- [refactor-backend-adapter-decomposition-1](./99-lifecycle/99-archive/plans/refactor-backend-adapter-decomposition-1.md)
 - [refactor-frontend-listing-upload-cta-2pr-plan-1](./99-lifecycle/99-archive/plans/refactor-frontend-listing-upload-cta-2pr-plan-1.md)
+- [refactor-frontend-page-preload-unification-1](./99-lifecycle/99-archive/plans/refactor-frontend-page-preload-unification-1.md)
 - [refactor-frontend-sessionsummary-navigation-plan-1](./99-lifecycle/99-archive/plans/refactor-frontend-sessionsummary-navigation-plan-1.md)
+- [refactor-frontend-tools-navbar-1](./99-lifecycle/99-archive/plans/refactor-frontend-tools-navbar-1.md)
+- [refactor-generation-system-definition-1](./99-lifecycle/99-archive/plans/refactor-generation-system-definition-1.md)
 - [refactor-toolpage-extraction-readiness-gate-plan-1](./99-lifecycle/99-archive/plans/refactor-toolpage-extraction-readiness-gate-plan-1.md)
 - [upgrade-frontend-ui-unification-plan-1](./99-lifecycle/99-archive/plans/upgrade-frontend-ui-unification-plan-1.md)
+- [refactor-architecture-weaknesses-remediation-1](./99-lifecycle/99-archive/plans/refactor-architecture-weaknesses-remediation-1.md)
+- [refactor-auth-http-monolith-context-1](./99-lifecycle/99-archive/plans/refactor-auth-http-monolith-context-1.md)
+
+### Archived Resources
+
+- [youtube-lf-script-prompts-index-mapping](./99-lifecycle/99-archive/resources/youtube-lf-script-prompts/index-mapping.md)
 
 ---
 

@@ -5,7 +5,6 @@ import {
   requestJson,
 } from '../../../app/runtime/http-client';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
-import { listArtifacts } from '../../artifacts/runtime/artifacts-client';
 
 type SessionClientOptions = {
   apiBaseUrl?: string;
@@ -56,73 +55,12 @@ type SessionsListResponse = {
   ok?: boolean;
   data?: {
     sessions?: SessionSummary[];
+    nextCursor?: string;
   };
-};
-
-const normalizeSessionId = (value: string | null | undefined): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
-const deriveSessionStatus = (
-  statuses: Array<'generating' | 'completed' | 'failed'>,
-): 'generating' | 'completed' | 'failed' => {
-  if (statuses.includes('generating')) {
-    return 'generating';
-  }
-
-  if (statuses.includes('failed')) {
-    return 'failed';
-  }
-
-  return 'completed';
 };
 
 const getSessionSortTimestamp = (session: Pick<SessionSummary, 'createdAt' | 'updatedAt'>): number => {
   return Date.parse(session.createdAt ?? session.updatedAt);
-};
-
-export const mapArtifactsToSessionSummaryFallback = (artifacts: Awaited<ReturnType<typeof listArtifacts>>['artifacts']): SessionSummary[] => {
-  const bySession = new Map<string, SessionSummary>();
-
-  for (const artifact of artifacts) {
-    const sessionId = normalizeSessionId(artifact.sessionId ?? null);
-    if (!sessionId) {
-      continue;
-    }
-
-    const current = bySession.get(sessionId);
-    if (!current) {
-      bySession.set(sessionId, {
-        sessionId,
-        projectId: artifact.projectId,
-        toolKey: artifact.toolKey ?? null,
-        status: artifact.status,
-        artifactCount: 1,
-        createdAt: artifact.createdAt,
-        updatedAt: artifact.updatedAt,
-      });
-      continue;
-    }
-
-    bySession.set(sessionId, {
-      ...current,
-      status: deriveSessionStatus([current.status, artifact.status]),
-      artifactCount: current.artifactCount + 1,
-      createdAt: Date.parse(artifact.createdAt) < Date.parse(current.createdAt ?? artifact.createdAt)
-        ? artifact.createdAt
-        : current.createdAt ?? artifact.createdAt,
-      updatedAt: Date.parse(artifact.updatedAt) > Date.parse(current.updatedAt)
-        ? artifact.updatedAt
-        : current.updatedAt,
-    });
-  }
-
-  return [...bySession.values()].sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a));
 };
 
 export const listSessions = async (
@@ -151,19 +89,7 @@ export const listSessions = async (
     return (payload.data?.sessions ?? []).sort((a, b) => getSessionSortTimestamp(b) - getSessionSortTimestamp(a));
   }
 
-  const result = await listArtifacts(
-    {
-      type: 'all',
-      status: 'all',
-      projectId: normalizedProjectId ?? 'all',
-    },
-    {
-      ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
-      ...(options.capabilities ? { capabilities: options.capabilities } : {}),
-    },
-  );
-
-  return mapArtifactsToSessionSummaryFallback(result.artifacts);
+  throw new Error('Session listing unavailable: enable sessionsList capability or upgrade backend support');
 };
 
 export const getSessionArtifacts = async (
@@ -171,7 +97,10 @@ export const getSessionArtifacts = async (
   options: SessionClientOptions = {},
 ): Promise<SessionArtifactGroup> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
-  const sessionPath = buildApiPaths(capabilities).tools.sessions.byId(encodeURIComponent(sessionId));
+  const baseSessionPath = buildApiPaths(capabilities).tools.sessions.byId(encodeURIComponent(sessionId));
+  const sessionPath = baseSessionPath
+    ? `${baseSessionPath}?includeContent=1`
+    : null;
 
   if (!sessionPath) {
     throw new Error('Session endpoint unavailable: enable sessionsDetail capability or upgrade backend support');
@@ -212,11 +141,24 @@ export const getStepArtifact = async (
   stepKey: string,
   options: SessionClientOptions = {},
 ): Promise<SessionArtifact> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const baseStepPath = buildApiPaths(capabilities).tools.sessions.byStep(
+    encodeURIComponent(sessionId),
+    encodeURIComponent(stepKey),
+  );
+  const stepPath = baseStepPath
+    ? `${baseStepPath}?includeContent=1`
+    : null;
+
+  if (!stepPath) {
+    throw new Error('Session endpoint unavailable: enable sessionsDetail capability or upgrade backend support');
+  }
+
   try {
     const payload = await requestJson<SessionResponse>(
       joinApiPath(
         options.apiBaseUrl ?? '',
-        `/api/tools/sessions/${encodeURIComponent(sessionId)}/step/${encodeURIComponent(stepKey)}`,
+        stepPath,
       ),
       {
         method: 'GET',

@@ -81,6 +81,77 @@ describe('tools-client', () => {
     expect(result.parsedFormat).toBe('md');
   });
 
+  it('uploadBrief posts dual-file payload for angle-generator and returns metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          briefing: {
+            briefingId: 'brief-angle-001',
+            projectId: 'project-001',
+            toolKey: 'angle-generator',
+            fileName: 'briefing.md',
+            mimeType: 'text/markdown',
+            size: 100,
+            parsedFormat: 'md',
+            normalizedText: 'briefing text',
+            charCount: 100,
+            wordCount: 15,
+          },
+          angleDetector: {
+            fileName: 'angle-detector.md',
+            mimeType: 'text/markdown',
+            size: 80,
+            parsedFormat: 'md',
+            normalizedText: 'angle detector text',
+            charCount: 80,
+            wordCount: 12,
+          },
+          knowledgeSourcesCount: 2,
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await uploadBrief(
+      {
+        projectId: 'project-001',
+        toolKey: 'angle-generator',
+        file: new File(['briefing text'], 'briefing.md', { type: 'text/markdown' }),
+        angleDetectorFile: new File(['angle detector text'], 'angle-detector.md', { type: 'text/markdown' }),
+      },
+      {
+        capabilities: { toolsUpload: true },
+      },
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const request = fetchMock.mock.calls[0]?.[1] as { body?: string };
+    expect(request.body).toBeDefined();
+    const parsedBody = JSON.parse(request.body ?? '{}') as {
+      briefing?: { fileName?: string };
+      angleDetector?: { fileName?: string };
+    };
+    expect(parsedBody.briefing?.fileName).toBe('briefing.md');
+    expect(parsedBody.angleDetector?.fileName).toBe('angle-detector.md');
+    expect(result.knowledgeSourcesCount).toBe(2);
+    expect(result.angleDetector?.fileName).toBe('angle-detector.md');
+  });
+
+  it('uploadBrief throws when angle-generator is missing angle detector file', async () => {
+    await expect(uploadBrief(
+      {
+        projectId: 'project-001',
+        toolKey: 'angle-generator',
+        file: new File(['briefing text'], 'briefing.md', { type: 'text/markdown' }),
+      },
+      {
+        capabilities: { toolsUpload: true },
+      },
+    )).rejects.toThrow('Angle Detector file required for angle-generator');
+  });
+
   it('runExtraction consumes stream events and returns artifact payload', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
@@ -92,7 +163,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -121,7 +192,7 @@ describe('tools-client', () => {
     await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       tone: 'Casual',
       briefingId: 'brief-001',
@@ -150,7 +221,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -179,13 +250,51 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
     });
 
     expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
+  });
+
+  it('runExtraction normalizes known legacy aliases to canonical extraction keys', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: JSON.stringify({
+            'Obiettivo del funnel': 'Lead generation',
+            Target: 'Founder',
+            Offerta: 'Audit',
+            'Proof o testimonianze': 'Case study',
+            'CTA principale': 'Prenota call',
+          }),
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({
+      funnel_goal: 'Lead generation',
+      target_audience: 'Founder',
+      offer: 'Audit',
+      proof: 'Case study',
+      primary_cta: 'Prenota call',
+    });
   });
 
   it('runExtraction rejects top-level array payloads as insufficient extraction context', async () => {
@@ -207,7 +316,7 @@ describe('tools-client', () => {
     await expect(runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -251,7 +360,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'youtube-lf-script',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -290,7 +399,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -318,7 +427,7 @@ describe('tools-client', () => {
       const result = await runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -341,7 +450,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -356,7 +465,7 @@ describe('tools-client', () => {
       );      await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -375,7 +484,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -395,7 +504,7 @@ describe('tools-client', () => {
       await expect(runExtraction({
         userId: 'user-001',
         projectId: 'project-001',
-        model: 'openrouter:auto',
+        model: 'openrouter/auto',
         toolKey: 'funnel-pages',
         briefingId: 'brief-001',
         briefingText: 'brief text',
@@ -472,7 +581,7 @@ describe('tools-client', () => {
     const result = await runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
-      model: 'openrouter:auto',
+      model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
@@ -482,6 +591,65 @@ describe('tools-client', () => {
     expect(result.artifactId).toBe('artifact-001');
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
+  });
+
+  it('runExtraction includes knowledgeSources extraction payload for angle-generator', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-angle-001', artifactId: 'artifact-angle-001' } });
+      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-001', chunk: '{"ok":true}', sequence: 1 } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-001', status: 'completed', reason: null } });
+    });
+
+    await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'angle-generator',
+      briefingId: 'brief-001',
+      briefingText: 'merged context',
+      extractionPayload: {
+        knowledgeSources: [
+          { kind: 'briefing', fileName: 'briefing.md', parsedFormat: 'md' },
+          { kind: 'angle-detector', fileName: 'angle-detector.md', parsedFormat: 'md' },
+        ],
+      },
+    });
+
+    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+    const request = streamGenerationMock.mock.calls[0]?.[0] as {
+      input: { extractionPayload?: { knowledgeSources?: unknown[] } };
+      toolKey: string;
+      workflowType: string;
+    };
+    expect(request.toolKey).toBe('extraction');
+    expect(request.workflowType).toBe('extraction');
+    expect(Array.isArray(request.input.extractionPayload?.knowledgeSources)).toBe(true);
+    expect(request.input.extractionPayload?.knowledgeSources).toHaveLength(2);
+  });
+
+  it('runExtraction keeps single dispatch for angle-generator extraction request', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-angle-002', artifactId: 'artifact-angle-002' } });
+      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-002', chunk: '{"ok":true}', sequence: 1 } });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-002', status: 'completed', reason: null } });
+    });
+
+    await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'angle-generator',
+      briefingId: 'brief-001',
+      briefingText: 'merged context',
+      extractionPayload: {
+        knowledgeSources: [
+          { kind: 'briefing', fileName: 'briefing.md', parsedFormat: 'md' },
+          { kind: 'angle-detector', fileName: 'angle-detector.md', parsedFormat: 'md' },
+        ],
+      },
+    });
+
+    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
   });
 });
 

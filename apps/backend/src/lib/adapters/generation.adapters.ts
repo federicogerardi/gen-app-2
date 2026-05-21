@@ -30,6 +30,12 @@ export type LlmStreamEvent =
 export type UsageDecision = {
   granted: boolean;
   reason?: string;
+  resetDate?: Date;
+};
+
+export type OwnershipDecision = {
+  owned: boolean;
+  reason?: string;
 };
 
 export type IdempotencyDecision =
@@ -39,6 +45,10 @@ export type IdempotencyDecision =
 
 export interface UsageAdapter {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+}
+
+export interface OwnershipAdapter {
+  checkProjectOwnership(input: { userId: string; projectId: string }): Promise<OwnershipDecision>;
 }
 
 export interface IdempotencyAdapter {
@@ -66,6 +76,7 @@ export interface PersistenceAdapter {
 }
 
 export interface GenerationAdapters {
+  ownership: OwnershipAdapter;
   usage: UsageAdapter;
   idempotency: IdempotencyAdapter;
   stream: StreamAdapter;
@@ -131,6 +142,12 @@ export const createInMemoryGenerationAdapters = (
   const quotaByUser = new Map<string, QuotaBucket>();
   const idempotencyStore = new Map<string, IdempotencyRecord>();
   const artifactStore = new Map<string, ArtifactRecord>();
+
+  const ownership: OwnershipAdapter = {
+    async checkProjectOwnership(_input) {
+      return { owned: true };
+    },
+  };
 
   const usage: UsageAdapter = {
     async claimUsage(input) {
@@ -224,6 +241,7 @@ export const createInMemoryGenerationAdapters = (
   };
 
   return {
+    ownership,
     usage,
     idempotency,
     stream,

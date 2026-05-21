@@ -31,7 +31,8 @@ type ModelsClientOptions = {
 
 /**
  * Lists enabled LlmModel entries from the backend catalog.
- * Returns [] when the capability flag is off or on network error.
+ * Returns [] only when the capability flag is off.
+ * Throws when catalog fetch fails so callers can render explicit error states.
  * DDD-055: LlmModelCatalog; DDD-056: LlmModelId.
  */
 export const listEnabledModels = async (
@@ -55,7 +56,10 @@ export const listEnabledModels = async (
     return raw
       .filter((m) => typeof m.key === 'string' && typeof m.label === 'string')
       .map((m) => ({ key: m.key as string, label: m.label as string, isDefault: m.isDefault === true }));
-  } catch {
-    return [];
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Unable to load models catalog: ${error.message}`);
+    }
+    throw new Error('Unable to load models catalog');
   }
 };

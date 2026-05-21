@@ -66,6 +66,10 @@ vi.mock('../../features/admin/pages/AdminActivityPage', () => ({
   AdminActivityPage: () => <h1>Attività recente</h1>,
 }));
 
+vi.mock('../../features/admin/pages/AdminDashboardPage', () => ({
+  AdminDashboardPage: () => <h1>Dashboard admin</h1>,
+}));
+
 vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
   FunnelPagesToolPage: () => {
     const navigate = useNavigate();
@@ -76,6 +80,10 @@ vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
       </button>
     );
   },
+}));
+
+vi.mock('../../features/tools/pages/ToolsHubPage', () => ({
+  ToolsHubPage: () => <h1>Tools hub</h1>,
 }));
 
 vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
@@ -101,6 +109,26 @@ vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
 
 
 describe('app router – integration', () => {
+  it('renders tools hub route at /tools', async () => {
+    window.history.pushState({}, '', '/tools');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /tools hub/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('redirects /tools/console to /tools hub', async () => {
+    window.history.pushState({}, '', '/tools/console');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /tools hub/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
   it('follows SPA flow tool completed -> CTA -> artifacts listing', async () => {
     window.history.pushState({}, '', '/tools/funnel-pages');
     const router = createAppRouter();

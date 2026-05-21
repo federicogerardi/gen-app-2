@@ -17,6 +17,7 @@ export type ApiPaths = {
     sessions: {
       list: string | null;
       byId: (sessionId: string) => string | null;
+      byStep: (sessionId: string, stepKey: string) => string | null;
       downloadById: (sessionId: string, format: string) => string | null;
     };
   };
@@ -62,6 +63,9 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     sessions: {
       list: capabilities.sessionsList ? '/api/tools/sessions' : null,
       byId: (sessionId: string) => (capabilities.sessionsDetail ? `/api/tools/sessions/${sessionId}` : null),
+      byStep: (sessionId: string, stepKey: string) => (
+        capabilities.sessionsDetail ? `/api/tools/sessions/${sessionId}/step/${stepKey}` : null
+      ),
       downloadById: (sessionId: string, format: string) =>
         capabilities.sessionDownload ? `/api/tools/sessions/${sessionId}/download?format=${format}` : null,
     },

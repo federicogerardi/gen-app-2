@@ -15,15 +15,19 @@ const briefingMachineSeed = vi.hoisted(() => ({
     projectId: 'project-001',
     toolKey: 'funnel-pages',
     apiBaseUrl: '',
-    capabilities: {},
+    capabilities: {} as Record<string, unknown>,
     userId: 'seed-user-001',
     file: null as File | null,
     fileName: null as string | null,
+    angleDetectorFile: null as File | null,
+    angleDetectorFileName: null as string | null,
     briefingId: 'brief-001' as string | null,
     extractionArtifactId: 'artifact-extract-001' as string | null,
     extractionPayload: { schemaVersion: 'extraction.v1' } as Record<string, unknown> | null,
     normalizedText: 'brief text' as string | null,
-    parsedFormat: 'md' as string | null,
+    parsedFormat: 'md' as 'txt' | 'md' | 'docx' | null,
+    angleDetectorNormalizedText: null as string | null,
+    angleDetectorParsedFormat: null as 'txt' | 'md' | 'docx' | null,
     error: null as string | null,
   },
 }));
@@ -33,6 +37,7 @@ const briefingMachineSeed = vi.hoisted(() => ({
 // e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
 vi.mock('../machines/briefing-upload.machine', async () => {
   const { setup } = await import('xstate');
+  const { isExtractionContextValidForTool } = await import('../machines/extraction-context-validity');
   const briefingUploadMachine = setup({
     types: {
       context: {} as {
@@ -43,15 +48,19 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         userId: string | null;
         file: File | null;
         fileName: string | null;
+        angleDetectorFile: File | null;
+        angleDetectorFileName: string | null;
         briefingId: string | null;
         extractionArtifactId: string | null;
         extractionPayload: Record<string, unknown> | null;
         normalizedText: string | null;
-        parsedFormat: string | null;
+        parsedFormat: 'txt' | 'md' | 'docx' | null;
+        angleDetectorNormalizedText: string | null;
+        angleDetectorParsedFormat: 'txt' | 'md' | 'docx' | null;
         error: string | null;
       },
       events: {} as
-        | { type: 'FILE_SELECTED'; file: File }
+        | { type: 'FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
         | {
@@ -61,7 +70,7 @@ vi.mock('../machines/briefing-upload.machine', async () => {
             briefingId?: string | null;
             fileName?: string | null;
             normalizedText?: string | null;
-            parsedFormat?: string | null;
+            parsedFormat?: 'txt' | 'md' | 'docx' | null;
           },
       input: {} as {
         toolKey: string;
@@ -98,7 +107,27 @@ vi.mock('../machines/briefing-upload.machine', async () => {
       },
     },
   });
-  return { briefingUploadMachine };
+  const hasReadyBriefingExtractionContext = (
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
+      extractionArtifactId: string | null;
+      extractionPayload: Record<string, unknown> | null;
+      briefingId: string | null;
+      normalizedText: string | null;
+    } } } | null,
+  ) => {
+    const snapshot = briefingActorRef?.getSnapshot?.();
+    return snapshot?.matches('ready')
+      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+      && isExtractionContextValidForTool(
+        toolKey,
+        snapshot.context.extractionPayload,
+        snapshot.context.normalizedText,
+      );
+  };
+
+  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 // Phase 4: la hydration avviene in macchina via artifacts-client locale.
@@ -150,7 +179,7 @@ const defaultExtractionArtifact = {
   status: 'completed' as const,
   model: 'openrouter/auto',
   toolKey: 'funnel-pages',
-  workflowType: 'funnel-pages',
+  workflowType: 'funnel_pages',
   content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
   createdAt: '2026-05-01T00:00:00.000Z',
   updatedAt: '2026-05-01T00:00:00.000Z',
@@ -161,7 +190,7 @@ const defaultExtractionArtifact = {
     artifactType: 'extraction' as const,
     model: 'openrouter/auto',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     input: { briefingId: 'brief-001', briefingText: 'brief text', toolKey: 'funnel-pages' },
   },
 } satisfies GenerationArtifact;
@@ -225,6 +254,18 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
+  useGenerationStreamWorkspace: () => generationWorkspaceState,
+  useGenerationArtifactsWorkspace: () => ({
+    artifacts: generationWorkspaceState.artifacts,
+    reloadArtifacts: vi.fn(),
+  }),
+  useGenerationProjectWorkspace: () => ({
+    focusedProjectId: generationWorkspaceState.focusedProjectId,
+    extractionByProject: {},
+    setFocusedProjectId: generationWorkspaceState.setFocusedProjectId,
+    upsertExtractionContext: generationWorkspaceState.upsertExtractionContext,
+    getExtractionContext: generationWorkspaceState.getExtractionContext,
+  }),
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
@@ -358,7 +399,7 @@ describe('ToolPageTemplate wiring', () => {
     };
 
     expect(request.toolKey).toBe('funnel-pages');
-    expect(request.workflowType).toBe('funnel-pages');
+    expect(request.workflowType).toBe('funnel_pages');
     expect(request.input.step).toBe('quiz');
     expect(request.input.stepDependencyArtifactIds).toEqual(['artifact-optin-001']);
     expect(request.input.briefingId).toBe('brief-001');
@@ -408,6 +449,20 @@ describe('ToolPageTemplate wiring', () => {
 
     const secondRequest = startMock.mock.calls[1]?.[0] as { input: Record<string, unknown> };
     expect(secondRequest.input.step).toBe('quiz');
+  });
+
+  it('renders the file instructions section for the active tool', () => {
+    renderTemplate({ toolKey: 'angle-generator' });
+
+    const accordion = screen.getByTestId('tool-file-instructions-accordion');
+    expect(accordion).not.toHaveAttribute('open');
+    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
+
+    expect(accordion).toHaveAttribute('open');
+    expect(screen.getByText('Obiettivo')).toBeInTheDocument();
+    expect(screen.getByText('Prodotto o servizio')).toBeInTheDocument();
+    expect(screen.getByText('Vincoli creativi')).toBeInTheDocument();
+    expect(screen.queryByText('Tone of voice')).toBeNull();
   });
 
   it('persists extraction context and grows step dependency context incrementally across steps', async () => {
@@ -554,7 +609,7 @@ describe('resolveFlowProgressState', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'vsl content',
       createdAt: '2026-05-02T00:00:00.000Z',
       updatedAt: '2026-05-02T00:00:00.000Z',
@@ -565,7 +620,7 @@ describe('resolveFlowProgressState', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: {
           step: 'vsl',
           stepDependencyArtifactIdsByStep: {
@@ -586,7 +641,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -597,7 +652,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -609,7 +664,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz content',
         createdAt: '2026-05-01T01:00:00.000Z',
         updatedAt: '2026-05-01T01:00:00.000Z',
@@ -620,7 +675,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -632,7 +687,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'fresh unrelated optin',
         createdAt: '2026-05-03T00:00:00.000Z',
         updatedAt: '2026-05-03T00:00:00.000Z',
@@ -643,7 +698,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -672,7 +727,7 @@ describe('resolveFlowProgressState', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'optin content',
       createdAt: '2026-05-01T00:00:00.000Z',
       updatedAt: '2026-05-01T00:00:00.000Z',
@@ -683,7 +738,7 @@ describe('resolveFlowProgressState', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: { step: 'optin' },
       },
     } satisfies GenerationArtifact;
@@ -698,7 +753,7 @@ describe('resolveFlowProgressState', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz regenerated',
         createdAt: '2026-05-03T00:00:00.000Z',
         updatedAt: '2026-05-03T00:00:00.000Z',
@@ -709,7 +764,7 @@ describe('resolveFlowProgressState', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -743,11 +798,15 @@ describe('ToolPageTemplate restore flow', () => {
       userId: 'seed-user-001',
       file: null,
       fileName: null,
+      angleDetectorFile: null,
+      angleDetectorFileName: null,
       briefingId: 'brief-001',
       extractionArtifactId: 'artifact-extract-001',
       extractionPayload: { schemaVersion: 'extraction.v1' },
       normalizedText: 'brief text',
       parsedFormat: 'md',
+      angleDetectorNormalizedText: null,
+      angleDetectorParsedFormat: null,
       error: null,
     };
 
@@ -818,7 +877,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'vsl',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'vsl content',
       },
@@ -832,7 +891,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'quiz',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'quiz content',
       },
@@ -846,7 +905,7 @@ describe('ToolPageTemplate restore flow', () => {
             step: 'optin',
           },
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
         },
         content: 'optin content',
       },

@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildRequestReceivedEvent } from '../runtime/request-contract';
+import { buildRequestReceivedEvent, type BackendGenerationRequest } from '../runtime/request-contract';
 import { resolveToolPrompt } from '../runtime/tool-prompts';
 
 test('resolveToolPrompt loads funnel optin prompt from markdown files', () => {
   const resolved = resolveToolPrompt({
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     artifactType: 'content',
     stepKey: 'optin',
   });
@@ -23,9 +23,9 @@ test('buildRequestReceivedEvent injects resolved prompt and source when prompt i
     userId: 'seed-user-001',
     projectId: 'seed-project-001',
     artifactType: 'content',
-    model: 'gpt-5.3-codex',
+    model: 'openrouter/gpt-5.3-codex',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     briefingId: 'briefing-001',
     extractionArtifactId: 'artifact-extraction-001',
     stepDependencyArtifactIds: ['artifact-step-001', 'artifact-step-002'],
@@ -50,7 +50,7 @@ test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter
     userId: 'seed-user-001',
     projectId: 'seed-project-001',
     artifactType: 'content',
-    model: 'openrouter:auto',
+    model: 'openrouter/auto',
     input: {
       prompt: 'normalize me',
     },
@@ -65,7 +65,7 @@ test('buildRequestReceivedEvent normalizes legacy colon model ids for OpenRouter
 test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
   const resolved = resolveToolPrompt({
     toolKey: 'youtube-lf-script',
-    workflowType: 'youtube-lf-script',
+    workflowType: 'youtube_lf_script',
     artifactType: 'content',
     stepKey: 'pre-script-analysis',
   });
@@ -73,6 +73,32 @@ test('resolveToolPrompt loads youtube-lf-script step prompt', () => {
   assert.ok(resolved);
   assert.match(resolved.filePath, /prompt_pre_script_analysis\.md$/);
   assert.match(resolved.prompt, /Step Key/i);
+});
+
+test('resolveToolPrompt loads nextland step prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'nextland',
+    workflowType: 'nextland',
+    artifactType: 'content',
+    stepKey: 'thank-you',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /prompt_thank_you_generator\.md$/);
+  assert.match(resolved.prompt, /PROMPT NEXTLAND THANK-YOU GENERATOR/i);
+});
+
+test('resolveToolPrompt loads angle-generator context-and-angle-matrix prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'angle-generator',
+    workflowType: 'angle_generator',
+    artifactType: 'content',
+    stepKey: 'context-and-angle-matrix',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /prompt_context_and_angle_matrix\.md$/);
+  assert.match(resolved.prompt, /CONTEXT AND ANGLE MATRIX/i);
 });
 
 test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {
@@ -93,4 +119,81 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.equal(input.tone, 'analitico');
+});
+
+test('buildRequestReceivedEvent resolves angle-generator extraction prompt from extraction target tool key', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-angle-extraction-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'extraction',
+    model: 'openrouter/auto',
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    input: {
+      toolKey: 'angle-generator',
+      briefingText: 'Brief testo',
+    },
+    registrySnapshotRef: 'snapshot:angle-extraction',
+  } as unknown as BackendGenerationRequest);
+
+  const input = event.input as Record<string, unknown>;
+  assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.match(String(input.resolvedPromptSource), /angle-generator/);
+  assert.equal(input.tone, 'analitico');
+});
+
+test('buildRequestReceivedEvent canonicalizes generation tone profile and step key aliases', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-generation-normalization-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'content',
+    model: 'openrouter/auto',
+    toolKey: 'nextland',
+    workflowType: 'nextland',
+    input: {
+      step: 'thank-you',
+      tone: 'formal',
+    },
+    registrySnapshotRef: 'snapshot:generation-normalization',
+  } as unknown as BackendGenerationRequest);
+
+  const input = event.input as Record<string, unknown>;
+  assert.equal(input.step, 'thank_you');
+  assert.equal(input.tone, 'Formal');
+});
+
+test('buildRequestReceivedEvent drops invalid step and non-canonical generation tone', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-generation-normalization-002',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'content',
+    model: 'openrouter/auto',
+    toolKey: 'funnel-pages',
+    workflowType: 'funnel_pages',
+    input: {
+      step: 'landing',
+      tone: 'direct',
+    },
+    registrySnapshotRef: 'snapshot:generation-normalization',
+  } as unknown as BackendGenerationRequest);
+
+  const input = event.input as Record<string, unknown>;
+  assert.equal(Object.hasOwn(input, 'step'), false);
+  assert.equal(Object.hasOwn(input, 'tone'), false);
+});
+
+test('resolveToolPrompt falls back to canonical extraction prompt for non-youtube extraction', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    artifactType: 'extraction',
+    extractionToolKey: 'funnel-pages',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /runtime\/tool-prompts\/extraction\/prompt_generation\.md$/);
 });

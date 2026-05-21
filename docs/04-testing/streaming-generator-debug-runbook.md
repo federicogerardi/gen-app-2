@@ -129,6 +129,18 @@ npm --prefix frontend run test -- --coverage src/features/generation/
 
 ## Debug Checklist
 
+### Pre-Deploy CSRF Configuration Gate
+
+> This gate is mandatory when `CSRF_ENABLED=true` (the default). Deploying without satisfying these checks will cause a startup failure.
+
+- [ ] At least one of the following environment variables is set and non-empty on the target environment:
+  - `CSRF_TRUSTED_ORIGINS` (comma-separated origins, e.g. `https://app.example.com`)
+  - `CORS_ALLOWED_ORIGINS` (fallback)
+  - `FRONTEND_ORIGIN` (final fallback)
+- [ ] No trusted origin resolves to the wildcard `*`. Wildcard origins are forbidden when CSRF is enabled; use `CSRF_ENABLED=false` only for isolated development or fully public endpoints.
+- [ ] If `CSRF_ENABLED` is explicitly `false`, document the rationale and confirm no state-mutating routes are exposed without authentication.
+- [ ] Verify startup succeeds by checking the first lines of the process log after deploy. A misconfigured server will throw `Invalid CSRF configuration` and refuse to accept connections.
+
 ### During Development
 
 - [ ] Verify sequence monotonicity (1->2->3, not 1->3)

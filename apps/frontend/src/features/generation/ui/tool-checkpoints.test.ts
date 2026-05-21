@@ -13,7 +13,7 @@ const checkpoint = (
   projectId: 'project-1',
   status: 'completed',
   extractionContextAvailable: true,
-  model: 'openrouter:auto',
+  model: 'openrouter/auto',
   workflowType: 'funnel_pages',
   toolKey: 'funnel-pages',
   contentPreview: 'preview',

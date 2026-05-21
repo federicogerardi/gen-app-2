@@ -103,11 +103,11 @@ const run = async (): Promise<void> => {
             .join(',')}`,
         );
       } catch {
-        // On DB error, fall through to permissive mode to avoid blocking generation.
+        // Fail closed on model catalog read errors to avoid permissive generation.
         console.warn(
-          `[gen][model-cache] corr=${correlationId} refresh_failed modelKey=${modelKey} fallback=permissive`,
+          `[gen][model-cache] corr=${correlationId} refresh_failed modelKey=${modelKey} fallback=deny`,
         );
-        return true;
+        return false;
       }
     }
     const available = modelKeyCache.has(modelKey);
@@ -122,6 +122,7 @@ const run = async (): Promise<void> => {
       projects: new PostgresProjectQueryRepository(pg),
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
+    idempotency: generationAdapters.idempotency,
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',

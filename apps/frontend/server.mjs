@@ -62,6 +62,25 @@ function isProxyPath(urlPath) {
   );
 }
 
+function isAdminUsersPath(urlPath) {
+  return urlPath === '/admin/users' || urlPath.startsWith('/admin/users/');
+}
+
+function isDocumentNavigation(request, method) {
+  if (method !== 'GET' && method !== 'HEAD') {
+    return false;
+  }
+
+  const secFetchDest = request.headers['sec-fetch-dest'];
+  const accept = request.headers.accept ?? '';
+
+  if (typeof secFetchDest === 'string' && secFetchDest.toLowerCase() === 'document') {
+    return true;
+  }
+
+  return typeof accept === 'string' && accept.includes('text/html');
+}
+
 // TASK-020: logger sintetico — non espone header, cookie o body.
 function logReq(type, method, path) {
   console.log(`[req] ${type} ${method} ${path}`);
@@ -174,30 +193,11 @@ const sendFile = (response, filePath) => {
 };
 
 // ---------------------------------------------------------------------------
-// TASK-003: /debug/connectivity — endpoint temporaneo per validare raggiungibilità
-// backend via BACKEND_INTERNAL_URL. Rimuovere prima del go-live.
-// ---------------------------------------------------------------------------
-async function handleDebugConnectivity(response) {
-  try {
-    const res = await fetch(`${BACKEND_INTERNAL_URL}/health`, { signal: AbortSignal.timeout(5000) });
-    const body = await res.json().catch(() => null);
-    response.statusCode = 200;
-    response.setHeader('Content-Type', 'application/json; charset=utf-8');
-    response.end(JSON.stringify({ ok: true, status: res.status, backendUrl: BACKEND_INTERNAL_URL, body }));
-  } catch (err) {
-    response.statusCode = 502;
-    response.setHeader('Content-Type', 'application/json; charset=utf-8');
-    response.end(JSON.stringify({ ok: false, backendUrl: BACKEND_INTERNAL_URL, error: err.message }));
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Request handler — ordine di valutazione (TASK-004):
 //   (1) /health           → risposta locale
-//   (2) /debug/connectivity → connettività backend (rimuovere pre go-live)
-//   (3) prefissi proxy    → forward al backend, qualunque metodo HTTP (TASK-005)
-//   (4) asset statici     → dist/
-//   (5) SPA fallback      → dist/index.html
+//   (2) prefissi proxy    → forward al backend, qualunque metodo HTTP (TASK-005)
+//   (3) asset statici     → dist/
+//   (4) SPA fallback      → dist/index.html
 //
 // TASK-005: guardia 405 rimossa dalla posizione globale; si applica solo a (4)/(5).
 // ---------------------------------------------------------------------------
@@ -215,20 +215,13 @@ const server = createServer((request, response) => {
     return;
   }
 
-  // (2) Debug connectivity — TASK-003, rimuovere prima del go-live
-  if (method === 'GET' && path === '/debug/connectivity') {
-    logReq('debug', method, path);
-    handleDebugConnectivity(response);
-    return;
-  }
-
-  // (3) Proxy verso backend interno — qualunque metodo HTTP
-  if (isProxyPath(path)) {
+  // (2) Proxy verso backend interno — qualunque metodo HTTP
+  if (isProxyPath(path) && !(isAdminUsersPath(path) && isDocumentNavigation(request, method))) {
     handleProxy(request, response, BACKEND_INTERNAL_URL);
     return;
   }
 
-  // (4) Asset statici — solo GET/HEAD
+  // (3) Asset statici — solo GET/HEAD
   if (method !== 'GET' && method !== 'HEAD') {
     logReq('405', method, path);
     response.statusCode = 405;
@@ -250,7 +243,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  // (5) SPA fallback
+  // (4) SPA fallback
   if (!existsSync(indexPath)) {
     console.error('[server] Missing dist/index.html — build step may have failed');
     response.statusCode = 500;

@@ -264,7 +264,7 @@ Source evidence:
 
 **Request browser → backend:**
 - Forwarded: `method`, `url+querystring`, `body`, `cookie`, `content-type`, `authorization`, `x-forwarded-for`, `x-real-ip`, header CSRF
-- `x-forwarded-for` necessario per IP client in audit log (ref: `auth-http.ts` righe 235-237, 458, 556)
+- `x-forwarded-for` necessario per IP client in audit log (ref: `apps/backend/src/lib/runtime/auth-http/support.ts:219-225`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:128`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:200`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:300`)
 
 **Response backend → browser:**
 - Forwarded: tutti gli header, in particolare `set-cookie`, `location`, `content-type`, `cache-control`, `www-authenticate`

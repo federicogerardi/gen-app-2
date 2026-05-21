@@ -5,11 +5,13 @@
   "type": "commonjs",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "test": "node --import tsx --test src/lib/tests/*.test.ts",
     "test:watch": "node --import tsx --test --watch src/lib/tests/*.test.ts",
     "test:unit": "node --import tsx --test src/lib/tests/generation.extraction-parsers.test.ts src/lib/tests/generation-legacy-compat.test.ts src/lib/tests/runtime.download-serializers.test.ts src/lib/tests/runtime.query-mappers.test.ts src/lib/tests/runtime.tool-prompts.test.ts src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/user-report-github-link.adapter.test.ts src/lib/tests/openrouter.adapter.test.ts",
     "test:integration": "node --import tsx --test src/lib/tests/idempotency.machine.test.ts src/lib/tests/persistence-batch.machine.test.ts src/lib/tests/runtime.auth-http.test.ts src/lib/tests/runtime.http-sse.test.ts src/lib/tests/runtime.index.test.ts src/lib/tests/runtime.node-server.test.ts src/lib/tests/runtime.tools-orchestrate.test.ts src/lib/tests/stream-transport.machine.test.ts src/lib/tests/usage.machine.test.ts src/lib/tests/generation-session.integration.test.ts src/lib/tests/generation-system.runtime.test.ts",
     "test:e2e": "node --import tsx --test src/lib/tests/generation-session.e2e.test.ts",
+    "bench:orchestrate": "tsx src/lib/tests/runtime.tools-orchestrate.benchmark.ts",
     "start:server": "tsx src/server.ts",
     "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations --track --table=schema_migrations",
     "db:seed:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/seeds",
@@ -23,6 +25,7 @@
   },
   "dependencies": {
     "@gen-app-2/contracts": "*",
+    "@gen-app-2/domain": "*",
     "docx": "^9.5.1",
     "ioredis": "^5.8.2",
     "mammoth": "^1.12.0",

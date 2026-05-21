@@ -55,12 +55,14 @@ Implementation notes:
 frontend/src/features/tools/
 ├── runtime/
 │   ├── tool-form-architecture.ts      # Registry + ToolFormConfig types
+│   ├── tool-page-selectors.ts         # Derived page selectors, including tool file instructions
 │   ├── tool-ux-state.ts               # Canonical state derivation
 │   ├── tool-generation-engine.ts      # Unchanged
 │   ├── tools-client.ts                # Unchanged
 │   └── useToolForm.ts                 # Hook utilities: useProjectsLoader, useToolUiState, form helpers
 ├── ui/
 │   ├── ToolPageTemplate.tsx           # Orchestration component (~150 lines)
+│   ├── ToolFileInstructionsSection.tsx # Registry-driven default-closed accordion for required fields only
 │   ├── ToolGenerationFlowVertical.tsx # Unified flow/status right column
 │   ├── ToolStatusCard.tsx             # Legacy reusable component
 │   ├── ToolStepCard.tsx               # Legacy reusable component
@@ -96,7 +98,8 @@ frontend/src/features/tools/
         ▼                                  ▼
       ToolGenerationFlowVertical       ToolPageTemplate.render()
       (Checklist + progress +         ├─ Form (Project, Model, Tone, Notes)
-       step statuses unificati)       ├─ Briefing upload input (events -> machine actor)
+        step statuses unificati)       ├─ Briefing upload input (events -> machine actor)
+                                       ├─ Tool File Instructions Section (registry-driven, default-closed accordion, required fields only)
                       ├─ Flow state da selector macchina
                       └─ ToolActionButtons (CTA adaptivi)
 ```
@@ -199,6 +202,50 @@ export function getToolFormConfig(toolKey: ToolKey): ToolFormConfig {
   return config;
 }
 ```
+
+### 2.3 Tool File Instructions Key-To-Label Matrix (Operational Convergence)
+
+Runtime convergence for DDD-079/DDD-080 is active:
+
+- registry source uses canonical `requiredFieldKeys: ExtractionFieldKey[]`;
+- selector output projects keys to localized `ExtractionFieldLabel` values;
+- mixed lists (localized labels + raw keys in one list) are removed from Tool Workspace rendering.
+
+Current operational matrix:
+
+| Tool | ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status |
+| --- | --- | --- | --- |
+| `youtube-lf-script` | `knowledge_content` | Knowledge content | contract-backed |
+| `youtube-lf-script` | `avatar` | Avatar | contract-backed |
+| `youtube-lf-script` | `pain_point` | Pain point | contract-backed |
+| `youtube-lf-script` | `purchase_process_type` | Purchase process type | contract-backed |
+| `youtube-lf-script` | `offer` | Offerta | contract-backed |
+| `youtube-lf-script` | `proof` | Proof | contract-backed |
+| `youtube-lf-script` | `target_duration_minutes` | Target duration (minutes) | contract-backed |
+| `youtube-lf-script` | `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed |
+| `funnel-pages` | `funnel_goal` | Obiettivo del funnel | contract-backed |
+| `funnel-pages` | `target_audience` | Target | contract-backed |
+| `funnel-pages` | `offer` | Offerta | contract-backed |
+| `funnel-pages` | `proof` | Proof | contract-backed |
+| `funnel-pages` | `primary_cta` | CTA principale | contract-backed |
+| `nextland` | `website_goal` | Obiettivo del sito | contract-backed |
+| `nextland` | `brand_or_company` | Brand o azienda | contract-backed |
+| `nextland` | `target_audience` | Target | contract-backed |
+| `nextland` | `offer_or_service` | Offerta o servizio | contract-backed |
+| `nextland` | `required_sections` | Sezioni richieste | contract-backed |
+| `angle-generator` | `goal` | Obiettivo | contract-backed |
+| `angle-generator` | `product_or_service` | Prodotto o servizio | contract-backed |
+| `angle-generator` | `market` | Mercato | contract-backed |
+| `angle-generator` | `target_audience` | Target | contract-backed |
+| `angle-generator` | `pain_point` | Pain point | contract-backed |
+| `angle-generator` | `proof` | Proof | contract-backed |
+| `angle-generator` | `creative_constraints` | Vincoli creativi | contract-backed |
+
+Implementation note:
+
+- shared canonical matrix contract: `packages/contracts/src/extraction-fields.ts`.
+- frontend projection + compile-time coverage guard: `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts`.
+- selector projection path (label-only UI output): `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`.
 
 ---
 

@@ -1,10 +1,22 @@
 import type {
   AuthOkEvent,
+  IdempotencyCoordinatorInput,
   RequestReceivedEvent,
   ValidationOkEvent,
 } from '../types/xstate';
-import type { GenerationRequest, OutputFormat } from '@gen-app-2/contracts';
+import type {
+  GenerationRequest,
+  OutputFormat,
+  ToolKey,
+  ToolStep,
+} from '@gen-app-2/contracts';
+import {
+  isToolKey,
+  resolveToolWorkflowType,
+  TOOL_STEP_ORDER,
+} from '@gen-app-2/contracts';
 import { resolveToolPrompt } from './tool-prompts';
+import { normalizeStepKey } from './workflow-normalizers';
 
 /**
  * Authoritative backend definition of the generation request payload.
@@ -33,6 +45,15 @@ const toDependencyArtifactIds = (value: unknown): string[] => {
     .filter((entry): entry is string => typeof entry === 'string')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+};
+
+const toNonEmptyString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
 };
 
 const toOutputFormat = (value: OutputFormat | undefined): OutputFormat => {
@@ -67,14 +88,63 @@ const normalizeModelId = (value: string): string => {
   return normalized;
 };
 
+const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
+
+const toCanonicalToneProfile = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
+  return match ?? null;
+};
+
+const toCanonicalRequestStep = (toolKey: ToolKey | null, value: unknown): ToolStep | null => {
+  const normalizedStep = normalizeStepKey(value);
+  if (!normalizedStep) {
+    return null;
+  }
+
+  if (!toolKey) {
+    return normalizedStep as ToolStep;
+  }
+
+  const allowedSteps = TOOL_STEP_ORDER[toolKey];
+  return allowedSteps.includes(normalizedStep as ToolStep)
+    ? (normalizedStep as ToolStep)
+    : null;
+};
+
+const toCanonicalRequestTone = (
+  workflowType: GenerationRequest['workflowType'],
+  value: unknown,
+): string | null => {
+  if (workflowType === 'extraction') {
+    return 'analitico';
+  }
+
+  return toCanonicalToneProfile(value);
+};
+
 export const buildRequestReceivedEvent = (
   request: BackendGenerationRequest,
 ): RequestReceivedEvent => {
+  const rawToolKey = request.toolKey;
+  const normalizedToolKey: ToolKey | null =
+    typeof rawToolKey === 'string' && isToolKey(rawToolKey) ? rawToolKey : null;
+  const canonicalStep = toCanonicalRequestStep(normalizedToolKey, request.input.step);
+  const canonicalTone = toCanonicalRequestTone(request.workflowType ?? null, request.input.tone);
+
   const resolvedPrompt = resolveToolPrompt({
-    toolKey: request.toolKey ?? null,
+    toolKey: normalizedToolKey,
     workflowType: request.workflowType ?? null,
     artifactType: String(request.artifactType),
-    stepKey: request.input.step,
+    stepKey: canonicalStep ?? request.input.step,
     extractionToolKey: request.input.toolKey,
   });
 
@@ -94,8 +164,12 @@ export const buildRequestReceivedEvent = (
     .concat(toDependencyArtifactIds(request.input.stepDependencyArtifactIds));
   const dedupedDependencyArtifactIds = [...new Set(stepDependencyArtifactIds)];
 
+  const { step: _rawStep, tone: _rawTone, ...inputRest } = request.input;
+
   const enrichedInput = {
-    ...request.input,
+    ...inputRest,
+    ...(canonicalStep ? { step: canonicalStep } : {}),
+    ...(canonicalTone ? { tone: canonicalTone } : {}),
     outputFormat: toOutputFormat(request.outputFormat),
     ...(briefingId ? { briefingId } : {}),
     ...(extractionArtifactId ? { extractionArtifactId } : {}),
@@ -116,7 +190,7 @@ export const buildRequestReceivedEvent = (
     requestId: request.requestId,
     projectId: request.projectId,
     sessionId: toOptionalId(request.sessionId),
-    toolKey: request.toolKey ?? null,
+    toolKey: normalizedToolKey,
     artifactType: request.artifactType,
     model: normalizeModelId(request.model),
     input: enrichedInput,
@@ -126,20 +200,21 @@ export const buildRequestReceivedEvent = (
   const withIdempotency = request.idempotencyKey
     ? { idempotencyKey: request.idempotencyKey }
     : {};
+  const resolvedRegistrySnapshotRef = request.registrySnapshotRef ?? 'snapshot:default';
 
   if (request.registryVersion) {
     return {
       ...common,
       ...withIdempotency,
-      registryVersion: request.registryVersion as never,
-      registrySnapshotRef: request.registrySnapshotRef as never,
+      registryVersion: request.registryVersion,
+      registrySnapshotRef: resolvedRegistrySnapshotRef,
     };
   }
 
   return {
     ...common,
     ...withIdempotency,
-    registrySnapshotRef: (request.registrySnapshotRef ?? 'snapshot:default') as never,
+    registrySnapshotRef: resolvedRegistrySnapshotRef,
   };
 };
 
@@ -153,6 +228,36 @@ export const buildValidationOkEvent = (
 ): ValidationOkEvent => ({
   type: 'VALIDATION_OK',
   workflowType: request.workflowType ?? null,
-  registryVersion: (request.registryVersion ?? null) as never,
-  registrySnapshotRef: (request.registrySnapshotRef ?? null) as never,
+  registryVersion: request.registryVersion ?? null,
+  registrySnapshotRef: request.registrySnapshotRef ?? null,
 });
+
+export const buildToolsOrchestrateIdempotencyInput = (input: {
+  requestId?: unknown;
+  userId: string;
+  projectId: string;
+  toolKey: string;
+  idempotencyKey?: unknown;
+}): IdempotencyCoordinatorInput | null => {
+  const idempotencyKey = toNonEmptyString(input.idempotencyKey);
+  if (!idempotencyKey) {
+    return null;
+  }
+
+  if (!isToolKey(input.toolKey)) {
+    return null;
+  }
+
+  const requestId =
+    toNonEmptyString(input.requestId)
+    ?? `orchestrate:${input.toolKey}:${idempotencyKey}`;
+
+  return {
+    requestId,
+    userId: input.userId,
+    projectId: input.projectId,
+    workflowType: resolveToolWorkflowType(input.toolKey),
+    idempotencyKey,
+    registrySnapshotRef: 'snapshot:default',
+  };
+};

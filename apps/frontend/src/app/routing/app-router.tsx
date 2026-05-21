@@ -14,9 +14,11 @@ const DashboardPage = lazy(() => import('../../features/dashboard/pages/Dashboar
 const ProjectsListPage = lazy(() => import('../../features/projects/pages/ProjectsListPage').then(m => ({ default: m.ProjectsListPage })));
 const NewProjectPage = lazy(() => import('../../features/projects/pages/NewProjectPage').then(m => ({ default: m.NewProjectPage })));
 const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const ToolsHubPage = lazy(() => import('../../features/tools/pages/ToolsHubPage').then(m => ({ default: m.ToolsHubPage })));
 const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages/pages/FunnelPagesToolPage').then(m => ({ default: m.FunnelPagesToolPage })));
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
+const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-generator/pages/AngleGeneratorToolPage').then(m => ({ default: m.AngleGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -27,13 +29,12 @@ const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModel
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
-const GenerationConsolePage = lazy(() => import('../../features/generation/pages/GenerationConsolePage').then(m => ({ default: m.GenerationConsolePage })));
-
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
   nextland: NextlandToolPage,
   'youtube-lf-script': YoutubeLfScriptToolPage,
+  'angle-generator': AngleGeneratorToolPage,
 };
 
 /**
@@ -113,13 +114,17 @@ export const createAppRouter = () => createBrowserRouter([
         path: '/dashboard/projects/:id',
         element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
       },
+      {
+        path: '/tools',
+        element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
+      },
       ...TOOL_ROUTES.map(({ path, component: ToolPage }) => ({
         path,
         element: <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>,
       })),
       {
         path: '/tools/console',
-        element: <Suspense fallback={<PageLoader />}><GenerationConsolePage /></Suspense>,
+        element: <Navigate to="/tools" replace />,
       },
       {
         path: '/artifacts',

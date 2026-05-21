@@ -15,7 +15,7 @@ test('streamTransportMachine reaches success terminal', async () => {
     input: {
       requestId: 'req-stream-ok',
       artifactId: 'artifact-stream-ok',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       requestInput: { prompt: 'hello' },
       workflowType: null,
       outputFormat: 'plain',
@@ -53,7 +53,7 @@ test('streamTransportMachine reaches failure terminal', async () => {
     input: {
       requestId: 'req-stream-fail',
       artifactId: 'artifact-stream-fail',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       requestInput: { prompt: 'hello fail' },
       workflowType: null,
       outputFormat: 'plain',

@@ -15,9 +15,11 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
+import { selectToolFileInstructions } from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
+import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 
 const toneProfileOptions = [
   { value: 'Professional', label: 'Professional' },
@@ -41,7 +43,7 @@ interface ToolPageTemplateProps {
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const auth = useAuthSession();
-  const { data: modelOptions } = useModelsQuery({
+  const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
   });
@@ -53,7 +55,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
+    briefingGuidance,
     dispatchError,
+    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -69,9 +73,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
+    handleAngleDetectorFileSelected,
     handleBriefingReset,
-    navigate,
   } = useToolPage(props);
+  const toolFileInstructions = selectToolFileInstructions(props.toolKey);
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
@@ -79,6 +84,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     model: z.string().min(1, 'Model richiesto'),
     tone: z.string().min(1, 'Tone richiesto'),
     briefingFile: z.any().optional(),
+    angleDetectorFile: z.any().optional(),
   });
 
   const {
@@ -93,6 +99,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       briefingFile: undefined,
+      angleDetectorFile: undefined,
     },
     mode: 'onChange',
   });
@@ -181,16 +188,19 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <TextField
                       select
                       label="Model"
+                      disabled={isStreamActive || modelsLoading || Boolean(modelsError)}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, model: e.target.value }));
                       }}
                       value={field.value}
                       error={!!errors.model}
-                      helperText={errors.model?.message as string | undefined}
+                      helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
                       fullWidth
                     >
-                      {modelOptions.length === 0 ? (
+                      {modelsError ? (
+                        <MenuItem value={field.value || ''}>{field.value || 'Catalog unavailable'}</MenuItem>
+                      ) : modelOptions.length === 0 ? (
                         <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
                       ) : (
                         modelOptions.map((o) => (
@@ -252,7 +262,37 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 )}
               />
 
+              {props.toolKey === 'angle-generator' ? (
+                <Controller
+                  name="angleDetectorFile"
+                  control={control}
+                  render={({ field }) => (
+                    <div>
+                      <UploadFieldButton
+                        label="Angle Detector File"
+                        disabled={!formState.projectId.trim() || isStreamActive}
+                        icon={<Upload size={16} aria-hidden="true" />}
+                        accept=".docx,.txt,.md"
+                        onFileSelected={(file) => {
+                          field.onChange(file);
+                          if (file) {
+                            handleAngleDetectorFileSelected(file);
+                          } else {
+                            handleBriefingReset();
+                          }
+                        }}
+                      />
+                      {errors.angleDetectorFile ? <span className={uiPrimitives.error}>{errors.angleDetectorFile.message as string}</span> : null}
+                    </div>
+                  )}
+                />
+              ) : null}
+
+              <ToolFileInstructionsSection instructions={toolFileInstructions} />
+
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
+              {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}
+              {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
 
                 {/* DispatchError ownership contract:
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
@@ -275,6 +315,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   if (data.briefingFile instanceof File) {
                     handleBriefingFileSelected(data.briefingFile);
                   }
+                  if (props.toolKey === 'angle-generator' && data.angleDetectorFile instanceof File) {
+                    handleAngleDetectorFileSelected(data.angleDetectorFile);
+                  }
                   handlePrimaryAction();
                 })}
                 onCancelGeneration={handleCancelGeneration}
@@ -291,6 +334,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               briefingStatus={effectiveBriefingStatus}
               readinessReasonCodes={readinessSnapshot.reasonCodes}
               briefingError={briefingError}
+              briefingGuidance={briefingGuidance}
               steps={toolConfig.steps.map((step) => ({
                 step,
                 displayName: mapToolStepToCardConfig(props.toolKey, step).displayName,

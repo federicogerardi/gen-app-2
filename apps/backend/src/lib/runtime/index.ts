@@ -9,6 +9,12 @@ import {
   pipeSseStreamToNodeResponse,
   type NodeSsePipeOptions,
 } from './http-sse';
+import {
+  runWithGenerationRetryPolicy,
+} from './generation-session-retry-policy';
+import {
+  createSseReplayStream,
+} from './generation-stream-replay';
 import type { BackendGenerationRequest } from './request-contract';
 import { serializeSseEvent } from './stream-contract';
 
@@ -26,13 +32,24 @@ export const handleGenerationRequest = async (
   options: HandleGenerationRequestOptions = {},
 ): Promise<HandleGenerationRequestResult> => {
   const sseFrames: string[] = [];
-  const result = await runBackendGenerationSession(request, adapters, {
-    onStreamEvent: (event) => {
-      const payload = serializeSseEvent(event);
-      sseFrames.push(payload);
-      options.onSseEvent?.(payload, event);
+  const result = await runWithGenerationRetryPolicy(
+    async () => runBackendGenerationSession(request, adapters, {
+      onStreamEvent: (event) => {
+        const payload = serializeSseEvent(event);
+        sseFrames.push(payload);
+        options.onSseEvent?.(payload, event);
+      },
+    }),
+    {
+      maxAttempts: 1,
+      onEscalation: (error) => {
+        console.error('[gen][session-escalation] request failed without retry', {
+          requestId: request.requestId,
+          error,
+        });
+      },
     },
-  });
+  );
 
   return {
     ...result,
@@ -44,50 +61,24 @@ export const handleGenerationRequestAsSseStream = (
   request: BackendGenerationRequest,
   adapters: GenerationAdapters,
 ): AsyncIterable<string> => {
-  return (async function* () {
-    const frameQueue: string[] = [];
-    let finished = false;
-    let failure: unknown = null;
-    let notify: (() => void) | null = null;
-
-    const wakeConsumer = () => {
-      notify?.();
-      notify = null;
-    };
-
-    const sessionPromise = runBackendGenerationSession(request, adapters, {
-      onStreamEvent: (event) => {
-        frameQueue.push(serializeSseEvent(event));
-        wakeConsumer();
+  return createSseReplayStream(async (pushFrame) => {
+    await runWithGenerationRetryPolicy(
+      async () => runBackendGenerationSession(request, adapters, {
+        onStreamEvent: (event) => {
+          pushFrame(serializeSseEvent(event));
+        },
+      }),
+      {
+        maxAttempts: 1,
+        onEscalation: (error) => {
+          console.error('[gen][session-escalation] stream failed without retry', {
+            requestId: request.requestId,
+            error,
+          });
+        },
       },
-    })
-      .catch((error: unknown) => {
-        failure = error;
-      })
-      .finally(() => {
-        finished = true;
-        wakeConsumer();
-      });
-
-    while (!finished || frameQueue.length > 0) {
-      if (frameQueue.length === 0) {
-        await new Promise<void>((resolve) => {
-          notify = resolve;
-        });
-        continue;
-      }
-
-      const nextFrame = frameQueue.shift();
-      if (typeof nextFrame === 'string') {
-        yield nextFrame;
-      }
-    }
-
-    await sessionPromise;
-    if (failure) {
-      throw failure;
-    }
-  })();
+    );
+  });
 };
 
 export const handleGenerationRequestAsNodeSse = async (

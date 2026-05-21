@@ -2122,6 +2122,102 @@ button:not(.MuiButton-root):not([class]):disabled,
   gap: var(--space-2);
 }
 
+.ui-tool-instructions-panel {
+  display: grid;
+  padding: var(--space-1-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-overlay);
+}
+
+.ui-tool-instructions-accordion {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.ui-tool-instructions-accordion[open] {
+  gap: var(--space-1);
+}
+
+.ui-tool-instructions-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 2px 0;
+  min-height: 1.5rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ui-tool-instructions-summary::-webkit-details-marker {
+  display: none;
+}
+
+.ui-tool-instructions-summary::after {
+  content: '▾';
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 160ms ease;
+}
+
+.ui-tool-instructions-accordion[open] .ui-tool-instructions-summary::after {
+  transform: rotate(180deg);
+}
+
+.ui-tool-instructions-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-muted);
+}
+
+.ui-tool-instructions-groups {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ui-tool-instructions-accordion[open] .ui-tool-instructions-groups {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-1);
+}
+
+.ui-tool-instructions-group {
+  display: grid;
+  gap: var(--space-micro);
+}
+
+.ui-tool-instructions-group-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ui-tool-instructions-list {
+  gap: var(--space-micro);
+}
+
+.ui-tool-instructions-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-micro);
+  align-items: start;
+}
+
+.ui-tool-instructions-bullet {
+  line-height: 1.1;
+  color: var(--text-muted);
+}
+
+.ui-tool-instructions-item-text {
+  min-width: 0;
+}
+
 .ui-tool-form label:not(.MuiButton-root) {
   display: grid;
   gap: var(--space-micro);

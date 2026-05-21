@@ -6,8 +6,6 @@ import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery'
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { ErrorStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
-import { getEnabledToolKeys } from '../../tools/runtime/tool-form-architecture';
-import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { AppButton } from '../../../components/AppButton';
 import { AppCard } from '../../../components/AppCard';
 
@@ -15,6 +13,7 @@ const formatSessionToolName = (toolKey: string | null): string => {
   if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
   if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
   if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
+  if (toolKey === 'angle-generator') return appCopy.ui.navigation.angleGenerator;
   return toolKey ?? 'Tool non disponibile';
 };
 
@@ -102,8 +101,8 @@ export const DashboardPage = () => {
         <AppCard title={appCopy.editorial.dashboard.cards.tools.title} className="ui-dashboard-card-with-cta">
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.tools.body}</p>
-            <Link to="/tools/funnel-pages" className="ui-dashboard-card-cta-link ui-button">
-              {appCopy.ui.navigation.funnelPages}
+            <Link to="/tools" className="ui-dashboard-card-cta-link ui-button">
+              {appCopy.ui.navigation.tools}
             </Link>
           </div>
         </AppCard>

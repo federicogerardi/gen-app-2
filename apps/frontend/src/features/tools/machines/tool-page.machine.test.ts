@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { assign, createActor, setup } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
-vi.mock('./briefing-upload.machine', () => {
+vi.mock('./briefing-upload.machine', async () => {
+  const { isExtractionContextValidForTool } = await import('./extraction-context-validity');
   const briefingUploadMachine = setup({
     types: {
       context: {} as {
@@ -111,10 +112,32 @@ vi.mock('./briefing-upload.machine', () => {
     },
   });
 
-  return { briefingUploadMachine };
+  const hasReadyBriefingExtractionContext = (
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
+      extractionArtifactId: string | null;
+      extractionPayload: Record<string, unknown> | null;
+      briefingId: string | null;
+      normalizedText: string | null;
+    } } } | null,
+  ) => {
+    const snapshot = briefingActorRef?.getSnapshot?.();
+    return snapshot?.matches('ready')
+      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
+      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
+      && isExtractionContextValidForTool(
+        toolKey,
+        snapshot.context.extractionPayload,
+        snapshot.context.normalizedText,
+      );
+  };
+
+  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 import { toolPageMachine } from './tool-page.machine';
+
+const activeActors: Array<ReturnType<typeof createActor<typeof toolPageMachine>>> = [];
 
 const createToolPageActor = () => {
   const actor = createActor(toolPageMachine, {
@@ -130,6 +153,7 @@ const createToolPageActor = () => {
   });
 
   actor.start();
+  activeActors.push(actor);
   return actor;
 };
 
@@ -184,6 +208,12 @@ describe('toolPageMachine', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    while (activeActors.length > 0) {
+      activeActors.pop()?.stop();
+    }
+  });
+
   it('blocks START_GENERATION when briefing is not ready', () => {
     const actor = createToolPageActor();
 
@@ -214,6 +244,26 @@ describe('toolPageMachine', () => {
     actor.send({ type: 'STEP_DONE', step: 'quiz' });
     actor.send({ type: 'STEP_DONE', step: 'vsl' });
 
+    expect(actor.getSnapshot().value).toBe('completed');
+  });
+
+  it('completes a queued regenerate flow that starts from a later ToolStep', () => {
+    const actor = createToolPageActor();
+
+    actor.send({
+      type: 'BRIEFING_FILE_SELECTED',
+      file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
+    });
+    syncCanStartFlow(actor);
+
+    actor.send({ type: 'REQUEST_STEP_START', step: 'quiz', runRequestPrefix: 'run-regenerate-1' });
+
+    expect(actor.getSnapshot().value).toBe('generating');
+
+    actor.send({ type: 'STEP_DONE', step: 'quiz' });
+    expect(actor.getSnapshot().value).toBe('generating');
+
+    actor.send({ type: 'STEP_DONE', step: 'vsl' });
     expect(actor.getSnapshot().value).toBe('completed');
   });
 
@@ -266,7 +316,7 @@ describe('toolPageMachine', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'vsl content',
       createdAt: '2026-05-02T00:00:00.000Z',
       updatedAt: '2026-05-02T00:00:00.000Z',
@@ -277,7 +327,7 @@ describe('toolPageMachine', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: {
           step: 'vsl',
           stepDependencyArtifactIdsByStep: {
@@ -298,7 +348,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -309,7 +359,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -321,7 +371,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -332,7 +382,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -371,7 +421,7 @@ describe('toolPageMachine', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'vsl content',
       createdAt: '2026-05-02T00:00:00.000Z',
       updatedAt: '2026-05-02T00:00:00.000Z',
@@ -382,7 +432,7 @@ describe('toolPageMachine', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: {
           step: 'vsl',
           stepDependencyArtifactIdsByStep: {
@@ -403,7 +453,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -414,7 +464,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -534,6 +584,34 @@ describe('toolPageMachine', () => {
     expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(false);
   });
 
+  it('does not emit sensitive readiness logs on production path', () => {
+    (globalThis as Record<string, unknown>).__TOOL_PAGE_READINESS_LOGGING_ENABLED__ = false;
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const actor = createNextlandToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-nextland-invalid-sensitive',
+      payload: {},
+      briefingId: 'brief-nextland-invalid-sensitive',
+      normalizedText: 'must-not-be-logged',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [],
+      intent: 'new',
+      sourceArtifact: null,
+      runRequestPrefix: null,
+    });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    delete (globalThis as Record<string, unknown>).__TOOL_PAGE_READINESS_LOGGING_ENABLED__;
+  });
+
   it('enables hasExtractionContext for valid youtube-lf-script extraction context', () => {
     const actor = createYoutubeToolPageActor();
 
@@ -618,7 +696,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -629,7 +707,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -641,7 +719,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -652,7 +730,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -664,7 +742,7 @@ describe('toolPageMachine', () => {
         status: 'completed',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'vsl',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -675,7 +753,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content',
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'vsl' },
         },
       },
@@ -711,7 +789,7 @@ describe('toolPageMachine', () => {
       status: 'completed',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      workflowType: 'funnel-pages',
+      workflowType: 'funnel_pages',
       content: 'optin content',
       createdAt: '2026-05-01T00:00:00.000Z',
       updatedAt: '2026-05-01T00:00:00.000Z',
@@ -722,7 +800,7 @@ describe('toolPageMachine', () => {
         artifactType: 'content',
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         input: {
           step: 'optin',
         },
@@ -757,7 +835,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -768,7 +846,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -780,7 +858,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -791,7 +869,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -803,7 +881,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'vsl content',
         createdAt: '2026-05-01T00:00:00.000Z',
         updatedAt: '2026-05-01T00:00:00.000Z',
@@ -814,7 +892,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'vsl' },
         },
       },
@@ -894,7 +972,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'optin content',
         createdAt: '2026-05-05T10:00:00.000Z',
         updatedAt: '2026-05-05T10:00:00.000Z',
@@ -905,7 +983,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'optin' },
         },
       },
@@ -917,7 +995,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'quiz content',
         createdAt: '2026-05-05T10:01:00.000Z',
         updatedAt: '2026-05-05T10:01:00.000Z',
@@ -928,7 +1006,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'quiz' },
         },
       },
@@ -940,7 +1018,7 @@ describe('toolPageMachine', () => {
         status: 'completed' as const,
         model: 'openrouter/auto',
         toolKey: 'funnel-pages',
-        workflowType: 'funnel-pages',
+        workflowType: 'funnel_pages',
         content: 'vsl content',
         createdAt: '2026-05-05T10:02:00.000Z',
         updatedAt: '2026-05-05T10:02:00.000Z',
@@ -951,7 +1029,7 @@ describe('toolPageMachine', () => {
           artifactType: 'content' as const,
           model: 'openrouter/auto',
           toolKey: 'funnel-pages',
-          workflowType: 'funnel-pages',
+          workflowType: 'funnel_pages',
           input: { step: 'vsl' },
         },
       },

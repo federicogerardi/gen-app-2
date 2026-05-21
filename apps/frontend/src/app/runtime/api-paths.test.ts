@@ -53,9 +53,19 @@ describe('buildApiPaths', () => {
       expect(paths.tools.sessions.byId('sess_demo')).toBe('/api/tools/sessions/sess_demo');
     });
 
+    it('returns step path when sessionsDetail is enabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsDetail: true }));
+      expect(paths.tools.sessions.byStep('sess_demo', 'optin')).toBe('/api/tools/sessions/sess_demo/step/optin');
+    });
+
     it('returns null detail path when sessionsDetail is disabled', () => {
       const paths = buildApiPaths(resolveBackendCapabilities({ sessionsDetail: false }));
       expect(paths.tools.sessions.byId('sess_demo')).toBeNull();
+    });
+
+    it('returns null step path when sessionsDetail is disabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ sessionsDetail: false }));
+      expect(paths.tools.sessions.byStep('sess_demo', 'optin')).toBeNull();
     });
   });
 

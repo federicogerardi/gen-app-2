@@ -5,13 +5,14 @@ import {
   collectCompletedStepsBySession,
 } from './step-hydration';
 import type { GenerationArtifact } from '../ui/artifact-history';
+import type { ToolStep } from '@gen-app-2/contracts';
 
 const createArtifact = (
   partial: Partial<GenerationArtifact> & {
     artifactId: string;
     requestId: string;
     updatedAt: string;
-    step: string;
+    step: ToolStep;
   },
 ): GenerationArtifact => ({
   artifactId: partial.artifactId,
@@ -23,7 +24,7 @@ const createArtifact = (
   runMode: partial.runMode ?? 'new',
   artifactType: partial.artifactType ?? 'content',
   status: partial.status ?? 'completed',
-  model: partial.model ?? 'openrouter:auto',
+  model: partial.model ?? 'openrouter/auto',
   toolKey: partial.toolKey ?? 'funnel-pages',
   workflowType: partial.workflowType ?? 'funnel-pages',
   content: partial.content ?? 'content',
@@ -35,9 +36,9 @@ const createArtifact = (
     projectId: partial.projectId ?? 'project-001',
     ...(partial.sessionId ? { sessionId: partial.sessionId } : {}),
     artifactType: partial.artifactType ?? 'content',
-    model: 'openrouter:auto',
+    model: 'openrouter/auto',
     toolKey: 'funnel-pages',
-    workflowType: 'funnel-pages',
+    workflowType: 'funnel_pages',
     input: {
       step: partial.step,
     },
@@ -73,7 +74,7 @@ describe('step-hydration session-aware selectors', () => {
     expect(byStep.quiz?.artifactId).toBe('sess1-quiz');
   });
 
-  it('buildLatestArtifactByStep keeps legacy fallback rows when session-tagged rows are missing', () => {
+  it('buildLatestArtifactByStep ignores legacy fallback rows when session-tagged rows are requested', () => {
     const artifacts: GenerationArtifact[] = [
       createArtifact({ artifactId: 'legacy-optin', requestId: 'r-legacy', sessionId: null, step: 'optin', updatedAt: '2026-05-09T10:00:00.000Z' }),
       createArtifact({ artifactId: 'session-quiz', requestId: 'r-session', sessionId: 'sess-3', step: 'quiz', updatedAt: '2026-05-09T10:01:00.000Z' }),
@@ -81,7 +82,7 @@ describe('step-hydration session-aware selectors', () => {
 
     const byStep = buildLatestArtifactByStep(artifacts, 'funnel-pages', 'project-001', 'sess-3');
 
-    expect(byStep.optin?.artifactId).toBe('legacy-optin');
+    expect(byStep.optin).toBeUndefined();
     expect(byStep.quiz?.artifactId).toBe('session-quiz');
   });
 });

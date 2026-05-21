@@ -1,21 +1,106 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-export type AdminHandlers = {
-  handleAdminModelsList(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminModelsCreate(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminModelsUpdate(request: IncomingMessage, response: ServerResponse, modelId: string): Promise<void>;
-  handleAdminModelsDelete(request: IncomingMessage, response: ServerResponse, modelId: string): Promise<void>;
-  handleAdminCreateChangelog(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminListChangelog(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminArchiveChangelog(request: IncomingMessage, response: ServerResponse, changelogId: string): Promise<void>;
-  handleAdminListUserReports(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminUpdateUserReport(request: IncomingMessage, response: ServerResponse, reportId: string): Promise<void>;
-  handleAdminPublishUserReportIssue(request: IncomingMessage, response: ServerResponse, reportId: string): Promise<void>;
-  handleAdminListUsers(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminCreateUser(request: IncomingMessage, response: ServerResponse): Promise<void>;
-  handleAdminGetUser(request: IncomingMessage, response: ServerResponse, userId: string): Promise<void>;
-  handleAdminUpdateUser(request: IncomingMessage, response: ServerResponse, userId: string): Promise<void>;
-  handleAdminDeleteUser(request: IncomingMessage, response: ServerResponse, userId: string): Promise<void>;
+import type { AuthRepositoryBundle } from '../../adapters';
+import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus } from '../../types/auth';
+import type { PasswordHashRuntime } from '../auth-contract';
+import type { GitHubApiConfig } from '../integrations/github-config';
+import type { Pool } from 'pg';
+import type {
+  AuthHttpWriteErrorFn,
+  AuthHttpWriteSuccessFn,
+} from './support';
+import {
+  createAdminFeedbackCenterHandlers,
+  type AdminFeedbackCenterHandlers,
+} from './admin-feedback-center-handlers';
+import {
+  createAdminLlmModelHandlers,
+  type AdminLlmModelHandlers,
+} from './admin-llm-model-handlers';
+import {
+  createAdminUserHandlers,
+  type AdminUserHandlers,
+} from './admin-user-handlers';
+
+export type CreateAdminHandlersDependencies = {
+  repositories: AuthRepositoryBundle;
+  passwordHashing: PasswordHashRuntime;
+  now: () => Date;
+  githubApiConfig: GitHubApiConfig | null;
+  requireAdminPrincipal: (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ) => Promise<AuthSessionPrincipal | null>;
+  requireDb: (response: ServerResponse) => Pool | null;
+  parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
+  parseOptionalNonEmptyString: (value: unknown) => string | undefined;
+  parseRequestUrl: (request: IncomingMessage) => URL;
+  parseAuthUserRole: (value: unknown) => AuthUserRole | null;
+  parseAuthUserStatus: (value: unknown) => AuthUserStatus | null;
+  userToResponseData: (user: Awaited<ReturnType<AuthRepositoryBundle['users']['findUserById']>> extends infer U ? (U extends null ? never : U) : never) => Record<string, unknown>;
+  writeError: AuthHttpWriteErrorFn;
+  writeSuccess: AuthHttpWriteSuccessFn;
 };
 
-export const createAdminHandlers = (handlers: AdminHandlers): AdminHandlers => handlers;
+export type AdminHandlers = AdminLlmModelHandlers & AdminFeedbackCenterHandlers & AdminUserHandlers;
+
+export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): AdminHandlers => {
+  const {
+    repositories,
+    passwordHashing,
+    now,
+    githubApiConfig,
+    requireAdminPrincipal,
+    requireDb,
+    parseJsonBody,
+    parseOptionalNonEmptyString,
+    parseRequestUrl,
+    parseAuthUserRole,
+    parseAuthUserStatus,
+    userToResponseData,
+    writeError,
+    writeSuccess,
+  } = deps;
+  const llmModelHandlers = createAdminLlmModelHandlers({
+    repositories,
+    now,
+    requireAdminPrincipal,
+    requireDb,
+    parseJsonBody,
+    writeError,
+    writeSuccess,
+  });
+
+  const feedbackCenterHandlers = createAdminFeedbackCenterHandlers({
+    repositories,
+    now,
+    githubApiConfig,
+    requireAdminPrincipal,
+    requireDb,
+    parseJsonBody,
+    parseOptionalNonEmptyString,
+    parseRequestUrl,
+    writeError,
+    writeSuccess,
+  });
+
+  const userHandlers = createAdminUserHandlers({
+    repositories,
+    passwordHashing,
+    now,
+    requireAdminPrincipal,
+    parseJsonBody,
+    parseRequestUrl,
+    parseAuthUserRole,
+    parseAuthUserStatus,
+    userToResponseData,
+    writeError,
+    writeSuccess,
+  });
+
+  return {
+    ...llmModelHandlers,
+    ...feedbackCenterHandlers,
+    ...userHandlers,
+  };
+};

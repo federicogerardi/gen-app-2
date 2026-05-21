@@ -6,6 +6,11 @@ import {
   handleGenerationRequest,
   handleGenerationRequestAsSseStream,
 } from '../runtime';
+import {
+  canTransitionArtifactStatus,
+  isArtifactFailureReason,
+  isArtifactStatus,
+} from '../types/artifact';
 
 test('handleGenerationRequest streams SSE frames via callback before completion', async () => {
   const adapters = createInMemoryGenerationAdapters();
@@ -43,7 +48,7 @@ test('handleGenerationRequest streams SSE frames via callback before completion'
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'stream to callback' },
       workflowType: null,
       idempotencyKey: 'idem-runtime-index-stream-001',
@@ -99,7 +104,7 @@ test('handleGenerationRequestAsSseStream yields live SSE frames for direct pipin
       userId: 'seed-user-001',
       projectId: 'seed-project-001',
       artifactType: 'content',
-      model: 'gpt-5.3-codex',
+      model: 'openrouter/gpt-5.3-codex',
       input: { prompt: 'stream iterable' },
       workflowType: null,
       idempotencyKey: 'idem-runtime-index-iterable-001',
@@ -120,4 +125,60 @@ test('handleGenerationRequestAsSseStream yields live SSE frames for direct pipin
   assert.ok(frames.some((frame) => frame.includes('event: chunk') && frame.includes('"sequence":1')));
   assert.ok(frames.some((frame) => frame.includes('event: chunk') && frame.includes('"sequence":2')));
   assert.ok(frames.some((frame) => frame.startsWith('event: terminal')));
+});
+
+test('handleGenerationRequest emits terminal SSE schema aligned with Artifact domain unions', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+
+  adapters.llm.streamText = async function* () {
+    yield { type: 'chunk', chunk: 'schema-check' } as const;
+    yield {
+      type: 'completed',
+      usage: {
+        inputTokens: 2,
+        outputTokens: 2,
+        costUsd: 0.00001,
+      },
+    } as const;
+  };
+
+  const result = await handleGenerationRequest(
+    {
+      requestId: 'req-runtime-index-schema-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'schema validation' },
+      workflowType: null,
+      idempotencyKey: 'idem-runtime-index-schema-001',
+      registrySnapshotRef: 'snapshot:runtime-index-schema',
+    },
+    adapters,
+  );
+
+  const frames = result.ssePayload
+    .split('\n\n')
+    .map((frame) => frame.trim())
+    .filter((frame) => frame.length > 0);
+  const terminalFrame = frames.find((frame) => frame.startsWith('event: terminal'));
+
+  assert.ok(terminalFrame);
+  const dataLine = terminalFrame
+    .split('\n')
+    .find((line) => line.startsWith('data: '));
+  assert.ok(dataLine);
+
+  const terminalData = JSON.parse((dataLine as string).slice(6)) as {
+    status: string;
+    reason: string | null;
+  };
+
+  assert.equal(isArtifactStatus(terminalData.status), true);
+  if (isArtifactStatus(terminalData.status)) {
+    assert.equal(canTransitionArtifactStatus('generating', terminalData.status), true);
+  }
+  if (terminalData.reason !== null) {
+    assert.equal(isArtifactFailureReason(terminalData.reason), true);
+  }
 });

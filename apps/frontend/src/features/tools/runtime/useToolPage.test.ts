@@ -43,6 +43,7 @@ const mocks = vi.hoisted(() => {
     context: {
       error: null as string | null,
       fileName: null as string | null,
+      angleDetectorFileName: null as string | null,
       briefingId: null as string | null,
       extractionArtifactId: null as string | null,
       extractionPayload: null as Record<string, unknown> | null,
@@ -132,6 +133,18 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => mocks.generation,
+  useGenerationStreamWorkspace: () => mocks.generation,
+  useGenerationArtifactsWorkspace: () => ({
+    artifacts: mocks.generation.artifacts,
+    reloadArtifacts: vi.fn(),
+  }),
+  useGenerationProjectWorkspace: () => ({
+    focusedProjectId: mocks.generation.focusedProjectId,
+    extractionByProject: {},
+    setFocusedProjectId: mocks.generation.setFocusedProjectId,
+    upsertExtractionContext: mocks.generation.upsertExtractionContext,
+    getExtractionContext: mocks.generation.getExtractionContext,
+  }),
 }));
 
 vi.mock('../runtime/tool-form-architecture', () => ({
@@ -234,7 +247,7 @@ describe('useToolPage', () => {
     );
   });
 
-  it('exposes semantic briefing handlers and streamingStep without leaking internals', () => {
+  it('exposes semantic briefing handlers (including angle-detector source) and streamingStep without leaking internals', () => {
     mocks.generation.isStreamActive = true;
     mocks.generation.snapshot.context.lastRequest = {
       input: { step: 'optin' },
@@ -243,14 +256,18 @@ describe('useToolPage', () => {
     const { result } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
 
     const file = new File(['brief'], 'brief.md', { type: 'text/markdown' });
+    const angleDetectorFile = new File(['angle'], 'angle-detector.md', { type: 'text/markdown' });
     act(() => {
       result.current.handleBriefingFileSelected(file);
+      result.current.handleAngleDetectorFileSelected(angleDetectorFile);
       result.current.handleBriefingReset();
     });
 
     expect(result.current.streamingStep).toBe('optin');
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file });
+    expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file: angleDetectorFile, source: 'angle-detector' });
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_RESET' });
+    expect(mocks.generation.start).not.toHaveBeenCalled();
 
     expect('toolPageSend' in result.current).toBe(false);
     expect('generationSnapshot' in result.current).toBe(false);
@@ -283,6 +300,12 @@ describe('useToolPage', () => {
       input: { tone: string };
     };
 
+    expect(mocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'PROGRESS_SYNCED',
+        runRequestPrefix: 'run-001',
+      }),
+    );
     expect(request.model).toBe('openrouter/auto');
     expect(request.input.tone).toBe('Professional');
   });

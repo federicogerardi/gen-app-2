@@ -1,8 +1,10 @@
 import type {
   ArtifactDetail,
   ArtifactListFilters,
+  ArtifactReadProjection,
+  SessionListCursor,
+  SessionListPage,
   ArtifactSummary,
-  SessionListEntry,
 } from '../types/artifacts';
 import type {
   IdempotencyCoordinatorInput,
@@ -19,6 +21,7 @@ import type {
 import type {
   IdempotencyDecision,
   LlmStreamAdapter,
+  OwnershipDecision,
   UsageDecision,
 } from './generation.adapters';
 
@@ -29,6 +32,10 @@ export type ProductionAdapterRuntime = {
 
 export interface RedisQuotaRepository {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+}
+
+export interface ProjectOwnershipRepository {
+  checkProjectOwnership(input: { userId: string; projectId: string }): Promise<OwnershipDecision>;
 }
 
 export interface RedisIdempotencyRepository {
@@ -58,14 +65,45 @@ export interface ProjectQueryRepository {
 }
 
 export interface ArtifactQueryRepository {
+  listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
+  countArtifacts(filters: ArtifactListFilters): Promise<number>;
   listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]>;
+  listRecentCompletedArtifactsForToolByUser(
+    userId: string,
+    input: { projectId: string; workflowType: string; limit: number },
+  ): Promise<ArtifactSummary[]>;
   countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number>;
-  getArtifactByIdForUser(userId: string, artifactId: string): Promise<ArtifactDetail | null>;
-  listArtifactDetailsBySession(userId: string, sessionId: string): Promise<ArtifactDetail[]>;
-  listSessionSummaries(userId: string, projectId: string | null): Promise<SessionListEntry[]>;
+  getArtifactById(artifactId: string, projection?: ArtifactReadProjection): Promise<ArtifactDetail | null>;
+  getArtifactByIdForUser(
+    userId: string,
+    artifactId: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail | null>;
+  getArtifactsByIdsForUser(
+    userId: string,
+    artifactIds: string[],
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail[]>;
+  listArtifactDetailsBySession(
+    userId: string,
+    sessionId: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail[]>;
+  getArtifactDetailBySessionStep(
+    userId: string,
+    sessionId: string,
+    stepKey: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail | null>;
+  listSessionSummaries(
+    userId: string,
+    projectId: string | null,
+    options?: { limit?: number; cursor?: SessionListCursor | null },
+  ): Promise<SessionListPage>;
 }
 
 export interface PostgresRedisAdapterDependencies {
+  ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;
   stream: RedisStreamSessionRepository;

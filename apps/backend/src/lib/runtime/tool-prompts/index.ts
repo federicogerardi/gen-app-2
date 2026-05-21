@@ -5,11 +5,18 @@ import { normalizeStepKey, normalizeToolWorkflowKey } from '../workflow-normaliz
 const PROMPT_FILE_BY_KEY = {
   extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
   'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_extraction.md',
+  'angle-generator:extraction': 'src/lib/runtime/tool-prompts/angle-generator/prompt_extraction.md',
   'funnel-pages:optin': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md',
   'funnel-pages:quiz': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md',
   'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
   'nextland:landing': 'src/lib/runtime/tool-prompts/nextland/prompt_landing_generator.md',
   'nextland:thank_you': 'src/lib/runtime/tool-prompts/nextland/prompt_thank_you_generator.md',
+  'angle-generator:context-and-angle-matrix':
+    'src/lib/runtime/tool-prompts/angle-generator/prompt_context_and_angle_matrix.md',
+  'angle-generator:angle-prioritization':
+    'src/lib/runtime/tool-prompts/angle-generator/prompt_angle_prioritization.md',
+  'angle-generator:creative-activation':
+    'src/lib/runtime/tool-prompts/angle-generator/prompt_creative_activation.md',
   'youtube-lf-script:pre-script-analysis': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_pre_script_analysis.md',
   'youtube-lf-script:packaging': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_packaging.md',
   'youtube-lf-script:intro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_intro_structure.md',
@@ -52,6 +59,9 @@ const resolvePromptFilePath = (input: {
   if (toolKey === 'extraction' || artifactType === 'extraction') {
     if (extractionToolKey === 'youtube-lf-script') {
       return PROMPT_FILE_BY_KEY['youtube-lf-script:extraction'];
+    }
+    if (extractionToolKey === 'angle-generator') {
+      return PROMPT_FILE_BY_KEY['angle-generator:extraction'];
     }
     return PROMPT_FILE_BY_KEY.extraction;
   }

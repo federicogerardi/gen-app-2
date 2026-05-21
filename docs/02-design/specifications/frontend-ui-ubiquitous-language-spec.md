@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 date_created: 2026-05-08
-last-reviewed: 2026-05-11
+last-reviewed: 2026-05-18
 next-review-date: 2026-06-08
 owner: Frontend Platform Team
 type: ui-governance-spec
@@ -49,7 +49,68 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Global Feedback Message | **Provisional** ephemeral cross-page mutation feedback message (success/error) rendered in a global viewport without replacing local contextual feedback. | Transition target from local mutation messages | Page-local ad-hoc success string |
 | Global Feedback Viewport | **Provisional** app-level container that renders `Global Feedback Message` items. Must not be used for `Dispatch Error` or `Page State Message`. | Shell-level runtime target | Reusing Data Table state area |
 | Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false`, extraction semantic invalidity (`extraction_context_insufficient`), and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. UI copy must be user-readable and must not display raw tokens such as `stream_empty_output` or `extraction_context_insufficient`. See DDD-061 and DDD-064. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
-| Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-060. | `useToolPage` effect #2b | — |
+| Tool File Instructions Section | Deterministic inline guidance accordion inside the Tool Workspace Page Setup Panel that lists only the required fields for a specific tool. The section is driven by registry metadata, appears only when tool instructions exist, and is closed by default. | Tool Workspace Page setup area, directly below upload/form controls | Popover guidance, tabbed instructions |
+| Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
+
+### 2.1 Extraction Field Key-To-Label Operational Convergence Matrix
+
+This matrix operationalizes DDD-079 in UI guidance.
+
+Rules:
+
+- Contract-facing identifiers must be `ExtractionFieldKey` (English snake_case).
+- UI copy may render localized `ExtractionFieldLabel` (it-IT) derived from keys.
+- Mixed required-field lists (labels + raw keys in the same list) are transitional drift and must be converged tool by tool.
+- `provisional` rows below are documentation-level convergence targets; they are not runtime contract changes.
+
+#### 2.1.1 youtube-lf-script (contract-backed)
+
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `knowledge_content` | Knowledge content | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `avatar` | Avatar | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `purchase_process_type` | Purchase process type | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer` | Offerta | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_duration_minutes` | Target duration (minutes) | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+
+#### 2.1.2 funnel-pages (contract-backed)
+
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `funnel_goal` | Obiettivo del funnel | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer` | Offerta | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `primary_cta` | CTA principale | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+
+#### 2.1.3 nextland (contract-backed)
+
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `website_goal` | Obiettivo del sito | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `brand_or_company` | Brand o azienda | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer_or_service` | Offerta o servizio | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `required_sections` | Sezioni richieste | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+
+#### 2.1.4 angle-generator (contract-backed)
+
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| --- | --- | --- | --- |
+| `goal` | Obiettivo | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `product_or_service` | Prodotto o servizio | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `market` | Mercato | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `creative_constraints` | Vincoli creativi | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+
+Convergence gate:
+
+- Runtime source of truth is shared and deterministic: `packages/contracts/src/extraction-fields.ts` for canonical keys/aliases/per-tool maps, `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` for key-to-label projection.
 
 ## 3. Canonical Page Archetypes
 
@@ -72,7 +133,9 @@ Composition:
 - no extra wrapper containers that dilute panel hierarchy
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
 - **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
-- **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-060).
+- **Tool File Instructions Section**: a deterministic inline guidance accordion is rendered directly below the upload/form controls when registry metadata exists. The accordion is closed by default; the section title is fixed and the body shows only the required fields list; no optional groups, examples, notes, or tone guidance are rendered in the card body.
+- **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-070).
+- **Pre-dispatch orchestration contract**: before `generation.start`, Tool Workspace runtime resolves step dependencies through `/api/tools/orchestrate` (`orchestrateToolStep`) and injects returned dependency artifact IDs into the outgoing request. If orchestration fails, generation dispatch is aborted and feedback remains in the inline `Dispatch Error` slot.
 - **Channel ownership rule**: Tool Workspace Page feedback follows `Feedback Channel` mapping. `Dispatch Error` remains `inline-action`; query/list lifecycle remains `page-state`; `global` channel is optional and must not duplicate the same message already rendered inline.
 
 ### 3.2 Data Table View (reference archetype)
@@ -275,7 +338,7 @@ Use this matrix to map each feedback event to exactly one canonical channel.
 | Event Type | Canonical Channel | Canonical Term | Rendering Location | Rule |
 | --- | --- | --- | --- | --- |
 | Form field validation failure | `inline-action` | Dispatch Error family (contextual) | Field/form area | Keep message adjacent to failing input/action; do not promote to global viewport |
-| Tool primary-action dispatch failure | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must remain local and actionable in-place |
+| Tool primary-action dispatch failure (including `/api/tools/orchestrate` pre-dispatch failure) | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must remain local and actionable in-place |
 | Tool terminal stream failure without recoverable failed step | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Keep local recovery context; global duplication is not allowed |
 | Extraction completed but semantically invalid | `inline-action` | Dispatch Error | Tool Workspace Page Setup Panel (below primary CTA) | Must show user-readable copy and keep `start-generation` blocked until valid re-upload |
 | Query loading state | `page-state` | Page State Message (`LoadingStateMessage`) | Page/table body state slot | Never use global channel for loading |

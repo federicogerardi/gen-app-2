@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseExtractionContent, parseYoutubeExtractionMarkdown } from '../machines/generation/extraction-parsers';
+import {
+  normalizeExtractionFieldKeysForTool,
+  parseExtractionContent,
+  parseYoutubeExtractionMarkdown,
+} from '../machines/generation/extraction-parsers';
 
 test('parseYoutubeExtractionMarkdown maps canonical sections and normalizes missing markers', () => {
   const markdown = [
@@ -40,4 +44,56 @@ test('parseExtractionContent uses markdown parser for youtube-lf-script and fall
 
   const fromInvalid = parseExtractionContent('not-json', 'funnel-pages');
   assert.deepEqual(fromInvalid, {});
+});
+
+test('parseExtractionContent normalizes legacy aliases to canonical keys for supported tools', () => {
+  const funnelJson = JSON.stringify({
+    'Obiettivo del funnel': 'Lead',
+    Target: 'Founder',
+    Offerta: 'Audit',
+    'Proof o testimonianze': 'Testimonial',
+    'CTA principale': 'Prenota',
+  });
+
+  const nextlandJson = JSON.stringify({
+    'Obiettivo del sito': 'Presentare brand',
+    'Brand o azienda': 'Acme',
+    Target: 'PMI',
+    'Offerta o servizio': 'Consulenza',
+    'Sezioni richieste': 'hero, proof, cta',
+  });
+
+  const angleJson = JSON.stringify({
+    Obiettivo: 'Awareness',
+    'Prodotto o servizio': 'Corso',
+    Mercato: 'Italia',
+    Target: 'Creator',
+    'Pain point': 'Bassa retention',
+    Proof: 'Case study',
+    'Vincoli creativi': 'No claim aggressivi',
+  });
+
+  const parsedFunnel = parseExtractionContent(funnelJson, 'funnel-pages');
+  assert.equal(parsedFunnel.funnel_goal, 'Lead');
+  assert.equal(parsedFunnel.primary_cta, 'Prenota');
+
+  const parsedNextland = parseExtractionContent(nextlandJson, 'nextland');
+  assert.equal(parsedNextland.website_goal, 'Presentare brand');
+  assert.equal(parsedNextland.required_sections, 'hero, proof, cta');
+
+  const parsedAngle = parseExtractionContent(angleJson, 'angle-generator');
+  assert.equal(parsedAngle.goal, 'Awareness');
+  assert.equal(parsedAngle.creative_constraints, 'No claim aggressivi');
+});
+
+test('normalizeExtractionFieldKeysForTool keeps payload unchanged for unknown tool keys', () => {
+  const payload = {
+    custom_field: 'value',
+    Other: 'value-2',
+  };
+
+  assert.deepEqual(
+    normalizeExtractionFieldKeysForTool('unknown-tool', payload),
+    payload,
+  );
 });

@@ -1,16 +1,16 @@
 ---
 goal: Implement Runtime Convergence for DDD Extraction Field Naming (DDD-079)
-version: 1.0
+version: 1.1
 date_created: 2026-05-21
 last_updated: 2026-05-21
 owner: Frontend Platform Team
-status: Planned
+status: Completed
 tags: [feature, frontend, backend, ddd, extraction, naming, runtime, convergence]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan implements runtime convergence of extraction-field naming according to DDD-079 by enforcing canonical ExtractionFieldKey payload identifiers and deterministic ExtractionFieldLabel projection in Tool Workspace guidance.
 
@@ -42,11 +42,12 @@ This plan implements runtime convergence of extraction-field naming according to
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-000 | Update `docs/07-governance/domain-naming-decision-log.md` and `docs/01-requirements/domain-ubiquitous-language-glossary.md` with: (a) the canonical catalog of non-youtube ExtractionFieldKey terms introduced in runtime (`funnel_goal`, `target_audience`, `primary_cta`, `website_goal`, `brand_or_company`, `offer_or_service`, `required_sections`, `goal`, `product_or_service`, `market`, `creative_constraints`), and (b) readiness governance addendum defining a scalable map-driven policy (`ReadinessRequiredExtractionFieldKeysByTool`) that is extensible without machine code rewrites. |  |  |
+| TASK-000 | Update `docs/07-governance/domain-naming-decision-log.md` and `docs/01-requirements/domain-ubiquitous-language-glossary.md` with: (a) the canonical catalog of non-youtube ExtractionFieldKey terms introduced in runtime (`funnel_goal`, `target_audience`, `primary_cta`, `website_goal`, `brand_or_company`, `offer_or_service`, `required_sections`, `goal`, `product_or_service`, `market`, `creative_constraints`), and (b) readiness governance addendum defining a scalable map-driven policy (`ReadinessRequiredExtractionFieldKeysByTool`) that is extensible without machine code rewrites. | Yes | 2026-05-21 |
 
 Exit Gate - Phase 0 (GO/NO-GO):
 - **GATE-000**: Every new ExtractionFieldKey term used in runtime is pre-registered in DDD artifacts.
 - **GATE-000B**: DDD governance explicitly records scalable readiness policy (map-driven per-tool keys) and references current baseline sets without hardcoded fixed-count logic in runtime.
+- **Outcome**: GO (2026-05-21).
 
 ### Implementation Phase 1
 
@@ -54,15 +55,16 @@ Exit Gate - Phase 0 (GO/NO-GO):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Create shared canonical extraction-field matrix module and FE adapter exports (contracts source + frontend projection) with: `ExtractionFieldKey` union type, `InstructionRequiredExtractionFieldKeysByTool`, `ReadinessRequiredExtractionFieldKeysByTool`, `ExtractionFieldLabelByKey` map (it-IT), and helper `mapExtractionFieldKeyToLabel(key: ExtractionFieldKey): string`. |  |  |
-| TASK-002 | Update `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` `ToolFileInstructionsConfig` to use `requiredFieldKeys: readonly ExtractionFieldKey[]` as source of truth and keep `requiredFields` deprecated alias for one cycle with inline migration comment. |  |  |
-| TASK-003 | Add deterministic selector adapter in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` function `selectToolFileInstructions(toolKey)` to return UI-ready labels by projecting `requiredFieldKeys` via `mapExtractionFieldKeyToLabel`. |  |  |
-| TASK-004 | Add compile-time assertion helper in `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` ensuring all keys in each tool required-key array exist in `ExtractionFieldLabelByKey` map. |  |  |
+| TASK-001 | Create shared canonical extraction-field matrix module and FE adapter exports (contracts source + frontend projection) with: `ExtractionFieldKey` union type, `InstructionRequiredExtractionFieldKeysByTool`, `ReadinessRequiredExtractionFieldKeysByTool`, `ExtractionFieldLabelByKey` map (it-IT), and helper `mapExtractionFieldKeyToLabel(key: ExtractionFieldKey): string`. | Yes | 2026-05-21 |
+| TASK-002 | Update `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` `ToolFileInstructionsConfig` to use `requiredFieldKeys: readonly ExtractionFieldKey[]` as source of truth and keep `requiredFields` deprecated alias for one cycle with inline migration comment. | Yes | 2026-05-21 |
+| TASK-003 | Add deterministic selector adapter in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` function `selectToolFileInstructions(toolKey)` to return UI-ready labels by projecting `requiredFieldKeys` via `mapExtractionFieldKeyToLabel`. | Yes | 2026-05-21 |
+| TASK-004 | Add compile-time assertion helper in `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` ensuring all keys in each tool required-key array exist in `ExtractionFieldLabelByKey` map. | Yes | 2026-05-21 |
 
 Exit Gate - Phase 1 (GO/NO-GO):
 - **GATE-001**: A single canonical matrix source exists for key-to-label projection plus distinct per-tool instruction and readiness key sets.
 - **GATE-002**: `selectToolFileInstructions` returns labels without mixed raw key strings.
 - **GATE-003**: TypeScript compile-time guards fail when key-label mapping is incomplete.
+- **Outcome**: GO (2026-05-21).
 
 ### Implementation Phase 2
 
@@ -70,15 +72,16 @@ Exit Gate - Phase 1 (GO/NO-GO):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-005 | Refactor `apps/frontend/src/features/tools/machines/extraction-context-validity.ts` to replace local hardcoded arrays with `ReadinessRequiredExtractionFieldKeysByTool` and add generic utility `hasRequiredExtractionFields(payload, keys)` for reuse across tools. |  |  |
-| TASK-006 | Update `apps/frontend/src/features/tools/runtime/tools-client.ts` extraction validation path (`assertExtractionResultIsValid`) to normalize known legacy aliases to canonical `ExtractionFieldKey` for all supported tools before readiness checks and request assembly writes. |  |  |
-| TASK-007 | Extend backend parser normalization in `apps/backend/src/lib/machines/generation/extraction-parsers.ts` by adding tool-aware field-key normalization function `normalizeExtractionFieldKeysForTool(toolKey, payload)` and applying it in `parseExtractionContent` return path for all supported tools. |  |  |
-| TASK-008 | Add explicit alias maps for each supported tool in backend parser module (`LegacyExtractionFieldAliasByTool`) sourced from the canonical matrix so no heuristic or fuzzy key mapping is used and FE/BE maps cannot diverge. |  |  |
+| TASK-005 | Refactor `apps/frontend/src/features/tools/machines/extraction-context-validity.ts` to replace local hardcoded arrays with `ReadinessRequiredExtractionFieldKeysByTool` and add generic utility `hasRequiredExtractionFields(payload, keys)` for reuse across tools. | Yes | 2026-05-21 |
+| TASK-006 | Update `apps/frontend/src/features/tools/runtime/tools-client.ts` extraction validation path (`assertExtractionResultIsValid`) to normalize known legacy aliases to canonical `ExtractionFieldKey` for all supported tools before readiness checks and request assembly writes. | Yes | 2026-05-21 |
+| TASK-007 | Extend backend parser normalization in `apps/backend/src/lib/machines/generation/extraction-parsers.ts` by adding tool-aware field-key normalization function `normalizeExtractionFieldKeysForTool(toolKey, payload)` and applying it in `parseExtractionContent` return path for all supported tools. | Yes | 2026-05-21 |
+| TASK-008 | Add explicit alias maps for each supported tool in backend parser module (`LegacyExtractionFieldAliasByTool`) sourced from the canonical matrix so no heuristic or fuzzy key mapping is used and FE/BE maps cannot diverge. | Yes | 2026-05-21 |
 
 Exit Gate - Phase 2 (GO/NO-GO):
 - **GATE-004**: Frontend readiness checks operate on canonical keys through `ReadinessRequiredExtractionFieldKeysByTool` (scalable policy, no fixed-count hardcode).
 - **GATE-005**: Backend parser outputs canonical keys for all supported tools from one shared matrix contract.
 - **GATE-006**: Legacy aliases are normalized deterministically through explicit maps with no FE/BE drift.
+- **Outcome**: GO (2026-05-21).
 
 ### Implementation Phase 3
 
@@ -86,16 +89,17 @@ Exit Gate - Phase 2 (GO/NO-GO):
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-009 | Update UI guidance rendering tests in `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.test.tsx` to assert label-only output for each tool and explicit absence of mixed raw key tokens in localized lists. |  |  |
-| TASK-010 | Update selector tests in `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts` to assert canonical key source and deterministic label projection output per tool. |  |  |
-| TASK-011 | Add or extend extraction validity tests in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` and `apps/frontend/src/features/tools/machines/extraction-context-validity.test.ts` to cover key normalization and readiness after alias conversion. |  |  |
-| TASK-012 | Add backend parser tests in `apps/backend/src/lib/tests/generation.extraction-parsers.test.ts` validating canonical key output and alias normalization for each supported tool. |  |  |
-| TASK-013 | Run validation commands: `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/ui/ToolFileInstructionsSection.test.tsx src/features/tools/machines/tool-page.machine.test.ts`, `npm --workspace apps/backend run test:unit`, and `npm --workspace apps/frontend run build`; record results in this plan. |  |  |
+| TASK-009 | Update UI guidance rendering tests in `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.test.tsx` to assert label-only output for each tool and explicit absence of mixed raw key tokens in localized lists. | Yes | 2026-05-21 |
+| TASK-010 | Update selector tests in `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts` to assert canonical key source and deterministic label projection output per tool. | Yes | 2026-05-21 |
+| TASK-011 | Add or extend extraction validity tests in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` and `apps/frontend/src/features/tools/machines/extraction-context-validity.test.ts` to cover key normalization and readiness after alias conversion. | Yes | 2026-05-21 |
+| TASK-012 | Add backend parser tests in `apps/backend/src/lib/tests/generation.extraction-parsers.test.ts` validating canonical key output and alias normalization for each supported tool. | Yes | 2026-05-21 |
+| TASK-013 | Run validation commands: `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/ui/ToolFileInstructionsSection.test.tsx src/features/tools/machines/tool-page.machine.test.ts`, `npm --workspace apps/backend run test:unit`, and `npm --workspace apps/frontend run build`; record results in this plan. | Yes | 2026-05-21 |
 
 Exit Gate - Phase 3 (GO/NO-GO):
 - **GATE-007**: UI guidance is label-only and deterministic.
 - **GATE-008**: Readiness and parser tests pass with canonical key behavior.
 - **GATE-009**: Frontend and backend targeted validations pass with zero new failures.
+- **Outcome**: GO (2026-05-21).
 
 ## 3. Alternatives
 
@@ -139,6 +143,12 @@ Exit Gate - Phase 3 (GO/NO-GO):
 - **TEST-004**: Verify Tool File Instructions UI does not render raw snake_case keys when label projection exists.
 - **TEST-005**: Verify backend parser returns canonical keys for each supported tool and preserves null normalization rules.
 - **TEST-006**: Verify targeted frontend and backend tests plus frontend build pass in one validation cycle.
+
+### Validation Results - 2026-05-21
+
+- `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/ui/ToolFileInstructionsSection.test.tsx src/features/tools/machines/tool-page.machine.test.ts src/features/tools/machines/extraction-context-validity.test.ts src/features/tools/runtime/tools-client.test.ts` -> PASS (65 tests passed).
+- `npm --workspace apps/backend run test:unit` -> PASS (36 tests passed).
+- `npm --workspace apps/frontend run build` -> PASS.
 
 ## 7. Risks & Assumptions
 

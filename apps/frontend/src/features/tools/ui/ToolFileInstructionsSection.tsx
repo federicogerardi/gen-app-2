@@ -10,6 +10,8 @@ export const ToolFileInstructionsSection = ({ instructions }: ToolFileInstructio
     return null;
   }
 
+  const requiredFields = instructions.requiredFields ?? [];
+
   return (
     <Surface as="section" className="ui-tool-instructions-panel">
       <details className="ui-tool-instructions-accordion" data-testid="tool-file-instructions-accordion">
@@ -22,7 +24,7 @@ export const ToolFileInstructionsSection = ({ instructions }: ToolFileInstructio
             <section className="ui-tool-instructions-group">
               <h4 className="ui-tool-instructions-group-title">Campi obbligatori</h4>
               <ul className={uiPrimitives.listClean}>
-                {instructions.requiredFields.map((item) => (
+                {requiredFields.map((item) => (
                   <li key={item} className="ui-tool-instructions-item">
                     <span className="ui-tool-instructions-bullet" aria-hidden="true">•</span>
                     <span className="ui-tool-instructions-item-text">{item}</span>

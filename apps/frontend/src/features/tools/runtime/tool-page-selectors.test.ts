@@ -20,18 +20,34 @@ describe('selectToolFileInstructions', () => {
 
     expect(instructions).not.toBeNull();
     expect(instructions?.requiredFields).toEqual([
-      'knowledge_content',
-      'avatar',
-      'pain_point',
-      'purchase_process_type',
-      'offer',
-      'proof',
-      'target_duration_minutes',
-      'proprietary_methodology_disclosure',
+      'Knowledge content',
+      'Avatar',
+      'Pain point',
+      'Purchase process type',
+      'Offerta',
+      'Proof',
+      'Target duration (minutes)',
+      'Proprietary methodology disclosure',
     ]);
-    expect(instructions?.requiredFields).not.toContain('tone');
+    expect(instructions?.requiredFields).not.toContain('knowledge_content');
+    expect(instructions?.requiredFields).not.toContain('target_duration_minutes');
     expect(instructions?.stepConstraints).toEqual([
       'La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.',
     ]);
+  });
+
+  it('projects labels for funnel-pages without leaking raw key tokens', () => {
+    const instructions = selectToolFileInstructions('funnel-pages');
+
+    expect(instructions).not.toBeNull();
+    expect(instructions?.requiredFields).toEqual([
+      'Obiettivo del funnel',
+      'Target',
+      'Offerta',
+      'Proof',
+      'CTA principale',
+    ]);
+    expect(instructions?.requiredFields).not.toContain('funnel_goal');
+    expect(instructions?.requiredFields).not.toContain('primary_cta');
   });
 });

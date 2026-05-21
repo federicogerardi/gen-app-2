@@ -1,3 +1,8 @@
+import {
+  type ToolKey,
+  LegacyExtractionFieldAliasByTool as LegacyExtractionFieldAliasByToolContract,
+  normalizeExtractionFieldKeysForTool as normalizeExtractionFieldKeysForToolContract,
+} from '@gen-app-2/contracts';
 import { normalizeToolWorkflowKey } from '../../runtime/workflow-normalizers';
 import { toOptionalString, toStringArray } from './request-normalizers';
 
@@ -21,6 +26,8 @@ const MISSING_EXTRACTION_VALUE_MARKERS = new Set([
   'non emerso dal documento.',
   'non emerso dal documento',
 ]);
+
+export const LegacyExtractionFieldAliasByTool = LegacyExtractionFieldAliasByToolContract;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -138,20 +145,27 @@ export const parseExtractionContent = (
   }
 
   const normalizedExtractionToolKey = normalizeToolWorkflowKey(extractionToolKey);
+  const normalizedPayloadForTool = (
+    payload: Record<string, unknown>,
+  ): Record<string, unknown> => normalizeExtractionFieldKeysForTool(
+    normalizedExtractionToolKey,
+    payload,
+  );
+
   if (normalizedExtractionToolKey === 'youtube-lf-script') {
-    return parseYoutubeExtractionMarkdown(content);
+    return normalizedPayloadForTool(parseYoutubeExtractionMarkdown(content));
   }
 
   const direct = parseJsonCandidate(content);
   if (Object.keys(direct).length > 0) {
-    return direct;
+    return normalizedPayloadForTool(direct);
   }
 
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced?.[1]) {
     const fromFence = parseJsonCandidate(fenced[1]);
     if (Object.keys(fromFence).length > 0) {
-      return fromFence;
+      return normalizedPayloadForTool(fromFence);
     }
   }
 
@@ -159,11 +173,31 @@ export const parseExtractionContent = (
   if (objectSlice?.[0]) {
     const fromSlice = parseJsonCandidate(objectSlice[0]);
     if (Object.keys(fromSlice).length > 0) {
-      return fromSlice;
+      return normalizedPayloadForTool(fromSlice);
     }
   }
 
   return {};
+};
+
+export const normalizeExtractionFieldKeysForTool = (
+  toolKey: string | null | undefined,
+  payload: Record<string, unknown> | null | undefined,
+): Record<string, unknown> => {
+  const normalizedToolKey = normalizeToolWorkflowKey(toolKey);
+  if (
+    normalizedToolKey !== 'funnel-pages'
+    && normalizedToolKey !== 'nextland'
+    && normalizedToolKey !== 'youtube-lf-script'
+    && normalizedToolKey !== 'angle-generator'
+  ) {
+    return payload ?? {};
+  }
+
+  return normalizeExtractionFieldKeysForToolContract(
+    normalizedToolKey as ToolKey,
+    payload,
+  );
 };
 
 type BuildExtractionStructuredPayloadContext = {

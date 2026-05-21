@@ -67,50 +67,50 @@ Rules:
 
 | ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
 | --- | --- | --- | --- |
-| `knowledge_content` | Knowledge content | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `avatar` | Avatar | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `purchase_process_type` | Purchase process type | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `offer` | Offer | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `target_duration_minutes` | Target duration (minutes) | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `knowledge_content` | Knowledge content | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `avatar` | Avatar | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `purchase_process_type` | Purchase process type | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer` | Offerta | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_duration_minutes` | Target duration (minutes) | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
 
-#### 2.1.2 funnel-pages (label-only legacy, provisional convergence)
+#### 2.1.2 funnel-pages (contract-backed)
 
-| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
 | --- | --- | --- | --- |
-| `funnel_goal` | Obiettivo del funnel | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `offer` | Offerta | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `proof` | Proof o testimonianze | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `primary_cta` | CTA principale | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `funnel_goal` | Obiettivo del funnel | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer` | Offerta | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `primary_cta` | CTA principale | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
 
-#### 2.1.3 nextland (label-only legacy, provisional convergence)
+#### 2.1.3 nextland (contract-backed)
 
-| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
 | --- | --- | --- | --- |
-| `website_goal` | Obiettivo del sito | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `brand_or_company` | Brand o azienda | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `offer_or_service` | Offerta o servizio | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `required_sections` | Sezioni richieste | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `website_goal` | Obiettivo del sito | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `brand_or_company` | Brand o azienda | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `offer_or_service` | Offerta o servizio | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `required_sections` | Sezioni richieste | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
 
-#### 2.1.4 angle-generator (label-only legacy, provisional convergence)
+#### 2.1.4 angle-generator (contract-backed)
 
-| Provisional ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
+| ExtractionFieldKey | ExtractionFieldLabel (it-IT) | Status | Evidence |
 | --- | --- | --- | --- |
-| `goal` | Obiettivo | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `product_or_service` | Prodotto o servizio | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `market` | Mercato | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `target_audience` | Target | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `pain_point` | Pain point | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `proof` | Proof | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
-| `creative_constraints` | Vincoli creativi | provisional | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` |
+| `goal` | Obiettivo | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `product_or_service` | Prodotto o servizio | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `market` | Mercato | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `target_audience` | Target | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `pain_point` | Pain point | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `proof` | Proof | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
+| `creative_constraints` | Vincoli creativi | contract-backed | `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` |
 
 Convergence gate:
 
-- Before runtime adoption of any `provisional` key, register the canonical term in `docs/07-governance/domain-naming-decision-log.md`.
+- Runtime source of truth is shared and deterministic: `packages/contracts/src/extraction-fields.ts` for canonical keys/aliases/per-tool maps, `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts` for key-to-label projection.
 
 ## 3. Canonical Page Archetypes
 

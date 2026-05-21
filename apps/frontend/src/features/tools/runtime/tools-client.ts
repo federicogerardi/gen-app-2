@@ -14,6 +14,7 @@ import {
   parseExtractionArtifactContent,
   readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
+import { normalizeExtractionFieldKeysForTool } from './extraction-field-matrix';
 import {
   isHttpClientError,
   joinApiPath,
@@ -176,15 +177,17 @@ const assertExtractionResultIsValid = (
   toolKey: ToolKey,
   payload: Record<string, unknown>,
   normalizedText: string,
-): void => {
+): Record<string, unknown> => {
+  const normalizedPayload = normalizeExtractionFieldKeysForTool(toolKey, payload);
+
   if (
     isExtractionContextValidForTool(
       toolKey as SupportedTool,
-      payload,
+      normalizedPayload,
       normalizedText,
     )
   ) {
-    return;
+    return normalizedPayload;
   }
 
   throw new Error('extraction_context_insufficient');
@@ -352,8 +355,11 @@ export const runExtraction = async (
   if (content.trim().length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
-      const payload = resolveExtractionPayloadFromArtifact(recovered);
-      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
+      const payload = assertExtractionResultIsValid(
+        input.toolKey,
+        resolveExtractionPayloadFromArtifact(recovered),
+        input.briefingText,
+      );
       return {
         artifactId: recovered.artifactId,
         content: recovered.content,
@@ -368,8 +374,11 @@ export const runExtraction = async (
   if (Object.keys(parsedPayload).length === 0) {
     const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
     if (recovered) {
-      const payload = resolveExtractionPayloadFromArtifact(recovered);
-      assertExtractionResultIsValid(input.toolKey, payload, input.briefingText);
+      const payload = assertExtractionResultIsValid(
+        input.toolKey,
+        resolveExtractionPayloadFromArtifact(recovered),
+        input.briefingText,
+      );
       return {
         artifactId: recovered.artifactId,
         content,
@@ -380,12 +389,16 @@ export const runExtraction = async (
     throw new Error('extraction_context_insufficient');
   }
 
-  assertExtractionResultIsValid(input.toolKey, parsedPayload, input.briefingText);
+  const normalizedPayload = assertExtractionResultIsValid(
+    input.toolKey,
+    parsedPayload,
+    input.briefingText,
+  );
 
   return {
     artifactId,
     content,
-    payload: parsedPayload,
+    payload: normalizedPayload,
   };
 };
 

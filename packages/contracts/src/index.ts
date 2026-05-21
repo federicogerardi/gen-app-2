@@ -22,6 +22,16 @@
  */
 
 export {
+  EXTRACTION_FIELD_KEYS,
+  InstructionRequiredExtractionFieldKeysByTool,
+  isExtractionFieldKey,
+  LegacyExtractionFieldAliasByTool,
+  normalizeExtractionFieldKeysForTool,
+  ReadinessRequiredExtractionFieldKeysByTool,
+} from './extraction-fields';
+export type { ExtractionFieldKey } from './extraction-fields';
+
+export {
   GENERATION_ROUTE_TOOL_KEY,
   isGenerationRequestToolKey,
   isGenerationRouteToolKey,

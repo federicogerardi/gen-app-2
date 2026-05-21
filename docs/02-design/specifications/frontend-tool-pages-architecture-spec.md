@@ -205,11 +205,11 @@ export function getToolFormConfig(toolKey: ToolKey): ToolFormConfig {
 
 ### 2.3 Tool File Instructions Key-To-Label Matrix (Operational Convergence)
 
-To align Tool Workspace guidance with DDD-079:
+Runtime convergence for DDD-079/DDD-080 is active:
 
-- the registry should converge to `ExtractionFieldKey[]` as source data for required fields;
-- UI rendering should project keys to localized `ExtractionFieldLabel` values;
-- mixed lists (localized labels + raw keys in one list) are transitional drift.
+- registry source uses canonical `requiredFieldKeys: ExtractionFieldKey[]`;
+- selector output projects keys to localized `ExtractionFieldLabel` values;
+- mixed lists (localized labels + raw keys in one list) are removed from Tool Workspace rendering.
 
 Current operational matrix:
 
@@ -219,32 +219,33 @@ Current operational matrix:
 | `youtube-lf-script` | `avatar` | Avatar | contract-backed |
 | `youtube-lf-script` | `pain_point` | Pain point | contract-backed |
 | `youtube-lf-script` | `purchase_process_type` | Purchase process type | contract-backed |
-| `youtube-lf-script` | `offer` | Offer | contract-backed |
+| `youtube-lf-script` | `offer` | Offerta | contract-backed |
 | `youtube-lf-script` | `proof` | Proof | contract-backed |
 | `youtube-lf-script` | `target_duration_minutes` | Target duration (minutes) | contract-backed |
 | `youtube-lf-script` | `proprietary_methodology_disclosure` | Proprietary methodology disclosure | contract-backed |
-| `funnel-pages` | `funnel_goal` | Obiettivo del funnel | provisional |
-| `funnel-pages` | `target_audience` | Target | provisional |
-| `funnel-pages` | `offer` | Offerta | provisional |
-| `funnel-pages` | `proof` | Proof o testimonianze | provisional |
-| `funnel-pages` | `primary_cta` | CTA principale | provisional |
-| `nextland` | `website_goal` | Obiettivo del sito | provisional |
-| `nextland` | `brand_or_company` | Brand o azienda | provisional |
-| `nextland` | `target_audience` | Target | provisional |
-| `nextland` | `offer_or_service` | Offerta o servizio | provisional |
-| `nextland` | `required_sections` | Sezioni richieste | provisional |
-| `angle-generator` | `goal` | Obiettivo | provisional |
-| `angle-generator` | `product_or_service` | Prodotto o servizio | provisional |
-| `angle-generator` | `market` | Mercato | provisional |
-| `angle-generator` | `target_audience` | Target | provisional |
-| `angle-generator` | `pain_point` | Pain point | provisional |
-| `angle-generator` | `proof` | Proof | provisional |
-| `angle-generator` | `creative_constraints` | Vincoli creativi | provisional |
+| `funnel-pages` | `funnel_goal` | Obiettivo del funnel | contract-backed |
+| `funnel-pages` | `target_audience` | Target | contract-backed |
+| `funnel-pages` | `offer` | Offerta | contract-backed |
+| `funnel-pages` | `proof` | Proof | contract-backed |
+| `funnel-pages` | `primary_cta` | CTA principale | contract-backed |
+| `nextland` | `website_goal` | Obiettivo del sito | contract-backed |
+| `nextland` | `brand_or_company` | Brand o azienda | contract-backed |
+| `nextland` | `target_audience` | Target | contract-backed |
+| `nextland` | `offer_or_service` | Offerta o servizio | contract-backed |
+| `nextland` | `required_sections` | Sezioni richieste | contract-backed |
+| `angle-generator` | `goal` | Obiettivo | contract-backed |
+| `angle-generator` | `product_or_service` | Prodotto o servizio | contract-backed |
+| `angle-generator` | `market` | Mercato | contract-backed |
+| `angle-generator` | `target_audience` | Target | contract-backed |
+| `angle-generator` | `pain_point` | Pain point | contract-backed |
+| `angle-generator` | `proof` | Proof | contract-backed |
+| `angle-generator` | `creative_constraints` | Vincoli creativi | contract-backed |
 
 Implementation note:
 
-- `contract-backed` entries are already represented as key-based required fields in the current registry.
-- `provisional` entries are documented convergence targets and require naming decision-log registration before runtime contract adoption.
+- shared canonical matrix contract: `packages/contracts/src/extraction-fields.ts`.
+- frontend projection + compile-time coverage guard: `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts`.
+- selector projection path (label-only UI output): `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`.
 
 ---
 

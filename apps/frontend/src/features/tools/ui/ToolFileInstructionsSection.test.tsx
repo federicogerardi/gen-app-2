@@ -16,6 +16,7 @@ describe('ToolFileInstructionsSection', () => {
     expect(accordion).toHaveAttribute('open');
     expect(screen.getByRole('heading', { name: 'Campi obbligatori' })).toBeInTheDocument();
     expect(screen.getByText('Obiettivo del funnel')).toBeInTheDocument();
+    expect(screen.getByText('Proof')).toBeInTheDocument();
     expect(screen.getByText('CTA principale')).toBeInTheDocument();
     expect(screen.queryByText('File richiesti')).toBeNull();
     expect(screen.queryByText('Tone of voice')).toBeNull();

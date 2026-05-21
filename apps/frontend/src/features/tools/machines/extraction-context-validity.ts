@@ -1,12 +1,8 @@
 import type { SupportedTool } from './tool-flow.machine';
-
-const YOUTUBE_REQUIRED_EXTRACTION_FIELDS = [
-  'knowledge_content',
-  'avatar',
-  'pain_point',
-  'offer',
-  'proof',
-] as const;
+import {
+  ReadinessRequiredExtractionFieldKeysByTool,
+  normalizeExtractionFieldKeysForTool,
+} from '../runtime/extraction-field-matrix';
 
 type ExtractionContextValidityOptions = {
   allowEmptyPayload?: boolean;
@@ -36,14 +32,15 @@ export const hasActionableExtractionPayload = (
   return Object.keys(payload).length > 0;
 };
 
-const hasRequiredYoutubeExtractionFields = (
+export const hasRequiredExtractionFields = (
   payload: Record<string, unknown> | null | undefined,
+  keys: readonly string[],
 ): boolean => {
   if (!payload) {
     return false;
   }
 
-  return YOUTUBE_REQUIRED_EXTRACTION_FIELDS.every((field) => hasNonEmptyString(payload[field]));
+  return keys.every((field) => hasNonEmptyString(payload[field]));
 };
 
 export const isExtractionContextValidForTool = (
@@ -52,6 +49,8 @@ export const isExtractionContextValidForTool = (
   normalizedText: string | null | undefined,
   options: ExtractionContextValidityOptions = {},
 ): boolean => {
+  const normalizedPayload = normalizeExtractionFieldKeysForTool(toolKey, payload);
+
   const logInvalidContext = (
     message: string,
     details: {
@@ -72,32 +71,29 @@ export const isExtractionContextValidForTool = (
   if (!hasNonEmptyString(normalizedText)) {
     logInvalidContext('[isExtractionContextValidForTool] normalizedText vuoto o mancante', {
       normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
-      extractionPayloadKeys: Object.keys(payload ?? {}).length,
+      extractionPayloadKeys: Object.keys(normalizedPayload).length,
     });
     return false;
   }
 
-  if (!options.allowEmptyPayload && !hasActionableExtractionPayload(payload)) {
+  if (!options.allowEmptyPayload && !hasActionableExtractionPayload(normalizedPayload)) {
     logInvalidContext('[isExtractionContextValidForTool] extractionPayload vuoto o mancante', {
       normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
-      extractionPayloadKeys: Object.keys(payload ?? {}).length,
+      extractionPayloadKeys: Object.keys(normalizedPayload).length,
     });
     return false;
   }
 
-  if (toolKey === 'youtube-lf-script') {
-    const valid = hasRequiredYoutubeExtractionFields(payload);
-    if (!valid) {
-      logInvalidContext(
-        '[isExtractionContextValidForTool] Campi obbligatori mancanti per youtube-lf-script',
-        {
-          normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
-          extractionPayloadKeys: Object.keys(payload ?? {}).length,
-        },
-      );
-    }
-    return valid;
+  const requiredFieldKeys = ReadinessRequiredExtractionFieldKeysByTool[toolKey];
+  const valid = hasRequiredExtractionFields(normalizedPayload, requiredFieldKeys);
+  if (!valid) {
+    logInvalidContext(
+      `[isExtractionContextValidForTool] Campi obbligatori mancanti per ${toolKey}`,
+      {
+        normalizedTextLength: typeof normalizedText === 'string' ? normalizedText.length : 0,
+        extractionPayloadKeys: Object.keys(normalizedPayload).length,
+      },
+    );
   }
-
-  return true;
+  return valid;
 };

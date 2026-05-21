@@ -6,6 +6,7 @@
 import { TOOL_STEP_DEPENDENCIES, TOOL_STEP_ORDER } from '@gen-app-2/contracts';
 import { appCopy } from '../../../app/copy/system';
 import type { ToolStep, SupportedTool } from '../machines/tool-flow.machine';
+import type { ExtractionFieldKey } from './extraction-field-matrix';
 
 /**
  * Configuration for a tool page form
@@ -34,7 +35,9 @@ export type ToolFileInstructionsConfig = {
   title: string;
   summary: string;
   requiredFiles: readonly string[];
-  requiredFields: readonly string[];
+  requiredFieldKeys: readonly ExtractionFieldKey[];
+  // Deprecated alias retained for one deprecation cycle.
+  requiredFields?: readonly string[];
   optionalFields: readonly string[];
   examples: readonly string[];
   notes: readonly string[];
@@ -125,7 +128,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     title: appCopy.ui.toolInstructions.title,
     summary: 'Carica un solo BriefingFile completo: il funnel viene costruito a partire da obiettivo, target e offerta.',
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
-    requiredFields: ['Obiettivo del funnel', 'Target', 'Offerta', 'Proof o testimonianze', 'CTA principale'],
+    requiredFieldKeys: ['funnel_goal', 'target_audience', 'offer', 'proof', 'primary_cta'],
     optionalFields: ['Vincoli di tono', 'Riferimenti visual', 'Esempi di competitor', 'Note sul funnel attuale'],
     examples: [
       'Obiettivo: generare lead qualificati per il prodotto principale.',
@@ -138,7 +141,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     title: appCopy.ui.toolInstructions.title,
     summary: 'Usa un BriefingFile ordinato e descrittivo per definire sito, sezioni e risultato atteso.',
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
-    requiredFields: ['Obiettivo del sito', 'Brand o azienda', 'Target', 'Offerta o servizio', 'Sezioni richieste'],
+    requiredFieldKeys: ['website_goal', 'brand_or_company', 'target_audience', 'offer_or_service', 'required_sections'],
     optionalFields: ['Tone of voice', 'Referenze di stile', 'Vincoli di copy', 'Materiali già esistenti'],
     examples: [
       'Obiettivo: presentare il brand e portare l’utente alla pagina contatto.',
@@ -151,7 +154,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     title: appCopy.ui.toolInstructions.title,
     summary: 'Compila il brief con i campi canonici richiesti per l’estrazione e la generazione dello script long-form.',
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
-    requiredFields: [
+    requiredFieldKeys: [
       'knowledge_content',
       'avatar',
       'pain_point',
@@ -173,7 +176,16 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     title: appCopy.ui.toolInstructions.title,
     summary: 'Carica due file complementari: un BriefingFile e un AngleDetectorFile coerenti tra loro.',
     requiredFiles: ['BriefingFile (.docx, .txt, .md)', 'AngleDetectorFile (.docx, .txt, .md)'],
-    requiredFields: ['Obiettivo', 'Prodotto o servizio', 'Mercato', 'Target', 'Pain point', 'Proof', 'Vincoli creativi'],
+    requiredFieldKeys: [
+      'goal',
+      'product_or_service',
+      'market',
+      'target_audience',
+      'pain_point',
+      'offer',
+      'proof',
+      'creative_constraints',
+    ],
     optionalFields: ['Tone of voice', 'Esempi di angoli già usati', 'Benchmark o competitor', 'Note strategiche'],
     examples: [
       'Briefing: descrizione del brand e del prodotto da posizionare.',

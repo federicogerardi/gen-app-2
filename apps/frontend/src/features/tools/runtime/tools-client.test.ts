@@ -259,6 +259,44 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ offer: 'test', audience: 'cold' });
   });
 
+  it('runExtraction normalizes known legacy aliases to canonical extraction keys', async () => {
+    streamGenerationMock.mockImplementation(async (_request, options) => {
+      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
+      options.onEvent({
+        event: 'chunk',
+        data: {
+          artifactId: 'artifact-001',
+          chunk: JSON.stringify({
+            'Obiettivo del funnel': 'Lead generation',
+            Target: 'Founder',
+            Offerta: 'Audit',
+            'Proof o testimonianze': 'Case study',
+            'CTA principale': 'Prenota call',
+          }),
+          sequence: 1,
+        },
+      });
+      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    });
+
+    const result = await runExtraction({
+      userId: 'user-001',
+      projectId: 'project-001',
+      model: 'openrouter/auto',
+      toolKey: 'funnel-pages',
+      briefingId: 'brief-001',
+      briefingText: 'brief text',
+    });
+
+    expect(result.payload).toEqual({
+      funnel_goal: 'Lead generation',
+      target_audience: 'Founder',
+      offer: 'Audit',
+      proof: 'Case study',
+      primary_cta: 'Prenota call',
+    });
+  });
+
   it('runExtraction rejects top-level array payloads as insufficient extraction context', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });

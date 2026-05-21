@@ -12,6 +12,7 @@ import type {
 } from '../machines/tool-page.machine';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
+import { mapExtractionFieldKeysToLabels } from './extraction-field-matrix';
 import {
   toolFileInstructionsRegistry,
   type ToolFileInstructionsConfig,
@@ -355,4 +356,16 @@ export const selectInterruptedStep = (
 
 export const selectToolFileInstructions = (
   toolKey: SupportedTool,
-): ToolFileInstructionsConfig | null => toolFileInstructionsRegistry[toolKey] ?? null;
+): ToolFileInstructionsConfig | null => {
+  const instructions = toolFileInstructionsRegistry[toolKey];
+  if (!instructions) {
+    return null;
+  }
+
+  return {
+    ...instructions,
+    requiredFields:
+      instructions.requiredFields
+      ?? mapExtractionFieldKeysToLabels(instructions.requiredFieldKeys),
+  };
+};

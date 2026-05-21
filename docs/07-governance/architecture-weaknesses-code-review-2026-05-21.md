@@ -104,10 +104,15 @@ owner: Architecture Review
   - Closed for frontend persisted-artifact reload observability scope. Residual risk remains only for future regressions that remove or bypass `artifactsReloadError` propagation.
 
 - Runtime auth-http module includes dead imports/constants.
+- Status: CLOSED (2026-05-21).
 - Evidence:
-  - Unused symbols in [runtime.ts](../../apps/backend/src/lib/runtime/auth-http/runtime.ts).
+  - Dead symbols removed from [runtime.ts](../../apps/backend/src/lib/runtime/auth-http/runtime.ts#L1): `randomUUID`, `UpdateAuthUserInput`, `isSupportedToolWorkflow`, `extractStepFromArtifactInput`, `normalizePath`, `parseArtifactReadProjection`, and `LLM_MODEL_KEY_REGEX`.
+  - Import section is now reduced to active dependencies only in [runtime.ts](../../apps/backend/src/lib/runtime/auth-http/runtime.ts#L1).
+  - Post-remediation lexical scan returns no matches for the removed symbols in [runtime.ts](../../apps/backend/src/lib/runtime/auth-http/runtime.ts).
+  - Validation gate passed after remediation:
+    - `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` (exit code 0, 155 pass / 0 fail).
 - Risk:
-  - Not immediately functional-critical, but indicates weak static hygiene on a high-risk boundary module.
+  - Closed for static-hygiene scope in auth-http runtime boundary. Residual risk remains only for future regressions that reintroduce unused imports/constants.
 
 ### LOW
 

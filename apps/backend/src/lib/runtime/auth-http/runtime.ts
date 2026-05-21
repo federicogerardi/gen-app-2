@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { randomUUID } from 'node:crypto';
 
 import type { Pool } from 'pg';
 import type {
@@ -11,7 +10,6 @@ import type {
   AuthSessionPrincipal,
   AuthUserRole,
   AuthUserStatus,
-  UpdateAuthUserInput,
 } from '../../types/auth';
 import {
   DEFAULT_SESSION_TTL_MS,
@@ -29,10 +27,6 @@ import {
   writeSuccess,
 } from './support';
 import {
-  isSupportedToolWorkflow,
-  extractStepFromArtifactInput,
-} from '../tool-workflow-registry';
-import {
   createDefaultAuthIdGenerator,
   createGoogleOAuthRuntimeFromEnv,
   createDefaultPasswordHashRuntime,
@@ -42,12 +36,8 @@ import {
   type PasswordHashRuntime,
   type SessionCookieRuntime,
 } from '../auth-contract';
-import { normalizePath } from '../http-utils';
 import { createAuthHandlers } from './auth-handlers';
-import {
-  createProjectsHandlers,
-  parseArtifactReadProjection,
-} from './projects-handlers';
+import { createProjectsHandlers } from './projects-handlers';
 import { createPublicHandlers } from './public-handlers';
 import {
   buildRouteTable,
@@ -169,8 +159,6 @@ export const createAuthHttpRuntime = (
   };
 
   // ── LlmModelCatalog handlers ─────────────────────────────────────────────
-
-  const LLM_MODEL_KEY_REGEX = /^[a-zA-Z0-9/_\-.]+$/;
 
   const requireDb = (response: ServerResponse): Pool | null => {
     if (!db) {

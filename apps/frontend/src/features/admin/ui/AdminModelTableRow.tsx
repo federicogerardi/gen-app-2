@@ -1,6 +1,7 @@
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { AdminLlmModelRow } from '../llm/LLMTable';
+import { appCopy } from '../../../app/copy/system';
 
 type AdminModelTableRowProps = {
   model: AdminLlmModelRow;
@@ -31,7 +32,7 @@ export const AdminModelTableRow = ({
             onClick={() => onSetDefault(model)}
             disabled={busyAction !== null || model.isDefault}
           >
-            Predefinito
+            {appCopy.ui.actions.setAsDefault}
           </button>
 
           <button
@@ -40,7 +41,7 @@ export const AdminModelTableRow = ({
             onClick={() => onToggleStatus(model)}
             disabled={busyAction !== null}
           >
-            {model.status === 'enabled' ? 'Disabilita' : 'Abilita'}
+            {model.status === 'enabled' ? appCopy.ui.actions.disable : appCopy.ui.actions.enable}
           </button>
 
           <button
@@ -49,7 +50,7 @@ export const AdminModelTableRow = ({
             onClick={() => onDelete(model)}
             disabled={busyAction !== null}
           >
-            Elimina
+            {appCopy.ui.actions.delete}
           </button>
         </div>
       </td>

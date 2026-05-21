@@ -1,5 +1,6 @@
 import { assign, setup } from 'xstate';
 import { toolStepOrder, type SupportedTool, type ToolStep } from './tool-flow.machine';
+import { STREAM_CONFIG } from '../../../app/config/stream-config';
 
 type GenerationLifecycleInput = {
   toolKey: SupportedTool;
@@ -82,7 +83,7 @@ export const generationLifecycleMachine = setup({
       toolKey: input.toolKey,
       steps,
       currentIndex: resolveInitialIndex(steps, input.initialStep),
-      maxRetries: input.maxRetries ?? 3,
+      maxRetries: input.maxRetries ?? STREAM_CONFIG.defaultMaxRetries,
       retriesByStep: {},
       error: null,
     };

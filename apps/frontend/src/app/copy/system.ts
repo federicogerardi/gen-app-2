@@ -13,12 +13,18 @@ export const appCopy = {
     },
     badges: {
       runtimeAsIs: 'workspace attivo',
+      streaming: 'Streaming',
     },
     statusLabels: {
       // ArtifactLifecycleStatus / SessionSummary.status
       completed: 'Completato',
       failed: 'Con errore',
       generating: 'In corso',
+      // ToolStepStatus
+      idle: 'In attesa',
+      running: 'In generazione...',
+      done: 'Completato',
+      error: 'Errore',
       // AuthUserStatus
       active: 'Attivo',
       disabled: 'Disabilitato',
@@ -61,6 +67,13 @@ export const appCopy = {
       openToolWorkspace: 'Apri workspace',
       openArtifact: 'Apri artifact',
       openContextProject: 'Apri progetto',
+      viewArtifact: 'Visualizza',
+      setAsDefault: 'Predefinito',
+      enable: 'Abilita',
+      disable: 'Disabilita',
+      delete: 'Elimina',
+      edit: 'Modifica',
+      editUser: 'Modifica utente',
       newProject: 'Nuovo progetto',
       createProject: 'Crea progetto',
       createFirstProject: 'Crea il tuo primo progetto',
@@ -114,6 +127,7 @@ export const appCopy = {
       prompt: 'Prompt',
       promptFallback: 'Prompt di riserva',
       outputFormat: 'Formato di output',
+      format: 'Formato',
       workflowType: 'Tipo di flusso',
       toolKey: 'Tool',
       idempotencyKey: 'Chiave di idempotenza',
@@ -127,6 +141,15 @@ export const appCopy = {
     },
     toolInstructions: {
       title: 'Istruzioni compilazione file',
+    },
+    toolStep: {
+      viewArtifactTitle: "Apri l'artefatto completo",
+      stepGenerationFailed: 'Generazione non riuscita per questo step.',
+    },
+    artifactPreview: {
+      toolbarLabel: 'Modalita visualizzazione contenuto',
+      panelLabel: 'Preview contenuto artifact',
+      emptyContentLabel: 'Contenuto non disponibile.',
     },
     meta: {
       phase: 'phase',
@@ -167,11 +190,13 @@ export const appCopy = {
       loadingArtifact: 'Caricamento artifact...',
       loadingList: 'Caricamento...',
       noChunkReceived: 'In attesa del contenuto...',
+      disabling: 'Disabilitazione...',
       noArtifactsFiltered: 'Nessun artefatto disponibile con i filtri correnti.',
       noArtifactSelected: 'Seleziona un artefatto per vedere il dettaglio.',
       noArtifactFound: 'Artefatto non trovato.',
       noArtifactsAvailable: 'Nessun artefatto disponibile.',
       userUnavailable: 'Utente non disponibile',
+      projectUnavailable: 'Progetto non disponibile',
       noProjectFound: 'Progetto non trovato.',
       noProjectArtifacts: 'Nessun artefatto collegato al progetto.',
       noProjectsAvailable: 'Nessun progetto disponibile.',

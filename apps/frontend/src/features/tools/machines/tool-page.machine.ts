@@ -9,6 +9,7 @@ import { buildDefaultViewModel, buildToolPageViewModel, canStartFromPolicy } fro
 import { normalizeHydrateRequest, normalizePendingHydration, readHydrationMachineOutput } from './tool-page-hydration';
 import { buildEmptyProgressState, buildResetConfigState, buildSetProjectState, buildSyncProgressState } from './tool-page-machine-assignments';
 import type { ToolPageContext, ToolPageEvent, ToolPageInput } from './tool-page.types';
+import { STREAM_CONFIG } from '../../../app/config/stream-config';
 
 export type { HydrationResult } from './hydration.machine';
 export type { ReadinessReasonCode, ReadinessSnapshot } from './tool-page-readiness';
@@ -291,7 +292,7 @@ export const toolPageMachine = setup({
         src: 'generationLifecycleMachine',
         input: ({ context }) => ({
           toolKey: context.toolKey,
-          maxRetries: 3,
+          maxRetries: STREAM_CONFIG.defaultMaxRetries,
           initialStep: context.pendingStepStart?.step ?? null,
         }),
         onDone: {

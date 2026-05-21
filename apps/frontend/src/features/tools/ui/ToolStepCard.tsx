@@ -7,6 +7,8 @@ import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { Button } from '@mui/material';
 import type { ToolStep, ToolStepStatus, SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
+import { appCopy } from '../../../app/copy/system';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
 interface ToolStepCardProps {
   toolKey: SupportedTool;
@@ -21,13 +23,13 @@ interface ToolStepCardProps {
 const getStatusBadge = (status: ToolStepStatus): { label: string; className: string } => {
   switch (status) {
     case 'idle':
-      return { label: 'In attesa', className: 'ui-badge-idle' };
+      return { label: appCopy.ui.statusLabels.idle, className: 'ui-badge-idle' };
     case 'running':
-      return { label: 'In generazione...', className: 'ui-badge-running' };
+      return { label: appCopy.ui.statusLabels.running, className: 'ui-badge-running' };
     case 'done':
-      return { label: 'Completato', className: 'ui-badge-completed' };
+      return { label: appCopy.ui.statusLabels.done, className: 'ui-badge-completed' };
     case 'error':
-      return { label: 'Errore', className: 'ui-badge-error' };
+      return { label: appCopy.ui.statusLabels.error, className: 'ui-badge-error' };
   }
 };
 
@@ -59,12 +61,12 @@ export const ToolStepCard = ({
       {previewContent && (
         <div className="ui-tool-step-preview">
           <div className="ui-tool-step-preview-header">
-            <p className={uiPrimitives.metaLine}>Formato: {config.expectedOutputFormat}</p>
-            {isStreaming && <span className="ui-badge ui-badge-streaming">Streaming</span>}
+            <p className={uiPrimitives.metaLine}>{appCopy.ui.labels.format}: {config.expectedOutputFormat}</p>
+            {isStreaming && <span className="ui-badge ui-badge-streaming">{appCopy.ui.badges.streaming}</span>}
           </div>
           <div className="ui-tool-step-preview-content">
-            {previewContent.slice(0, 500)}
-            {previewContent.length > 500 && '...'}
+            {previewContent.slice(0, UI_CONFIG.preview.toolStepPreviewMaxChars)}
+            {previewContent.length > UI_CONFIG.preview.toolStepPreviewMaxChars && '...'}
           </div>
         </div>
       )}
@@ -76,13 +78,13 @@ export const ToolStepCard = ({
             type="button"
             variant="outlined"
             onClick={onViewArtifact}
-            title="Apri l'artefatto completo"
+            title={appCopy.ui.toolStep.viewArtifactTitle}
           >
-            Visualizza
+            {appCopy.ui.actions.viewArtifact}
           </Button>
         )}
         {status === 'error' && (
-          <p className={uiPrimitives.error}>Generazione non riuscita per questo step.</p>
+          <p className={uiPrimitives.error}>{appCopy.ui.toolStep.stepGenerationFailed}</p>
         )}
       </div>
     </Surface>

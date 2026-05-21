@@ -2,6 +2,7 @@ import { createActor } from 'xstate';
 import { describe, expect, it, vi } from 'vitest';
 import { authSessionMachine } from './auth-session.machine';
 import type { AuthSession } from '../../features/auth/runtime/auth-client';
+import { TEST_API_BASE_URL } from '../../test/fixtures';
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ const FAKE_SESSION: AuthSession = {
   },
 };
 
-const TEST_INPUT = { apiBaseUrl: 'http://localhost:3001' };
+const TEST_INPUT = { apiBaseUrl: TEST_API_BASE_URL };
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

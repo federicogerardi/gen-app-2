@@ -33,6 +33,7 @@ export type CreateToolsHandlersDependencies = {
   now: () => Date;
   toolsOrchestrateTimeoutMs: number;
   toolsOrchestrateArtifactScanLimit: number;
+  toolsHydrateArtifactScanLimit: number;
   parseRequestUrl: (request: IncomingMessage) => URL;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (

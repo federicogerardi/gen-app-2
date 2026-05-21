@@ -19,6 +19,7 @@ type ToolHydrateRequestBody = {
 export type CreateToolsHydrateHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
   now: () => Date;
+  toolsHydrateArtifactScanLimit: number;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (
     request: IncomingMessage,
@@ -39,6 +40,7 @@ export const createToolsHydrateHandlers = (
   const {
     repositories,
     now,
+    toolsHydrateArtifactScanLimit,
     parseJsonBody,
     requireSessionPrincipal,
     requireQueryRepositories,
@@ -204,6 +206,7 @@ export const createToolsHydrateHandlers = (
       type: 'extraction',
       status: 'completed',
       projectId,
+      limit: toolsHydrateArtifactScanLimit,
     });
 
     if (candidates.length === 0) {
@@ -247,11 +250,13 @@ export const createToolsHydrateHandlers = (
       return;
     }
 
-    const ranked = [...eligibleCandidates].sort((left, right) => {
-      return compareHydrateExtractionCandidates(sourceExtractionArtifactId, left, right);
-    });
-
-    const best = ranked[0]!;
+    let best = eligibleCandidates[0]!;
+    for (let index = 1; index < eligibleCandidates.length; index += 1) {
+      const candidate = eligibleCandidates[index]!;
+      if (compareHydrateExtractionCandidates(sourceExtractionArtifactId, candidate, best) < 0) {
+        best = candidate;
+      }
+    }
     const bestDetail = await queries.artifacts.getArtifactByIdForUser(
       principal.user.id,
       best.artifactId,
@@ -276,7 +281,7 @@ export const createToolsHydrateHandlers = (
     const parsedFormat = parsedFormatFromInput(bestDetail.input);
 
     debugLog('[auth-http] hydrate ranked extraction artifact resolved', {
-      rankedCandidateCount: ranked.length,
+      rankedCandidateCount: eligibleCandidates.length,
       projectId,
       hasSourceArtifactId: sourceArtifactId != null,
       hasSourceExtractionArtifactId: sourceExtractionArtifactId != null,

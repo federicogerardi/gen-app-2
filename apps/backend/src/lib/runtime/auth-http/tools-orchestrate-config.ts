@@ -1,5 +1,6 @@
 export const DEFAULT_TOOLS_ORCHESTRATE_TIMEOUT_MS = 3_000;
 export const DEFAULT_TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT = 1_000;
+export const DEFAULT_TOOLS_HYDRATE_ARTIFACT_SCAN_LIMIT = 1_000;
 
 const parsePositiveInteger = (raw: string | undefined, fallback: number): number => {
   if (!raw) {
@@ -33,5 +34,16 @@ export const resolveToolsOrchestrateArtifactScanLimit = (input?: number): number
   return parsePositiveInteger(
     process.env.TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT,
     DEFAULT_TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT,
+  );
+};
+
+export const resolveToolsHydrateArtifactScanLimit = (input?: number): number => {
+  if (typeof input === 'number' && Number.isFinite(input) && input > 0) {
+    return Math.trunc(input);
+  }
+
+  return parsePositiveInteger(
+    process.env.TOOLS_HYDRATE_ARTIFACT_SCAN_LIMIT,
+    DEFAULT_TOOLS_HYDRATE_ARTIFACT_SCAN_LIMIT,
   );
 };

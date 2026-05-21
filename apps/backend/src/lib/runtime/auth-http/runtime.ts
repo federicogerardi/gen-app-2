@@ -46,6 +46,7 @@ import {
 } from './route-table';
 import { createToolsHandlers } from './tools-handlers';
 import {
+  resolveToolsHydrateArtifactScanLimit,
   resolveToolsOrchestrateArtifactScanLimit,
   resolveToolsOrchestrateTimeoutMs,
 } from './tools-orchestrate-config';
@@ -66,6 +67,7 @@ export type AuthHttpRuntimeOptions = {
   googleOAuthSuccessRedirectPath?: string;
   toolsOrchestrateTimeoutMs?: number;
   toolsOrchestrateArtifactScanLimit?: number;
+  toolsHydrateArtifactScanLimit?: number;
   idGenerator?: AuthIdGenerator;
   now?: () => Date;
   sessionTtlMs?: number;
@@ -86,6 +88,9 @@ export const createAuthHttpRuntime = (
   const toolsOrchestrateTimeoutMs = resolveToolsOrchestrateTimeoutMs(options.toolsOrchestrateTimeoutMs);
   const toolsOrchestrateArtifactScanLimit = resolveToolsOrchestrateArtifactScanLimit(
     options.toolsOrchestrateArtifactScanLimit,
+  );
+  const toolsHydrateArtifactScanLimit = resolveToolsHydrateArtifactScanLimit(
+    options.toolsHydrateArtifactScanLimit,
   );
   const sessionCookies = options.sessionCookies ?? createDefaultSessionCookieRuntime();
   const passwordHashing = options.passwordHashing ?? createDefaultPasswordHashRuntime();
@@ -211,6 +216,7 @@ export const createAuthHttpRuntime = (
     now,
     toolsOrchestrateTimeoutMs,
     toolsOrchestrateArtifactScanLimit,
+    toolsHydrateArtifactScanLimit,
     parseRequestUrl,
     parseJsonBody,
     requireSessionPrincipal,

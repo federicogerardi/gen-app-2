@@ -8,6 +8,7 @@ import {
   buildIdempotencyRedisLockKey,
   createPostgresRedisProductionGenerationAdapters,
 } from '../adapters';
+import { createSmokeCleanup } from './smoke-cleanup';
 
 const requiredEnv = (name: 'DATABASE_URL'): string => {
   const value = process.env[name];
@@ -31,10 +32,9 @@ const run = async () => {
 
   const pg = new Pool({ connectionString: databaseUrl });
   const redis = new Redis(redisUrl);
+  const cleanup = createSmokeCleanup();
 
   const usageRedisKeyPrefix = 'generation:usage:smoke-conflict';
-  let lockKey: string | null = null;
-  let concurrentUserId: string | null = null;
 
   try {
     const adapters = createPostgresRedisProductionGenerationAdapters(
@@ -69,16 +69,24 @@ const run = async () => {
       [idemInput.userId, idemInput.projectId, 'generation', idemInput.idempotencyKey],
     );
 
-    lockKey = buildIdempotencyRedisLockKey('generation:idempotency', idemInput, 'generation');
+    const lockKey = buildIdempotencyRedisLockKey('generation:idempotency', idemInput, 'generation');
+    cleanup.register(async () => {
+      await redis.del(lockKey);
+    });
     await redis.set(lockKey, 'lock-present', 'EX', 900, 'NX');
 
     const result = await adapters.idempotency.checkAndClaim(idemInput);
     assert.equal(result.status, 'conflict');
 
     const runSuffix = randomUUID().slice(0, 8);
-    concurrentUserId = `seed-user-concurrency-${runSuffix}`;
+    const concurrentUserId = `seed-user-concurrency-${runSuffix}`;
     const concurrentProjectId = `seed-project-concurrency-${runSuffix}`;
     const concurrentEmail = `seed-user-concurrency-${runSuffix}@example.com`;
+
+    cleanup.register(async () => {
+      await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
+      await pg.query(`DELETE FROM users WHERE id = $1`, [concurrentUserId]);
+    });
 
     await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
 
@@ -126,15 +134,7 @@ const run = async () => {
     console.log('Smoke OK: lock present -> conflict');
     console.log('Smoke OK: parallel usage claims -> one grant, one quota_exhausted');
   } finally {
-    if (lockKey) {
-      await redis.del(lockKey);
-    }
-
-    if (concurrentUserId) {
-      await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
-      await pg.query(`DELETE FROM users WHERE id = $1`, [concurrentUserId]);
-    }
-
+    await cleanup.run();
     await redis.quit();
     await pg.end();
   }

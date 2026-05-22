@@ -10,8 +10,6 @@ tags: [refactor, frontend, ddd, ux, tool-workspace, workflow-panel]
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
-
 This plan defines the deterministic implementation path for the Tool Workspace Page refactor that unifies process feedback in Workflow Panel and introduces persistent InputFilePayloadStatus visibility across input, monitoring, and completion phases.
 
 ## 1. Requirements & Constraints
@@ -212,14 +210,18 @@ Checklist usage rule: implementation is not review-ready until all VAC rows are 
 
 ## 8. Related Specifications / Further Reading
 
-- docs/ux/tool-page-sidebar-unified-flow.md
-- docs/07-governance/domain-naming-decision-log.md
-- docs/01-requirements/domain-ubiquitous-language-glossary.md
-- docs/02-design/domain-bounded-context-map.md
-- docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md
-- docs/02-design/specifications/tool-page-frontend-runtime-spec.md
-- docs/02-design/specifications/frontend-tool-pages-architecture-spec.md
-- plan/refactor-ddd-081-tool-input-policy-1.md
+### UX Quick Links
+
+- [UX Proposal - Tool Workspace Workflow Panel Unificato](../docs/ux/tool-page-sidebar-unified-flow.md)
+- [Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+- [Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
+- [Frontend Tool Pages Architecture Spec](../docs/02-design/specifications/frontend-tool-pages-architecture-spec.md)
+- [Frontend Design System and UI Kit Guide](../docs/02-design/specifications/frontend-design-system-ui-kit-guide.md)
+
+- [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
+- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
+- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
+- [Related Plan - Tool Input Policy](./refactor-ddd-081-tool-input-policy-1.md)
 
 ## 9. Sub-Agent Delegation Guidance
 

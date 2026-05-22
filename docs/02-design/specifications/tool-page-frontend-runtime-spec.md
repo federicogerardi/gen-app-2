@@ -430,6 +430,21 @@ All props come from `useToolPage` return value. Selected mapping:
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
 
+### 9.1 Workflow Panel Feedback Centralization (planned convergence)
+
+Canonical UX convergence target for Tool Workspace Page feedback is documented in:
+
+- `docs/ux/tool-page-sidebar-unified-flow.md`
+- `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
+
+Convergence rule accepted on 2026-05-23:
+
+- Process-feedback messages are centralized in Workflow Panel (`inline-action`) and removed from Setup Panel.
+- `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA.
+- Input-file RHF display errors below upload controls are suppressed; validation remains active for submit blocking.
+
+Implementation ownership remains in `ToolPageTemplate` + `ToolGenerationFlowVertical` with deterministic mapping order defined by the plan tasks (`TASK-013`, `TASK-014`, `TASK-017`).
+
 ---
 
 ## 9b. DDD-081 File Policy Derivations

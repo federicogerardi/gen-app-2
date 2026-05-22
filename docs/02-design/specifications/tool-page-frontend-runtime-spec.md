@@ -422,28 +422,40 @@ All props come from `useToolPage` return value. Selected mapping:
 | `machineViewModel` | `toolPageSnapshot.context.viewModel` | Drives CTA label and enabled state |
 | `readinessSnapshot` | `toolPageSnapshot.context.readiness` | Guards CTA click |
 | `effectiveCanonicalState` | Computed: `isGenerating \|\| generation.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
-| `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA |
-| `briefingError` | `briefingSnapshot.context.error` | Rendered in Setup Panel briefing area |
-| `completedStepsForFlow` | `progressState.completedSteps` | Passed to `ToolGenerationFlowVertical` |
-| `currentRunningStep` | `streamingStep` | Highlights active step in flow panel |
+| `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
+| `briefingError` | `briefingSnapshot.context.error` | Mapped into `workflowPanelFeedback` as error item (DDD-063) |
+| `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |
+| `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Passed to `ToolGenerationFlowVertical` (DDD-063) |
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
 
-### 9.1 Workflow Panel Feedback Centralization (planned convergence)
+### 9.1 Workflow Panel Feedback Centralization (implemented 2026-05-27)
 
-Canonical UX convergence target for Tool Workspace Page feedback is documented in:
+Canonical UX convergence for Tool Workspace Page feedback is documented in:
 
 - `docs/ux/tool-page-sidebar-unified-flow.md`
 - `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
 
-Convergence rule accepted on 2026-05-23:
+**Convergence rule implemented:**
 
-- Process-feedback messages are centralized in Workflow Panel (`inline-action`) and removed from Setup Panel.
-- `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA.
-- Input-file RHF display errors below upload controls are suppressed; validation remains active for submit blocking.
+- Process-feedback messages are centralized in Workflow Panel (`inline-action`) via `workflowPanelFeedback: WorkflowPanelFeedbackItem[]` prop.
+- `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA (DDD-061).
+- Input-file RHF display errors below upload controls are removed; validation remains active for submit blocking.
+- Requirement checklist (old `ReqItem` sub-component) is replaced by persistent `InputFilePayloadStatus[]` section visible in all phases.
+- Step-list (old `StepRow` sub-component + step progress bar) is replaced by indeterminate progress bar for `running`/`paused-with-checkpoint` states.
 
-Implementation ownership remains in `ToolPageTemplate` + `ToolGenerationFlowVertical` with deterministic mapping order defined by the plan tasks (`TASK-013`, `TASK-014`, `TASK-017`).
+**New `ToolGenerationFlowVertical` props contract:**
+
+| Prop | Type | Description |
+|---|---|---|
+| `canonicalState` | `CanonicalToolUiState` | Visual phase driver |
+| `projectName` | `string \| null` | Context label |
+| `inputFilePayload` | `InputFilePayloadStatus[]` | File status rows — persistent across all phases (DDD-082) |
+| `workflowPanelFeedback` | `WorkflowPanelFeedbackItem[]` | Aggregated feedback items — any phase (DDD-063) |
+| `errorMessage` | `string \| null` | Machine-level error banner |
+
+**Removed props (old contract):** `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`.
 
 ---
 
@@ -496,6 +508,7 @@ Deterministic outcomes:
 |---|---|
 | `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` | 4/4 passing (2026-05-11). Covers: basic render, effect #7 dispatch flow, CANCEL_GENERATION recovery, ExtractionContextBridge idempotency |
 | `apps/frontend/src/features/tools/runtime/tools-client.test.ts` | `createStepRequest` + extraction assembly (lines 134–187) |
+| `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx` | 5/5 passing (2026-05-27). Covers: idle phase payload rows, feedback error/info items, monitoring phase indeterminate bar, completion phase, missing required file feedback |
 
 ---
 
@@ -503,5 +516,6 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |

@@ -1,5 +1,4 @@
 import { assign, fromPromise, setup, type ActorRefFrom } from 'xstate';
-import { appCopy } from '../../../app/copy/system';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
@@ -411,7 +410,7 @@ export const briefingUploadMachine = setup({
           guard: ({ context }) => !!context.file && context.projectId.trim().length === 0,
           target: 'idle',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.projectRequired,
+            error: () => 'Seleziona prima un progetto',
             file: () => null,
           }),
         },
@@ -427,7 +426,8 @@ export const briefingUploadMachine = setup({
           },
           target: 'idle',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.requiredFilesMissing,
+            error: () => 'Carica i file richiesti per continuare.',
+            // Keep selected briefing in context to allow progressive two-file completion.
             angleDetectorNormalizedText: () => null,
             angleDetectorParsedFormat: () => null,
           }),
@@ -435,7 +435,7 @@ export const briefingUploadMachine = setup({
         {
           target: 'idle',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.unsupportedBriefingFormat,
+            error: () => 'Formato non supportato. Usa .docx, .txt o .md',
             file: () => null,
             fileName: () => null,
             angleDetectorFile: () => null,
@@ -473,7 +473,7 @@ export const briefingUploadMachine = setup({
               if (!output) {
                 return {
                   ...context,
-                  error: appCopy.ui.toolPage.runtimeErrors.uploadFailed,
+                  error: 'Errore durante upload',
                   file: null,
                   fileName: null,
                 };
@@ -496,7 +496,7 @@ export const briefingUploadMachine = setup({
             target: 'idle',
             actions: assign(({ context }) => ({
               ...context,
-              error: appCopy.ui.session.unavailable,
+              error: 'Sessione non disponibile. Ricarica la pagina.',
               file: null,
               fileName: null,
               angleDetectorFile: null,
@@ -510,7 +510,7 @@ export const briefingUploadMachine = setup({
           target: 'idle',
           actions: assign(({ context, event }) => ({
             ...context,
-            error: readErrorMessage((event as { error: unknown }).error, appCopy.ui.toolPage.runtimeErrors.uploadFailed),
+            error: readErrorMessage((event as { error: unknown }).error, 'Errore durante upload'),
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),
@@ -576,7 +576,7 @@ export const briefingUploadMachine = setup({
               if (!output) {
                 return {
                   ...context,
-                  error: appCopy.ui.toolPage.runtimeErrors.extractionFailed,
+                  error: 'Errore durante estrazione',
                   file: null,
                   fileName: null,
                   angleDetectorFile: null,
@@ -609,7 +609,7 @@ export const briefingUploadMachine = setup({
               extractionPayload: null,
               normalizedText: null,
               parsedFormat: null,
-                  error: appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient,
+              error: 'extraction_context_insufficient',
             })),
           },
         ],
@@ -617,7 +617,7 @@ export const briefingUploadMachine = setup({
           target: 'idle',
           actions: assign(({ context, event }) => ({
             ...context,
-            error: readErrorMessage((event as { error: unknown }).error, appCopy.ui.toolPage.runtimeErrors.extractionFailed),
+            error: readErrorMessage((event as { error: unknown }).error, 'Errore durante estrazione'),
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),

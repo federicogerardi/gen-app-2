@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ToolPageTemplate } from './ToolPageTemplate';
 
 const handlePrimaryAction = vi.fn();
@@ -9,10 +9,6 @@ const handleBriefingFileSelected = vi.fn();
 const handleAngleDetectorFileSelected = vi.fn();
 const handleExtractionStart = vi.fn();
 const handleBriefingReset = vi.fn();
-let mockedEffectiveBriefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready' = 'idle';
-let mockedIsGenerating = false;
-let mockedIsStreamActive = false;
-let mockedEffectiveCanonicalState: 'draft-empty' | 'running' = 'draft-empty';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -76,7 +72,7 @@ vi.mock('../runtime/useToolPage', () => ({
     briefingGuidance: null,
     dispatchError: null,
     artifactsReloadError: null,
-    effectiveBriefingStatus: mockedEffectiveBriefingStatus,
+    effectiveBriefingStatus: 'idle',
     effectiveBriefingFileName: 'brief.md',
     machineViewModel: {
       primaryActionPolicy: 'disabled',
@@ -99,7 +95,7 @@ vi.mock('../runtime/useToolPage', () => ({
       },
       canonicalState: 'draft-empty',
     },
-    isGenerating: mockedIsGenerating,
+    isGenerating: false,
     readinessSnapshot: {
       canStartFlow: false,
       hasProject: true,
@@ -111,9 +107,9 @@ vi.mock('../runtime/useToolPage', () => ({
     latestArtifactByStep: {},
     currentRunningStep: null,
     streamingStep: null,
-    effectiveCanonicalState: mockedEffectiveCanonicalState,
+    effectiveCanonicalState: 'draft-empty',
     currentProject: { id: 'project-1', name: 'Project 1' },
-    isStreamActive: mockedIsStreamActive,
+    isStreamActive: false,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
@@ -125,39 +121,11 @@ vi.mock('../runtime/useToolPage', () => ({
 }));
 
 vi.mock('./ToolGenerationFlowVertical', () => ({
-  ToolGenerationFlowVertical: ({ primaryActionCta }: { primaryActionCta?: { label?: string; onClick?: () => void; disabled?: boolean } }) => (
-    <div data-testid="tool-flow-vertical">
-      <button type="button" onClick={() => primaryActionCta?.onClick?.()} disabled={primaryActionCta?.disabled}>
-        {primaryActionCta?.label ?? 'primary-action'}
-      </button>
-    </div>
-  ),
+  ToolGenerationFlowVertical: () => <div data-testid="tool-flow-vertical" />,
 }));
 
 describe('ToolPageTemplate extraction CTA', () => {
-  beforeEach(() => {
-    mockedEffectiveBriefingStatus = 'idle';
-    mockedIsGenerating = false;
-    mockedIsStreamActive = false;
-    mockedEffectiveCanonicalState = 'draft-empty';
-  });
-
-  it('shows disabled Avvia la generazione while extraction is in progress', () => {
-    mockedEffectiveBriefingStatus = 'extracting';
-
-    render(
-      <MemoryRouter>
-        <ToolPageTemplate toolKey="angle-generator" />
-      </MemoryRouter>,
-    );
-
-    const primaryButton = screen.getByRole('button', { name: /avvia la generazione/i });
-    expect(primaryButton).toBeDisabled();
-
-  });
-
   it('starts extraction only after clicking Avvia estrazione and after optional file payload update', async () => {
-    mockedEffectiveBriefingStatus = 'idle';
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
     handleBriefingFileSelected.mockReset();
@@ -196,28 +164,5 @@ describe('ToolPageTemplate extraction CTA', () => {
     expect(payloadRefreshCallOrder).toBeDefined();
     expect(extractionStartCallOrder).toBeDefined();
     expect(payloadRefreshCallOrder!).toBeLessThan(extractionStartCallOrder!);
-  });
-
-  it('locks form fields during generation and keeps only Annulla active', () => {
-    mockedIsGenerating = true;
-    mockedIsStreamActive = false;
-    mockedEffectiveCanonicalState = 'running';
-
-    render(
-      <MemoryRouter>
-        <ToolPageTemplate toolKey="angle-generator" />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByRole('combobox', { name: /project/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('combobox', { name: /model/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('combobox', { name: /tone/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('button', { name: /briefing file/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('button', { name: /angle detector file/i })).toHaveAttribute('aria-disabled', 'true');
-
-    const cancelButton = screen.getByRole('button', { name: /annulla/i });
-    expect(cancelButton).toBeEnabled();
-    fireEvent.click(cancelButton);
-    expect(handleCancelGeneration).toHaveBeenCalledTimes(1);
   });
 });

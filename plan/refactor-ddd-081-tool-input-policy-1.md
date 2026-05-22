@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-05-22
 last_updated: 2026-05-22
 owner: Frontend Platform Team
-status: Planned
+status: Completed
 tags: [refactor, frontend, ddd, policy-alignment, tools]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines deterministic implementation steps to remove code drift against DDD-081 by introducing a policy-driven model for tool input files in Frontend Tool Workspace flows. The target outcome is: first file always required, each file from index 1 onward explicitly classified as required or optional by tool setting, with runtime enforcement and tests.
 
@@ -44,11 +44,11 @@ This plan defines deterministic implementation steps to remove code drift agains
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Add a new typed model in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`: `ToolInputFilePolicyEntry` with fields `{ key, label, accept, requiredness }`, where `requiredness` is `'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting'`. |  |  |
-| TASK-002 | Extend `ToolFileInstructionsConfig` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` to include `inputFiles: readonly ToolInputFilePolicyEntry[]` and mark `requiredFiles` as transitional/deprecated field for one cycle. |  |  |
-| TASK-003 | Migrate all entries in `toolFileInstructionsRegistry` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` to include `inputFiles` and enforce deterministic indexing: file[0] always `always-required`; file[1..N] explicitly classified. |  |  |
-| TASK-004 | For `angle-generator` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`, map `BriefingFile` as `always-required` and `AngleDetectorFile` as `required-by-tool-setting`; keep existing labels and accepted extensions. |  |  |
-| TASK-005 | Add a local invariant helper in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` validating each tool config: first file exists and is `always-required`; no undefined requiredness on subsequent files. |  |  |
+| TASK-001 | Add a new typed model in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`: `ToolInputFilePolicyEntry` with fields `{ key, label, accept, requiredness }`, where `requiredness` is `'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting'`. | yes | 2026-05-22 |
+| TASK-002 | Extend `ToolFileInstructionsConfig` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` to include `inputFiles: readonly ToolInputFilePolicyEntry[]` and mark `requiredFiles` as transitional/deprecated field for one cycle. | yes | 2026-05-22 |
+| TASK-003 | Migrate all entries in `toolFileInstructionsRegistry` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` to include `inputFiles` and enforce deterministic indexing: file[0] always `always-required`; file[1..N] explicitly classified. | yes | 2026-05-22 |
+| TASK-004 | For `angle-generator` in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`, map `BriefingFile` as `always-required` and `AngleDetectorFile` as `optional-by-tool-setting`; keep existing labels and accepted extensions. | yes | 2026-05-22 |
+| TASK-005 | Add a local invariant helper in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` validating each tool config: first file exists and is `always-required`; no undefined requiredness on subsequent files. | yes | 2026-05-22 |
 
 ### Implementation Phase 2
 
@@ -62,14 +62,14 @@ This plan defines deterministic implementation steps to remove code drift agains
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-006 | Update `selectToolFileInstructions` in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` to project `inputFiles` into explicit display groups: `alwaysRequiredFiles`, `requiredBySettingFiles`, `optionalBySettingFiles`. |  |  |
-| TASK-007 | Update `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.tsx` to render file policy groups before required extraction fields, showing deterministic headings for each group. |  |  |
-| TASK-008 | Update `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.test.tsx` to assert file-group rendering and remove expectation that `File richiesti` is always absent. |  |  |
-| TASK-009 | Replace hardcoded angle-generator branch in `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (`props.toolKey === 'angle-generator'`) with dynamic rendering from `inputFiles` selector output. |  |  |
-| TASK-010 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, replace generic optional zod file fields with policy-driven validation (file[0] required always, file[1..N] required by policy only). |  |  |
-| TASK-021 | In `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`, expose deterministic file-completion derivations: `requiredFilesComplete`, `missingRequiredFiles`, `missingOptionalFiles`. |  |  |
-| TASK-022 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, add advisory component copy for missing optional files (non-blocking) and blocking copy for missing required files, both derived from selector outputs only. |  |  |
-| TASK-023 | In `apps/frontend/src/features/tools/machines/tool-page.machine.ts` readiness derivation, ensure required-file completeness gates readiness while optional-file completeness never gates readiness. |  |  |
+| TASK-006 | Update `selectToolFileInstructions` in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` to project `inputFiles` into explicit display groups: `alwaysRequiredFiles`, `requiredBySettingFiles`, `optionalBySettingFiles`. | yes | 2026-05-22 |
+| TASK-007 | Update `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.tsx` to render file policy groups before required extraction fields, showing deterministic headings for each group. | yes | 2026-05-22 |
+| TASK-008 | Update `apps/frontend/src/features/tools/ui/ToolFileInstructionsSection.test.tsx` to assert file-group rendering and remove expectation that `File richiesti` is always absent. | yes | 2026-05-22 |
+| TASK-009 | Replace hardcoded angle-generator branch in `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (`props.toolKey === 'angle-generator'`) with dynamic rendering from `inputFiles` selector output. | yes | 2026-05-22 |
+| TASK-010 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, replace generic optional zod file fields with policy-driven validation (file[0] required always, file[1..N] required by policy only). | yes | 2026-05-22 |
+| TASK-021 | In `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`, expose deterministic file-completion derivations: `requiredFilesComplete`, `missingRequiredFiles`, `missingOptionalFiles`. | yes | 2026-05-22 |
+| TASK-022 | In `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, add advisory component copy for missing optional files (non-blocking) and blocking copy for missing required files, both derived from selector outputs only. | yes | 2026-05-22 |
+| TASK-023 | In `apps/frontend/src/features/tools/machines/tool-page.machine.ts` readiness derivation, ensure required-file completeness gates readiness while optional-file completeness never gates readiness. | yes | 2026-05-22 |
 
 ### Implementation Phase 3
 
@@ -81,11 +81,11 @@ This plan defines deterministic implementation steps to remove code drift agains
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011 | Introduce policy-aware file map in `apps/frontend/src/features/tools/machines/tool-page.types.ts` events, replacing source union `'briefing' | 'angle-detector'` with generic file slot key(s) derived from tool config. |  |  |
-| TASK-012 | Update event dispatch in `apps/frontend/src/features/tools/runtime/useToolPage.ts` to send policy slot identifiers instead of angle-specific source constants. |  |  |
-| TASK-013 | Refactor `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts` guards (`isAngleDetectorSelection`, `canUploadBriefing`, angle-generator missing file branch) to evaluate requiredness from tool input-file policy entries, not from `toolKey === 'angle-generator'` checks. |  |  |
-| TASK-014 | Refactor `uploadBrief` precondition in `apps/frontend/src/features/tools/runtime/tools-client.ts` to validate required secondary files via policy model; remove hardcoded `Angle Detector file required for angle-generator` branch and replace with policy-derived error message template. |  |  |
-| TASK-015 | Preserve current payload shape compatibility for angle-generator in `apps/frontend/src/features/tools/runtime/tools-client.ts` while enabling future multi-file tools through internal mapping layer. |  |  |
+| TASK-011 | Introduce policy-aware file map in `apps/frontend/src/features/tools/machines/tool-page.types.ts` events, replacing source union `'briefing' | 'angle-detector'` with generic file slot key(s) derived from tool config. | yes | 2026-05-22 |
+| TASK-012 | Update event dispatch in `apps/frontend/src/features/tools/runtime/useToolPage.ts` to send policy slot identifiers instead of angle-specific source constants. | yes | 2026-05-22 |
+| TASK-013 | Refactor `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts` guards (`isAngleDetectorSelection`, `canUploadBriefing`, angle-generator missing file branch) to evaluate requiredness from tool input-file policy entries, not from `toolKey === 'angle-generator'` checks. | yes | 2026-05-22 |
+| TASK-014 | Refactor `uploadBrief` precondition in `apps/frontend/src/features/tools/runtime/tools-client.ts` to validate required secondary files via policy model; remove hardcoded `Angle Detector file required for angle-generator` branch and replace with policy-derived error message template. | yes | 2026-05-22 |
+| TASK-015 | Preserve current payload shape compatibility for angle-generator in `apps/frontend/src/features/tools/runtime/tools-client.ts` while enabling future multi-file tools through internal mapping layer. | yes | 2026-05-22 |
 
 ### Implementation Phase 4
 
@@ -98,12 +98,12 @@ This plan defines deterministic implementation steps to remove code drift agains
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-016 | Add parameterized selector tests in `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts` verifying three policy scenarios: one-file-only, two-file with second required, two-file with second optional. |  |  |
-| TASK-017 | Add machine tests in `apps/frontend/src/features/tools/machines/briefing-upload.machine.test.ts` validating policy-driven requiredness without tool-name conditionals. |  |  |
-| TASK-018 | Add client tests in `apps/frontend/src/features/tools/runtime/tools-client.test.ts` validating policy-driven required-secondary-file preconditions and message outputs. |  |  |
-| TASK-019 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.test.tsx` and `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` for dynamic file-slot rendering and submission behavior. |  |  |
-| TASK-020 | Remove transitional deprecated `requiredFiles` readers after all consumers migrated; if unresolved readers remain, this plan is not complete and status must stay `In progress`. |  |  |
-| TASK-024 | Add UX readiness matrix tests in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` covering: (A) optional missing but ready, (B) all-required and one missing -> blocked, (C) all required present -> ready. |  |  |
+| TASK-016 | Add parameterized selector tests in `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts` verifying three policy scenarios: one-file-only, two-file with second required, two-file with second optional. | yes | 2026-05-22 |
+| TASK-017 | Add machine tests in `apps/frontend/src/features/tools/machines/briefing-upload.machine.test.ts` validating policy-driven requiredness without tool-name conditionals. | yes | 2026-05-22 |
+| TASK-018 | Add client tests in `apps/frontend/src/features/tools/runtime/tools-client.test.ts` validating policy-driven required-secondary-file preconditions and message outputs. | yes | 2026-05-22 |
+| TASK-019 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.test.tsx` and `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` for dynamic file-slot rendering and submission behavior. | yes | 2026-05-22 |
+| TASK-020 | Remove transitional deprecated `requiredFiles` readers after all consumers migrated; if unresolved readers remain, this plan is not complete and status must stay `In progress`. | yes | 2026-05-22 |
+| TASK-024 | Add UX readiness matrix tests in `apps/frontend/src/features/tools/machines/tool-page.machine.test.ts` covering: (A) optional missing but ready, (B) all-required and one missing -> blocked, (C) all required present -> ready. | yes | 2026-05-22 |
 
 ### Implementation Phase 5
 
@@ -116,16 +116,16 @@ This plan defines deterministic implementation steps to remove code drift agains
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-025 | Update `docs/02-design/specifications/frontend-tool-pages-architecture-spec.md` with policy-driven input-file model (`inputFiles`), readiness behavior for optional files, and all-required blocking behavior. |  |  |
-| TASK-026 | Update `docs/02-design/specifications/tool-page-frontend-runtime-spec.md` with deterministic selector/machine behavior (`requiredFilesComplete`, `missingRequiredFiles`, `missingOptionalFiles`) and CTA enablement semantics. |  |  |
-| TASK-027 | Update `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md` with end-to-end flow outcomes for the two UX scenarios: optional-missing non-blocking and all-required blocking. |  |  |
-| TASK-028 | Update `docs/02-design/tool-generation-flow.md` to reflect user-visible readiness transitions and advisory messaging points in the flow narrative. |  |  |
-| TASK-029 | Update `docs/02-design/tool-generation-flow-generation-context.md` with frontend-to-generation boundary behavior for required/optional documents under DDD-081. |  |  |
-| TASK-030 | Update `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` to include canonical non-blocking advisory behavior for optional files and blocking semantics for required files. |  |  |
-| TASK-031 | Update `docs/02-design/specifications/frontend-spec.md` with the final UX copy-state matrix and accessibility requirements (`aria-live`, status severity, placement). |  |  |
-| TASK-032 | Update `docs/99-reference/templates/tool-development-plan-template.md` to include mandatory DDD-081 readiness semantics (optional non-blocking advisory vs all-required blocking) and deterministic UX copy-state guidance for future tool replication plans. |  |  |
-| TASK-033 | Refresh `docs/index-overview.md` links/status metadata for all docs updated in TASK-025..TASK-032 and validate no orphaned edited docs remain. |  |  |
-| TASK-034 | Governance checkpoint: if new domain terms are introduced during doc updates, register decision first in `docs/07-governance/domain-naming-decision-log.md`; otherwise record no-new-term confirmation in phase notes. |  |  |
+| TASK-025 | Update `docs/02-design/specifications/frontend-tool-pages-architecture-spec.md` with policy-driven input-file model (`inputFiles`), readiness behavior for optional files, and all-required blocking behavior. | yes | 2026-05-22 |
+| TASK-026 | Update `docs/02-design/specifications/tool-page-frontend-runtime-spec.md` with deterministic selector/machine behavior (`requiredFilesComplete`, `missingRequiredFiles`, `missingOptionalFiles`) and CTA enablement semantics. | yes | 2026-05-22 |
+| TASK-027 | Update `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md` with end-to-end flow outcomes for the two UX scenarios: optional-missing non-blocking and all-required blocking. | yes | 2026-05-22 |
+| TASK-028 | Update `docs/02-design/tool-generation-flow.md` to reflect user-visible readiness transitions and advisory messaging points in the flow narrative. | yes | 2026-05-22 |
+| TASK-029 | Update `docs/02-design/tool-generation-flow-generation-context.md` with frontend-to-generation boundary behavior for required/optional documents under DDD-081. | yes | 2026-05-22 |
+| TASK-030 | Update `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` to include canonical non-blocking advisory behavior for optional files and blocking semantics for required files. | yes | 2026-05-22 |
+| TASK-031 | Update `docs/02-design/specifications/frontend-spec.md` with the final UX copy-state matrix and accessibility requirements (`aria-live`, status severity, placement). | yes | 2026-05-22 |
+| TASK-032 | Update `docs/99-reference/templates/tool-development-plan-template.md` to include mandatory DDD-081 readiness semantics (optional non-blocking advisory vs all-required blocking) and deterministic UX copy-state guidance for future tool replication plans. | yes | 2026-05-22 |
+| TASK-033 | Refresh `docs/index-overview.md` links/status metadata for all docs updated in TASK-025..TASK-032 and validate no orphaned edited docs remain. | yes | 2026-05-22 |
+| TASK-034 | Governance checkpoint: if new domain terms are introduced during doc updates, register decision first in `docs/07-governance/domain-naming-decision-log.md`; otherwise record no-new-term confirmation in phase notes. | yes | 2026-05-22 |
 
 ### Execution Order And Dependencies
 
@@ -373,7 +373,13 @@ Use this section as the single authoritative execution log required by `TASK-034
 
 ### 13.2 Initial Placeholder
 
-- [2026-05-22] [Frontend Platform Team] [TASK-034] [blocked] [new-term-added: pending]
+- [2026-05-22] [Frontend Platform Team] [TASK-034] [completed] [new-term-added: none]
+- [2026-05-22] [Frontend Platform Team] [TASK-004] [completed] [angle-generator file[1] classified as optional-by-tool-setting]
+- [2026-05-22] [Frontend Platform Team] [TASK-016] [completed] [selector matrix updated for optional second file scenario]
+- [2026-05-22] [Frontend Platform Team] [TASK-017] [completed] [briefing upload machine tests aligned with non-blocking optional file]
+- [2026-05-22] [Frontend Platform Team] [TASK-018] [completed] [tools client tests aligned with optional secondary file precondition]
+- [2026-05-22] [Frontend Platform Team] [TASK-020] [blocked] [final closure pending full TEST-001..TEST-010 + TEST-008 rerun after latest optional-file update]
+- [2026-05-22] [Frontend Platform Team] [TASK-020] [completed] [GATE-P4 passed: TEST-001..TEST-010 + TEST-008 rerun after model-input test alignment]
 
 ## 11. Per-File Delta Checklist (TASK-025..TASK-034)
 

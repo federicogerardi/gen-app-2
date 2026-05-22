@@ -22,7 +22,6 @@ import {
   requestJson,
 } from '../../../app/runtime/http-client';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
-import { appCopy } from '../../../app/copy/system';
 
 const normalizeExtractionModel = (model: string): GenerationRequest['model'] => {
   const normalized = model.trim();
@@ -51,7 +50,7 @@ type ToolsClientOptions = {
 
 export type UploadBriefInput = {
   projectId: string;
-  toolKey: SupportedTool;
+  toolKey: ToolKey;
   file: File;
   angleDetectorFile?: File | null;
 };
@@ -175,16 +174,6 @@ const mapExtractionFailureReasonToCode = (reason: string): string => {
   return normalized;
 };
 
-const readHttpClientErrorMessage = (details: unknown): string | null => {
-  if (!details || typeof details !== 'object') {
-    return null;
-  }
-
-  const candidate = details as { error?: { message?: unknown } };
-  const message = candidate.error?.message;
-  return typeof message === 'string' && message.trim().length > 0 ? message : null;
-};
-
 const assertExtractionResultIsValid = (
   toolKey: ToolKey,
   payload: Record<string, unknown>,
@@ -216,13 +205,13 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
-  const requiredInputFiles = getRequiredToolInputFiles(input.toolKey);
+  const requiredInputFiles = getRequiredToolInputFiles(input.toolKey as SupportedTool);
   const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
   const isAngleGenerator = input.toolKey === 'angle-generator';
   const angleDetectorFile = input.angleDetectorFile;
 
   if (hasRequiredAngleDetector && !angleDetectorFile) {
-    throw new Error(appCopy.ui.toolPage.runtimeErrors.requiredFilesMissing);
+    throw new Error('Required secondary file missing for tool upload');
   }
 
   const bodyPayload = isAngleGenerator
@@ -261,12 +250,7 @@ export const uploadBrief = async (
     return parseUploadBriefResponse(payload);
   } catch (error) {
     if (isHttpClientError(error)) {
-      const backendMessage = readHttpClientErrorMessage(error.details);
-      throw new Error(
-        backendMessage
-          ? `Unable to upload brief (HTTP ${error.status ?? 'unknown'}): ${backendMessage}`
-          : `Unable to upload brief (HTTP ${error.status ?? 'unknown'})`,
-      );
+      throw new Error(`Unable to upload brief (HTTP ${error.status ?? 'unknown'})`);
     }
 
     throw error;

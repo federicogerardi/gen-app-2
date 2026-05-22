@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.3
+version: 1.2
 date_created: 2026-05-11
-last-reviewed: 2026-05-24
+last-reviewed: 2026-05-22
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
@@ -117,65 +117,6 @@ Behavior contract:
 ### 2.3 `toolFlowMachine` (spawned actor)
 
 Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) with per-step `ToolStepStatus` values. Not directly consumed by `useToolPage`; progress is read indirectly through `generation.artifacts` via `StepHydration`.
-
-### 2.4 Tool Workspace Page End-to-End Runtime Flow (Mermaid)
-
-```mermaid
-flowchart TD
-  A[Route Enter Tool Workspace Page] --> B[useToolPage Initializes
-ToolPage + GenerationWorkspace]
-  B --> C{ArtifactRelaunch intent?}
-  C -- Yes --> D[Resolve Source Artifact]
-  D --> E[Send HYDRATE_REQUESTED]
-  E --> F[HydrationResult Applied]
-  C -- No --> G[Start in configuring]
-  F --> G
-
-  G --> H[Setup Panel Input
-project/model/tone/files]
-  H --> I{BRIEFING_EXTRACTION_REQUESTED?}
-  I -- Yes --> J[briefingUploadMachine
-validating -> uploading -> extracting]
-  J --> K[ready + ExtractionContext]
-  K --> L[ExtractionContextBridge
-upsertExtractionContext]
-  I -- No --> M[Remain configuring]
-  M --> H
-
-  L --> N[PROGRESS_SYNCED]
-  N --> O[Recompute ReadinessSnapshot
-+ ToolPageViewModel]
-  O --> P{PrimaryActionPolicy}
-
-  P -- disabled --> H
-  P -- start-generation/resume-checkpoint/regenerate-current-step --> Q[REQUEST_STEP_START]
-  P -- open-last-artifact --> R[Navigate to /sessionsummary/:sessionId]
-
-  Q --> S[Effect #7
-STEP_REQUEST_DISPATCHED]
-  S --> T[startGenerationStep]
-  T --> U[orchestrateToolStep
-resolve dependency artifacts]
-  U --> V[generation.start(request)]
-  V --> W[toolPageMachine generating]
-
-  W --> X[Effect #8 stream terminal bridge]
-  X --> Y{terminal status}
-  Y -- done --> Z[STEP_DONE]
-  Y -- failed --> AA[STEP_FAILED + DispatchError]
-  Z --> AB{All ToolStep completed?}
-  AB -- No --> AC[configuring
-next step available]
-  AB -- Yes --> AD[completed]
-  AD --> AE[PrimaryActionPolicy = open-last-artifact]
-  AE --> R
-
-  W --> AF{Cancel clicked?}
-  AF -- Yes --> AG[handleCancelGeneration
-CANCEL_GENERATION]
-  AG --> AC
-  AA --> AC
-```
 
 ---
 
@@ -453,8 +394,6 @@ else:
      → effect #7 fires on next render
 ```
 
-  Invariant (DDD-088): when `primaryActionPolicy === 'open-last-artifact'`, CTA execution must bypass RHF/Zod submit validation wrappers. The action is a navigation handoff (`/sessionsummary/{sessionId}`), not a request-dispatch operation, and must not be blocked by unrelated form invalidity.
-
 ---
 
 ## 8. `ReadinessSnapshot` Computation
@@ -482,46 +421,14 @@ All props come from `useToolPage` return value. Selected mapping:
 |---|---|---|
 | `machineViewModel` | `toolPageSnapshot.context.viewModel` | Drives CTA label and enabled state |
 | `readinessSnapshot` | `toolPageSnapshot.context.readiness` | Guards CTA click |
-| `effectiveCanonicalState` | Computed: `effectiveBriefingStatus === 'uploading' \|\| effectiveBriefingStatus === 'extracting' ? 'processing-briefing' : isGenerating \|\| generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
-| `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
-| `briefingError` | `briefingSnapshot.context.error` | Mapped into `workflowPanelFeedback` as error item (DDD-063) |
-| `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |
-| `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Passed to `ToolGenerationFlowVertical` (DDD-063) |
+| `effectiveCanonicalState` | Computed: `isGenerating \|\| generation.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
+| `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA |
+| `briefingError` | `briefingSnapshot.context.error` | Rendered in Setup Panel briefing area |
+| `completedStepsForFlow` | `progressState.completedSteps` | Passed to `ToolGenerationFlowVertical` |
+| `currentRunningStep` | `streamingStep` | Highlights active step in flow panel |
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
-
-Policy-aware binding rule:
-
-- `open-last-artifact`: bind CTA directly to `handlePrimaryAction` (no form submit wrapper).
-- dispatch policies (`start-generation`, `resume-checkpoint`, `regenerate-current-step`): bind CTA through `handleSubmit(...)` so validated form state is available for request assembly.
-
-### 9.1 Workflow Panel Feedback Centralization (implemented 2026-05-27)
-
-Canonical UX convergence for Tool Workspace Page feedback is documented in:
-
-- `docs/ux/tool-page-sidebar-unified-flow.md`
-- `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
-
-**Convergence rule implemented:**
-
-- Process-feedback messages are centralized in Workflow Panel (`inline-action`) via `workflowPanelFeedback: WorkflowPanelFeedbackItem[]` prop.
-- `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA (DDD-061).
-- Input-file RHF display errors below upload controls are removed; validation remains active for submit blocking.
-- Requirement checklist (old `ReqItem` sub-component) is replaced by persistent `InputFilePayloadStatus[]` section visible in all phases.
-- Step-list (old `StepRow` sub-component + step progress bar) is replaced by indeterminate progress bar for `running`/`paused-with-checkpoint` states.
-
-**New `ToolGenerationFlowVertical` props contract:**
-
-| Prop | Type | Description |
-|---|---|---|
-| `canonicalState` | `CanonicalToolUiState` | Visual phase driver |
-| `projectName` | `string \| null` | Context label |
-| `inputFilePayload` | `InputFilePayloadStatus[]` | File status rows — persistent across all phases (DDD-082) |
-| `workflowPanelFeedback` | `WorkflowPanelFeedbackItem[]` | Aggregated feedback items — any phase (DDD-063) |
-| `errorMessage` | `string \| null` | Machine-level error banner |
-
-**Removed props (old contract):** `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`.
 
 ---
 
@@ -574,8 +481,6 @@ Deterministic outcomes:
 |---|---|
 | `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` | 4/4 passing (2026-05-11). Covers: basic render, effect #7 dispatch flow, CANCEL_GENERATION recovery, ExtractionContextBridge idempotency |
 | `apps/frontend/src/features/tools/runtime/tools-client.test.ts` | `createStepRequest` + extraction assembly (lines 134–187) |
-| `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx` | 5/5 passing (2026-05-27). Covers: idle phase payload rows, feedback error/info items, monitoring phase indeterminate bar, completion phase, missing required file feedback |
-| `apps/frontend/src/features/tools/ui/ToolPageTemplate.open-session-cta.test.tsx` | DDD-088 regression guard: `open-last-artifact` CTA fires even when RHF validation would fail; prevents no-op click on `Apri sessione`. |
 
 ---
 
@@ -583,7 +488,5 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
-| 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |
-| 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |

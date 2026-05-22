@@ -259,7 +259,7 @@ Deterministic rules:
 - Every `SupportedTool` declares `inputFiles`.
 - `inputFiles[0]` must always be `always-required` (fail-fast invariant).
 - Every file from index `1..N` must be explicitly classified as `required-by-tool-setting` or `optional-by-tool-setting`.
-- Current `angle-generator` policy: `BriefingFile` = `always-required`, `AngleDetectorFile` = `optional-by-tool-setting`.
+- Current `angle-generator` policy: `BriefingFile` = `always-required`, `AngleDetectorFile` = `required-by-tool-setting`.
 
 Readiness outcomes:
 

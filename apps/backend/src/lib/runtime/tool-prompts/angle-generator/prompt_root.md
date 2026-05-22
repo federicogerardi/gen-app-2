@@ -46,14 +46,24 @@ Use exactly these five awareness levels and preserve this order from lower to hi
    - Primary ad job: trigger immediate action.
    - Messaging posture: urgency, scarcity, limited-time incentives, clear CTA.
 
+## Awareness boundary rules
+
+- Classify by the strongest concrete purchase-readiness signal, not by generic exposure to ads, reviews, or social proof.
+- `Solution Aware` means the audience knows solution categories and is still comparing approaches; this is the default level for people who want the outcome but have not identified a specific product or brand.
+- `Product Aware` means the audience already recognizes your specific product or brand, or a clearly comparable named competitor, and is still resolving trust or objection gaps.
+- `Most Aware` means the audience has already moved into a direct buying conversation: quote request, direct contact, proposal review, or an equivalent high-intent sales interaction.
+- Ads, reviews, videos, and generic comparisons do not by themselves make a profile `Product Aware` or `Most Aware`.
+- If a profile contains signals from multiple adjacent levels, assign the highest level only when its defining signal is explicitly present; otherwise assign the lower level and note the ambiguity.
+
 ## Deterministic awareness matching rules
 
 - Never rename, merge, or invent awareness levels.
 - Awareness level labels are invariant and must always be written in English, including inside Italian artifacts.
 - Map every persona cluster and every angle to exactly one awareness level.
 - Keep message mechanics consistent with the mapped awareness level job.
-- If signals are mixed, select the closest lower-awareness level and explicitly note ambiguity.
 - Never use protected traits as awareness proxies.
+- Never use repeated ad exposure or generic review consumption as a shortcut for `Product Aware`.
+- Never use comparison behavior alone as a shortcut for `Most Aware`.
 
 ## Operational strategy notes
 

@@ -15,6 +15,8 @@ Sources are:
 - BriefingFile
 - AngleDetectorFile
 
+Produce an explicit awareness evidence map using only the 5 canonical levels defined in prompt_root.md.
+
 The extraction job is single-run. Do not split into multiple extraction jobs.
 
 ## Required input
@@ -24,10 +26,11 @@ The extraction job is single-run. Do not split into multiple extraction jobs.
 ## Mandatory output rules
 
 - Return markdown only, in Italian.
+- Keep awareness level labels in English only.
 - Do not use code fences.
 - Do not output JSON.
 - Keep sections in the exact order below.
-- If a field is not inferable, write: Non emerso dalle fonti fornite.
+- If a field is not inferable, write exactly this Italian string: "Non emerso dalle fonti fornite".
 
 ## Required output structure
 
@@ -39,6 +42,28 @@ The extraction job is single-run. Do not split into multiple extraction jobs.
 
 ## Awareness
 - ...
+
+## Awareness Evidence by Level (canonical order)
+- Completely Unaware
+  Nature check: ...
+  Message function: reveal hidden problem through contextual storytelling
+  Evidence from sources: ...
+- Problem Aware
+  Nature check: ...
+  Message function: clarify problem and introduce concrete solution direction
+  Evidence from sources: ...
+- Solution Aware
+  Nature check: ...
+  Message function: differentiate from alternatives and justify why this approach is superior
+  Evidence from sources: ...
+- Product Aware
+  Nature check: ...
+  Message function: resolve objections and prove product-specific credibility
+  Evidence from sources: ...
+- Most Aware
+  Nature check: ...
+  Message function: activate immediate action with urgency/scarcity/incentive
+  Evidence from sources: ...
 
 ## Pain Points (prioritized)
 - ...
@@ -71,6 +96,11 @@ The extraction job is single-run. Do not split into multiple extraction jobs.
 ## Top 3 Priority Angles
 - Angle: ...
   Why selected: ...
+
+## Awareness Assignment (one level only per top angle)
+- Angle: ...
+  Assigned awareness level: ...
+  Why this level (evidence-based): ...
 
 ## Missing / Unclear
 - ...

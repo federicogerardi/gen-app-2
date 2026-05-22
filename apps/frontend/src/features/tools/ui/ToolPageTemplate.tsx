@@ -19,11 +19,7 @@ import {
   selectToolFileInstructions,
 } from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
-import {
-  ToolGenerationFlowVertical,
-  type InputFilePayloadStatus,
-  type WorkflowPanelFeedbackItem,
-} from './ToolGenerationFlowVertical';
+import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 
@@ -67,14 +63,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
-    briefingGuidance,
     dispatchError,
-    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
     isGenerating,
-    readinessSnapshot,
     effectiveCanonicalState,
     currentProject,
     isStreamActive,
@@ -131,9 +124,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     toolKey: props.toolKey,
     completedFileKeys,
   });
-  const missingRequiredFilesOrdered = fileCompletion.missingRequiredFiles
-    .map((file) => file.label)
-    .join(', ');
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
   const canStartExtraction = !isStreamActive
@@ -148,126 +138,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       tooltip: "Avvia l'estrazione del contesto briefing",
     }
     : undefined;
-
-  // ─── inputFilePayload derivation (DDD-082) ────────────────────────────────
-  const inputFilePayload: InputFilePayloadStatus[] = inputFiles.map((fileEntry) => {
-    const isBriefing = fileEntry.key === 'briefing-file';
-    const isAngle = fileEntry.key === 'angle-detector-file';
-
-    let fileStatus: InputFilePayloadStatus['status'] = 'todo';
-    if (isBriefing) {
-      if (briefingError) {
-        fileStatus = 'error';
-      } else if (extractionInProgress) {
-        fileStatus = 'active';
-      } else if (completedFileKeys.includes('briefing-file')) {
-        fileStatus = 'done';
-      }
-    } else if (completedFileKeys.includes(fileEntry.key)) {
-      fileStatus = 'done';
-    }
-
-    const fileName: string | null = isBriefing
-      ? (effectiveBriefingFileName ?? null)
-      : isAngle
-        ? (angleDetectorFileName ?? null)
-        : null;
-
-    return {
-      key: fileEntry.key,
-      label: fileEntry.label,
-      requiredness: fileEntry.requiredness,
-      status: fileStatus,
-      fileName,
-    };
-  });
-
-  // ─── workflowPanelFeedback derivation (DDD-063) ───────────────────────────
-  const workflowPanelFeedback: WorkflowPanelFeedbackItem[] = [];
-
-  if (briefingError) {
-    workflowPanelFeedback.push({
-      id: 'briefing-error',
-      severity: 'error',
-      message: briefingError,
-      source: 'briefing',
-    });
-  }
-
-  if (!fileCompletion.requiredFilesComplete) {
-    workflowPanelFeedback.push({
-      id: 'missing-required-files',
-      severity: 'error',
-      message: `Upload required documents to continue. Missing: ${missingRequiredFilesOrdered}.`,
-      source: 'file-completion',
-    });
-  }
-
-  // Readiness reason codes are skipped when the machine already surfaces an error:
-  // the machine error fully explains why generation is blocked; showing both is redundant
-  // and creates duplicate role="alert" elements.
-  if (!machineViewModel.messages.error) {
-    for (const code of readinessSnapshot.reasonCodes) {
-      if (code === 'missing_project') {
-        workflowPanelFeedback.push({
-          id: `readiness-${code}`,
-          severity: 'error',
-          message: 'Seleziona un progetto',
-          source: 'readiness',
-        });
-      } else if (code === 'missing_extraction_context') {
-        workflowPanelFeedback.push({
-          id: `readiness-${code}`,
-          severity: 'error',
-          message: 'Carica o recupera un brief',
-          source: 'readiness',
-        });
-      } else if (code === 'missing_primary_target_step') {
-        workflowPanelFeedback.push({
-          id: `readiness-${code}`,
-          severity: 'info',
-          message: 'In attesa dello step disponibile',
-          source: 'readiness',
-        });
-      }
-    }
-  }
-
-  if (artifactsReloadError) {
-    workflowPanelFeedback.push({
-      id: 'artifacts-reload-error',
-      severity: 'error',
-      message: artifactsReloadError,
-      source: 'artifacts',
-    });
-  }
-
-  if (briefingGuidance) {
-    workflowPanelFeedback.push({
-      id: 'briefing-guidance',
-      severity: 'info',
-      message: briefingGuidance,
-      source: 'briefing',
-    });
-  }
-
-  if (fileCompletion.requiredFilesComplete && fileCompletion.missingOptionalFiles.length > 0) {
-    workflowPanelFeedback.push({
-      id: 'missing-optional-files',
-      severity: 'info',
-      message: 'You can start now. Optional documents are recommended to improve output quality.',
-      source: 'file-completion',
-    });
-  }
-
-  if (canStartExtraction) {
-    workflowPanelFeedback.push({
-      id: 'extraction-ready-hint',
-      severity: 'info',
-      message: "File pronti. Puoi aggiungere documenti opzionali oppure avviare l'estrazione.",
-      source: 'extraction',
-    });
-  }
 
   const {
     control,
@@ -500,9 +370,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
-              inputFilePayload={inputFilePayload}
-              workflowPanelFeedback={workflowPanelFeedback}
-              errorMessage={machineViewModel.messages.error}
+              errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
             />
           </section>
         </div>

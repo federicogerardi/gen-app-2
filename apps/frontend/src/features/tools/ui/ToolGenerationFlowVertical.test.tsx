@@ -2,112 +2,99 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   ToolGenerationFlowVertical,
-  type InputFilePayloadStatus,
   type ToolGenerationFlowVerticalProps,
-  type WorkflowPanelFeedbackItem,
 } from './ToolGenerationFlowVertical';
-
-const basePayload: InputFilePayloadStatus[] = [
-  {
-    key: 'briefing-file',
-    label: 'Briefing File',
-    requiredness: 'always-required',
-    status: 'todo',
-    fileName: null,
-  },
-];
 
 const baseProps: ToolGenerationFlowVerticalProps = {
   canonicalState: 'draft-empty',
   projectName: null,
-  inputFilePayload: basePayload,
-  workflowPanelFeedback: [],
   errorMessage: null,
 };
 
-describe('ToolGenerationFlowVertical feedback rendering', () => {
-  it('renders error feedback item with role=alert', () => {
-    const feedback: WorkflowPanelFeedbackItem[] = [
-      { id: 'readiness-missing_project', severity: 'error', message: 'Seleziona un progetto', source: 'readiness' },
-    ];
-
-    render(<ToolGenerationFlowVertical {...baseProps} workflowPanelFeedback={feedback} />);
-
-    expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
+  it('renders the region container', () => {
+    render(<ToolGenerationFlowVertical {...baseProps} />);
+    expect(screen.getByRole('region', { name: 'Generation flow' })).toBeInTheDocument();
   });
 
-  it('renders extraction context error feedback', () => {
-    const feedback: WorkflowPanelFeedbackItem[] = [
-      { id: 'readiness-missing_extraction_context', severity: 'error', message: 'Carica o recupera un brief', source: 'readiness' },
-    ];
+  it('hides the bar in draft-empty state', () => {
+    const { container } = render(<ToolGenerationFlowVertical {...baseProps} />);
+    const bar = container.querySelector('.workflow-preload-bar');
+    expect(bar).toHaveClass('is-hidden');
+    expect(bar).not.toHaveAttribute('role');
+  });
 
+  it('renders the project shell in draft-empty state', () => {
+    render(<ToolGenerationFlowVertical {...baseProps} />);
+    expect(screen.getByText('Nessun progetto selezionato')).toBeInTheDocument();
+    expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
+  });
+
+  it('renders idle bar for draft-ready state', () => {
+    const { container } = render(
+      <ToolGenerationFlowVertical {...baseProps} canonicalState="draft-ready" />,
+    );
+    const bar = container.querySelector('.workflow-preload-bar');
+    expect(bar).toHaveClass('is-idle');
+    expect(bar).toHaveAttribute('role', 'progressbar');
+  });
+
+  it('renders correct status text for draft-ready', () => {
+    render(<ToolGenerationFlowVertical {...baseProps} canonicalState="draft-ready" />);
+    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
+  });
+
+  it('renders active bar with progressbar role when running', () => {
+    const { container } = render(
+      <ToolGenerationFlowVertical {...baseProps} canonicalState="running" />,
+    );
+    const bar = container.querySelector('.workflow-preload-bar');
+    expect(bar).toHaveClass('is-active');
+    expect(bar).toHaveAttribute('role', 'progressbar');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione in corso');
+  });
+
+  it('renders paused bar when paused-with-checkpoint', () => {
+    const { container } = render(
+      <ToolGenerationFlowVertical {...baseProps} canonicalState="paused-with-checkpoint" />,
+    );
+    const bar = container.querySelector('.workflow-preload-bar');
+    expect(bar).toHaveClass('is-paused');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione in pausa');
+  });
+
+  it('renders done bar with aria-valuenow=100 when completed', () => {
+    const { container } = render(
+      <ToolGenerationFlowVertical {...baseProps} canonicalState="completed" />,
+    );
+    const bar = container.querySelector('.workflow-preload-bar');
+    expect(bar).toHaveClass('is-done');
+    expect(bar).toHaveAttribute('aria-valuenow', '100');
+  });
+
+  it('renders error message with role=alert', () => {
     render(
       <ToolGenerationFlowVertical
         {...baseProps}
-        projectName="Project 001"
-        workflowPanelFeedback={feedback}
+        canonicalState="draft-ready"
+        errorMessage="Qualcosa è andato storto"
       />,
     );
-
-    expect(screen.getByText('Carica o recupera un brief')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeInTheDocument();
+    expect(alert).toHaveTextContent('Qualcosa è andato storto');
   });
 
-  it('renders info feedback item with role=status and no alert role', () => {
-    const feedback: WorkflowPanelFeedbackItem[] = [
-      { id: 'readiness-missing_primary_target_step', severity: 'info', message: 'In attesa dello step disponibile', source: 'readiness' },
-    ];
-
-    render(
-      <ToolGenerationFlowVertical
-        {...baseProps}
-        projectName="Project 001"
-        workflowPanelFeedback={feedback}
-      />,
-    );
-
-    expect(screen.getByText('In attesa dello step disponibile')).toBeInTheDocument();
+  it('does not render error element when errorMessage is null', () => {
+    render(<ToolGenerationFlowVertical {...baseProps} canonicalState="running" />);
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('renders multiple feedback items and only error items use role=alert', () => {
-    const feedback: WorkflowPanelFeedbackItem[] = [
-      { id: 'readiness-missing_project', severity: 'error', message: 'Seleziona un progetto', source: 'readiness' },
-      { id: 'readiness-missing_primary_target_step', severity: 'info', message: 'In attesa dello step disponibile', source: 'readiness' },
-    ];
-
+  it('renders processing-briefing status text', () => {
     render(
-      <ToolGenerationFlowVertical
-        {...baseProps}
-        projectName="Project 001"
-        workflowPanelFeedback={feedback}
-      />,
+      <ToolGenerationFlowVertical {...baseProps} canonicalState="processing-briefing" />,
     );
-
-    expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
-    expect(screen.getAllByRole('alert')).toHaveLength(1);
-  });
-
-  it('renders guidance info message without error styling when awaiting the second file', () => {
-    const feedback: WorkflowPanelFeedbackItem[] = [
-      {
-        id: 'briefing-guidance',
-        severity: 'info',
-        message: 'Brief pronto. Carica Angle Detector File per continuare.',
-        source: 'briefing',
-      },
-    ];
-
-    render(
-      <ToolGenerationFlowVertical
-        {...baseProps}
-        projectName="Project 001"
-        workflowPanelFeedback={feedback}
-      />,
-    );
-
-    expect(screen.getByText('Brief pronto. Carica Angle Detector File per continuare.')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('Elaborazione briefing…')).toBeInTheDocument();
   });
 });
+

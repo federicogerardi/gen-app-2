@@ -27,6 +27,7 @@ Produce a full context map and an actionable angle matrix from extraction contex
 - Use only the 5 canonical awareness levels from prompt_root.md, without renaming.
 - When summarizing awareness distribution, classify by product/brand familiarity and buying intent, not by mere ad exposure, reviews, or generic comparison behavior.
 - Do not place profiles in `Product Aware` unless they already know the product or a named competitor; do not place profiles in `Most Aware` unless direct buying intent is explicit.
+- Do not place profiles in `Solution Aware` just because they mention one possible solution category; the key signal is that they still reason from desired outcome to solution, not from a chosen solution to product selection.
 
 ## Required output structure
 

@@ -34,9 +34,9 @@ Use exactly these five awareness levels and preserve this order from lower to hi
    - Primary ad job: clarify the problem-to-solution bridge.
    - Messaging posture: educational explanation, concrete outcomes, first solution direction.
 3. Solution Aware
-   - Nature: the audience knows solution categories and is comparing options.
-   - Primary ad job: differentiate your approach from alternatives.
-   - Messaging posture: USP clarity, comparison logic, proof-backed superiority.
+   - Nature: the audience knows the outcome it wants, but not the right solution path.
+   - Primary ad job: frame the desired result and move the audience toward the right solution category.
+   - Messaging posture: outcome-first framing, problem-to-solution bridge, comparison of solution categories, proof-backed direction.
 4. Product Aware
    - Nature: the audience knows your product but still has objections or trust gaps.
    - Primary ad job: reduce decision friction and answer objections.
@@ -49,9 +49,10 @@ Use exactly these five awareness levels and preserve this order from lower to hi
 ## Awareness boundary rules
 
 - Classify by the strongest concrete purchase-readiness signal, not by generic exposure to ads, reviews, or social proof.
-- `Solution Aware` means the audience knows solution categories and is still comparing approaches; this is the default level for people who want the outcome but have not identified a specific product or brand.
+- `Solution Aware` means the audience is outcome-first: it wants a result, but has not yet chosen the correct solution path or solution family.
+- `Solution Aware` may consider one or more solution categories as possibilities, but it must not already treat one of them as the confirmed answer.
 - `Product Aware` means the audience already recognizes your specific product or brand, or a clearly comparable named competitor, and is still resolving trust or objection gaps.
-- `Most Aware` means the audience has already moved into a direct buying conversation: quote request, direct contact, proposal review, or an equivalent high-intent sales interaction.
+- `Most Aware` means the audience has already moved into a direct buying conversation or equivalent high-intent sales interaction.
 - Ads, reviews, videos, and generic comparisons do not by themselves make a profile `Product Aware` or `Most Aware`.
 - If a profile contains signals from multiple adjacent levels, assign the highest level only when its defining signal is explicitly present; otherwise assign the lower level and note the ambiguity.
 
@@ -64,6 +65,7 @@ Use exactly these five awareness levels and preserve this order from lower to hi
 - Never use protected traits as awareness proxies.
 - Never use repeated ad exposure or generic review consumption as a shortcut for `Product Aware`.
 - Never use comparison behavior alone as a shortcut for `Most Aware`.
+- Never upgrade a profile to `Solution Aware` just because it mentions one possible solution category; the profile must still be reasoning from the desired outcome toward the solution.
 
 ## Operational strategy notes
 

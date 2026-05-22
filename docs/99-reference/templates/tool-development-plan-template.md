@@ -3,8 +3,8 @@ goal: [Short statement of the tool plan objective]
 version: 1.0
 date_created: [YYYY-MM-DD]
 last_updated: [YYYY-MM-DD]
-last-reviewed: [YYYY-MM-DD]
-next-review-date: [YYYY-MM-DD]
+last-reviewed: 2026-05-22
+next-review-date: 2026-08-22
 owner: [Team or role]
 status: draft
 tags: [plan, tool-workspace, backend, frontend, ddd, validation]
@@ -278,6 +278,7 @@ Acceptance for Track B:
 - [ ] C-002: Ensure generation dispatch and relaunch route assembly resolve to `/tools/$TOOL_KEY` from canonical identity sources.
 - [ ] C-003: Ensure FE step ordering/rendering supports the new Tool in session detail tabs and history projections.
 - [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
+- [ ] C-005: Define `inputFiles` policy for the target Tool with explicit requiredness (`always-required`, `required-by-tool-setting`, `optional-by-tool-setting`) and enforce CTA gating from missing required files only.
 
 Acceptance for Track C:
 
@@ -286,6 +287,7 @@ Acceptance for Track C:
 - [ ] C-AC-003: Existing supported tools still pass the same list/detail/relaunch UI assertions.
 - [ ] C-AC-004: Session summary surfaces never expose raw workflow identifiers as final UI labels for the target Tool.
 - [ ] C-AC-005: Relaunch CTA is enabled whenever tool-route resolution succeeds and stream is not active.
+- [ ] C-AC-006: Missing optional setup files generate advisory UI only and never block primary generation action.
 
 ### Track D - Test Cases
 

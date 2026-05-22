@@ -211,6 +211,27 @@ Contract verticale minimo (`ToolGenerationFlowVertical`):
 4. `completedStepsCount` + `totalStepsCount`
 5. `errorMessage`
 
+## 8b. DDD-081 Readiness Branch Outcomes
+
+Tool setup file policy introduces two deterministic outcomes at page-flow level:
+
+1. Required complete + optional missing
+- Transition: remains ready.
+- `ReadinessSnapshot.canStartFlow`: true.
+- CTA: enabled.
+- Feedback: non-blocking advisory near CTA and optional inline recommendations.
+
+2. Required missing
+- Transition: remains blocked.
+- `ReadinessSnapshot.canStartFlow`: false for start action.
+- CTA: disabled.
+- Feedback: blocking message listing missing required files in stable policy order.
+
+Flow invariant:
+
+- Optional-file absence never blocks generation start.
+- Required-file absence always blocks generation start.
+
 Campi esplicitamente non necessari nel contract verticale corrente:
 1. `toolKey`
 2. `currentRunningStep`

@@ -15,6 +15,7 @@ import {
   readExtractionPayloadFromArtifact,
 } from '../../generation/runtime/step-hydration';
 import { normalizeExtractionFieldKeysForTool } from './extraction-field-matrix';
+import { getRequiredToolInputFiles } from './tool-form-architecture';
 import {
   isHttpClientError,
   joinApiPath,
@@ -204,11 +205,13 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
+  const requiredInputFiles = getRequiredToolInputFiles(input.toolKey as SupportedTool);
+  const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
   const isAngleGenerator = input.toolKey === 'angle-generator';
   const angleDetectorFile = input.angleDetectorFile;
 
-  if (isAngleGenerator && !angleDetectorFile) {
-    throw new Error('Angle Detector file required for angle-generator');
+  if (hasRequiredAngleDetector && !angleDetectorFile) {
+    throw new Error('Required secondary file missing for tool upload');
   }
 
   const bodyPayload = isAngleGenerator

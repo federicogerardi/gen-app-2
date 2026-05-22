@@ -18,6 +18,19 @@ owner: Frontend Platform Team
 **Radice sorgente**: `apps/frontend/src/`  
 **Stack**: React 19.2 + TypeScript + XState v5 + Vite
 
+## DDD-081 Setup File Readiness Contract
+
+Tool setup file behavior follows policy-driven requiredness:
+
+- `always-required`: first `inputFiles` entry.
+- `required-by-tool-setting`: additional files that block primary CTA when missing.
+- `optional-by-tool-setting`: additional files that never block primary CTA.
+
+Runtime/UI invariant:
+
+- primary CTA enabled iff all policy-required files are complete.
+- missing optional files produce advisory feedback only.
+
 ---
 
 ## Struttura delle directory

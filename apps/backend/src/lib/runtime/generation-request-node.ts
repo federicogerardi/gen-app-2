@@ -8,7 +8,7 @@ import type { IncomingMessage } from 'node:http';
 
 import type { BackendGenerationRequest } from './request-contract';
 
-const MAX_BODY_SIZE_BYTES = 256 * 1024;
+const MAX_BODY_SIZE_BYTES = 3 * 1024 * 1024;
 
 const requireStringField = (payload: Record<string, unknown>, field: string): string => {
   const value = payload[field];

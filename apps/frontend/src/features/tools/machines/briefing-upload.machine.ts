@@ -2,6 +2,7 @@ import { assign, fromPromise, setup, type ActorRefFrom } from 'xstate';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
+import { getRequiredToolInputFiles } from '../runtime/tool-form-architecture';
 import type { RunExtractionResult, UploadBriefResult } from '../runtime/tools-client';
 import type { SupportedTool } from './tool-flow.machine';
 import { isExtractionContextValidForTool } from './extraction-context-validity';
@@ -9,6 +10,7 @@ import { isExtractionContextValidForTool } from './extraction-context-validity';
 export type BriefingUploadContext = {
   projectId: string;
   toolKey: SupportedTool;
+  model: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
   userId: string | null;
@@ -51,16 +53,19 @@ export const hasReadyBriefingExtractionContext = (
 type BriefingUploadInput = {
   projectId: string;
   toolKey: SupportedTool;
+  model: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
   userId: string | null;
 };
 
 type BriefingUploadEvent =
-  | { type: 'FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
+  | { type: 'FILE_SELECTED'; file: File; sourceKey?: string }
+  | { type: 'EXTRACTION_REQUESTED' }
   | {
       type: 'INPUT_SYNCED';
       projectId: string;
+      model: string;
       apiBaseUrl: string;
       capabilities: Partial<BackendCapabilities>;
       userId: string | null;
@@ -176,6 +181,7 @@ export const briefingUploadMachine = setup({
         userId: string;
         projectId: string;
         toolKey: SupportedTool;
+        model: string;
         briefingId: string;
         briefingText: string;
         extractionPayload: Record<string, unknown>;
@@ -188,7 +194,7 @@ export const briefingUploadMachine = setup({
           userId: input.userId,
           toolKey: input.toolKey,
           projectId: input.projectId,
-          model: 'openrouter/auto',
+          model: input.model,
           briefingId: input.briefingId,
           briefingText: input.briefingText,
           extractionPayload: input.extractionPayload,
@@ -202,17 +208,13 @@ export const briefingUploadMachine = setup({
     }),
   },
   guards: {
-    isAngleDetectorSelection: ({ event }) => event.type === 'FILE_SELECTED' && event.source === 'angle-detector',
+    isAngleDetectorSelection: ({ event }) => event.type === 'FILE_SELECTED' && event.sourceKey === 'angle-detector-file',
     isAngleDetectorSelectionWithBriefing: ({ context, event }) =>
       event.type === 'FILE_SELECTED'
-      && event.source === 'angle-detector'
+      && event.sourceKey === 'angle-detector-file'
       && !!context.file,
     isValidExtension: ({ context }) => {
       if (!context.file) {
-        return false;
-      }
-
-      if (context.toolKey === 'angle-generator' && !context.angleDetectorFile) {
         return false;
       }
 
@@ -221,19 +223,24 @@ export const briefingUploadMachine = setup({
         return false;
       }
 
-      if (context.toolKey !== 'angle-generator' || !context.angleDetectorFile) {
+      const requiredInputFiles = getRequiredToolInputFiles(context.toolKey);
+      const requiresAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
+      if (!requiresAngleDetector) {
         return true;
       }
 
-      return isAllowedBriefingExtension(context.angleDetectorFile.name);
+      return !!context.angleDetectorFile && isAllowedBriefingExtension(context.angleDetectorFile.name);
     },
     canUploadBriefing: ({ context }) => {
+      const requiredInputFiles = getRequiredToolInputFiles(context.toolKey);
+      const requiresAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
+
       return context.projectId.trim().length > 0 && (
         !!context.file
-        && (context.toolKey !== 'angle-generator' || !!context.angleDetectorFile)
+        && (!requiresAngleDetector || !!context.angleDetectorFile)
         && isAllowedBriefingExtension(context.file.name)
         && (
-          context.toolKey !== 'angle-generator'
+          !requiresAngleDetector
           || (context.angleDetectorFile ? isAllowedBriefingExtension(context.angleDetectorFile.name) : false)
         )
       );
@@ -255,7 +262,7 @@ export const briefingUploadMachine = setup({
         return context;
       }
 
-      if (event.source === 'angle-detector') {
+      if (event.sourceKey === 'angle-detector-file') {
         return {
           ...context,
           angleDetectorFile: event.file,
@@ -308,6 +315,9 @@ export const briefingUploadMachine = setup({
       return {
         ...context,
         projectId: event.projectId,
+        model: typeof event.model === 'string' && event.model.trim().length > 0
+          ? event.model
+          : context.model,
         apiBaseUrl: event.apiBaseUrl,
         capabilities: event.capabilities,
         userId: event.userId,
@@ -349,6 +359,7 @@ export const briefingUploadMachine = setup({
   context: ({ input }) => ({
     projectId: input.projectId,
     toolKey: input.toolKey,
+    model: input.model,
     apiBaseUrl: input.apiBaseUrl,
     capabilities: input.capabilities,
     userId: input.userId,
@@ -374,21 +385,12 @@ export const briefingUploadMachine = setup({
   states: {
     idle: {
       on: {
-        FILE_SELECTED: [
-          {
-            guard: 'isAngleDetectorSelectionWithBriefing',
-            target: 'validating',
-            actions: 'cacheSelectedFile',
-          },
-          {
-            guard: 'isAngleDetectorSelection',
-            actions: 'cacheSelectedFile',
-          },
-          {
-            target: 'validating',
-            actions: 'cacheSelectedFile',
-          },
-        ],
+        FILE_SELECTED: {
+          actions: 'cacheSelectedFile',
+        },
+        EXTRACTION_REQUESTED: {
+          target: 'validating',
+        },
         EXTRACTION_RECOVERED: {
           target: 'ready',
           actions: 'applyRecoveredExtraction',
@@ -413,10 +415,18 @@ export const briefingUploadMachine = setup({
           }),
         },
         {
-          guard: ({ context }) => !!context.file && context.toolKey === 'angle-generator' && !context.angleDetectorFile,
+          guard: ({ context }) => {
+            if (!context.file) {
+              return false;
+            }
+
+            const requiredInputFiles = getRequiredToolInputFiles(context.toolKey);
+            const requiresAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
+            return requiresAngleDetector && !context.angleDetectorFile;
+          },
           target: 'idle',
           actions: assign({
-            error: () => 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
+            error: () => 'Carica i file richiesti per continuare.',
             // Keep selected briefing in context to allow progressive two-file completion.
             angleDetectorNormalizedText: () => null,
             angleDetectorParsedFormat: () => null,
@@ -501,10 +511,6 @@ export const briefingUploadMachine = setup({
           actions: assign(({ context, event }) => ({
             ...context,
             error: readErrorMessage((event as { error: unknown }).error, 'Errore durante upload'),
-            file: null,
-            fileName: null,
-            angleDetectorFile: null,
-            angleDetectorFileName: null,
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),
@@ -535,13 +541,14 @@ export const briefingUploadMachine = setup({
           userId: context.userId!,
           projectId: context.projectId.trim(),
           toolKey: context.toolKey,
+          model: context.model,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           briefingId: context.briefingId!,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          briefingText: context.toolKey === 'angle-generator' && context.angleDetectorNormalizedText
+          briefingText: !!context.angleDetectorNormalizedText
             ? `${context.normalizedText!}\n\n---\n\n${context.angleDetectorNormalizedText}`
             : context.normalizedText!,
-          extractionPayload: context.toolKey === 'angle-generator'
+          extractionPayload: !!context.angleDetectorFileName
             ? {
               knowledgeSources: [
                 {
@@ -611,10 +618,6 @@ export const briefingUploadMachine = setup({
           actions: assign(({ context, event }) => ({
             ...context,
             error: readErrorMessage((event as { error: unknown }).error, 'Errore durante estrazione'),
-            file: null,
-            fileName: null,
-            angleDetectorFile: null,
-            angleDetectorFileName: null,
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),
@@ -623,21 +626,13 @@ export const briefingUploadMachine = setup({
     },
     ready: {
       on: {
-        FILE_SELECTED: [
-          {
-            guard: 'isAngleDetectorSelectionWithBriefing',
-            target: 'validating',
-            actions: 'cacheSelectedFile',
-          },
-          {
-            guard: 'isAngleDetectorSelection',
-            actions: 'cacheSelectedFile',
-          },
-          {
-            target: 'validating',
-            actions: 'cacheSelectedFile',
-          },
-        ],
+        FILE_SELECTED: {
+          target: 'idle',
+          actions: 'cacheSelectedFile',
+        },
+        EXTRACTION_REQUESTED: {
+          target: 'validating',
+        },
         RESET: {
           target: 'idle',
           actions: 'resetUploadState',

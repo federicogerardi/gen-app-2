@@ -72,16 +72,27 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 - [frontend-spec](./02-design/specifications/frontend-spec.md) — **Start here for Frontend architecture (DDD-aligned)**
 - [frontend-unification-replication-guide](./02-design/specifications/frontend-unification-replication-guide.md)
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
-- [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md) — **UI naming and page archetype governance**
-- [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
-- [tool-page-frontend-runtime-spec](./02-design/specifications/tool-page-frontend-runtime-spec.md) — **AI-first deterministic reference for Tool Page runtime (useToolPage, machines, ExtractionContextBridge, DispatchError)**
+- [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md) — **UI naming/page archetype governance and DDD-081 blocking-vs-advisory semantics**
+- [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) — **Tool Workspace architecture and Tool Input File Requirement Policy (DDD-081)**
+- [tool-page-frontend-runtime-spec](./02-design/specifications/tool-page-frontend-runtime-spec.md) — **AI-first deterministic reference for Tool Page runtime and DDD-081 CTA gating contracts**
 - [admin-changelog-and-user-reporting-spec](./02-design/specifications/admin-changelog-and-user-reporting-spec.md) — **DDD-first implemented specification for ProductChangelog, UserReport, and FeedbackCenterMachine**
 - [deployment-architecture-guide](./02-design/specifications/deployment-architecture-guide.md) — **Operational deployment architecture, networking, proxy headers, rollback**
 - [gui-scope-as-is-spec](./02-design/specifications/gui-scope-as-is-spec.md)
-- [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned)**
+- [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned, including DDD-081 readiness branches)**
 - [tool-generation-flow](./02-design/tool-generation-flow.md)
 - [tool-generation-flow-generation-context](./02-design/tool-generation-flow-generation-context.md)
 - [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
+
+Validation path manifest (orphan-check canonical set):
+
+- docs/02-design/specifications/frontend-tool-pages-architecture-spec.md
+- docs/02-design/specifications/tool-page-frontend-runtime-spec.md
+- docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md
+- docs/02-design/tool-generation-flow.md
+- docs/02-design/tool-generation-flow-generation-context.md
+- docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md
+- docs/02-design/specifications/frontend-spec.md
+- docs/99-reference/templates/tool-development-plan-template.md
 
 ### Design ADR
 

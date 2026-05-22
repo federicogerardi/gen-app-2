@@ -1,7 +1,9 @@
 ---
 status: active
 version: 1.0
+date_created: 2026-05-04
 last-reviewed: 2026-05-04
+next-review-date: 2026-08-04
 owner: Domain Architecture
 ---
 
@@ -292,3 +294,17 @@ When a generation completes, `PersistenceBatch` persists to both:
 │  • Usage/Quota (via ClaimUsage & audit history)       │
 └────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Frontend-to-Generation Boundary Rule (DDD-081)
+
+Tool input-file requiredness is enforced in Frontend Tool Workspace runtime before dispatch:
+
+- Optional missing files do not block dispatch when required files are complete.
+- Required missing files block dispatch and keep primary generation action disabled.
+
+Scope note:
+
+- This alignment is frontend-only for required/optional file readiness semantics.
+- Backend generation contracts are unchanged.

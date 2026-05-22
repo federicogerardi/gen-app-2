@@ -45,6 +45,7 @@ export const toolPageMachine = setup({
           input: {
             toolKey: context.toolKey,
             projectId: context.projectId,
+            model: context.model,
             apiBaseUrl: context.apiBaseUrl,
             capabilities: context.capabilities,
             userId: context.userId,
@@ -99,10 +100,19 @@ export const toolPageMachine = setup({
     sendBriefingSelected: sendTo(
       'briefingActor',
       ({ event }) => (event.type === 'BRIEFING_FILE_SELECTED'
-        ? { type: 'FILE_SELECTED', file: event.file, source: event.source }
+        ? { type: 'FILE_SELECTED', file: event.file, sourceKey: event.sourceKey }
         : { type: 'RESET' }),
     ),
+    sendBriefingExtractionRequested: sendTo('briefingActor', { type: 'EXTRACTION_REQUESTED' }),
     sendBriefingReset: sendTo('briefingActor', { type: 'RESET' }),
+    sendBriefingInputSynced: sendTo('briefingActor', ({ context, event }) => ({
+      type: 'INPUT_SYNCED',
+      projectId: context.projectId,
+      model: event.type === 'MODEL_CHANGED' ? event.model : context.model,
+      apiBaseUrl: context.apiBaseUrl,
+      capabilities: context.capabilities,
+      userId: context.userId,
+    })),
     sendGenerationLifecycleStepDone: sendTo(
       'generationLifecycleActor',
       ({ event }) => (event.type === 'STEP_DONE' ? event : { type: 'CANCEL' }),
@@ -155,13 +165,16 @@ export const toolPageMachine = setup({
           actions: ['setProjectId', stopChild('briefingActor')],
         },
         MODEL_CHANGED: {
-          actions: 'setModel',
+          actions: ['setModel', 'sendBriefingInputSynced'],
         },
         STEP_ARTIFACT_UPDATED: {
           actions: 'setStepArtifactId',
         },
         BRIEFING_FILE_SELECTED: {
           actions: 'sendBriefingSelected',
+        },
+        BRIEFING_EXTRACTION_REQUESTED: {
+          actions: 'sendBriefingExtractionRequested',
         },
         BRIEFING_RESET: {
           actions: 'sendBriefingReset',

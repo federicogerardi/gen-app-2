@@ -9,6 +9,11 @@ import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 interface ToolActionButtonsProps {
   primaryPolicy: PrimaryActionPolicy;
+  primaryOverride?: {
+    label: string;
+    disabled?: boolean;
+    tooltip?: string;
+  };
   secondaryFlags: SecondaryActionFlags;
   onPrimaryAction: () => void;
   onRetry?: () => void;
@@ -20,6 +25,7 @@ interface ToolActionButtonsProps {
 
 export const ToolActionButtons = ({
   primaryPolicy,
+  primaryOverride,
   secondaryFlags,
   onPrimaryAction,
   onRetry,
@@ -29,6 +35,9 @@ export const ToolActionButtons = ({
   isLoading = false,
 }: ToolActionButtonsProps) => {
   const primaryLabel = derivePrimaryActionLabel(primaryPolicy);
+  const effectivePrimaryLabel = primaryOverride?.label ?? primaryLabel.label;
+  const effectivePrimaryDisabled = (primaryOverride?.disabled ?? primaryLabel.disabled) || isLoading;
+  const effectivePrimaryTooltip = primaryOverride?.tooltip ?? primaryLabel.tooltip;
 
   return (
     <div className="ui-tool-action-buttons">
@@ -36,10 +45,10 @@ export const ToolActionButtons = ({
         type="button"
         data-testid="primary-cta-btn"
         onClick={onPrimaryAction}
-        disabled={primaryLabel.disabled || isLoading}
-        title={primaryLabel.tooltip}
+        disabled={effectivePrimaryDisabled}
+        title={effectivePrimaryTooltip}
       >
-        {isLoading ? 'In elaborazione...' : primaryLabel.label}
+        {isLoading ? 'In elaborazione...' : effectivePrimaryLabel}
       </PrimaryCtaButton>
 
       <div className="ui-tool-secondary-actions">

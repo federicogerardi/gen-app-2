@@ -15,7 +15,10 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
-import { selectToolFileInstructions } from '../runtime/tool-page-selectors';
+import {
+  deriveToolInputFileCompletion,
+  selectToolFileInstructions,
+} from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
@@ -40,6 +43,12 @@ interface ToolPageTemplateProps {
   extractionArtifactId?: string | null;
   briefingFileName?: string | null;
 }
+
+type ToolPageFormValues = {
+  projectId: string;
+  model: string;
+  tone: string;
+} & Record<string, unknown>;
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const auth = useAuthSession();
@@ -74,32 +83,85 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
+    handleExtractionStart,
     handleBriefingReset,
+    angleDetectorFileName,
   } = useToolPage(props);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
+  const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  const completedFileKeys = [
+    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
+    ...(angleDetectorFileName ? ['angle-detector-file'] : []),
+  ];
+
+  const fileFieldShape = Object.fromEntries(
+    inputFiles.map((entry) => [entry.key, z.any().optional()]),
+  ) as Record<string, z.ZodTypeAny>;
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
     projectId: z.string().min(1, 'Project richiesto'),
     model: z.string().min(1, 'Model richiesto'),
     tone: z.string().min(1, 'Tone richiesto'),
-    briefingFile: z.any().optional(),
-    angleDetectorFile: z.any().optional(),
+    ...fileFieldShape,
+  }).superRefine((value, context) => {
+    for (const fileEntry of inputFiles) {
+      if (
+        fileEntry.requiredness !== 'always-required'
+        && fileEntry.requiredness !== 'required-by-tool-setting'
+      ) {
+        continue;
+      }
+
+      if (completedFileKeys.includes(fileEntry.key)) {
+        continue;
+      }
+
+      const candidate = (value as Record<string, unknown>)[fileEntry.key];
+      if (!(candidate instanceof File)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [fileEntry.key],
+          message: `Carica ${fileEntry.label} per continuare.`,
+        });
+      }
+    }
   });
+
+  const fileCompletion = deriveToolInputFileCompletion({
+    toolKey: props.toolKey,
+    completedFileKeys,
+  });
+  const missingRequiredFilesOrdered = fileCompletion.missingRequiredFiles
+    .map((file) => file.label)
+    .join(', ');
+  const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
+  const canStartExtraction = !isStreamActive
+    && !extractionInProgress
+    && !extractionAlreadyReady
+    && formState.projectId.trim().length > 0
+    && fileCompletion.requiredFilesComplete;
+  const extractionPrimaryOverride = canStartExtraction
+    ? {
+      label: 'Avvia estrazione',
+      disabled: false,
+      tooltip: "Avvia l'estrazione del contesto briefing",
+    }
+    : undefined;
 
   const {
     control,
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm({
+  } = useForm<ToolPageFormValues>({
     resolver: zodResolver(toolFormSchema),
     defaultValues: {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
-      briefingFile: undefined,
-      angleDetectorFile: undefined,
+      ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
   });
@@ -238,60 +300,63 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 />
               </div>
 
-              <Controller
-                name="briefingFile"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <UploadFieldButton
-                      label="Briefing File"
-                      disabled={!formState.projectId.trim() || isStreamActive}
-                      icon={<Upload size={16} aria-hidden="true" />}
-                      accept=".docx,.txt,.md"
-                      onFileSelected={(file) => {
-                        field.onChange(file);
-                        if (file) {
-                          handleBriefingFileSelected(file);
-                        } else {
-                          handleBriefingReset();
-                        }
-                      }}
-                    />
-                    {errors.briefingFile ? <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span> : null}
-                  </div>
-                )}
-              />
-
-              {props.toolKey === 'angle-generator' ? (
+              {inputFiles.map((fileEntry) => (
                 <Controller
-                  name="angleDetectorFile"
+                  key={fileEntry.key}
+                  name={fileEntry.key as keyof ToolPageFormValues}
                   control={control}
                   render={({ field }) => (
                     <div>
                       <UploadFieldButton
-                        label="Angle Detector File"
+                        label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
                         disabled={!formState.projectId.trim() || isStreamActive}
                         icon={<Upload size={16} aria-hidden="true" />}
-                        accept=".docx,.txt,.md"
+                        accept={fileEntry.accept}
                         onFileSelected={(file) => {
                           field.onChange(file);
-                          if (file) {
-                            handleAngleDetectorFileSelected(file);
-                          } else {
+                          if (!file) {
                             handleBriefingReset();
+                            return;
                           }
+
+                          if (fileEntry.key === 'angle-detector-file') {
+                            handleAngleDetectorFileSelected(file);
+                            return;
+                          }
+
+                          handleBriefingFileSelected(file);
                         }}
                       />
-                      {errors.angleDetectorFile ? <span className={uiPrimitives.error}>{errors.angleDetectorFile.message as string}</span> : null}
+                      {errors[fileEntry.key as keyof ToolPageFormValues] ? <span className={uiPrimitives.error}>{errors[fileEntry.key as keyof ToolPageFormValues]?.message as string}</span> : null}
+                      {fileCompletion.missingOptionalFiles.some((missing) => missing.key === fileEntry.key) && fileCompletion.requiredFilesComplete ? (
+                        <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
+                          Optional document not uploaded yet. You can continue now or upload it for better results.
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 />
-              ) : null}
+              ))}
 
               <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
               {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
               {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}
+              {!fileCompletion.requiredFilesComplete ? (
+                <p className={uiPrimitives.error} role="status" aria-live="assertive">
+                  Upload required documents to continue. Missing: {missingRequiredFilesOrdered}.
+                </p>
+              ) : null}
+              {fileCompletion.requiredFilesComplete && fileCompletion.missingOptionalFiles.length > 0 ? (
+                <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
+                  You can start now. Optional documents are recommended to improve output quality.
+                </p>
+              ) : null}
+              {canStartExtraction ? (
+                <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
+                  File pronti. Puoi aggiungere documenti opzionali oppure avviare l'estrazione.
+                </p>
+              ) : null}
               {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
 
                 {/* DispatchError ownership contract:
@@ -301,6 +366,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <ToolActionButtons
                 primaryPolicy={machineViewModel.primaryActionPolicy}
+                {...(extractionPrimaryOverride ? { primaryOverride: extractionPrimaryOverride } : {})}
                 secondaryFlags={{
                   ...machineViewModel.secondaryActionFlags,
                   canCancelGeneration: isGenerating,
@@ -312,11 +378,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     model: data.model,
                     tone: data.tone,
                   }));
-                  if (data.briefingFile instanceof File) {
-                    handleBriefingFileSelected(data.briefingFile);
+                  for (const fileEntry of inputFiles) {
+                    const file = data[fileEntry.key];
+                    if (!(file instanceof File)) {
+                      continue;
+                    }
+
+                    if (fileEntry.key === 'angle-detector-file') {
+                      handleAngleDetectorFileSelected(file);
+                    } else {
+                      handleBriefingFileSelected(file);
+                    }
                   }
-                  if (props.toolKey === 'angle-generator' && data.angleDetectorFile instanceof File) {
-                    handleAngleDetectorFileSelected(data.angleDetectorFile);
+                  if (canStartExtraction) {
+                    handleExtractionStart();
+                    return;
                   }
                   handlePrimaryAction();
                 })}

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 date_created: 2026-05-11
-last-reviewed: 2026-05-21
+last-reviewed: 2026-05-22
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
@@ -91,12 +91,16 @@ Spawned by `toolPageMachine` as `briefingActorRef`. Managed states:
 
 | State | Trigger |
 |---|---|
-| `idle` | Initial; `BRIEFING_RESET` event |
-| `validating` | `BRIEFING_FILE_SELECTED` event |
-| `uploading` | File passes validation → POST to `/api/tools/briefs` |
-| `extracting` | Upload complete → polls/streams extraction |
+| `idle` | Initial; file selection cache; `BRIEFING_RESET` event |
+| `validating` | `BRIEFING_EXTRACTION_REQUESTED` event |
+| `uploading` | Required files pass validation → POST to `/api/tools/briefs` |
+| `extracting` | Upload complete → extraction request dispatch |
 | `ready` | Extraction complete; all fields populated |
-| `error` | Any step fails; `context.error` set |
+
+Behavior contract:
+- `BRIEFING_FILE_SELECTED` updates cached files and never auto-starts upload/extraction.
+- Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED` (Tool Workspace setup CTA copy: `Avvia estrazione`).
+- The same manual trigger applies to all tools (single-file and multi-file).
 
 **Context fields used by `useToolPage`:**
 
@@ -425,6 +429,37 @@ All props come from `useToolPage` return value. Selected mapping:
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
+
+---
+
+## 9b. DDD-081 File Policy Derivations
+
+Runtime selectors must derive setup-file completion from `inputFiles` policy entries.
+
+Canonical derivations:
+
+- `requiredFilesComplete`
+- `missingRequiredFiles`
+- `missingOptionalFiles`
+
+Policy semantics:
+
+- `always-required` and `required-by-tool-setting` entries contribute to `missingRequiredFiles`.
+- `optional-by-tool-setting` entries contribute to `missingOptionalFiles` only.
+
+Primary CTA enablement invariant:
+
+- CTA enabled iff `missingRequiredFiles.length === 0`.
+- Optional-file absence never disables CTA.
+
+Deterministic outcomes:
+
+| missingRequiredFiles | missingOptionalFiles | CTA |
+|---|---|---|
+| empty | empty | enabled |
+| empty | non-empty | enabled + advisory |
+| non-empty | empty | disabled + blocking copy |
+| non-empty | non-empty | disabled + blocking copy |
 
 ---
 

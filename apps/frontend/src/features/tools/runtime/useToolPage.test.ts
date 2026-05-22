@@ -149,6 +149,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
 
 vi.mock('../runtime/tool-form-architecture', () => ({
   getToolFormConfig: () => mocks.toolConfig,
+  getRequiredToolInputFiles: () => [],
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
@@ -265,7 +266,7 @@ describe('useToolPage', () => {
 
     expect(result.current.streamingStep).toBe('optin');
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file });
-    expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file: angleDetectorFile, source: 'angle-detector' });
+    expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file: angleDetectorFile, sourceKey: 'angle-detector-file' });
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_RESET' });
     expect(mocks.generation.start).not.toHaveBeenCalled();
 

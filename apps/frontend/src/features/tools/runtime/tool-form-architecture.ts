@@ -38,6 +38,8 @@ export type ToolFormConfig = {
 export type ToolFileInstructionsConfig = {
   title: string;
   summary: string;
+  inputFiles: readonly ToolInputFilePolicyEntry[];
+  // Deprecated alias retained for one deprecation cycle.
   requiredFiles: readonly string[];
   requiredFieldKeys: readonly ExtractionFieldKey[];
   // Deprecated alias retained for one deprecation cycle.
@@ -46,6 +48,18 @@ export type ToolFileInstructionsConfig = {
   examples: readonly string[];
   notes: readonly string[];
   stepConstraints: readonly string[];
+};
+
+export type ToolInputFileRequiredness =
+  | 'always-required'
+  | 'required-by-tool-setting'
+  | 'optional-by-tool-setting';
+
+export type ToolInputFilePolicyEntry = {
+  key: string;
+  label: string;
+  accept: string;
+  requiredness: ToolInputFileRequiredness;
 };
 
 /**
@@ -123,6 +137,14 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   'funnel-pages': {
     title: appCopy.ui.toolInstructions.title,
     summary: 'Carica un solo BriefingFile completo: il funnel viene costruito a partire da obiettivo, target e offerta.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'always-required',
+      },
+    ],
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: ['funnel_goal', 'target_audience', 'offer', 'proof', 'primary_cta'],
     optionalFields: ['Vincoli di tono', 'Riferimenti visual', 'Esempi di competitor', 'Note sul funnel attuale'],
@@ -136,6 +158,14 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   nextland: {
     title: appCopy.ui.toolInstructions.title,
     summary: 'Usa un BriefingFile ordinato e descrittivo per definire sito, sezioni e risultato atteso.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'always-required',
+      },
+    ],
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: ['website_goal', 'brand_or_company', 'target_audience', 'offer_or_service', 'required_sections'],
     optionalFields: ['Tone of voice', 'Referenze di stile', 'Vincoli di copy', 'Materiali già esistenti'],
@@ -149,6 +179,14 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   'youtube-lf-script': {
     title: appCopy.ui.toolInstructions.title,
     summary: 'Compila il brief con i campi canonici richiesti per l’estrazione e la generazione dello script long-form.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'always-required',
+      },
+    ],
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: [
       'knowledge_content',
@@ -170,8 +208,22 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   },
   'angle-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Carica due file complementari: un BriefingFile e un AngleDetectorFile coerenti tra loro.',
-    requiredFiles: ['BriefingFile (.docx, .txt, .md)', 'AngleDetectorFile (.docx, .txt, .md)'],
+    summary: 'Carica un BriefingFile obbligatorio e, se disponibile, un AngleDetectorFile complementare.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'always-required',
+      },
+      {
+        key: 'angle-detector-file',
+        label: 'AngleDetectorFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'optional-by-tool-setting',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: [
       'goal',
       'product_or_service',
@@ -187,14 +239,60 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'Briefing: descrizione del brand e del prodotto da posizionare.',
       'Angle detector: insight di mercato e segnali competitivi da confrontare con il brief.',
     ],
-    notes: ['I due file devono descrivere lo stesso contesto di lavoro.', 'Se uno dei due file manca, la generazione non è pronta.'],
+    notes: ['Se carichi entrambi i file, devono descrivere lo stesso contesto di lavoro.', 'AngleDetectorFile arricchisce il contesto ma non blocca la generazione se assente.'],
     stepConstraints: ['La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
 };
 
+const validateToolInputFilePolicyRegistry = (
+  registry: Record<SupportedTool, ToolFileInstructionsConfig>,
+): void => {
+  for (const [toolKey, instructions] of Object.entries(registry) as Array<[SupportedTool, ToolFileInstructionsConfig]>) {
+    if (instructions.inputFiles.length === 0) {
+      throw new Error(`[tool-form-architecture] ${toolKey}: inputFiles must include at least one file entry`);
+    }
+
+    if (instructions.inputFiles[0]?.requiredness !== 'always-required') {
+      throw new Error(`[tool-form-architecture] ${toolKey}: inputFiles[0] must be always-required`);
+    }
+
+    const invalidFile = instructions.inputFiles.find((entry, index) => {
+      if (!entry.requiredness) {
+        return true;
+      }
+
+      if (!entry.key.trim() || !entry.label.trim() || !entry.accept.trim()) {
+        return true;
+      }
+
+      if (index === 0) {
+        return entry.requiredness !== 'always-required';
+      }
+
+      return entry.requiredness !== 'required-by-tool-setting' && entry.requiredness !== 'optional-by-tool-setting';
+    });
+
+    if (invalidFile) {
+      throw new Error(`[tool-form-architecture] ${toolKey}: invalid inputFiles entry detected`);
+    }
+  }
+};
+
+validateToolInputFilePolicyRegistry(toolFileInstructionsRegistry);
+
 export const getEnabledToolKeys = (): SupportedTool[] => {
   return (Object.keys(toolFormRegistry) as SupportedTool[]).filter((toolKey) => toolFormRegistry[toolKey].status === 'enabled');
 };
+
+export const getToolInputFilePolicy = (
+  toolKey: SupportedTool,
+): readonly ToolInputFilePolicyEntry[] => toolFileInstructionsRegistry[toolKey].inputFiles;
+
+export const getRequiredToolInputFiles = (
+  toolKey: SupportedTool,
+): readonly ToolInputFilePolicyEntry[] => getToolInputFilePolicy(toolKey).filter((entry) => (
+  entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting'
+));
 
 export const isToolEnabled = (toolKey: SupportedTool): boolean => {
   return toolFormRegistry[toolKey].status === 'enabled';

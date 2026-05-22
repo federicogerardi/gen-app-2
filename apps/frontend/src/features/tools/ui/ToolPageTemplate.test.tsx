@@ -60,7 +60,7 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         error: string | null;
       },
       events: {} as
-        | { type: 'FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
+        | { type: 'FILE_SELECTED'; file: File; sourceKey?: string }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
         | {

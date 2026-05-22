@@ -138,8 +138,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const handleAngleDetectorFileSelected = useCallback((file: File) => toolPageSend({
     type: 'BRIEFING_FILE_SELECTED',
     file,
-    source: 'angle-detector',
+    sourceKey: 'angle-detector-file',
   }), [toolPageSend]);
+  const handleExtractionStart = useCallback(() => {
+    toolPageSend({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
+  }, [toolPageSend]);
   const handleBriefingReset = useCallback(() => toolPageSend({ type: 'BRIEFING_RESET' }), [toolPageSend]);
 
   return {
@@ -171,6 +174,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
+    handleExtractionStart,
     handleBriefingReset,
     navigate,
   };

@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { selectToolFileInstructions } from './tool-page-selectors';
+import {
+  deriveToolInputFileCompletion,
+  selectToolFileInstructions,
+} from './tool-page-selectors';
 
 describe('selectToolFileInstructions', () => {
-  it('returns canonical angle-generator instructions with the dual-source file requirement', () => {
+  it('returns canonical angle-generator instructions with optional second file policy', () => {
     const instructions = selectToolFileInstructions('angle-generator');
 
     expect(instructions).not.toBeNull();
-    expect(instructions?.requiredFiles).toEqual([
-      'BriefingFile (.docx, .txt, .md)',
-      'AngleDetectorFile (.docx, .txt, .md)',
-    ]);
+    expect(instructions?.alwaysRequiredFiles.map((file) => file.label)).toEqual(['BriefingFile']);
+    expect(instructions?.requiredBySettingFiles).toEqual([]);
+    expect(instructions?.optionalBySettingFiles.map((file) => file.label)).toEqual(['AngleDetectorFile']);
     expect(instructions?.stepConstraints).toEqual([
       'La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.',
     ]);
@@ -49,5 +51,24 @@ describe('selectToolFileInstructions', () => {
     ]);
     expect(instructions?.requiredFields).not.toContain('funnel_goal');
     expect(instructions?.requiredFields).not.toContain('primary_cta');
+  });
+
+  it('derives required and optional completion deterministically from policy keys', () => {
+    const angleMissingSecondOptional = deriveToolInputFileCompletion({
+      toolKey: 'angle-generator',
+      completedFileKeys: ['briefing-file'],
+    });
+
+    expect(angleMissingSecondOptional.requiredFilesComplete).toBe(true);
+    expect(angleMissingSecondOptional.missingRequiredFiles).toEqual([]);
+    expect(angleMissingSecondOptional.missingOptionalFiles.map((file) => file.key)).toEqual(['angle-detector-file']);
+
+    const angleAllRequiredComplete = deriveToolInputFileCompletion({
+      toolKey: 'angle-generator',
+      completedFileKeys: ['briefing-file', 'angle-detector-file'],
+    });
+
+    expect(angleAllRequiredComplete.requiredFilesComplete).toBe(true);
+    expect(angleAllRequiredComplete.missingRequiredFiles).toEqual([]);
   });
 });

@@ -167,7 +167,7 @@ export const ToolGenerationFlowVertical = ({
               </>
             ) : (
               <>
-                <strong>Generazione in corso</strong>
+                <strong>Elaborazione attiva</strong>
                 <p>Il processo è attivo e richiede alcuni minuti. Puoi tenere la pagina aperta: il risultato apparirà automaticamente.</p>
               </>
             )}

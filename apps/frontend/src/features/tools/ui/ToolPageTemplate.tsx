@@ -203,28 +203,33 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     });
   }
 
-  for (const code of readinessSnapshot.reasonCodes) {
-    if (code === 'missing_project') {
-      workflowPanelFeedback.push({
-        id: `readiness-${code}`,
-        severity: 'error',
-        message: 'Seleziona un progetto',
-        source: 'readiness',
-      });
-    } else if (code === 'missing_extraction_context') {
-      workflowPanelFeedback.push({
-        id: `readiness-${code}`,
-        severity: 'error',
-        message: 'Carica o recupera un brief',
-        source: 'readiness',
-      });
-    } else if (code === 'missing_primary_target_step') {
-      workflowPanelFeedback.push({
-        id: `readiness-${code}`,
-        severity: 'info',
-        message: 'In attesa dello step disponibile',
-        source: 'readiness',
-      });
+  // Readiness reason codes are skipped when the machine already surfaces an error:
+  // the machine error fully explains why generation is blocked; showing both is redundant
+  // and creates duplicate role="alert" elements.
+  if (!machineViewModel.messages.error) {
+    for (const code of readinessSnapshot.reasonCodes) {
+      if (code === 'missing_project') {
+        workflowPanelFeedback.push({
+          id: `readiness-${code}`,
+          severity: 'error',
+          message: 'Seleziona un progetto',
+          source: 'readiness',
+        });
+      } else if (code === 'missing_extraction_context') {
+        workflowPanelFeedback.push({
+          id: `readiness-${code}`,
+          severity: 'error',
+          message: 'Carica o recupera un brief',
+          source: 'readiness',
+        });
+      } else if (code === 'missing_primary_target_step') {
+        workflowPanelFeedback.push({
+          id: `readiness-${code}`,
+          severity: 'info',
+          message: 'In attesa dello step disponibile',
+          source: 'readiness',
+        });
+      }
     }
   }
 

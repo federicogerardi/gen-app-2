@@ -1,32 +1,27 @@
 import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
-import type { ToolStep, ToolStepStatus } from '../machines/tool-flow.machine';
-import type { ReadinessReasonCode } from '../machines/tool-page.machine';
 
-type BriefingStatus = 'idle' | 'uploading' | 'extracting' | 'ready';
-type ReqStatus = 'todo' | 'active' | 'done' | 'error';
+// ─── DDD-082: InputFilePayloadStatus ─────────────────────────────────────────
+export type InputFilePayloadStatus = {
+  key: string;
+  label: string;
+  requiredness: 'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting';
+  status: 'todo' | 'active' | 'done' | 'error';
+  fileName: string | null;
+};
 
-export interface FlowStepProgress {
-  step: ToolStep;
-  displayName: string;
-  status: ToolStepStatus;
-  artifactId?: string | null | undefined;
-  isStreaming?: boolean | undefined;
-  // accepted but unused in this render:
-  description?: string | undefined;
-  previewContent?: string | null | undefined;
-}
+// ─── DDD-063: WorkflowPanelFeedbackItem (FeedbackChannel inline-action) ──────
+export type WorkflowPanelFeedbackItem = {
+  id: string;
+  severity: 'error' | 'info';
+  message: string;
+  source?: string;
+};
 
 export interface ToolGenerationFlowVerticalProps {
   canonicalState: CanonicalToolUiState;
   projectName: string | null;
-  briefingFileName: string | null;
-  briefingStatus: BriefingStatus;
-  readinessReasonCodes: ReadonlyArray<ReadinessReasonCode>;
-  briefingError: string | null;
-  briefingGuidance?: string | null;
-  steps: FlowStepProgress[];
-  completedStepsCount: number;
-  totalStepsCount: number;
+  inputFilePayload: InputFilePayloadStatus[];
+  workflowPanelFeedback: WorkflowPanelFeedbackItem[];
   errorMessage: string | null;
 }
 
@@ -51,24 +46,24 @@ const WHERE_LABEL: Record<CanonicalToolUiState, string> = {
   completed: 'Complete',
 };
 
-const STEP_ICON: Record<ToolStepStatus, string> = {
-  idle: '○',
-  running: '⟳',
-  done: '✓',
-  error: '✕',
-};
-
-const REQ_ICON: Record<ReqStatus, string> = {
+const PAYLOAD_ICON: Record<InputFilePayloadStatus['status'], string> = {
   todo: '○',
   active: '⟳',
   done: '✓',
   error: '✕',
 };
 
-const READINESS_DETAIL_BY_REASON: Record<ReadinessReasonCode, string> = {
-  missing_project: 'Seleziona un progetto',
-  missing_extraction_context: 'Carica o recupera un brief',
-  missing_primary_target_step: 'In attesa dello step disponibile',
+const deriveInstruction = (
+  canonicalState: CanonicalToolUiState,
+  projectName: string | null,
+): string => {
+  if (canonicalState === 'running') return 'Generazione in corso';
+  if (canonicalState === 'paused-with-checkpoint') return 'In pausa — riprendi dal checkpoint';
+  if (canonicalState === 'prefilled-regenerate') return 'Contesto caricato — avvia la rigenerazione';
+  if (canonicalState === 'resume-needs-briefing') return 'Carica un nuovo briefing per continuare';
+  if (canonicalState === 'completed') return 'Tutti gli artefatti sono stati generati';
+  if (!projectName) return 'Seleziona un progetto per iniziare';
+  return 'Carica il file di briefing per proseguire';
 };
 
 // ─── sub-components ──────────────────────────────────────────────────────────
@@ -77,146 +72,52 @@ const Label = ({ children }: { children: string }) => (
   <span className="ui-fv-label">{children}</span>
 );
 
-const deriveInstruction = (
-  canonicalState: CanonicalToolUiState,
-  projectName: string | null,
-  briefingStatus: BriefingStatus,
-): string => {
-  if (canonicalState === 'running') return 'Generazione in corso';
-  if (canonicalState === 'paused-with-checkpoint') return 'In pausa — riprendi dal checkpoint';
-  if (canonicalState === 'prefilled-regenerate') return 'Contesto caricato — avvia la rigenerazione';
-  if (canonicalState === 'resume-needs-briefing') return 'Carica un nuovo briefing per continuare';
-  if (canonicalState === 'completed') return 'Tutti gli artefatti sono stati generati';
-  // input phase — progressive
-  if (!projectName) return 'Seleziona un progetto per iniziare';
-  if (briefingStatus === 'uploading') return 'Caricamento briefing in corso...';
-  if (briefingStatus === 'extracting') return 'Estrazione contenuto del briefing...';
-  if (briefingStatus === 'ready') return 'Avvia la generazione dalla colonna sinistra';
-  return 'Carica il file di briefing per proseguire';
-};
-
-interface ReqItemProps {
-  status: ReqStatus;
-  text: string;
-  detail?: string | undefined;
-  activeLabel?: string | undefined;
-}
-
-const ReqItem = ({ status, text, detail, activeLabel }: ReqItemProps) => {
-  const isSpinning = status === 'active';
+const PayloadRow = ({ item }: { item: InputFilePayloadStatus }) => {
+  const isOptional = item.requiredness === 'optional-by-tool-setting';
+  const isSpinning = item.status === 'active';
   return (
-    <li className={`ui-fv-item is-${status}`}>
-      <span className={`ui-fv-icon${isSpinning ? ' is-spinning' : ''}`}>
-        {REQ_ICON[status]}
+    <li className={`ui-fv-payload-row is-${item.status}`}>
+      <span className={`ui-fv-payload-icon${isSpinning ? ' is-spinning' : ''}`}>
+        {PAYLOAD_ICON[item.status]}
       </span>
-      <span className="ui-fv-item-text">{text}</span>
-      {detail && <span className="ui-fv-item-detail">{detail}</span>}
-      {isSpinning && activeLabel && (
-        <span className="ui-fv-status-label">{activeLabel}</span>
+      <span className="ui-fv-payload-label">{item.label}</span>
+      {item.fileName && (
+        <span className="ui-fv-payload-filename" title={item.fileName}>{item.fileName}</span>
+      )}
+      {isOptional && item.status === 'todo' && (
+        <span className="ui-fv-payload-optional-badge">opzionale</span>
+      )}
+      {isSpinning && (
+        <span className="ui-fv-status-label">In corso</span>
       )}
     </li>
   );
 };
 
-interface StepRowProps {
-  step: FlowStepProgress;
-}
-
-const StepRow = ({ step }: StepRowProps) => {
-  const isSpinning = step.status === 'running';
-  const badge = step.status;
-
-  return (
-    <li className={`ui-fv-step is-${badge}`}>
-      <span className={`ui-fv-step-icon${isSpinning ? ' is-spinning' : ''}`}>
-        {STEP_ICON[step.status]}
-      </span>
-      <span className="ui-fv-step-name">{step.displayName}</span>
-      {step.status === 'running' && (
-        <span className="ui-fv-status-label">In esecuzione</span>
-      )}
-      {step.status === 'error' && (
-        <span className="ui-fv-step-error-label">Errore</span>
-      )}
-    </li>
-  );
-};
+const FeedbackRow = ({ item }: { item: WorkflowPanelFeedbackItem }) => (
+  <li
+    className={`ui-fv-feedback-item is-${item.severity}`}
+    role={item.severity === 'error' ? 'alert' : 'status'}
+  >
+    <span className="ui-fv-feedback-icon">{item.severity === 'error' ? '✕' : 'ℹ'}</span>
+    <span className="ui-fv-feedback-message">{item.message}</span>
+  </li>
+);
 
 // ─── main component ──────────────────────────────────────────────────────────
 
 export const ToolGenerationFlowVertical = ({
   canonicalState,
   projectName,
-  briefingFileName,
-  briefingStatus,
-  readinessReasonCodes,
-  briefingError,
-  briefingGuidance = null,
-  steps,
-  completedStepsCount,
-  totalStepsCount,
+  inputFilePayload,
+  workflowPanelFeedback,
   errorMessage,
 }: ToolGenerationFlowVerticalProps) => {
   const phase = derivePhase(canonicalState);
   const whereLabel = WHERE_LABEL[canonicalState];
-  const instruction = deriveInstruction(canonicalState, projectName, briefingStatus);
-
-  // Requirement statuses for input phase
-  const projectReqStatus: ReqStatus = projectName ? 'done' : 'todo';
-
-  const briefingReqStatus: ReqStatus = briefingError
-    ? 'error'
-    : briefingStatus === 'uploading' || briefingStatus === 'extracting'
-      ? 'active'
-      : briefingStatus === 'ready'
-        ? 'done'
-        : 'todo';
-
-  const reasonSet = new Set(readinessReasonCodes);
-
-  const readyReqStatus: ReqStatus = (() => {
-    if (readinessReasonCodes.length === 0) {
-      return 'done';
-    }
-
-    if (
-      readinessReasonCodes.length === 1
-      && reasonSet.has('missing_primary_target_step')
-    ) {
-      return 'active';
-    }
-
-    return 'todo';
-  })();
-
-  const readinessDetail = (() => {
-    const priority: ReadinessReasonCode[] = [
-      'missing_project',
-      'missing_extraction_context',
-      'missing_primary_target_step',
-    ];
-
-    for (const reason of priority) {
-      if (reasonSet.has(reason)) {
-        return READINESS_DETAIL_BY_REASON[reason];
-      }
-    }
-
-    return undefined;
-  })();
-
-  const briefingActiveLabel =
-    briefingStatus === 'uploading'
-      ? 'Caricamento'
-      : briefingStatus === 'extracting'
-        ? 'Estrazione'
-        : undefined;
-
-  const guidanceMessage = briefingGuidance ?? null;
-
-  const progressPct = totalStepsCount > 0
-    ? (completedStepsCount / totalStepsCount) * 100
-    : 0;
+  const instruction = deriveInstruction(canonicalState, projectName);
+  const isMonitoring = canonicalState === 'running' || canonicalState === 'paused-with-checkpoint';
+  const isPaused = canonicalState === 'paused-with-checkpoint';
 
   return (
     <div className="ui-fv-root" role="region" aria-label="Generation flow">
@@ -227,92 +128,76 @@ export const ToolGenerationFlowVertical = ({
         <span className="ui-fv-where-hint">{instruction}</span>
       </div>
 
-      {/* Global error ──────────────────────────────────── */}
+      {/* Global error (machine-level) ──────────────────── */}
       {errorMessage && (
         <div className="ui-fv-error" role="alert">{errorMessage}</div>
       )}
 
-      {/* INPUT PHASE ───────────────────────────────────── */}
-      {phase === 'input' && (
+      {/* PAYLOAD CARICATO — persistent across all phases ─ */}
+      {inputFilePayload.length > 0 && (
         <div className="ui-fv-section">
-          <Label>Requisiti</Label>
-          {guidanceMessage ? (
-            <p className="ui-fv-inline-guidance" role="status">
-              {guidanceMessage}
-            </p>
-          ) : null}
-          <ul className="ui-fv-checklist">
-            <ReqItem
-              status={projectReqStatus}
-              text="Progetto"
-              detail={projectName ?? undefined}
-            />
-            <ReqItem
-              status={briefingReqStatus}
-              text="Brief"
-              detail={briefingFileName ?? (briefingError ?? undefined)}
-              activeLabel={briefingActiveLabel}
-            />
-            <ReqItem
-              status={readyReqStatus}
-              text="Pronto per la generazione"
-              detail={readinessDetail}
-              activeLabel={readyReqStatus === 'active' ? 'In attesa' : undefined}
-            />
+          <Label>Payload caricato</Label>
+          <ul className="ui-fv-payload-list" aria-live="polite">
+            {inputFilePayload.map((item) => (
+              <PayloadRow key={item.key} item={item} />
+            ))}
           </ul>
         </div>
       )}
 
-      {/* MONITORING PHASE ──────────────────────────────── */}
-      {phase === 'monitoring' && (
-        <>
-          <div className="ui-fv-section">
-            <Label>Avanzamento</Label>
-            <div className="ui-fv-progress-wrap">
-              <div className="ui-fv-progress-bar" role="progressbar"
-                aria-valuenow={completedStepsCount}
-                aria-valuemin={0}
-                aria-valuemax={totalStepsCount}
-              >
-                <div
-                  className="ui-fv-progress-fill"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <span className="ui-fv-progress-text">
-                {completedStepsCount}&thinsp;/&thinsp;{totalStepsCount}
-              </span>
+      {/* MONITORING — indeterminate progress ──────────────
+          Guard: running / paused-with-checkpoint only.
+          prefilled-regenerate intentionally excluded. */}
+      {isMonitoring && (
+        <div className="ui-fv-section">
+          <div className="ui-fv-progress-wrap">
+            <div className="ui-fv-progress-bar">
+              <div
+                className={`ui-fv-indeterminate-bar${isPaused ? ' is-paused' : ''}`}
+                role="progressbar"
+                aria-label={isPaused ? 'Generazione in pausa' : 'Generazione in corso'}
+              />
             </div>
           </div>
-
-          <div className="ui-fv-section">
-            <Label>Step di generazione</Label>
-            <ul className="ui-fv-steps">
-              {steps.map((step) => (
-                <StepRow key={step.step} step={step} />
-              ))}
-            </ul>
+          <div className="ui-fv-reassurance" aria-live="polite">
+            {isPaused ? (
+              <>
+                <strong>In pausa</strong>
+                <p>La generazione è in pausa. Riprendi dal checkpoint quando sei pronto.</p>
+              </>
+            ) : (
+              <>
+                <strong>Generazione in corso</strong>
+                <p>Il processo è attivo e richiede alcuni minuti. Puoi tenere la pagina aperta: il risultato apparirà automaticamente.</p>
+              </>
+            )}
           </div>
-        </>
+        </div>
       )}
 
-      {/* COMPLETION PHASE ──────────────────────────────── */}
+      {/* COMPLETION ────────────────────────────────────── */}
       {phase === 'completion' && (
-        <>
-          <div className="ui-fv-section">
-            <Label>Artefatti generati</Label>
-            <span className="ui-fv-completion-count">{totalStepsCount}</span>
+        <div className="ui-fv-section">
+          <div className="ui-fv-completion-check" role="status">
+            <span className="ui-fv-completion-icon">✓</span>
+            <span className="ui-fv-completion-text">Generazione completata</span>
           </div>
+          <p className="ui-fv-completion-hint" aria-live="polite">
+            Apertura riepilogo sessione in corso...
+          </p>
+        </div>
+      )}
 
-          <div className="ui-fv-section">
-            <Label>Step di generazione</Label>
-            <ul className="ui-fv-steps">
-              {steps.map((step) => (
-                <StepRow key={step.step} step={step} />
-              ))}
-            </ul>
-          </div>
-        </>
+      {/* FEEDBACK — conditional, any phase ─────────────── */}
+      {workflowPanelFeedback.length > 0 && (
+        <div className="ui-fv-section">
+          <Label>Feedback</Label>
+          <ul className="ui-fv-feedback-list">
+            {workflowPanelFeedback.map((item) => (
+              <FeedbackRow key={item.id} item={item} />
+            ))}
+          </ul>
+        </div>
       )}
 
     </div>

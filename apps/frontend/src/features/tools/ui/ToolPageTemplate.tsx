@@ -13,14 +13,17 @@ import { uiPrimitives } from '../../../app/ui/primitives';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
-import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
 import {
   deriveToolInputFileCompletion,
   selectToolFileInstructions,
 } from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
-import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
+import {
+  ToolGenerationFlowVertical,
+  type InputFilePayloadStatus,
+  type WorkflowPanelFeedbackItem,
+} from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 
@@ -72,10 +75,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     machineViewModel,
     isGenerating,
     readinessSnapshot,
-    completedStepsForFlow,
-    latestArtifactByStep,
-    currentRunningStep,
-    streamingStep,
     effectiveCanonicalState,
     currentProject,
     isStreamActive,
@@ -149,6 +148,121 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       tooltip: "Avvia l'estrazione del contesto briefing",
     }
     : undefined;
+
+  // ─── inputFilePayload derivation (DDD-082) ────────────────────────────────
+  const inputFilePayload: InputFilePayloadStatus[] = inputFiles.map((fileEntry) => {
+    const isBriefing = fileEntry.key === 'briefing-file';
+    const isAngle = fileEntry.key === 'angle-detector-file';
+
+    let fileStatus: InputFilePayloadStatus['status'] = 'todo';
+    if (isBriefing) {
+      if (briefingError) {
+        fileStatus = 'error';
+      } else if (extractionInProgress) {
+        fileStatus = 'active';
+      } else if (completedFileKeys.includes('briefing-file')) {
+        fileStatus = 'done';
+      }
+    } else if (completedFileKeys.includes(fileEntry.key)) {
+      fileStatus = 'done';
+    }
+
+    const fileName: string | null = isBriefing
+      ? (effectiveBriefingFileName ?? null)
+      : isAngle
+        ? (angleDetectorFileName ?? null)
+        : null;
+
+    return {
+      key: fileEntry.key,
+      label: fileEntry.label,
+      requiredness: fileEntry.requiredness,
+      status: fileStatus,
+      fileName,
+    };
+  });
+
+  // ─── workflowPanelFeedback derivation (DDD-063) ───────────────────────────
+  const workflowPanelFeedback: WorkflowPanelFeedbackItem[] = [];
+
+  if (briefingError) {
+    workflowPanelFeedback.push({
+      id: 'briefing-error',
+      severity: 'error',
+      message: briefingError,
+      source: 'briefing',
+    });
+  }
+
+  if (!fileCompletion.requiredFilesComplete) {
+    workflowPanelFeedback.push({
+      id: 'missing-required-files',
+      severity: 'error',
+      message: `Upload required documents to continue. Missing: ${missingRequiredFilesOrdered}.`,
+      source: 'file-completion',
+    });
+  }
+
+  for (const code of readinessSnapshot.reasonCodes) {
+    if (code === 'missing_project') {
+      workflowPanelFeedback.push({
+        id: `readiness-${code}`,
+        severity: 'error',
+        message: 'Seleziona un progetto',
+        source: 'readiness',
+      });
+    } else if (code === 'missing_extraction_context') {
+      workflowPanelFeedback.push({
+        id: `readiness-${code}`,
+        severity: 'error',
+        message: 'Carica o recupera un brief',
+        source: 'readiness',
+      });
+    } else if (code === 'missing_primary_target_step') {
+      workflowPanelFeedback.push({
+        id: `readiness-${code}`,
+        severity: 'info',
+        message: 'In attesa dello step disponibile',
+        source: 'readiness',
+      });
+    }
+  }
+
+  if (artifactsReloadError) {
+    workflowPanelFeedback.push({
+      id: 'artifacts-reload-error',
+      severity: 'error',
+      message: artifactsReloadError,
+      source: 'artifacts',
+    });
+  }
+
+  if (briefingGuidance) {
+    workflowPanelFeedback.push({
+      id: 'briefing-guidance',
+      severity: 'info',
+      message: briefingGuidance,
+      source: 'briefing',
+    });
+  }
+
+  if (fileCompletion.requiredFilesComplete && fileCompletion.missingOptionalFiles.length > 0) {
+    workflowPanelFeedback.push({
+      id: 'missing-optional-files',
+      severity: 'info',
+      message: 'You can start now. Optional documents are recommended to improve output quality.',
+      source: 'file-completion',
+    });
+  }
+
+  if (canStartExtraction) {
+    workflowPanelFeedback.push({
+      id: 'extraction-ready-hint',
+      severity: 'info',
+      message: "File pronti. Puoi aggiungere documenti opzionali oppure avviare l'estrazione.",
+      source: 'extraction',
+    });
+  }
 
   const {
     control,
@@ -327,12 +441,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                           handleBriefingFileSelected(file);
                         }}
                       />
-                      {errors[fileEntry.key as keyof ToolPageFormValues] ? <span className={uiPrimitives.error}>{errors[fileEntry.key as keyof ToolPageFormValues]?.message as string}</span> : null}
-                      {fileCompletion.missingOptionalFiles.some((missing) => missing.key === fileEntry.key) && fileCompletion.requiredFilesComplete ? (
-                        <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
-                          Optional document not uploaded yet. You can continue now or upload it for better results.
-                        </p>
-                      ) : null}
                     </div>
                   )}
                 />
@@ -340,26 +448,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
-              {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
-              {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}
-              {!fileCompletion.requiredFilesComplete ? (
-                <p className={uiPrimitives.error} role="status" aria-live="assertive">
-                  Upload required documents to continue. Missing: {missingRequiredFilesOrdered}.
-                </p>
-              ) : null}
-              {fileCompletion.requiredFilesComplete && fileCompletion.missingOptionalFiles.length > 0 ? (
-                <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
-                  You can start now. Optional documents are recommended to improve output quality.
-                </p>
-              ) : null}
-              {canStartExtraction ? (
-                <p className={uiPrimitives.metaLine} role="status" aria-live="polite">
-                  File pronti. Puoi aggiungere documenti opzionali oppure avviare l'estrazione.
-                </p>
-              ) : null}
-              {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
-
-                {/* DispatchError ownership contract:
+                {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
                 {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
@@ -406,23 +495,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
-              briefingFileName={effectiveBriefingFileName ?? null}
-              briefingStatus={effectiveBriefingStatus}
-              readinessReasonCodes={readinessSnapshot.reasonCodes}
-              briefingError={briefingError}
-              briefingGuidance={briefingGuidance}
-              steps={toolConfig.steps.map((step) => ({
-                step,
-                displayName: mapToolStepToCardConfig(props.toolKey, step).displayName,
-                status:
-                  isStreamActive && currentRunningStep === step
-                    ? 'running'
-                    : machineViewModel.stepStatuses[step] ?? 'idle',
-                artifactId: latestArtifactByStep[step]?.artifactId ?? null,
-                isStreaming: isStreamActive && streamingStep === step,
-              }))}
-              completedStepsCount={completedStepsForFlow.size}
-              totalStepsCount={toolConfig.steps.length}
+              inputFilePayload={inputFilePayload}
+              workflowPanelFeedback={workflowPanelFeedback}
               errorMessage={machineViewModel.messages.error}
             />
           </section>

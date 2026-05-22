@@ -1,83 +1,109 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ToolGenerationFlowVertical, type ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
+import {
+  ToolGenerationFlowVertical,
+  type InputFilePayloadStatus,
+  type ToolGenerationFlowVerticalProps,
+  type WorkflowPanelFeedbackItem,
+} from './ToolGenerationFlowVertical';
+
+const basePayload: InputFilePayloadStatus[] = [
+  {
+    key: 'briefing-file',
+    label: 'Briefing File',
+    requiredness: 'always-required',
+    status: 'todo',
+    fileName: null,
+  },
+];
 
 const baseProps: ToolGenerationFlowVerticalProps = {
   canonicalState: 'draft-empty',
   projectName: null,
-  briefingFileName: null,
-  briefingStatus: 'idle',
-  readinessReasonCodes: [],
-  briefingError: null,
-  briefingGuidance: null,
-  steps: [],
-  completedStepsCount: 0,
-  totalStepsCount: 3,
+  inputFilePayload: basePayload,
+  workflowPanelFeedback: [],
   errorMessage: null,
 };
 
-describe('ToolGenerationFlowVertical readiness reason mapping', () => {
-  it('maps missing_project to deterministic readiness detail', () => {
-    render(
-      <ToolGenerationFlowVertical
-        {...baseProps}
-        readinessReasonCodes={['missing_project']}
-      />,
-    );
+describe('ToolGenerationFlowVertical feedback rendering', () => {
+  it('renders error feedback item with role=alert', () => {
+    const feedback: WorkflowPanelFeedbackItem[] = [
+      { id: 'readiness-missing_project', severity: 'error', message: 'Seleziona un progetto', source: 'readiness' },
+    ];
 
-    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
+    render(<ToolGenerationFlowVertical {...baseProps} workflowPanelFeedback={feedback} />);
+
     expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
-  it('maps missing_extraction_context to deterministic readiness detail', () => {
+  it('renders extraction context error feedback', () => {
+    const feedback: WorkflowPanelFeedbackItem[] = [
+      { id: 'readiness-missing_extraction_context', severity: 'error', message: 'Carica o recupera un brief', source: 'readiness' },
+    ];
+
     render(
       <ToolGenerationFlowVertical
         {...baseProps}
         projectName="Project 001"
-        readinessReasonCodes={['missing_extraction_context']}
+        workflowPanelFeedback={feedback}
       />,
     );
 
-    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
     expect(screen.getByText('Carica o recupera un brief')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
-  it('maps missing_primary_target_step to deterministic waiting detail', () => {
+  it('renders info feedback item with role=status and no alert role', () => {
+    const feedback: WorkflowPanelFeedbackItem[] = [
+      { id: 'readiness-missing_primary_target_step', severity: 'info', message: 'In attesa dello step disponibile', source: 'readiness' },
+    ];
+
     render(
       <ToolGenerationFlowVertical
         {...baseProps}
         projectName="Project 001"
-        briefingStatus="ready"
-        readinessReasonCodes={['missing_primary_target_step']}
+        workflowPanelFeedback={feedback}
       />,
     );
 
-    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
     expect(screen.getByText('In attesa dello step disponibile')).toBeInTheDocument();
-    expect(screen.getByText('In attesa')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
-  it('uses deterministic priority fallback when multiple reason codes are present', () => {
+  it('renders multiple feedback items and only error items use role=alert', () => {
+    const feedback: WorkflowPanelFeedbackItem[] = [
+      { id: 'readiness-missing_project', severity: 'error', message: 'Seleziona un progetto', source: 'readiness' },
+      { id: 'readiness-missing_primary_target_step', severity: 'info', message: 'In attesa dello step disponibile', source: 'readiness' },
+    ];
+
     render(
       <ToolGenerationFlowVertical
         {...baseProps}
         projectName="Project 001"
-        briefingStatus="ready"
-        readinessReasonCodes={['missing_primary_target_step', 'missing_project']}
+        workflowPanelFeedback={feedback}
       />,
     );
 
-    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
     expect(screen.getByText('Seleziona un progetto')).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
   });
 
-  it('renders neutral angle-generator guidance without error styling when awaiting the second file', () => {
+  it('renders guidance info message without error styling when awaiting the second file', () => {
+    const feedback: WorkflowPanelFeedbackItem[] = [
+      {
+        id: 'briefing-guidance',
+        severity: 'info',
+        message: 'Brief pronto. Carica Angle Detector File per continuare.',
+        source: 'briefing',
+      },
+    ];
+
     render(
       <ToolGenerationFlowVertical
         {...baseProps}
         projectName="Project 001"
-        briefingStatus="ready"
-        briefingGuidance="Brief pronto. Carica Angle Detector File per continuare."
+        workflowPanelFeedback={feedback}
       />,
     );
 

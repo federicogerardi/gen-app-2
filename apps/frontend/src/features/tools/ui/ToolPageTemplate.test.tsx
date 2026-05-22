@@ -963,6 +963,33 @@ describe('ToolPageTemplate restore flow', () => {
     expect(firstRequest.input.briefingText).toBe('brief text');
   });
 
+  it('keeps the relaunch primary CTA and does not expose manual extraction CTA after sessionsummary relaunch hydration', async () => {
+    extractionContextState = makeExtractionContext();
+    briefingState.fileName = 'hydrated-brief.md';
+    briefingState.status = 'ready';
+    briefingState.extractionContext = makeExtractionContext();
+
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['optin'];
+
+    renderTemplate({
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-001',
+      initialProjectId: 'project-001',
+    });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
+    });
+
+    expect(primaryActionButton).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /avvia estrazione/i })).not.toBeInTheDocument();
+  });
+
   it('blocks relaunch from extraction artifact when hydration recovers no briefing text', async () => {
     briefingMachineSeed.initialState = 'idle';
     briefingMachineSeed.context = {

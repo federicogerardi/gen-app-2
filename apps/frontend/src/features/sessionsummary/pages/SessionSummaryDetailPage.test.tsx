@@ -273,6 +273,76 @@ describe('SessionSummaryDetailPage', () => {
     expect(relaunchLink.getAttribute('href')).toContain('sourceArtifactId=a-angle-step');
   });
 
+  it('keeps Rilancia as the relaunch UI contract and does not expose a manual extraction CTA', async () => {
+    const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
+
+    mocks.sessionGroup = {
+      sessionId: 'sess_demo',
+      toolKey: 'funnel-pages',
+      status: 'completed',
+      artifacts: [
+        {
+          artifactId: 'a-1',
+          requestId: 'r-1',
+          projectId: 'p-1',
+          stepKey: 'optin',
+          artifactRole: 'step',
+          status: 'completed',
+          content: 'artifact content',
+          updatedAt: '2026-05-09T10:00:00.000Z',
+          failureReason: null,
+          workflowType: 'funnel_pages',
+          toolKey: 'funnel-pages',
+          runMode: 'regenerate',
+        },
+      ],
+    };
+
+    mocks.relaunchArtifact = {
+      artifactId: 'a-1',
+      requestId: 'r-1',
+      projectId: 'p-1',
+      sessionId: 'sess_demo',
+      stepKey: 'vsl',
+      artifactRole: 'final',
+      runMode: 'regenerate',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      toolKey: 'funnel-pages',
+      workflowType: 'funnel_pages',
+      content: 'artifact content',
+      createdAt: '2026-05-09T09:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-source-1',
+        userId: 'user-1',
+        projectId: 'p-1',
+        artifactType: 'content',
+        model: 'openrouter/auto',
+        input: {
+          notes: 'note value',
+          tone: 'Formal',
+          briefingId: 'brief-1',
+          briefingFileName: 'brief.txt',
+        },
+        workflowType: 'funnel_pages',
+        outputFormat: 'markdown',
+        toolKey: 'funnel-pages',
+      },
+    };
+
+    renderPage(SessionSummaryDetailPage);
+
+    const relaunchLink = await screen.findByRole('link', { name: 'Rilancia' });
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('/tools/funnel-pages?'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('intent=regenerate'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('projectId=p-1'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('sourceArtifactId=a-1'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('relaunchFromArtifactId=a-1'));
+    expect(screen.queryByRole('button', { name: /avvia estrazione/i })).not.toBeInTheDocument();
+  });
+
   it('renders primary/sidebar layout with session metadata and step content panel', async () => {
     const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
 

@@ -1877,7 +1877,7 @@ test('auth HTTP runtime supports /api/tools/briefs dual upload for angle-generat
   assert.equal(data.knowledgeSourcesCount, 2);
 });
 
-test('auth HTTP runtime rejects /api/tools/briefs for angle-generator when angleDetector is missing', async () => {
+test('auth HTTP runtime accepts /api/tools/briefs for angle-generator when angleDetector is missing', async () => {
   const hasher = createDefaultPasswordHashRuntime();
   const repositories = createAuthStubRepositories();
   const sessionCookies = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
@@ -1957,10 +1957,21 @@ test('auth HTTP runtime rejects /api/tools/briefs for angle-generator when angle
     uploadResponse as unknown as ServerResponse,
   );
 
-  assert.equal(uploadResponse.statusCode, 400);
+  assert.equal(uploadResponse.statusCode, 201);
   const body = uploadResponse.jsonBody();
-  assert.equal(body.ok, false);
-  assert.match((body.error as { message: string }).message, /angleDetector\.fileName and angleDetector\.contentBase64 are required/);
+  assert.equal(body.ok, true);
+
+  const data = body.data as {
+    briefing: { briefingId: string; fileName: string; toolKey: string | null; parsedFormat: string };
+    angleDetector?: unknown;
+    knowledgeSourcesCount?: unknown;
+  };
+  assert.match(data.briefing.briefingId, /^brief_/);
+  assert.equal(data.briefing.fileName, 'briefing.md');
+  assert.equal(data.briefing.toolKey, 'angle-generator');
+  assert.equal(data.briefing.parsedFormat, 'md');
+  assert.equal(data.angleDetector, undefined);
+  assert.equal(data.knowledgeSourcesCount, undefined);
 });
 
 test('auth HTTP runtime rejects /api/tools/briefs when format is not supported', async () => {

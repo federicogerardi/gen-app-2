@@ -215,11 +215,6 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    if (isAngleGenerator && !angleDetectorEnvelope) {
-      writeError(response, 400, 'bad_request', 'For angle-generator, angleDetector.fileName and angleDetector.contentBase64 are required');
-      return;
-    }
-
     let parsedBriefing: ParsedUploadedBrief;
     let parsedAngleDetector: ParsedUploadedBrief | null = null;
     try {

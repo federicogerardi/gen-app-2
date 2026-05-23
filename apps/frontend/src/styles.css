@@ -2904,6 +2904,10 @@ ul {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.ui-fv-card--progress {
+  justify-content: space-between;
+}
+
 :root[data-theme='dark'] .ui-fv-card {
   background: rgba(15, 23, 42, 0.72);
 }
@@ -3023,19 +3027,14 @@ ul {
   font-size: 0.68rem;
 }
 
-.ui-fv-session-link {
-  align-self: flex-start;
-  color: var(--link-fg);
-  font-family: var(--font-family-ui);
-  font-size: 0.82rem;
-  font-weight: 600;
+.ui-fv-session-button {
+  display: inline-flex;
+  width: 100%;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.1rem;
   text-decoration: none;
-}
-
-.ui-fv-session-link:hover,
-.ui-fv-session-link:focus-visible {
-  color: var(--link-fg-hover);
-  text-decoration: underline;
 }
 
 .ui-fv-progress-metric {

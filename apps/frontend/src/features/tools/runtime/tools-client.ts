@@ -174,6 +174,16 @@ const mapExtractionFailureReasonToCode = (reason: string): string => {
   return normalized;
 };
 
+const readHttpClientErrorMessage = (details: unknown): string | null => {
+  if (!details || typeof details !== 'object') {
+    return null;
+  }
+
+  const candidate = details as { error?: { message?: unknown } };
+  const message = candidate.error?.message;
+  return typeof message === 'string' && message.trim().length > 0 ? message : null;
+};
+
 const assertExtractionResultIsValid = (
   toolKey: ToolKey,
   payload: Record<string, unknown>,
@@ -250,7 +260,12 @@ export const uploadBrief = async (
     return parseUploadBriefResponse(payload);
   } catch (error) {
     if (isHttpClientError(error)) {
-      throw new Error(`Unable to upload brief (HTTP ${error.status ?? 'unknown'})`);
+      const backendMessage = readHttpClientErrorMessage(error.details);
+      throw new Error(
+        backendMessage
+          ? `Unable to upload brief (HTTP ${error.status ?? 'unknown'}): ${backendMessage}`
+          : `Unable to upload brief (HTTP ${error.status ?? 'unknown'})`,
+      );
     }
 
     throw error;

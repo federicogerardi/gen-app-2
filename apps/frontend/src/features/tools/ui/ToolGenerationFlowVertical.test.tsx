@@ -32,7 +32,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(screen.getByText('Fase: Estrazione')).toBeInTheDocument();
     expect(screen.getByText('Step corrente: Estrazione briefing')).toBeInTheDocument();
     expect(screen.getByText('Estrazione briefing in attesa')).toBeInTheDocument();
-    expect(screen.getByText('Seleziona un progetto per visualizzare i file del contesto')).toBeInTheDocument();
+    expect(screen.queryByText('Seleziona un progetto per visualizzare i file del contesto')).toBeNull();
     expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
   });
 
@@ -196,7 +196,10 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
     expect(screen.getByText('3 / 3 step completati')).toBeInTheDocument();
     expect(screen.getByText('Step corrente: Landing Page')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Apri sessione →' })).toHaveAttribute(
+    const sessionLink = screen.getByRole('link', { name: 'Apri sessione →' });
+    expect(sessionLink).toHaveClass('ui-fv-session-button');
+    expect(sessionLink).toHaveClass('ui-button');
+    expect(sessionLink).toHaveAttribute(
       'href',
       '/sessionsummary/session-123',
     );

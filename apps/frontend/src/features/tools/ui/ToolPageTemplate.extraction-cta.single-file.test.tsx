@@ -115,7 +115,13 @@ vi.mock('../runtime/useToolPage', () => ({
 }));
 
 vi.mock('./ToolGenerationFlowVertical', () => ({
-  ToolGenerationFlowVertical: () => <div data-testid="tool-flow-vertical" />,
+  ToolGenerationFlowVertical: ({ primaryActionCta }: { primaryActionCta?: { label?: string; onClick?: () => void } }) => (
+    <div data-testid="tool-flow-vertical">
+      <button type="button" onClick={() => primaryActionCta?.onClick?.()}>
+        {primaryActionCta?.label ?? 'primary-action'}
+      </button>
+    </div>
+  ),
 }));
 
 describe('ToolPageTemplate extraction CTA single-file', () => {

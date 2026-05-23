@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createActor, waitFor } from 'xstate';
+import { appCopy } from '../../../app/copy/system';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
 
@@ -179,7 +180,7 @@ describe('briefingUploadMachine', () => {
     await waitFor(actor, (snapshot) => snapshot.matches('idle'));
 
     const context = actor.getSnapshot().context;
-    expect(context.error).toBe('extraction_context_insufficient');
+    expect(context.error).toBe(appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient);
     expect(context.extractionArtifactId).toBeNull();
     expect(context.extractionPayload).toBeNull();
     expect(context.briefingId).toBeNull();
@@ -520,7 +521,7 @@ describe('briefingUploadMachine', () => {
         actor,
         (snapshot) =>
           snapshot.matches('idle')
-          && snapshot.context.error === 'Sessione non disponibile. Ricarica la pagina.',
+          && snapshot.context.error === appCopy.ui.session.unavailable,
       );
 
       expect(mockedRunExtraction).not.toHaveBeenCalled();

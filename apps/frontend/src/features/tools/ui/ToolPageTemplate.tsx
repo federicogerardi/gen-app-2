@@ -308,11 +308,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
     label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
     disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
-    tooltip: basePrimaryAction.tooltip,
     isLoading: isStreamActive,
     onClick: handleSubmit((data) => {
       executePrimaryActionFromForm(data);
     }),
+    ...(basePrimaryAction.tooltip ? { tooltip: basePrimaryAction.tooltip } : {}),
   };
 
   return (

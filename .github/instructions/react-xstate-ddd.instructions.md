@@ -26,6 +26,8 @@ Apply this guidance when editing React and XState code in frontend runtime files
 - Keep components declarative; avoid re-implementing machine state logic in component conditionals.
 - Remember `useMachine(..., { input })` initializes actor input once at actor creation; when upstream props change later, sync with explicit events or recreate actor intentionally.
 - Ensure constants used in `useEffect` body or dependency arrays are declared before the effect.
+- Prefer smaller focused components, selectors, and helpers over large mixed-responsibility React files when the split improves reuse, testability, and ownership clarity.
+- When a component or hook grows to mix orchestration, formatting, conditional copy selection, and presentation, extract the stable responsibilities into dedicated helpers or presentational subcomponents instead of extending the monolith.
 
 ## Frontend/UI Governance Rules
 - Map UI work to canonical archetypes from `frontend-ui-ubiquitous-language-spec.md`:
@@ -33,6 +35,9 @@ Apply this guidance when editing React and XState code in frontend runtime files
   - `Data Table View`
 - Avoid nested cards unless strictly necessary.
 - Keep feedback-channel ownership deterministic (`inline-action`, `page-state`, `global`).
+- Do not hardcode user-facing production copy inside React components, XState machines, hooks, query helpers, or runtime utilities when the surface already has a centralized copy module or copy authority.
+- Prefer adding or reusing centralized copy entries over duplicating literals across files; keep copy grouped by owning surface so wording changes remain single-source.
+- Do not gate behavior on rendered message text. If UI messaging affects control flow, derive the behavior from machine state, typed reason codes, or explicit booleans and map those states to copy separately.
 
 ## Runtime Ownership Boundary
 - Frontend orchestrates interaction state and rendering.

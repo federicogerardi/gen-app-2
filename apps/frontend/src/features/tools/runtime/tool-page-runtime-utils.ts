@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import type { LlmModelId, ToneProfile } from '@gen-app-2/contracts';
 
 const TONE_PROFILE_DEFAULT = 'Professional';
@@ -47,11 +48,11 @@ export const mapInlineDispatchError = (reason: string | null | undefined): strin
   }
 
   if (normalized === 'extraction_context_insufficient' || normalized === 'stream_empty_output') {
-    return 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.';
+    return appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient;
   }
 
   if (normalized.startsWith('terminal_failed')) {
-    return 'La generazione non è andata a buon fine. Riprova tra pochi istanti.';
+    return appCopy.ui.toolPage.runtimeErrors.streamFailed;
   }
 
   return normalized;

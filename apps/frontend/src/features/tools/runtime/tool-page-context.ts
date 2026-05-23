@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useMachine, useSelector } from '@xstate/react';
 import type { ActorRefFrom } from 'xstate';
+import { appCopy } from '../../../app/copy/system';
 import { generateSessionId, readInputField } from '../../../app/runtime/shared-utils';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type {
@@ -81,8 +82,8 @@ export const useToolPageContext = ({
   const briefingGuidance = hasRequiredAngleDetector
     && !!briefingSnapshot.context.file
     && !briefingSnapshot.context.angleDetectorFile
-    && briefingUploadMessage === 'Carica i file richiesti per continuare.'
-    ? 'Brief pronto. Carica Angle Detector File per continuare.'
+    && briefingSnapshot.context.error !== null
+    ? appCopy.ui.toolPage.guidance.angleDetectorRequired
     : null;
   const briefingError = briefingGuidance ? null : mapInlineDispatchError(briefingUploadMessage);
   const normalizedProjectId = formState.projectId.trim();

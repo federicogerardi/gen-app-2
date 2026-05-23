@@ -9,24 +9,14 @@
  * - Generation workflow state
  */
 
+import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
 
 type StatusItemStatus = 'todo' | 'active' | 'done' | 'error';
 
-const CANONICAL_STATE_LABEL: Record<string, string> = {
-  'draft-empty': 'In attesa di configurazione',
-  'processing-briefing': 'Elaborazione brief in corso',
-  'draft-ready': 'Pronto per avviare',
-  'prefilled-regenerate': 'Contesto caricato — pronto a rigenerare',
-  'paused-with-checkpoint': 'In pausa — riprendi dal checkpoint',
-  'resume-needs-briefing': 'Carica un brief per continuare',
-  'running': 'Generazione in corso',
-  'completed': 'Completato',
-};
-
 const toReadableState = (state: string): string =>
-  CANONICAL_STATE_LABEL[state] ?? state;
+  appCopy.ui.toolWorkspaceStatus.canonicalStateLabels[state as keyof typeof appCopy.ui.toolWorkspaceStatus.canonicalStateLabels] ?? state;
 
 interface StatusItem {
   label: string;
@@ -73,28 +63,28 @@ export const ToolStatusCard = ({
   // Build status items based on canonical state
   const items: StatusItem[] = [
     {
-      label: 'Progetto',
+      label: appCopy.ui.toolWorkspaceStatus.projectLabel,
       status: projectName ? 'done' : 'todo',
-      detail: projectName ?? 'Seleziona un progetto',
+      detail: projectName ?? appCopy.ui.toolWorkspaceStatus.projectMissing,
     },
     {
-      label: 'Brief',
+      label: appCopy.ui.toolWorkspaceStatus.briefingLabel,
       status: briefingFileName
         ? 'done'
         : canonicalState === 'processing-briefing'
           ? 'active'
           : 'todo',
-      detail: briefingFileName ?? 'Carica il documento di brief',
+      detail: briefingFileName ?? appCopy.ui.toolWorkspaceStatus.briefingMissing,
     },
     {
-      label: `Step (${completedStepsCount}/${totalStepsCount})`,
+      label: appCopy.ui.toolWorkspaceStatus.stepLabel(completedStepsCount, totalStepsCount),
       status: completedStepsCount === totalStepsCount ? 'done' : 'active',
       detail: canonicalState === 'completed'
-        ? 'Tutti gli step completati'
-        : `${totalStepsCount - completedStepsCount} rimanenti`,
+        ? appCopy.ui.toolWorkspaceStatus.stepCompletedDetail
+        : `${totalStepsCount - completedStepsCount} ${appCopy.ui.toolWorkspaceStatus.stepRemainingSuffix}`,
     },
     {
-      label: 'Stato',
+      label: appCopy.ui.toolWorkspaceStatus.stateLabel,
       status: canonicalState === 'running'
         ? 'active'
         : errorMessage
@@ -109,7 +99,7 @@ export const ToolStatusCard = ({
   return (
     <Surface className="ui-tool-status-card">
       <div className="ui-tool-status-header">
-        <h3>Stato della generazione</h3>
+        <h3>{appCopy.ui.toolWorkspaceStatus.heading}</h3>
         {errorMessage && (
           <div className={uiPrimitives.error} role="alert">
             {errorMessage}

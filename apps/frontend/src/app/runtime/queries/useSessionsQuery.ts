@@ -1,4 +1,5 @@
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import {
   listSessions,
   type SessionSummary,
@@ -23,6 +24,6 @@ export const useSessionsQuery = (options: UseSessionsQueryOptions): SWRQueryResu
       { apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities },
     ),
     emptyData: [],
-    errorMessage: 'Unable to load sessions',
+    errorMessage: appCopy.ui.fallbackErrors.loadSessions,
   });
 };

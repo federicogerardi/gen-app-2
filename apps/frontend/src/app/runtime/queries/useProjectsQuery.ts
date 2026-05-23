@@ -1,4 +1,5 @@
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import { listProjects, type ProjectSummary } from '../../../features/projects/runtime/projects-client';
 import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
@@ -17,6 +18,6 @@ export const useProjectsQuery = (
     key: enabled ? [options.apiBaseUrl, options.capabilities, 'projects'] : null,
     fetcher: () => listProjects({ apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities }),
     emptyData: [],
-    errorMessage: 'Unable to load projects',
+    errorMessage: appCopy.ui.fallbackErrors.loadProjects,
   });
 };

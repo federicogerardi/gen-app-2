@@ -1,4 +1,5 @@
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import { joinApiPath, requestJson } from '../http-client';
 import type { AdminLlmModelRow } from '../../../features/admin/llm/LLMTable';
 import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
@@ -26,6 +27,6 @@ export const useAdminModelsQuery = (
     key: enabled ? [options.apiBaseUrl, options.capabilities, 'admin-models'] : null,
     fetcher: () => fetchAdminModels(options.apiBaseUrl),
     emptyData: [],
-    errorMessage: 'Failed to load models',
+    errorMessage: appCopy.ui.fallbackErrors.loadAdminModels,
   });
 };

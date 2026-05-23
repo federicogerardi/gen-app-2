@@ -140,7 +140,7 @@ export const SessionSummaryDetailPage = () => {
           setPageState({ phase: 'not-found' });
           return;
         }
-        setPageState({ phase: 'error', message: message || 'Unable to load session' });
+        setPageState({ phase: 'error', message: message || appCopy.ui.sessions.detail.loadFailed });
       }
     })();
 
@@ -191,7 +191,7 @@ export const SessionSummaryDetailPage = () => {
   const jobDate = artifactTimestamps.length > 0 ? new Date(Math.min(...artifactTimestamps)) : null;
   const lastUpdate = artifactTimestamps.length > 0 ? new Date(Math.max(...artifactTimestamps)) : null;
   const projectName = projectId
-    ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `Project ${projectId}`
+    ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `${appCopy.ui.sessions.detail.projectFallbackPrefix}${projectId}`
     : 'Project non disponibile';
   const detailTitle = `${projectName} - ${formatToolName(group.toolKey)}`;
 
@@ -208,15 +208,15 @@ export const SessionSummaryDetailPage = () => {
       </TopBar>
 
       <div className="ui-artifact-page-layout">
-        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto sessione">
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
           <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label="Contesto sessione">
-          <section className="ui-artifact-overview" aria-label="Panoramica sessione">
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+          <section className="ui-artifact-overview" aria-label={appCopy.ui.sessions.detail.overviewAriaLabel}>
             <div className="ui-artifact-overview-actions">
               <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
-                Rilancia
+                {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
               {auth.capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
@@ -224,16 +224,16 @@ export const SessionSummaryDetailPage = () => {
             </div>
 
             <details className="ui-artifact-accessory">
-              <summary>Dettagli sessione</summary>
+              <summary>{appCopy.ui.sessions.detail.detailsSummaryLabel}</summary>
               <dl className="ui-artifact-metadata ui-session-summary-details">
                 <dt>{appCopy.ui.labels.projectName}</dt>
                 <dd>{projectName}</dd>
                 <dt>{appCopy.ui.labels.toolKey}</dt>
                 <dd>{formatToolName(group.toolKey)}</dd>
                 <dt>{appCopy.ui.meta.jobDate}</dt>
-                <dd>{jobDate ? toHumanReadableDate(jobDate.toISOString()) : 'Data non disponibile'}</dd>
+                <dd>{jobDate ? toHumanReadableDate(jobDate.toISOString()) : appCopy.ui.feedbackCenter.unavailableDate}</dd>
                 <dt>{appCopy.ui.meta.lastUpdate}</dt>
-                <dd>{lastUpdate ? toHumanReadableDate(lastUpdate.toISOString()) : 'Data non disponibile'}</dd>
+                <dd>{lastUpdate ? toHumanReadableDate(lastUpdate.toISOString()) : appCopy.ui.feedbackCenter.unavailableDate}</dd>
                 <dt>{appCopy.ui.meta.artifactCount}</dt>
                 <dd>{group.artifacts.length}</dd>
               </dl>

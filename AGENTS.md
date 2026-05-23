@@ -33,6 +33,9 @@ Reference map: [Documentation Index Overview](docs/index-overview.md)
 - Keep machine logic in machines and selectors; keep components mostly declarative.
 - Preserve backend authority for orchestration ordering and dependency resolution. Frontend projects and renders state; it does not re-own backend orchestration rules.
 - Preserve canonical FE terms (ToolPage, ReadinessSnapshot, ToolStep, ExtractionContext, HydrationResult, DispatchError).
+- Keep user-facing production copy centralized. Do not introduce hardcoded UI text in components, hooks, machines, or query helpers when the owning surface already has a copy module.
+- Never make control flow depend on rendered copy text; use typed state, explicit reason codes, or booleans and map them to copy separately.
+- Favor scalable modular structure: split mixed-responsibility files into focused helpers, selectors, and presentational components when that improves reuse and keeps ownership clear.
 
 Known workspace pitfalls to avoid:
 - useMachine(..., { input }) initializes actor input once; if input props change after mount, sync via event or recreate actor.

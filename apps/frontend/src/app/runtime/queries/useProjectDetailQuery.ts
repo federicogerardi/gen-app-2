@@ -1,4 +1,5 @@
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import { getProjectById, type ProjectSummary } from '../../../features/projects/runtime/projects-client';
 import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
 
@@ -21,6 +22,6 @@ export const useProjectDetailQuery = (
       capabilities: options.capabilities,
     }),
     emptyData: null,
-    errorMessage: 'Unable to load project detail',
+    errorMessage: appCopy.ui.fallbackErrors.loadProjectDetail,
   });
 };

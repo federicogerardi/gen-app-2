@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ToolGenerationFlowVertical,
   type ToolGenerationFlowVerticalProps,
@@ -155,7 +155,8 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(screen.queryByRole('link', { name: 'Apri sessione →' })).toBeNull();
   });
 
-  it('renders payload, progress metrics, and session handoff for completed runs', () => {
+  it('renders payload, progress metrics, and unified primary CTA for completed runs', () => {
+    const onPrimaryAction = vi.fn();
     const { container } = render(
       <MemoryRouter>
         <ToolGenerationFlowVertical
@@ -184,6 +185,11 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
             currentStepLabel: 'Landing Page',
             sessionId: 'session-123',
           }}
+          primaryActionCta={{
+            label: 'Apri sessione',
+            disabled: false,
+            onClick: onPrimaryAction,
+          }}
         />
       </MemoryRouter>,
     );
@@ -196,13 +202,9 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
     expect(screen.getByText('3 / 3 step completati')).toBeInTheDocument();
     expect(screen.getByText('Step corrente: Landing Page')).toBeInTheDocument();
-    const sessionLink = screen.getByRole('link', { name: 'Apri sessione →' });
-    expect(sessionLink).toHaveClass('ui-fv-session-button');
-    expect(sessionLink).toHaveClass('ui-button');
-    expect(sessionLink).toHaveAttribute(
-      'href',
-      '/sessionsummary/session-123',
-    );
+    const actionButton = screen.getByRole('button', { name: 'Apri sessione' });
+    expect(actionButton).toHaveClass('ui-fv-session-button');
+    expect(actionButton).toHaveClass('ui-button');
   });
 });
 

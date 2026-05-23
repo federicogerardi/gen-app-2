@@ -224,6 +224,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     && !extractionAlreadyReady
     && formState.projectId.trim().length > 0
     && fileCompletion.requiredFilesComplete;
+  const isGenerationLocked = isGenerating || effectiveCanonicalState === 'running';
+  const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
+    ? {
+      label: copy.flow.progressAria.generationInProgress,
+      disabled: true,
+    }
+    : undefined;
   const extractionInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = extractionInProgress
     ? {
       label: copy.primaryActionPolicy.startGenerationLabel,
@@ -310,9 +317,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
-  const basePrimaryAction = extractionInProgressPrimaryOverride
+  const basePrimaryAction = generationInProgressPrimaryOverride
+    ?? extractionInProgressPrimaryOverride
     ?? extractionPrimaryOverride
     ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
+  const isGenerationInProgressCta = generationInProgressPrimaryOverride !== undefined;
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {
@@ -322,7 +331,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
     label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
     disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
-    isLoading: isStreamActive,
+    isLoading: isStreamActive && !isGenerationInProgressCta,
     onClick: handleUnifiedPrimaryActionClick,
     ...(basePrimaryAction.tooltip ? { tooltip: basePrimaryAction.tooltip } : {}),
   };
@@ -349,7 +358,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <TextField
                       select
                       label={copy.form.projectLabel}
-                      disabled={projectsLoading || isStreamActive}
+                      disabled={projectsLoading || isGenerationLocked}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, projectId: e.target.value }));
@@ -376,7 +385,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <TextField
                       select
                       label={copy.form.modelLabel}
-                      disabled={isStreamActive || modelsLoading || Boolean(modelsError)}
+                      disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, model: e.target.value }));
@@ -406,7 +415,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <TextField
                       select
                       label={copy.form.toneLabel}
-                      disabled={isStreamActive}
+                      disabled={isGenerationLocked}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, tone: e.target.value }));
@@ -435,7 +444,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     <div>
                       <UploadFieldButton
                         label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                        disabled={!formState.projectId.trim() || isStreamActive}
+                        disabled={!formState.projectId.trim() || isGenerationLocked}
                         icon={<Upload size={16} aria-hidden="true" />}
                         accept={fileEntry.accept}
                         onFileSelected={(file) => {

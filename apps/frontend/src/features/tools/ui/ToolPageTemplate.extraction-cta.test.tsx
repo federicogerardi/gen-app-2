@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToolPageTemplate } from './ToolPageTemplate';
 
 const handlePrimaryAction = vi.fn();
@@ -9,6 +9,7 @@ const handleBriefingFileSelected = vi.fn();
 const handleAngleDetectorFileSelected = vi.fn();
 const handleExtractionStart = vi.fn();
 const handleBriefingReset = vi.fn();
+let mockedEffectiveBriefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready' = 'idle';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -72,7 +73,7 @@ vi.mock('../runtime/useToolPage', () => ({
     briefingGuidance: null,
     dispatchError: null,
     artifactsReloadError: null,
-    effectiveBriefingStatus: 'idle',
+    effectiveBriefingStatus: mockedEffectiveBriefingStatus,
     effectiveBriefingFileName: 'brief.md',
     machineViewModel: {
       primaryActionPolicy: 'disabled',
@@ -121,9 +122,9 @@ vi.mock('../runtime/useToolPage', () => ({
 }));
 
 vi.mock('./ToolGenerationFlowVertical', () => ({
-  ToolGenerationFlowVertical: ({ primaryActionCta }: { primaryActionCta?: { label?: string; onClick?: () => void } }) => (
+  ToolGenerationFlowVertical: ({ primaryActionCta }: { primaryActionCta?: { label?: string; onClick?: () => void; disabled?: boolean } }) => (
     <div data-testid="tool-flow-vertical">
-      <button type="button" onClick={() => primaryActionCta?.onClick?.()}>
+      <button type="button" onClick={() => primaryActionCta?.onClick?.()} disabled={primaryActionCta?.disabled}>
         {primaryActionCta?.label ?? 'primary-action'}
       </button>
     </div>
@@ -131,7 +132,26 @@ vi.mock('./ToolGenerationFlowVertical', () => ({
 }));
 
 describe('ToolPageTemplate extraction CTA', () => {
+  beforeEach(() => {
+    mockedEffectiveBriefingStatus = 'idle';
+  });
+
+  it('shows disabled Avvia la generazione while extraction is in progress', () => {
+    mockedEffectiveBriefingStatus = 'extracting';
+
+    render(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="angle-generator" />
+      </MemoryRouter>,
+    );
+
+    const primaryButton = screen.getByRole('button', { name: /avvia la generazione/i });
+    expect(primaryButton).toBeDisabled();
+
+  });
+
   it('starts extraction only after clicking Avvia estrazione and after optional file payload update', async () => {
+    mockedEffectiveBriefingStatus = 'idle';
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
     handleBriefingFileSelected.mockReset();

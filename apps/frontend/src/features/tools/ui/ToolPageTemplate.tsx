@@ -224,6 +224,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     && !extractionAlreadyReady
     && formState.projectId.trim().length > 0
     && fileCompletion.requiredFilesComplete;
+  const extractionInProgressPrimaryOverride = extractionInProgress
+    ? {
+      label: copy.primaryActionPolicy.startGenerationLabel,
+      disabled: true,
+    }
+    : undefined;
   const extractionPrimaryOverride = canStartExtraction
     ? {
       label: copy.extraction.startActionLabel,
@@ -304,7 +310,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
-  const basePrimaryAction = extractionPrimaryOverride ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
+  const basePrimaryAction = extractionInProgressPrimaryOverride
+    ?? extractionPrimaryOverride
+    ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {

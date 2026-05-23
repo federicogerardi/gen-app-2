@@ -127,7 +127,12 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
   }, [briefingStatus, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
 
-  const effectiveCanonicalState = isGenerating || generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState;
+  const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const effectiveCanonicalState = isExtractionInProgress
+    ? 'processing-briefing'
+    : isGenerating || generationStream.isStreamActive
+      ? 'running'
+      : machineViewModel.canonicalState;
   const handlePrimaryAction = useCallback(() => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionId}`);

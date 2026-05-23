@@ -104,9 +104,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         : null;
     const isBriefingFile = fileEntry.key === 'briefing-file';
     const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
-    const status = fileName
-      ? (isBriefingFile && (effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting') ? 'active' : 'done')
-      : (isBriefingFile && (effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting') ? 'active' : 'todo');
+    const status = fileName ? 'done' : 'todo';
 
     return {
       key: fileEntry.key,
@@ -129,6 +127,43 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     };
   });
 
+  const extractionProgress = (() => {
+    const totalCount = 3;
+    if (effectiveBriefingStatus === 'uploading') {
+      return {
+        completedCount: 1,
+        totalCount,
+        currentStepLabel: 'Upload briefing',
+        statusLabel: 'Upload briefing in corso',
+      };
+    }
+
+    if (effectiveBriefingStatus === 'extracting') {
+      return {
+        completedCount: 2,
+        totalCount,
+        currentStepLabel: 'Estrazione contesto',
+        statusLabel: 'Estrazione contesto in corso',
+      };
+    }
+
+    if (effectiveBriefingStatus === 'ready') {
+      return {
+        completedCount: 3,
+        totalCount,
+        currentStepLabel: 'Estrazione completata',
+        statusLabel: 'Estrazione briefing completata',
+      };
+    }
+
+    return {
+      completedCount: 0,
+      totalCount,
+      currentStepLabel: 'In attesa',
+      statusLabel: 'Estrazione briefing in attesa',
+    };
+  })();
+
   const generationProgress = {
     completedCount: effectiveCanonicalState === 'completed' ? toolConfig.steps.length : completedStepsForFlow.size,
     totalCount: toolConfig.steps.length,
@@ -138,6 +173,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     })(),
     stepItems,
     sessionId,
+    extractionProgress,
   };
 
   const fileFieldShape = Object.fromEntries(

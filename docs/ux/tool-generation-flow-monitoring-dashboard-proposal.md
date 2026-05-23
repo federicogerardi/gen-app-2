@@ -14,6 +14,18 @@ The current flow gives the user partial visibility during long-running extractio
 
 This proposal keeps the Tool Workspace Page archetype intact and extends the Workflow Panel into a stateful monitor instead of a mostly passive status block.
 
+### 1.1 Correction Register (2026-05-23)
+
+- **COR-001**: `Apri sessione` CTA visibility is constrained to generation completion (`completed`) and is not shown at extraction completion.
+- **COR-002**: Extraction state (`processing-briefing`) uses an active progress bar, aligned with generation progress behavior.
+- **COR-003**: Monitoring copy uses `Contesto` as the section label instead of `Payload`.
+- **COR-004**: Uploaded file rows are rendered as completed (`done`) as soon as a filename is available and remain completed across extraction and generation phases.
+- **COR-005**: The Workflow Panel top-level container is no longer a visual card; only the two internal cards (`Progress`, `Contesto caricato`) are rendered as cards.
+- **COR-006**: The project block in `Contesto caricato` uses the same green completed visual language as uploaded file rows (`done`) when a project is selected.
+- **COR-007**: The progress bar now follows a unified phase lifecycle: extraction stop on entry, extraction play on extraction start, extraction stop on extraction completion, generation play on generation start, generation stop on completion/pause-cancel.
+- **COR-008**: `paused-with-checkpoint` is represented as generation stop (not pulsing/playing), so cancel/pause states are visually stable.
+- **COR-009**: `ui-fv-progress-metric` fields are phase-selective: extraction shows extraction-specific informational metrics; generation shows `Step corrente` + `N/N step completati`.
+
 ## 2. JTBD
 
 **Job statement**
@@ -37,30 +49,29 @@ When I start a tool run and wait several minutes for extraction or generation, I
 
 ## 4. Proposal Overview
 
-The Workflow Panel should become a three-layer dashboard:
+The Workflow Panel should become a two-card monitoring dashboard:
 
-1. **Payload layer** - always visible and frozen once the run starts.
-2. **Progress layer** - phase-specific progress feedback for extraction and generation.
-3. **Step layer** - generation step advancement with explicit `N/N` and current step focus.
+1. **Progress card** - one unified progress bar element reused across extraction and generation with phase-aware metrics.
+2. **Context card** - project + payload files as confirmation anchor.
 
 The Setup Panel remains the input surface. The Workflow Panel becomes the monitoring surface.
 
 ## 5. Proposed Dashboard Structure
 
-### 5.1 Payload Layer
+### 5.1 Context Layer
 
-Show the files included in the current payload directly in the Workflow Panel.
+Show the files included in the current context directly in the Workflow Panel.
 
 Required behavior:
 
 - display the attached file names
-- display file state for each payload file
-- keep the payload visible during extraction, generation, and completion
-- freeze the payload state once the run starts, so the user can verify what was actually submitted
+- display file state for each context file
+- keep the context visible during extraction, generation, and completion
+- freeze the context state once the run starts, so the user can verify what was actually submitted
 
 Recommended copy:
 
-- `Payload caricato`
+- `Contesto caricato`
 - `BriefingFile: relazione-q1.pdf`
 - `Angle Detector: personas.xlsx`
 - `File opzionale: non caricato`
@@ -71,11 +82,12 @@ During extraction, show a progress bar instead of a static status label.
 
 Recommended behavior:
 
-- if the backend exposes a measurable percentage, render a determinate progress bar
-- if the backend only exposes sub-states, render a staged progress bar with phases such as `caricamento`, `estrazione`, `normalizzazione`, `pronto`
-- keep the file list visible while extraction runs
+- on page entry, show extraction progress in visible stop mode
+- when extraction starts, switch the same bar to play mode
+- when extraction completes, return the same bar to stop mode
+- keep the context file list visible while extraction runs
 - pair the bar with a short status sentence such as `Estrazione in corso`
-- when extraction completes and a `SessionSummary` is available, surface a secondary CTA that opens `/sessionsummary/{sessionId}` for immediate review of the generated session
+- when generation completes and a `SessionSummary` is available, surface the handoff CTA that opens `/sessionsummary/{sessionId}` for immediate review of the generated session
 
 This solves the biggest trust gap in the current flow: the user needs evidence that the system is doing work even before generation starts.
 
@@ -87,24 +99,15 @@ Recommended behavior:
 
 - show a progress counter like `3/5`
 - show the current step label next to the counter
-- show completed steps as done, the active step as running, and future steps as pending
-- keep the counter visible even if the user does not expand step details
-- at the handoff between two steps, allow a brief enabled state before the next step dispatch disables the form again, so the user perceives the boundary between one completed step and the next step starting
+- keep the same bar element used in extraction and switch it to generation play mode only when generation starts
+- represent generation pause/cancel (`paused-with-checkpoint`) as stop mode, not active animation
+- keep the counter visible as a compact metric without a dedicated step rail
 
 This gives the user a compact answer to the question: how much of the flow has actually finished?
 
-### 5.4 Step Layer
+### 5.4 Step-Level Information
 
-The dashboard should still support step-level visibility, but in a more compact way than a full list of standalone rows.
-
-Recommended presentation:
-
-- horizontal or vertical step rail
-- one active step highlight
-- completed steps collapsed into compact marks
-- failed step exposed with an inline error state
-
-This retains detail without reintroducing the heavy checklist feel.
+Step-level information is served inside the progress card metrics (`Step corrente` and `N/N`) rather than a dedicated step rail.
 
 ### 5.5 Completion Achievement State
 
@@ -124,7 +127,9 @@ The goal is to make completion feel intentional and finite, so the user recogniz
 ### Extraction phase
 
 - show payload files and file names
-- show extraction progress bar
+- show extraction progress bar in stop mode before extraction starts
+- switch to play mode while extraction runs
+- return to stop mode when extraction completes
 - do not show generation step counters yet
 - keep setup feedback in the Setup Panel only when it is truly input-related
 
@@ -132,8 +137,9 @@ The goal is to make completion feel intentional and finite, so the user recogniz
 
 - keep the payload visible as a frozen confirmation anchor
 - show `N/N` advancement for the full flow
-- expose the current step label and status
-- keep the active step easy to scan at a glance
+- expose the current step label in progress metrics
+- keep the unified bar in play while generation is running
+- return the unified bar to stop when generation is paused/cancelled or completed
 
 ### Completion phase
 
@@ -189,6 +195,33 @@ This proposal is grounded in the current refactoring surface:
 - [Naming decision log](../../docs/07-governance/domain-naming-decision-log.md) — DDD-084 and DDD-085 governance for the Workflow Panel split.
 - [Source-of-truth spec](../../docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — contract alignment for `ToolGenerationFlowVertical`.
 - [Refactor plan](../../plan/refactor-tool-workspace-workflow-panel-unified-1.md) — implementation sequence that introduced the panel simplification.
+
+### 10.2 Developer-facing Contract
+
+This proposal is the UX intent reference. The deterministic implementation contract for `ui-fv-dashboard` lives in:
+
+- [Tool generation flow source-of-truth spec](../../docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+
+Use this split as a hard rule for future interventions:
+
+1. UX behavior and user intent updates start in this proposal.
+2. Deterministic state/class/logic updates must be mirrored in the source-of-truth spec section `Workflow Panel ui-fv-dashboard Contract (Deterministic Spec)`.
+3. Any change to state tokens, class names, or phase mapping must keep DDD convergence with:
+	- [Domain naming decision log](../../docs/07-governance/domain-naming-decision-log.md) (`DDD-084`, `DDD-085`)
+4. Code changes are valid only when the following remain aligned in the same change:
+	- `ToolGenerationFlowVertical.tsx`
+	- `styles.css` (`ui-fv-*`, `workflow-preload-bar.*`)
+	- `ToolGenerationFlowVertical.test.tsx`
+	- `ToolGenerationFlowVertical.status-naming.guard.test.ts`
+
+Deterministic intervention checklist (developer-facing):
+
+1. Update mapping tables in source-of-truth before changing runtime behavior.
+2. Keep completion naming canonical (`is-completed`, never `is-done` for preload bar).
+3. Preserve phase-selective metrics semantics:
+	- extraction: extraction progress metrics
+	- generation: current step + `N/N` metrics
+4. Re-run focused tests for panel behavior and naming guard.
 
 ## 11. Screen-by-Screen Wireframes
 

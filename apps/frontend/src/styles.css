@@ -2882,17 +2882,11 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1.5rem 1.25rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-card);
-  background: var(--artifact-panel-bg);
-  min-height: 7rem;
-}
-
-.ui-fv-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
 }
 
 .ui-fv-dashboard {
@@ -2920,8 +2914,40 @@ ul {
   gap: 0.2rem;
 }
 
-.ui-fv-payload-list,
-.ui-fv-step-rail {
+.ui-fv-context-project {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.62);
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+:root[data-theme='dark'] .ui-fv-context-project {
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.ui-fv-context-project.is-done {
+  border-color: rgba(21, 128, 61, 0.34);
+  background: rgba(21, 128, 61, 0.08);
+}
+
+:root[data-theme='dark'] .ui-fv-context-project.is-done {
+  background: rgba(21, 128, 61, 0.08);
+}
+
+.ui-fv-project-title {
+  font-family: var(--font-family-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ui-fv-payload-list {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -3014,31 +3040,6 @@ ul {
 
 .ui-fv-progress-metric {
   margin: 0;
-}
-
-.ui-fv-step-rail {
-  margin: 0;
-  padding-left: 1rem;
-}
-
-.ui-fv-step-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.35rem 0;
-}
-
-.ui-fv-step-item.is-running .ui-fv-step-label {
-  color: var(--workspace-blue);
-}
-
-.ui-fv-step-item.is-done .ui-fv-step-label {
-  color: var(--success-pine);
-}
-
-.ui-fv-step-item.is-error .ui-fv-step-label {
-  color: var(--alert-brick);
 }
 
 .ui-fv-empty-state {

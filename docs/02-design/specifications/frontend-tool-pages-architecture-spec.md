@@ -259,7 +259,7 @@ Deterministic rules:
 - Every `SupportedTool` declares `inputFiles`.
 - `inputFiles[0]` must always be `always-required` (fail-fast invariant).
 - Every file from index `1..N` must be explicitly classified as `required-by-tool-setting` or `optional-by-tool-setting`.
-- Current `angle-generator` policy: `BriefingFile` = `always-required`, `AngleDetectorFile` = `required-by-tool-setting`.
+- Current `angle-generator` policy: `BriefingFile` = `always-required`, `AngleDetectorFile` = `optional-by-tool-setting`.
 
 Readiness outcomes:
 
@@ -271,26 +271,6 @@ Implementation note:
 - shared canonical matrix contract: `packages/contracts/src/extraction-fields.ts`.
 - frontend projection + compile-time coverage guard: `apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts`.
 - selector projection path (label-only UI output): `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`.
-
-### 2.4 Tool Input File Requirement Policy (DDD-081)
-
-Tool file-requiredness in setup is deterministic and index-based:
-
-- If a tool defines exactly one input file, that file is always required.
-- If a tool defines two or more input files, only the first file (`BriefingFile`) is always required.
-- Every file from index 2 onward must be explicitly classified by tool setting as `required-by-tool-setting` or `optional-by-tool-setting`.
-
-Operational consequences:
-
-- The policy applies to input files only and does not replace extraction-field requirements (`requiredFieldKeys`).
-- Tool Workspace setup guidance must surface this classification explicitly for each non-primary file.
-- For `angle-generator`, current policy classifies `AngleDetectorFile` as required-by-tool-setting (in addition to always-required `BriefingFile`).
-
-Evidence anchors:
-
-- File registry structure and per-tool file requirements: `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`.
-- Selector-level behavior assertion for dual-file requirement: `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts`.
-- Upload guard enforcement path: `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`.
 
 ---
 

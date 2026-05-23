@@ -4,6 +4,7 @@
  */
 
 import { PrimaryCtaButton, SecondaryCtaButton } from '../../../app/ui/CtaButtons';
+import { appCopy } from '../../../app/copy/system';
 import type { PrimaryActionPolicy, SecondaryActionFlags } from '../../generation/ui/tool-ux-state';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
@@ -48,7 +49,7 @@ export const ToolActionButtons = ({
         disabled={effectivePrimaryDisabled}
         title={effectivePrimaryTooltip}
       >
-        {isLoading ? 'In elaborazione...' : effectivePrimaryLabel}
+        {isLoading ? appCopy.ui.toolPage.flow.loadingActionLabel : effectivePrimaryLabel}
       </PrimaryCtaButton>
 
       <div className="ui-tool-secondary-actions">

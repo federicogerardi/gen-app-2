@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
 import { appCopy } from '../../copy/system';
 import {
@@ -28,7 +28,9 @@ export const useArtifactsQuery = (
   options: UseArtifactsQueryOptions,
 ): UseArtifactsQueryResult => {
   const enabled = options.enabled ?? true;
+  const queryInstanceKey = useId();
   const filtersKey = JSON.stringify(options.filters);
+  const usesBackendArtifacts = options.capabilities.artifacts;
   const localArtifactsKey = useMemo(() => JSON.stringify(
     options.localArtifacts.map((artifact) => [
       artifact.artifactId,
@@ -36,9 +38,16 @@ export const useArtifactsQuery = (
       artifact.status,
     ]),
   ), [options.localArtifacts]);
+  const queryKey = enabled
+    ? (
+      usesBackendArtifacts
+        ? [queryInstanceKey, options.apiBaseUrl, options.capabilities, filtersKey, 'artifacts']
+        : [queryInstanceKey, options.apiBaseUrl, options.capabilities, filtersKey, localArtifactsKey, 'artifacts']
+    )
+    : null;
 
   const queryState = useSWRQuery<{ artifacts: GenerationArtifact[]; totalResults: number }>({
-    key: enabled ? [options.apiBaseUrl, options.capabilities, filtersKey, localArtifactsKey, 'artifacts'] : null,
+    key: queryKey,
     fetcher: () => listArtifacts(options.filters, {
       apiBaseUrl: options.apiBaseUrl,
       capabilities: options.capabilities,

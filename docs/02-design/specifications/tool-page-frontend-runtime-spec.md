@@ -421,7 +421,7 @@ All props come from `useToolPage` return value. Selected mapping:
 |---|---|---|
 | `machineViewModel` | `toolPageSnapshot.context.viewModel` | Drives CTA label and enabled state |
 | `readinessSnapshot` | `toolPageSnapshot.context.readiness` | Guards CTA click |
-| `effectiveCanonicalState` | Computed: `isGenerating \|\| generation.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
+| `effectiveCanonicalState` | Computed: `effectiveBriefingStatus === 'uploading' \|\| effectiveBriefingStatus === 'extracting' ? 'processing-briefing' : isGenerating \|\| generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
 | `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
 | `briefingError` | `briefingSnapshot.context.error` | Mapped into `workflowPanelFeedback` as error item (DDD-063) |
 | `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |

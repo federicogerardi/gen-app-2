@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import {
   listArtifacts,
   type ArtifactQuery,
@@ -44,7 +45,7 @@ export const useArtifactsQuery = (
       localArtifacts: options.localArtifacts,
     }),
     emptyData: { artifacts: [], totalResults: 0 },
-    errorMessage: 'Unable to load artifacts',
+    errorMessage: appCopy.ui.fallbackErrors.loadArtifacts,
   });
 
   return {

@@ -12,7 +12,7 @@ tags: [refactor, frontend, ux, ddd]
 
 ![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
-This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into the canonical monitoring dashboard described in the proposal. The implementation keeps the Tool Workspace Page archetype intact, preserves DDD-084 and DDD-085 naming convergence, and introduces the payload, progress, and step layers in a deterministic sequence.
+This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into the canonical monitoring dashboard described in the proposal. The implementation keeps the Tool Workspace Page archetype intact, preserves DDD-084 and DDD-085 naming convergence, and introduces a two-card monitor (`Progress` + `Contesto`) with a unified phase-aware progress element.
 
 ## 1. Requirements & Constraints
 
@@ -20,7 +20,7 @@ This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into 
 - **REQ-002**: `ToolGenerationFlowVertical` must render the monitoring dashboard using the canonical UI state source (`CanonicalToolUiState`) and must keep `DispatchError` in the Setup Panel only.
 - **REQ-003**: The payload view must be present in every monitoring phase and must use canonical file terminology, including `BriefingFile` and `AngleDetectorFile` where applicable.
 - **REQ-004**: Extraction monitoring must support staged progress or determinate progress, and completion must expose a `SessionSummary` handoff CTA when `sessionId` is available.
-- **REQ-005**: Generation monitoring must show step advancement with `N/N`, current step focus, and a compact step rail.
+- **REQ-005**: Generation monitoring must show step advancement with `N/N` and current step focus through phase-selective progress metrics, without a dedicated step rail.
 - **REQ-006**: Completion state must visually emphasize `completed` and must reset the Setup Panel to a blank ready-to-start state after the run finishes.
 - **SEC-001**: Do not duplicate user-facing error messages across Setup Panel and Workflow Panel; keep blocking errors localized to the correct surface.
 - **CON-001**: Preserve canonical naming convergence from DDD-085: preload-bar variant and CSS class must use `completed`, not `done`.
@@ -90,7 +90,7 @@ This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into 
 - **TEST-002**: `npm --workspace apps/frontend run test -- ToolGenerationFlowVertical.status-naming.guard.test.ts` must pass and must reject `is-done` preload-bar regressions.
 - **TEST-003**: The Workflow Panel must render the `completed` preload-bar class in the completion state and must not render `WorkflowPanelFeedbackItem` aggregates.
 - **TEST-004**: The completion state must expose the handoff CTA to `/sessionsummary/{sessionId}` when `SessionSummary` data is present.
-- **TEST-005**: The Setup Panel must retain `DispatchError` placement and must return to a blank ready state after completion.
+- **TEST-005**: The Setup Panel must retain `DispatchError` placement while Workflow Panel keeps phase-specific progress metrics (`Step corrente` + extraction/generation selective secondary metric).
 
 ## 7. Risks & Assumptions
 
@@ -99,9 +99,38 @@ This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into 
 - **ASSUMPTION-001**: The current frontend runtime already provides enough state to render payload confirmation, extraction progress, and step progression without a backend contract change.
 - **ASSUMPTION-002**: DDD-084 and DDD-085 remain the authoritative governance baseline for the monitoring dashboard and preload-bar naming.
 
+## 10. Post-Completion Alignment Delta (2026-05-23)
+
+- **ALIGN-001**: Root Workflow Panel card removed; only internal `Progress` and `Contesto caricato` cards remain visually surfaced.
+- **ALIGN-002**: Project block moved/kept inside `Contesto caricato` and aligned to `done` green visual semantics when project is selected.
+- **ALIGN-003**: Unified progress bar behavior normalized across both phases: extraction stop->play->stop, generation stop/play/stop according to canonical state transitions.
+- **ALIGN-004**: `paused-with-checkpoint` normalized to stop-state rendering for generation progress.
+- **ALIGN-005**: `ui-fv-progress-metric` fields made phase-selective (extraction informational metrics vs generation step/count metrics).
+
 ## 8. Related Specifications / Further Reading
 
 - [docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md](../docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md)
 - [docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md](../docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 - [docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
 - [docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
+
+## 9. Post-Implementation Corrections Register
+
+- **COR-001 (2026-05-23)**: `Apri sessione` CTA visibility corrected to completion-only (`CanonicalToolUiState = completed`).
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`, `docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md`.
+- **COR-002 (2026-05-23)**: Extraction phase progress bar corrected to active behavior under `processing-briefing`.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`.
+- **COR-003 (2026-05-23)**: Monitoring copy corrected from `Payload` to `Contesto` in UI/documented copy.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`, `docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md`.
+- **COR-004 (2026-05-23)**: File status projection corrected so uploaded files remain `done`/green during extraction and generation.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`.
+- **COR-005 (2026-05-23)**: Workflow Panel root card removed; two internal cards left as the only visual card surfaces.
+	Impacted files: `apps/frontend/src/styles.css`.
+- **COR-006 (2026-05-23)**: Project selected indicator aligned to the same green `done` visual tokens used by uploaded files.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/styles.css`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`.
+- **COR-007 (2026-05-23)**: Unified progress-bar lifecycle applied across extraction and generation phases with explicit stop/play transitions.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`, `docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md`, `docs/07-governance/domain-naming-decision-log.md`.
+- **COR-008 (2026-05-23)**: `paused-with-checkpoint` mapped to stop-state visualization in generation phase.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`.
+- **COR-009 (2026-05-23)**: Progress metrics (`ui-fv-progress-metric`) made phase-selective to avoid generation-only counters during extraction.
+	Impacted files: `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`, `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx`, `docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md`.

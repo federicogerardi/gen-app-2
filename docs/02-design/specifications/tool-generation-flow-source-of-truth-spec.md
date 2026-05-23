@@ -1,8 +1,8 @@
 ---
 goal: Source of truth machine-friendly per il flow tool generation frontend
-version: 1.1
+version: 1.2
 date_created: 2026-05-02
-last-reviewed: 2026-05-03
+last-reviewed: 2026-05-23
 next-review-date: 2026-08-03
 status: Active
 owner: Frontend Platform Team
@@ -346,33 +346,105 @@ Mappa canonica stato → CTA:
 - Post-cancel: CTA primaria diventa `Riprendi dal checkpoint` (non torna a start finche checkpoint non è completato)
 - Resume deve usare nuovo `requestId` run-level (evita collisioni idempotency del run cancellato)
 
-### 9.5 ToolGenerationFlowVertical Component
+### 9.5 Workflow Panel `ui-fv-dashboard` Contract (Deterministic Spec)
 
-**Ruolo**: Rappresenta stato globale in unica card single-bar (DDD-084).
+**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Contesto caricato`) secondo DDD-084.
 
-**Elementi visuali canonici**:
-1. Header progetto
-2. Preload bar (`hidden|idle|active|paused|completed`)
-3. Riga testo stato
-4. Riga errore opzionale (`role="alert"`)
+#### 9.5.1 Canonical DOM Composition
 
-**Semantica preload bar**:
-- `hidden`: nessuna barra in `draft-empty`
-- `idle`: barra neutra (stati pronti/non-running)
-- `active`: barra animata in `running`
-- `paused`: barra animata in pausa
-- `completed`: barra piena in `completed`
+1. Root region: `.ui-fv-root` (`role="region"`, `aria-label="Generation flow"`)
+2. Dashboard container: `.ui-fv-dashboard`
+3. Progress card: `.ui-fv-card` con `aria-labelledby="workflow-progress-title"`
+4. Context card: `.ui-fv-card` con `aria-labelledby="workflow-context-title"`
+5. Optional global blocking message: `.ui-fv-error` (`role="alert"`) quando `errorMessage != null`
 
-**Informazioni card step**:
-- Titolo, stato (badge), descrizione
-- Preview output (testo formattato, scroll)
-- Errore puntuale (se presente)
-- CTA `Apri artefatto` (quando `artifactId` esiste)
+#### 9.5.2 Canonical CSS Classes
 
-**Comportamento preview**:
-- Durante run: testo progresso contestuale
-- A contenuto pronto: preview leggibile
-- Senza output: messaggio `Nessun output ancora`
+| Class | Responsibility | Notes |
+|---|---|---|
+| `.ui-fv-root` | Structural wrapper only | Must remain non-card (no border/background card shell). |
+| `.ui-fv-dashboard` | Vertical stack for panel cards | Owns inter-card spacing only. |
+| `.ui-fv-card` | Visual card surface | Shared style for `Progress` and `Contesto caricato`. |
+| `.workflow-preload-bar` | Unified progress element | Phase-agnostic base element. |
+| `.workflow-preload-bar.is-idle` | Stop state | Neutral, non-animated bar. |
+| `.workflow-preload-bar.is-active` | Play state | Animated preload. |
+| `.workflow-preload-bar.is-paused` | Reserved paused variant | Kept for compatibility; current phase model maps pause to stop (`is-idle`). |
+| `.workflow-preload-bar.is-completed` | Completion state | Must remain canonical completion token per DDD-085. |
+| `.ui-fv-progress-metric` | Progress info rows | Two rows, phase-selective content. |
+| `.ui-fv-context-project` | Project block inside context card | Adds `.is-done` when project is selected. |
+| `.ui-fv-context-project.is-done` | Selected-project completed visual | Must align green token with `.ui-fv-payload-item.is-done`. |
+| `.ui-fv-payload-item` | Context file row | Variants: `.is-todo`, `.is-active`, `.is-done`, `.is-error`. |
+
+#### 9.5.3 Canonical State-to-UI Mapping
+
+`ToolGenerationFlowVertical` must derive one `ProgressBarModel` from `CanonicalToolUiState`:
+
+| CanonicalToolUiState | Phase | Bar variant | Aria label |
+|---|---|---|---|
+| `draft-empty` | extraction | `idle` | `Estrazione in attesa` |
+| `resume-needs-briefing` | extraction | `idle` | `Estrazione in attesa` |
+| `processing-briefing` | extraction | `active` | `Estrazione in corso` |
+| `draft-ready` | extraction | `idle` | `Estrazione completata` |
+| `running` | generation | `active` | `Generazione in corso` |
+| `paused-with-checkpoint` | generation | `idle` | `Generazione in pausa` |
+| `completed` | generation | `completed` | `Generazione completata` |
+| `prefilled-regenerate` | generation | `idle` | `In attesa di avvio` |
+
+Deterministic rule:
+1. `processing-briefing` must always animate preload (`is-active`).
+2. Pause/cancel states (`paused-with-checkpoint`) must be stop mode (`is-idle`), not animated.
+3. Completion must use `is-completed` and never `is-done` (DDD-085).
+
+#### 9.5.4 Progress Metrics Contract (`.ui-fv-progress-metric`)
+
+The progress card exposes two metric lines with phase-selective semantics.
+
+`GenerationProgressSnapshot` contract:
+
+```ts
+type GenerationProgressSnapshot = {
+  completedCount: number;
+  totalCount: number;
+  currentStepLabel: string | null;
+  sessionId: string | null;
+  extractionProgress?: {
+    completedCount: number;
+    totalCount: number;
+    currentStepLabel: string | null;
+    statusLabel: string;
+  };
+};
+```
+
+Metric rules:
+1. Extraction phase (`phase = extraction`):
+   - Metric 1: `Step corrente: ${extractionProgress.currentStepLabel}`
+   - Metric 2: `extractionProgress.statusLabel`
+2. Generation phase (`phase = generation`):
+   - Metric 1: `Step corrente: ${generationProgress.currentStepLabel}`
+   - Metric 2: `${completedCount} / ${totalCount} step completati`
+
+Progress value rules:
+1. Extraction phase value derives from `extractionProgress.completedCount / extractionProgress.totalCount`.
+2. Generation phase value derives from `completedCount / totalCount`.
+3. `completed` forces `aria-valuenow = 100`.
+
+#### 9.5.5 Context Card Contract
+
+1. Project block always visible in context card.
+2. Project selected => `.ui-fv-context-project.is-done`.
+3. File rows render only when a project is selected.
+4. Without selected project: show empty-state guidance message.
+5. Session handoff link (`Apri sessione →`) is visible only when `canonicalState = completed` and `sessionId` is available.
+
+#### 9.5.6 Deterministic Intervention Checklist
+
+Before changing `ui-fv-dashboard` behavior:
+1. Update mapping table in this section if state semantics change.
+2. Keep class-token convergence with DDD-085 (`is-completed`, no `is-done` preload variant).
+3. Update tests in `ToolGenerationFlowVertical.test.tsx`.
+4. Keep static guard green in `ToolGenerationFlowVertical.status-naming.guard.test.ts`.
+5. If props contract changes, update this section and DDD decision log in the same patch.
 
 ### 9.6 Regeneration & Checkpoint Behavior
 

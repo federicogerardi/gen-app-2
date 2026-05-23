@@ -1,5 +1,6 @@
 import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
 import { Link } from 'react-router-dom';
+import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 // ─── DDD-084: simplified Workflow Panel contract (supersedes DDD-082, DDD-083) ─
 
@@ -170,7 +171,7 @@ export const ToolGenerationFlowVertical = ({
   return (
     <div className="ui-fv-root" role="region" aria-label="Generation flow">
       <div className="ui-fv-dashboard">
-        <section className="ui-fv-card" aria-labelledby="workflow-progress-title">
+        <section className="ui-fv-card ui-fv-card--progress" aria-labelledby="workflow-progress-title">
           <div className="ui-fv-card-header">
             <span className="ui-fv-label" id="workflow-progress-title">{phaseTitle}</span>
             <p className="workflow-status-text" aria-live="polite">{statusText}</p>
@@ -194,6 +195,15 @@ export const ToolGenerationFlowVertical = ({
               {secondaryProgressMetric}
             </p>
           ) : null}
+
+          {showSessionSummaryLink && generationProgress?.sessionId ? (
+            <Link
+              className={cx(uiPrimitives.button, 'ui-fv-session-button')}
+              to={`/sessionsummary/${generationProgress.sessionId}`}
+            >
+              Apri sessione →
+            </Link>
+          ) : null}
         </section>
 
         <section className="ui-fv-card" aria-labelledby="workflow-context-title">
@@ -215,20 +225,13 @@ export const ToolGenerationFlowVertical = ({
                 </div>
                 <span className="ui-fv-payload-pill">{item.requiredness}</span>
               </div>
-            )) : (
+            )) : hasProjectSelected ? (
               <p className="ui-fv-empty-state">
-                {hasProjectSelected
-                  ? 'Nessun file caricato'
-                  : 'Seleziona un progetto per visualizzare i file del contesto'}
+                Nessun file caricato
               </p>
-            )}
+            ) : null}
           </div>
 
-          {showSessionSummaryLink && generationProgress?.sessionId ? (
-            <Link className="ui-fv-session-link" to={`/sessionsummary/${generationProgress.sessionId}`}>
-              Apri sessione →
-            </Link>
-          ) : null}
         </section>
       </div>
       {errorMessage && <p className="ui-fv-error" role="alert">{errorMessage}</p>}

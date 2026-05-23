@@ -1,5 +1,4 @@
 import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
-import { Link } from 'react-router-dom';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 // ─── DDD-084: simplified Workflow Panel contract (supersedes DDD-082, DDD-083) ─
@@ -31,6 +30,13 @@ export interface ToolGenerationFlowVerticalProps {
   errorMessage: string | null;
   inputFilePayload?: InputFilePayloadStatus[];
   generationProgress?: GenerationProgressSnapshot;
+  primaryActionCta?: {
+    label: string;
+    disabled: boolean;
+    onClick: () => void;
+    isLoading?: boolean;
+    tooltip?: string;
+  };
 }
 
 // ─── STATUS_TEXT map (DDD-084) ───────────────────────────────────────────────
@@ -120,6 +126,7 @@ export const ToolGenerationFlowVertical = ({
   errorMessage,
   inputFilePayload = [],
   generationProgress,
+  primaryActionCta,
 }: ToolGenerationFlowVerticalProps) => {
   const statusText = STATUS_TEXT[canonicalState];
   const progressBarModel = deriveProgressBarModel(canonicalState);
@@ -166,8 +173,6 @@ export const ToolGenerationFlowVertical = ({
         : null
       : extractionMetricText;
 
-  const showSessionSummaryLink = Boolean(generationProgress?.sessionId) && canonicalState === 'completed';
-
   return (
     <div className="ui-fv-root" role="region" aria-label="Generation flow">
       <div className="ui-fv-dashboard">
@@ -196,13 +201,16 @@ export const ToolGenerationFlowVertical = ({
             </p>
           ) : null}
 
-          {showSessionSummaryLink && generationProgress?.sessionId ? (
-            <Link
+          {primaryActionCta ? (
+            <button
+              type="button"
               className={cx(uiPrimitives.button, 'ui-fv-session-button')}
-              to={`/sessionsummary/${generationProgress.sessionId}`}
+              onClick={primaryActionCta.onClick}
+              disabled={primaryActionCta.disabled}
+              title={primaryActionCta.tooltip}
             >
-              Apri sessione →
-            </Link>
+              {primaryActionCta.isLoading ? 'In elaborazione...' : primaryActionCta.label}
+            </button>
           ) : null}
         </section>
 

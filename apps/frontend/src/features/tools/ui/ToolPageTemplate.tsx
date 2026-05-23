@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MenuItem, TextField } from '@mui/material';
 import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { SupportedTool } from '../machines/tool-flow.machine';
@@ -21,8 +22,8 @@ import {
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
-import { ToolActionButtons } from './ToolActionButtons';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
+import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 const toneProfileOptions = [
   { value: 'Professional', label: 'Professional' },
@@ -230,6 +231,35 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
     : undefined;
 
+  const executePrimaryActionFromForm = (data: ToolPageFormValues) => {
+    setFormState((prev) => ({
+      ...prev,
+      projectId: data.projectId,
+      model: data.model,
+      tone: data.tone,
+    }));
+
+    for (const fileEntry of inputFiles) {
+      const file = data[fileEntry.key];
+      if (!(file instanceof File)) {
+        continue;
+      }
+
+      if (fileEntry.key === 'angle-detector-file') {
+        handleAngleDetectorFileSelected(file);
+      } else {
+        handleBriefingFileSelected(file);
+      }
+    }
+
+    if (canStartExtraction) {
+      handleExtractionStart();
+      return;
+    }
+
+    handlePrimaryAction();
+  };
+
   const {
     control,
     handleSubmit,
@@ -273,6 +303,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
+  const basePrimaryAction = extractionPrimaryOverride ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
+  const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
+    label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? 'Apri sessione' : basePrimaryAction.label,
+    disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
+    tooltip: basePrimaryAction.tooltip,
+    isLoading: isStreamActive,
+    onClick: handleSubmit((data) => {
+      executePrimaryActionFromForm(data);
+    }),
+  };
+
   return (
     <section className="ui-tool-page-template">
       <div className={uiPrimitives.stack}>
@@ -284,15 +325,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             </header>
 
             <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
-              // Aggiorna lo stato del form globale e chiama la logica esistente
-              setFormState((prev) => ({
-                ...prev,
-                projectId: data.projectId,
-                model: data.model,
-                tone: data.tone,
-              }));
-              // Esegui azione primaria (es. submit XState)
-              handlePrimaryAction();
+              executePrimaryActionFromForm(data);
             })}>
 
               <div className="ui-tool-form-row ui-tool-form-row--triple">
@@ -419,41 +452,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   It must not be mirrored to the global feedback channel. */}
                 {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
-              <ToolActionButtons
-                primaryPolicy={machineViewModel.primaryActionPolicy}
-                {...(extractionPrimaryOverride ? { primaryOverride: extractionPrimaryOverride } : {})}
-                secondaryFlags={{
-                  ...machineViewModel.secondaryActionFlags,
-                  canCancelGeneration: isGenerating,
-                }}
-                onPrimaryAction={handleSubmit((data) => {
-                  setFormState((prev) => ({
-                    ...prev,
-                    projectId: data.projectId,
-                    model: data.model,
-                    tone: data.tone,
-                  }));
-                  for (const fileEntry of inputFiles) {
-                    const file = data[fileEntry.key];
-                    if (!(file instanceof File)) {
-                      continue;
-                    }
-
-                    if (fileEntry.key === 'angle-detector-file') {
-                      handleAngleDetectorFileSelected(file);
-                    } else {
-                      handleBriefingFileSelected(file);
-                    }
-                  }
-                  if (canStartExtraction) {
-                    handleExtractionStart();
-                    return;
-                  }
-                  handlePrimaryAction();
-                })}
-                onCancelGeneration={handleCancelGeneration}
-                isLoading={isGenerating}
-              />
+              <div className="ui-tool-action-buttons">
+                {isGenerating ? (
+                  <SecondaryCtaButton
+                    type="button"
+                    onClick={handleCancelGeneration}
+                    title="Interrompi la generazione in corso"
+                  >
+                    Annulla
+                  </SecondaryCtaButton>
+                ) : null}
+              </div>
             </form>
           </section>
 
@@ -464,6 +473,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
               inputFilePayload={inputFilePayload}
               generationProgress={generationProgress}
+              primaryActionCta={unifiedPrimaryActionCta}
             />
           </section>
         </div>

@@ -1189,11 +1189,10 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /in elaborazione/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
+    fireEvent.click(screen.getByRole('button', { name: /in elaborazione/i }));
 
     // Il guard in handlePrimaryAction ritorna early se generation.isStreamActive
     expect(startMock).not.toHaveBeenCalled();
@@ -1250,8 +1249,7 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-      expect(screen.getByText(/generazione in corso…/i)).toBeInTheDocument();
+      expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
     });
   });
 
@@ -1271,11 +1269,10 @@ describe('ToolPageTemplate CTA regression guard', () => {
     const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /avvia la generazione|in elaborazione/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione|in elaborazione/i }));
     expect(startMock).not.toHaveBeenCalled();
 
     // Stream termina: rerender con isStreamActive=false

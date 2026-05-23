@@ -63,6 +63,8 @@
   --badge-success-bg-start: rgba(21, 128, 61, 0.2);
   --badge-success-bg-end: rgba(21, 128, 61, 0.08);
   --badge-success-border: rgba(21, 128, 61, 0.3);
+  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.34);
+  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.1);
 
   --badge-error-fg: #7f1d1d;
   --badge-error-bg: rgba(180, 35, 24, 0.12);
@@ -183,6 +185,8 @@
   --badge-success-bg-start: rgba(21, 128, 61, 0.34);
   --badge-success-bg-end: rgba(21, 128, 61, 0.16);
   --badge-success-border: rgba(21, 128, 61, 0.38);
+  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.44);
+  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.28);
 
   --badge-error-fg: #fecaca;
   --badge-error-bg: rgba(180, 35, 24, 0.22);
@@ -228,6 +232,11 @@
   --shadow-soft: 0 18px 42px rgba(2, 6, 23, 0.36);
   --shadow-strong: 0 24px 60px rgba(2, 6, 23, 0.5);
   --mobile-nav-shadow: 4px 0 18px rgba(2, 6, 23, 0.45);
+}
+
+[data-theme='dark'] {
+  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.44);
+  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.28);
 }
 
 * {
@@ -2934,12 +2943,14 @@ ul {
 }
 
 .ui-fv-context-project.is-done {
-  border-color: rgba(21, 128, 61, 0.34);
-  background: rgba(21, 128, 61, 0.08);
+  border-color: var(--workflow-context-check-ok-border);
+  background: var(--workflow-context-check-ok-bg);
 }
 
-:root[data-theme='dark'] .ui-fv-context-project.is-done {
-  background: rgba(21, 128, 61, 0.08);
+:root[data-theme='dark'] .ui-fv-context-project.is-done,
+[data-theme='dark'] .ui-fv-context-project.is-done {
+  border-color: var(--workflow-context-check-ok-border);
+  background: var(--workflow-context-check-ok-bg);
 }
 
 .ui-fv-project-title {
@@ -2978,8 +2989,14 @@ ul {
 }
 
 .ui-fv-payload-item.is-done {
-  border-color: rgba(21, 128, 61, 0.34);
-  background: rgba(21, 128, 61, 0.08);
+  border-color: var(--workflow-context-check-ok-border);
+  background: var(--workflow-context-check-ok-bg);
+}
+
+:root[data-theme='dark'] .ui-fv-payload-item.is-done,
+[data-theme='dark'] .ui-fv-payload-item.is-done {
+  border-color: var(--workflow-context-check-ok-border);
+  background: var(--workflow-context-check-ok-bg);
 }
 
 .ui-fv-payload-item.is-error {

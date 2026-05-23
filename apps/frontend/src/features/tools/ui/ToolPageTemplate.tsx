@@ -224,7 +224,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     && !extractionAlreadyReady
     && formState.projectId.trim().length > 0
     && fileCompletion.requiredFilesComplete;
-  const extractionInProgressPrimaryOverride = extractionInProgress
+  const extractionInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = extractionInProgress
     ? {
       label: copy.primaryActionPolicy.startGenerationLabel,
       disabled: true,

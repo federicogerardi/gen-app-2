@@ -119,6 +119,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const handleCancelGeneration = runController.handleCancelGeneration;
   const currentRunningStep = runController.currentRunningStep;
   const streamingStep = runController.streamingStep;
+  const pausedCheckpointStep = runController.pausedCheckpointStep;
   const dispatchError = runController.dispatchError;
   const artifactsReloadError = generationArtifacts.artifactsReloadError;
 
@@ -166,10 +167,12 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     completedArtifactsByStep,
     currentRunningStep,
     streamingStep,
+    pausedCheckpointStep,
     nextAvailableStep,
     effectiveCanonicalState,
     currentProject,
     isStreamActive: generationStream.isStreamActive,
+    sessionId,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,

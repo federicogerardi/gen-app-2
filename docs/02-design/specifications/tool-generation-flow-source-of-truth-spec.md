@@ -14,7 +14,7 @@ tags: [xstate, tool-generation, source-of-truth, frontend, state-machine]
 > ⚑ **DDD Reference**: This document describes the ToolPage state machine and derived view model. For canonical domain terminology and flow, see:
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) — `ToolPage`, `ReadinessSnapshot`, `CanonicalToolUiState`, `HydrationResult`, `WorkflowRunMode`
 > - [Tool Generation Flow — Generation Context](../tool-generation-flow-generation-context.md) — complete cross-context visual flow
-> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions on UI state (DDD-006, DDD-013, DDD-014, DDD-020)
+> - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions on UI state (DDD-006, DDD-013, DDD-014, DDD-020, DDD-084, DDD-085)
 
 ## 1. Scope
 
@@ -204,12 +204,10 @@ Mapping reason code -> feedback:
 | `missing_extraction_context` | Carica o recupera un brief |
 | `missing_primary_target_step` | In attesa dello step disponibile |
 
-Contract verticale minimo (`ToolGenerationFlowVertical`):
+Contract verticale minimo (`ToolGenerationFlowVertical`) — DDD-084:
 1. `canonicalState`
-2. `readinessReasonCodes`
-3. `steps`
-4. `completedStepsCount` + `totalStepsCount`
-5. `errorMessage`
+2. `projectName`
+3. `errorMessage`
 
 ## 8b. DDD-081 Readiness Branch Outcomes
 
@@ -233,9 +231,21 @@ Flow invariant:
 - Required-file absence always blocks generation start.
 
 Campi esplicitamente non necessari nel contract verticale corrente:
-1. `toolKey`
-2. `currentRunningStep`
-3. `statusMessage`
+1. `readinessReasonCodes`
+2. `steps`
+3. `completedStepsCount` + `totalStepsCount`
+
+## 8c. Status Naming Convergence Guard (DDD-085)
+
+Regola anti-drift tra livelli:
+1. `ToolStepStatus` conserva `done` come stato terminale step-level.
+2. `CanonicalToolUiState` conserva `completed` come stato terminale panel-level.
+3. `ToolGenerationFlowVertical` deve proiettare il terminale del preload bar solo come `completed` (`BarVariant = 'completed'`, CSS `.workflow-preload-bar.is-completed`).
+4. `is-done` e `BarVariant = 'done'` sono vietati nella superficie preload bar.
+
+Gates di enforcement:
+1. test comportamentale: `ToolGenerationFlowVertical.test.tsx`
+2. static guard cross-file: `ToolGenerationFlowVertical.status-naming.guard.test.ts`
 
 ## 9. Recovery & Compatibility Rules
 
@@ -249,8 +259,9 @@ Regole resume/checkpoint:
 Checklist minima per modifiche future al flow:
 1. `toolPageMachine.test` verde (guardie + readiness snapshot + transizioni)
 2. `ToolPageTemplate.test` verde (CTA coerente con guard macchina)
-3. `ToolGenerationFlowVertical.test` verde (mapping reason codes deterministico)
-4. smoke test manuale checkpoint resume: esito OK
+3. `ToolGenerationFlowVertical.test` verde (single-bar state mapping deterministico)
+4. `ToolGenerationFlowVertical.status-naming.guard.test` verde (convergenza naming component/CSS/test)
+5. smoke test manuale checkpoint resume: esito OK
 
 ## 11. Versioning Policy
 
@@ -337,19 +348,20 @@ Mappa canonica stato → CTA:
 
 ### 9.5 ToolGenerationFlowVertical Component
 
-**Ruolo**: Rappresenta stato globale in unica card con checklist dei prerequisiti e progresso step.
+**Ruolo**: Rappresenta stato globale in unica card single-bar (DDD-084).
 
-**Checklist globale**:
-1. Progetto selezionato
-2. Briefing disponibile
-3. Estrazione completata
-4. Pronto a generare
+**Elementi visuali canonici**:
+1. Header progetto
+2. Preload bar (`hidden|idle|active|paused|completed`)
+3. Riga testo stato
+4. Riga errore opzionale (`role="alert"`)
 
-**Semantica badge**:
-- `todo`: da completare
-- `active`: in corso
-- `done`: completato
-- `error`: bloccato
+**Semantica preload bar**:
+- `hidden`: nessuna barra in `draft-empty`
+- `idle`: barra neutra (stati pronti/non-running)
+- `active`: barra animata in `running`
+- `paused`: barra animata in pausa
+- `completed`: barra piena in `completed`
 
 **Informazioni card step**:
 - Titolo, stato (badge), descrizione

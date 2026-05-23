@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import {
   ToolGenerationFlowVertical,
@@ -63,12 +64,12 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(bar).toHaveAttribute('aria-label', 'Generazione in pausa');
   });
 
-  it('renders done bar with aria-valuenow=100 when completed', () => {
+  it('renders completed bar with aria-valuenow=100 when completed', () => {
     const { container } = render(
       <ToolGenerationFlowVertical {...baseProps} canonicalState="completed" />,
     );
     const bar = container.querySelector('.workflow-preload-bar');
-    expect(bar).toHaveClass('is-done');
+    expect(bar).toHaveClass('is-completed');
     expect(bar).toHaveAttribute('aria-valuenow', '100');
   });
 
@@ -94,7 +95,55 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     render(
       <ToolGenerationFlowVertical {...baseProps} canonicalState="processing-briefing" />,
     );
-    expect(screen.getByText('Elaborazione briefing…')).toBeInTheDocument();
+    expect(screen.getByText('Estrazione in corso…')).toBeInTheDocument();
+  });
+
+  it('renders payload, progress metrics, step rail, and session handoff for completed runs', () => {
+    render(
+      <MemoryRouter>
+        <ToolGenerationFlowVertical
+          {...baseProps}
+          canonicalState="completed"
+          inputFilePayload={[
+            {
+              key: 'briefing-file',
+              label: 'BriefingFile',
+              requiredness: 'always-required',
+              status: 'done',
+              fileName: 'brief.md',
+            },
+            {
+              key: 'angle-detector-file',
+              label: 'AngleDetectorFile',
+              requiredness: 'optional-by-tool-setting',
+              status: 'done',
+              fileName: 'angle-detector.md',
+            },
+          ]}
+          generationProgress={{
+            completedCount: 3,
+            totalCount: 3,
+            currentStepLabel: 'Landing Page',
+            sessionId: 'session-123',
+            stepItems: [
+              { key: 'optin', label: 'Optin', status: 'done' },
+              { key: 'vsl', label: 'Vsl', status: 'done' },
+              { key: 'landing', label: 'Landing', status: 'done' },
+            ],
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Payload caricato')).toBeInTheDocument();
+    expect(screen.getByText('BriefingFile')).toBeInTheDocument();
+    expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
+    expect(screen.getByText('3 / 3 step completati')).toBeInTheDocument();
+    expect(screen.getByText('Step corrente: Landing Page')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Apri sessione →' })).toHaveAttribute(
+      'href',
+      '/sessionsummary/session-123',
+    );
   });
 });
 

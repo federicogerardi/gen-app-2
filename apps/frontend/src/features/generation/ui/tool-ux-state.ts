@@ -1,3 +1,5 @@
+import { appCopy } from '../../../app/copy/system';
+
 export type CanonicalToolUiState =
   | 'draft-empty'
   | 'processing-briefing'
@@ -25,39 +27,41 @@ export type SecondaryActionFlags = {
 export const derivePrimaryActionLabel = (
   policy: PrimaryActionPolicy,
 ): { label: string; disabled: boolean; tooltip?: string } => {
+  const copy = appCopy.ui.toolPage.primaryActionPolicy;
+
   switch (policy) {
     case 'disabled':
       return {
-        label: 'Completa il form per iniziare',
+        label: copy.disabledLabel,
         disabled: true,
-        tooltip: 'Seleziona un progetto e carica un documento di brief',
+        tooltip: copy.disabledTooltip,
       };
 
     case 'start-generation':
       return {
-        label: 'Avvia la generazione',
+        label: copy.startGenerationLabel,
         disabled: false,
       };
 
     case 'resume-checkpoint':
       return {
-        label: 'Riprendi dal checkpoint',
+        label: copy.resumeCheckpointLabel,
         disabled: false,
-        tooltip: 'Continua dal punto in cui la generazione è stata interrotta',
+        tooltip: copy.resumeCheckpointTooltip,
       };
 
     case 'open-last-artifact':
       return {
-        label: 'Visualizza i risultati',
+        label: copy.openLastArtifactLabel,
         disabled: false,
-        tooltip: "Apri l'artefatto generato",
+        tooltip: copy.openLastArtifactTooltip,
       };
 
     case 'regenerate-current-step':
       return {
-        label: 'Rigenera',
+        label: copy.regenerateCurrentStepLabel,
         disabled: false,
-        tooltip: 'Rigenera con i nuovi parametri',
+        tooltip: copy.regenerateCurrentStepTooltip,
       };
   }
 };

@@ -200,6 +200,8 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(projectIndicator?.classList.contains('is-done')).toBe(true);
     expect(screen.getByText('BriefingFile')).toBeInTheDocument();
     expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
+    expect(screen.getByText('richiesto')).toBeInTheDocument();
+    expect(screen.getByText('opzionale')).toBeInTheDocument();
     expect(screen.getByText('3 / 3 step completati')).toBeInTheDocument();
     expect(screen.getByText('Step corrente: Landing Page')).toBeInTheDocument();
     const actionButton = screen.getByRole('button', { name: 'Apri sessione' });

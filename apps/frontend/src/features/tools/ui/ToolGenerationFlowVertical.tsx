@@ -1,4 +1,5 @@
 import type { CanonicalToolUiState } from '../../generation/ui/tool-ux-state';
+import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 // ─── DDD-084: simplified Workflow Panel contract (supersedes DDD-082, DDD-083) ─
@@ -42,14 +43,14 @@ export interface ToolGenerationFlowVerticalProps {
 // ─── STATUS_TEXT map (DDD-084) ───────────────────────────────────────────────
 
 const STATUS_TEXT: Record<CanonicalToolUiState, string> = {
-  'draft-empty':            '',
-  'processing-briefing':    'Estrazione in corso…',
-  'draft-ready':            'Pronto per la generazione',
-  'resume-needs-briefing':  'Carica un nuovo briefing per continuare',
-  'prefilled-regenerate':   'Pronto per rigenerare',
-  'paused-with-checkpoint': 'Generazione in pausa',
-  running:                  'Generazione in corso…',
-  completed:                'Generazione completata',
+  'draft-empty': appCopy.ui.toolPage.flow.statusByCanonicalState['draft-empty'],
+  'processing-briefing': appCopy.ui.toolPage.flow.statusByCanonicalState['processing-briefing'],
+  'draft-ready': appCopy.ui.toolPage.flow.statusByCanonicalState['draft-ready'],
+  'resume-needs-briefing': appCopy.ui.toolPage.flow.statusByCanonicalState['resume-needs-briefing'],
+  'prefilled-regenerate': appCopy.ui.toolPage.flow.statusByCanonicalState['prefilled-regenerate'],
+  'paused-with-checkpoint': appCopy.ui.toolPage.flow.statusByCanonicalState['paused-with-checkpoint'],
+  running: appCopy.ui.toolPage.flow.statusByCanonicalState.running,
+  completed: appCopy.ui.toolPage.flow.statusByCanonicalState.completed,
 };
 
 type BarVariant = 'hidden' | 'idle' | 'active' | 'paused' | 'completed';
@@ -62,12 +63,18 @@ type ProgressBarModel = {
   ariaLabel: string;
 };
 
+const REQUIREDNESS_LABEL: Record<InputFilePayloadStatus['requiredness'], string> = {
+  'always-required': appCopy.ui.toolPage.flow.requirednessLabel.required,
+  'required-by-tool-setting': appCopy.ui.toolPage.flow.requirednessLabel.required,
+  'optional-by-tool-setting': appCopy.ui.toolPage.flow.requirednessLabel.optional,
+};
+
 const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
   if (s === 'processing-briefing') {
     return {
       phase: 'extraction',
       variant: 'active',
-      ariaLabel: 'Estrazione in corso',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.extractionInProgress,
     };
   }
 
@@ -75,7 +82,7 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
     return {
       phase: 'generation',
       variant: 'active',
-      ariaLabel: 'Generazione in corso',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.generationInProgress,
     };
   }
 
@@ -83,7 +90,7 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
     return {
       phase: 'generation',
       variant: 'completed',
-      ariaLabel: 'Generazione completata',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.generationCompleted,
     };
   }
 
@@ -91,7 +98,7 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
     return {
       phase: 'generation',
       variant: 'idle',
-      ariaLabel: 'Generazione in pausa',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.generationPaused,
     };
   }
 
@@ -99,7 +106,7 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
     return {
       phase: 'extraction',
       variant: 'idle',
-      ariaLabel: 'Estrazione completata',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.extractionCompleted,
     };
   }
 
@@ -107,14 +114,14 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
     return {
       phase: 'extraction',
       variant: 'idle',
-      ariaLabel: 'Estrazione in attesa',
+      ariaLabel: appCopy.ui.toolPage.flow.progressAria.extractionIdle,
     };
   }
 
   return {
     phase: 'generation',
     variant: 'idle',
-    ariaLabel: 'In attesa di avvio',
+    ariaLabel: appCopy.ui.toolPage.flow.progressAria.waitingStart,
   };
 };
 
@@ -134,7 +141,9 @@ export const ToolGenerationFlowVertical = ({
   const isCompleted = barVariant === 'completed';
   const payloadItems = inputFilePayload;
   const hasProjectSelected = Boolean(projectName && projectName.trim().length > 0);
-  const phaseTitle = progressBarModel.phase === 'extraction' ? 'Fase: Estrazione' : 'Fase: Generazione';
+  const phaseTitle = progressBarModel.phase === 'extraction'
+    ? appCopy.ui.toolPage.flow.phaseExtractionLabel
+    : appCopy.ui.toolPage.flow.phaseGenerationLabel;
   const completedCount = generationProgress?.completedCount ?? 0;
   const totalCount = generationProgress?.totalCount ?? 0;
   const extractionProgress = generationProgress?.extractionProgress;
@@ -154,27 +163,27 @@ export const ToolGenerationFlowVertical = ({
   const extractionMetricText =
     extractionProgress?.statusLabel
     ?? (canonicalState === 'processing-briefing'
-      ? 'Estrazione briefing in corso'
+      ? appCopy.ui.toolPage.extraction.inProgressStatusLabel
       : canonicalState === 'draft-ready'
-        ? 'Estrazione briefing completata'
-        : 'Estrazione briefing in attesa');
+        ? appCopy.ui.toolPage.extraction.completedStatusLabel
+        : appCopy.ui.toolPage.extraction.idleStatusLabel);
 
   const primaryProgressMetric =
     progressBarModel.phase === 'generation'
       ? generationProgress?.currentStepLabel
-        ? `Step corrente: ${generationProgress.currentStepLabel}`
+        ? `${appCopy.ui.toolPage.flow.currentStepPrefix}${generationProgress.currentStepLabel}`
         : null
-      : `Step corrente: ${extractionProgress?.currentStepLabel ?? 'Estrazione briefing'}`;
+      : `${appCopy.ui.toolPage.flow.currentStepPrefix}${extractionProgress?.currentStepLabel ?? appCopy.ui.toolPage.flow.defaultExtractionStepLabel}`;
 
   const secondaryProgressMetric =
     progressBarModel.phase === 'generation'
       ? generationProgress
-        ? `${generationProgress.completedCount} / ${generationProgress.totalCount} step completati`
+        ? `${generationProgress.completedCount} / ${generationProgress.totalCount} ${appCopy.ui.toolPage.flow.stepsCompletedSuffix}`
         : null
       : extractionMetricText;
 
   return (
-    <div className="ui-fv-root" role="region" aria-label="Generation flow">
+    <div className="ui-fv-root" role="region" aria-label={appCopy.ui.toolPage.flow.ariaRegionLabel}>
       <div className="ui-fv-dashboard">
         <section className="ui-fv-card ui-fv-card--progress" aria-labelledby="workflow-progress-title">
           <div className="ui-fv-card-header">
@@ -209,33 +218,33 @@ export const ToolGenerationFlowVertical = ({
               disabled={primaryActionCta.disabled}
               title={primaryActionCta.tooltip}
             >
-              {primaryActionCta.isLoading ? 'In elaborazione...' : primaryActionCta.label}
+              {primaryActionCta.isLoading ? appCopy.ui.toolPage.flow.loadingActionLabel : primaryActionCta.label}
             </button>
           ) : null}
         </section>
 
         <section className="ui-fv-card" aria-labelledby="workflow-context-title">
           <div className="ui-fv-card-header">
-            <span className="ui-fv-label" id="workflow-context-title">Contesto caricato</span>
+            <span className="ui-fv-label" id="workflow-context-title">{appCopy.ui.toolPage.flow.contextLoadedTitle}</span>
           </div>
 
           <div className={`ui-fv-context-project ${hasProjectSelected ? 'is-done' : ''}`.trim()}>
-            <span className="ui-fv-project-title">Progetto</span>
-            <p className="ui-fv-project-name">{projectName ?? 'Nessun progetto selezionato'}</p>
+            <span className="ui-fv-project-title">{appCopy.ui.toolPage.flow.projectLabel}</span>
+            <p className="ui-fv-project-name">{projectName ?? appCopy.ui.toolPage.flow.noProjectSelected}</p>
           </div>
 
-          <div className="ui-fv-payload-list" aria-label="Context files">
+          <div className="ui-fv-payload-list" aria-label={appCopy.ui.toolPage.flow.ariaContextFilesLabel}>
             {hasProjectSelected && payloadItems.length > 0 ? payloadItems.map((item) => (
               <div className={`ui-fv-payload-item is-${item.status}`} key={item.key} data-status={item.status}>
                 <div className="ui-fv-payload-item-main">
                   <span className="ui-fv-payload-label">{item.label}</span>
-                  <span className="ui-fv-payload-filename">{item.fileName ?? 'Non caricato'}</span>
+                  <span className="ui-fv-payload-filename">{item.fileName ?? appCopy.ui.toolPage.flow.notUploaded}</span>
                 </div>
-                <span className="ui-fv-payload-pill">{item.requiredness}</span>
+                <span className="ui-fv-payload-pill">{REQUIREDNESS_LABEL[item.requiredness]}</span>
               </div>
             )) : hasProjectSelected ? (
               <p className="ui-fv-empty-state">
-                Nessun file caricato
+                {appCopy.ui.toolPage.flow.noFilesUploaded}
               </p>
             ) : null}
           </div>

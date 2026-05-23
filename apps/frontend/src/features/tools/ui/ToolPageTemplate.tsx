@@ -13,6 +13,7 @@ import { uiPrimitives } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { useToolPage } from '../runtime/useToolPage';
 import {
@@ -25,12 +26,7 @@ import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertic
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
-const toneProfileOptions = [
-  { value: 'Professional', label: 'Professional' },
-  { value: 'Casual', label: 'Casual' },
-  { value: 'Formal', label: 'Formal' },
-  { value: 'Technical', label: 'Technical' },
-] as const;
+const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -52,6 +48,7 @@ type ToolPageFormValues = {
 } & Record<string, unknown>;
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
+  const copy = appCopy.ui.toolPage;
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -110,7 +107,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
     return {
       key: fileEntry.key,
-      label: isBriefingFile ? 'BriefingFile' : isAngleDetectorFile ? 'AngleDetectorFile' : fileEntry.label,
+      label: isBriefingFile
+        ? copy.filePayloadLabel.briefing
+        : isAngleDetectorFile
+          ? copy.filePayloadLabel.angleDetector
+          : fileEntry.label,
       requiredness: fileEntry.requiredness,
       status,
       fileName,
@@ -135,8 +136,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       return {
         completedCount: 1,
         totalCount,
-        currentStepLabel: 'Upload briefing',
-        statusLabel: 'Upload briefing in corso',
+        currentStepLabel: copy.extraction.uploadStepLabel,
+        statusLabel: copy.extraction.uploadStatusLabel,
       };
     }
 
@@ -144,8 +145,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       return {
         completedCount: 2,
         totalCount,
-        currentStepLabel: 'Estrazione contesto',
-        statusLabel: 'Estrazione contesto in corso',
+        currentStepLabel: copy.extraction.extractingStepLabel,
+        statusLabel: copy.extraction.extractingStatusLabel,
       };
     }
 
@@ -153,16 +154,16 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       return {
         completedCount: 3,
         totalCount,
-        currentStepLabel: 'Estrazione completata',
-        statusLabel: 'Estrazione briefing completata',
+        currentStepLabel: copy.extraction.completedStepLabel,
+        statusLabel: copy.extraction.completedStatusLabel,
       };
     }
 
     return {
       completedCount: 0,
       totalCount,
-      currentStepLabel: 'In attesa',
-      statusLabel: 'Estrazione briefing in attesa',
+      currentStepLabel: copy.extraction.idleStepLabel,
+      statusLabel: copy.extraction.idleStatusLabel,
     };
   })();
 
@@ -184,9 +185,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
-    projectId: z.string().min(1, 'Project richiesto'),
-    model: z.string().min(1, 'Model richiesto'),
-    tone: z.string().min(1, 'Tone richiesto'),
+    projectId: z.string().min(1, copy.form.validation.projectRequired),
+    model: z.string().min(1, copy.form.validation.modelRequired),
+    tone: z.string().min(1, copy.form.validation.toneRequired),
     ...fileFieldShape,
   }).superRefine((value, context) => {
     for (const fileEntry of inputFiles) {
@@ -206,7 +207,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: [fileEntry.key],
-          message: `Carica ${fileEntry.label} per continuare.`,
+          message: `${copy.form.validation.uploadToContinuePrefix}${fileEntry.label}${copy.form.validation.uploadToContinueSuffix}`,
         });
       }
     }
@@ -225,9 +226,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     && fileCompletion.requiredFilesComplete;
   const extractionPrimaryOverride = canStartExtraction
     ? {
-      label: 'Avvia estrazione',
+      label: copy.extraction.startActionLabel,
       disabled: false,
-      tooltip: "Avvia l'estrazione del contesto briefing",
+      tooltip: copy.extraction.startActionTooltip,
     }
     : undefined;
 
@@ -305,7 +306,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   const basePrimaryAction = extractionPrimaryOverride ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
   const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
-    label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? 'Apri sessione' : basePrimaryAction.label,
+    label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
     disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
     tooltip: basePrimaryAction.tooltip,
     isLoading: isStreamActive,
@@ -321,7 +322,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           <section className="ui-tool-column ui-tool-column-inputs">
             <header>
               <h2>{toolConfig.displayName}</h2>
-              <p className={uiPrimitives.metaLine}>{toolConfig.displayName} configuration and generation</p>
+              <p className={uiPrimitives.metaLine}>{toolConfig.displayName} {copy.headingMetaSuffix}</p>
             </header>
 
             <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
@@ -335,7 +336,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Project"
+                      label={copy.form.projectLabel}
                       disabled={projectsLoading || isStreamActive}
                       onChange={(e) => {
                         field.onChange(e);
@@ -346,7 +347,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       helperText={errors.projectId?.message as string | undefined}
                       fullWidth
                     >
-                      <MenuItem value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</MenuItem>
+                      <MenuItem value="">{projectsLoading ? copy.form.loadingProjects : copy.form.selectProject}</MenuItem>
                       {projects.map((p) => (
                         <MenuItem key={p.id} value={p.id}>
                           {p.name}
@@ -362,7 +363,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Model"
+                      label={copy.form.modelLabel}
                       disabled={isStreamActive || modelsLoading || Boolean(modelsError)}
                       onChange={(e) => {
                         field.onChange(e);
@@ -374,9 +375,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       fullWidth
                     >
                       {modelsError ? (
-                        <MenuItem value={field.value || ''}>{field.value || 'Catalog unavailable'}</MenuItem>
+                        <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
                       ) : modelOptions.length === 0 ? (
-                        <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
+                        <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
                       ) : (
                         modelOptions.map((o) => (
                           <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
@@ -392,7 +393,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Tone"
+                      label={copy.form.toneLabel}
                       disabled={isStreamActive}
                       onChange={(e) => {
                         field.onChange(e);
@@ -457,9 +458,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   <SecondaryCtaButton
                     type="button"
                     onClick={handleCancelGeneration}
-                    title="Interrompi la generazione in corso"
+                    title={copy.form.cancelGenerationTooltip}
                   >
-                    Annulla
+                    {copy.form.cancelGeneration}
                   </SecondaryCtaButton>
                 ) : null}
               </div>

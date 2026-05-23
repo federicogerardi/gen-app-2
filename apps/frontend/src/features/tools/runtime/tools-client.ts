@@ -22,6 +22,7 @@ import {
   requestJson,
 } from '../../../app/runtime/http-client';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
+import { appCopy } from '../../../app/copy/system';
 
 const normalizeExtractionModel = (model: string): GenerationRequest['model'] => {
   const normalized = model.trim();
@@ -50,7 +51,7 @@ type ToolsClientOptions = {
 
 export type UploadBriefInput = {
   projectId: string;
-  toolKey: ToolKey;
+  toolKey: SupportedTool;
   file: File;
   angleDetectorFile?: File | null;
 };
@@ -215,13 +216,13 @@ export const uploadBrief = async (
   }
 
   const contentBase64 = await toBase64(input.file);
-  const requiredInputFiles = getRequiredToolInputFiles(input.toolKey as SupportedTool);
+  const requiredInputFiles = getRequiredToolInputFiles(input.toolKey);
   const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
   const isAngleGenerator = input.toolKey === 'angle-generator';
   const angleDetectorFile = input.angleDetectorFile;
 
   if (hasRequiredAngleDetector && !angleDetectorFile) {
-    throw new Error('Required secondary file missing for tool upload');
+    throw new Error(appCopy.ui.toolPage.runtimeErrors.requiredFilesMissing);
   }
 
   const bodyPayload = isAngleGenerator

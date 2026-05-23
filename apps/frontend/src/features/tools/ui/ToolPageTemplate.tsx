@@ -20,6 +20,7 @@ import {
 } from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
+import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
 import { ToolActionButtons } from './ToolActionButtons';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 
@@ -96,7 +97,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-  const inputFilePayload = inputFiles.map((fileEntry) => {
+  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
     const fileName = fileEntry.key === 'briefing-file'
       ? effectiveBriefingFileName ?? null
       : fileEntry.key === 'angle-detector-file'
@@ -104,7 +105,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         : null;
     const isBriefingFile = fileEntry.key === 'briefing-file';
     const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
-    const status = fileName ? 'done' : 'todo';
+    const status: 'done' | 'todo' = fileName ? 'done' : 'todo';
 
     return {
       key: fileEntry.key,

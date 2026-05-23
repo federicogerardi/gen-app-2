@@ -2895,6 +2895,159 @@ ul {
   gap: 0.25rem;
 }
 
+.ui-fv-dashboard {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ui-fv-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.875rem 0.9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+:root[data-theme='dark'] .ui-fv-card {
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.ui-fv-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ui-fv-payload-list,
+.ui-fv-step-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ui-fv-payload-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+:root[data-theme='dark'] .ui-fv-payload-item {
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.ui-fv-payload-item.is-active {
+  border-color: rgba(37, 99, 235, 0.4);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.ui-fv-payload-item.is-done {
+  border-color: rgba(21, 128, 61, 0.34);
+  background: rgba(21, 128, 61, 0.08);
+}
+
+.ui-fv-payload-item.is-error {
+  border-color: rgba(180, 35, 24, 0.36);
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.ui-fv-payload-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ui-fv-payload-label,
+.ui-fv-step-label {
+  font-family: var(--font-family-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ui-fv-payload-filename,
+.ui-fv-step-status,
+.ui-fv-payload-pill,
+.ui-fv-progress-metric {
+  font-family: var(--font-family-body);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ui-fv-payload-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-fv-payload-pill {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.68rem;
+}
+
+.ui-fv-session-link {
+  align-self: flex-start;
+  color: var(--link-fg);
+  font-family: var(--font-family-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ui-fv-session-link:hover,
+.ui-fv-session-link:focus-visible {
+  color: var(--link-fg-hover);
+  text-decoration: underline;
+}
+
+.ui-fv-progress-metric {
+  margin: 0;
+}
+
+.ui-fv-step-rail {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.ui-fv-step-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.ui-fv-step-item.is-running .ui-fv-step-label {
+  color: var(--workspace-blue);
+}
+
+.ui-fv-step-item.is-done .ui-fv-step-label {
+  color: var(--success-pine);
+}
+
+.ui-fv-step-item.is-error .ui-fv-step-label {
+  color: var(--alert-brick);
+}
+
+.ui-fv-empty-state {
+  margin: 0;
+  font-family: var(--font-family-body);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 /* ── preload bar (DDD-084) ── */
 @keyframes workflow-preload-slide {
   0%   { transform: translateX(-100%); }
@@ -2937,7 +3090,7 @@ ul {
   opacity: 0.55;
 }
 
-.workflow-preload-bar.is-done {
+.workflow-preload-bar.is-completed {
   background: var(--success-pine);
   height: 3px;
 }

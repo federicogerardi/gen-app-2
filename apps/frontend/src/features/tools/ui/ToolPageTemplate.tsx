@@ -71,6 +71,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     effectiveCanonicalState,
     currentProject,
     isStreamActive,
+    completedStepsForFlow,
+    currentRunningStep,
+    pausedCheckpointStep,
+    nextAvailableStep,
+    sessionId,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
@@ -85,6 +90,55 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
+
+  const formatStepLabel = (stepKey: string) => stepKey
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+  const inputFilePayload = inputFiles.map((fileEntry) => {
+    const fileName = fileEntry.key === 'briefing-file'
+      ? effectiveBriefingFileName ?? null
+      : fileEntry.key === 'angle-detector-file'
+        ? angleDetectorFileName ?? null
+        : null;
+    const isBriefingFile = fileEntry.key === 'briefing-file';
+    const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
+    const status = fileName
+      ? (isBriefingFile && (effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting') ? 'active' : 'done')
+      : (isBriefingFile && (effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting') ? 'active' : 'todo');
+
+    return {
+      key: fileEntry.key,
+      label: isBriefingFile ? 'BriefingFile' : isAngleDetectorFile ? 'AngleDetectorFile' : fileEntry.label,
+      requiredness: fileEntry.requiredness,
+      status,
+      fileName,
+    };
+  });
+
+  const stepItems = toolConfig.steps.map((stepKey) => {
+    const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
+    const isActive = currentRunningStep === stepKey || (!currentRunningStep && effectiveCanonicalState === 'running' && nextAvailableStep === stepKey);
+    const isError = pausedCheckpointStep === stepKey && effectiveCanonicalState === 'paused-with-checkpoint';
+
+    return {
+      key: stepKey,
+      label: formatStepLabel(stepKey),
+      status: isError ? 'error' : isActive ? 'running' : isDone ? 'done' : 'idle',
+    };
+  });
+
+  const generationProgress = {
+    completedCount: effectiveCanonicalState === 'completed' ? toolConfig.steps.length : completedStepsForFlow.size,
+    totalCount: toolConfig.steps.length,
+    currentStepLabel: (() => {
+      const activeStep = currentRunningStep ?? nextAvailableStep ?? (pausedCheckpointStep && effectiveCanonicalState === 'paused-with-checkpoint' ? pausedCheckpointStep : null);
+      return activeStep ? formatStepLabel(activeStep) : null;
+    })(),
+    stepItems,
+    sessionId,
+  };
 
   const fileFieldShape = Object.fromEntries(
     inputFiles.map((entry) => [entry.key, z.any().optional()]),
@@ -371,6 +425,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
               errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
+              inputFilePayload={inputFilePayload}
+              generationProgress={generationProgress}
             />
           </section>
         </div>

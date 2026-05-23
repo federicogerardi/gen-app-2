@@ -394,6 +394,8 @@ else:
      → effect #7 fires on next render
 ```
 
+  Invariant (DDD-088): when `primaryActionPolicy === 'open-last-artifact'`, CTA execution must bypass RHF/Zod submit validation wrappers. The action is a navigation handoff (`/sessionsummary/{sessionId}`), not a request-dispatch operation, and must not be blocked by unrelated form invalidity.
+
 ---
 
 ## 8. `ReadinessSnapshot` Computation
@@ -429,6 +431,11 @@ All props come from `useToolPage` return value. Selected mapping:
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
+
+Policy-aware binding rule:
+
+- `open-last-artifact`: bind CTA directly to `handlePrimaryAction` (no form submit wrapper).
+- dispatch policies (`start-generation`, `resume-checkpoint`, `regenerate-current-step`): bind CTA through `handleSubmit(...)` so validated form state is available for request assembly.
 
 ### 9.1 Workflow Panel Feedback Centralization (implemented 2026-05-27)
 
@@ -509,6 +516,7 @@ Deterministic outcomes:
 | `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` | 4/4 passing (2026-05-11). Covers: basic render, effect #7 dispatch flow, CANCEL_GENERATION recovery, ExtractionContextBridge idempotency |
 | `apps/frontend/src/features/tools/runtime/tools-client.test.ts` | `createStepRequest` + extraction assembly (lines 134–187) |
 | `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx` | 5/5 passing (2026-05-27). Covers: idle phase payload rows, feedback error/info items, monitoring phase indeterminate bar, completion phase, missing required file feedback |
+| `apps/frontend/src/features/tools/ui/ToolPageTemplate.open-session-cta.test.tsx` | DDD-088 regression guard: `open-last-artifact` CTA fires even when RHF validation would fail; prevents no-op click on `Apri sessione`. |
 
 ---
 
@@ -516,6 +524,7 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |
 | 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |

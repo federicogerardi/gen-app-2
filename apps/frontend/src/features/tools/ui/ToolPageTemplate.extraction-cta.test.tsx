@@ -10,6 +10,9 @@ const handleAngleDetectorFileSelected = vi.fn();
 const handleExtractionStart = vi.fn();
 const handleBriefingReset = vi.fn();
 let mockedEffectiveBriefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready' = 'idle';
+let mockedIsGenerating = false;
+let mockedIsStreamActive = false;
+let mockedEffectiveCanonicalState: 'draft-empty' | 'running' = 'draft-empty';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
@@ -96,7 +99,7 @@ vi.mock('../runtime/useToolPage', () => ({
       },
       canonicalState: 'draft-empty',
     },
-    isGenerating: false,
+    isGenerating: mockedIsGenerating,
     readinessSnapshot: {
       canStartFlow: false,
       hasProject: true,
@@ -108,9 +111,9 @@ vi.mock('../runtime/useToolPage', () => ({
     latestArtifactByStep: {},
     currentRunningStep: null,
     streamingStep: null,
-    effectiveCanonicalState: 'draft-empty',
+    effectiveCanonicalState: mockedEffectiveCanonicalState,
     currentProject: { id: 'project-1', name: 'Project 1' },
-    isStreamActive: false,
+    isStreamActive: mockedIsStreamActive,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
@@ -134,6 +137,9 @@ vi.mock('./ToolGenerationFlowVertical', () => ({
 describe('ToolPageTemplate extraction CTA', () => {
   beforeEach(() => {
     mockedEffectiveBriefingStatus = 'idle';
+    mockedIsGenerating = false;
+    mockedIsStreamActive = false;
+    mockedEffectiveCanonicalState = 'draft-empty';
   });
 
   it('shows disabled Avvia la generazione while extraction is in progress', () => {
@@ -190,5 +196,28 @@ describe('ToolPageTemplate extraction CTA', () => {
     expect(payloadRefreshCallOrder).toBeDefined();
     expect(extractionStartCallOrder).toBeDefined();
     expect(payloadRefreshCallOrder!).toBeLessThan(extractionStartCallOrder!);
+  });
+
+  it('locks form fields during generation and keeps only Annulla active', () => {
+    mockedIsGenerating = true;
+    mockedIsStreamActive = false;
+    mockedEffectiveCanonicalState = 'running';
+
+    render(
+      <MemoryRouter>
+        <ToolPageTemplate toolKey="angle-generator" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('combobox', { name: /project/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: /model/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: /tone/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: /briefing file/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: /angle detector file/i })).toHaveAttribute('aria-disabled', 'true');
+
+    const cancelButton = screen.getByRole('button', { name: /annulla/i });
+    expect(cancelButton).toBeEnabled();
+    fireEvent.click(cancelButton);
+    expect(handleCancelGeneration).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 date_created: 2026-05-11
-last-reviewed: 2026-05-22
+last-reviewed: 2026-05-24
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
@@ -117,6 +117,65 @@ Behavior contract:
 ### 2.3 `toolFlowMachine` (spawned actor)
 
 Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) with per-step `ToolStepStatus` values. Not directly consumed by `useToolPage`; progress is read indirectly through `generation.artifacts` via `StepHydration`.
+
+### 2.4 Tool Workspace Page End-to-End Runtime Flow (Mermaid)
+
+```mermaid
+flowchart TD
+  A[Route Enter Tool Workspace Page] --> B[useToolPage Initializes
+ToolPage + GenerationWorkspace]
+  B --> C{ArtifactRelaunch intent?}
+  C -- Yes --> D[Resolve Source Artifact]
+  D --> E[Send HYDRATE_REQUESTED]
+  E --> F[HydrationResult Applied]
+  C -- No --> G[Start in configuring]
+  F --> G
+
+  G --> H[Setup Panel Input
+project/model/tone/files]
+  H --> I{BRIEFING_EXTRACTION_REQUESTED?}
+  I -- Yes --> J[briefingUploadMachine
+validating -> uploading -> extracting]
+  J --> K[ready + ExtractionContext]
+  K --> L[ExtractionContextBridge
+upsertExtractionContext]
+  I -- No --> M[Remain configuring]
+  M --> H
+
+  L --> N[PROGRESS_SYNCED]
+  N --> O[Recompute ReadinessSnapshot
++ ToolPageViewModel]
+  O --> P{PrimaryActionPolicy}
+
+  P -- disabled --> H
+  P -- start-generation/resume-checkpoint/regenerate-current-step --> Q[REQUEST_STEP_START]
+  P -- open-last-artifact --> R[Navigate to /sessionsummary/:sessionId]
+
+  Q --> S[Effect #7
+STEP_REQUEST_DISPATCHED]
+  S --> T[startGenerationStep]
+  T --> U[orchestrateToolStep
+resolve dependency artifacts]
+  U --> V[generation.start(request)]
+  V --> W[toolPageMachine generating]
+
+  W --> X[Effect #8 stream terminal bridge]
+  X --> Y{terminal status}
+  Y -- done --> Z[STEP_DONE]
+  Y -- failed --> AA[STEP_FAILED + DispatchError]
+  Z --> AB{All ToolStep completed?}
+  AB -- No --> AC[configuring
+next step available]
+  AB -- Yes --> AD[completed]
+  AD --> AE[PrimaryActionPolicy = open-last-artifact]
+  AE --> R
+
+  W --> AF{Cancel clicked?}
+  AF -- Yes --> AG[handleCancelGeneration
+CANCEL_GENERATION]
+  AG --> AC
+  AA --> AC
+```
 
 ---
 

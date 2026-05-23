@@ -267,13 +267,13 @@ describe('SessionSummaryDetailPage', () => {
 
     renderPage(SessionSummaryDetailPage);
 
-    const relaunchLink = await screen.findByRole('link', { name: 'Rilancia' });
+    const relaunchLink = await screen.findByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
     expect(relaunchLink).not.toHaveAttribute('aria-disabled', 'true');
     expect(relaunchLink.getAttribute('href')).toContain('/tools/angle-generator?');
     expect(relaunchLink.getAttribute('href')).toContain('sourceArtifactId=a-angle-step');
   });
 
-  it('keeps Rilancia as the relaunch UI contract and does not expose a manual extraction CTA', async () => {
+  it('keeps relaunch UI contract and does not expose a manual extraction CTA', async () => {
     const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
 
     mocks.sessionGroup = {
@@ -334,7 +334,7 @@ describe('SessionSummaryDetailPage', () => {
 
     renderPage(SessionSummaryDetailPage);
 
-    const relaunchLink = await screen.findByRole('link', { name: 'Rilancia' });
+    const relaunchLink = await screen.findByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
     expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('/tools/funnel-pages?'));
     expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('intent=regenerate'));
     expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('projectId=p-1'));
@@ -406,8 +406,8 @@ describe('SessionSummaryDetailPage', () => {
 
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
-    expect(screen.getByLabelText('Preview contenuto sessione')).toBeInTheDocument();
-    expect(screen.getByLabelText('Contesto sessione')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.panelAriaLabel)).toHaveLength(2);
+    expect(screen.getByLabelText(appCopy.ui.sessions.detail.overviewAriaLabel)).toBeInTheDocument();
     expect(screen.getByText('Completato')).toBeInTheDocument();
     expect(screen.getByText('Project One')).toBeInTheDocument();
     expect(screen.getByText('Tool')).toBeInTheDocument();
@@ -416,7 +416,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getByText('Artefatti')).toBeInTheDocument();
     expect(screen.getByText('Dettagli sessione')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
-    const relaunchLink = screen.getByRole('link', { name: 'Rilancia' });
+    const relaunchLink = screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');
     expect(relaunchLink.getAttribute('href')).toContain('intent=regenerate');
     expect(relaunchLink.getAttribute('href')).toContain('projectId=p-1');

@@ -194,7 +194,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Contesto caricato')).toBeInTheDocument();
+    expect(screen.getByText('Informazioni di contesto')).toBeInTheDocument();
     expect(screen.getByText('Progetto')).toBeInTheDocument();
     const projectIndicator = container.querySelector('.ui-fv-context-project');
     expect(projectIndicator?.classList.contains('is-done')).toBe(true);

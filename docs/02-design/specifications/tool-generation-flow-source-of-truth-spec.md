@@ -294,7 +294,7 @@ Definition:
 
 Primary CTA contract:
 1. The canonical action is `Start Context Generation Action`.
-2. Transitional UI copy may remain `Avvia estrazione`.
+2. Transitional UI copy may remain `Genera contesto`.
 3. The action starts the full configured pre-step pipeline (extraction + fetch + merge), not extraction-only behavior.
 
 Progress contract:
@@ -379,7 +379,7 @@ Component convergence rule:
 1. Utente apre tool (`/tools/funnel-pages` o `/tools/nextland`)
 2. Seleziona progetto
 3. Fornisce gli input richiesti dal tool (direct input, file upload, API acquisition settings)
-4. Avvia `Start Context Generation Action` (transitional copy: `Avvia estrazione`)
+4. Avvia `Start Context Generation Action` (transitional copy: `Genera contesto`)
 5. Attende completamento `Context Generation Phase` (extraction + fetch + merge, per configurazione tool)
 6. (Opzionale) imposta modello, tono, note quando previsti dal tool surface
 7. Avvia generazione step-1 con payload composito già pronto
@@ -414,7 +414,7 @@ Mappa canonica stato → CTA:
 
 ### 9.5 Workflow Panel `ui-fv-dashboard` Contract (Deterministic Spec)
 
-**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Contesto caricato`) secondo DDD-084.
+**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Informazioni di contesto`) secondo DDD-084.
 
 #### 9.5.1 Canonical DOM Composition
 
@@ -430,7 +430,7 @@ Mappa canonica stato → CTA:
 |---|---|---|
 | `.ui-fv-root` | Structural wrapper only | Must remain non-card (no border/background card shell). |
 | `.ui-fv-dashboard` | Vertical stack for panel cards | Owns inter-card spacing only. |
-| `.ui-fv-card` | Visual card surface | Shared style for `Progress` and `Contesto caricato`. |
+| `.ui-fv-card` | Visual card surface | Shared style for `Progress` and `Informazioni di contesto`. |
 | `.workflow-preload-bar` | Unified progress element | Phase-agnostic base element. |
 | `.workflow-preload-bar.is-idle` | Stop state | Neutral, non-animated bar. |
 | `.workflow-preload-bar.is-active` | Play state | Animated preload. |

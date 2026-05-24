@@ -99,7 +99,7 @@ Spawned by `toolPageMachine` as `briefingActorRef`. Managed states:
 
 Behavior contract:
 - `BRIEFING_FILE_SELECTED` updates cached files and never auto-starts upload/extraction.
-- Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED` (Tool Workspace setup CTA copy: `Avvia estrazione`).
+- Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED` (Tool Workspace setup CTA copy: `Genera contesto`).
 - The same manual trigger applies to all tools (single-file and multi-file).
 - API-backed acquisition for configured tools is part of the same pre-step runtime contract and must not introduce a second primary trigger.
 
@@ -130,7 +130,7 @@ Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) wit
 Scope: `ToolInputSource` includes `api-acquisition` (DDD-086) through backend-owned `ApiService` resolution (DDD-087).
 
 Runtime contract:
-1. `toolPageMachine` keeps one setup-phase intent and one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`).
+1. `toolPageMachine` keeps one setup-phase intent and one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Genera contesto`).
 2. `briefingUploadMachine` remains the file-processing actor; API acquisition for configured tools is integrated in the same umbrella `ContextGenerationPhase` and must not introduce a second top-level trigger.
 3. FE does not call third-party APIs directly for acquisition; FE calls backend tool endpoints and consumes machine-driven progress/error state.
 4. FE progress remains a single top-level context-generation signal; extraction/fetch/merge details are sub-status only.

@@ -135,7 +135,7 @@ vi.mock('./ToolGenerationFlowVertical', () => ({
 }));
 
 describe('ToolPageTemplate extraction CTA single-file', () => {
-  it('starts extraction only after clicking Avvia estrazione and after briefing payload update', async () => {
+  it('starts extraction only after clicking Genera contesto and after briefing payload update', async () => {
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
     handleBriefingFileSelected.mockReset();
@@ -160,7 +160,7 @@ describe('ToolPageTemplate extraction CTA single-file', () => {
     expect(handleBriefingFileSelected).toHaveBeenCalledWith(briefingFile);
     expect(handleExtractionStart).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia estrazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /genera contesto/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);

@@ -206,7 +206,7 @@ export const appCopy = {
         completedStatusLabel: 'Generazione contesto completata',
         idleStepLabel: 'In attesa',
         idleStatusLabel: 'Generazione contesto in attesa',
-        startActionLabel: 'Avvia estrazione',
+        startActionLabel: 'Genera contesto',
         startActionTooltip: "Avvia la generazione del contesto (estrazione, acquisizione API, merge)",
       },
       flow: {
@@ -235,7 +235,7 @@ export const appCopy = {
         },
         currentStepPrefix: 'Step corrente: ',
         stepsCompletedSuffix: 'step completati',
-        contextLoadedTitle: 'Contesto caricato',
+        contextLoadedTitle: 'Informazioni di contesto',
         projectLabel: 'Progetto',
         noProjectSelected: 'Nessun progetto selezionato',
         notUploaded: 'Non caricato',

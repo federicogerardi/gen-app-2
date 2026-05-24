@@ -19,7 +19,7 @@ owner: Frontend Platform Team
 
 `ToolGenerationFlow` replaces the fragmented `ToolStatusCard` + `ToolStepCard[]` pattern with a **single, coherent flow representation** that guides users through the complete generation journey.
 
-Integration baseline (DDD-089, DDD-091): the pre-step journey is modeled as one `ContextGenerationPhase` umbrella. Transitional UI copy may still show `Avvia estrazione`, but runtime semantics include extraction, API-backed acquisition, and merge according to tool configuration.
+Integration baseline (DDD-089, DDD-091): the pre-step journey is modeled as one `ContextGenerationPhase` umbrella. Transitional UI copy may still show `Genera contesto`, but runtime semantics include extraction, API-backed acquisition, and merge according to tool configuration.
 
 ## Problem Solved
 
@@ -85,7 +85,7 @@ DDD-090 unified requiredness touchpoints:
 
 This component must stay aligned with integration ownership defined in the runtime and generation-context specs.
 
-1. FE keeps one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`); no second API-fetch CTA is allowed.
+1. FE keeps one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Genera contesto`); no second API-fetch CTA is allowed.
 2. API-backed acquisition is integrated in the same `ContextGenerationPhase` umbrella and surfaced only as sub-status inside the same top-level progress model.
 3. FE must not own direct third-party API fetch runtime for tool acquisition; external API execution is backend-owned through `ApiService`/`ApiServiceCatalog`.
 4. Monitoring UI remains machine-driven and deterministic: no parallel pre-step flows, no duplicated progress surfaces.

@@ -227,7 +227,7 @@ Backend implementation evidence (2026-05-24):
 
 ### Frontend (FE) integration boundary
 
-1. FE keeps one pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`) and does not add a second API-fetch CTA.
+1. FE keeps one pre-step trigger (`StartContextGenerationAction`, transitional copy `Genera contesto`) and does not add a second API-fetch CTA.
 2. FE interacts only with backend tool APIs and receives progress through existing machine/view-model channels.
 3. FE progress remains one umbrella `ContextGenerationPhase`; acquisition progress is surfaced as sub-status, not as a second top-level phase.
 4. FE request assembly remains deterministic (`GenerationRequestAssembly`): direct input + file extraction + API acquisition data are composed into one payload boundary before step-1 generation dispatch.

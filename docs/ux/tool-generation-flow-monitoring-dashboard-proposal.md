@@ -20,8 +20,8 @@ This proposal keeps the Tool Workspace Page archetype intact and extends the Wor
 - **COR-002**: Extraction state (`processing-briefing`) uses an active progress bar, aligned with generation progress behavior.
 - **COR-003**: Monitoring copy uses `Contesto` as the section label instead of `Payload`.
 - **COR-004**: Uploaded file rows are rendered as completed (`done`) as soon as a filename is available and remain completed across extraction and generation phases.
-- **COR-005**: The Workflow Panel top-level container is no longer a visual card; only the two internal cards (`Progress`, `Contesto caricato`) are rendered as cards.
-- **COR-006**: The project block in `Contesto caricato` uses the same green completed visual language as uploaded file rows (`done`) when a project is selected.
+- **COR-005**: The Workflow Panel top-level container is no longer a visual card; only the two internal cards (`Progress`, `Informazioni di contesto`) are rendered as cards.
+- **COR-006**: The project block in `Informazioni di contesto` uses the same green completed visual language as uploaded file rows (`done`) when a project is selected.
 - **COR-007**: The progress bar now follows a unified phase lifecycle: extraction stop on entry, extraction play on extraction start, extraction stop on extraction completion, generation play on generation start, generation stop on completion/pause-cancel.
 - **COR-008**: `paused-with-checkpoint` is represented as generation stop (not pulsing/playing), so cancel/pause states are visually stable.
 - **COR-009**: `ui-fv-progress-metric` fields are phase-selective: extraction shows extraction-specific informational metrics; generation shows `Step corrente` + `N/N step completati`.
@@ -71,7 +71,7 @@ Required behavior:
 
 Recommended copy:
 
-- `Contesto caricato`
+- `Informazioni di contesto`
 - `BriefingFile: relazione-q1.pdf`
 - `Angle Detector: personas.xlsx`
 - `File opzionale: non caricato`
@@ -146,7 +146,7 @@ The goal is to make completion feel intentional and finite, so the user recogniz
 - freeze the completed state with stronger achievement styling
 - keep the payload visible until navigation to session summary
 - show a clear completion message and session handoff
-- after completion, reset the form to a blank ready-to-start state so the CTA returns to `Avvia estrazione` and the tool is immediately ready for a new cycle
+- after completion, reset the form to a blank ready-to-start state so the CTA returns to `Genera contesto` and the tool is immediately ready for a new cycle
 
 ## 7. Design Principles
 
@@ -174,7 +174,7 @@ The proposal is successful if the user can always see:
 4. which step is currently active
 5. whether the flow is blocked, failed, or finished
 6. a clear handoff CTA to the generated SessionSummary when extraction completes and the sessionId exists
-7. a reset-to-blank state after generation completion, with the primary CTA back to `Avvia estrazione`
+7. a reset-to-blank state after generation completion, with the primary CTA back to `Genera contesto`
 
 ## 10. Implementation Notes
 
@@ -264,7 +264,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │  [ ↑  Carica Brief ]            │                                      │
 │                                 │                                      │
 │  ─────────────────────────────  │                                      │
-│  [ Avvia estrazione  ░ ]        │                                      │
+│  [ Genera contesto  ░ ]        │                                      │
 │  ← CTA disabilitata             │                                      │
 └─────────────────────────────────┴──────────────────────────────────────┘
 ```
@@ -290,7 +290,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │  [ ↑  Carica Brief ]            │                                      │
 │                                 │                                      │
 │  ─────────────────────────────  │                                      │
-│  [ Avvia estrazione  ░ ]        │                                      │
+│  [ Genera contesto  ░ ]        │                                      │
 │  ← CTA disabilitata             │                                      │
 └─────────────────────────────────┴──────────────────────────────────────┘
 ```
@@ -317,7 +317,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │  ← file selezionato             │                                      │
 │                                 │                                      │
 │  ─────────────────────────────  │                                      │
-│  [ Avvia estrazione ]           │                                      │
+│  [ Genera contesto ]           │                                      │
 │  ← CTA abilitata                │                                      │
 └─────────────────────────────────┴──────────────────────────────────────┘
 ```
@@ -346,7 +346,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │  ← disabilitato                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ ←animato
 │                                 │                                      │
 │  ─────────────────────────────  │  Estrazione in corso...              │
-│  [ Avvia estrazione  ░ ]        │                                      │
+│  [ Genera contesto  ░ ]        │                                      │
 │  ← disabilitata                 │                                      │
 └─────────────────────────────────┴──────────────────────────────────────┘
 ```
@@ -494,7 +494,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │  [                          ]   │  STEP                                │
 │                                 │  ✓  Optin Page                       │
 │  ─────────────────────────────  │  ✓  VSL                              │
-│  [ Avvia estrazione  ░ ]        │  ✓  Landing Page                     │
+│  [ Genera contesto  ░ ]        │  ✓  Landing Page                     │
 │  ← reset al ciclo iniziale      │                                      │
 │                                 │  ─────────────────────────────────── │
 │                                 │  [ Apri sessione →  ]                │
@@ -503,7 +503,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 ```
 
 > La barra è piena e verde. Il titolo "GENERAZIONE COMPLETATA" è più grande degli stati intermedi.
-> Il Setup Panel è già resettato: nessun file caricato, CTA tornata a `Avvia estrazione`.
+> Il Setup Panel è già resettato: nessun file caricato, CTA tornata a `Genera contesto`.
 > La CTA `Apri sessione` nel Workflow Panel porta a `/sessionsummary/{sessionId}`.
 
 ---
@@ -541,7 +541,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 
 ### S11 — Errore estrazione
 
-*Estrazione fallita. Form torna abilitato. Errore nella dashboard. CTA → Avvia estrazione.*
+*Estrazione fallita. Form torna abilitato. Errore nella dashboard. CTA → Genera contesto.*
 
 ```
 ┌─────────────────────────────────┬──────────────────────────────────────┐
@@ -560,7 +560,7 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 │                                 │  ●──────────────✕                    │
 │                                 │                                      │
 │  ─────────────────────────────  │  ✕  Estrazione non riuscita.         │
-│  [ Avvia estrazione ]           │     Verifica il formato del file.    │
+│  [ Genera contesto ]           │     Verifica il formato del file.    │
 │  ← CTA abilitata (riprova)      │                                      │
 └─────────────────────────────────┴──────────────────────────────────────┘
 ```
@@ -572,10 +572,10 @@ La pagina ha sempre due colonne: **SETUP PANEL** (sinistra) e **WORKFLOW PANEL**
 ```
 S1 ──[seleziona progetto]──────────────────────────────────▶ S2
 S2 ──[seleziona file]──────────────────────────────────────▶ S3
-S3 ──[Avvia estrazione]────────────────────────────────────▶ S4
+S3 ──[Genera contesto]────────────────────────────────────▶ S4
 S4 ──[estrazione OK]───────────────────────────────────────▶ S5
 S4 ──[estrazione fallita]──────────────────────────────────▶ S11
-S11 ─[Avvia estrazione, riprova]───────────────────────────▶ S4
+S11 ─[Genera contesto, riprova]───────────────────────────▶ S4
 S5 ──[Avvia generazione]───────────────────────────────────▶ S6
 S6 ──[step N completato]───────────────────────────────────▶ S7 (micro)
 S7 ──[step N+1 avviato]────────────────────────────────────▶ S6 (step N+1)

@@ -6,6 +6,7 @@ import type { AuthSessionPrincipal } from '../../types/auth';
 import { BriefParseError, parseBriefInput } from '../brief-parser';
 import { isSupportedToolWorkflow } from '../tool-workflow-registry';
 import { normalizeToolWorkflowKey } from '../workflow-normalizers';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 
 const MAX_BRIEF_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -188,8 +189,13 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    if (!isSupportedToolWorkflow(toolKey) && toolKey !== 'angle-generator') {
+    if (!isSupportedToolWorkflow(toolKey)) {
       writeError(response, 400, 'bad_request', `Unsupported toolKey: ${submittedToolKey} (normalized to: ${toolKey})`);
+      return;
+    }
+
+    if (!canPrincipalRoleAccessToolKey(toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${toolKey}`);
       return;
     }
 

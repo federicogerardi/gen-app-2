@@ -36,6 +36,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Canonical UI Term | Definition | Canonical Source Pattern | Not This |
 | --- | --- | --- | --- |
 | Tool Workspace Page | The canonical two-column tool execution page built from `ToolPageTemplate` with setup panel and workflow panel. | Tool pages under `apps/frontend/src/features/tools/` | Wizard page, generator page, flow page |
+| Tool Availability Policy | Role-aware tri-state exposure policy for tools: `enabled-for-all`, `disabled-for-all`, `enabled-for-admin-only`. Applies to discovery (Tools hub, navigation shortcuts) and route access. | Tool discovery and routing surfaces | Binary enabled/disabled flag without role semantics |
 | Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. | `ToolPageTemplate` form area | Left column form, input area |
 | Workflow Panel | Right panel in Tool Workspace Page for status, payload visibility, and unified process feedback. | `ToolGenerationFlowVertical` (payload + monitoring + feedback sections) | Progress column, steps area |
 | Status Card | Summary card exposing run status and actionable context. | Shared tool UI cards | Header card, info block |
@@ -57,6 +58,9 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Missing Required Files Message | Blocking process feedback listing policy-required files that must be uploaded to enable primary generation action. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Generic upload warning without required list |
 | Missing Optional Files Advisory | Non-blocking informational recommendation shown when optional files are missing but required files are complete. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Warning/error feedback that blocks CTA |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
+
+Tri-state policy rule:
+Tool discovery and tool route access must evaluate the same policy from shared contracts. `enabled-for-admin-only` tools are hidden for `member` users and accessible for `admin` users only.
 
 ### 2.1 Extraction Field Key-To-Label Operational Convergence Matrix
 

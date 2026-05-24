@@ -1,11 +1,13 @@
 import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
-import type { FC, LazyExoticComponent } from 'react';
+import type { FC, LazyExoticComponent, ReactElement } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
+import { useAuthSession } from '../providers/AuthSessionProvider';
+import { isUserAdmin } from '../runtime/user-roles';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
 import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
-import { getEnabledToolKeys } from '../../features/tools/runtime/tool-form-architecture';
+import { isToolEnabled } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 import { PageLoader } from '../ui/PageLoader';
 
@@ -38,15 +40,23 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'angle-generator': AngleGeneratorToolPage,
 };
 
-/**
- * Data-driven route table for tool pages.
- * Adding a new SupportedTool only requires entries in toolFormRegistry and toolPageComponents.
- */
-const TOOL_ROUTES = getEnabledToolKeys().map((toolKey) => ({
-  toolKey,
-  path: `/tools/${toolKey}`,
-  component: toolPageComponents[toolKey],
-}));
+const toolRouteByKey: Record<SupportedTool, string> = {
+  'funnel-pages': '/tools/funnel-pages',
+  nextland: '/tools/nextland',
+  'youtube-lf-script': '/tools/youtube-lf-script',
+  'angle-generator': '/tools/angle-generator',
+};
+
+const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
+  const auth = useAuthSession();
+  const role = auth.session && isUserAdmin(auth.session.user.role) ? 'admin' : 'member';
+
+  if (!isToolEnabled(toolKey, role)) {
+    return <Navigate to="/tools" replace />;
+  }
+
+  return children;
+};
 const lighthouseAdminRouteTargets: Record<string, string> = {
   users: '/admin/users',
   models: '/admin/models',
@@ -119,10 +129,19 @@ export const createAppRouter = () => createBrowserRouter([
         path: '/tools',
         element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
       },
-      ...TOOL_ROUTES.map(({ path, component: ToolPage }) => ({
-        path,
-        element: <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>,
-      })),
+      ...Object.keys(toolPageComponents).map((toolKey) => {
+        const typedToolKey = toolKey as SupportedTool;
+        const ToolPage = toolPageComponents[typedToolKey];
+
+        return {
+          path: toolRouteByKey[typedToolKey],
+          element: (
+            <ToolRouteGuard toolKey={typedToolKey}>
+              <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>
+            </ToolRouteGuard>
+          ),
+        };
+      }),
       {
         path: '/artifacts',
         element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,

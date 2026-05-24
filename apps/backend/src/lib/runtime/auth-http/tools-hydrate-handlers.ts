@@ -4,6 +4,7 @@ import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../adap
 import { parseExtractionContent as parseCanonicalExtractionContent } from '../../machines/generation/extraction-parsers';
 import type { AuthSessionPrincipal } from '../../types/auth';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import {
   parsedFormatFromInput,
 } from './tools-hydration-parser';
@@ -77,6 +78,18 @@ export const createToolsHydrateHandlers = (
     return null;
   };
 
+  const isExtractionToolAccessDenied = (
+    extractionInput: Record<string, unknown>,
+    role: AuthSessionPrincipal['user']['role'],
+  ): boolean => {
+    const extractionToolKey = resolveExtractionToolKeyFromInput(extractionInput);
+    if (!extractionToolKey) {
+      return false;
+    }
+
+    return !canPrincipalRoleAccessToolKey(extractionToolKey, role);
+  };
+
   const compareHydrateExtractionCandidates = (
     sourceExtractionArtifactId: string | null,
     left: { artifactId: string; updatedAt: string },
@@ -147,6 +160,11 @@ export const createToolsHydrateHandlers = (
       );
       if (artifact) {
         if (artifact.artifactType === 'extraction') {
+          if (isExtractionToolAccessDenied(artifact.input, principal.user.role)) {
+            writeError(response, 403, 'forbidden', 'Tool disabled for current role');
+            return;
+          }
+
           const briefingId = (typeof artifact.input.briefingId === 'string' && artifact.input.briefingId.trim())
             ? artifact.input.briefingId.trim()
             : artifact.artifactId;
@@ -264,6 +282,11 @@ export const createToolsHydrateHandlers = (
     );
     if (!bestDetail) {
       writeError(response, 404, 'not_found', 'Extraction artifact detail not found');
+      return;
+    }
+
+    if (isExtractionToolAccessDenied(bestDetail.input, principal.user.role)) {
+      writeError(response, 403, 'forbidden', 'Tool disabled for current role');
       return;
     }
 

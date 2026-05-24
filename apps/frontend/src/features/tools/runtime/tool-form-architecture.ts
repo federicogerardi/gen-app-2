@@ -4,8 +4,12 @@
  */
 
 import {
+  canRoleAccessToolKey,
+  getToolAvailabilityPolicy,
   TOOL_STEP_DEPENDENCIES,
   TOOL_STEP_ORDER,
+  type ToolAccessRole,
+  type ToolAvailabilityPolicy,
   normalizeToolKeyCandidate,
 } from '@gen-app-2/contracts';
 import { appCopy } from '../../../app/copy/system';
@@ -18,7 +22,7 @@ import type { ExtractionFieldKey } from './extraction-field-matrix';
  */
 export type ToolFormConfig = {
   toolKey: SupportedTool;
-  status: 'enabled' | 'disabled';
+  availabilityPolicy: ToolAvailabilityPolicy;
   displayName: string;
   
   // Tool-specific prompts
@@ -97,7 +101,7 @@ export type ToolFormState = {
 export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
-    status: 'enabled',
+    availabilityPolicy: getToolAvailabilityPolicy('funnel-pages'),
     displayName: 'Hotlead Funnel',
     defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -109,7 +113,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   nextland: {
     toolKey: 'nextland',
-    status: 'disabled',
+    availabilityPolicy: getToolAvailabilityPolicy('nextland'),
     displayName: 'Nextland',
     defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -121,7 +125,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   'youtube-lf-script': {
     toolKey: 'youtube-lf-script',
-    status: 'enabled',
+    availabilityPolicy: getToolAvailabilityPolicy('youtube-lf-script'),
     displayName: 'YouTube LF Script',
     defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
     defaultModel: 'openrouter/auto',
@@ -133,7 +137,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
   },
   'angle-generator': {
     toolKey: 'angle-generator',
-    status: 'enabled',
+    availabilityPolicy: getToolAvailabilityPolicy('angle-generator'),
     displayName: 'Angle Generator',
     defaultPrompt: 'Genera angoli marketing prioritizzati e attivabili a partire dal contesto estratto.',
     defaultModel: 'openrouter/auto',
@@ -292,8 +296,10 @@ const validateToolInputFilePolicyRegistry = (
 
 validateToolInputFilePolicyRegistry(toolFileInstructionsRegistry);
 
-export const getEnabledToolKeys = (): SupportedTool[] => {
-  return (Object.keys(toolFormRegistry) as SupportedTool[]).filter((toolKey) => toolFormRegistry[toolKey].status === 'enabled');
+export const getEnabledToolKeys = (role: ToolAccessRole = 'member'): SupportedTool[] => {
+  return (Object.keys(toolFormRegistry) as SupportedTool[]).filter(
+    (toolKey) => canRoleAccessToolKey(toolKey, role),
+  );
 };
 
 export const getToolInputFilePolicy = (
@@ -310,8 +316,11 @@ export const getToolApiAcquisitionPolicy = (
   toolKey: SupportedTool,
 ): readonly ToolApiAcquisitionPolicyEntry[] => toolFileInstructionsRegistry[toolKey].apiAcquisitionInputs ?? [];
 
-export const isToolEnabled = (toolKey: SupportedTool): boolean => {
-  return toolFormRegistry[toolKey].status === 'enabled';
+export const isToolEnabled = (
+  toolKey: SupportedTool,
+  role: ToolAccessRole = 'member',
+): boolean => {
+  return canRoleAccessToolKey(toolKey, role);
 };
 
 export type ToolNavigationItem = {
@@ -376,8 +385,10 @@ export const getToolRoute = (toolKey: string | null): string | null => {
   return null;
 };
 
-export const getEnabledToolNavigationItems = (): ToolNavigationItem[] => (
-  getEnabledToolKeys().map((toolKey) => ({
+export const getEnabledToolNavigationItems = (
+  role: ToolAccessRole = 'member',
+): ToolNavigationItem[] => (
+  getEnabledToolKeys(role).map((toolKey) => ({
     toolKey,
     to: toolRouteByKey[toolKey],
     label: toolNavigationLabelByKey[toolKey],

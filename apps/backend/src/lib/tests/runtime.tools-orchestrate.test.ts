@@ -129,12 +129,13 @@ const createAndLoginUser = async (
   runtime: ReturnType<typeof createAuthHttpRuntime>,
   repositories: ReturnType<typeof createAuthStubRepositories>,
   hasher: ReturnType<typeof createDefaultPasswordHashRuntime>,
+  role: 'admin' | 'member' = 'member',
 ): Promise<string> => {
   const passwordHash = await hasher.hashPassword('Orch-Pass-1!');
   await repositories.users.createUser({
     id: 'user-orch-001',
     email: 'orch@example.com',
-    role: 'member',
+    role,
     status: 'active',
     passwordHash,
     passwordAlgo: hasher.passwordAlgorithm,
@@ -514,7 +515,7 @@ test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies',
 test('/api/tools/orchestrate resolves canonical nextland dependencies', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
   const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
-  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher, 'admin');
   const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
   artifactStub.seed([{ ...NEXTLAND_LANDING_ARTIFACT, projectId }]);
 
@@ -533,6 +534,23 @@ test('/api/tools/orchestrate resolves canonical nextland dependencies', async ()
   assert.deepEqual(orch.dependencyArtifactIdsByStep, {
     landing: 'art-nextland-landing-001',
   });
+});
+
+test('/api/tools/orchestrate returns 403 for member role on admin-only tool', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher, 'member');
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'nextland',
+    targetStep: 'thank_you',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 403);
 });
 
 test('/api/tools/orchestrate covers extraction + acquisition-context + generation chain for angle-generator', async () => {

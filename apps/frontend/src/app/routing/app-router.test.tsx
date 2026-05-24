@@ -7,7 +7,11 @@ import { createAppRouter } from './app-router';
 // Minimal stubs for route smoke tests
 vi.mock('../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
-    session: null,
+    session: {
+      user: {
+        role: 'admin',
+      },
+    },
     loading: false,
     error: null,
     apiBaseUrl: '',

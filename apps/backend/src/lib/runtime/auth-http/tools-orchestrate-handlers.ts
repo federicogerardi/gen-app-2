@@ -19,6 +19,7 @@ import {
   isSupportedToolWorkflow,
   resolveStepDependencyIds,
 } from '../tool-workflow-registry';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 
 type ToolOrchestrationRequestBody = {
@@ -112,6 +113,11 @@ export const createToolsOrchestrateHandlers = (
 
     if (!isSupportedToolWorkflow(toolKey)) {
       writeError(response, 400, 'bad_request', `Unsupported toolKey: ${toolKey}`);
+      return;
+    }
+
+    if (!canPrincipalRoleAccessToolKey(toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${toolKey}`);
       return;
     }
 

@@ -32,15 +32,19 @@ export {
 export type { ExtractionFieldKey } from './extraction-fields';
 
 export {
+  canRoleAccessToolKey,
   GENERATION_ROUTE_TOOL_KEY,
+  getToolAvailabilityPolicy,
   isGenerationRequestToolKey,
   isGenerationRouteToolKey,
+  isToolAccessRole,
   isToolKey,
   isToolWorkflowType,
   normalizeToolKeyCandidate,
   resolveGenerationWorkflowTypeCandidate,
   resolveToolKeyFromWorkflowType,
   resolveToolWorkflowType,
+  TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY,
   TOOL_KEYS,
   TOOL_KEY_BY_WORKFLOW_TYPE,
   TOOL_STEP_DEPENDENCIES,
@@ -52,6 +56,8 @@ export type {
   GenerationRequestToolKey,
   GenerationRouteToolKey,
   GenerationWorkflowType,
+  ToolAccessRole,
+  ToolAvailabilityPolicy,
   ToolKey,
   ToolStep,
   ToolWorkflowDefinition,

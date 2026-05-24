@@ -19,6 +19,8 @@ owner: Frontend Platform Team
 
 `ToolGenerationFlow` replaces the fragmented `ToolStatusCard` + `ToolStepCard[]` pattern with a **single, coherent flow representation** that guides users through the complete generation journey.
 
+Integration baseline (DDD-089, DDD-091): the pre-step journey is modeled as one `ContextGenerationPhase` umbrella. Transitional UI copy may still show `Avvia estrazione`, but runtime semantics include extraction, API-backed acquisition, and merge according to tool configuration.
+
 ## Problem Solved
 
 **Before (Fragmented)**:
@@ -47,11 +49,11 @@ The historical overload of `/artifacts/{id}` for session aggregate detail is dep
 
 ## Flow Phases
 
-### Phase 1: Input Requirements
+### Phase 1: Context Generation
 **When**: Initial state, before generation starts
 **Shows**:
 - Project selection status
-- Briefing upload status
+- Context-input status (direct input, briefing/files, API acquisition where configured)
 - Prerequisites checklist
 - Feedback on what's needed to proceed
 - In project detail context, session history entry points are `SessionSummary`-based (not artifact-list-based)
@@ -63,6 +65,12 @@ DDD-081 readiness touchpoints:
 - If required files are complete and optional files are missing, Phase 1 remains non-blocking and shows advisory guidance near the primary CTA.
 - If one or more required files are missing, Phase 1 stays blocking and the primary CTA remains disabled with deterministic missing-file feedback.
 
+DDD-090 unified requiredness touchpoints:
+
+- Start eligibility follows one `ToolInputRequirementMatrix` across `direct-input`, `tool-input-file`, and `api-acquisition`.
+- Required entries (`always-required`, `required-by-tool-setting`) are blocking.
+- Optional entries (`optional-by-tool-setting`) are advisory and non-blocking.
+
 ### Phase 2: Generation Monitoring
 **When**: Generation is running or paused
 **Shows**:
@@ -72,6 +80,16 @@ DDD-081 readiness touchpoints:
 - Real-time streaming status
 
 **Visual**: Progress bar + step cards with live updates
+
+### BE/FE Integration Contract (XState + API Fetch)
+
+This component must stay aligned with integration ownership defined in the runtime and generation-context specs.
+
+1. FE keeps one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`); no second API-fetch CTA is allowed.
+2. API-backed acquisition is integrated in the same `ContextGenerationPhase` umbrella and surfaced only as sub-status inside the same top-level progress model.
+3. FE must not own direct third-party API fetch runtime for tool acquisition; external API execution is backend-owned through `ApiService`/`ApiServiceCatalog`.
+4. Monitoring UI remains machine-driven and deterministic: no parallel pre-step flows, no duplicated progress surfaces.
+5. Failure handling stays on existing machine channels (`DispatchError` and return to configuring path), without introducing ad-hoc API-fetch-only recovery branches.
 
 ### Phase 3: Completion
 **When**: All steps completed
@@ -83,6 +101,10 @@ DDD-081 readiness touchpoints:
 **Visual**: Summary stats + completed steps list
 
 ## Component Props
+
+Execution-ready contract note:
+- The canonical monitor contract for current refactoring work is `ToolGenerationFlowVertical` as defined in `tool-page-frontend-runtime-spec.md` (DDD-084).
+- The interface and examples below are a historical snapshot kept for migration context and must not override canonical state/value contracts.
 
 ```typescript
 interface ToolGenerationFlowProps {
@@ -116,7 +138,7 @@ interface ToolGenerationFlowProps {
 ```typescript
 <ToolGenerationFlow
   toolKey="funnel-pages"
-  canonicalState="generation-monitoring"
+  canonicalState="running"
   projectName="My Project"
   briefingFileName="brief.docx"
   briefingStatus="ready"
@@ -264,6 +286,10 @@ interface ToolGenerationFlowProps {
 ## Integration with ToolPageTemplate
 
 The `ToolGenerationFlow` is used in `ToolPageTemplate` to replace the previous fragmented approach:
+
+Execution-ready migration note:
+- Use `CanonicalToolUiState` canonical values (`draft-empty`, `processing-briefing`, `draft-ready`, `prefilled-regenerate`, `paused-with-checkpoint`, `resume-needs-briefing`, `running`, `completed`).
+- Do not introduce non-canonical values such as `generation-monitoring` in new BE/FE refactor tasks.
 
 ```typescript
 <ToolGenerationFlow

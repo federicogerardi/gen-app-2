@@ -206,6 +206,33 @@ graph TB
 
 ---
 
+## BE/FE Integration Contract — API Fetch On XState Machines
+
+Scope: DDD-086, DDD-087, DDD-089, DDD-091.
+
+### Generation (BE) machine ownership
+
+1. API-backed acquisition belongs to `WorkflowStepType = acquisition` execution inside Generation context orchestration (`toolWorkflowMachine` lifecycle).
+2. External API fetch execution is backend-owned and resolved through `ApiServiceCatalog`; Frontend must not own direct external API runtime calls.
+3. For `ApiServiceAccessMode = token`, credentials remain backend-boundary only.
+4. Acquisition completion must preserve standard internal progression semantics: `WorkflowStepUnlocked` -> step run -> `WorkflowStepCompleted`.
+5. Acquisition output is merged into the same context assembly path consumed by downstream steps and `GenerationRequest` processing; no parallel, tool-specific bypass pipeline is allowed.
+
+### Frontend (FE) integration boundary
+
+1. FE keeps one pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`) and does not add a second API-fetch CTA.
+2. FE interacts only with backend tool APIs and receives progress through existing machine/view-model channels.
+3. FE progress remains one umbrella `ContextGenerationPhase`; acquisition progress is surfaced as sub-status, not as a second top-level phase.
+4. FE request assembly remains deterministic (`GenerationRequestAssembly`): direct input + file extraction + API acquisition data are composed into one payload boundary before step-1 generation dispatch.
+
+### XState coherence rules (integration-level)
+
+1. Keep actor-based execution boundaries explicit (acquisition as actor-driven step execution, consistent with existing extraction/generation strategy model).
+2. Keep transition semantics deterministic: no hidden side paths that skip `toolWorkflowMachine` step status lifecycle.
+3. Preserve existing FE/BE event contracts (`BackendStreamEvent`, machine completion/failure handling) to avoid divergent runtime channels for API fetch.
+
+---
+
 ## Tool Execution Invariants
 
 1. **Dependency Ordering**: No `WorkflowStep` executes until all its declared dependencies have reached `'done'` status.
@@ -307,4 +334,4 @@ Tool input-file requiredness is enforced in Frontend Tool Workspace runtime befo
 Scope note:
 
 - This alignment is frontend-only for required/optional file readiness semantics.
-- Backend generation contracts are unchanged.
+- Backend generation contracts are unchanged at core route boundaries; API-backed acquisition integration is an additive extension under canonical `WorkflowStepType = acquisition` and `ApiService` governance.

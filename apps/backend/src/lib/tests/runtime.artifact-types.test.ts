@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { TOOL_KEYS, TOOL_WORKFLOW_BY_TOOL_KEY } from '@gen-app-2/contracts';
 
 import {
   canTransitionArtifactStatus,
   normalizeArtifactFailureReason,
   normalizeArtifactStatus,
   normalizeArtifactType,
+  TOOL_WORKFLOWS,
   normalizeToolWorkflow,
 } from '../types/artifact';
 
@@ -34,3 +36,11 @@ test('artifact normalizers constrain unknown values to canonical fallbacks', () 
   assert.equal(normalizeArtifactFailureReason('llm_timeout'), 'llm_timeout');
 }
 );
+
+test('backend TOOL_WORKFLOWS stays aligned with contracts workflowType values plus extraction', () => {
+  const contractWorkflowTypes = TOOL_KEYS.map((toolKey) => TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType);
+  const expected = new Set([...contractWorkflowTypes, 'extraction']);
+  const actual = new Set(TOOL_WORKFLOWS);
+
+  assert.deepEqual(actual, expected);
+});

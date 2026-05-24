@@ -101,6 +101,13 @@ Behavior contract:
 - `BRIEFING_FILE_SELECTED` updates cached files and never auto-starts upload/extraction.
 - Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED` (Tool Workspace setup CTA copy: `Avvia estrazione`).
 - The same manual trigger applies to all tools (single-file and multi-file).
+- API-backed acquisition for configured tools is part of the same pre-step runtime contract and must not introduce a second primary trigger.
+
+Context Generation convergence contract:
+1. `briefingUploadMachine` remains the canonical file-processing actor but is semantically scoped under `Context Generation Phase`.
+2. Existing extraction-labeled FE components are treated as context-generation-level runtime elements.
+3. Runtime progress shown in Tool Workspace setup must represent one umbrella pre-step phase (`Context Generation Phase`) with source-specific sub-status details (extraction/fetch/merge) when available.
+4. UX complexity must not increase: one primary setup CTA, one top-level progress surface.
 
 **Context fields used by `useToolPage`:**
 
@@ -117,6 +124,21 @@ Behavior contract:
 ### 2.3 `toolFlowMachine` (spawned actor)
 
 Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) with per-step `ToolStepStatus` values. Not directly consumed by `useToolPage`; progress is read indirectly through `generation.artifacts` via `StepHydration`.
+
+### 2.3b API Fetch Integration On XState (BE/FE contract)
+
+Scope: `ToolInputSource` includes `api-acquisition` (DDD-086) through backend-owned `ApiService` resolution (DDD-087).
+
+Runtime contract:
+1. `toolPageMachine` keeps one setup-phase intent and one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Avvia estrazione`).
+2. `briefingUploadMachine` remains the file-processing actor; API acquisition for configured tools is integrated in the same umbrella `ContextGenerationPhase` and must not introduce a second top-level trigger.
+3. FE does not call third-party APIs directly for acquisition; FE calls backend tool endpoints and consumes machine-driven progress/error state.
+4. FE progress remains a single top-level context-generation signal; extraction/fetch/merge details are sub-status only.
+5. On acquisition failure, FE follows existing deterministic recovery channel (`DispatchError` + machine return to `configuring`) without opening a separate pre-step flow branch.
+
+Integration boundary with Generation context:
+1. Backend owns `WorkflowStepType = acquisition` execution and `ApiServiceCatalog` resolution.
+2. FE continues to assemble dispatch payload through one deterministic `GenerationRequestAssembly` path once context generation is complete.
 
 ### 2.4 Tool Workspace Page End-to-End Runtime Flow (Mermaid)
 
@@ -240,6 +262,10 @@ generation.upsertExtractionContext({ ... });
 
 **Purpose**: Send `PROGRESS_SYNCED` on every artifact list change so the machine can recompute `ReadinessSnapshot` and `ToolPageViewModel`.
 **Deps**: `[generation.artifacts, briefingSnapshot, intent, sourceArtifact, toolPageSend]`
+
+Progress semantics note:
+1. In setup pre-step, progress state must be interpreted as `Context Generation Phase` progress.
+2. Extraction-specific runtime events remain valid sub-activity signals and are not a separate top-level phase.
 
 ### Effect #7 — Dispatch pending step start (lines ~585–600)
 
@@ -481,7 +507,7 @@ All props come from `useToolPage` return value. Selected mapping:
 | `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
 | `briefingError` | `briefingSnapshot.context.error` | Mapped into `workflowPanelFeedback` as error item (DDD-063) |
 | `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |
-| `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Passed to `ToolGenerationFlowVertical` (DDD-063) |
+| `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Transitional aggregation artifact in `ToolPageTemplate`; canonical monitor contract is governed by DDD-084 |
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
@@ -500,11 +526,15 @@ Canonical UX convergence for Tool Workspace Page feedback is documented in:
 
 **Convergence rule implemented:**
 
-- Process-feedback messages are centralized in Workflow Panel (`inline-action`) via `workflowPanelFeedback: WorkflowPanelFeedbackItem[]` prop.
+- Process-feedback channel ownership remains centralized and deterministic; `DispatchError` remains Setup Panel ownership (DDD-061).
 - `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA (DDD-061).
 - Input-file RHF display errors below upload controls are removed; validation remains active for submit blocking.
 - Requirement checklist (old `ReqItem` sub-component) is replaced by persistent `InputFilePayloadStatus[]` section visible in all phases.
 - Step-list (old `StepRow` sub-component + step progress bar) is replaced by indeterminate progress bar for `running`/`paused-with-checkpoint` states.
+
+Execution-ready canonical note:
+1. DDD-084 is the authoritative monitor contract for `ToolGenerationFlowVertical`.
+2. Any `workflowPanelFeedback` wiring should be treated as transitional adapter behavior in template-level composition and must not be used as primary canonical contract when planning BE/FE refactors.
 
 **New `ToolGenerationFlowVertical` props contract:**
 
@@ -513,7 +543,6 @@ Canonical UX convergence for Tool Workspace Page feedback is documented in:
 | `canonicalState` | `CanonicalToolUiState` | Visual phase driver |
 | `projectName` | `string \| null` | Context label |
 | `inputFilePayload` | `InputFilePayloadStatus[]` | File status rows — persistent across all phases (DDD-082) |
-| `workflowPanelFeedback` | `WorkflowPanelFeedbackItem[]` | Aggregated feedback items — any phase (DDD-063) |
 | `errorMessage` | `string \| null` | Machine-level error banner |
 
 **Removed props (old contract):** `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`.
@@ -555,7 +584,7 @@ Deterministic outcomes:
 
 | ID | Constraint | Status |
 |---|---|---|
-| DDD-C-007 | `getStepDependencies` (FE) still called locally instead of routing through `orchestrateToolStep` BE endpoint | Open — provisional term `ToolStepOrchestration` registered (DDD-031); code refactor required |
+| DDD-C-007 | FE/BE dependency orchestration ownership (`orchestrateToolStep` -> `/api/tools/orchestrate`) | Resolved-documented in naming log; keep this section synchronized to avoid stale wording drift |
 | DDD-028 | `StepHydration` is a Client-Side Projection, not a Domain Service | Resolved/documented |
 | DDD-038 | `extractionPayload` not part of readiness gate; only `normalizedText + briefingId + extractionArtifactId` required | Canonical |
 | (none) | `ExtractionContextBridge` idempotency guard uses `JSON.stringify` on `extractionPayload` — may be slow for large payloads | Acceptable for current payload sizes; revisit if performance becomes an issue |

@@ -26,6 +26,7 @@ const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummar
 const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
+const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/AdminApiServicesPage').then(m => ({ default: m.AdminApiServicesPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
@@ -153,6 +154,10 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: 'models',
             element: <Suspense fallback={<PageLoader />}><AdminModelsPage /></Suspense>,
+          },
+          {
+            path: 'api-services',
+            element: <Suspense fallback={<PageLoader />}><AdminApiServicesPage /></Suspense>,
           },
           {
             path: 'activity',

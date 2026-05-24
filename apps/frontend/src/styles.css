@@ -2351,6 +2351,43 @@ button:not(.MuiButton-root):not([class]):disabled,
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.ui-admin-api-service-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ui-admin-api-service-form-headline {
+  display: grid;
+  gap: var(--space-micro);
+}
+
+.ui-admin-api-service-form-grid {
+  display: grid;
+  gap: var(--space-1-5);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ui-admin-api-service-form-advanced {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+  padding: var(--space-1-5);
+}
+
+.ui-admin-api-service-form-advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ui-admin-api-service-form-advanced > p {
+  margin-top: var(--space-1);
+}
+
+.ui-admin-api-service-form-grid--json {
+  margin-top: var(--space-1-5);
+  grid-template-columns: 1fr;
+}
+
 .ui-admin-user-card {
   display: grid;
   gap: var(--space-2);

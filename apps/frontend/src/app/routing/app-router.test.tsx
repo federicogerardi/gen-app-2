@@ -54,6 +54,10 @@ vi.mock('../../features/admin/pages/AdminModelsPage', () => ({
   AdminModelsPage: () => <h1>Admin models</h1>,
 }));
 
+vi.mock('../../features/admin/pages/AdminApiServicesPage', () => ({
+  AdminApiServicesPage: () => <h1>Admin api services</h1>,
+}));
+
 vi.mock('../../features/admin/pages/AdminChangelogPage', () => ({
   AdminChangelogPage: () => <h1>Admin changelog</h1>,
 }));
@@ -162,6 +166,16 @@ describe('app router – integration', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('renders the admin api services page at /admin/api-services', async () => {
+    window.history.pushState({}, '', '/admin/api-services');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /admin api services/i })).toBeInTheDocument();
     router.dispose();
   });
 

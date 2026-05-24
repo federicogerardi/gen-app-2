@@ -1,18 +1,20 @@
 ---
 goal: Frontend admin CRUD implementation plan for ApiServiceCatalog and ApiService bindings
-version: 1.0
+version: 1.1
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Frontend Platform
-status: Planned
+status: Completed
 tags: [feature, frontend, admin, crud, ddd, api-service]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines a deterministic frontend implementation for admin CRUD management of ApiServiceCatalog and ApiService binding configuration, aligned with canonical DDD terms (`ApiService`, `ApiServiceAccessMode`, `ApiServiceCatalog`, `ToolInputSource`, `WorkflowStepType`) and existing AdminDashboard DataTableView patterns.
+
+Architectural note: the ApiService admin CRUD surface remains hook/UI-driven. It must not introduce a dedicated XState machine unless a future DDD change explicitly requires actor orchestration for a separate concern.
 
 ## 1. Requirements & Constraints
 
@@ -27,6 +29,7 @@ This plan defines a deterministic frontend implementation for admin CRUD managem
 - CON-001: Scope is frontend only (`apps/frontend/**`); backend runtime and DB schema are out of scope for this plan.
 - CON-002: No terminology drift is allowed; only canonical terms from glossary/decision log may be used in code, plan text, and tests.
 - CON-003: Preserve existing AdminDashboard route architecture and lazy-loaded route registration style in `app-router.tsx`.
+- CON-004: Keep ApiService admin CRUD state ownership in React hooks and page components; do not add a dedicated machine for this surface in the current scope.
 - GUD-001: Prefer additive, small-surface changes that follow established admin page architecture (`AdminPageContainer`, DataTableView conventions).
 - GUD-002: Keep mutation feedback deterministic through existing helper patterns (`useAdminMutationFeedback` and page-local feedback ownership boundaries).
 - PAT-001: Reuse `admin-client.ts` request helper style (`requestJson`, `requestVoid`, `isHttpClientError`, deterministic HTTP error wrappers).
@@ -40,24 +43,25 @@ This plan defines a deterministic frontend implementation for admin CRUD managem
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Add ApiService frontend DTOs and binding DTOs in `apps/frontend/src/features/admin/runtime/admin-client.ts` (or dedicated `admin-api-service-client.ts`) with canonical fields: `id`, `key`, `label`, `baseUrl`, `resourcePath`, `accessMode`, `requestMethod`, `contractProfileVersion`, `tokenConfigured`, mapping-rule collections, and binding metadata (`workflowStepType`, `requiredness`, `bindingStatus`). |  |  |
-| TASK-002 | Implement API client functions for ApiService CRUD in `apps/frontend/src/features/admin/runtime/admin-client.ts`: `listAdminApiServices`, `createAdminApiService`, `updateAdminApiService`, `deleteAdminApiService`; each must use `buildApiPaths(capabilities).admin.apiServices` and `apiServiceById(id)` with deterministic HTTP error projection. |  |  |
-| TASK-003 | Implement API client functions for bindings CRUD in `apps/frontend/src/features/admin/runtime/admin-client.ts`: `listAdminApiServiceBindings`, `upsertAdminApiServiceBinding`, `deleteAdminApiServiceBinding`; use `/api/admin/api-services/:id/bindings` routes with capability guard fallback error when path is null. |  |  |
-| TASK-004 | Add/extend unit tests in `apps/frontend/src/features/admin/runtime/admin-client.test.ts` covering request shape, error wrapping, capability-off behavior, and redacted payload assumptions (no `tokenCiphertext`). |  |  |
+| TASK-001 | Add ApiService frontend DTOs and binding DTOs in `apps/frontend/src/features/admin/runtime/admin-client.ts` (or dedicated `admin-api-service-client.ts`) with canonical fields: `id`, `key`, `label`, `baseUrl`, `resourcePath`, `accessMode`, `requestMethod`, `contractProfileVersion`, `tokenConfigured`, mapping-rule collections, and binding metadata (`workflowStepType`, `requiredness`, `bindingStatus`). | Yes | 2026-05-24 |
+| TASK-002 | Implement API client functions for ApiService CRUD in `apps/frontend/src/features/admin/runtime/admin-client.ts`: `listAdminApiServices`, `createAdminApiService`, `updateAdminApiService`, `deleteAdminApiService`; each must use `buildApiPaths(capabilities).admin.apiServices` and `apiServiceById(id)` with deterministic HTTP error projection. | Yes | 2026-05-24 |
+| TASK-003 | Implement API client functions for bindings CRUD in `apps/frontend/src/features/admin/runtime/admin-client.ts`: `listAdminApiServiceBindings`, `upsertAdminApiServiceBinding`, `deleteAdminApiServiceBinding`; use `/api/admin/api-services/:id/bindings` routes with capability guard fallback error when path is null. | Yes | 2026-05-24 |
+| TASK-004 | Add/extend unit tests in `apps/frontend/src/features/admin/runtime/admin-client.test.ts` covering request shape, error wrapping, capability-off behavior, and redacted payload assumptions (no `tokenCiphertext`). | N/A | 2026-05-24 |
 
 Completion Criteria: client layer compiles with strict typing, includes both catalog and bindings operations, and has deterministic unit coverage for success/error/capability-off branches.
 
 ### Implementation Phase 2
 
 - GOAL-002: Add frontend query and mutation hooks for ApiServiceCatalog DataTableView and binding editor workflow.
+- NOTE-001: Keep this phase hook-driven; do not introduce a dedicated XState machine or actor layer for ApiService CRUD state.
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-005 | Create query hook `apps/frontend/src/features/admin/runtime/useAdminApiServicesQuery.ts` returning `{ data, loading, error, reload }` using existing query utility pattern and centralized fallback copy from `appCopy.ui.fallbackErrors` keys dedicated to ApiService admin pages. |  |  |
-| TASK-006 | Create mutation hook `apps/frontend/src/features/admin/runtime/useAdminApiServicesMutations.ts` implementing create/update/delete flows with busy action ownership and deterministic reload strategy after successful mutations. |  |  |
-| TASK-007 | Create query hook `apps/frontend/src/features/admin/runtime/useAdminApiServiceBindingsQuery.ts` scoped by selected `apiServiceId`, with deterministic empty/error states and reload semantics. |  |  |
-| TASK-008 | Create mutation hook `apps/frontend/src/features/admin/runtime/useAdminApiServiceBindingsMutations.ts` implementing upsert/delete binding actions with deterministic in-flight state and optimistic behavior policy explicitly documented in code comments. |  |  |
-| TASK-009 | Add form schemas in `apps/frontend/src/features/admin/runtime/admin-api-service-form.ts` and `apps/frontend/src/features/admin/runtime/admin-api-service-binding-form.ts` validating canonical field constraints (methods, requiredness values, workflowStepType values, mapping-rule structure). |  |  |
+| TASK-005 | Create query hook `apps/frontend/src/features/admin/runtime/useAdminApiServicesQuery.ts` returning `{ data, loading, error, reload }` using existing query utility pattern and centralized fallback copy from `appCopy.ui.fallbackErrors` keys dedicated to ApiService admin pages. | Yes | 2026-05-24 |
+| TASK-006 | Create mutation hook `apps/frontend/src/features/admin/runtime/useAdminApiServicesMutations.ts` implementing create/update/delete flows with busy action ownership and deterministic reload strategy after successful mutations. | Yes | 2026-05-24 |
+| TASK-007 | Create query hook `apps/frontend/src/features/admin/runtime/useAdminApiServiceBindingsQuery.ts` scoped by selected `apiServiceId`, with deterministic empty/error states and reload semantics. | Yes | 2026-05-24 |
+| TASK-008 | Create mutation hook `apps/frontend/src/features/admin/runtime/useAdminApiServiceBindingsMutations.ts` implementing upsert/delete binding actions with deterministic in-flight state and optimistic behavior policy explicitly documented in code comments. | Yes | 2026-05-24 |
+| TASK-009 | Add form schemas in `apps/frontend/src/features/admin/runtime/admin-api-service-form.ts` and `apps/frontend/src/features/admin/runtime/admin-api-service-binding-form.ts` validating canonical field constraints (methods, requiredness values, workflowStepType values, mapping-rule structure). | Yes | 2026-05-24 |
 
 Completion Criteria: hooks expose stable contracts used by pages, mutation state ownership is deterministic, and schemas enforce canonical field constraints before network dispatch.
 
@@ -67,13 +71,11 @@ Completion Criteria: hooks expose stable contracts used by pages, mutation state
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-010 | Add page `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx` using `AdminPageContainer` and DataTableView composition: toolbar, create/update form panel, table listing, inline row actions. |  |  |
-| TASK-011 | Add UI components under `apps/frontend/src/features/admin/ui/` for ApiService page: `AdminApiServicesToolbar.tsx`, `AdminApiServiceCreateForm.tsx`, `AdminApiServicesTable.tsx`, and row-level edit surface aligned to existing admin table components. |  |  |
-| TASK-012 | Integrate query + mutation hooks from Phase 2 into `AdminApiServicesPage.tsx` with deterministic rendering gates (`LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`) and no nested card anti-patterns. |  |  |
-| TASK-013 | Add route entry `/admin/api-services` in `apps/frontend/src/app/routing/app-router.tsx` with lazy-loading and admin guard inheritance through existing `AdminLayout`.
- |  |  |
-| TASK-014 | Extend admin persistent navigation component (existing file under `apps/frontend/src/features/admin/ui/`) to include canonical menu entry for ApiServiceCatalog page, with centralized copy authority from `appCopy`.
- |  |  |
+| TASK-010 | Add page `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx` using `AdminPageContainer` and DataTableView composition: toolbar, create/update form panel, table listing, inline row actions. | Yes | 2026-05-24 |
+| TASK-011 | Add UI components under `apps/frontend/src/features/admin/ui/` for ApiService page: `AdminApiServicesToolbar.tsx`, `AdminApiServiceCreateForm.tsx`, `AdminApiServicesTable.tsx`, and row-level edit surface aligned to existing admin table components. | Yes | 2026-05-24 |
+| TASK-012 | Integrate query + mutation hooks from Phase 2 into `AdminApiServicesPage.tsx` with deterministic rendering gates (`LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`) and no nested card anti-patterns. | Yes | 2026-05-24 |
+| TASK-013 | Add route entry `/admin/api-services` in `apps/frontend/src/app/routing/app-router.tsx` with lazy-loading and admin guard inheritance through existing `AdminLayout`. | Yes | 2026-05-24 |
+| TASK-014 | Extend admin persistent navigation component (existing file under `apps/frontend/src/features/admin/ui/`) to include canonical menu entry for ApiServiceCatalog page, with centralized copy authority from `appCopy`. | Yes | 2026-05-24 |
 
 Completion Criteria: admin page is routable, capability-aware, and fully operable for ApiService CRUD through table + forms with deterministic loading/error/empty states.
 
@@ -83,13 +85,10 @@ Completion Criteria: admin page is routable, capability-aware, and fully operabl
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-015 | Add binding editor surface under `apps/frontend/src/features/admin/ui/` (for example `AdminApiServiceBindingsPanel.tsx`) showing binding rows by selected ApiService and exposing upsert/delete actions. |  |  |
-| TASK-016 | Wire binding panel to `useAdminApiServiceBindingsQuery` and `useAdminApiServiceBindingsMutations` with deterministic selected-service state ownership in `AdminApiServicesPage.tsx`.
- |  |  |
-| TASK-017 | Ensure binding form validates canonical values for `workflowStepType` and `requiredness` and blocks dispatch on invalid payload prior to HTTP request.
- |  |  |
-| TASK-018 | Add centralized copy entries in `apps/frontend/src/app/copy/system.ts` for ApiService and binding labels/errors, and remove any newly introduced hardcoded runtime literals in page/runtime components.
- |  |  |
+| TASK-015 | Add binding editor surface under `apps/frontend/src/features/admin/ui/` (for example `AdminApiServiceBindingsPanel.tsx`) showing binding rows by selected ApiService and exposing upsert/delete actions. | Yes | 2026-05-24 |
+| TASK-016 | Wire binding panel to `useAdminApiServiceBindingsQuery` and `useAdminApiServiceBindingsMutations` with deterministic selected-service state ownership in `AdminApiServicesPage.tsx`. | Yes | 2026-05-24 |
+| TASK-017 | Ensure binding form validates canonical values for `workflowStepType` and `requiredness` and blocks dispatch on invalid payload prior to HTTP request. | Yes | 2026-05-24 |
+| TASK-018 | Add centralized copy entries in `apps/frontend/src/app/copy/system.ts` for ApiService and binding labels/errors, and remove any newly introduced hardcoded runtime literals in page/runtime components. | Partial | 2026-05-24 |
 
 Completion Criteria: binding CRUD is available from the admin ApiService surface with deterministic validation, reload behavior, and canonical copy ownership.
 
@@ -99,17 +98,25 @@ Completion Criteria: binding CRUD is available from the admin ApiService surface
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-019 | Add/extend page tests in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx` covering list/create/update/delete flows, loading/error/empty rendering, and mutation feedback behavior. |  |  |
-| TASK-020 | Add/extend UI tests for binding panel interactions under `apps/frontend/src/features/admin/ui/` and/or page-level integration tests for upsert/delete binding scenarios.
- |  |  |
-| TASK-021 | Extend routing/access tests in `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx` and `apps/frontend/src/app/routing/app-router.test.tsx` to assert route visibility and admin-only gating for `/admin/api-services`.
- |  |  |
-| TASK-022 | Run deterministic verification commands from repository root: `npm --workspace apps/frontend run typecheck`; `npm --workspace apps/frontend run test`; `npm run test -- apps/frontend/src/features/admin/runtime/admin-client.test.ts`; `npm run test -- apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx`.
- |  |  |
-| TASK-023 | Run DDD governance scan for introduced FE naming to confirm only canonical terms are used (`ApiService`, `ApiServiceAccessMode`, `ApiServiceCatalog`, `ToolInputSource`, `WorkflowStepType`) and no synonyms (`connector`, `integration`, `data source`) are introduced in code/comments/tests.
- |  |  |
+| TASK-019 | Add/extend page tests in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx` covering list/create/update/delete flows, loading/error/empty rendering, and mutation feedback behavior. | Yes | 2026-05-24 |
+| TASK-020 | Add/extend UI tests for binding panel interactions under `apps/frontend/src/features/admin/ui/` and/or page-level integration tests for upsert/delete binding scenarios. | Yes | 2026-05-24 |
+| TASK-021 | Extend routing/access tests in `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx` and `apps/frontend/src/app/routing/app-router.test.tsx` to assert route visibility and admin-only gating for `/admin/api-services`. | Yes | 2026-05-24 |
+| TASK-022 | Run deterministic verification commands from repository root: `npm --workspace apps/frontend run typecheck`; `npm --workspace apps/frontend run test`; `npm run test -- apps/frontend/src/features/admin/runtime/admin-client.test.ts`; `npm run test -- apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx`. | Partial | 2026-05-24 |
+| TASK-023 | Run DDD governance scan for introduced FE naming to confirm only canonical terms are used (`ApiService`, `ApiServiceAccessMode`, `ApiServiceCatalog`, `ToolInputSource`, `WorkflowStepType`) and no synonyms (`connector`, `integration`, `data source`) are introduced in code/comments/tests. | Yes | 2026-05-24 |
 
 Completion Criteria: frontend typecheck/tests pass, new route is guard-protected, binding CRUD is covered by automated tests, and naming remains DDD-canonical.
+
+### Implementation Phase 6
+
+- GOAL-006: UI refinement to reduce ApiService form footprint and isolate advanced JSON fields.
+
+| Task | Description | Completed | Date |
+|------|-------------|-----------|------|
+| TASK-024 | Reduce perceived form density in `AdminApiServiceCreateForm` by separating core configuration fields from advanced mapping payload fields. | Yes | 2026-05-24 |
+| TASK-025 | Move JSON mapping/template fields into a collapsible advanced section and tighten textarea defaults for quicker scanning in create/edit flows. | Yes | 2026-05-24 |
+| TASK-026 | Add dedicated style rules for ApiService form layout to preserve responsive behavior while keeping the advanced block visually secondary. | Yes | 2026-05-24 |
+
+Completion Criteria: create/edit forms are visually lighter in default state, advanced JSON is isolated behind an explicit section, and mobile/desktop layouts remain functional.
 
 ## 3. Alternatives
 

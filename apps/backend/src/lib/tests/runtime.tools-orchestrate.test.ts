@@ -283,6 +283,61 @@ const NEXTLAND_LANDING_ARTIFACT: StubArtifactQueryRecord = {
   updatedAt: '2026-05-04T09:05:00.000Z',
 };
 
+const ANGLE_CONTEXT_AND_MATRIX_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-context-and-matrix-001',
+  requestId: 'req-angle-context-and-matrix-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: {
+    toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+    step: 'context-and-angle-matrix',
+    acquisition: { source: 'api-service:market-intel' },
+  },
+  content: '{"matrix":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:00:00.000Z',
+  updatedAt: '2026-05-04T09:05:00.000Z',
+};
+
+const ANGLE_PRIORITIZATION_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-prioritization-001',
+  requestId: 'req-angle-prioritization-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: { toolWorkflow: { stepKey: 'angle-prioritization' }, step: 'angle-prioritization' },
+  content: '{"prioritization":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:10:00.000Z',
+  updatedAt: '2026-05-04T09:15:00.000Z',
+};
+
+const ANGLE_EXTRACTION_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-extraction-001',
+  requestId: 'req-angle-extraction-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'extraction',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: {
+    toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+    extraction: { payload: { key: 'value' } },
+  },
+  content: '{"normalizedText":"briefing"}',
+  failureReason: null,
+  createdAt: '2026-05-04T08:50:00.000Z',
+  updatedAt: '2026-05-04T08:55:00.000Z',
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -477,6 +532,83 @@ test('/api/tools/orchestrate resolves canonical nextland dependencies', async ()
   assert.deepEqual(orch.stepDependencyArtifactIds, ['art-nextland-landing-001']);
   assert.deepEqual(orch.dependencyArtifactIdsByStep, {
     landing: 'art-nextland-landing-001',
+  });
+});
+
+test('/api/tools/orchestrate covers extraction + acquisition-context + generation chain for angle-generator', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([
+    { ...ANGLE_EXTRACTION_ARTIFACT, projectId },
+    { ...ANGLE_CONTEXT_AND_MATRIX_ARTIFACT, projectId },
+    { ...ANGLE_PRIORITIZATION_ARTIFACT, projectId },
+  ]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'angle-generator',
+    targetStep: 'creative-activation',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.equal(orch.toolKey, 'angle-generator');
+  assert.deepEqual(orch.stepDependencyArtifactIds, [
+    'art-angle-context-and-matrix-001',
+    'art-angle-prioritization-001',
+  ]);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    'context-and-angle-matrix': 'art-angle-context-and-matrix-001',
+    'angle-prioritization': 'art-angle-prioritization-001',
+  });
+});
+
+test('/api/tools/orchestrate keeps deterministic dependencies when acquisition payload is profile-mapped', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  artifactStub.seed([
+    { ...ANGLE_EXTRACTION_ARTIFACT, projectId },
+    {
+      ...ANGLE_CONTEXT_AND_MATRIX_ARTIFACT,
+      projectId,
+      input: {
+        toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+        step: 'context-and-angle-matrix',
+        acquisition: {
+          source: 'api-service:market-intel',
+          marketSignals: { trend: 'ugc' },
+          audienceSignals: { intent: 'high' },
+          confidence: 0.87,
+        },
+      },
+    },
+    { ...ANGLE_PRIORITIZATION_ARTIFACT, projectId },
+  ]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'angle-generator',
+    targetStep: 'creative-activation',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, [
+    'art-angle-context-and-matrix-001',
+    'art-angle-prioritization-001',
+  ]);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    'context-and-angle-matrix': 'art-angle-context-and-matrix-001',
+    'angle-prioritization': 'art-angle-prioritization-001',
   });
 });
 

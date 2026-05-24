@@ -1,5 +1,7 @@
 import type { GenerationFallbackOutput } from './generation-fallback.actor';
 import type {
+  AcquisitionDoneOutput,
+  CacheAcquisitionResultParams,
   CacheExtractionResultParams,
   CacheReplayPayloadParams,
   CacheStreamResultParams,
@@ -65,6 +67,22 @@ export const getExtractionResultParams = (event: unknown): CacheExtractionResult
 
 export const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
   (event as { output?: ToolDoneOutput }).output;
+
+export const getAcquisitionDoneOutput = (event: unknown): AcquisitionDoneOutput | undefined =>
+  (event as { output?: AcquisitionDoneOutput }).output;
+
+export const getAcquisitionResultParams = (event: unknown): CacheAcquisitionResultParams => {
+  const output = getAcquisitionDoneOutput(event);
+  if (!output || output.type !== 'ACQUISITION_ATTEMPT_ACCEPTED') {
+    return {
+      payload: {},
+    };
+  }
+
+  return {
+    payload: output.payload,
+  };
+};
 
 export const getFallbackDoneOutput = (event: unknown): GenerationFallbackOutput | undefined =>
   (event as { output?: GenerationFallbackOutput }).output;

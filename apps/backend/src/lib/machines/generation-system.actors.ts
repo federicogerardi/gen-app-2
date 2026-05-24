@@ -10,6 +10,64 @@ import { buildExtractionStructuredPayload } from './generation/extraction-parser
 import { getRegistrySelector } from './generation-routing';
 import { isExtractionPayloadSemanticallyValid } from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
+import { executeApiAcquisition } from '../runtime/integrations/api-acquisition.adapter';
+import type { ResolvedApiServiceForAcquisition } from '../adapters/api-service.adapter';
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+};
+
+const toStringRecord = (value: unknown): Record<string, string> => {
+  if (!isPlainRecord(value)) {
+    return {};
+  }
+
+  const normalized: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item === null || item === undefined) {
+      continue;
+    }
+    normalized[key] = String(item);
+  }
+
+  return normalized;
+};
+
+const toUnknownRecord = (value: unknown): Record<string, unknown> => {
+  return isPlainRecord(value) ? value : {};
+};
+
+const resolveAcquisitionInput = (context: GenerationMachineContext): {
+  service: ResolvedApiServiceForAcquisition;
+  query: Record<string, string>;
+  headers: Record<string, string>;
+  body: Record<string, unknown>;
+} | null => {
+  const directAcquisition = context.requestInput.acquisition;
+  const extractionPayload = context.requestInput.extractionPayload;
+  const payloadAcquisition = isPlainRecord(extractionPayload)
+    ? extractionPayload.acquisition
+    : undefined;
+  const acquisition = isPlainRecord(directAcquisition)
+    ? directAcquisition
+    : payloadAcquisition;
+
+  if (!isPlainRecord(acquisition)) {
+    return null;
+  }
+
+  const service = acquisition.service;
+  if (!isPlainRecord(service)) {
+    return null;
+  }
+
+  return {
+    service: service as ResolvedApiServiceForAcquisition,
+    query: toStringRecord(acquisition.query),
+    headers: toStringRecord(acquisition.headers),
+    body: toUnknownRecord(acquisition.body),
+  };
+};
 
 export const generationSystemActors = {
   invokeIdempotency: idempotencyCoordinatorMachine,
@@ -51,6 +109,28 @@ export const generationSystemActors = {
       artifactId: input.context.artifactId ?? input.context.artifactIdFactory(),
       content: JSON.stringify(payload, null, 2),
       structuredPayload: payload,
+    };
+  }),
+  invokeApiAcquisition: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
+    const acquisitionInput = resolveAcquisitionInput(input.context);
+    if (!acquisitionInput) {
+      return {
+        type: 'ACQUISITION_ATTEMPT_SKIPPED' as const,
+        reason: 'acquisition_not_configured',
+      };
+    }
+
+    const result = await executeApiAcquisition({
+      service: acquisitionInput.service,
+      query: acquisitionInput.query,
+      headers: acquisitionInput.headers,
+      body: acquisitionInput.body,
+    });
+
+    return {
+      type: 'ACQUISITION_ATTEMPT_ACCEPTED' as const,
+      statusCode: result.statusCode,
+      payload: result.payload,
     };
   }),
   invokeToolWorkflow: toolWorkflowMachine,
@@ -100,6 +180,7 @@ export type GenerationSystemProvidedActor =
   | { src: 'invokeStream'; logic: typeof generationSystemActors.invokeStream; id: string | undefined }
   | { src: 'invokePersistence'; logic: typeof generationSystemActors.invokePersistence; id: string | undefined }
   | { src: 'invokeExtraction'; logic: typeof generationSystemActors.invokeExtraction; id: string | undefined }
+  | { src: 'invokeApiAcquisition'; logic: typeof generationSystemActors.invokeApiAcquisition; id: string | undefined }
   | { src: 'invokeToolWorkflow'; logic: typeof generationSystemActors.invokeToolWorkflow; id: string | undefined }
   | { src: 'invokeFallbackPolicy'; logic: typeof generationSystemActors.invokeFallbackPolicy; id: string | undefined }
   | { src: 'markCompletedIdempotency'; logic: typeof generationSystemActors.markCompletedIdempotency; id: string | undefined }

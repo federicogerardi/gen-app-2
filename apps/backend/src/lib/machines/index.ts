@@ -1,4 +1,5 @@
 export { extractionChainMachine } from './extraction-chain.machine';
+export { acquisitionChainMachine } from './generation/acquisition-chain.machine';
 export { generationSystemMachine } from './generation-system.machine';
 export { idempotencyCoordinatorMachine } from './idempotency-coordinator.machine';
 export { requestGatewayMachine } from './request-gateway.machine';

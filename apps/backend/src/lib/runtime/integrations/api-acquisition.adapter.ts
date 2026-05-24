@@ -17,6 +17,20 @@ export type ApiAcquisitionExecutionResult = {
   payload: Record<string, unknown>;
 };
 
+const RETRY_BACKOFF_BASE_MS = 100;
+const RETRY_BACKOFF_MAX_MS = 2000;
+const RETRY_JITTER_RATIO = 0.2;
+const RETRY_MAX_ELAPSED_MS = 120000;
+
+class ApiAcquisitionHttpError extends Error {
+  readonly statusCode: number;
+
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 type RequestEnvelope = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   query: Record<string, string>;
@@ -269,7 +283,7 @@ const projectError = (
   service: ResolvedApiServiceForAcquisition,
   statusCode: number,
   payload: Record<string, unknown>,
-): Error => {
+): ApiAcquisitionHttpError => {
   const baseMessage = `Acquisition HTTP ${statusCode}`;
 
   for (const rule of service.errorMappingRulesJson) {
@@ -292,7 +306,7 @@ const projectError = (
     const sourceMessage = typeof sourceValue === 'string' ? sourceValue : undefined;
 
     const message = messageFromRule || sourceMessage || baseMessage;
-    return new Error(`${baseMessage} [${errorCode}] ${message}`);
+    return new ApiAcquisitionHttpError(statusCode, `${baseMessage} [${errorCode}] ${message}`);
   }
 
   const payloadMessage = typeof payload.error === 'string'
@@ -301,11 +315,34 @@ const projectError = (
       ? (getByPath(payload, 'error.message') as string)
       : undefined);
 
-  return new Error(payloadMessage ? `${baseMessage} ${payloadMessage}` : baseMessage);
+  return new ApiAcquisitionHttpError(
+    statusCode,
+    payloadMessage ? `${baseMessage} ${payloadMessage}` : baseMessage,
+  );
+};
+
+const isRetryableAcquisitionError = (error: unknown): boolean => {
+  if (error instanceof ApiAcquisitionHttpError) {
+    return error.statusCode === 429 || error.statusCode >= 500;
+  }
+
+  if (error instanceof Error && error.name === 'AbortError') {
+    return true;
+  }
+
+  return error instanceof TypeError;
 };
 
 const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const computeRetryDelayMs = (attempt: number): number => {
+  const exponential = Math.min(RETRY_BACKOFF_MAX_MS, RETRY_BACKOFF_BASE_MS * (2 ** Math.max(0, attempt - 1)));
+  const jitterRange = exponential * RETRY_JITTER_RATIO;
+  const jitter = (Math.random() * (2 * jitterRange)) - jitterRange;
+  const jittered = Math.round(exponential + jitter);
+  return Math.max(RETRY_BACKOFF_BASE_MS, Math.min(RETRY_BACKOFF_MAX_MS, jittered));
 };
 
 const buildUrl = (service: ResolvedApiServiceForAcquisition, query?: Record<string, string>): URL => {
@@ -340,6 +377,7 @@ export const executeApiAcquisition = async (
 
   let attempt = 0;
   let lastError: unknown = null;
+  const startedAt = Date.now();
 
   while (attempt < maxAttempts) {
     attempt += 1;
@@ -384,9 +422,18 @@ export const executeApiAcquisition = async (
       };
     } catch (error) {
       lastError = error;
-      if (attempt < maxAttempts) {
-        await sleep(100 * attempt);
+      const retryable = isRetryableAcquisitionError(error);
+      if (!retryable || attempt >= maxAttempts) {
+        break;
       }
+
+      const elapsedMs = Date.now() - startedAt;
+      const nextDelayMs = computeRetryDelayMs(attempt);
+      if (elapsedMs + nextDelayMs > RETRY_MAX_ELAPSED_MS) {
+        break;
+      }
+
+      await sleep(nextDelayMs);
     } finally {
       clearTimeout(timeout);
     }

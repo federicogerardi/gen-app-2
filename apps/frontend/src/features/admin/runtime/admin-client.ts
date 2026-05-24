@@ -601,7 +601,10 @@ export const listAdminApiServiceBindings = async (
   options: AdminClientOptions = {},
 ): Promise<ApiServiceBinding[]> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
-  const path = requireAdminApiServicePath(buildApiPaths(capabilities).admin.apiServices && `/api/admin/api-services/${apiServiceId}/bindings`, 'bindings');
+  const path = requireAdminApiServicePath(
+    buildApiPaths(capabilities).admin.apiServiceBindings(apiServiceId),
+    'bindings',
+  );
 
   try {
     const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
@@ -625,7 +628,10 @@ export const upsertAdminApiServiceBinding = async (
   options: AdminClientOptions = {},
 ): Promise<ApiServiceBinding> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
-  const path = requireAdminApiServicePath(buildApiPaths(capabilities).admin.apiServices && `/api/admin/api-services/${apiServiceId}/bindings`, 'bindings');
+  const path = requireAdminApiServicePath(
+    buildApiPaths(capabilities).admin.apiServiceBindings(apiServiceId),
+    'bindings',
+  );
 
   try {
     const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
@@ -659,7 +665,10 @@ export const deleteAdminApiServiceBinding = async (
   options: AdminClientOptions = {},
 ): Promise<void> => {
   const capabilities = resolveBackendCapabilities(options.capabilities);
-  const path = requireAdminApiServicePath(buildApiPaths(capabilities).admin.apiServices && `/api/admin/api-services/${apiServiceId}/bindings/${bindingId}`, 'bindings');
+  const path = requireAdminApiServicePath(
+    buildApiPaths(capabilities).admin.apiServiceBindingById(apiServiceId, bindingId),
+    'bindings',
+  );
 
   try {
     await requestVoid(joinApiPath(options.apiBaseUrl ?? '', path), {

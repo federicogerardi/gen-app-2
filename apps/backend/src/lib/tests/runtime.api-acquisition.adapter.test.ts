@@ -274,6 +274,82 @@ test('executeApiAcquisition projects deterministic mapped error on upstream fail
   }
 });
 
+test('executeApiAcquisition does not retry deterministic 4xx upstream errors', async () => {
+  const originalFetch = global.fetch;
+  let attempts = 0;
+
+  global.fetch = (async () => {
+    attempts += 1;
+    return {
+      ok: false,
+      status: 404,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ error: { message: 'not found' } }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    await assert.rejects(() => executeApiAcquisition({
+      service: {
+        ...buildService(),
+        retryCount: 3,
+      },
+    }));
+
+    assert.equal(attempts, 1);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('executeApiAcquisition retries 5xx upstream errors within retry budget', async () => {
+  const originalFetch = global.fetch;
+  let attempts = 0;
+
+  global.fetch = (async () => {
+    attempts += 1;
+    if (attempts === 1) {
+      return {
+        ok: false,
+        status: 503,
+        headers: {
+          get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+        },
+        json: async () => ({ error: { message: 'temporary outage' } }),
+        text: async () => '',
+      } as unknown as Response;
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ ok: true, attempt: attempts }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    const result = await executeApiAcquisition({
+      service: {
+        ...buildService(),
+        retryCount: 1,
+      },
+    });
+
+    assert.equal(attempts, 2);
+    assert.equal(result.statusCode, 200);
+    assert.deepEqual(result.payload, { ok: true, attempt: 2 });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test('executeApiAcquisition retries on transient transport failure and succeeds within retry budget', async () => {
   const originalFetch = global.fetch;
   let attempts = 0;
@@ -281,7 +357,7 @@ test('executeApiAcquisition retries on transient transport failure and succeeds 
   global.fetch = (async () => {
     attempts += 1;
     if (attempts === 1) {
-      throw new Error('temporary upstream network error');
+      throw new TypeError('temporary upstream network error');
     }
 
     return {

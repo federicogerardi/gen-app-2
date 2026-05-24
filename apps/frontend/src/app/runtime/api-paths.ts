@@ -36,6 +36,8 @@ export type ApiPaths = {
     userById: (id: string) => string;
     apiServices: string | null;
     apiServiceById: (id: string) => string | null;
+    apiServiceBindings: (apiServiceId: string) => string | null;
+    apiServiceBindingById: (apiServiceId: string, bindingId: string) => string | null;
   };
   feedback: {
     changelogList: string | null;
@@ -92,6 +94,14 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     apiServices: capabilities.adminApiServicesCrud ? '/api/admin/api-services' : null,
     apiServiceById: (id: string) => (
       capabilities.adminApiServicesCrud ? `/api/admin/api-services/${id}` : null
+    ),
+    apiServiceBindings: (apiServiceId: string) => (
+      capabilities.adminApiServicesCrud ? `/api/admin/api-services/${apiServiceId}/bindings` : null
+    ),
+    apiServiceBindingById: (apiServiceId: string, bindingId: string) => (
+      capabilities.adminApiServicesCrud
+        ? `/api/admin/api-services/${apiServiceId}/bindings/${bindingId}`
+        : null
     ),
   },
   feedback: {

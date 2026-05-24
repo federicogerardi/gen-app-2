@@ -536,3 +536,103 @@ test('admin api-services update roundtrip persists tokenHeaderName', async () =>
   const services = (((listBody.data ?? {}) as Record<string, unknown>).apiServices ?? []) as Array<Record<string, unknown>>;
   assert.equal(services[0]?.tokenHeaderName, 'X-Service-Token');
 });
+
+test('admin api-service bindings upsert returns 404 when api service is missing', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: '/api/admin/api-services/svc_missing/bindings',
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 404);
+});
+
+test('admin api-service bindings upsert maps unique DB conflict to 409', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  class ConflictApiServiceDbStub extends ApiServiceDbStub {
+    override async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[] }> {
+      if (sqlText.includes('INSERT INTO api_service_tool_step_bindings')) {
+        const conflict = new Error('duplicate key') as Error & { code?: string };
+        conflict.code = '23505';
+        throw conflict;
+      }
+
+      return super.query<T>(sqlText, values);
+    }
+  }
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ConflictApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: '/api/admin/api-services/svc_1/bindings',
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 409);
+});

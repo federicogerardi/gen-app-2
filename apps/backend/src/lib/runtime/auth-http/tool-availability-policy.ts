@@ -12,7 +12,7 @@ export const canPrincipalRoleAccessToolKey = (
 ): boolean => {
   const normalizedToolKey = normalizeToolKeyCandidate(toolKey);
   if (!normalizedToolKey) {
-    return true;
+    return false;
   }
 
   return canRoleAccessToolKey(normalizedToolKey, resolveToolAccessRole(role));

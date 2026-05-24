@@ -124,12 +124,16 @@ describe('buildApiPaths', () => {
       const paths = buildApiPaths(resolveBackendCapabilities({ adminApiServicesCrud: true }));
       expect(paths.admin.apiServices).toBe('/api/admin/api-services');
       expect(paths.admin.apiServiceById('svc-1')).toBe('/api/admin/api-services/svc-1');
+      expect(paths.admin.apiServiceBindings('svc-1')).toBe('/api/admin/api-services/svc-1/bindings');
+      expect(paths.admin.apiServiceBindingById('svc-1', 'bind-1')).toBe('/api/admin/api-services/svc-1/bindings/bind-1');
     });
 
     it('returns null admin api-services paths when adminApiServicesCrud is disabled', () => {
       const paths = buildApiPaths(resolveBackendCapabilities({ adminApiServicesCrud: false }));
       expect(paths.admin.apiServices).toBeNull();
       expect(paths.admin.apiServiceById('svc-1')).toBeNull();
+      expect(paths.admin.apiServiceBindings('svc-1')).toBeNull();
+      expect(paths.admin.apiServiceBindingById('svc-1', 'bind-1')).toBeNull();
     });
   });
 

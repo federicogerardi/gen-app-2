@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 
 import {
+  getApiServiceById,
   deleteApiServiceBinding,
   listApiServiceBindings,
   upsertApiServiceBinding,
@@ -59,6 +60,15 @@ export const createAdminApiServiceBindingHandlers = (
     writeError,
     writeSuccess,
   } = deps;
+
+  const readPgErrorCode = (error: unknown): string | null => {
+    if (!error || typeof error !== 'object') {
+      return null;
+    }
+
+    const code = (error as { code?: unknown }).code;
+    return typeof code === 'string' ? code : null;
+  };
 
   const handleAdminApiServiceBindingsList = async (
     request: IncomingMessage,
@@ -152,22 +162,44 @@ export const createAdminApiServiceBindingHandlers = (
       return;
     }
 
-    const binding = await upsertApiServiceBinding(db, {
-      ...(id ? { id } : {}),
-      apiServiceId: serviceId,
-      toolKey,
-      stepKey,
-      ...(workflowStepType ? { workflowStepType: 'acquisition' as const } : {}),
-      ...(bindingStatus ? { bindingStatus: bindingStatus as 'active' | 'inactive' } : {}),
-      ...(requiredness
-        ? {
-          requiredness: requiredness as
-            | 'always-required'
-            | 'required-by-tool-setting'
-            | 'optional-by-tool-setting',
-        }
-        : {}),
-    });
+    const service = await getApiServiceById(db, serviceId);
+    if (!service) {
+      writeError(response, 404, 'not_found', 'ApiService not found');
+      return;
+    }
+
+    let binding;
+    try {
+      binding = await upsertApiServiceBinding(db, {
+        ...(id ? { id } : {}),
+        apiServiceId: serviceId,
+        toolKey,
+        stepKey,
+        ...(workflowStepType ? { workflowStepType: 'acquisition' as const } : {}),
+        ...(bindingStatus ? { bindingStatus: bindingStatus as 'active' | 'inactive' } : {}),
+        ...(requiredness
+          ? {
+            requiredness: requiredness as
+              | 'always-required'
+              | 'required-by-tool-setting'
+              | 'optional-by-tool-setting',
+          }
+          : {}),
+      });
+    } catch (error) {
+      const code = readPgErrorCode(error);
+      if (code === '23503') {
+        writeError(response, 404, 'not_found', 'ApiService not found');
+        return;
+      }
+
+      if (code === '23505') {
+        writeError(response, 409, 'conflict', 'ApiService binding conflict');
+        return;
+      }
+
+      throw error;
+    }
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, {

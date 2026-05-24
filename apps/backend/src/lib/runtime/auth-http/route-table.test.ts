@@ -83,6 +83,34 @@ describe('Route order and dispatch semantics', () => {
     expect(result.handled).toBe(false);
   });
 
+  it('matches PUT /api/admin/api-services/:id and decodes service id', async () => {
+    const updateApiServiceCalled = vi.fn();
+
+    const mockHandlers: AllHandlerGroups = {
+      authHandlers: {} as any,
+      adminHandlers: {
+        handleAdminApiServicesUpdate: async (
+          _request: IncomingMessage,
+          _response: ServerResponse,
+          serviceId: string,
+        ) => {
+          updateApiServiceCalled(serviceId);
+        },
+      } as any,
+      projectsHandlers: {} as any,
+      publicHandlers: {} as any,
+      toolsHandlers: {} as any,
+    };
+
+    const routeTable = buildRouteTable(mockHandlers);
+    mockRequest.url = '/api/admin/api-services/service%2F123';
+    mockRequest.method = 'PUT';
+
+    await dispatchRequest(routeTable, mockRequest as IncomingMessage, mockResponse as ServerResponse);
+
+    expect(updateApiServiceCalled).toHaveBeenCalledWith('service/123');
+  });
+
   it('returns centralized 405 when path matches but method is not allowed', async () => {
     const methodNotAllowed = vi.fn();
     const routeTable = [

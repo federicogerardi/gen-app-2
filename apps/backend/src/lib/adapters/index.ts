@@ -20,6 +20,17 @@ export {
 } from './openrouter.adapter';
 
 export {
+  createApiService,
+  deleteApiService,
+  getApiServiceById,
+  listApiServices,
+  resolveApiServiceForAcquisition,
+  updateApiService,
+  type CreateApiServiceInput,
+  type UpdateApiServiceInput,
+} from './api-service.adapter';
+
+export {
   createProductChangelog,
   publishProductChangelog,
   archiveProductChangelog,

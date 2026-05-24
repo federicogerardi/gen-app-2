@@ -20,6 +20,11 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
     },
     {
       method: 'GET',
+      pattern: '/api/tools/api-services',
+      handler: toolsHandlers.handleToolsApiServiceResolve,
+    },
+    {
+      method: 'GET',
       pattern: '/api/tools/sessions',
       handler: toolsHandlers.handleToolsSessionsList,
     },

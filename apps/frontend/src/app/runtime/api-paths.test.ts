@@ -119,5 +119,29 @@ describe('buildApiPaths', () => {
       expect(paths.admin.users).toBe('/admin/users');
       expect(paths.admin.userById('user-1')).toBe('/admin/users/user-1');
     });
+
+    it('returns admin api-services paths when adminApiServicesCrud is enabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ adminApiServicesCrud: true }));
+      expect(paths.admin.apiServices).toBe('/api/admin/api-services');
+      expect(paths.admin.apiServiceById('svc-1')).toBe('/api/admin/api-services/svc-1');
+    });
+
+    it('returns null admin api-services paths when adminApiServicesCrud is disabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ adminApiServicesCrud: false }));
+      expect(paths.admin.apiServices).toBeNull();
+      expect(paths.admin.apiServiceById('svc-1')).toBeNull();
+    });
+  });
+
+  describe('tools.api-services resolve — capability: toolsApiServicesResolve', () => {
+    it('returns tools api-service resolver path when enabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ toolsApiServicesResolve: true }));
+      expect(paths.tools.apiServicesResolve('svc_1')).toBe('/api/tools/api-services?apiServiceId=svc_1');
+    });
+
+    it('returns null tools api-service resolver path when disabled', () => {
+      const paths = buildApiPaths(resolveBackendCapabilities({ toolsApiServicesResolve: false }));
+      expect(paths.tools.apiServicesResolve('svc_1')).toBeNull();
+    });
   });
 });

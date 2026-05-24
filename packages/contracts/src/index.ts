@@ -61,6 +61,26 @@ export type {
   ToolWorkflowType,
 } from './tool-workflows';
 
+export type {
+  ApiServiceBindingRequiredness,
+  ApiServiceBindingStatus,
+  ApiAcquisitionRequest,
+  ApiAcquisitionResult,
+  ApiServiceAccessMode,
+  ApiServiceErrorMappingRule,
+  ApiServiceDto,
+  ApiServiceRequestContractProfile,
+  ApiServiceRequestMappingRule,
+  ApiServiceRequestMethod,
+  ApiServiceResolveContractDto,
+  ApiServiceResponseContractProfile,
+  ApiServiceResponseMappingRule,
+  ApiServiceStatus,
+  ApiServiceToolStepBindingDto,
+  CreateApiServiceCommand,
+  UpdateApiServiceCommand,
+} from './api-service';
+
 import type {
   GenerationRequestToolKey,
   GenerationRouteToolKey,

@@ -14,6 +14,7 @@ export type ApiPaths = {
     briefs: string | null;
     hydrate: string | null;
     orchestrate: string | null;
+    apiServicesResolve: (apiServiceId: string) => string | null;
     sessions: {
       list: string | null;
       byId: (sessionId: string) => string | null;
@@ -33,6 +34,8 @@ export type ApiPaths = {
   admin: {
     users: string;
     userById: (id: string) => string;
+    apiServices: string | null;
+    apiServiceById: (id: string) => string | null;
   };
   feedback: {
     changelogList: string | null;
@@ -60,6 +63,9 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     briefs: capabilities.toolsUpload ? '/api/tools/briefs' : null,
     hydrate: capabilities.artifacts ? '/api/tools/hydrate' : null,
     orchestrate: capabilities.artifacts ? '/api/tools/orchestrate' : null,
+    apiServicesResolve: (apiServiceId: string) => (
+      capabilities.toolsApiServicesResolve ? `/api/tools/api-services?apiServiceId=${encodeURIComponent(apiServiceId)}` : null
+    ),
     sessions: {
       list: capabilities.sessionsList ? '/api/tools/sessions' : null,
       byId: (sessionId: string) => (capabilities.sessionsDetail ? `/api/tools/sessions/${sessionId}` : null),
@@ -83,6 +89,10 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
   admin: {
     users: '/admin/users',
     userById: (id: string) => `/admin/users/${id}`,
+    apiServices: capabilities.adminApiServicesCrud ? '/api/admin/api-services' : null,
+    apiServiceById: (id: string) => (
+      capabilities.adminApiServicesCrud ? `/api/admin/api-services/${id}` : null
+    ),
   },
   feedback: {
     changelogList: capabilities.changelogList ? '/api/changelog' : null,

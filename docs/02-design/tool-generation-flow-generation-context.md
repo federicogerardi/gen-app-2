@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-05-04
 last-reviewed: 2026-05-04
 next-review-date: 2026-08-04
@@ -13,7 +13,7 @@ owner: Domain Architecture
 
 This diagram represents the canonical flow of a multi-step Tool execution in the **Generation** bounded context, grounded in the Ubiquitous Language (UL) defined in `domain-ubiquitous-language-glossary.md` and `domain-naming-decision-log.md`.
 
-All domain terms are canonical as of 2026-05-04 (DDD-026 through DDD-037).
+All domain terms are canonical as of 2026-05-24 (including DDD-086 through DDD-091 backend-first input-source decisions).
 
 Session aggregation and route namespace separation are canonical as of DDD-051 and DDD-052.
 
@@ -191,7 +191,7 @@ graph TB
 | **GenerationRequest** (DDD-002) | Command | Input that triggers a generation; carries ToolKey, ArtifactType, user input |
 | **WorkflowStep** (DDD-003) | Entity | A single step in a Tool's chain; abstract descriptor in BE |
 | **WorkflowStepStatus** (glossary) | Value Object | Runtime state: idle, running, done, error, skipped |
-| **WorkflowStepType** (DDD-027) | Value Object | Execution strategy: extraction, generation, acquisition (provisional) |
+| **WorkflowStepType** (DDD-027) | Value Object | Execution strategy: extraction, generation, acquisition (backend baseline implemented; progressive rollout by tool configuration) |
 | **WorkflowRunMode** (glossary) | Value Object | Intent: new, resume, regenerate; normalized from requestInput.intent |
 | **WorkflowStepUnlocked** (DDD-035) | Domain Event | Internal: dependencies satisfied, step ready to run |
 | **WorkflowStepCompleted** (DDD-036) | Domain Event | Internal: step finished, artifact produced, dependents unblocked |
@@ -217,6 +217,13 @@ Scope: DDD-086, DDD-087, DDD-089, DDD-091.
 3. For `ApiServiceAccessMode = token`, credentials remain backend-boundary only.
 4. Acquisition completion must preserve standard internal progression semantics: `WorkflowStepUnlocked` -> step run -> `WorkflowStepCompleted`.
 5. Acquisition output is merged into the same context assembly path consumed by downstream steps and `GenerationRequest` processing; no parallel, tool-specific bypass pipeline is allowed.
+
+Backend implementation evidence (2026-05-24):
+1. Acquisition actor baseline: `apps/backend/src/lib/machines/generation/acquisition-chain.machine.ts`.
+2. Acquisition-to-generation merge path: `apps/backend/src/lib/machines/generation/context-generation-assembly.ts` and `apps/backend/src/lib/machines/tool-workflow.machine.ts`.
+3. ApiService persistence/catalog runtime: `packages/infra-db/migrations/20260524_000011_api_service_catalog.sql`, `apps/backend/src/lib/adapters/api-service.adapter.ts`, `apps/backend/src/lib/runtime/auth-http/admin-api-service-handlers.ts`, `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts`.
+4. Route capability declarations including ApiService surfaces: `apps/backend/src/lib/runtime/auth-http/route-table.ts`.
+5. Verification suites: `apps/backend/src/lib/tests/runtime.acquisition-workflow.machine.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts`.
 
 ### Frontend (FE) integration boundary
 

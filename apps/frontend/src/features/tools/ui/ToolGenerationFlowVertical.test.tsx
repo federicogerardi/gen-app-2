@@ -23,15 +23,15 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione in attesa');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in attesa');
   });
 
   it('renders the project shell in draft-empty state', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
     expect(screen.getByText('Nessun progetto selezionato')).toBeInTheDocument();
-    expect(screen.getByText('Fase: Estrazione')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Estrazione briefing')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione briefing in attesa')).toBeInTheDocument();
+    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in attesa')).toBeInTheDocument();
     expect(screen.queryByText('Seleziona un progetto per visualizzare i file del contesto')).toBeNull();
     expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
   });
@@ -43,7 +43,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione completata');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto completata');
   });
 
   it('renders correct status text for draft-ready', () => {
@@ -103,11 +103,11 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     );
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-active');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione in corso');
-    expect(screen.getByText('Fase: Estrazione')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Estrazione briefing')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione briefing in corso')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione in corso…')).toBeInTheDocument();
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in corso');
+    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in corso')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in corso…')).toBeInTheDocument();
   });
 
   it('renders dynamic extraction metrics and progress value during processing-briefing', () => {

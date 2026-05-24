@@ -1,9 +1,9 @@
 ---
 goal: [Short statement of the tool plan objective]
-version: 1.0
+version: 1.1
 date_created: [YYYY-MM-DD]
-last_updated: [YYYY-MM-DD]
-last-reviewed: 2026-05-22
+last_updated: 2026-05-24
+last-reviewed: 2026-05-24
 next-review-date: 2026-08-22
 owner: [Team or role]
 status: draft
@@ -117,6 +117,7 @@ Checklist:
 - Confirm `ToolKey` and display label.
 - Confirm `ToolWorkflow` and `ToolStep` sequence.
 - Confirm input/output contracts and any extraction or generation payloads.
+- Confirm `ToolInputSource` families in scope (`direct-input`, `tool-input-file`, `api-acquisition`) and whether each family contributes to start gating.
 - Confirm readiness rules and failure modes.
 - Confirm whether the Tool requires new prompts, new UI controls, or new backend validation.
 
@@ -161,6 +162,9 @@ Checklist:
 - Confirm the runtime hook and machine changes are minimal and deterministic.
 - Confirm readiness, dispatch, and error behavior.
 - Confirm any new upload or input controls are aligned with the runtime spec.
+- Confirm `ContextGenerationPhase` is modeled with one `Start Context Generation Action` (single trigger for extraction/fetch/merge as configured).
+- Confirm requiredness is derived through one `ToolInputRequirementMatrix` across source families and that optional entries remain advisory only.
+- Confirm API acquisition behavior is explicit: adapter path, backend source endpoint, and feature-flag policy (`VITE_FF_TOOLS_API_BINDING_STATUS`) with default-off non-regression semantics.
 - Confirm the UI uses canonical UI vocabulary and no new local synonyms.
 - Confirm Session Summary list parity for the new Tool: `/sessionsummary` must render the Tool display label (not raw `ToolKey` or fallback technical value) in the Tool column.
 - Confirm Session Summary detail parity for the new Tool: `/sessionsummary/{sessionId}` must resolve the same Tool display label in title and metadata without falling back to generic unavailability copy.
@@ -216,7 +220,7 @@ Mandatory precondition:
 | EXEC-001 | `npm run typecheck --workspaces --if-present` | Global static baseline | Exit code 0 |
 | EXEC-002 | `npm --workspace apps/backend run test -- src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/runtime.tools-orchestrate.test.ts src/lib/tests/runtime.auth-http.test.ts` | Backend regression net | Exit code 0 and no failing tests |
 | EXEC-003 | `npm --workspace apps/backend run bench:orchestrate` | Runtime scalability baseline | Exit code 0 and benchmark summary logged in OUT-001 |
-| EXEC-004 | `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx src/features/artifacts/ui/SessionsListingSection.test.tsx src/features/generation/ui/SessionArtifactTabs.test.tsx src/features/generation/ui/artifact-history.test.ts` | Frontend parity regression net (Tool Workspace + Session Summary/Relaunch) | Exit code 0 and no failing tests |
+| EXEC-004 | `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/runtime/tool-api-binding-status-adapter.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx src/features/tools/ui/ToolGenerationFlowVertical.test.tsx src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx src/features/artifacts/ui/SessionsListingSection.test.tsx src/features/generation/ui/SessionArtifactTabs.test.tsx src/features/generation/ui/artifact-history.test.ts` | Frontend parity regression net (Tool Workspace + Session Summary/Relaunch + API binding gate) | Exit code 0 and no failing tests |
 | EXEC-005 | `npm --workspace apps/frontend run build` | Frontend publication gate | Exit code 0 |
 | EXEC-006 | `npm run build` | End-to-end repo build gate | Exit code 0 |
 
@@ -239,6 +243,7 @@ Required outputs for every Tool plan:
 Source of truth:
 
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
+- `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 - `docs/07-governance/domain-naming-decision-log.md`
@@ -278,7 +283,8 @@ Acceptance for Track B:
 - [ ] C-002: Ensure generation dispatch and relaunch route assembly resolve to `/tools/$TOOL_KEY` from canonical identity sources.
 - [ ] C-003: Ensure FE step ordering/rendering supports the new Tool in session detail tabs and history projections.
 - [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
-- [ ] C-005: Define `inputFiles` policy for the target Tool with explicit requiredness (`always-required`, `required-by-tool-setting`, `optional-by-tool-setting`) and enforce CTA gating from missing required files only.
+- [ ] C-005: Define `ToolInputRequirementMatrix` for the target Tool across `direct-input`, `tool-input-file`, and `api-acquisition`, with explicit requiredness (`always-required`, `required-by-tool-setting`, `optional-by-tool-setting`).
+- [ ] C-006: If `api-acquisition` is used, define adapter and rollout policy for binding status resolution, including default-off behavior under `VITE_FF_TOOLS_API_BINDING_STATUS` and enabled-path gating semantics.
 
 Acceptance for Track C:
 
@@ -288,6 +294,7 @@ Acceptance for Track C:
 - [ ] C-AC-004: Session summary surfaces never expose raw workflow identifiers as final UI labels for the target Tool.
 - [ ] C-AC-005: Relaunch CTA is enabled whenever tool-route resolution succeeds and stream is not active.
 - [ ] C-AC-006: Missing optional setup files generate advisory UI only and never block primary generation action.
+- [ ] C-AC-007: `api-acquisition` entries block start only when required and only when adapter/feature gate is enabled for that rollout stage.
 
 ### Track D - Test Cases
 
@@ -296,6 +303,7 @@ Acceptance for Track C:
 - [ ] D-003: Add/update backend normalization/orchestration tests for final-step role and tool identity mapping.
 - [ ] D-004: Add/update session summary tests for the target Tool on both list and detail pages.
 - [ ] D-005: Add/update relaunch route-resolution test coverage for the target Tool.
+- [ ] D-006: Add/update Tool Workspace tests for matrix-gated requiredness and feature-flagged API binding adapter behavior (default-off and enabled mapping).
 
 Acceptance for Track D:
 
@@ -327,6 +335,8 @@ Acceptance for DDD Impact Gate:
   - Control: EXEC-000 grep gate + X-001..X-005 DDD impact gate before implementation sign-off.
 - RISK-003: Regression on existing tools after adding new tool paths.
   - Control: D-AC-003 non-regression pair requirement and workspace-wide typecheck/build gates.
+- RISK-004: New Tool unintentionally blocked by API binding rollout gates or feature-flag mismatch.
+  - Control: Track C (`C-006`, `C-AC-007`) + EXEC-004 adapter/matrix-focused test set.
 
 ## 7. References
 
@@ -335,6 +345,7 @@ Acceptance for DDD Impact Gate:
 - `docs/07-governance/domain-naming-decision-log.md`
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
+- `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
 - `docs/04-testing/orchestrate-scalability-benchmark-2026-05-21.md`
 - `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx`
 - `apps/frontend/src/features/artifacts/ui/SessionsListingSection.test.tsx`

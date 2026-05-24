@@ -56,6 +56,16 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingRequiredFiles: [],
     missingOptionalFiles: [],
   }),
+  deriveToolInputRequirementMatrix: () => ({
+    entries: [],
+    requiredEntriesSatisfied: true,
+    missingRequiredEntries: [],
+    missingOptionalEntries: [],
+    missingRequiredFiles: [],
+    missingOptionalFiles: [],
+    missingRequiredApiAcquisition: [],
+    missingOptionalApiAcquisition: [],
+  }),
 }));
 
 vi.mock('../runtime/useToolPage', () => ({

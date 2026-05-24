@@ -121,61 +121,56 @@ Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) wit
 ### 2.4 Tool Workspace Page End-to-End Runtime Flow (Mermaid)
 
 ```mermaid
-flowchart TD
-  A[Route Enter Tool Workspace Page] --> B[useToolPage Initializes
-ToolPage + GenerationWorkspace]
-  B --> C{ArtifactRelaunch intent?}
-  C -- Yes --> D[Resolve Source Artifact]
-  D --> E[Send HYDRATE_REQUESTED]
-  E --> F[HydrationResult Applied]
-  C -- No --> G[Start in configuring]
+graph TD
+  A["Route enter Tool Workspace Page"] --> B["Initialize useToolPage and GenerationWorkspace"]
+  B --> C["Check ArtifactRelaunch intent"]
+  C -->|yes| D["Resolve source artifact"]
+  D --> E["Send HYDRATE_REQUESTED"]
+  E --> F["Apply HydrationResult"]
+  C -->|no| G["Start in configuring"]
   F --> G
 
-  G --> H[Setup Panel Input
-project/model/tone/files]
-  H --> I{BRIEFING_EXTRACTION_REQUESTED?}
-  I -- Yes --> J[briefingUploadMachine
-validating -> uploading -> extracting]
-  J --> K[ready + ExtractionContext]
-  K --> L[ExtractionContextBridge
-upsertExtractionContext]
-  I -- No --> M[Remain configuring]
+  G --> H["Setup panel input"]
+  H --> I["Check BRIEFING_EXTRACTION_REQUESTED"]
+  I -->|yes| J["Run briefingUploadMachine flow"]
+  J --> K["Ready with ExtractionContext"]
+  K --> L["ExtractionContextBridge upsert"]
+  I -->|no| M["Stay in configuring"]
   M --> H
 
-  L --> N[PROGRESS_SYNCED]
-  N --> O[Recompute ReadinessSnapshot
-+ ToolPageViewModel]
-  O --> P{PrimaryActionPolicy}
+  L --> N["Send PROGRESS_SYNCED"]
+  N --> O["Recompute ReadinessSnapshot and ToolPageViewModel"]
+  O --> P["Evaluate PrimaryActionPolicy"]
 
-  P -- disabled --> H
-  P -- start-generation/resume-checkpoint/regenerate-current-step --> Q[REQUEST_STEP_START]
-  P -- open-last-artifact --> R[Navigate to /sessionsummary/:sessionId]
+  P -->|disabled| H
+  P -->|generation action| Q["REQUEST_STEP_START"]
+  P -->|open last artifact| R["Navigate to sessionsummary with sessionId"]
 
-  Q --> S[Effect #7
-STEP_REQUEST_DISPATCHED]
-  S --> T[startGenerationStep]
-  T --> U[orchestrateToolStep
-resolve dependency artifacts]
-  U --> V[generation.start(request)]
-  V --> W[toolPageMachine generating]
+  Q --> S["Effect 7 STEP_REQUEST_DISPATCHED"]
+  S --> T["startGenerationStep"]
+  T --> U["orchestrateToolStep resolve dependencies"]
+  U --> V["generation start request"]
+  V --> W["toolPageMachine generating"]
 
-  W --> X[Effect #8 stream terminal bridge]
-  X --> Y{terminal status}
-  Y -- done --> Z[STEP_DONE]
-  Y -- failed --> AA[STEP_FAILED + DispatchError]
-  Z --> AB{All ToolStep completed?}
-  AB -- No --> AC[configuring
-next step available]
-  AB -- Yes --> AD[completed]
-  AD --> AE[PrimaryActionPolicy = open-last-artifact]
+  W --> X["Effect 8 stream terminal bridge"]
+  X --> Y["Evaluate terminal status"]
+  Y -->|done| Z["STEP_DONE"]
+  Y -->|failed| AA["STEP_FAILED and DispatchError"]
+  Z --> AB["Check if all ToolStep completed"]
+  AB -->|no| AC["configuring with next step"]
+  AB -->|yes| AD["completed"]
+  AD --> AE["PrimaryActionPolicy open last artifact"]
   AE --> R
 
-  W --> AF{Cancel clicked?}
-  AF -- Yes --> AG[handleCancelGeneration
-CANCEL_GENERATION]
+  W --> AF["Check cancel click"]
+  AF -->|yes| AG["handleCancelGeneration and CANCEL_GENERATION"]
   AG --> AC
   AA --> AC
 ```
+
+Fallback rendering (if Mermaid preview is unavailable in the current environment):
+
+![Tool Workspace Page runtime flow](./assets/tool-workspace-page-runtime-flow.svg)
 
 ---
 

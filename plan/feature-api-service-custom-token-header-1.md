@@ -1,18 +1,24 @@
 ---
 goal: Backward-compatible custom token header support for ApiService acquisition (Authorization default, tokenHeaderName override)
-version: 1.0
+version: 1.1
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Backend Platform + Frontend Platform
-status: 'Planned'
+status: 'Completed'
 tags: [feature, backend, frontend, contracts, api-service, acquisition, security, ddd]
 ---
 
 # Introduction
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines a deterministic BE+FE+contracts+test implementation to support custom token header injection for ApiService token-mode acquisition. The runtime default remains `Authorization: Bearer <token>` and can be overridden by profile field `tokenHeaderName` (example: `X-API-Key`) without breaking existing services.
+
+## Execution Status
+
+- Execution completed on 2026-05-24 across Phases 0-4.
+- All listed implementation tasks (TASK-001..TASK-024) are completed.
+- Deterministic validation gates passed: backend typecheck/tests, frontend typecheck/targeted tests, workspace typecheck, backend XState runtime gate.
 
 ## 1. Requirements & Constraints
 
@@ -44,9 +50,9 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Add DDD decision-log entry in `docs/07-governance/domain-naming-decision-log.md` defining `tokenHeaderName` as ApiService request-profile field for token-mode header override, with default `Authorization`. |  |  |
-| TASK-002 | Update `docs/01-requirements/domain-ubiquitous-language-glossary.md` to include `tokenHeaderName` in `ApiService`/request profile terminology (status and scope explicitly declared). |  |  |
-| TASK-003 | Update `docs/02-design/domain-bounded-context-map.md` integration constraints with deterministic precedence and ownership for token-header override behavior. |  |  |
+| TASK-001 | Add DDD decision-log entry in `docs/07-governance/domain-naming-decision-log.md` defining `tokenHeaderName` as ApiService request-profile field for token-mode header override, with default `Authorization`. | yes | 2026-05-24 |
+| TASK-002 | Update `docs/01-requirements/domain-ubiquitous-language-glossary.md` to include `tokenHeaderName` in `ApiService`/request profile terminology (status and scope explicitly declared). | yes | 2026-05-24 |
+| TASK-003 | Update `docs/02-design/domain-bounded-context-map.md` integration constraints with deterministic precedence and ownership for token-header override behavior. | yes | 2026-05-24 |
 
 ### Implementation Phase 1
 
@@ -54,9 +60,9 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-004 | Add migration `packages/infra-db/migrations/20260524_000013_api_service_token_header_name.sql` to extend `api_services` with nullable `token_header_name VARCHAR(128)` and CHECK constraint for valid HTTP header-name format. |  |  |
-| TASK-005 | Extend `packages/contracts/src/api-service.ts` request profile types (`ApiServiceRequestContractProfile`, `ApiServiceDto`, create/update command types) with optional `tokenHeaderName?: string | null`. |  |  |
-| TASK-006 | Extend backend model mapping in `apps/backend/src/lib/types/api-service.ts` and adapter IO in `apps/backend/src/lib/adapters/api-service.adapter.ts` to persist/read `tokenHeaderName`. |  |  |
+| TASK-004 | Add migration `packages/infra-db/migrations/20260524_000013_api_service_token_header_name.sql` to extend `api_services` with nullable `token_header_name VARCHAR(128)` and CHECK constraint for valid HTTP header-name format. | yes | 2026-05-24 |
+| TASK-005 | Extend `packages/contracts/src/api-service.ts` request profile types (`ApiServiceRequestContractProfile`, `ApiServiceDto`, create/update command types) with optional `tokenHeaderName?: string | null`. | yes | 2026-05-24 |
+| TASK-006 | Extend backend model mapping in `apps/backend/src/lib/types/api-service.ts` and adapter IO in `apps/backend/src/lib/adapters/api-service.adapter.ts` to persist/read `tokenHeaderName`. | yes | 2026-05-24 |
 
 ### Implementation Phase 2
 
@@ -64,11 +70,11 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-007 | Update `apps/backend/src/lib/runtime/integrations/api-service-validation.ts` with `tokenHeaderName` validation rule (header-name regex), plus normalization rule (trim, preserve case). |  |  |
-| TASK-008 | Update admin handlers in `apps/backend/src/lib/runtime/auth-http/admin-api-service-handlers.ts` to parse, validate, and persist `tokenHeaderName` in create/update flows. |  |  |
-| TASK-009 | Update `apps/backend/src/lib/runtime/integrations/api-acquisition.adapter.ts` in `executeApiAcquisition` to inject token using policy: (a) if `accessMode=token` and `tokenHeaderName` set -> set `headers[tokenHeaderName]=tokenCiphertext`; (b) else set `headers.authorization='Bearer '+tokenCiphertext`. |  |  |
-| TASK-010 | Define deterministic precedence in adapter: token injection overrides same-name key from `requestHeadersTemplateJson`; all other template headers remain unchanged. |  |  |
-| TASK-011 | Update `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts` resolve contract payload to include `tokenHeaderName` in `requestContractProfile` (redacted, no secrets). |  |  |
+| TASK-007 | Update `apps/backend/src/lib/runtime/integrations/api-service-validation.ts` with `tokenHeaderName` validation rule (header-name regex), plus normalization rule (trim, preserve case). | yes | 2026-05-24 |
+| TASK-008 | Update admin handlers in `apps/backend/src/lib/runtime/auth-http/admin-api-service-handlers.ts` to parse, validate, and persist `tokenHeaderName` in create/update flows. | yes | 2026-05-24 |
+| TASK-009 | Update `apps/backend/src/lib/runtime/integrations/api-acquisition.adapter.ts` in `executeApiAcquisition` to inject token using policy: (a) if `accessMode=token` and `tokenHeaderName` set -> set `headers[tokenHeaderName]=tokenCiphertext`; (b) else set `headers.authorization='Bearer '+tokenCiphertext`. | yes | 2026-05-24 |
+| TASK-010 | Define deterministic precedence in adapter: token injection overrides same-name key from `requestHeadersTemplateJson`; all other template headers remain unchanged. | yes | 2026-05-24 |
+| TASK-011 | Update `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts` resolve contract payload to include `tokenHeaderName` in `requestContractProfile` (redacted, no secrets). | yes | 2026-05-24 |
 
 ### Implementation Phase 3
 
@@ -76,11 +82,11 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-012 | Extend FE admin client types in `apps/frontend/src/features/admin/runtime/admin-client.ts` for `tokenHeaderName` in `ApiService`, `CreateAdminApiServiceInput`, `UpdateAdminApiServiceInput`, and parsing logic. |  |  |
-| TASK-013 | Extend FE form schema in `apps/frontend/src/features/admin/runtime/admin-api-service-form.ts` to include `tokenHeaderName` field with validation (empty or valid header-name). |  |  |
-| TASK-014 | Update FE admin page payload mapping in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx` (`toCreateInput`, `toUpdateInput`) to send `tokenHeaderName`. |  |  |
-| TASK-015 | Update admin create/edit UI in `apps/frontend/src/features/admin/ui/AdminApiServiceCreateForm.tsx` to render `tokenHeaderName` input and helper copy for examples (`Authorization`, `X-API-Key`). |  |  |
-| TASK-016 | Update copy authority entries in `apps/frontend/src/app/copy/system.ts` for new admin field labels and helper text. |  |  |
+| TASK-012 | Extend FE admin client types in `apps/frontend/src/features/admin/runtime/admin-client.ts` for `tokenHeaderName` in `ApiService`, `CreateAdminApiServiceInput`, `UpdateAdminApiServiceInput`, and parsing logic. | yes | 2026-05-24 |
+| TASK-013 | Extend FE form schema in `apps/frontend/src/features/admin/runtime/admin-api-service-form.ts` to include `tokenHeaderName` field with validation (empty or valid header-name). | yes | 2026-05-24 |
+| TASK-014 | Update FE admin page payload mapping in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx` (`toCreateInput`, `toUpdateInput`) to send `tokenHeaderName`. | yes | 2026-05-24 |
+| TASK-015 | Update admin create/edit UI in `apps/frontend/src/features/admin/ui/AdminApiServiceCreateForm.tsx` to render `tokenHeaderName` input and helper copy for examples (`Authorization`, `X-API-Key`). | yes | 2026-05-24 |
+| TASK-016 | Update copy authority entries in `apps/frontend/src/app/copy/system.ts` for new admin field labels and helper text. | yes | 2026-05-24 |
 
 ### Implementation Phase 4
 
@@ -88,14 +94,14 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-017 | Extend `apps/backend/src/lib/tests/runtime.api-acquisition.adapter.test.ts` with cases: default Bearer injection, custom `X-API-Key` injection, template collision override, invalid `tokenHeaderName` rejection path. |  |  |
-| TASK-018 | Extend `apps/backend/src/lib/tests/runtime.api-service-validation.test.ts` for `tokenHeaderName` validation matrix (valid, invalid chars, empty/null semantics). |  |  |
-| TASK-019 | Extend `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts` for admin create/update roundtrip with `tokenHeaderName`. |  |  |
-| TASK-020 | Extend FE tests in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx` and `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx` for create/edit payload and field presence. |  |  |
-| TASK-021 | Run backend checks: `npm --workspace apps/backend run typecheck`, `npm --workspace apps/backend run test`. |  |  |
-| TASK-022 | Run frontend checks: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test -- src/features/admin/pages/AdminApiServicesPage.test.tsx src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx`. |  |  |
-| TASK-023 | Run workspace gate: `npm run typecheck`. |  |  |
-| TASK-024 | Run strict XState compatibility gate on affected runtime path: `npm run test -- apps/backend/src/lib/tests/generation-system.runtime.test.ts` and verify `invokeApiAcquisition` event/output typing remains valid after token-header override changes. |  |  |
+| TASK-017 | Extend `apps/backend/src/lib/tests/runtime.api-acquisition.adapter.test.ts` with cases: default Bearer injection, custom `X-API-Key` injection, template collision override, invalid `tokenHeaderName` rejection path. | yes | 2026-05-24 |
+| TASK-018 | Extend `apps/backend/src/lib/tests/runtime.api-service-validation.test.ts` for `tokenHeaderName` validation matrix (valid, invalid chars, empty/null semantics). | yes | 2026-05-24 |
+| TASK-019 | Extend `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts` for admin create/update roundtrip with `tokenHeaderName`. | yes | 2026-05-24 |
+| TASK-020 | Extend FE tests in `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx` and `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx` for create/edit payload and field presence. | yes | 2026-05-24 |
+| TASK-021 | Run backend checks: `npm --workspace apps/backend run typecheck`, `npm --workspace apps/backend run test`. | yes | 2026-05-24 |
+| TASK-022 | Run frontend checks: `npm --workspace apps/frontend run typecheck`, `npm --workspace apps/frontend run test -- src/features/admin/pages/AdminApiServicesPage.test.tsx src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx`. | yes | 2026-05-24 |
+| TASK-023 | Run workspace gate: `npm run typecheck`. | yes | 2026-05-24 |
+| TASK-024 | Run strict XState compatibility gate on affected runtime path: `npm run test -- apps/backend/src/lib/tests/generation-system.runtime.test.ts` and verify `invokeApiAcquisition` event/output typing remains valid after token-header override changes. | yes | 2026-05-24 |
 
 ## 3. Alternatives
 

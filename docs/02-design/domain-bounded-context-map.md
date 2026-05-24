@@ -47,11 +47,13 @@ owner: Domain Architecture
 
 **Runtime evidence (ApiService rollout baseline)**:
 - Persistence: `packages/infra-db/migrations/20260524_000011_api_service_catalog.sql`
+- Persistence extension: `packages/infra-db/migrations/20260524_000013_api_service_token_header_name.sql`
 - Adapter: `apps/backend/src/lib/adapters/api-service.adapter.ts`
 - Admin CRUD HTTP surface: `apps/backend/src/lib/runtime/auth-http/admin-api-service-handlers.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-admin-routes.ts`
 - Tool runtime resolution surface: `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts`, `apps/backend/src/lib/runtime/auth-http/auth-http-tools-routes.ts`
 - Capability declarations: `apps/backend/src/lib/runtime/auth-http/route-table.ts`
-- Backend verification evidence: `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts`, `apps/backend/src/lib/tests/runtime.acquisition-workflow.machine.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`
+- Backend verification evidence: `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts`, `apps/backend/src/lib/tests/runtime.api-acquisition.adapter.test.ts`, `apps/backend/src/lib/tests/runtime.api-service-validation.test.ts`, `apps/backend/src/lib/tests/runtime.acquisition-workflow.machine.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/generation-system.runtime.test.ts`
+- Frontend admin verification evidence: `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx`, `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx`, `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx`
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 

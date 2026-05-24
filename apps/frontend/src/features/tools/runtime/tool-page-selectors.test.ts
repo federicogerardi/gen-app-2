@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   deriveToolInputFileCompletion,
+  deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
 } from './tool-page-selectors';
 
@@ -70,5 +71,35 @@ describe('selectToolFileInstructions', () => {
 
     expect(angleAllRequiredComplete.requiredFilesComplete).toBe(true);
     expect(angleAllRequiredComplete.missingRequiredFiles).toEqual([]);
+  });
+
+  it('builds the canonical input requirement matrix with direct-input and file entries', () => {
+    const matrix = deriveToolInputRequirementMatrix({
+      toolKey: 'angle-generator',
+      hasProjectSelected: false,
+      completedFileKeys: [],
+    });
+
+    expect(matrix.requiredEntriesSatisfied).toBe(false);
+    expect(matrix.missingRequiredEntries.map((entry) => entry.key)).toEqual([
+      'project-selection',
+      'briefing-file',
+    ]);
+    expect(matrix.missingOptionalEntries.map((entry) => entry.key)).toEqual([
+      'angle-detector-file',
+    ]);
+  });
+
+  it('keeps api-acquisition entries empty for current tools without bindings', () => {
+    const matrix = deriveToolInputRequirementMatrix({
+      toolKey: 'funnel-pages',
+      hasProjectSelected: true,
+      completedFileKeys: ['briefing-file'],
+      apiAcquisitionStatus: [{ key: 'unused-binding', connected: true }],
+    });
+
+    expect(matrix.missingRequiredApiAcquisition).toEqual([]);
+    expect(matrix.missingOptionalApiAcquisition).toEqual([]);
+    expect(matrix.entries.some((entry) => entry.sourceFamily === 'api-acquisition')).toBe(false);
   });
 });

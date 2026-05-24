@@ -14,11 +14,14 @@ import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { mapExtractionFieldKeysToLabels } from './extraction-field-matrix';
 import {
+  getToolApiAcquisitionPolicy,
   toolFileInstructionsRegistry,
+  type ToolApiAcquisitionPolicyEntry,
   type ToolInputFilePolicyEntry,
   type ToolFileInstructionsConfig,
   type ToolFormConfig,
   type ToolFormState,
+  type ToolInputSourceFamily,
 } from './tool-form-architecture';
 import {
   isEmptyPayload,
@@ -392,15 +395,85 @@ export type ToolInputFileCompletion = {
   missingOptionalFiles: ToolInputFilePolicyEntry[];
 };
 
-export const deriveToolInputFileCompletion = ({
+export type ToolInputRequirementMatrixEntry = {
+  key: string;
+  label: string;
+  sourceFamily: ToolInputSourceFamily;
+  requiredness: ToolInputFilePolicyEntry['requiredness'];
+  satisfied: boolean;
+};
+
+export type ToolApiAcquisitionStatus = {
+  key: string;
+  connected: boolean;
+  bindingLabel?: string | null;
+};
+
+export type ToolInputRequirementMatrix = {
+  entries: ToolInputRequirementMatrixEntry[];
+  requiredEntriesSatisfied: boolean;
+  missingRequiredEntries: ToolInputRequirementMatrixEntry[];
+  missingOptionalEntries: ToolInputRequirementMatrixEntry[];
+  missingRequiredFiles: ToolInputFilePolicyEntry[];
+  missingOptionalFiles: ToolInputFilePolicyEntry[];
+  missingRequiredApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+  missingOptionalApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+};
+
+export const deriveToolInputRequirementMatrix = ({
   toolKey,
+  hasProjectSelected,
   completedFileKeys,
+  apiAcquisitionStatus = [],
+  includeApiAcquisition = true,
 }: {
   toolKey: SupportedTool;
+  hasProjectSelected: boolean;
   completedFileKeys: readonly string[];
-}): ToolInputFileCompletion => {
+  apiAcquisitionStatus?: readonly ToolApiAcquisitionStatus[];
+  includeApiAcquisition?: boolean;
+}): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
+  const apiStatusByKey = new Map(
+    apiAcquisitionStatus.map((status) => [status.key, status.connected]),
+  );
+  const apiAcquisitionInputs = includeApiAcquisition ? getToolApiAcquisitionPolicy(toolKey) : [];
+
+  const directEntries: ToolInputRequirementMatrixEntry[] = [
+    {
+      key: 'project-selection',
+      label: 'ProjectSelection',
+      sourceFamily: 'direct-input',
+      requiredness: 'always-required',
+      satisfied: hasProjectSelected,
+    },
+  ];
+
+  const fileEntries: ToolInputRequirementMatrixEntry[] = instructions.inputFiles.map((file) => ({
+    key: file.key,
+    label: file.label,
+    sourceFamily: 'tool-input-file',
+    requiredness: file.requiredness,
+    satisfied: completedKeys.has(file.key),
+  }));
+
+  const apiEntries: ToolInputRequirementMatrixEntry[] = apiAcquisitionInputs.map((apiInput) => ({
+    key: apiInput.key,
+    label: apiInput.label,
+    sourceFamily: 'api-acquisition',
+    requiredness: apiInput.requiredness,
+    satisfied: apiStatusByKey.get(apiInput.key) ?? false,
+  }));
+
+  const entries = [...directEntries, ...fileEntries, ...apiEntries];
+  const missingRequiredEntries = entries.filter((entry) => (
+    (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
+    && !entry.satisfied
+  ));
+  const missingOptionalEntries = entries.filter((entry) => (
+    entry.requiredness === 'optional-by-tool-setting' && !entry.satisfied
+  ));
 
   const missingRequiredFiles = instructions.inputFiles.filter((file) => (
     (file.requiredness === 'always-required' || file.requiredness === 'required-by-tool-setting')
@@ -412,9 +485,44 @@ export const deriveToolInputFileCompletion = ({
     && !completedKeys.has(file.key)
   ));
 
+  const missingRequiredApiAcquisition = apiAcquisitionInputs.filter((apiInput) => (
+    (apiInput.requiredness === 'always-required' || apiInput.requiredness === 'required-by-tool-setting')
+    && !(apiStatusByKey.get(apiInput.key) ?? false)
+  ));
+
+  const missingOptionalApiAcquisition = apiAcquisitionInputs.filter((apiInput) => (
+    apiInput.requiredness === 'optional-by-tool-setting'
+    && !(apiStatusByKey.get(apiInput.key) ?? false)
+  ));
+
   return {
-    requiredFilesComplete: missingRequiredFiles.length === 0,
+    entries,
+    requiredEntriesSatisfied: missingRequiredEntries.length === 0,
+    missingRequiredEntries,
+    missingOptionalEntries,
     missingRequiredFiles,
     missingOptionalFiles,
+    missingRequiredApiAcquisition,
+    missingOptionalApiAcquisition,
+  };
+};
+
+export const deriveToolInputFileCompletion = ({
+  toolKey,
+  completedFileKeys,
+}: {
+  toolKey: SupportedTool;
+  completedFileKeys: readonly string[];
+}): ToolInputFileCompletion => {
+  const matrix = deriveToolInputRequirementMatrix({
+    toolKey,
+    hasProjectSelected: true,
+    completedFileKeys,
+  });
+
+  return {
+    requiredFilesComplete: matrix.missingRequiredFiles.length === 0,
+    missingRequiredFiles: matrix.missingRequiredFiles,
+    missingOptionalFiles: matrix.missingOptionalFiles,
   };
 };

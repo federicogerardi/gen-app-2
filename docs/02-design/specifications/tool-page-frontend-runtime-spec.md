@@ -505,8 +505,10 @@ All props come from `useToolPage` return value. Selected mapping:
 | `readinessSnapshot` | `toolPageSnapshot.context.readiness` | Guards CTA click |
 | `effectiveCanonicalState` | Computed: `effectiveBriefingStatus === 'uploading' \|\| effectiveBriefingStatus === 'extracting' ? 'processing-briefing' : isGenerating \|\| generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState` | Drives Workflow Panel visual state |
 | `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
-| `briefingError` | `briefingSnapshot.context.error` | Mapped into `workflowPanelFeedback` as error item (DDD-063) |
+| `briefingError` | `briefingSnapshot.context.error` | Fallback source for `errorMessage` in `ToolGenerationFlowVertical` |
 | `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |
+| `inputRequirementMatrix` | `deriveToolInputRequirementMatrix({ toolKey, hasProjectSelected, completedFileKeys, apiAcquisitionStatus })` | Canonical pre-dispatch gate for `ToolInputRequirementMatrix` (DDD-090) |
+| `apiAcquisitionPayload` | Derived from `inputRequirementMatrix.entries` filtered by `sourceFamily = 'api-acquisition'` | Optional `ToolGenerationFlowVertical` section; empty for current tools |
 | `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Transitional aggregation artifact in `ToolPageTemplate`; canonical monitor contract is governed by DDD-084 |
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
@@ -543,31 +545,35 @@ Execution-ready canonical note:
 | `canonicalState` | `CanonicalToolUiState` | Visual phase driver |
 | `projectName` | `string \| null` | Context label |
 | `inputFilePayload` | `InputFilePayloadStatus[]` | File status rows — persistent across all phases (DDD-082) |
+| `apiAcquisitionPayload` | `ApiAcquisitionPayloadStatus[]` | Optional ApiService acquisition rows for binding-enabled tools |
 | `errorMessage` | `string \| null` | Machine-level error banner |
 
 **Removed props (old contract):** `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`.
 
 ---
 
-## 9b. DDD-081 File Policy Derivations
+## 9b. DDD-090 Input Requirement Matrix Derivations
 
-Runtime selectors must derive setup-file completion from `inputFiles` policy entries.
+Runtime selectors derive one canonical matrix for pre-dispatch requiredness across source families.
 
 Canonical derivations:
 
-- `requiredFilesComplete`
-- `missingRequiredFiles`
-- `missingOptionalFiles`
+- `requiredEntriesSatisfied`
+- `missingRequiredEntries`
+- `missingOptionalEntries`
+- `missingRequiredFiles` / `missingOptionalFiles`
+- `missingRequiredApiAcquisition` / `missingOptionalApiAcquisition`
 
 Policy semantics:
 
-- `always-required` and `required-by-tool-setting` entries contribute to `missingRequiredFiles`.
-- `optional-by-tool-setting` entries contribute to `missingOptionalFiles` only.
+- Entries with `always-required` and `required-by-tool-setting` are blocking.
+- Entries with `optional-by-tool-setting` are advisory and non-blocking.
+- Source families are `direct-input`, `tool-input-file`, `api-acquisition`.
 
-Primary CTA enablement invariant:
+Primary context-generation CTA invariant:
 
-- CTA enabled iff `missingRequiredFiles.length === 0`.
-- Optional-file absence never disables CTA.
+- CTA enabled iff `requiredEntriesSatisfied === true`.
+- Optional entry absence never disables CTA.
 
 Deterministic outcomes:
 

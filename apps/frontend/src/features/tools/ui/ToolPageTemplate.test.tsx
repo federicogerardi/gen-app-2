@@ -8,6 +8,7 @@ import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { useMswHandler } from '../../../test/mocks/server';
 import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
 import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
+import { toolFileInstructionsRegistry } from '../runtime/tool-form-architecture';
 
 const briefingMachineSeed = vi.hoisted(() => ({
   initialState: 'ready' as 'idle' | 'ready',
@@ -595,6 +596,81 @@ describe('ToolPageTemplate wiring', () => {
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('blocks primary action when a required api-acquisition binding is missing', async () => {
+    const originalFunnelInstructions = toolFileInstructionsRegistry['funnel-pages'];
+    const previousFeatureFlag = import.meta.env.VITE_FF_TOOLS_API_BINDING_STATUS;
+    (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = 'true';
+    toolFileInstructionsRegistry['funnel-pages'] = {
+      ...originalFunnelInstructions,
+      apiAcquisitionInputs: [
+        {
+          key: 'market-intel-service',
+          label: 'MarketIntelService',
+          requiredness: 'required-by-tool-setting',
+        },
+      ],
+    };
+
+    try {
+      renderTemplate();
+
+      const primaryButton = await waitFor(() => (
+        screen.getByRole('button', { name: /completa il form per iniziare/i })
+      ));
+
+      expect(primaryButton).toBeDisabled();
+      fireEvent.click(primaryButton);
+      expect(startMock).not.toHaveBeenCalled();
+    } finally {
+      (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = previousFeatureFlag;
+      toolFileInstructionsRegistry['funnel-pages'] = originalFunnelInstructions;
+    }
+  });
+
+  it('keeps api binding adapter off by default even when required api-acquisition is configured', async () => {
+    const originalFunnelInstructions = toolFileInstructionsRegistry['funnel-pages'];
+    const previousFeatureFlag = import.meta.env.VITE_FF_TOOLS_API_BINDING_STATUS;
+    (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = undefined;
+    toolFileInstructionsRegistry['funnel-pages'] = {
+      ...originalFunnelInstructions,
+      apiAcquisitionInputs: [
+        {
+          key: 'market-intel-service',
+          label: 'MarketIntelService',
+          requiredness: 'required-by-tool-setting',
+        },
+      ],
+    };
+
+    try {
+      renderTemplate();
+
+      const primaryButton = await waitFor(() => (
+        screen.getByRole('button', { name: /avvia la generazione/i })
+      ));
+
+      expect(primaryButton).toBeEnabled();
+    } finally {
+      (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = previousFeatureFlag;
+      toolFileInstructionsRegistry['funnel-pages'] = originalFunnelInstructions;
+    }
+  });
+
+  it('keeps legacy tool flow enabled when no api-acquisition binding is configured', async () => {
+    renderTemplate();
+
+    const primaryButton = await waitFor(() => (
+      screen.getByRole('button', { name: /avvia la generazione/i })
+    ));
+
+    expect(primaryButton).toBeEnabled();
+    fireEvent.click(primaryButton);
+
+    await waitFor(() => {
+      expect(startMock).toHaveBeenCalledTimes(1);
+    });
   });
 
 });

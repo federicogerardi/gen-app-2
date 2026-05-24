@@ -208,5 +208,27 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(actionButton).toHaveClass('ui-fv-session-button');
     expect(actionButton).toHaveClass('ui-button');
   });
+
+  it('renders api acquisition payload when configured by tool policy', () => {
+    render(
+      <ToolGenerationFlowVertical
+        {...baseProps}
+        canonicalState="draft-ready"
+        projectName="Acme S.r.l."
+        apiAcquisitionPayload={[
+          {
+            key: 'market-intel-service',
+            label: 'MarketIntelService',
+            requiredness: 'required-by-tool-setting',
+            status: 'done',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Acquisizione API')).toBeInTheDocument();
+    expect(screen.getByText('MarketIntelService')).toBeInTheDocument();
+    expect(screen.getByText('Connesso')).toBeInTheDocument();
+  });
 });
 

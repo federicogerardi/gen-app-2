@@ -240,6 +240,9 @@ export const appCopy = {
         noProjectSelected: 'Nessun progetto selezionato',
         notUploaded: 'Non caricato',
         noFilesUploaded: 'Nessun file caricato',
+        apiAcquisitionTitle: 'Acquisizione API',
+        apiAcquisitionConnected: 'Connesso',
+        apiAcquisitionNotConnected: 'Non connesso',
         defaultExtractionStepLabel: 'Estrazione briefing',
         loadingActionLabel: 'In elaborazione...',
         requirednessLabel: {

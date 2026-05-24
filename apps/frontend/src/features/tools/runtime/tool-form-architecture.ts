@@ -39,6 +39,7 @@ export type ToolFileInstructionsConfig = {
   title: string;
   summary: string;
   inputFiles: readonly ToolInputFilePolicyEntry[];
+  apiAcquisitionInputs?: readonly ToolApiAcquisitionPolicyEntry[];
   // Deprecated alias retained for one deprecation cycle.
   requiredFiles: readonly string[];
   requiredFieldKeys: readonly ExtractionFieldKey[];
@@ -55,10 +56,21 @@ export type ToolInputFileRequiredness =
   | 'required-by-tool-setting'
   | 'optional-by-tool-setting';
 
+export type ToolInputSourceFamily =
+  | 'direct-input'
+  | 'tool-input-file'
+  | 'api-acquisition';
+
 export type ToolInputFilePolicyEntry = {
   key: string;
   label: string;
   accept: string;
+  requiredness: ToolInputFileRequiredness;
+};
+
+export type ToolApiAcquisitionPolicyEntry = {
+  key: string;
+  label: string;
   requiredness: ToolInputFileRequiredness;
 };
 
@@ -293,6 +305,10 @@ export const getRequiredToolInputFiles = (
 ): readonly ToolInputFilePolicyEntry[] => getToolInputFilePolicy(toolKey).filter((entry) => (
   entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting'
 ));
+
+export const getToolApiAcquisitionPolicy = (
+  toolKey: SupportedTool,
+): readonly ToolApiAcquisitionPolicyEntry[] => toolFileInstructionsRegistry[toolKey].apiAcquisitionInputs ?? [];
 
 export const isToolEnabled = (toolKey: SupportedTool): boolean => {
   return toolFormRegistry[toolKey].status === 'enabled';

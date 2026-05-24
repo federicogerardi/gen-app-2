@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { frontendStreamMachine } from './frontend-stream.machine';
 import { createStreamLogger } from '../runtime/stream-logger';
 import type { GenerationRequest } from '../contracts/backend-stream';
+import { TEST_API_BASE_URL } from '../../../test/fixtures';
 
 const createRequest = (requestId: string): GenerationRequest => ({
   requestId,
@@ -29,7 +30,7 @@ const createTestActor = (overrides?: {
 
   const actor = createActor(machine, {
     input: {
-      apiBaseUrl: 'http://localhost:3000',
+      apiBaseUrl: TEST_API_BASE_URL,
       maxReconnectAttempts: overrides?.maxReconnectAttempts ?? 3,
       reconnectBaseDelayMs: overrides?.reconnectBaseDelayMs ?? 1,
       reconnectMaxDelayMs: overrides?.reconnectMaxDelayMs ?? 1,

@@ -15,6 +15,7 @@ import { isExtractionContextValidForTool } from '../machines/extraction-context-
 import { mapExtractionFieldKeysToLabels } from './extraction-field-matrix';
 import {
   toolFileInstructionsRegistry,
+  type ToolInputFilePolicyEntry,
   type ToolFileInstructionsConfig,
   type ToolFormConfig,
   type ToolFormState,
@@ -52,6 +53,13 @@ type TerminalResolution =
   | { status: 'failed'; step: ToolStep | null; message: string }
   | { status: 'inferred'; step: ToolStep }
   | { status: 'none' };
+
+export type ToolFileInstructionsViewModel = ToolFileInstructionsConfig & {
+  requiredFields: readonly string[];
+  alwaysRequiredFiles: readonly ToolInputFilePolicyEntry[];
+  requiredBySettingFiles: readonly ToolInputFilePolicyEntry[];
+  optionalBySettingFiles: readonly ToolInputFilePolicyEntry[];
+};
 
 const validateToolStepCandidate = (
   candidate: unknown,
@@ -356,16 +364,57 @@ export const selectInterruptedStep = (
 
 export const selectToolFileInstructions = (
   toolKey: SupportedTool,
-): ToolFileInstructionsConfig | null => {
+): ToolFileInstructionsViewModel | null => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   if (!instructions) {
     return null;
   }
 
+  const alwaysRequiredFiles = instructions.inputFiles.filter((file) => file.requiredness === 'always-required');
+  const requiredBySettingFiles = instructions.inputFiles.filter((file) => file.requiredness === 'required-by-tool-setting');
+  const optionalBySettingFiles = instructions.inputFiles.filter((file) => file.requiredness === 'optional-by-tool-setting');
+
   return {
     ...instructions,
+    requiredFiles: [...alwaysRequiredFiles, ...requiredBySettingFiles].map((file) => `${file.label} (${file.accept.replace(/,/g, ', ')})`),
     requiredFields:
       instructions.requiredFields
       ?? mapExtractionFieldKeysToLabels(instructions.requiredFieldKeys),
+    alwaysRequiredFiles,
+    requiredBySettingFiles,
+    optionalBySettingFiles,
+  };
+};
+
+export type ToolInputFileCompletion = {
+  requiredFilesComplete: boolean;
+  missingRequiredFiles: ToolInputFilePolicyEntry[];
+  missingOptionalFiles: ToolInputFilePolicyEntry[];
+};
+
+export const deriveToolInputFileCompletion = ({
+  toolKey,
+  completedFileKeys,
+}: {
+  toolKey: SupportedTool;
+  completedFileKeys: readonly string[];
+}): ToolInputFileCompletion => {
+  const instructions = toolFileInstructionsRegistry[toolKey];
+  const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
+
+  const missingRequiredFiles = instructions.inputFiles.filter((file) => (
+    (file.requiredness === 'always-required' || file.requiredness === 'required-by-tool-setting')
+    && !completedKeys.has(file.key)
+  ));
+
+  const missingOptionalFiles = instructions.inputFiles.filter((file) => (
+    file.requiredness === 'optional-by-tool-setting'
+    && !completedKeys.has(file.key)
+  ));
+
+  return {
+    requiredFilesComplete: missingRequiredFiles.length === 0,
+    missingRequiredFiles,
+    missingOptionalFiles,
   };
 };

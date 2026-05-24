@@ -20,7 +20,7 @@ Il gate DDD è già superato: DDD-071 è stato registrato in `docs/07-governance
 
 La strategia è **strangler-fig incrementale**: ogni fase produce file compilabili e testabili senza interrompere il comportamento runtime. Nessuna fase tocca la surface HTTP pubblica (rotte, contratti di risposta, codici di stato).
 
-Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in `plan/refactor-auth-http-monolith-context-1.md` ha confermato i dead import di `runtime.ts`, la centralizzazione già disponibile dei request-body types in `support.ts`, l'assenza di uno script `build` nel package `apps/backend` (validazione corretta: `typecheck`), e ha ristretto ulteriormente il contratto runtime effettivo dei blocchi admin/public. Le correzioni rilevanti sono propagate in questa revisione del piano.
+Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in `./refactor-auth-http-monolith-context-1.md` ha confermato i dead import di `runtime.ts`, la centralizzazione già disponibile dei request-body types in `support.ts`, l'assenza di uno script `build` nel package `apps/backend` (validazione corretta: `typecheck`), e ha ristretto ulteriormente il contratto runtime effettivo dei blocchi admin/public. Le correzioni rilevanti sono propagate in questa revisione del piano.
 
 ---
 
@@ -143,7 +143,7 @@ Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in 
 - **DEP-003**: `apps/backend/src/lib/runtime/auth-http/http-utils.ts` — file esistente; `normalizePath` è già usato in `runtime.ts` e rimane il punto di normalizzazione URL nella route table.
 - **DEP-004**: `apps/backend/src/lib/adapters/` — bundle adapter esistenti; i subset di deps per ogni modulo figlio devono essere ricavati dai tipi esistenti `AuthRepositoryBundle` / `UserQueryRepositoryBundle`.
 - **DEP-005**: `docs/07-governance/domain-naming-decision-log.md` — DDD-071 già registrato; prerequisito di governance già soddisfatto prima di questo piano.
-- **DEP-006**: `plan/refactor-auth-http-monolith-context-1.md` — contesto implementativo verificato; fonte di truth operativa per correzioni di dipendenze minime, dead code candidate e comandi di validazione realmente eseguibili.
+- **DEP-006**: `./refactor-auth-http-monolith-context-1.md` — contesto implementativo verificato; fonte di truth operativa per correzioni di dipendenze minime, dead code candidate e comandi di validazione realmente eseguibili.
 
 ---
 
@@ -188,7 +188,7 @@ Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in 
 - **ASSUMPTION-001**: Non esistono test unitari diretti per i tre file monolitici oltre ai test di integrazione HTTP. La refactoring confidence si basa quindi sui test di integrazione di TASK-002 / TASK-003.
 - **ASSUMPTION-002**: Le funzioni helper private inline di `handleToolsHydrate` (`isRecord`, `normalizeExtractionPayload`, etc.) non hanno side-effects e sono pura computazione — estraibili senza rischi comportamentali.
 - **RISK-005**: Verifica completata: `adminHandlers.handleModelsList` non è dispatchato da `runtime.ts`; inoltre `handleCreateUserReport` e `handleListPublishedChangelog` duplicano path pubblici gestiti da `public-handlers.ts`. Mitigazione: trattarli come dead code candidate e non promuoverli nei nuovi moduli salvo rilevazione di consumer esterni non coperti dal workspace search.
-- **RISK-006**: Verifica completata: i deps minimi effettivi dei moduli tools e admin sono più ampi di alcune stime iniziali. In particolare, diversi handler toccano `repositories.sessions.touchSession` e richiedono quindi `repositories.sessions` e `now`; `admin-feedback-center-handlers.ts` richiede anche `parseRequestUrl`. Mitigazione: usare come fonte operativa il contesto verificato `plan/refactor-auth-http-monolith-context-1.md` e costruire i deps-type dai real usage sites, non dalle stime iniziali.
+- **RISK-006**: Verifica completata: i deps minimi effettivi dei moduli tools e admin sono più ampi di alcune stime iniziali. In particolare, diversi handler toccano `repositories.sessions.touchSession` e richiedono quindi `repositories.sessions` e `now`; `admin-feedback-center-handlers.ts` richiede anche `parseRequestUrl`. Mitigazione: usare come fonte operativa il contesto verificato `./refactor-auth-http-monolith-context-1.md` e costruire i deps-type dai real usage sites, non dalle stime iniziali.
 - **RISK-007**: Complessità residua post-Phase 2: `admin-feedback-center-handlers.ts` isola correttamente il boundary `FeedbackCenter`, ma concentra ancora un handler ad alta densità (`handleAdminPublishUserReportIssue`) e non dispone ancora di test unitari dedicati a livello modulo. Mitigazione: accettata per questo piano; la regressione surface è coperta da `runtime.auth-http.test.ts`, mentre un'ulteriore scomposizione interna del publish flow resta candidata per un refactor successivo dedicato.
 - **ASSUMPTION-004**: `admin-llm-model-handlers.ts` importa le adapter LLM (`createModel`, `deleteModel`, `listAllModels`, `updateModel`) a livello di modulo da `'../../adapters/llm-model.adapter'`. L'accesso al DB resta via `requireDb`, ma il modulo deve comunque ricevere `repositories.sessions` e `now` per il session touch post-mutation/read.
 
@@ -200,4 +200,4 @@ Aggiornamento di readiness 2026-05-19: il contesto implementativo verificato in 
 - [docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md) — Termini canonici usati nei nomi dei nuovi moduli
 - [apps/backend/src/lib/runtime/auth-http/support.ts](../apps/backend/src/lib/runtime/auth-http/support.ts) — Tipi condivisi estesi in Phase 1
 - [apps/backend/src/lib/runtime/workflow-normalizers.ts](../apps/backend/src/lib/runtime/workflow-normalizers.ts) — Normalizzatore canonico `normalizeToolWorkflowKey` (DDD-071)
-- [plan/refactor-auth-http-monolith-context-1.md](./refactor-auth-http-monolith-context-1.md) — Contesto implementativo verificato usato per correggere assunzioni e task del piano
+- [./refactor-auth-http-monolith-context-1.md](./refactor-auth-http-monolith-context-1.md) — Contesto implementativo verificato usato per correggere assunzioni e task del piano

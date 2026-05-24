@@ -10,23 +10,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MenuItem, TextField } from '@mui/material';
 import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
-import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { useToolPage } from '../runtime/useToolPage';
-import { selectToolFileInstructions } from '../runtime/tool-page-selectors';
+import {
+  deriveToolInputFileCompletion,
+  selectToolFileInstructions,
+} from '../runtime/tool-page-selectors';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
-import { ToolActionButtons } from './ToolActionButtons';
+import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
+import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
-const toneProfileOptions = [
-  { value: 'Professional', label: 'Professional' },
-  { value: 'Casual', label: 'Casual' },
-  { value: 'Formal', label: 'Formal' },
-  { value: 'Technical', label: 'Technical' },
-] as const;
+const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -41,7 +41,14 @@ interface ToolPageTemplateProps {
   briefingFileName?: string | null;
 }
 
+type ToolPageFormValues = {
+  projectId: string;
+  model: string;
+  tone: string;
+} & Record<string, unknown>;
+
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
+  const copy = appCopy.ui.toolPage;
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -55,51 +62,230 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projects,
     projectsLoading,
     briefingError,
-    briefingGuidance,
     dispatchError,
-    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
     isGenerating,
-    readinessSnapshot,
-    completedStepsForFlow,
-    latestArtifactByStep,
-    currentRunningStep,
-    streamingStep,
     effectiveCanonicalState,
     currentProject,
     isStreamActive,
+    completedStepsForFlow,
+    currentRunningStep,
+    pausedCheckpointStep,
+    nextAvailableStep,
+    sessionId,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
+    handleExtractionStart,
     handleBriefingReset,
+    angleDetectorFileName,
   } = useToolPage(props);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
+  const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  const completedFileKeys = [
+    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
+    ...(angleDetectorFileName ? ['angle-detector-file'] : []),
+  ];
+
+  const formatStepLabel = (stepKey: string) => stepKey
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
+    const fileName = fileEntry.key === 'briefing-file'
+      ? effectiveBriefingFileName ?? null
+      : fileEntry.key === 'angle-detector-file'
+        ? angleDetectorFileName ?? null
+        : null;
+    const isBriefingFile = fileEntry.key === 'briefing-file';
+    const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
+    const status: 'done' | 'todo' = fileName ? 'done' : 'todo';
+
+    return {
+      key: fileEntry.key,
+      label: isBriefingFile
+        ? copy.filePayloadLabel.briefing
+        : isAngleDetectorFile
+          ? copy.filePayloadLabel.angleDetector
+          : fileEntry.label,
+      requiredness: fileEntry.requiredness,
+      status,
+      fileName,
+    };
+  });
+
+  const stepItems = toolConfig.steps.map((stepKey) => {
+    const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
+    const isActive = currentRunningStep === stepKey || (!currentRunningStep && effectiveCanonicalState === 'running' && nextAvailableStep === stepKey);
+    const isError = pausedCheckpointStep === stepKey && effectiveCanonicalState === 'paused-with-checkpoint';
+
+    return {
+      key: stepKey,
+      label: formatStepLabel(stepKey),
+      status: isError ? 'error' : isActive ? 'running' : isDone ? 'done' : 'idle',
+    };
+  });
+
+  const extractionProgress = (() => {
+    const totalCount = 3;
+    if (effectiveBriefingStatus === 'uploading') {
+      return {
+        completedCount: 1,
+        totalCount,
+        currentStepLabel: copy.extraction.uploadStepLabel,
+        statusLabel: copy.extraction.uploadStatusLabel,
+      };
+    }
+
+    if (effectiveBriefingStatus === 'extracting') {
+      return {
+        completedCount: 2,
+        totalCount,
+        currentStepLabel: copy.extraction.extractingStepLabel,
+        statusLabel: copy.extraction.extractingStatusLabel,
+      };
+    }
+
+    if (effectiveBriefingStatus === 'ready') {
+      return {
+        completedCount: 3,
+        totalCount,
+        currentStepLabel: copy.extraction.completedStepLabel,
+        statusLabel: copy.extraction.completedStatusLabel,
+      };
+    }
+
+    return {
+      completedCount: 0,
+      totalCount,
+      currentStepLabel: copy.extraction.idleStepLabel,
+      statusLabel: copy.extraction.idleStatusLabel,
+    };
+  })();
+
+  const generationProgress = {
+    completedCount: effectiveCanonicalState === 'completed' ? toolConfig.steps.length : completedStepsForFlow.size,
+    totalCount: toolConfig.steps.length,
+    currentStepLabel: (() => {
+      const activeStep = currentRunningStep ?? nextAvailableStep ?? (pausedCheckpointStep && effectiveCanonicalState === 'paused-with-checkpoint' ? pausedCheckpointStep : null);
+      return activeStep ? formatStepLabel(activeStep) : null;
+    })(),
+    stepItems,
+    sessionId,
+    extractionProgress,
+  };
+
+  const fileFieldShape = Object.fromEntries(
+    inputFiles.map((entry) => [entry.key, z.any().optional()]),
+  ) as Record<string, z.ZodTypeAny>;
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
-    projectId: z.string().min(1, 'Project richiesto'),
-    model: z.string().min(1, 'Model richiesto'),
-    tone: z.string().min(1, 'Tone richiesto'),
-    briefingFile: z.any().optional(),
-    angleDetectorFile: z.any().optional(),
+    projectId: z.string().min(1, copy.form.validation.projectRequired),
+    model: z.string().min(1, copy.form.validation.modelRequired),
+    tone: z.string().min(1, copy.form.validation.toneRequired),
+    ...fileFieldShape,
+  }).superRefine((value, context) => {
+    for (const fileEntry of inputFiles) {
+      if (
+        fileEntry.requiredness !== 'always-required'
+        && fileEntry.requiredness !== 'required-by-tool-setting'
+      ) {
+        continue;
+      }
+
+      if (completedFileKeys.includes(fileEntry.key)) {
+        continue;
+      }
+
+      const candidate = (value as Record<string, unknown>)[fileEntry.key];
+      if (!(candidate instanceof File)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [fileEntry.key],
+          message: `${copy.form.validation.uploadToContinuePrefix}${fileEntry.label}${copy.form.validation.uploadToContinueSuffix}`,
+        });
+      }
+    }
   });
+
+  const fileCompletion = deriveToolInputFileCompletion({
+    toolKey: props.toolKey,
+    completedFileKeys,
+  });
+  const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
+  const canStartExtraction = !isStreamActive
+    && !extractionInProgress
+    && !extractionAlreadyReady
+    && formState.projectId.trim().length > 0
+    && fileCompletion.requiredFilesComplete;
+  const isGenerationLocked = isGenerating || effectiveCanonicalState === 'running';
+  const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
+    ? {
+      label: copy.flow.progressAria.generationInProgress,
+      disabled: true,
+    }
+    : undefined;
+  const extractionInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = extractionInProgress
+    ? {
+      label: copy.primaryActionPolicy.startGenerationLabel,
+      disabled: true,
+    }
+    : undefined;
+  const extractionPrimaryOverride = canStartExtraction
+    ? {
+      label: copy.extraction.startActionLabel,
+      disabled: false,
+      tooltip: copy.extraction.startActionTooltip,
+    }
+    : undefined;
+
+  const executePrimaryActionFromForm = (data: ToolPageFormValues) => {
+    setFormState((prev) => ({
+      ...prev,
+      projectId: data.projectId,
+      model: data.model,
+      tone: data.tone,
+    }));
+
+    for (const fileEntry of inputFiles) {
+      const file = data[fileEntry.key];
+      if (!(file instanceof File)) {
+        continue;
+      }
+
+      if (fileEntry.key === 'angle-detector-file') {
+        handleAngleDetectorFileSelected(file);
+      } else {
+        handleBriefingFileSelected(file);
+      }
+    }
+
+    if (canStartExtraction) {
+      handleExtractionStart();
+      return;
+    }
+
+    handlePrimaryAction();
+  };
 
   const {
     control,
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm({
+  } = useForm<ToolPageFormValues>({
     resolver: zodResolver(toolFormSchema),
     defaultValues: {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
-      briefingFile: undefined,
-      angleDetectorFile: undefined,
+      ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
   });
@@ -131,6 +317,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
+  const basePrimaryAction = generationInProgressPrimaryOverride
+    ?? extractionInProgressPrimaryOverride
+    ?? extractionPrimaryOverride
+    ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
+  const isGenerationInProgressCta = generationInProgressPrimaryOverride !== undefined;
+  const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
+    ? handlePrimaryAction
+    : handleSubmit((data) => {
+      executePrimaryActionFromForm(data);
+    });
+
+  const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
+    label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
+    disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
+    isLoading: isStreamActive && !isGenerationInProgressCta,
+    onClick: handleUnifiedPrimaryActionClick,
+    ...(basePrimaryAction.tooltip ? { tooltip: basePrimaryAction.tooltip } : {}),
+  };
+
   return (
     <section className="ui-tool-page-template">
       <div className={uiPrimitives.stack}>
@@ -138,19 +343,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           <section className="ui-tool-column ui-tool-column-inputs">
             <header>
               <h2>{toolConfig.displayName}</h2>
-              <p className={uiPrimitives.metaLine}>{toolConfig.displayName} configuration and generation</p>
+              <p className={uiPrimitives.metaLine}>{toolConfig.displayName} {copy.headingMetaSuffix}</p>
             </header>
 
             <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
-              // Aggiorna lo stato del form globale e chiama la logica esistente
-              setFormState((prev) => ({
-                ...prev,
-                projectId: data.projectId,
-                model: data.model,
-                tone: data.tone,
-              }));
-              // Esegui azione primaria (es. submit XState)
-              handlePrimaryAction();
+              executePrimaryActionFromForm(data);
             })}>
 
               <div className="ui-tool-form-row ui-tool-form-row--triple">
@@ -160,8 +357,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Project"
-                      disabled={projectsLoading || isStreamActive}
+                      label={copy.form.projectLabel}
+                      disabled={projectsLoading || isGenerationLocked}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, projectId: e.target.value }));
@@ -171,7 +368,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       helperText={errors.projectId?.message as string | undefined}
                       fullWidth
                     >
-                      <MenuItem value="">{projectsLoading ? 'Caricamento progetti...' : 'Seleziona un progetto'}</MenuItem>
+                      <MenuItem value="">{projectsLoading ? copy.form.loadingProjects : copy.form.selectProject}</MenuItem>
                       {projects.map((p) => (
                         <MenuItem key={p.id} value={p.id}>
                           {p.name}
@@ -187,8 +384,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Model"
-                      disabled={isStreamActive || modelsLoading || Boolean(modelsError)}
+                      label={copy.form.modelLabel}
+                      disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, model: e.target.value }));
@@ -199,9 +396,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       fullWidth
                     >
                       {modelsError ? (
-                        <MenuItem value={field.value || ''}>{field.value || 'Catalog unavailable'}</MenuItem>
+                        <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
                       ) : modelOptions.length === 0 ? (
-                        <MenuItem value={field.value}>{field.value || 'No models available'}</MenuItem>
+                        <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
                       ) : (
                         modelOptions.map((o) => (
                           <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
@@ -217,8 +414,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   render={({ field }) => (
                     <TextField
                       select
-                      label="Tone"
-                      disabled={isStreamActive}
+                      label={copy.form.toneLabel}
+                      disabled={isGenerationLocked}
                       onChange={(e) => {
                         field.onChange(e);
                         setFormState((prev) => ({ ...prev, tone: e.target.value }));
@@ -238,91 +435,56 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 />
               </div>
 
-              <Controller
-                name="briefingFile"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <UploadFieldButton
-                      label="Briefing File"
-                      disabled={!formState.projectId.trim() || isStreamActive}
-                      icon={<Upload size={16} aria-hidden="true" />}
-                      accept=".docx,.txt,.md"
-                      onFileSelected={(file) => {
-                        field.onChange(file);
-                        if (file) {
-                          handleBriefingFileSelected(file);
-                        } else {
-                          handleBriefingReset();
-                        }
-                      }}
-                    />
-                    {errors.briefingFile ? <span className={uiPrimitives.error}>{errors.briefingFile.message as string}</span> : null}
-                  </div>
-                )}
-              />
-
-              {props.toolKey === 'angle-generator' ? (
+              {inputFiles.map((fileEntry) => (
                 <Controller
-                  name="angleDetectorFile"
+                  key={fileEntry.key}
+                  name={fileEntry.key as keyof ToolPageFormValues}
                   control={control}
                   render={({ field }) => (
                     <div>
                       <UploadFieldButton
-                        label="Angle Detector File"
-                        disabled={!formState.projectId.trim() || isStreamActive}
+                        label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
+                        disabled={!formState.projectId.trim() || isGenerationLocked}
                         icon={<Upload size={16} aria-hidden="true" />}
-                        accept=".docx,.txt,.md"
+                        accept={fileEntry.accept}
                         onFileSelected={(file) => {
                           field.onChange(file);
-                          if (file) {
-                            handleAngleDetectorFileSelected(file);
-                          } else {
+                          if (!file) {
                             handleBriefingReset();
+                            return;
                           }
+
+                          if (fileEntry.key === 'angle-detector-file') {
+                            handleAngleDetectorFileSelected(file);
+                            return;
+                          }
+
+                          handleBriefingFileSelected(file);
                         }}
                       />
-                      {errors.angleDetectorFile ? <span className={uiPrimitives.error}>{errors.angleDetectorFile.message as string}</span> : null}
                     </div>
                   )}
                 />
-              ) : null}
+              ))}
 
               <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
-              {briefingError ? <p className={uiPrimitives.error}>{briefingError}</p> : null}
-              {briefingGuidance ? <p className={uiPrimitives.metaLine} role="status">{briefingGuidance}</p> : null}
-              {artifactsReloadError ? <p className={uiPrimitives.error}>{artifactsReloadError}</p> : null}
-
-                {/* DispatchError ownership contract:
+                {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
                 {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
-              <ToolActionButtons
-                primaryPolicy={machineViewModel.primaryActionPolicy}
-                secondaryFlags={{
-                  ...machineViewModel.secondaryActionFlags,
-                  canCancelGeneration: isGenerating,
-                }}
-                onPrimaryAction={handleSubmit((data) => {
-                  setFormState((prev) => ({
-                    ...prev,
-                    projectId: data.projectId,
-                    model: data.model,
-                    tone: data.tone,
-                  }));
-                  if (data.briefingFile instanceof File) {
-                    handleBriefingFileSelected(data.briefingFile);
-                  }
-                  if (props.toolKey === 'angle-generator' && data.angleDetectorFile instanceof File) {
-                    handleAngleDetectorFileSelected(data.angleDetectorFile);
-                  }
-                  handlePrimaryAction();
-                })}
-                onCancelGeneration={handleCancelGeneration}
-                isLoading={isGenerating}
-              />
+              <div className="ui-tool-action-buttons">
+                {isGenerating ? (
+                  <SecondaryCtaButton
+                    type="button"
+                    onClick={handleCancelGeneration}
+                    title={copy.form.cancelGenerationTooltip}
+                  >
+                    {copy.form.cancelGeneration}
+                  </SecondaryCtaButton>
+                ) : null}
+              </div>
             </form>
           </section>
 
@@ -330,24 +492,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
-              briefingFileName={effectiveBriefingFileName ?? null}
-              briefingStatus={effectiveBriefingStatus}
-              readinessReasonCodes={readinessSnapshot.reasonCodes}
-              briefingError={briefingError}
-              briefingGuidance={briefingGuidance}
-              steps={toolConfig.steps.map((step) => ({
-                step,
-                displayName: mapToolStepToCardConfig(props.toolKey, step).displayName,
-                status:
-                  isStreamActive && currentRunningStep === step
-                    ? 'running'
-                    : machineViewModel.stepStatuses[step] ?? 'idle',
-                artifactId: latestArtifactByStep[step]?.artifactId ?? null,
-                isStreaming: isStreamActive && streamingStep === step,
-              }))}
-              completedStepsCount={completedStepsForFlow.size}
-              totalStepsCount={toolConfig.steps.length}
-              errorMessage={machineViewModel.messages.error}
+              errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
+              inputFilePayload={inputFilePayload}
+              generationProgress={generationProgress}
+              primaryActionCta={unifiedPrimaryActionCta}
             />
           </section>
         </div>

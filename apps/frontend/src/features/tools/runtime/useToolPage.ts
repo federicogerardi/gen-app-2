@@ -119,6 +119,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const handleCancelGeneration = runController.handleCancelGeneration;
   const currentRunningStep = runController.currentRunningStep;
   const streamingStep = runController.streamingStep;
+  const pausedCheckpointStep = runController.pausedCheckpointStep;
   const dispatchError = runController.dispatchError;
   const artifactsReloadError = generationArtifacts.artifactsReloadError;
 
@@ -126,7 +127,12 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
   }, [briefingStatus, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
 
-  const effectiveCanonicalState = isGenerating || generationStream.isStreamActive ? 'running' : machineViewModel.canonicalState;
+  const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const effectiveCanonicalState = isExtractionInProgress
+    ? 'processing-briefing'
+    : isGenerating || generationStream.isStreamActive
+      ? 'running'
+      : machineViewModel.canonicalState;
   const handlePrimaryAction = useCallback(() => {
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionId}`);
@@ -138,8 +144,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const handleAngleDetectorFileSelected = useCallback((file: File) => toolPageSend({
     type: 'BRIEFING_FILE_SELECTED',
     file,
-    source: 'angle-detector',
+    sourceKey: 'angle-detector-file',
   }), [toolPageSend]);
+  const handleExtractionStart = useCallback(() => {
+    toolPageSend({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
+  }, [toolPageSend]);
   const handleBriefingReset = useCallback(() => toolPageSend({ type: 'BRIEFING_RESET' }), [toolPageSend]);
 
   return {
@@ -163,14 +172,17 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     completedArtifactsByStep,
     currentRunningStep,
     streamingStep,
+    pausedCheckpointStep,
     nextAvailableStep,
     effectiveCanonicalState,
     currentProject,
     isStreamActive: generationStream.isStreamActive,
+    sessionId,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
+    handleExtractionStart,
     handleBriefingReset,
     navigate,
   };

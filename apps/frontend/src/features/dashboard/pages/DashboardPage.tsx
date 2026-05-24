@@ -1,21 +1,16 @@
 
 import { Link, useSearchParams } from 'react-router-dom';
+import { Button, Card, CardContent, CardHeader } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { ErrorStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
-import { AppButton } from '../../../components/AppButton';
-import { AppCard } from '../../../components/AppCard';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
-const formatSessionToolName = (toolKey: string | null): string => {
-  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
-  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
-  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
-  if (toolKey === 'angle-generator') return appCopy.ui.navigation.angleGenerator;
-  return toolKey ?? 'Tool non disponibile';
-};
+const formatSessionToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
 export const DashboardPage = () => {
   const auth = useAuthSession();
@@ -37,7 +32,7 @@ export const DashboardPage = () => {
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
   const previewZeroState = searchParams.get('preview') === 'zero-state';
   const projectNameById = new Map(projectsQuery.data.map((project) => [project.id, project.name]));
-  const recentSessions = sessionsQuery.data.slice(0, 5);
+  const recentSessions = sessionsQuery.data.slice(0, UI_CONFIG.limits.dashboardRecentSessionsCount);
 
   if (hasNoProjects || previewZeroState) {
     return (
@@ -46,11 +41,9 @@ export const DashboardPage = () => {
           <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.zeroState.eyebrow}</p>
           <h2>{appCopy.editorial.dashboard.zeroState.headline}</h2>
           <p>{appCopy.editorial.dashboard.zeroState.body}</p>
-          <Link to="/dashboard/projects/new" style={{ textDecoration: 'none' }}>
-            <AppButton>
-              {appCopy.editorial.dashboard.zeroState.cta}
-            </AppButton>
-          </Link>
+          <Button component={Link} to="/dashboard/projects/new" variant="contained" color="primary">
+            {appCopy.editorial.dashboard.zeroState.cta}
+          </Button>
         </div>
       </Surface>
     );
@@ -89,25 +82,33 @@ export const DashboardPage = () => {
       </TopBar>
 
       <section className={uiPrimitives.dashboardGrid}>
-        <AppCard title={appCopy.editorial.dashboard.cards.projects.title} className="ui-dashboard-card-with-cta">
+        <Card className="ui-dashboard-card-with-cta">
+          <CardHeader title={appCopy.editorial.dashboard.cards.projects.title} />
+          <CardContent>
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.projects.body}</p>
             <Link to="/dashboard/projects" className="ui-dashboard-card-cta-link ui-button">
               {appCopy.ui.actions.openProjects}
             </Link>
           </div>
-        </AppCard>
+          </CardContent>
+        </Card>
 
-        <AppCard title={appCopy.editorial.dashboard.cards.tools.title} className="ui-dashboard-card-with-cta">
+        <Card className="ui-dashboard-card-with-cta">
+          <CardHeader title={appCopy.editorial.dashboard.cards.tools.title} />
+          <CardContent>
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.tools.body}</p>
             <Link to="/tools" className="ui-dashboard-card-cta-link ui-button">
               {appCopy.ui.navigation.tools}
             </Link>
           </div>
-        </AppCard>
+          </CardContent>
+        </Card>
 
-        <AppCard title={appCopy.editorial.dashboard.cards.recentSessions.title}>
+        <Card>
+          <CardHeader title={appCopy.editorial.dashboard.cards.recentSessions.title} />
+          <CardContent>
           {sessionsQuery.loading ? (
             <p className={uiPrimitives.metaLine}>Caricamento sessioni...</p>
           ) : sessionsQuery.error ? (
@@ -123,16 +124,17 @@ export const DashboardPage = () => {
                 return (
                   <li key={session.sessionId}>
                     <Link to={`/sessionsummary/${session.sessionId}`} style={{ textDecoration: 'none' }}>
-                    <AppButton color="inherit" size="small">
+                    <Button color="inherit" size="small" variant="text">
                         {projectName} · {formatSessionToolName(session.toolKey)} · {createdAt}
-                    </AppButton>
+                    </Button>
                     </Link>
                   </li>
                 );
               })}
             </ul>
           )}
-        </AppCard>
+          </CardContent>
+        </Card>
       </section>
     </Surface>
   );

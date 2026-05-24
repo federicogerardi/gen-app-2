@@ -3,6 +3,9 @@ date_created: 2026-04-26
 date_updated: 2026-05-02
 status: Target (post-unification)
 version: 2.0
+last-reviewed: 2026-05-22
+next-review-date: 2026-08-22
+owner: Frontend Platform Team
 title: Frontend Tool Pages — Unified Architecture Specification
 tags: [architecture, tool-pages, unification, scalability, registry]
 ---
@@ -240,6 +243,28 @@ Current operational matrix:
 | `angle-generator` | `pain_point` | Pain point | contract-backed |
 | `angle-generator` | `proof` | Proof | contract-backed |
 | `angle-generator` | `creative_constraints` | Vincoli creativi | contract-backed |
+
+### 2.4 Tool Input File Requirement Policy (DDD-081)
+
+Tool Workspace setup must be policy-driven through `inputFiles` in `toolFileInstructionsRegistry`.
+
+Canonical requiredness taxonomy:
+
+- `always-required`: first input file (`inputFiles[0]`) and mandatory invariant.
+- `required-by-tool-setting`: additional file explicitly blocking readiness/CTA until uploaded.
+- `optional-by-tool-setting`: additional file that never blocks readiness/CTA.
+
+Deterministic rules:
+
+- Every `SupportedTool` declares `inputFiles`.
+- `inputFiles[0]` must always be `always-required` (fail-fast invariant).
+- Every file from index `1..N` must be explicitly classified as `required-by-tool-setting` or `optional-by-tool-setting`.
+- Current `angle-generator` policy: `BriefingFile` = `always-required`, `AngleDetectorFile` = `optional-by-tool-setting`.
+
+Readiness outcomes:
+
+- Scenario A (`required complete` + `optional missing`): non-blocking readiness, primary CTA enabled, advisory messaging allowed.
+- Scenario B (`all-required` and one missing): blocking readiness, primary CTA disabled, deterministic missing-required list.
 
 Implementation note:
 

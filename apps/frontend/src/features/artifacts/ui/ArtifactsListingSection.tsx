@@ -12,8 +12,9 @@ import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls
 import { useArtifactsQuery } from '../../../app/runtime/queries/useArtifactsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { type ArtifactQuery } from '../runtime/artifacts-client';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
-const pageSize = 10;
+const pageSize = UI_CONFIG.pagination.artifactsPageSize;
 const queryPageSize = pageSize + 1;
 
 type ArtifactsListingSectionProps = {

@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
+import { UI_CONFIG } from '../config/ui-config';
 
 export type FeedbackChannel = 'global';
 export type FeedbackSeverity = 'success' | 'info' | 'warning' | 'error';
@@ -43,12 +44,7 @@ type FeedbackMessageAction =
       type: 'dismissAll';
     };
 
-const DEFAULT_TTL_BY_SEVERITY: Record<FeedbackSeverity, number> = {
-  success: 3500,
-  info: 4000,
-  warning: 5000,
-  error: 6500,
-};
+const DEFAULT_TTL_BY_SEVERITY: Record<FeedbackSeverity, number> = UI_CONFIG.feedback.ttl;
 
 const initialState: FeedbackMessageState = {
   queue: [],

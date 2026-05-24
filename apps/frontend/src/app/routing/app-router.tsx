@@ -123,10 +123,6 @@ export const createAppRouter = () => createBrowserRouter([
         element: <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>,
       })),
       {
-        path: '/tools/console',
-        element: <Navigate to="/tools" replace />,
-      },
-      {
         path: '/artifacts',
         element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
       },

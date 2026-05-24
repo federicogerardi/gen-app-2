@@ -117,7 +117,7 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 - **DEP-003**: `apps/backend/src/lib/machines/generation-fallback.actor.ts` — authoritative fallback policy actor invoked by `resolvingFallbackPolicy`.
 - **DEP-004**: `apps/backend/src/lib/tests/generation-system.runtime.test.ts` — primary focused validation suite for machine behavior.
 - **DEP-005**: `apps/backend/package.json` — authoritative validation commands: `typecheck`, `test:integration`, and `test`.
-- **DEP-006**: `plan/refactor-architecture-weaknesses-remediation-1.md` — previous broad remediation plan already marked the GenerationSystem decomposition theme; this plan narrows it to the remaining monolithic `.definition.ts` surface.
+- **DEP-006**: `./refactor-architecture-weaknesses-remediation-1.md` — previous broad remediation plan already marked the GenerationSystem decomposition theme; this plan narrows it to the remaining monolithic `.definition.ts` surface.
 
 ---
 
@@ -166,8 +166,8 @@ Current evidence anchors in `generation-system.definition.ts` as of 2026-05-19:
 - [docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
 - [docs/02-design/domain-bounded-context-map.md](../docs/02-design/domain-bounded-context-map.md)
 - [docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
-- [plan/refactor-architecture-weaknesses-remediation-1.md](./refactor-architecture-weaknesses-remediation-1.md)
-- [plan/process-auth-http-finding-closure-ddd-1.md](./process-auth-http-finding-closure-ddd-1.md)
+- [./refactor-architecture-weaknesses-remediation-1.md](./refactor-architecture-weaknesses-remediation-1.md)
+- [./process-auth-http-finding-closure-ddd-1.md](./process-auth-http-finding-closure-ddd-1.md)
 
 ---
 

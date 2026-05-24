@@ -52,4 +52,41 @@ describe('SessionArtifactTabs', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'quiz' }));
     expect(screen.getByText('Second artifact')).toBeInTheDocument();
   });
+
+  it('supports angle-generator canonical step rendering', () => {
+    const angleGroup: SessionArtifactGroup = {
+      ...group,
+      toolKey: 'angle-generator',
+      artifacts: [
+        {
+          artifactId: 'a-creative',
+          requestId: 'r-creative',
+          projectId: 'p-1',
+          stepKey: 'creative-activation',
+          artifactRole: 'final',
+          status: 'completed',
+          content: 'Creative activation content',
+          updatedAt: '2026-05-09T10:01:00.000Z',
+          failureReason: null,
+        },
+        {
+          artifactId: 'a-context',
+          requestId: 'r-context',
+          projectId: 'p-1',
+          stepKey: 'context-and-angle-matrix',
+          artifactRole: 'step',
+          status: 'completed',
+          content: 'Context and angle matrix content',
+          updatedAt: '2026-05-09T10:00:00.000Z',
+          failureReason: null,
+        },
+      ],
+    };
+
+    render(<SessionArtifactTabs group={angleGroup} fallbackToolKey="angle-generator" />);
+
+    expect(screen.getByRole('tab', { name: 'context-and-angle-matrix' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'creative-activation' })).toBeInTheDocument();
+    expect(screen.getByText('Context and angle matrix content')).toBeInTheDocument();
+  });
 });

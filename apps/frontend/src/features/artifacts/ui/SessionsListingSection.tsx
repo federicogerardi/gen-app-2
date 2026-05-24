@@ -11,8 +11,10 @@ import { ListingTableSection, type ListingTableColumn } from '../../../app/ui/Li
 import { PaginationBlockControls } from '../../../app/ui/PaginationBlockControls';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
-const pageSize = 10;
+const pageSize = UI_CONFIG.pagination.sessionsPageSize;
 
 type SessionsListingSectionProps = {
   title: string;
@@ -30,13 +32,6 @@ const normalizeFixedProjectId = (projectId: string | undefined): string | null =
 
   const trimmed = projectId.trim();
   return trimmed.length > 0 ? trimmed : null;
-};
-
-const toolLabel = (toolKey: string | null): string => {
-  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
-  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
-  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
-  return toolKey ?? '—';
 };
 
 export const SessionsListingSection = ({
@@ -113,9 +108,9 @@ export const SessionsListingSection = ({
             ? fixedProjectName
             : null)
           ?? projectNameById[session.projectId]
-          ?? 'Progetto non disponibile';
+          ?? appCopy.ui.states.projectUnavailable;
 
-        if (columnKey === 'tool') return <strong>{toolLabel(session.toolKey)}</strong>;
+        if (columnKey === 'tool') return <strong>{getToolLabel(session.toolKey)}</strong>;
         if (columnKey === 'status') return <StatusBadge status={session.status} />;
         if (columnKey === 'project') return resolvedProjectName;
         if (columnKey === 'output') return `${session.artifactCount} ${appCopy.editorial.sessions.artifactCountLabel}`;

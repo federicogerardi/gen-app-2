@@ -96,9 +96,12 @@ Run these commands from workspace root and ensure all succeed before considering
   2. If no canonical term exists, create a `DDD-NNN` entry in `domain-naming-decision-log.md` first.
   3. Apply the canonical term in the code change.
   4. Add a backward-compat alias if the old name is referenced by other code (deprecated, 1 cycle).
+- When adding or changing user-facing text in code, prefer one centralized copy authority for the owning surface instead of introducing local hardcoded literals in components, hooks, machines, or utilities.
+- Do not make runtime control flow depend on exact user-visible text values. Use typed flags, canonical codes, or explicit state branches instead of comparing rendered strings.
 - Prefer the smallest coherent change that solves one concern at a time; avoid monolithic implementations that bundle unrelated behavior into one block.
 - Prefer unifying duplicate or overlapping logic into a single authoritative path when the concepts are the same.
 - Prefer atomized helpers, modules, and components over large all-in-one structures when the split improves clarity and reuse.
+- Prefer scalable structure over local convenience: extract reusable helpers, copy maps, selectors, and small presentational components before duplicating behavior or text across files.
 - Reuse existing libraries, adapters, utilities, and workspace patterns before introducing a new dependency or custom implementation.
 - When editing files with `apply_patch`, prefer atomic hunks that touch one concern at a time; avoid monolithic replacement blocks that increase fail-match risk.
 - Never introduce synonyms for existing canonical terms (e.g., do not use `BriefingContext` where `ExtractionContext` is canonical).

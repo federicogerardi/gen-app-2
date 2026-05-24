@@ -44,7 +44,8 @@ export type ToolPageEvent =
   | { type: 'PROJECT_SELECTED'; projectId: string }
   | { type: 'MODEL_CHANGED'; model: string }
   | { type: 'STEP_ARTIFACT_UPDATED'; step: ToolStep; artifactId: string }
-  | { type: 'BRIEFING_FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
+  | { type: 'BRIEFING_FILE_SELECTED'; file: File; sourceKey?: string }
+  | { type: 'BRIEFING_EXTRACTION_REQUESTED' }
   | { type: 'BRIEFING_RESET' }
   | { type: 'REQUEST_STEP_START'; step: ToolStep; runRequestPrefix: string }
   | { type: 'STEP_REQUEST_DISPATCHED' }

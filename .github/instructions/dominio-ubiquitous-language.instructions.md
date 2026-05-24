@@ -56,6 +56,7 @@ Apply this reference whenever the intervention touches GUI code or GUI-facing do
 - Mark uncertain terms as `provisional` until confirmed by DDD analysis.
 - For GUI interventions, map each page to one UI archetype from `frontend-ui-ubiquitous-language-spec.md` before changing layout or naming.
 - For GUI table pages, enforce `Data Table View` composition and canonical table behavior from `frontend-ui-ubiquitous-language-spec.md`.
+- For tool input-file guidance and setup rules, enforce `ToolInputFileRequirementPolicy` (DDD-081): single-file tools keep the first file always required; multi-file tools keep only the first file always required and classify each subsequent file explicitly as required or optional by tool setting.
 - For GUI layout composition, avoid nested cards by default. Use nested cards only when strictly necessary for semantic grouping that cannot be expressed with spacing, dividers, or typography; nested cards increase cognitive load and visual heaviness.
 - For refactor-only interventions, keep terminology unchanged: if a new domain term is needed at implementation time, stop the change and register a `DDD-NNN` entry in `docs/07-governance/domain-naming-decision-log.md` before propagation.
 - Prefer the smallest coherent terminology change, split broad language edits into atomic updates, and reuse established canonical terms or existing doc patterns before introducing new wording.

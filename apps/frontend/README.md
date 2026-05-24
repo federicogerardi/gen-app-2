@@ -67,11 +67,10 @@ Build-time capability flags (Vite):
 
 Important: VITE_* values are build-time inputs, not runtime toggles.
 
-Additional frontend rollout/quality flags (Vite build-time):
+Additional frontend quality flags (Vite build-time):
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| VITE_UI_ROLLOUT_MODE | mui | Progressive UI rollout mode (`mui` or `legacy`) exposed as `data-ui-rollout-mode` on `<html>` |
 | VITE_MONITORING_PROVIDER | none | Frontend monitoring bootstrap provider (`none`, `console`, `sentry`, `logrocket`) |
 | VITE_MONITORING_ENDPOINT | _(unset)_ | Optional telemetry endpoint used by monitoring bootstrap for `window.error` / `unhandledrejection`; when unset no telemetry POST is sent |
 
@@ -133,24 +132,18 @@ const form = useForm<FormData>({
 </Link>
 ```
 
-## Rollout, Monitoring, Rollback
-
-Progressive rollout:
-
-1. Keep `VITE_UI_ROLLOUT_MODE=mui` as default.
-2. For emergency containment, build with `VITE_UI_ROLLOUT_MODE=legacy` and redeploy.
-3. Verify `<html data-ui-rollout-mode="...">` in browser runtime.
+## Monitoring And Recovery
 
 Monitoring baseline:
 
-1. Set `VITE_MONITORING_PROVIDER=console` in pre-production for rollout smoke checks.
+1. Set `VITE_MONITORING_PROVIDER=console` in pre-production smoke checks.
 2. Optionally route the provider value to external SDK wiring (`sentry` or `logrocket`) through bootstrap hooks.
 3. Frontend runtime sends best-effort telemetry for `window.error` and `unhandledrejection` only when `VITE_MONITORING_ENDPOINT` is configured.
 
-Rollback plan:
+Recovery plan:
 
-1. Rebuild with `VITE_UI_ROLLOUT_MODE=legacy`.
-2. Redeploy frontend service only.
+1. Rebuild and redeploy the frontend service.
+2. Verify telemetry and browser console health in pre-production before promotion.
 3. Run CI quality gates (`typecheck`, `test`, `test:forms`, `test:visual`, `audit:a11y`) before promoting again.
 
 ## Local Development

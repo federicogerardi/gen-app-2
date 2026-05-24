@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Check, Copy } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 import type { DownloadFormat } from '../runtime/download-client';
 import { DownloadFormatDropdown } from './DownloadFormatDropdown';
 
@@ -21,9 +22,9 @@ type ArtifactContentPreviewProps = {
 
 export const ArtifactContentPreview = ({
   content,
-  toolbarLabel = 'Modalita visualizzazione contenuto',
-  panelLabel = 'Preview contenuto artifact',
-  emptyContentLabel = 'Contenuto non disponibile.',
+  toolbarLabel = appCopy.ui.artifactPreview.toolbarLabel,
+  panelLabel = appCopy.ui.artifactPreview.panelLabel,
+  emptyContentLabel = appCopy.ui.artifactPreview.emptyContentLabel,
   downloadOptions,
 }: ArtifactContentPreviewProps) => {
   const [copied, setCopied] = useState(false);
@@ -33,7 +34,7 @@ export const ArtifactContentPreview = ({
   const resolvedContent = content ?? '';
   const setCopiedState = () => {
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), UI_CONFIG.delays.clipboardFeedbackMs);
   };
 
   const copyAsPlainText = () => {

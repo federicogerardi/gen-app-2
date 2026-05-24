@@ -1,8 +1,8 @@
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
-import type { ToolFileInstructionsConfig } from '../runtime/tool-form-architecture';
+import type { ToolFileInstructionsViewModel } from '../runtime/tool-page-selectors';
 
 type ToolFileInstructionsSectionProps = {
-  instructions: ToolFileInstructionsConfig | null;
+  instructions: ToolFileInstructionsViewModel | null;
 };
 
 export const ToolFileInstructionsSection = ({ instructions }: ToolFileInstructionsSectionProps) => {

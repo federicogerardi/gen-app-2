@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 
-import { formatMeta } from '../../../app/copy/system';
+import { formatMeta, appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { AdminUser } from '../runtime/admin-client';
@@ -50,7 +50,7 @@ export const AdminUserTableRow = ({
               className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
               onClick={() => onStartEdit(user)}
             >
-              Modifica
+              {appCopy.ui.actions.edit}
             </button>
             <button
               type="button"
@@ -58,7 +58,7 @@ export const AdminUserTableRow = ({
               onClick={() => void onDisable(user.id)}
               disabled={busyAction === `delete:${user.id}` || user.status === 'disabled'}
             >
-              {busyAction === `delete:${user.id}` ? 'Disabilitazione...' : 'Disabilita'}
+              {busyAction === `delete:${user.id}` ? appCopy.ui.states.disabling : appCopy.ui.actions.disable}
             </button>
           </div>
         </td>
@@ -75,7 +75,7 @@ export const AdminUserTableRow = ({
               handleSubmit={handleEditSubmit}
               onSubmit={(data) => onEditSubmit(user.id, data)}
               onCancel={onEditCancel}
-              headline="Modifica utente"
+              headline={appCopy.ui.actions.editUser}
               subheadline={user.id}
               roleDefaultValue={user.role}
               statusDefaultValue={user.status}

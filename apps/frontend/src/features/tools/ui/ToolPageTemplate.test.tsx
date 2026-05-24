@@ -60,7 +60,7 @@ vi.mock('../machines/briefing-upload.machine', async () => {
         error: string | null;
       },
       events: {} as
-        | { type: 'FILE_SELECTED'; file: File; source?: 'briefing' | 'angle-detector' }
+        | { type: 'FILE_SELECTED'; file: File; sourceKey?: string }
         | { type: 'RESET' }
         | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
         | {
@@ -963,6 +963,33 @@ describe('ToolPageTemplate restore flow', () => {
     expect(firstRequest.input.briefingText).toBe('brief text');
   });
 
+  it('keeps the relaunch primary CTA and does not expose manual extraction CTA after sessionsummary relaunch hydration', async () => {
+    extractionContextState = makeExtractionContext();
+    briefingState.fileName = 'hydrated-brief.md';
+    briefingState.status = 'ready';
+    briefingState.extractionContext = makeExtractionContext();
+
+    generationState.artifacts = [defaultExtractionArtifact];
+    generationWorkspaceState.artifacts = generationState.artifacts;
+    availableStepsState.steps = ['optin'];
+
+    renderTemplate({
+      intent: 'regenerate',
+      sourceArtifactId: 'artifact-extract-001',
+      initialProjectId: 'project-001',
+    });
+
+    const primaryActionButton = await waitFor(() => {
+      const button = screen.queryByRole('button', { name: /^rigenera$/i })
+        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
+      expect(button).toBeInTheDocument();
+      return button as HTMLButtonElement;
+    });
+
+    expect(primaryActionButton).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /avvia estrazione/i })).not.toBeInTheDocument();
+  });
+
   it('blocks relaunch from extraction artifact when hydration recovers no briefing text', async () => {
     briefingMachineSeed.initialState = 'idle';
     briefingMachineSeed.context = {
@@ -1162,10 +1189,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
 
     // Il guard in handlePrimaryAction ritorna early se generation.isStreamActive
     expect(startMock).not.toHaveBeenCalled();
@@ -1222,7 +1250,8 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByText(/generazione in corso/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
+      expect(screen.getByText(/generazione in corso…/i)).toBeInTheDocument();
     });
   });
 
@@ -1242,10 +1271,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId('primary-cta-btn'));
+    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
     expect(startMock).not.toHaveBeenCalled();
 
     // Stream termina: rerender con isStreamActive=false
@@ -1259,11 +1289,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('primary-cta-btn')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
     });
 
     // Ora il click deve propagarsi correttamente
-    fireEvent.click(screen.getByTestId('primary-cta-btn'));
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useMachine, useSelector } from '@xstate/react';
 import type { ActorRefFrom } from 'xstate';
+import { appCopy } from '../../../app/copy/system';
 import { generateSessionId, readInputField } from '../../../app/runtime/shared-utils';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type {
@@ -13,7 +14,7 @@ import { briefingUploadMachine } from '../machines/briefing-upload.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { toolPageMachine } from '../machines/tool-page.machine';
 import type { SupportedTool } from '../machines/tool-flow.machine';
-import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
+import { getRequiredToolInputFiles, type ToolFormConfig, type ToolFormState } from './tool-form-architecture';
 import { mapInlineDispatchError, normalizeToneProfile } from './tool-page-runtime-utils';
 
 type UseToolPageContextArgs = {
@@ -76,8 +77,13 @@ export const useToolPageContext = ({
       ? 'extracting'
       : briefingSnapshot.matches('ready') ? 'ready' : 'idle';
   const briefingUploadMessage = briefingSnapshot.context.error?.trim() ?? null;
-  const briefingGuidance = toolKey === 'angle-generator' && briefingUploadMessage === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.'
-    ? 'Brief pronto. Carica Angle Detector File per continuare.'
+  const requiredInputFiles = getRequiredToolInputFiles(toolKey);
+  const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
+  const briefingGuidance = hasRequiredAngleDetector
+    && !!briefingSnapshot.context.file
+    && !briefingSnapshot.context.angleDetectorFile
+    && briefingSnapshot.context.error !== null
+    ? appCopy.ui.toolPage.guidance.angleDetectorRequired
     : null;
   const briefingError = briefingGuidance ? null : mapInlineDispatchError(briefingUploadMessage);
   const normalizedProjectId = formState.projectId.trim();

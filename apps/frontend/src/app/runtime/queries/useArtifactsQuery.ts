@@ -1,11 +1,12 @@
-import { useCallback, useRef } from 'react';
+import { useId, useMemo } from 'react';
 import type { BackendCapabilities } from '../backend-capabilities';
+import { appCopy } from '../../copy/system';
 import {
   listArtifacts,
   type ArtifactQuery,
 } from '../../../features/artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../../features/generation/ui/artifact-history';
-import { useAsyncQuery } from './useAsyncQuery';
+import { useSWRQuery } from './useSWRQuery';
 
 type UseArtifactsQueryOptions = {
   filters: ArtifactQuery;
@@ -23,35 +24,37 @@ type UseArtifactsQueryResult = {
   reload: () => void;
 };
 
-type ArtifactQueryData = {
-  artifacts: GenerationArtifact[];
-  totalResults: number;
-};
-
 export const useArtifactsQuery = (
   options: UseArtifactsQueryOptions,
 ): UseArtifactsQueryResult => {
-  // Keep localArtifacts in a ref: it's only a fallback for the capability-disabled path
-  // and should NOT trigger a re-fetch when the stream pushes new in-memory artifacts.
-  const localArtifactsRef = useRef(options.localArtifacts);
-  localArtifactsRef.current = options.localArtifacts;
-
-  // Serialize filters so that inline object literals don't trigger the effect on every render.
+  const enabled = options.enabled ?? true;
+  const queryInstanceKey = useId();
   const filtersKey = JSON.stringify(options.filters);
-  const query = useCallback(() => listArtifacts(options.filters, {
-    apiBaseUrl: options.apiBaseUrl,
-    capabilities: options.capabilities,
-    localArtifacts: localArtifactsRef.current,
-  }), [filtersKey, options.apiBaseUrl, options.capabilities]);
-  const queryState = useAsyncQuery<ArtifactQueryData>({
-    enabled: options.enabled ?? true,
-    emptyData: {
-      artifacts: [],
-      totalResults: 0,
-    },
-    errorMessage: 'Unable to load artifacts',
-    dependencyKey: JSON.stringify([options.apiBaseUrl, options.capabilities, filtersKey]),
-    query,
+  const usesBackendArtifacts = options.capabilities.artifacts;
+  const localArtifactsKey = useMemo(() => JSON.stringify(
+    options.localArtifacts.map((artifact) => [
+      artifact.artifactId,
+      artifact.updatedAt,
+      artifact.status,
+    ]),
+  ), [options.localArtifacts]);
+  const queryKey = enabled
+    ? (
+      usesBackendArtifacts
+        ? [queryInstanceKey, options.apiBaseUrl, options.capabilities, filtersKey, 'artifacts']
+        : [queryInstanceKey, options.apiBaseUrl, options.capabilities, filtersKey, localArtifactsKey, 'artifacts']
+    )
+    : null;
+
+  const queryState = useSWRQuery<{ artifacts: GenerationArtifact[]; totalResults: number }>({
+    key: queryKey,
+    fetcher: () => listArtifacts(options.filters, {
+      apiBaseUrl: options.apiBaseUrl,
+      capabilities: options.capabilities,
+      localArtifacts: options.localArtifacts,
+    }),
+    emptyData: { artifacts: [], totalResults: 0 },
+    errorMessage: appCopy.ui.fallbackErrors.loadArtifacts,
   });
 
   return {

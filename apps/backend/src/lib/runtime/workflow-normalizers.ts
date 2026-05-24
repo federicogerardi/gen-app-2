@@ -17,12 +17,16 @@ const FINAL_STEP_BY_TOOL = {
   'funnel-pages': 'vsl',
   nextland: 'thank_you',
   'youtube-lf-script': 'outro-structure',
+  'angle-generator': 'creative-activation',
 } as const;
 
 type StepMappedToolKey = keyof typeof FINAL_STEP_BY_TOOL;
 
 const isStepMappedToolKey = (value: string | null): value is StepMappedToolKey => {
-  return value === 'funnel-pages' || value === 'nextland' || value === 'youtube-lf-script';
+  return value === 'funnel-pages'
+    || value === 'nextland'
+    || value === 'youtube-lf-script'
+    || value === 'angle-generator';
 };
 
 export const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {

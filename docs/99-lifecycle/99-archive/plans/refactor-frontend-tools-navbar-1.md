@@ -158,5 +158,5 @@ This plan defines a deterministic frontend refactor to remove per-tool entries f
 - `docs/02-design/domain-bounded-context-map.md`
 - `docs/07-governance/domain-naming-decision-log.md`
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-- `plan/process-tool-page-finding-closure-1.md`
-- `plan/refactor-frontend-page-preload-unification-1.md`
+- `./process-tool-page-finding-closure-1.md`
+- `./refactor-frontend-page-preload-unification-1.md`

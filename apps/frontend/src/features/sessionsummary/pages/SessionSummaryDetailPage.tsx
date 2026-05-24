@@ -24,13 +24,9 @@ import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
 import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 
-const formatToolName = (toolKey: string | null): string => {
-  if (toolKey === 'funnel-pages') return appCopy.ui.navigation.funnelPages;
-  if (toolKey === 'nextland') return appCopy.ui.navigation.nextland;
-  if (toolKey === 'youtube-lf-script') return appCopy.ui.navigation.youtubeLfScript;
-  return toolKey ?? 'Tool non disponibile';
-};
+const formatToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
 const toHumanReadableDate = (isoLike: string): string => {
   const date = new Date(isoLike);
@@ -46,7 +42,15 @@ const toHumanReadableDate = (isoLike: string): string => {
 
 const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
   const finalizedArtifacts = group.artifacts.filter((artifact) => artifact.artifactRole === 'final');
-  const candidateArtifacts = finalizedArtifacts.length > 0 ? finalizedArtifacts : group.artifacts;
+  const steppedArtifacts = group.artifacts.filter((artifact) => {
+    const stepKey = artifact.stepKey?.trim();
+    return typeof stepKey === 'string' && stepKey.length > 0;
+  });
+  const candidateArtifacts = finalizedArtifacts.length > 0
+    ? finalizedArtifacts
+    : steppedArtifacts.length > 0
+      ? steppedArtifacts
+      : group.artifacts;
 
   const latestArtifact = [...candidateArtifacts].sort(
     (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
@@ -136,7 +140,7 @@ export const SessionSummaryDetailPage = () => {
           setPageState({ phase: 'not-found' });
           return;
         }
-        setPageState({ phase: 'error', message: message || 'Unable to load session' });
+        setPageState({ phase: 'error', message: message || appCopy.ui.sessions.detail.loadFailed });
       }
     })();
 
@@ -187,7 +191,7 @@ export const SessionSummaryDetailPage = () => {
   const jobDate = artifactTimestamps.length > 0 ? new Date(Math.min(...artifactTimestamps)) : null;
   const lastUpdate = artifactTimestamps.length > 0 ? new Date(Math.max(...artifactTimestamps)) : null;
   const projectName = projectId
-    ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `Project ${projectId}`
+    ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `${appCopy.ui.sessions.detail.projectFallbackPrefix}${projectId}`
     : 'Project non disponibile';
   const detailTitle = `${projectName} - ${formatToolName(group.toolKey)}`;
 
@@ -204,15 +208,15 @@ export const SessionSummaryDetailPage = () => {
       </TopBar>
 
       <div className="ui-artifact-page-layout">
-        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto sessione">
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
           <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label="Contesto sessione">
-          <section className="ui-artifact-overview" aria-label="Panoramica sessione">
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+          <section className="ui-artifact-overview" aria-label={appCopy.ui.sessions.detail.overviewAriaLabel}>
             <div className="ui-artifact-overview-actions">
               <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
-                Rilancia
+                {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
               {auth.capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
@@ -220,16 +224,16 @@ export const SessionSummaryDetailPage = () => {
             </div>
 
             <details className="ui-artifact-accessory">
-              <summary>Dettagli sessione</summary>
+              <summary>{appCopy.ui.sessions.detail.detailsSummaryLabel}</summary>
               <dl className="ui-artifact-metadata ui-session-summary-details">
                 <dt>{appCopy.ui.labels.projectName}</dt>
                 <dd>{projectName}</dd>
                 <dt>{appCopy.ui.labels.toolKey}</dt>
                 <dd>{formatToolName(group.toolKey)}</dd>
                 <dt>{appCopy.ui.meta.jobDate}</dt>
-                <dd>{jobDate ? toHumanReadableDate(jobDate.toISOString()) : 'Data non disponibile'}</dd>
+                <dd>{jobDate ? toHumanReadableDate(jobDate.toISOString()) : appCopy.ui.feedbackCenter.unavailableDate}</dd>
                 <dt>{appCopy.ui.meta.lastUpdate}</dt>
-                <dd>{lastUpdate ? toHumanReadableDate(lastUpdate.toISOString()) : 'Data non disponibile'}</dd>
+                <dd>{lastUpdate ? toHumanReadableDate(lastUpdate.toISOString()) : appCopy.ui.feedbackCenter.unavailableDate}</dd>
                 <dt>{appCopy.ui.meta.artifactCount}</dt>
                 <dd>{group.artifacts.length}</dd>
               </dl>

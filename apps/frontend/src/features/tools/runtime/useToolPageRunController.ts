@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { appCopy } from '../../../app/copy/system';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import type { GenerationArtifactsWorkspaceValue, GenerationProjectWorkspaceValue, GenerationStreamWorkspaceValue } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -152,7 +153,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
     void startGenerationStep(pendingStepStart.step).then((success) => {
       if (!success) {
-        setDispatchError('Impossibile avviare la generazione. Controlla la connessione e riprova.');
+        setDispatchError(appCopy.ui.toolPage.runtimeErrors.dispatchFailed);
         toolPageSend({ type: 'CANCEL_GENERATION' });
       }
     });

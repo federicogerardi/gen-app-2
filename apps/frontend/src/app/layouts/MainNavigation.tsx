@@ -11,7 +11,8 @@ import {
   LogOut,
   X,
 } from 'lucide-react';
-import { appCopy, appNavigation } from '../copy/system';
+import { appCopy } from '../copy/system';
+import { getMainNavigationItems, type NavigationIconKey } from '../runtime/navigation-metadata';
 import { Surface, cx, uiPrimitives } from '../ui/primitives';
 import './MainNavigation.css';
 
@@ -26,13 +27,13 @@ type MainNavigationProps = {
   onLogout: () => void;
 };
 
-const navIcons: Record<string, NavIcon> = {
-  '/dashboard': LayoutDashboard,
-  '/dashboard/projects': FolderOpen,
-  '/tools': Zap,
-  '/sessionsummary': Archive,
-  '/artifacts': Archive,
-  '/admin': Settings,
+const navIcons: Record<NavigationIconKey, NavIcon> = {
+  dashboard: LayoutDashboard,
+  projects: FolderOpen,
+  tools: Zap,
+  sessions: Archive,
+  artifacts: Archive,
+  admin: Settings,
 };
 
 export const MainNavigation = ({
@@ -43,7 +44,7 @@ export const MainNavigation = ({
   onCloseMobile,
   onLogout,
 }: MainNavigationProps) => {
-  const visibleItems = appNavigation.filter((item) => (!('adminOnly' in item && item.adminOnly) || isAdmin));
+  const visibleItems = getMainNavigationItems(isAdmin);
 
   return (
     <Surface
@@ -74,7 +75,7 @@ export const MainNavigation = ({
 
       <div className="nav-items">
         {visibleItems.map((item) => {
-          const Icon = navIcons[item.to] || LayoutDashboard;
+          const Icon = navIcons[item.iconKey] || LayoutDashboard;
           return (
             <NavLink
               key={item.to}

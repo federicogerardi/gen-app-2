@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
-import { AppCard } from '../../../components/AppCard';
 import { EmptyStateMessage, Surface, uiPrimitives } from '../../../app/ui/primitives';
 import {
   getEnabledToolNavigationItems,
@@ -18,14 +18,17 @@ export const ToolsHubPage = () => {
       ) : (
         <section className={uiPrimitives.dashboardGrid}>
           {toolItems.map((item) => (
-            <AppCard key={item.toolKey} title={item.label} className="ui-dashboard-card-with-cta">
+            <Card key={item.toolKey} className="ui-dashboard-card-with-cta">
+              <CardHeader title={item.label} />
+              <CardContent>
               <div className="ui-dashboard-card-cta-content">
                 <p className="ui-dashboard-card-cta-body">{item.description}</p>
                 <Link to={item.to} className="ui-dashboard-card-cta-link ui-button">
                   {appCopy.ui.actions.openToolWorkspace}
                 </Link>
               </div>
-            </AppCard>
+              </CardContent>
+            </Card>
           ))}
         </section>
       )}

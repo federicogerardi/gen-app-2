@@ -1,3 +1,12 @@
+---
+status: active
+version: 1.1
+date_created: 2026-05-02
+last-reviewed: 2026-05-22
+next-review-date: 2026-08-22
+owner: Frontend Platform Team
+---
+
 # ToolGenerationFlow: Unified Flow Component
 
 > ⚑ **DDD Reference**: This document describes the unified UI flow component. For the complete canonical Generation context flow, see:
@@ -48,6 +57,11 @@ The historical overload of `/artifacts/{id}` for session aggregate detail is dep
 - In project detail context, session history entry points are `SessionSummary`-based (not artifact-list-based)
 
 **Visual**: Checklist with status indicators (todo, active, done, error)
+
+DDD-081 readiness touchpoints:
+
+- If required files are complete and optional files are missing, Phase 1 remains non-blocking and shows advisory guidance near the primary CTA.
+- If one or more required files are missing, Phase 1 stays blocking and the primary CTA remains disabled with deterministic missing-file feedback.
 
 ### Phase 2: Generation Monitoring
 **When**: Generation is running or paused

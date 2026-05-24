@@ -43,6 +43,9 @@ test('resolveToolStepArtifactRole maps final steps for funnel, nextland, and you
 
   assert.equal(resolveToolStepArtifactRole('youtube-lf-script', 'packaging'), 'step');
   assert.equal(resolveToolStepArtifactRole('youtube-lf-script', 'outro-structure'), 'final');
+
+  assert.equal(resolveToolStepArtifactRole('angle-generator', 'angle-prioritization'), 'step');
+  assert.equal(resolveToolStepArtifactRole('angle-generator', 'creative-activation'), 'final');
 });
 
 test('resolveToolStepArtifactRole preserves explicit role and returns null for unknown tool', () => {

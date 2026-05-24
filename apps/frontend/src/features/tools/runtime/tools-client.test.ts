@@ -139,8 +139,30 @@ describe('tools-client', () => {
     expect(result.angleDetector?.fileName).toBe('angle-detector.md');
   });
 
-  it('uploadBrief throws when angle-generator is missing angle detector file', async () => {
-    await expect(uploadBrief(
+  it('uploadBrief allows angle-generator without angle detector file when optional', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          briefing: {
+            briefingId: 'brief-angle-optional-001',
+            projectId: 'project-001',
+            toolKey: 'angle-generator',
+            fileName: 'briefing.md',
+            mimeType: 'text/markdown',
+            size: 100,
+            parsedFormat: 'md',
+            normalizedText: 'briefing text',
+            charCount: 100,
+            wordCount: 15,
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await uploadBrief(
       {
         projectId: 'project-001',
         toolKey: 'angle-generator',
@@ -149,7 +171,16 @@ describe('tools-client', () => {
       {
         capabilities: { toolsUpload: true },
       },
-    )).rejects.toThrow('Angle Detector file required for angle-generator');
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const request = fetchMock.mock.calls[0]?.[1] as { body?: string };
+    const parsedBody = JSON.parse(request.body ?? '{}') as {
+      angleDetector?: { fileName?: string | null; contentBase64?: string | null };
+    };
+    expect(parsedBody.angleDetector?.fileName).toBeNull();
+    expect(parsedBody.angleDetector?.contentBase64).toBeNull();
+    expect(result.briefingId).toBe('brief-angle-optional-001');
   });
 
   it('runExtraction consumes stream events and returns artifact payload', async () => {

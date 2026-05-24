@@ -265,6 +265,11 @@ export const createNodeRuntimeRequestHandler = (
     try {
       generationRequest = await parseGenerationRequest(request, options.mapGenerationRequest);
     } catch (error) {
+      console.warn('[gen][bad_request] unable to parse generation request', {
+        path,
+        method,
+        reason: error instanceof Error ? error.message : 'invalid_generation_request',
+      });
       writeJson(response, 400, {
         ok: false,
         error: {

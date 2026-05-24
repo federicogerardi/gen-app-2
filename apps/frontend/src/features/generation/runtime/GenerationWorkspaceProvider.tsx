@@ -18,6 +18,8 @@ import {
 export type { ExtractionContext };
 import type { GenerationRequest } from '../contracts/backend-stream';
 import type { ToolCheckpoint } from '../ui/tool-checkpoints';
+import { STREAM_CONFIG } from '../../../app/config/stream-config';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { listArtifactsPaginated } from '../../artifacts/runtime/artifacts-client';
@@ -146,7 +148,7 @@ const useGenerationArtifactsState = (
       model: request.model,
       workflowType: request.workflowType ?? null,
       toolKey: request.toolKey ?? null,
-      contentPreview: snapshot.context.content.slice(0, 240),
+      contentPreview: snapshot.context.content.slice(0, UI_CONFIG.preview.contentPreviewMaxLength),
       updatedAt: new Date().toISOString(),
     };
 
@@ -184,7 +186,7 @@ const useGenerationArtifactsState = (
       };
 
       if (existingIndex === -1) {
-        return [nextArtifact, ...prev].slice(0, 200);
+        return [nextArtifact, ...prev].slice(0, UI_CONFIG.limits.maxLocalArtifactsCache);
       }
 
       const clone = [...prev];
@@ -298,9 +300,9 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   const [snapshot, send] = useMachine(frontendStreamMachine, {
     input: {
       apiBaseUrl: auth.apiBaseUrl,
-      maxReconnectAttempts: 3,
-      reconnectBaseDelayMs: 500,
-      reconnectMaxDelayMs: 4000,
+      maxReconnectAttempts: STREAM_CONFIG.reconnect.maxAttempts,
+      reconnectBaseDelayMs: STREAM_CONFIG.reconnect.baseDelayMs,
+      reconnectMaxDelayMs: STREAM_CONFIG.reconnect.maxDelayMs,
     },
   });
 

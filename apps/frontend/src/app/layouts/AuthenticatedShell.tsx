@@ -9,6 +9,7 @@ import { ThemeToggleButton } from '../ui/ThemeToggleButton';
 import { GlobalFeedbackViewport } from '../ui/GlobalFeedbackViewport';
 import { Shell, Surface, cx, uiPrimitives } from '../ui/primitives';
 import { FeedbackNewsSticky } from '../../features/feedback-center/ui/FeedbackNewsSticky';
+import { isUserAdmin } from '../runtime/user-roles';
 
 export const AuthenticatedShell = () => {
   const auth = useAuthSession();
@@ -59,7 +60,7 @@ export const AuthenticatedShell = () => {
         <MainNavigation
           isCollapsed={isNavCollapsed}
           isMobileOpen={isMobileNavOpen}
-          isAdmin={auth.session.user.role === 'admin'}
+          isAdmin={isUserAdmin(auth.session.user.role)}
           onToggleCollapsed={() => setIsNavCollapsed((prev) => !prev)}
           onCloseMobile={() => setIsMobileNavOpen(false)}
           onLogout={() => void auth.logout()}

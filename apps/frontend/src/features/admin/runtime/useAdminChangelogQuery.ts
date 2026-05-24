@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 
+import { appCopy } from '../../../app/copy/system';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
-import { useAsyncQuery } from '../../../app/runtime/queries/useAsyncQuery';
+import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import type { ProductChangelogDto } from '../../feedback-center/contracts/feedback-center-contract';
 import { listAdminProductChangelog, listPublishedProductChangelog } from '../../feedback-center/runtime/feedback-center-client';
 
@@ -32,11 +33,10 @@ export const useAdminChangelogQuery = ({ apiBaseUrl, capabilities, showArchived 
     return result.data;
   }, [apiBaseUrl, capabilities]);
 
-  return useAsyncQuery<ProductChangelogDto[]>({
-    enabled: true,
+  return useSWRQuery<ProductChangelogDto[]>({
+    key: [apiBaseUrl, capabilities, showArchived, 'admin-changelog'],
+    fetcher: showArchived ? listAdminChangelogQuery : listPublishedChangelogQuery,
     emptyData: [],
-    errorMessage: 'Unable to load changelog',
-    dependencyKey: JSON.stringify([apiBaseUrl, capabilities, showArchived]),
-    query: showArchived ? listAdminChangelogQuery : listPublishedChangelogQuery,
+    errorMessage: appCopy.ui.fallbackErrors.loadAdminChangelog,
   });
 };

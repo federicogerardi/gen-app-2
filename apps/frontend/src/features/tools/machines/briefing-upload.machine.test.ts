@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createActor, waitFor } from 'xstate';
+import { appCopy } from '../../../app/copy/system';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
 
@@ -11,11 +12,16 @@ vi.mock('../runtime/tools-client', () => ({
 const mockedUploadBrief = vi.mocked(uploadBrief);
 const mockedRunExtraction = vi.mocked(runExtraction);
 
+const requestExtraction = (actor: ReturnType<typeof createMachineActor> | ReturnType<typeof createAngleMachineActor>) => {
+  actor.send({ type: 'EXTRACTION_REQUESTED' });
+};
+
 const createMachineActor = () => {
   const actor = createActor(briefingUploadMachine, {
     input: {
       toolKey: 'funnel-pages',
       projectId: 'project-1',
+      model: 'openrouter/auto',
       apiBaseUrl: '',
       capabilities: { toolsUpload: true },
       userId: 'user-1',
@@ -31,6 +37,7 @@ const createAngleMachineActor = () => {
     input: {
       toolKey: 'angle-generator',
       projectId: 'project-1',
+      model: 'openrouter/auto',
       apiBaseUrl: '',
       capabilities: { toolsUpload: true },
       userId: 'user-1',
@@ -46,7 +53,7 @@ describe('briefingUploadMachine', () => {
     vi.clearAllMocks();
   });
 
-  it('transitions idle -> uploading -> extracting -> ready', async () => {
+  it('transitions idle -> uploading -> extracting -> ready only after explicit extraction request', async () => {
     mockedUploadBrief.mockResolvedValue({
       briefingId: 'brief-1',
       projectId: 'project-1',
@@ -72,6 +79,8 @@ describe('briefingUploadMachine', () => {
     });
 
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+    expect(actor.getSnapshot().value).toBe('idle');
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
@@ -87,6 +96,7 @@ describe('briefingUploadMachine', () => {
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'upload failed');
 
@@ -111,10 +121,37 @@ describe('briefingUploadMachine', () => {
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'extraction failed');
 
     expect(actor.getSnapshot().context.error).toBe('extraction failed');
+  });
+
+  it('keeps selected files in context when extraction fails so retry can continue', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-retry',
+      projectId: 'project-1',
+      toolKey: 'funnel-pages',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      size: 10,
+      parsedFormat: 'md',
+      normalizedText: 'brief text',
+      charCount: 10,
+      wordCount: 2,
+    });
+    mockedRunExtraction.mockRejectedValue(new Error('HTTP 400 while opening stream'));
+
+    const actor = createMachineActor();
+    const briefing = new File(['content'], 'brief.md', { type: 'text/markdown' });
+    actor.send({ type: 'FILE_SELECTED', file: briefing });
+    requestExtraction(actor);
+
+    await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'HTTP 400 while opening stream');
+
+    expect(actor.getSnapshot().context.file).toBe(briefing);
+    expect(actor.getSnapshot().context.fileName).toBe('brief.md');
   });
 
   it('returns to idle when extraction output is semantically insufficient', async () => {
@@ -138,11 +175,12 @@ describe('briefingUploadMachine', () => {
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('idle'));
 
     const context = actor.getSnapshot().context;
-    expect(context.error).toBe('extraction_context_insufficient');
+    expect(context.error).toBe(appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient);
     expect(context.extractionArtifactId).toBeNull();
     expect(context.extractionPayload).toBeNull();
     expect(context.briefingId).toBeNull();
@@ -166,6 +204,7 @@ describe('briefingUploadMachine', () => {
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('extracting'));
 
@@ -211,6 +250,7 @@ describe('briefingUploadMachine', () => {
       input: {
         toolKey: 'funnel-pages',
         projectId: '',
+        model: 'openrouter/auto',
         apiBaseUrl: '',
         capabilities: { toolsUpload: true },
         userId: 'user-1',
@@ -221,11 +261,13 @@ describe('briefingUploadMachine', () => {
     actor.send({
       type: 'INPUT_SYNCED',
       projectId: 'project-1',
+      model: 'openrouter/auto',
       apiBaseUrl: '',
       capabilities: { toolsUpload: true },
       userId: 'user-1',
     });
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
@@ -236,9 +278,10 @@ describe('briefingUploadMachine', () => {
     actor.stop();
   });
 
-  it('rejects unsupported extension via guard and stays idle', async () => {
+  it('rejects unsupported extension on extraction request and stays idle', async () => {
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.pdf', { type: 'application/pdf' }) });
+    requestExtraction(actor);
 
     await waitFor(
       actor,
@@ -251,25 +294,46 @@ describe('briefingUploadMachine', () => {
     expect(actor.getSnapshot().context.file).toBeNull();
   });
 
-  it('requires both files for angle-generator before upload', async () => {
+  it('allows angle-generator upload with only briefing when second file is optional', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-angle-optional',
+      projectId: 'project-1',
+      toolKey: 'angle-generator',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      size: 20,
+      parsedFormat: 'md',
+      normalizedText: 'brief text',
+      charCount: 20,
+      wordCount: 4,
+    });
+    mockedRunExtraction.mockResolvedValue({
+      artifactId: 'artifact-angle-optional',
+      content: '{"ok":true}',
+      payload: { ok: true },
+    });
+
     const actor = createAngleMachineActor();
     const briefing = new File(['brief'], 'brief.md', { type: 'text/markdown' });
 
     actor.send({ type: 'FILE_SELECTED', file: briefing });
+    requestExtraction(actor);
 
-    await waitFor(
-      actor,
-      (snapshot) => snapshot.matches('idle')
-        && snapshot.context.error === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
+    await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+
+    expect(mockedUploadBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolKey: 'angle-generator',
+        file: briefing,
+      }),
+      expect.any(Object),
     );
-
-    expect(mockedUploadBrief).not.toHaveBeenCalled();
     expect(actor.getSnapshot().context.file).toBe(briefing);
     expect(actor.getSnapshot().context.fileName).toBe('brief.md');
     expect(actor.getSnapshot().context.angleDetectorFile).toBeNull();
   });
 
-  it('accepts briefing-first then angle-detector and continues to extraction', async () => {
+  it('accepts briefing-first flow without waiting for angle-detector', async () => {
     mockedUploadBrief.mockResolvedValue({
       briefingId: 'brief-angle-2',
       projectId: 'project-1',
@@ -300,22 +364,9 @@ describe('briefingUploadMachine', () => {
 
     const actor = createAngleMachineActor();
     const briefing = new File(['brief'], 'brief.md', { type: 'text/markdown' });
-    const angleDetector = new File(['angle'], 'angle-detector.md', { type: 'text/markdown' });
 
     actor.send({ type: 'FILE_SELECTED', file: briefing });
-
-    await waitFor(
-      actor,
-      (snapshot) => snapshot.matches('idle')
-        && snapshot.context.error === 'Per angle-generator carica sia BriefingFile sia AngleDetectorFile.',
-    );
-
-    expect(actor.getSnapshot().context.error).toBe('Per angle-generator carica sia BriefingFile sia AngleDetectorFile.');
-
-    actor.send({ type: 'FILE_SELECTED', file: angleDetector, source: 'angle-detector' });
-
-    await waitFor(actor, (snapshot) => snapshot.matches('extracting'));
-    expect(actor.getSnapshot().context.error).toBeNull();
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
@@ -323,7 +374,6 @@ describe('briefingUploadMachine', () => {
       expect.objectContaining({
         toolKey: 'angle-generator',
         file: briefing,
-        angleDetectorFile: angleDetector,
       }),
       expect.any(Object),
     );
@@ -362,8 +412,9 @@ describe('briefingUploadMachine', () => {
     const briefing = new File(['brief'], 'brief.md', { type: 'text/markdown' });
     const angleDetector = new File(['angle'], 'angle-detector.md', { type: 'text/markdown' });
 
-    actor.send({ type: 'FILE_SELECTED', file: angleDetector, source: 'angle-detector' });
+    actor.send({ type: 'FILE_SELECTED', file: angleDetector, sourceKey: 'angle-detector-file' });
     actor.send({ type: 'FILE_SELECTED', file: briefing });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
@@ -399,6 +450,7 @@ describe('briefingUploadMachine', () => {
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+    requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
     actor.send({ type: 'RESET' });
@@ -408,11 +460,12 @@ describe('briefingUploadMachine', () => {
     expect(actor.getSnapshot().context.extractionArtifactId).toBeNull();
   });
 
-    it('rejects file when projectId is empty and stays idle with project error', async () => {
+    it('rejects extraction when projectId is empty and stays idle with project error', async () => {
       const actor = createActor(briefingUploadMachine, {
         input: {
           toolKey: 'funnel-pages',
           projectId: '',
+          model: 'openrouter/auto',
           apiBaseUrl: '',
           capabilities: { toolsUpload: true },
           userId: 'user-1',
@@ -421,6 +474,7 @@ describe('briefingUploadMachine', () => {
       actor.start();
 
       actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+      requestExtraction(actor);
 
       await waitFor(
         actor,
@@ -452,6 +506,7 @@ describe('briefingUploadMachine', () => {
         input: {
           toolKey: 'funnel-pages',
           projectId: 'project-1',
+          model: 'openrouter/auto',
           apiBaseUrl: '',
           capabilities: { toolsUpload: true },
           userId: null,
@@ -460,12 +515,13 @@ describe('briefingUploadMachine', () => {
       actor.start();
 
       actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+      requestExtraction(actor);
 
       await waitFor(
         actor,
         (snapshot) =>
           snapshot.matches('idle')
-          && snapshot.context.error === 'Sessione non disponibile. Ricarica la pagina.',
+          && snapshot.context.error === appCopy.ui.session.unavailable,
       );
 
       expect(mockedRunExtraction).not.toHaveBeenCalled();
@@ -520,6 +576,7 @@ describe('briefingUploadMachine', () => {
 
       const actor = createMachineActor();
       actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+      requestExtraction(actor);
 
       await waitFor(actor, (snapshot) => snapshot.matches('ready'));
       expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');

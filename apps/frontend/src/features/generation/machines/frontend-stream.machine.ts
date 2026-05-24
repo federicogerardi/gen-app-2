@@ -9,6 +9,8 @@ import {
   normalizeTransportError,
   streamGeneration,
 } from '../runtime/generation-client';
+import { STREAM_CONFIG } from '../../../app/config/stream-config';
+import { UI_CONFIG } from '../../../app/config/ui-config';
 
 export type FrontendStreamStatus =
   | 'idle'
@@ -76,7 +78,7 @@ type FrontendStreamEvent =
 
 const computeReconnectDelay = (attempt: number, baseDelay: number, maxDelay: number): number => {
   const expDelay = Math.min(maxDelay, baseDelay * 2 ** Math.max(0, attempt - 1));
-  const jitter = Math.floor(Math.random() * 250);
+  const jitter = Math.floor(Math.random() * STREAM_CONFIG.reconnect.jitterMs);
   return expDelay + jitter;
 };
 
@@ -271,7 +273,7 @@ export const frontendStreamMachine = setup({
         const { checkpoint } = event;
         const index = context.checkpoints.findIndex((c) => c.artifactId === checkpoint.artifactId);
         if (index === -1) {
-          return [checkpoint, ...context.checkpoints].slice(0, 100);
+          return [checkpoint, ...context.checkpoints].slice(0, UI_CONFIG.limits.maxStoredCheckpoints);
         }
         const clone = [...context.checkpoints];
         clone[index] = checkpoint;
@@ -321,9 +323,9 @@ export const frontendStreamMachine = setup({
     errorCode: null,
     errorMessage: null,
     reconnectAttempts: 0,
-    maxReconnectAttempts: input.maxReconnectAttempts ?? 3,
-    reconnectBaseDelayMs: input.reconnectBaseDelayMs ?? 500,
-    reconnectMaxDelayMs: input.reconnectMaxDelayMs ?? 4000,
+    maxReconnectAttempts: input.maxReconnectAttempts ?? STREAM_CONFIG.reconnect.maxAttempts,
+    reconnectBaseDelayMs: input.reconnectBaseDelayMs ?? STREAM_CONFIG.reconnect.baseDelayMs,
+    reconnectMaxDelayMs: input.reconnectMaxDelayMs ?? STREAM_CONFIG.reconnect.maxDelayMs,
     hasTerminal: false,
     terminalCompletedStep: null,
     terminalFailedStep: null,

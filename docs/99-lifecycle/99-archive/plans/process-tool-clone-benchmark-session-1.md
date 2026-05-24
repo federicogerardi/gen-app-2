@@ -694,4 +694,4 @@ GO scope clarification:
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
 - `docs/04-testing/orchestrate-scalability-benchmark-2026-05-21.md`
-- `plan/process-orchestration-timeout-risk-closure-1.md`
+- `./process-orchestration-timeout-risk-closure-1.md`

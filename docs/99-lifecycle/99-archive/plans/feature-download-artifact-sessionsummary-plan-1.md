@@ -22,7 +22,7 @@ Canonical archive path:
 - `docs/99-lifecycle/99-archive/plans/feature-download-artifact-sessionsummary-plan-1.md`
 
 Original working copy path (deprecated):
-- `plan/feature-download-artifact-sessionsummary-1.md`
+- `./feature-download-artifact-sessionsummary-1.md`
 
 ## Completion Snapshot
 

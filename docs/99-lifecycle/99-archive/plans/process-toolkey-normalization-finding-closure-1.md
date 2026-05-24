@@ -127,4 +127,4 @@ This implementation plan defines deterministic phases to close finding F-01 (Dup
 - docs/07-governance/domain-naming-decision-log.md
 - docs/01-requirements/domain-ubiquitous-language-glossary.md
 - docs/02-design/domain-bounded-context-map.md
-- plan/process-tool-page-finding-closure-1.md
+- ./process-tool-page-finding-closure-1.md

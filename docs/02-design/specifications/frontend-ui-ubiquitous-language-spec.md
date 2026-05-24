@@ -203,7 +203,7 @@ Canonical composition:
 
 #### 3.2.3 Admin Overview companion layout (`/admin`)
 
-`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
+`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/api-services`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
 
 Canonical composition:
 
@@ -323,6 +323,7 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 | Page | Archetype declared | Drift resolved | Date |
 | --- | --- | --- | --- |
 | Admin Users (`/admin/users`) | Data Table View | Card-list → table with toolbar, bordered-chip row actions, inline edit row | 2026-05-08 |
+| Admin ApiServices (`/admin/api-services`) | Data Table View | Introduced canonical ApiService catalog + binding management surface with toolbar, table row actions, and scoped binding panel | 2026-05-24 |
 | Admin Overview (`/admin`) | Data Table View companion | Declared canonical operational-overview companion with persistent admin navigation + KPI widget state cards (`loading`/`empty`/`error`/`ready`) | 2026-05-17 |
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |

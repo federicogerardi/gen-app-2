@@ -2110,6 +2110,7 @@ button:not(.MuiButton-root):not([class]):disabled,
   display: grid;
   gap: var(--space-2);
   align-content: start;
+  min-width: 0;
 }
 
 .ui-tool-column-inputs {
@@ -2124,6 +2125,7 @@ button:not(.MuiButton-root):not([class]):disabled,
   border: 0;
   border-radius: 0;
   background: transparent;
+  min-width: 0;
 }
 
 .ui-tool-form {
@@ -2910,6 +2912,7 @@ ul {
   border-radius: 0;
   background: transparent;
   min-height: 0;
+  min-width: 0;
 }
 
 .ui-fv-dashboard {
@@ -2925,6 +2928,7 @@ ul {
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.7);
+  min-width: 0;
 }
 
 .ui-fv-card--progress {
@@ -2980,6 +2984,7 @@ ul {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .ui-fv-payload-item {

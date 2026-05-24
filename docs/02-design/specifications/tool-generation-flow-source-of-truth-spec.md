@@ -330,6 +330,11 @@ Deterministic eligibility rule:
 1. `Start Context Generation Action` is enabled only when every matrix entry classified as `always-required` or `required-by-tool-setting` is satisfied.
 2. Entries classified as `optional-by-tool-setting` are non-blocking and must never disable the primary pre-step CTA.
 
+Feature-flag adapter gate (as-is runtime):
+1. `api-acquisition` requiredness contributes to eligibility only when `VITE_FF_TOOLS_API_BINDING_STATUS = true`.
+2. Default runtime keeps the flag off, so current tools preserve legacy behavior and do not block on API binding resolution.
+3. When enabled, FE resolves binding connectivity through backend `GET /api/tools/api-services?apiServiceId=...` and projects `connected`/`disconnected` into the matrix.
+
 Readiness outcome matrix:
 
 | direct-input required | file required | api required | canStartContextGeneration | feedback |

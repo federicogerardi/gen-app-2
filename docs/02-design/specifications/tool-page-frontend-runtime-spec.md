@@ -507,7 +507,8 @@ All props come from `useToolPage` return value. Selected mapping:
 | `dispatchError` | `dispatchError` local state | Rendered as `<p className={uiPrimitives.error}>` near CTA (DDD-061) |
 | `briefingError` | `briefingSnapshot.context.error` | Fallback source for `errorMessage` in `ToolGenerationFlowVertical` |
 | `inputFilePayload` | Derived from `inputFiles` + briefing/angle file status | Passed to `ToolGenerationFlowVertical` (DDD-082) |
-| `inputRequirementMatrix` | `deriveToolInputRequirementMatrix({ toolKey, hasProjectSelected, completedFileKeys, apiAcquisitionStatus })` | Canonical pre-dispatch gate for `ToolInputRequirementMatrix` (DDD-090) |
+| `apiBindingStatusAdapter` | `useToolApiBindingStatusAdapter({ apiBaseUrl, capabilities, toolKey, apiAcquisitionInputs })` | Minimal backend-driven adapter for `api-acquisition` connection status (`connected`/`disconnected`) |
+| `inputRequirementMatrix` | `deriveToolInputRequirementMatrix({ toolKey, hasProjectSelected, completedFileKeys, includeApiAcquisition, apiAcquisitionStatus })` | Canonical pre-dispatch gate for `ToolInputRequirementMatrix` (DDD-090); `includeApiAcquisition` follows feature-flag adapter enablement |
 | `apiAcquisitionPayload` | Derived from `inputRequirementMatrix.entries` filtered by `sourceFamily = 'api-acquisition'` | Optional `ToolGenerationFlowVertical` section; empty for current tools |
 | `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Transitional aggregation artifact in `ToolPageTemplate`; canonical monitor contract is governed by DDD-084 |
 | `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
@@ -570,6 +571,12 @@ Policy semantics:
 - Entries with `optional-by-tool-setting` are advisory and non-blocking.
 - Source families are `direct-input`, `tool-input-file`, `api-acquisition`.
 
+Feature-flagged API binding adapter semantics:
+
+- Feature flag: `VITE_FF_TOOLS_API_BINDING_STATUS`.
+- Default behavior (flag missing/false): adapter is disabled and `api-acquisition` entries are excluded from readiness gating (`includeApiAcquisition = false`).
+- Enabled behavior (flag true): adapter resolves `connected`/`disconnected` by reading backend `GET /api/tools/api-services?apiServiceId=...` payload and includes `api-acquisition` entries in matrix gating.
+
 Primary context-generation CTA invariant:
 
 - CTA enabled iff `requiredEntriesSatisfied === true`.
@@ -604,6 +611,7 @@ Deterministic outcomes:
 |---|---|
 | `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` | 4/4 passing (2026-05-11). Covers: basic render, effect #7 dispatch flow, CANCEL_GENERATION recovery, ExtractionContextBridge idempotency |
 | `apps/frontend/src/features/tools/runtime/tools-client.test.ts` | `createStepRequest` + extraction assembly (lines 134–187) |
+| `apps/frontend/src/features/tools/runtime/tool-api-binding-status-adapter.test.ts` | Feature-flag default-off guard and backend resolve payload mapping to `connected` status |
 | `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.test.tsx` | 5/5 passing (2026-05-27). Covers: idle phase payload rows, feedback error/info items, monitoring phase indeterminate bar, completion phase, missing required file feedback |
 | `apps/frontend/src/features/tools/ui/ToolPageTemplate.open-session-cta.test.tsx` | DDD-088 regression guard: `open-last-artifact` CTA fires even when RHF validation would fail; prevents no-op click on `Apri sessione`. |
 
@@ -613,6 +621,7 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-05-24 | Added minimal backend-driven `apiBindingStatusAdapter` runtime notes in §9/§9b: `VITE_FF_TOOLS_API_BINDING_STATUS` keeps `api-acquisition` gating OFF by default; when enabled, readiness uses backend resolve status for binding-connected checks. Added regression test reference for `tool-api-binding-status-adapter.test.ts`. | AI-first doc session |
 | 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |
 | 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |

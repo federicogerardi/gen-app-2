@@ -81,6 +81,7 @@ export const createToolsApiServiceHandlers = (
         requestTemplateJson: service.requestTemplateJson,
         requestMappingRulesJson: service.requestMappingRulesJson,
         requestHeadersTemplateJson: service.requestHeadersTemplateJson,
+        tokenHeaderName: service.tokenHeaderName,
       },
       responseContractProfile: {
         responseMappingRulesJson: service.responseMappingRulesJson,

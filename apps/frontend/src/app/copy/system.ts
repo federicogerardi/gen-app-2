@@ -426,6 +426,7 @@ export const appCopy = {
       editSubmitLabel: 'Salva ApiService',
       advancedJsonSummary: 'JSON avanzato',
       advancedJsonHelper: 'Template e mapping JSON opzionali per casi di integrazione avanzata.',
+      tokenHeaderNameHelper: 'Vuoto = Authorization (Bearer). Esempi: Authorization, X-API-Key.',
       createSavingLabel: 'Salvataggio...',
       emptyApiServices: 'Nessun ApiService disponibile.',
       tableHeaders: {
@@ -461,6 +462,7 @@ export const appCopy = {
         resourcePath: 'Resource path',
         accessMode: 'Access mode',
         requestMethod: 'Request method',
+        tokenHeaderName: 'Token header name',
         timeoutMs: 'Timeout ms',
         retryCount: 'Retry count',
         contractProfileVersion: 'Contract profile version',

@@ -28,6 +28,7 @@ type TestApiService = {
   requestTemplateJson: Record<string, unknown>;
   requestMappingRulesJson: Array<Record<string, unknown>>;
   requestHeadersTemplateJson: Record<string, unknown>;
+  tokenHeaderName: string | null;
   responseMappingRulesJson: Array<Record<string, unknown>>;
   errorMappingRulesJson: Array<Record<string, unknown>>;
   contractProfileVersion: number;
@@ -95,6 +96,7 @@ beforeEach(() => {
       requestTemplateJson: {},
       requestMappingRulesJson: [],
       requestHeadersTemplateJson: {},
+      tokenHeaderName: null,
       responseMappingRulesJson: [],
       errorMappingRulesJson: [],
       contractProfileVersion: 1,
@@ -137,6 +139,7 @@ beforeEach(() => {
       requestTemplateJson: body.requestTemplateJson ?? {},
       requestMappingRulesJson: body.requestMappingRulesJson ?? [],
       requestHeadersTemplateJson: body.requestHeadersTemplateJson ?? {},
+      tokenHeaderName: typeof body.tokenHeaderName === 'string' ? body.tokenHeaderName : null,
       responseMappingRulesJson: body.responseMappingRulesJson ?? [],
       errorMappingRulesJson: body.errorMappingRulesJson ?? [],
       contractProfileVersion: body.contractProfileVersion ?? 1,
@@ -172,6 +175,7 @@ beforeEach(() => {
       ...(body.requestTemplateJson !== undefined ? { requestTemplateJson: body.requestTemplateJson } : {}),
       ...(body.requestMappingRulesJson !== undefined ? { requestMappingRulesJson: body.requestMappingRulesJson } : {}),
       ...(body.requestHeadersTemplateJson !== undefined ? { requestHeadersTemplateJson: body.requestHeadersTemplateJson } : {}),
+      ...(body.tokenHeaderName !== undefined ? { tokenHeaderName: typeof body.tokenHeaderName === 'string' ? body.tokenHeaderName : null } : {}),
       ...(body.responseMappingRulesJson !== undefined ? { responseMappingRulesJson: body.responseMappingRulesJson } : {}),
       ...(body.errorMappingRulesJson !== undefined ? { errorMappingRulesJson: body.errorMappingRulesJson } : {}),
       ...(body.contractProfileVersion !== undefined ? { contractProfileVersion: body.contractProfileVersion } : {}),
@@ -252,9 +256,11 @@ describe('AdminApiServicesPage', () => {
     fireEvent.change(createForm.querySelector('input[name="label"]')!, { target: { value: 'Billing API' } });
     fireEvent.change(createForm.querySelector('input[name="baseUrl"]')!, { target: { value: 'https://billing.example.com' } });
     fireEvent.change(createForm.querySelector('input[name="resourcePath"]')!, { target: { value: '/v2/billing' } });
+    fireEvent.change(createForm.querySelector('input[name="tokenHeaderName"]')!, { target: { value: 'X-API-Key' } });
     fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminApiServices.createSubmitLabel }));
 
     expect(await screen.findByText('Billing API')).toBeInTheDocument();
+    expect(apiServicesDb.find((service) => service.key === 'billing-api')?.tokenHeaderName).toBe('X-API-Key');
     expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
       appCopy.ui.feedback.adminApiServicesCreated,
       expect.objectContaining({ dedupeKey: 'admin-api-services:create:success' }),

@@ -27,6 +27,7 @@ const SELECT_COLS = `
   request_template_json,
   request_mapping_rules_json,
   request_headers_template_json,
+  token_header_name,
   response_mapping_rules_json,
   error_mapping_rules_json,
   contract_profile_version,
@@ -60,6 +61,7 @@ export type CreateApiServiceInput = {
   requestTemplateJson?: Record<string, unknown>;
   requestMappingRulesJson?: Array<Record<string, unknown>>;
   requestHeadersTemplateJson?: Record<string, unknown>;
+  tokenHeaderName?: string | null;
   responseMappingRulesJson?: Array<Record<string, unknown>>;
   errorMappingRulesJson?: Array<Record<string, unknown>>;
   contractProfileVersion?: number;
@@ -123,6 +125,7 @@ export const createApiService = async (
       request_template_json,
       request_mapping_rules_json,
       request_headers_template_json,
+      token_header_name,
       response_mapping_rules_json,
       error_mapping_rules_json,
       contract_profile_version,
@@ -130,7 +133,7 @@ export const createApiService = async (
       token_ciphertext,
       status
     )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12::jsonb, $13, $14, $15, $16)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13::jsonb, $14::jsonb, $15, $16, $17, $18)
      RETURNING ${SELECT_COLS}`,
     [
       payload.key,
@@ -140,9 +143,11 @@ export const createApiService = async (
       payload.accessMode,
       payload.timeoutMs ?? 10000,
       payload.retryCount ?? 1,
+      payload.requestMethod ?? 'GET',
       JSON.stringify(payload.requestTemplateJson ?? {}),
       JSON.stringify(payload.requestMappingRulesJson ?? []),
       JSON.stringify(payload.requestHeadersTemplateJson ?? {}),
+      payload.tokenHeaderName ?? null,
       JSON.stringify(payload.responseMappingRulesJson ?? []),
       JSON.stringify(payload.errorMappingRulesJson ?? []),
       payload.contractProfileVersion ?? 1,
@@ -212,6 +217,10 @@ export const updateApiService = async (
   if (payload.requestHeadersTemplateJson !== undefined) {
     setClauses.push(`request_headers_template_json = $${index++}::jsonb`);
     values.push(JSON.stringify(payload.requestHeadersTemplateJson));
+  }
+  if (payload.tokenHeaderName !== undefined) {
+    setClauses.push(`token_header_name = $${index++}`);
+    values.push(payload.tokenHeaderName);
   }
   if (payload.responseMappingRulesJson !== undefined) {
     setClauses.push(`response_mapping_rules_json = $${index++}::jsonb`);

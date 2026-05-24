@@ -16,6 +16,7 @@ const buildService = () => ({
   requestTemplateJson: {},
   requestMappingRulesJson: [],
   requestHeadersTemplateJson: {},
+  tokenHeaderName: null,
   responseMappingRulesJson: [],
   errorMappingRulesJson: [],
   contractProfileVersion: 1,
@@ -48,6 +49,85 @@ test('executeApiAcquisition builds GET call and normalizes json payload', async 
 
     assert.equal(result.statusCode, 200);
     assert.deepEqual(result.payload, { ok: true, source: 'api' });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('executeApiAcquisition injects Authorization bearer by default for token mode', async () => {
+  const originalFetch = global.fetch;
+  const observed: { headers: Record<string, string> | undefined } = {
+    headers: undefined,
+  };
+
+  global.fetch = (async (_, init) => {
+    observed.headers = init?.headers as Record<string, string>;
+
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ ok: true }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    const service = {
+      ...buildService(),
+      accessMode: 'token' as const,
+      tokenCiphertext: 'secret-token',
+      tokenHeaderName: null,
+    };
+
+    await executeApiAcquisition({ service });
+
+    assert.equal(observed.headers?.Authorization, 'Bearer secret-token');
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('executeApiAcquisition injects custom token header and overrides template collisions', async () => {
+  const originalFetch = global.fetch;
+  const observed: { headers: Record<string, string> | undefined } = {
+    headers: undefined,
+  };
+
+  global.fetch = (async (_, init) => {
+    observed.headers = init?.headers as Record<string, string>;
+
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ ok: true }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    const service = {
+      ...buildService(),
+      accessMode: 'token' as const,
+      tokenCiphertext: 'override-token',
+      tokenHeaderName: 'X-API-Key',
+      requestHeadersTemplateJson: {
+        'x-api-key': 'template-value',
+        'x-correlation-id': 'corr-1',
+      },
+    };
+
+    await executeApiAcquisition({ service });
+
+    assert.equal(observed.headers?.['X-API-Key'], 'override-token');
+    assert.equal(observed.headers?.['x-api-key'], undefined);
+    assert.equal(observed.headers?.['x-correlation-id'], 'corr-1');
+    assert.equal(observed.headers?.Authorization, undefined);
   } finally {
     global.fetch = originalFetch;
   }

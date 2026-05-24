@@ -30,6 +30,7 @@ const isValidJson = (value: string): boolean => {
 };
 
 const stringJson = (message: string) => z.string().refine((value) => isValidJson(value), message);
+const HEADER_NAME_REGEX = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/;
 
 export const adminApiServiceFormSchema = z.object({
   key: z.string().min(1, 'Key richiesto'),
@@ -38,6 +39,12 @@ export const adminApiServiceFormSchema = z.object({
   resourcePath: z.string().min(1, 'Resource path richiesta'),
   accessMode: z.enum(['public', 'token']),
   requestMethod: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+  tokenHeaderName: z.string().optional().refine((value) => {
+    if (!value?.trim()) {
+      return true;
+    }
+    return HEADER_NAME_REGEX.test(value.trim());
+  }, 'Token header name non valido'),
   timeoutMs: z.string().optional().refine((value) => !value?.trim() || Number.isInteger(Number(value)) && Number(value) >= 0, 'Timeout must be a non-negative integer'),
   retryCount: z.string().optional().refine((value) => !value?.trim() || Number.isInteger(Number(value)) && Number(value) >= 0, 'Retry count must be a non-negative integer'),
   contractProfileVersion: z.string().optional().refine((value) => !value?.trim() || Number.isInteger(Number(value)) && Number(value) >= 1, 'Contract profile version must be a positive integer'),
@@ -58,6 +65,7 @@ export const createEmptyAdminApiServiceForm = (): AdminApiServiceFormValues => (
   resourcePath: '',
   accessMode: 'public',
   requestMethod: 'GET',
+  tokenHeaderName: '',
   timeoutMs: '',
   retryCount: '',
   contractProfileVersion: '1',
@@ -76,6 +84,7 @@ export const createEditAdminApiServiceForm = (service: ApiService): AdminApiServ
   resourcePath: service.resourcePath,
   accessMode: service.accessMode,
   requestMethod: service.requestMethod,
+  tokenHeaderName: service.tokenHeaderName ?? '',
   timeoutMs: String(service.timeoutMs),
   retryCount: String(service.retryCount),
   contractProfileVersion: String(service.contractProfileVersion),
@@ -103,6 +112,14 @@ export const parsePositiveInteger = (value: string | undefined): number | undefi
 
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 1 ? parsed : undefined;
+};
+
+export const parseOptionalTokenHeaderName = (value: string | undefined): string | null => {
+  if (!value || !value.trim()) {
+    return null;
+  }
+
+  return value.trim();
 };
 
 export const parseJsonRecord = <T extends Record<string, unknown>>(value: string, fallback: T): T => {

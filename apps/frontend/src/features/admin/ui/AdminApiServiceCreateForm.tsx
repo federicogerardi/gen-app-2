@@ -57,6 +57,13 @@ export const AdminApiServiceCreateForm = ({
             <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
           ))}
         </TextField>
+        <TextField
+          label={appCopy.ui.adminApiServices.fieldLabels.tokenHeaderName}
+          {...register('tokenHeaderName')}
+          error={!!errors.tokenHeaderName}
+          helperText={errors.tokenHeaderName?.message ?? appCopy.ui.adminApiServices.tokenHeaderNameHelper}
+          fullWidth
+        />
         <TextField label={appCopy.ui.adminApiServices.fieldLabels.timeoutMs} type="number" {...register('timeoutMs')} error={!!errors.timeoutMs} helperText={errors.timeoutMs?.message} fullWidth />
         <TextField label={appCopy.ui.adminApiServices.fieldLabels.retryCount} type="number" {...register('retryCount')} error={!!errors.retryCount} helperText={errors.retryCount?.message} fullWidth />
         <TextField label={appCopy.ui.adminApiServices.fieldLabels.contractProfileVersion} type="number" {...register('contractProfileVersion')} error={!!errors.contractProfileVersion} helperText={errors.contractProfileVersion?.message} fullWidth />

@@ -13,6 +13,7 @@ import type { AuthRepositoryBundle } from '../../adapters';
 import type { AuthSessionPrincipal } from '../../types/auth';
 import type { ApiServiceAccessMode, ApiServiceStatus } from '../../types/api-service';
 import {
+  normalizeTokenHeaderName,
   toApiServiceRedactedDto,
   validateApiServiceInput,
 } from '../integrations/api-service-validation';
@@ -164,6 +165,9 @@ export const createAdminApiServiceHandlers = (
       ? body.contractProfileVersion
       : 1;
     const tokenRef = typeof body.tokenRef === 'string' ? body.tokenRef.trim() : null;
+    const tokenHeaderName = normalizeTokenHeaderName(
+      typeof body.tokenHeaderName === 'string' ? body.tokenHeaderName : null,
+    );
 
     if (!accessMode) {
       writeError(response, 400, 'bad_request', 'accessMode must be public or token');
@@ -184,6 +188,7 @@ export const createAdminApiServiceHandlers = (
       ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       ...(retryCount !== undefined ? { retryCount } : {}),
       ...(tokenRef !== null ? { tokenRef } : {}),
+      ...(tokenHeaderName !== null ? { tokenHeaderName } : {}),
     });
 
     if (validationErrors.length > 0) {
@@ -207,6 +212,7 @@ export const createAdminApiServiceHandlers = (
       errorMappingRulesJson,
       contractProfileVersion,
       tokenRef,
+      tokenHeaderName,
       status: 'active',
     });
 
@@ -253,6 +259,7 @@ export const createAdminApiServiceHandlers = (
       timeoutMs?: number;
       retryCount?: number;
       tokenRef?: string | null;
+      tokenHeaderName?: string | null;
       status?: ApiServiceStatus;
       requestMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
       requestTemplateJson?: Record<string, unknown>;
@@ -326,6 +333,16 @@ export const createAdminApiServiceHandlers = (
         return;
       }
       payload.tokenRef = body.tokenRef === null ? null : body.tokenRef.trim();
+    }
+
+    if (body.tokenHeaderName !== undefined) {
+      if (body.tokenHeaderName !== null && typeof body.tokenHeaderName !== 'string') {
+        writeError(response, 400, 'bad_request', 'tokenHeaderName must be a string or null');
+        return;
+      }
+      payload.tokenHeaderName = normalizeTokenHeaderName(
+        body.tokenHeaderName === null ? null : body.tokenHeaderName,
+      );
     }
 
     if (body.status !== undefined) {
@@ -413,6 +430,7 @@ export const createAdminApiServiceHandlers = (
       timeoutMs: payload.timeoutMs ?? current.timeoutMs,
       retryCount: payload.retryCount ?? current.retryCount,
       tokenRef: payload.tokenRef ?? current.tokenRef,
+      tokenHeaderName: payload.tokenHeaderName ?? current.tokenHeaderName,
     };
 
     const validationErrors = validateApiServiceInput(candidate);

@@ -67,6 +67,7 @@ export type ApiService = {
   requestTemplateJson: Record<string, unknown>;
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
+  tokenHeaderName: string | null;
   responseMappingRulesJson: ApiServiceResponseMappingRule[];
   errorMappingRulesJson: ApiServiceErrorMappingRule[];
   contractProfileVersion: number;
@@ -100,6 +101,7 @@ export type CreateAdminApiServiceInput = {
   requestTemplateJson?: Record<string, unknown>;
   requestMappingRulesJson?: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson?: Record<string, unknown>;
+  tokenHeaderName?: string | null;
   responseMappingRulesJson?: ApiServiceResponseMappingRule[];
   errorMappingRulesJson?: ApiServiceErrorMappingRule[];
   contractProfileVersion?: number;
@@ -165,6 +167,7 @@ const readApiService = (value: unknown): ApiService | null => {
   const accessMode = readString(service.accessMode) as ApiServiceAccessMode | null;
   const requestMethod = readString(service.requestMethod) as ApiServiceRequestMethod | null;
   const status = readString(service.status) as ApiServiceStatus | null;
+  const tokenHeaderNameRaw = service.tokenHeaderName;
   const createdAt = readString(service.createdAt);
   const updatedAt = readString(service.updatedAt);
 
@@ -185,6 +188,9 @@ const readApiService = (value: unknown): ApiService | null => {
     requestTemplateJson: readRecord(service.requestTemplateJson),
     requestMappingRulesJson: readArray<ApiServiceRequestMappingRule>(service.requestMappingRulesJson),
     requestHeadersTemplateJson: readRecord(service.requestHeadersTemplateJson),
+    tokenHeaderName: typeof tokenHeaderNameRaw === 'string'
+      ? tokenHeaderNameRaw
+      : null,
     responseMappingRulesJson: readArray<ApiServiceResponseMappingRule>(service.responseMappingRulesJson),
     errorMappingRulesJson: readArray<ApiServiceErrorMappingRule>(service.errorMappingRulesJson),
     contractProfileVersion: readNumber(service.contractProfileVersion) ?? 1,

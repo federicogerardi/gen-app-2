@@ -14,6 +14,7 @@ export type ApiServiceValidationInput = {
   timeoutMs?: number;
   retryCount?: number;
   tokenRef?: string | null;
+  tokenHeaderName?: string | null;
 };
 
 export type ToolStepBindingValidationInput = {
@@ -25,6 +26,7 @@ export type ToolStepBindingValidationInput = {
 };
 
 const API_SERVICE_KEY_REGEX = /^[a-zA-Z0-9:_-]{2,128}$/;
+const HEADER_NAME_REGEX = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/;
 const PATH_REGEX = /^[a-zA-Z0-9_.\[\]-]{1,256}$/;
 const MAPPING_RULE_RESERVED_RUNTIME_KEYS = new Set([
   'requestId',
@@ -181,6 +183,28 @@ export const validateToolStepBindingInput = (
   return errors;
 };
 
+export const normalizeTokenHeaderName = (value: string | null | undefined): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+export const validateTokenHeaderName = (value: string | null | undefined): string[] => {
+  const normalized = normalizeTokenHeaderName(value);
+  if (!normalized) {
+    return [];
+  }
+
+  if (!HEADER_NAME_REGEX.test(normalized)) {
+    return ['tokenHeaderName must be a valid HTTP header name'];
+  }
+
+  return [];
+};
+
 export const validateApiServiceInput = (payload: ApiServiceValidationInput): string[] => {
   const errors: string[] = [];
 
@@ -220,6 +244,8 @@ export const validateApiServiceInput = (payload: ApiServiceValidationInput): str
   if (payload.accessMode === 'token' && (!payload.tokenRef || payload.tokenRef.trim().length === 0)) {
     errors.push('tokenRef is required when accessMode is token');
   }
+
+  errors.push(...validateTokenHeaderName(payload.tokenHeaderName));
 
   return errors;
 };

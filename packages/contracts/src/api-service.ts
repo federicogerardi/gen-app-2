@@ -31,6 +31,7 @@ export type ApiServiceRequestContractProfile = {
   requestTemplateJson: Record<string, unknown>;
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
+  tokenHeaderName?: string | null;
 };
 
 export type ApiServiceResponseContractProfile = {
@@ -71,6 +72,7 @@ export type ApiServiceDto = {
   retryCount: number;
   status: ApiServiceStatus;
   tokenRef: string | null;
+  tokenHeaderName?: string | null;
   tokenConfigured: boolean;
   requestContractProfile?: ApiServiceRequestContractProfile;
   responseContractProfile?: ApiServiceResponseContractProfile;
@@ -87,6 +89,7 @@ export type CreateApiServiceCommand = {
   timeoutMs?: number;
   retryCount?: number;
   tokenRef?: string | null;
+  tokenHeaderName?: string | null;
 };
 
 export type UpdateApiServiceCommand = Partial<CreateApiServiceCommand> & {

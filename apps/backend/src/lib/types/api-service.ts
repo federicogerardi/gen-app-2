@@ -39,6 +39,7 @@ export type ApiService = {
   requestTemplateJson: Record<string, unknown>;
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
+  tokenHeaderName: string | null;
   responseMappingRulesJson: ApiServiceResponseMappingRule[];
   errorMappingRulesJson: ApiServiceErrorMappingRule[];
   contractProfileVersion: number;
@@ -73,6 +74,7 @@ export type ApiServiceRedactedDto = {
   requestTemplateJson: Record<string, unknown>;
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
+  tokenHeaderName: string | null;
   responseMappingRulesJson: ApiServiceResponseMappingRule[];
   errorMappingRulesJson: ApiServiceErrorMappingRule[];
   contractProfileVersion: number;
@@ -96,6 +98,7 @@ export type ApiServiceRow = {
   request_template_json?: unknown;
   request_mapping_rules_json?: unknown;
   request_headers_template_json?: unknown;
+  token_header_name: string | null;
   response_mapping_rules_json?: unknown;
   error_mapping_rules_json?: unknown;
   contract_profile_version?: number;
@@ -153,6 +156,7 @@ export const rowToApiService = (row: ApiServiceRow): ApiService => ({
   requestTemplateJson: asRecord(row.request_template_json),
   requestMappingRulesJson: asArray<ApiServiceRequestMappingRule>(row.request_mapping_rules_json),
   requestHeadersTemplateJson: asRecord(row.request_headers_template_json),
+  tokenHeaderName: row.token_header_name,
   responseMappingRulesJson: asArray<ApiServiceResponseMappingRule>(row.response_mapping_rules_json),
   errorMappingRulesJson: asArray<ApiServiceErrorMappingRule>(row.error_mapping_rules_json),
   contractProfileVersion: row.contract_profile_version ?? 1,
@@ -178,6 +182,7 @@ export const toApiServiceRedactedDto = (
   requestTemplateJson: service.requestTemplateJson,
   requestMappingRulesJson: service.requestMappingRulesJson,
   requestHeadersTemplateJson: service.requestHeadersTemplateJson,
+  tokenHeaderName: service.tokenHeaderName,
   responseMappingRulesJson: service.responseMappingRulesJson,
   errorMappingRulesJson: service.errorMappingRulesJson,
   contractProfileVersion: service.contractProfileVersion,

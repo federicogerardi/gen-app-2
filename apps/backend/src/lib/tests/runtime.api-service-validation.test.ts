@@ -38,6 +38,30 @@ test('validateApiServiceInput rejects token mode without tokenRef', () => {
   assert.ok(errors.includes('tokenRef is required when accessMode is token'));
 });
 
+test('validateApiServiceInput accepts valid tokenHeaderName and rejects invalid names', () => {
+  const validErrors = validateApiServiceInput({
+    key: 'private-api',
+    label: 'Private API',
+    baseUrl: 'https://example.com',
+    resourcePath: '/v1/resources',
+    accessMode: 'token',
+    tokenRef: 'vault://service/private',
+    tokenHeaderName: 'X-API-Key',
+  });
+  assert.deepEqual(validErrors, []);
+
+  const invalidErrors = validateApiServiceInput({
+    key: 'private-api',
+    label: 'Private API',
+    baseUrl: 'https://example.com',
+    resourcePath: '/v1/resources',
+    accessMode: 'token',
+    tokenRef: 'vault://service/private',
+    tokenHeaderName: 'Invalid Header Name',
+  });
+  assert.ok(invalidErrors.includes('tokenHeaderName must be a valid HTTP header name'));
+});
+
 test('toApiServiceRedactedDto never exposes secrets and marks tokenConfigured', () => {
   const service: ApiService = {
     id: 'svc_1',
@@ -52,6 +76,7 @@ test('toApiServiceRedactedDto never exposes secrets and marks tokenConfigured', 
     requestTemplateJson: {},
     requestMappingRulesJson: [],
     requestHeadersTemplateJson: {},
+    tokenHeaderName: 'X-API-Key',
     responseMappingRulesJson: [],
     errorMappingRulesJson: [],
     contractProfileVersion: 1,
@@ -66,6 +91,7 @@ test('toApiServiceRedactedDto never exposes secrets and marks tokenConfigured', 
   assert.equal(dto.id, 'svc_1');
   assert.equal(dto.tokenConfigured, true);
   assert.equal(dto.tokenRef, 'vault://services/github');
+  assert.equal(dto.tokenHeaderName, 'X-API-Key');
   assert.equal('tokenCiphertext' in (dto as Record<string, unknown>), false);
 });
 

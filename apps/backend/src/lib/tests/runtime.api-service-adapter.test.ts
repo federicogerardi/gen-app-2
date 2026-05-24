@@ -25,6 +25,7 @@ type ApiServiceStoreRow = {
   request_template_json: Record<string, unknown>;
   request_mapping_rules_json: Array<Record<string, unknown>>;
   request_headers_template_json: Record<string, unknown>;
+  token_header_name: string | null;
   response_mapping_rules_json: Array<Record<string, unknown>>;
   error_mapping_rules_json: Array<Record<string, unknown>>;
   contract_profile_version: number;
@@ -62,16 +63,17 @@ class ApiServiceDbStub {
         access_mode: values[4] as ApiServiceStoreRow['access_mode'],
         timeout_ms: Number(values[5]),
         retry_count: Number(values[6]),
-        request_method: 'GET',
-        request_template_json: {},
-        request_mapping_rules_json: [],
-        request_headers_template_json: {},
-        response_mapping_rules_json: [],
-        error_mapping_rules_json: [],
-        contract_profile_version: 1,
-        token_ref: (values[13] as string | null) ?? null,
-        token_ciphertext: (values[14] as string | null) ?? null,
-        status: (values[15] as ApiServiceStoreRow['status']) ?? 'active',
+        request_method: (values[7] as ApiServiceStoreRow['request_method']) ?? 'GET',
+        request_template_json: JSON.parse(String(values[8] ?? '{}')) as Record<string, unknown>,
+        request_mapping_rules_json: JSON.parse(String(values[9] ?? '[]')) as Array<Record<string, unknown>>,
+        request_headers_template_json: JSON.parse(String(values[10] ?? '{}')) as Record<string, unknown>,
+        token_header_name: (values[11] as string | null) ?? null,
+        response_mapping_rules_json: JSON.parse(String(values[12] ?? '[]')) as Array<Record<string, unknown>>,
+        error_mapping_rules_json: JSON.parse(String(values[13] ?? '[]')) as Array<Record<string, unknown>>,
+        contract_profile_version: Number(values[14] ?? 1),
+        token_ref: (values[15] as string | null) ?? null,
+        token_ciphertext: (values[16] as string | null) ?? null,
+        status: (values[17] as ApiServiceStoreRow['status']) ?? 'active',
         created_at: new Date('2026-05-24T10:00:00.000Z'),
         updated_at: new Date('2026-05-24T10:00:00.000Z'),
       };

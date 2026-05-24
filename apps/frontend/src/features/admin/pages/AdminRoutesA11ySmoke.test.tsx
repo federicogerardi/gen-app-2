@@ -119,6 +119,7 @@ beforeEach(() => {
             requestTemplateJson: {},
             requestMappingRulesJson: [],
             requestHeadersTemplateJson: {},
+            tokenHeaderName: null,
             responseMappingRulesJson: [],
             errorMappingRulesJson: [],
             contractProfileVersion: 1,

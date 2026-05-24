@@ -1,4 +1,8 @@
 import type { ResolvedApiServiceForAcquisition } from '../../adapters/api-service.adapter';
+import {
+  normalizeTokenHeaderName,
+  validateTokenHeaderName,
+} from './api-service-validation';
 
 export type ApiAcquisitionExecutionInput = {
   service: ResolvedApiServiceForAcquisition;
@@ -94,6 +98,34 @@ const normalizeStringRecord = (value: unknown): Record<string, string> => {
     output[key] = String(item);
   }
   return output;
+};
+
+const upsertHeaderCaseInsensitive = (
+  headers: Record<string, string>,
+  headerName: string,
+  value: string,
+): void => {
+  const normalizedKey = headerName.toLowerCase();
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === normalizedKey) {
+      delete headers[key];
+    }
+  }
+  headers[headerName] = value;
+};
+
+const resolveTokenHeaderName = (service: ResolvedApiServiceForAcquisition): string => {
+  const normalized = normalizeTokenHeaderName(service.tokenHeaderName);
+  if (!normalized) {
+    return 'Authorization';
+  }
+
+  const validationErrors = validateTokenHeaderName(normalized);
+  if (validationErrors.length > 0) {
+    throw new Error(validationErrors.join('; '));
+  }
+
+  return normalized;
 };
 
 const buildLegacyEnvelope = (input: ApiAcquisitionExecutionInput): RequestEnvelope => {
@@ -322,7 +354,11 @@ export const executeApiAcquisition = async (
       };
 
       if (input.service.accessMode === 'token' && input.service.tokenCiphertext) {
-        headers.authorization = `Bearer ${input.service.tokenCiphertext}`;
+        const tokenHeaderName = resolveTokenHeaderName(input.service);
+        const tokenValue = tokenHeaderName.toLowerCase() === 'authorization'
+          ? `Bearer ${input.service.tokenCiphertext}`
+          : input.service.tokenCiphertext;
+        upsertHeaderCaseInsensitive(headers, tokenHeaderName, tokenValue);
       }
 
       const method = requestEnvelope.method;

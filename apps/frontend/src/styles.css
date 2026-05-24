@@ -2987,6 +2987,7 @@ ul {
   align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
+  min-width: 0;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border-subtle);
   border-radius: 9px;
@@ -3019,6 +3020,7 @@ ul {
 }
 
 .ui-fv-payload-item-main {
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -3043,6 +3045,9 @@ ul {
 }
 
 .ui-fv-payload-filename {
+  display: block;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

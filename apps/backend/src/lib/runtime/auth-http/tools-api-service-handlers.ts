@@ -64,6 +64,12 @@ export const createToolsApiServiceHandlers = (
       return;
     }
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(apiServiceId)) {
+      writeError(response, 400, 'bad_request', 'apiServiceId must be a valid UUID');
+      return;
+    }
+
     const service = await resolveApiServiceForAcquisition(db, apiServiceId);
     if (!service) {
       writeError(response, 404, 'not_found', 'ApiService not found');

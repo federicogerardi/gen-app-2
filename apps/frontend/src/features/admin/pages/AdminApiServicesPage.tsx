@@ -26,14 +26,15 @@ import {
   parseJsonArray,
   parseJsonRecord,
   parseOptionalTokenHeaderName,
-  parseOptionalInteger,
+  parseTimeoutMs,
+  parseRetryCount,
   parsePositiveInteger,
   type AdminApiServiceFormValues,
 } from '../runtime/admin-api-service-form';
 
 const toCreateInput = (values: AdminApiServiceFormValues): CreateAdminApiServiceInput => {
-  const timeoutMs = parseOptionalInteger(values.timeoutMs);
-  const retryCount = parseOptionalInteger(values.retryCount);
+  const timeoutMs = parseTimeoutMs(values.timeoutMs);
+  const retryCount = parseRetryCount(values.retryCount);
   const contractProfileVersion = parsePositiveInteger(values.contractProfileVersion);
 
   return {
@@ -57,8 +58,8 @@ const toCreateInput = (values: AdminApiServiceFormValues): CreateAdminApiService
 };
 
 const toUpdateInput = (values: AdminApiServiceFormValues): UpdateAdminApiServiceInput => {
-  const timeoutMs = parseOptionalInteger(values.timeoutMs);
-  const retryCount = parseOptionalInteger(values.retryCount);
+  const timeoutMs = parseTimeoutMs(values.timeoutMs);
+  const retryCount = parseRetryCount(values.retryCount);
   const contractProfileVersion = parsePositiveInteger(values.contractProfileVersion);
 
   return {
@@ -183,7 +184,6 @@ export const AdminApiServicesPage = () => {
           handleSubmit={createForm.handleSubmit}
           onSubmit={async (values) => { await createApiService(toCreateInput(values)); }}
           onCancel={() => createForm.reset(createEmptyAdminApiServiceForm())}
-          resetTo={createEmptyAdminApiServiceForm()}
         />
       ) : null}
 
@@ -198,7 +198,6 @@ export const AdminApiServicesPage = () => {
           handleSubmit={editForm.handleSubmit}
           onSubmit={async (values) => { await updateApiService(editingApiService.id, toUpdateInput(values)); }}
           onCancel={closeEditForm}
-          resetTo={createEditAdminApiServiceForm(editingApiService)}
         />
       ) : null}
 

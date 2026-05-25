@@ -20,7 +20,6 @@ type AdminApiServiceCreateFormProps = {
   handleSubmit: UseFormHandleSubmit<AdminApiServiceFormValues>;
   onSubmit: (data: AdminApiServiceFormValues) => Promise<void>;
   onCancel: () => void;
-  resetTo: AdminApiServiceFormValues;
 };
 
 export const AdminApiServiceCreateForm = ({
@@ -33,7 +32,6 @@ export const AdminApiServiceCreateForm = ({
   handleSubmit,
   onSubmit,
   onCancel,
-  resetTo,
 }: AdminApiServiceCreateFormProps) => {
   return (
     <Surface as="form" className="ui-admin-api-service-form" onSubmit={handleSubmit((data) => void onSubmit(data))}>
@@ -133,10 +131,7 @@ export const AdminApiServiceCreateForm = ({
         <MuiButton type="button" variant="outlined" disabled={busyAction !== null} onClick={() => onCancel()}>
           {appCopy.ui.actions.reset}
         </MuiButton>
-        <button type="button" hidden onClick={() => { /* deterministic reset target */ }} />
       </div>
-      <button type="button" hidden onClick={() => { /* reset target retained by caller */ }} />
-      <input type="hidden" aria-hidden="true" value={JSON.stringify(resetTo)} readOnly />
     </Surface>
   );
 };

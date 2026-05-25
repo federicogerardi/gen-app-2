@@ -7,7 +7,7 @@ import { useAuthSession } from '../providers/AuthSessionProvider';
 import { isUserAdmin } from '../runtime/user-roles';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
 import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
-import { isToolEnabled } from '../../features/tools/runtime/tool-form-architecture';
+import { isToolEnabled, getToolRoute } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 import { PageLoader } from '../ui/PageLoader';
 
@@ -40,14 +40,6 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'youtube-lf-script': YoutubeLfScriptToolPage,
   'angle-generator': AngleGeneratorToolPage,
   'meta-ads': MetaAdsToolPage,
-};
-
-const toolRouteByKey: Record<SupportedTool, string> = {
-  'funnel-pages': '/tools/funnel-pages',
-  nextland: '/tools/nextland',
-  'youtube-lf-script': '/tools/youtube-lf-script',
-  'angle-generator': '/tools/angle-generator',
-  'meta-ads': '/tools/meta-ads',
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
@@ -135,9 +127,10 @@ export const createAppRouter = () => createBrowserRouter([
       ...Object.keys(toolPageComponents).map((toolKey) => {
         const typedToolKey = toolKey as SupportedTool;
         const ToolPage = toolPageComponents[typedToolKey];
+        const route = getToolRoute(typedToolKey) ?? `/tools/${typedToolKey}`;
 
         return {
-          path: toolRouteByKey[typedToolKey],
+          path: route,
           element: (
             <ToolRouteGuard toolKey={typedToolKey}>
               <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>

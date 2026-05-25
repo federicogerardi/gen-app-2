@@ -2,9 +2,9 @@
 goal: [Short statement of the tool plan objective]
 version: 1.1
 date_created: [YYYY-MM-DD]
-last_updated: 2026-05-24
-last-reviewed: 2026-05-24
-next-review-date: 2026-08-22
+last_updated: [YYYY-MM-DD]
+last-reviewed: [YYYY-MM-DD]
+next-review-date: [YYYY-MM-DD]
 owner: [Team or role]
 status: draft
 tags: [plan, tool-workspace, backend, frontend, ddd, validation]

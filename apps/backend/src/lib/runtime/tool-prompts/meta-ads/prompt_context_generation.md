@@ -19,7 +19,7 @@ Transform the extracted Meta Ads context into an activation-ready strategy canva
 ## Output rules
 
 - Markdown only.
-- English only.
+- Italian only (`it-IT`).
 - No JSON.
 - No invented claims.
 - Keep each recommendation tied to the extracted context.

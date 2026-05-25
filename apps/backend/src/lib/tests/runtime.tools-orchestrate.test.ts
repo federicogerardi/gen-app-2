@@ -785,7 +785,9 @@ test('/api/tools/orchestrate uses default timeout config when env key is absent'
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 3000);
+    assert.equal(startMeta.deadlineMs, 5000);
+    assert.equal(startMeta.artifactScanLimit, 120);
+    assert.equal(startMeta.artifactScanLimitConfigured, 1000);
     assert.equal(startMeta.artifactSummaryCount, 0);
     assert.equal(startMeta.artifactDetailBatchCount, 0);
     assert.equal(typeof startMeta.elapsedMs, 'number');
@@ -854,7 +856,7 @@ test('/api/tools/orchestrate falls back to default timeout when env key is inval
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 3000);
+    assert.equal(startMeta.deadlineMs, 5000);
   } finally {
     if (typeof originalTimeoutEnv === 'string') {
       process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;

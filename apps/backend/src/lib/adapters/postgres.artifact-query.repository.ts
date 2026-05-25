@@ -216,7 +216,7 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         a.id,
         a.request_id,
         a.user_id,
-        u.email AS user_email,
+        NULL::text AS user_email,
         a.project_id,
         a.type,
         a.status,
@@ -229,7 +229,6 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         a.created_at,
         a.updated_at
       FROM ${this.artifactsTableName} a
-      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
       WHERE a.user_id = $1
         AND a.project_id = $2
         AND a.status = 'completed'

@@ -2,12 +2,16 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { EmptyStateMessage, Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { isUserAdmin } from '../../../app/runtime/user-roles';
 import {
   getEnabledToolNavigationItems,
 } from '../runtime/tool-form-architecture';
 
 export const ToolsHubPage = () => {
-  const toolItems = getEnabledToolNavigationItems();
+  const auth = useAuthSession();
+  const role = auth.session && isUserAdmin(auth.session.user.role) ? 'admin' : 'member';
+  const toolItems = getEnabledToolNavigationItems(role);
 
   return (
     <Surface as="section" className={uiPrimitives.stack}>

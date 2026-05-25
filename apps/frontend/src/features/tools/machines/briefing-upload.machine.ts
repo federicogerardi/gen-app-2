@@ -12,6 +12,7 @@ export type BriefingUploadContext = {
   projectId: string;
   toolKey: SupportedTool;
   model: string;
+  campaignObjective: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
   userId: string | null;
@@ -55,6 +56,7 @@ type BriefingUploadInput = {
   projectId: string;
   toolKey: SupportedTool;
   model: string;
+  campaignObjective?: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
   userId: string | null;
@@ -67,6 +69,7 @@ type BriefingUploadEvent =
       type: 'INPUT_SYNCED';
       projectId: string;
       model: string;
+      campaignObjective?: string;
       apiBaseUrl: string;
       capabilities: Partial<BackendCapabilities>;
       userId: string | null;
@@ -147,6 +150,35 @@ const readExtractionDoneOutput = (event: unknown): RunExtractionResult | null =>
   };
 };
 
+const mergeMetaAdsCampaignObjective = ({
+  toolKey,
+  payload,
+  campaignObjective,
+}: {
+  toolKey: SupportedTool;
+  payload: Record<string, unknown>;
+  campaignObjective: string;
+}): Record<string, unknown> => {
+  if (toolKey !== 'meta-ads') {
+    return payload;
+  }
+
+  const normalizedCampaignObjective = campaignObjective.trim();
+  if (normalizedCampaignObjective.length === 0) {
+    return payload;
+  }
+
+  const currentValue = payload.campaign_objective;
+  if (typeof currentValue === 'string' && currentValue.trim().length > 0) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    campaign_objective: normalizedCampaignObjective,
+  };
+};
+
 export const briefingUploadMachine = setup({
   types: {
     context: {} as BriefingUploadContext,
@@ -183,6 +215,7 @@ export const briefingUploadMachine = setup({
         projectId: string;
         toolKey: SupportedTool;
         model: string;
+        campaignObjective: string;
         briefingId: string;
         briefingText: string;
         extractionPayload: Record<string, unknown>;
@@ -198,7 +231,11 @@ export const briefingUploadMachine = setup({
           model: input.model,
           briefingId: input.briefingId,
           briefingText: input.briefingText,
-          extractionPayload: input.extractionPayload,
+          extractionPayload: mergeMetaAdsCampaignObjective({
+            toolKey: input.toolKey,
+            payload: input.extractionPayload,
+            campaignObjective: input.campaignObjective,
+          }),
           registrySnapshotRef: 'snapshot:default',
         },
         {
@@ -249,10 +286,15 @@ export const briefingUploadMachine = setup({
     hasUserId: ({ context }) => context.userId != null,
     extractionResultIsValid: ({ context, event }) => {
       const output = readExtractionDoneOutput(event);
+      const payload = mergeMetaAdsCampaignObjective({
+        toolKey: context.toolKey,
+        payload: output?.payload ?? {},
+        campaignObjective: context.campaignObjective,
+      });
 
       return isExtractionContextValidForTool(
         context.toolKey,
-        output?.payload ?? null,
+        payload,
         context.normalizedText,
       );
     },
@@ -319,6 +361,7 @@ export const briefingUploadMachine = setup({
         model: typeof event.model === 'string' && event.model.trim().length > 0
           ? event.model
           : context.model,
+        campaignObjective: event.campaignObjective ?? context.campaignObjective,
         apiBaseUrl: event.apiBaseUrl,
         capabilities: event.capabilities,
         userId: event.userId,
@@ -361,6 +404,7 @@ export const briefingUploadMachine = setup({
     projectId: input.projectId,
     toolKey: input.toolKey,
     model: input.model,
+    campaignObjective: input.campaignObjective ?? '',
     apiBaseUrl: input.apiBaseUrl,
     capabilities: input.capabilities,
     userId: input.userId,
@@ -542,6 +586,7 @@ export const briefingUploadMachine = setup({
           projectId: context.projectId.trim(),
           toolKey: context.toolKey,
           model: context.model,
+          campaignObjective: context.campaignObjective,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           briefingId: context.briefingId!,
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -589,7 +634,11 @@ export const briefingUploadMachine = setup({
               return {
                 ...context,
                 extractionArtifactId: output.artifactId,
-                extractionPayload: output.payload,
+                extractionPayload: mergeMetaAdsCampaignObjective({
+                  toolKey: context.toolKey,
+                  payload: output.payload,
+                  campaignObjective: context.campaignObjective,
+                }),
                 error: null,
               };
             }),

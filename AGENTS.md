@@ -68,6 +68,12 @@ Smoke scripts that require env loading locally:
 - set -a && . ./.env.local && set +a && npm run test:smoke
 - set -a && . ./.env.local && set +a && npm run backend:go
 
+## Terminal Output Capture Policy
+- When terminal output is needed for analysis, verification, or reporting, prefer deterministic file capture over direct console scraping.
+- Use stdout/stderr redirection to a workspace file and read the file content afterward (example: `npm run test > .tmp/test-output.log 2>&1`).
+- For application test execution, this strategy is mandatory and must be applied rigorously to avoid repeated output-acquisition failures.
+- Keep one log file per command/run, then overwrite or rotate intentionally to prevent mixing outputs from different runs.
+
 ## Dependency And Lockfile Safety
 If any package.json changes, regenerate lockfiles via npm only (never hand-edit lockfiles).
 

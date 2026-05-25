@@ -1,11 +1,13 @@
 import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
+import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
+  CacheAcquisitionResultParams,
   CacheExtractionResultParams,
   CacheReplayPayloadParams,
   CacheRequestMetaParams,
@@ -39,6 +41,7 @@ type GenerationSystemActionObject =
   | { type: 'ensureArtifactId'; params: undefined }
   | { type: 'cacheSyntheticChunk'; params: undefined }
   | { type: 'cacheStreamResult'; params: CacheStreamResultParams }
+  | { type: 'cacheAcquisitionResult'; params: CacheAcquisitionResultParams }
   | { type: 'cacheExtractionResult'; params: CacheExtractionResultParams }
   | { type: 'drivePersistenceFinalizeSuccess'; params: undefined }
   | { type: 'drivePersistenceFinalizeFailure'; params: undefined }
@@ -56,6 +59,7 @@ type GenerationSystemGuardObject =
   | { type: 'routeIsExtraction'; params: unknown }
   | { type: 'routeIsTool'; params: unknown }
   | { type: 'routeIsGeneric'; params: unknown }
+  | { type: 'hasApiAcquisition'; params: unknown }
   | { type: 'idempotencyOutputIsReplay'; params: unknown }
   | { type: 'idempotencyOutputIsConflict'; params: unknown }
   | { type: 'usageOutputIsRejected'; params: unknown }
@@ -63,6 +67,7 @@ type GenerationSystemGuardObject =
   | { type: 'streamOutputIsFailure'; params: unknown }
   | { type: 'streamOutputIsEmptySuccess'; params: unknown }
   | { type: 'extractionOutputIsAccepted'; params: unknown }
+  | { type: 'acquisitionOutputIsAccepted'; params: unknown }
   | { type: 'toolOutputIsCompleted'; params: unknown };
 
 type GenerationAssignment<TParams extends ParameterizedObject['params'] | undefined> =
@@ -207,6 +212,10 @@ export const generationSystemActions = {
       params.outputTokens > 0 ? params.outputTokens : context.outputTokens,
     costUsd: ({ context }: GenerationActionArgs, params: CacheStreamResultParams) =>
       params.costUsd > 0 ? params.costUsd : context.costUsd,
+  }),
+  cacheAcquisitionResult: assignGeneration<CacheAcquisitionResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheAcquisitionResultParams) =>
+      mergeAcquisitionIntoGenerationInput(context.requestInput, params.payload),
   }),
   cacheExtractionResult: assignGeneration<CacheExtractionResultParams>({
     contentBuffer: (_: GenerationActionArgs, params: CacheExtractionResultParams) => params.content,

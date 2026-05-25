@@ -199,6 +199,8 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
   - `useArtifactsQuery`
   - `useArtifactDetailQuery`
   - `useAdminUsersQuery`
+  - `useAdminApiServicesQuery`
+  - `useAdminApiServiceBindingsQuery`
 - Shape condivisa del contratto hook:
   - `data`
   - `loading`
@@ -207,7 +209,7 @@ Lo stato as-is del frontend include ora un layer condiviso per accesso dati e ca
 
 ### Adozione corrente
 
-- `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage` e `AdminUsersPage` usano i query hooks condivisi.
+- `ProjectsListPage`, `ProjectDetailPage`, `ArtifactsPage`, `ArtifactDetailPage`, `AdminUsersPage` e `AdminApiServicesPage` usano i query hooks condivisi.
 - `ProjectDetailPage` usa `SessionsListingSection` con sorgente `SessionSummary[]` filtrata per `projectId`.
 - Il pattern `useEffect + IIFE async` è stato eliminato da queste pagine. Non è più presente in nessun punto del codebase attivo (`GenerationConsolePage` è deprecata, DDD-071, 2026-05-21).
 

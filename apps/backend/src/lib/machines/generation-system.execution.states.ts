@@ -1,4 +1,10 @@
-import { getExtractionResultParams, getInvokeFailureReason, getStreamResultParams, getToolDoneOutput } from './generation-system.events';
+import {
+  getAcquisitionResultParams,
+  getExtractionResultParams,
+  getInvokeFailureReason,
+  getStreamResultParams,
+  getToolDoneOutput,
+} from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
 import {
   getRegistrySelector,
@@ -57,6 +63,11 @@ export const generationSystemExecutionStates = {
     entry: ['ensureArtifactId'],
     always: [
       {
+        guard: ({ context }: ContextArgs) =>
+          resolveWorkflowRunMode(context) === 'new' && context.routeType === 'tool',
+        target: 'acquiringContext',
+      },
+      {
         guard: ({ context }: ContextArgs) => resolveWorkflowRunMode(context) === 'new',
         target: 'streaming',
       },
@@ -112,6 +123,35 @@ export const generationSystemExecutionStates = {
           type: 'queueFallbackDecision',
           params: {
             defaultReason: 'workflow_failed',
+          },
+        },
+      },
+    },
+  },
+  acquiringContext: {
+    invoke: {
+      id: 'acquisitionActor',
+      src: 'invokeApiAcquisition',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'acquisitionOutputIsAccepted',
+          target: 'streaming',
+          actions: {
+            type: 'cacheAcquisitionResult',
+            params: ({ event }: UnknownEventArgs) => getAcquisitionResultParams(event),
+          },
+        },
+        {
+          target: 'streaming',
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: {
+            defaultReason: 'acquisition_failed',
           },
         },
       },

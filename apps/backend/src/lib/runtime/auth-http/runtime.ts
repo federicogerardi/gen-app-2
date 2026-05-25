@@ -215,6 +215,7 @@ export const createAuthHttpRuntime = (
     toolsOrchestrateTimeoutMs,
     toolsOrchestrateArtifactScanLimit,
     toolsHydrateArtifactScanLimit,
+    requireDb,
     parseRequestUrl,
     parseJsonBody,
     requireSessionPrincipal,

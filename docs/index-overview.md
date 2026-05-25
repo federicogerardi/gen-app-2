@@ -113,6 +113,10 @@ Validation path manifest (orphan-check canonical set):
 - [architecture-weaknesses-code-review-2026-05-21](./07-governance/architecture-weaknesses-code-review-2026-05-21.md)
 - [architecture-weaknesses-code-review-severe-2026-05-21](./07-governance/architecture-weaknesses-code-review-severe-2026-05-21.md)
 
+### Governance Tables
+
+- [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
+
 ## Archive Registry
 
 Archive folder is maintained for future reference and historical context. See [99-lifecycle/99-archive](./99-lifecycle/99-archive/).

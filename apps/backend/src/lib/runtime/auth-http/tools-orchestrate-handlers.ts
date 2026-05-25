@@ -19,6 +19,7 @@ import {
   isSupportedToolWorkflow,
   resolveStepDependencyIds,
 } from '../tool-workflow-registry';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 
 type ToolOrchestrationRequestBody = {
@@ -115,6 +116,11 @@ export const createToolsOrchestrateHandlers = (
       return;
     }
 
+    if (!canPrincipalRoleAccessToolKey(toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${toolKey}`);
+      return;
+    }
+
     const targetStep = typeof body.targetStep === 'string' ? body.targetStep.trim() : '';
     if (!targetStep) {
       writeError(response, 400, 'bad_request', 'targetStep is required');
@@ -124,7 +130,12 @@ export const createToolsOrchestrateHandlers = (
     const correlationId = `orchestrate:${randomUUID()}`;
     const route = '/api/tools/orchestrate';
     const deadlineMs = toolsOrchestrateTimeoutMs;
-    const artifactScanLimit = toolsOrchestrateArtifactScanLimit;
+    const workflowStepCount = TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].steps.length;
+    // Keep bounded scans deterministic: honor explicit lower limits, cap broad defaults by workflow size.
+    const artifactScanLimit = Math.min(
+      toolsOrchestrateArtifactScanLimit,
+      Math.max(120, workflowStepCount * 40),
+    );
     const deadline = createGenerationRouteDeadline(deadlineMs);
     const routeStartedAtMs = Date.now();
     const workflowType = TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;
@@ -146,6 +157,7 @@ export const createToolsOrchestrateHandlers = (
     const withOrchestrateMeta = (meta: Record<string, unknown>): Record<string, unknown> => ({
       ...meta,
       deadlineMs,
+      artifactScanLimitConfigured: toolsOrchestrateArtifactScanLimit,
       artifactScanLimit,
       elapsedMs: Date.now() - routeStartedAtMs,
       artifactSummaryCount,

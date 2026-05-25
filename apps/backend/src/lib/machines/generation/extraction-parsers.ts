@@ -22,6 +22,30 @@ const YOUTUBE_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
   'proprietary methodology disclosure': 'proprietary_methodology_disclosure',
 };
 
+const META_ADS_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
+  'product or service': 'product_or_service',
+  'prodotto o servizio': 'product_or_service',
+  'target audience': 'target_audience',
+  target: 'target_audience',
+  'campaign objective': 'campaign_objective',
+  'obiettivo campagna': 'campaign_objective',
+  'budget context': 'budget_context',
+  'contesto budget': 'budget_context',
+  'primary offer': 'primary_offer',
+  'offerta principale': 'primary_offer',
+  'proof points': 'proof_points',
+  'punti di prova': 'proof_points',
+  'dominant pain points': 'dominant_pain_points',
+  'pain point dominanti': 'dominant_pain_points',
+  objections: 'objections',
+  obiezioni: 'objections',
+  'awareness priority': 'awareness_priority',
+  'lf8 priority': 'lf8_priority',
+  'unique mechanism': 'unique_mechanism',
+  'meccanismo unico': 'unique_mechanism',
+  'angle candidates': 'angle_candidates',
+};
+
 const MISSING_EXTRACTION_VALUE_MARKERS = new Set([
   'non emerso dal documento.',
   'non emerso dal documento',
@@ -136,6 +160,89 @@ export const parseYoutubeExtractionMarkdown = (content: string): Record<string, 
   return result;
 };
 
+export const parseMetaAdsExtractionMarkdown = (content: string): Record<string, unknown> => {
+  if (!content.trim()) {
+    return {};
+  }
+
+  const normalizeMetaAdsFieldLabel = (value: string): string => value
+    .trim()
+    .toLowerCase()
+    .replace(/^[-*]\s*/, '')
+    .replace(/^\*\*(.+)\*\*$/, '$1')
+    .replace(/:$/, '')
+    .trim();
+
+  const assignMetaAdsFieldValue = (
+    targetField: string | null,
+    rawValue: string,
+    target: Record<string, string | null>,
+  ): void => {
+    if (!targetField) {
+      return;
+    }
+
+    const current = target[targetField];
+    if (current !== undefined && current !== null) {
+      return;
+    }
+
+    const normalizedValue = normalizeYoutubeExtractionField(rawValue);
+    target[targetField] = normalizedValue;
+  };
+
+  const rows = content.split(/\r?\n/);
+  const extractedFields: Record<string, string | null> = {};
+  let currentField: string | null = null;
+
+  for (const row of rows) {
+    const headingMatch = row.match(/^#{2,6}\s+(.+?)\s*$/);
+    if (headingMatch) {
+      const headingLabel = headingMatch[1];
+      if (!headingLabel) {
+        currentField = null;
+        continue;
+      }
+      const heading = normalizeMetaAdsFieldLabel(headingLabel);
+      currentField = META_ADS_EXTRACTION_SECTION_BY_HEADING[heading] ?? null;
+      continue;
+    }
+
+    const keyValueMatch = row.match(/^\s*(?:[-*]\s*)?(?:\*\*)?([^:\n]+?)(?:\*\*)?\s*:\s*(.+?)\s*$/);
+    if (keyValueMatch) {
+      const fieldLabel = keyValueMatch[1];
+      const rawValue = keyValueMatch[2];
+      if (fieldLabel && rawValue) {
+        const normalizedField = normalizeMetaAdsFieldLabel(fieldLabel);
+        const mappedField = META_ADS_EXTRACTION_SECTION_BY_HEADING[normalizedField] ?? null;
+        assignMetaAdsFieldValue(mappedField, rawValue, extractedFields);
+      }
+      continue;
+    }
+
+    if (!currentField) {
+      continue;
+    }
+
+    const bulletMatch = row.match(/^\s*-\s*(.+?)\s*$/);
+    if (!bulletMatch) {
+      continue;
+    }
+    const bulletValue = bulletMatch[1];
+    if (!bulletValue) {
+      continue;
+    }
+
+    assignMetaAdsFieldValue(currentField, bulletValue, extractedFields);
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const field of Object.values(META_ADS_EXTRACTION_SECTION_BY_HEADING)) {
+    result[field] = extractedFields[field] ?? null;
+  }
+  return result;
+};
+
 export const parseExtractionContent = (
   content: string,
   extractionToolKey: string | null | undefined,
@@ -154,6 +261,14 @@ export const parseExtractionContent = (
 
   if (normalizedExtractionToolKey === 'youtube-lf-script') {
     return normalizedPayloadForTool(parseYoutubeExtractionMarkdown(content));
+  }
+
+  if (normalizedExtractionToolKey === 'meta-ads') {
+    const parsedMarkdown = parseMetaAdsExtractionMarkdown(content);
+    const hasAnyExtractedValue = Object.values(parsedMarkdown).some((value) => value !== null);
+    if (hasAnyExtractedValue) {
+      return normalizedPayloadForTool(parsedMarkdown);
+    }
   }
 
   const direct = parseJsonCandidate(content);
@@ -190,6 +305,7 @@ export const normalizeExtractionFieldKeysForTool = (
     && normalizedToolKey !== 'nextland'
     && normalizedToolKey !== 'youtube-lf-script'
     && normalizedToolKey !== 'angle-generator'
+    && normalizedToolKey !== 'meta-ads'
   ) {
     return payload ?? {};
   }

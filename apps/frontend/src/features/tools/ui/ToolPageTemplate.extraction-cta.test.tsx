@@ -56,6 +56,16 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingRequiredFiles: [],
     missingOptionalFiles: [],
   }),
+  deriveToolInputRequirementMatrix: () => ({
+    entries: [],
+    requiredEntriesSatisfied: true,
+    missingRequiredEntries: [],
+    missingOptionalEntries: [],
+    missingRequiredFiles: [],
+    missingOptionalFiles: [],
+    missingRequiredApiAcquisition: [],
+    missingOptionalApiAcquisition: [],
+  }),
 }));
 
 vi.mock('../runtime/useToolPage', () => ({
@@ -68,6 +78,7 @@ vi.mock('../runtime/useToolPage', () => ({
       projectId: 'project-1',
       model: 'openrouter/auto',
       tone: 'Professional',
+      campaignObjective: '',
     },
     setFormState: vi.fn(),
     projects: [{ id: 'project-1', name: 'Project 1' }],
@@ -156,7 +167,7 @@ describe('ToolPageTemplate extraction CTA', () => {
 
   });
 
-  it('starts extraction only after clicking Avvia estrazione and after optional file payload update', async () => {
+  it('starts extraction only after clicking Genera contesto and after optional file payload update', async () => {
     mockedEffectiveBriefingStatus = 'idle';
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
@@ -182,7 +193,7 @@ describe('ToolPageTemplate extraction CTA', () => {
     expect(handleAngleDetectorFileSelected).toHaveBeenCalledWith(angleFile);
     expect(handleExtractionStart).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia estrazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /genera contesto/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);

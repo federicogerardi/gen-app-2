@@ -12,6 +12,13 @@ type InputFilePayloadStatus = {
   fileName: string | null;
 };
 
+type ApiAcquisitionPayloadStatus = {
+  key: string;
+  label: string;
+  requiredness: 'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting';
+  status: 'todo' | 'active' | 'done' | 'error';
+};
+
 type GenerationProgressSnapshot = {
   completedCount: number;
   totalCount: number;
@@ -30,6 +37,7 @@ export interface ToolGenerationFlowVerticalProps {
   projectName: string | null;
   errorMessage: string | null;
   inputFilePayload?: InputFilePayloadStatus[];
+  apiAcquisitionPayload?: ApiAcquisitionPayloadStatus[];
   generationProgress?: GenerationProgressSnapshot;
   primaryActionCta?: {
     label: string;
@@ -132,6 +140,7 @@ export const ToolGenerationFlowVertical = ({
   projectName,
   errorMessage,
   inputFilePayload = [],
+  apiAcquisitionPayload = [],
   generationProgress,
   primaryActionCta,
 }: ToolGenerationFlowVerticalProps) => {
@@ -140,6 +149,7 @@ export const ToolGenerationFlowVertical = ({
   const barVariant = progressBarModel.variant;
   const isCompleted = barVariant === 'completed';
   const payloadItems = inputFilePayload;
+  const apiAcquisitionItems = apiAcquisitionPayload;
   const hasProjectSelected = Boolean(projectName && projectName.trim().length > 0);
   const phaseTitle = progressBarModel.phase === 'extraction'
     ? appCopy.ui.toolPage.flow.phaseExtractionLabel
@@ -248,6 +258,25 @@ export const ToolGenerationFlowVertical = ({
               </p>
             ) : null}
           </div>
+
+          {hasProjectSelected && apiAcquisitionItems.length > 0 ? (
+            <div className="ui-fv-payload-list" aria-label={appCopy.ui.toolPage.flow.apiAcquisitionTitle}>
+              <h4 className="ui-fv-project-title">{appCopy.ui.toolPage.flow.apiAcquisitionTitle}</h4>
+              {apiAcquisitionItems.map((item) => (
+                <div className={`ui-fv-payload-item is-${item.status}`} key={item.key} data-status={item.status}>
+                  <div className="ui-fv-payload-item-main">
+                    <span className="ui-fv-payload-label">{item.label}</span>
+                    <span className="ui-fv-payload-filename">
+                      {item.status === 'done'
+                        ? appCopy.ui.toolPage.flow.apiAcquisitionConnected
+                        : appCopy.ui.toolPage.flow.apiAcquisitionNotConnected}
+                    </span>
+                  </div>
+                  <span className="ui-fv-payload-pill">{REQUIREDNESS_LABEL[item.requiredness]}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
         </section>
       </div>

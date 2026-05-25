@@ -14,6 +14,8 @@ export type BackendCapabilities = {
   adminUserReportsList: boolean;
   adminUserReportsUpdate: boolean;
   adminUserReportsPublishIssue: boolean;
+  adminApiServicesCrud: boolean;
+  toolsApiServicesResolve: boolean;
 };
 
 const readFlag = (value: string | undefined, fallback = false): boolean => {
@@ -44,6 +46,8 @@ export const readBackendCapabilities = (): BackendCapabilities => {
     adminUserReportsList: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_LIST as string | undefined, true),
     adminUserReportsUpdate: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_UPDATE as string | undefined, true),
     adminUserReportsPublishIssue: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_PUBLISH_ISSUE as string | undefined, true),
+    adminApiServicesCrud: readFlag(import.meta.env.VITE_CAP_ADMIN_API_SERVICES_CRUD as string | undefined, true),
+    toolsApiServicesResolve: readFlag(import.meta.env.VITE_CAP_TOOLS_API_SERVICES_RESOLVE as string | undefined, true),
   };
 };
 
@@ -63,6 +67,8 @@ export const defaultBackendCapabilities: BackendCapabilities = {
   adminUserReportsList: false,
   adminUserReportsUpdate: false,
   adminUserReportsPublishIssue: false,
+  adminApiServicesCrud: false,
+  toolsApiServicesResolve: false,
 };
 
 export const resolveBackendCapabilities = (

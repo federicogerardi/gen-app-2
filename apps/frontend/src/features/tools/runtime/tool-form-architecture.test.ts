@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getEnabledToolKeys,
   getAvailableSteps,
   getToolLabel,
   getToolRoute,
+  isToolEnabled,
 } from './tool-form-architecture';
 
 describe('getAvailableSteps', () => {
@@ -28,5 +30,25 @@ describe('getAvailableSteps', () => {
   it('normalizes workflow-form tool identifiers to canonical label and route', () => {
     expect(getToolLabel('angle_generator')).toBe('Angle Generator');
     expect(getToolRoute('angle_generator')).toBe('/tools/angle-generator');
+    expect(getToolLabel('meta_ads_generator')).toBe('MetaAds Generator');
+    expect(getToolRoute('meta_ads')).toBe('/tools/meta-ads');
+  });
+
+  it('filters enabled tools by role using availability policy', () => {
+    expect(getEnabledToolKeys('member')).toEqual([
+      'funnel-pages',
+      'youtube-lf-script',
+      'angle-generator',
+      'meta-ads',
+    ]);
+    expect(getEnabledToolKeys('admin')).toEqual([
+      'funnel-pages',
+      'nextland',
+      'youtube-lf-script',
+      'angle-generator',
+      'meta-ads',
+    ]);
+    expect(isToolEnabled('nextland', 'member')).toBe(false);
+    expect(isToolEnabled('nextland', 'admin')).toBe(true);
   });
 });

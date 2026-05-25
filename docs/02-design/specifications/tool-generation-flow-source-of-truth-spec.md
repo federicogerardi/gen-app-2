@@ -280,6 +280,27 @@ Regole aggiornamento documento:
 
 ## 9. UX Structure & Form Behavior
 
+### 9.0 Context Generation Phase (umbrella pre-step semantics)
+
+Canonical FE naming for the pre-step phase is `Context Generation Phase`.
+
+Definition:
+1. This phase assembles the effective payload for step-1 generation dispatch.
+2. It may execute one or more source-specific sub-activities depending on tool configuration:
+- text extraction from uploaded files;
+- API-backed acquisition fetches;
+- direct-input merge.
+3. `Extraction` remains a valid sub-activity label when document processing is present, but does not define the whole phase for mixed-source tools.
+
+Primary CTA contract:
+1. The canonical action is `Start Context Generation Action`.
+2. Transitional UI copy may remain `Genera contesto`.
+3. The action starts the full configured pre-step pipeline (extraction + fetch + merge), not extraction-only behavior.
+
+Progress contract:
+1. During this phase, Workflow Panel progress represents `Context Generation Phase` state.
+2. Source-specific details can be surfaced as sub-status items, but the top-level phase remains singular and deterministic.
+
 ### 9.1 Input Fields
 
 **Obbligatori**:
@@ -290,6 +311,39 @@ Regole aggiornamento documento:
 - Modello (`model`) — Select LLM con default da lista disponibili.
 - Tono (`tone`) — Select con hint contestuale.
 - Note (`notes`) — Textarea opzionale (visibile dopo extraction ready); usata come istruzione additiva pre-generazione.
+
+### 9.1b Unified Input Requirement Matrix (three source families)
+
+`ToolInputRequirementMatrix` is the canonical readiness gate across all pre-step input sources.
+
+Source families:
+1. `direct-input`
+2. `tool-input-file`
+3. `api-acquisition`
+
+Requiredness values:
+1. `always-required`
+2. `required-by-tool-setting`
+3. `optional-by-tool-setting`
+
+Deterministic eligibility rule:
+1. `Start Context Generation Action` is enabled only when every matrix entry classified as `always-required` or `required-by-tool-setting` is satisfied.
+2. Entries classified as `optional-by-tool-setting` are non-blocking and must never disable the primary pre-step CTA.
+
+Feature-flag adapter gate (as-is runtime):
+1. `api-acquisition` requiredness contributes to eligibility only when `VITE_FF_TOOLS_API_BINDING_STATUS = true`.
+2. Default runtime keeps the flag off, so current tools preserve legacy behavior and do not block on API binding resolution.
+3. When enabled, FE resolves binding connectivity through backend `GET /api/tools/api-services?apiServiceId=...` and projects `connected`/`disconnected` into the matrix.
+
+Readiness outcome matrix:
+
+| direct-input required | file required | api required | canStartContextGeneration | feedback |
+|---|---|---|---|---|
+| satisfied | satisfied | satisfied | true | optional advisories only |
+| missing any required | any | any | false | blocking required-input feedback |
+| satisfied | satisfied | optional missing | true | non-blocking optional advisory |
+| satisfied | optional missing | satisfied | true | non-blocking optional advisory |
+| optional missing only | optional missing only | optional missing only | true | non-blocking optional advisory |
 
 ### 9.2 Upload/Extraction Lifecycle
 
@@ -308,15 +362,27 @@ Regole aggiornamento documento:
 - Eventuale `uploadError` o `extractionError`
 - Abilitazione CTA primaria se precondizioni soddisfatte
 
+Mixed-source extension:
+1. File upload/extraction lifecycle remains valid for file-enabled tools.
+2. API acquisition lifecycle runs in the same umbrella phase and contributes structured data to the composed context payload.
+3. Direct-input values contribute deterministic merge fields in the same composed payload.
+4. Completion of `Context Generation Phase` means the composed payload is ready for step-1 generation dispatch.
+
+Component convergence rule:
+1. FE components currently associated with extraction pre-step behavior are context-generation-level elements.
+2. Their responsibilities remain local (validation, upload, extraction handling, readiness signaling), but their top-level orchestration ownership is `Context Generation Phase`.
+3. This convergence must not add extra user steps, extra primary CTAs, or parallel pre-step progress bars.
+
 ### 9.3 User Action Sequences
 
 **Happy path**:
 1. Utente apre tool (`/tools/funnel-pages` o `/tools/nextland`)
 2. Seleziona progetto
-3. Carica briefing file
-4. Attende upload + extraction
-5. (Opzionale) imposta modello, tono, note
-6. Avvia generazione
+3. Fornisce gli input richiesti dal tool (direct input, file upload, API acquisition settings)
+4. Avvia `Start Context Generation Action` (transitional copy: `Genera contesto`)
+5. Attende completamento `Context Generation Phase` (extraction + fetch + merge, per configurazione tool)
+6. (Opzionale) imposta modello, tono, note quando previsti dal tool surface
+7. Avvia generazione step-1 con payload composito già pronto
 7. Osserva avanzamento globale e per-step
 8. Apre artefatti o rilancia generazione
 
@@ -348,7 +414,7 @@ Mappa canonica stato → CTA:
 
 ### 9.5 Workflow Panel `ui-fv-dashboard` Contract (Deterministic Spec)
 
-**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Contesto caricato`) secondo DDD-084.
+**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Informazioni di contesto`) secondo DDD-084.
 
 #### 9.5.1 Canonical DOM Composition
 
@@ -364,7 +430,7 @@ Mappa canonica stato → CTA:
 |---|---|---|
 | `.ui-fv-root` | Structural wrapper only | Must remain non-card (no border/background card shell). |
 | `.ui-fv-dashboard` | Vertical stack for panel cards | Owns inter-card spacing only. |
-| `.ui-fv-card` | Visual card surface | Shared style for `Progress` and `Contesto caricato`. |
+| `.ui-fv-card` | Visual card surface | Shared style for `Progress` and `Informazioni di contesto`. |
 | `.workflow-preload-bar` | Unified progress element | Phase-agnostic base element. |
 | `.workflow-preload-bar.is-idle` | Stop state | Neutral, non-animated bar. |
 | `.workflow-preload-bar.is-active` | Play state | Animated preload. |
@@ -381,10 +447,10 @@ Mappa canonica stato → CTA:
 
 | CanonicalToolUiState | Phase | Bar variant | Aria label |
 |---|---|---|---|
-| `draft-empty` | extraction | `idle` | `Estrazione in attesa` |
-| `resume-needs-briefing` | extraction | `idle` | `Estrazione in attesa` |
-| `processing-briefing` | extraction | `active` | `Estrazione in corso` |
-| `draft-ready` | extraction | `idle` | `Estrazione completata` |
+| `draft-empty` | context-generation | `idle` | `Context generation in attesa` |
+| `resume-needs-briefing` | context-generation | `idle` | `Context generation in attesa` |
+| `processing-briefing` | context-generation | `active` | `Context generation in corso` |
+| `draft-ready` | context-generation | `idle` | `Context generation completata` |
 | `running` | generation | `active` | `Generazione in corso` |
 | `paused-with-checkpoint` | generation | `idle` | `Generazione in pausa` |
 | `completed` | generation | `completed` | `Generazione completata` |
@@ -417,7 +483,7 @@ type GenerationProgressSnapshot = {
 ```
 
 Metric rules:
-1. Extraction phase (`phase = extraction`):
+1. Context generation phase (`phase = context-generation`):
    - Metric 1: `Step corrente: ${extractionProgress.currentStepLabel}`
    - Metric 2: `extractionProgress.statusLabel`
 2. Generation phase (`phase = generation`):
@@ -425,7 +491,7 @@ Metric rules:
    - Metric 2: `${completedCount} / ${totalCount} step completati`
 
 Progress value rules:
-1. Extraction phase value derives from `extractionProgress.completedCount / extractionProgress.totalCount`.
+1. Context generation phase value derives from `extractionProgress.completedCount / extractionProgress.totalCount`.
 2. Generation phase value derives from `completedCount / totalCount`.
 3. `completed` forces `aria-valuenow = 100`.
 

@@ -15,6 +15,7 @@ const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], Lucide
   overview: LayoutDashboard,
   users: Users,
   models: Settings2,
+  'api-services': Settings2,
   changelog: Megaphone,
   'user-reports': MessageSquareWarning,
   activity: Activity,

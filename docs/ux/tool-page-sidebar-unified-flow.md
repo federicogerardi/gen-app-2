@@ -17,7 +17,7 @@
 | Guida briefing (guidance) | **Form** — inline `<p.metaLine>` | `ToolPageTemplate` |
 | File obbligatori mancanti | **Form** — inline `<p.error>` + parzialmente Workflow Panel | `ToolPageTemplate` |
 | Suggerimento file opzionali | **Form** — sotto ogni upload button | `ToolPageTemplate` |
-| Hint "Avvia estrazione" | **Form** — inline `<p.metaLine>` | `ToolPageTemplate` |
+| Hint "Genera contesto" | **Form** — inline `<p.metaLine>` | `ToolPageTemplate` |
 | Errore reload artefatti | **Form** — inline `<p.error>` | `ToolPageTemplate` |
 | Progresso step generazione | **Workflow Panel** — fase monitoring/completion | `ToolGenerationFlowVertical` |
 | Errore globale generazione | **Workflow Panel** | `ToolGenerationFlowVertical` |

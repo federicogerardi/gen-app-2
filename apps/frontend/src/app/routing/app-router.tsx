@@ -1,11 +1,13 @@
 import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
-import type { FC, LazyExoticComponent } from 'react';
+import type { FC, LazyExoticComponent, ReactElement } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
+import { useAuthSession } from '../providers/AuthSessionProvider';
+import { isUserAdmin } from '../runtime/user-roles';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
 import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
-import { getEnabledToolKeys } from '../../features/tools/runtime/tool-form-architecture';
+import { isToolEnabled, getToolRoute } from '../../features/tools/runtime/tool-form-architecture';
 import type { SupportedTool } from '../../features/tools/machines/tool-flow.machine';
 import { PageLoader } from '../ui/PageLoader';
 
@@ -19,6 +21,7 @@ const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
 const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-generator/pages/AngleGeneratorToolPage').then(m => ({ default: m.AngleGeneratorToolPage })));
+const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/MetaAdsToolPage').then(m => ({ default: m.MetaAdsToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -26,6 +29,7 @@ const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummar
 const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminModelsPage = lazy(() => import('../../features/admin/pages/AdminModelsPage').then(m => ({ default: m.AdminModelsPage })));
+const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/AdminApiServicesPage').then(m => ({ default: m.AdminApiServicesPage })));
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
@@ -35,17 +39,19 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   nextland: NextlandToolPage,
   'youtube-lf-script': YoutubeLfScriptToolPage,
   'angle-generator': AngleGeneratorToolPage,
+  'meta-ads': MetaAdsToolPage,
 };
 
-/**
- * Data-driven route table for tool pages.
- * Adding a new SupportedTool only requires entries in toolFormRegistry and toolPageComponents.
- */
-const TOOL_ROUTES = getEnabledToolKeys().map((toolKey) => ({
-  toolKey,
-  path: `/tools/${toolKey}`,
-  component: toolPageComponents[toolKey],
-}));
+const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
+  const auth = useAuthSession();
+  const role = auth.session && isUserAdmin(auth.session.user.role) ? 'admin' : 'member';
+
+  if (!isToolEnabled(toolKey, role)) {
+    return <Navigate to="/tools" replace />;
+  }
+
+  return children;
+};
 const lighthouseAdminRouteTargets: Record<string, string> = {
   users: '/admin/users',
   models: '/admin/models',
@@ -118,10 +124,20 @@ export const createAppRouter = () => createBrowserRouter([
         path: '/tools',
         element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
       },
-      ...TOOL_ROUTES.map(({ path, component: ToolPage }) => ({
-        path,
-        element: <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>,
-      })),
+      ...Object.keys(toolPageComponents).map((toolKey) => {
+        const typedToolKey = toolKey as SupportedTool;
+        const ToolPage = toolPageComponents[typedToolKey];
+        const route = getToolRoute(typedToolKey) ?? `/tools/${typedToolKey}`;
+
+        return {
+          path: route,
+          element: (
+            <ToolRouteGuard toolKey={typedToolKey}>
+              <Suspense fallback={<PageLoader />}><ToolPage /></Suspense>
+            </ToolRouteGuard>
+          ),
+        };
+      }),
       {
         path: '/artifacts',
         element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
@@ -153,6 +169,10 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: 'models',
             element: <Suspense fallback={<PageLoader />}><AdminModelsPage /></Suspense>,
+          },
+          {
+            path: 'api-services',
+            element: <Suspense fallback={<PageLoader />}><AdminApiServicesPage /></Suspense>,
           },
           {
             path: 'activity',

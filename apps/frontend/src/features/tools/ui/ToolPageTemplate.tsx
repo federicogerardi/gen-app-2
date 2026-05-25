@@ -17,9 +17,10 @@ import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { useToolPage } from '../runtime/useToolPage';
 import {
-  deriveToolInputFileCompletion,
+  deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
 } from '../runtime/tool-page-selectors';
+import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-status-adapter';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
@@ -27,6 +28,7 @@ import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
+const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -45,10 +47,12 @@ type ToolPageFormValues = {
   projectId: string;
   model: string;
   tone: string;
+  campaignObjective: string;
 } & Record<string, unknown>;
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
+  const isMetaAdsTool = props.toolKey === 'meta-ads';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -85,10 +89,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   } = useToolPage(props);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
+  const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    toolKey: props.toolKey,
+    apiAcquisitionInputs,
+  });
+  const hasProjectSelected = formState.projectId.trim().length > 0;
   const completedFileKeys = [
     ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
+  const inputRequirementMatrix = deriveToolInputRequirementMatrix({
+    toolKey: props.toolKey,
+    hasProjectSelected,
+    completedFileKeys,
+    includeApiAcquisition: apiBindingStatusAdapter.enabled,
+    apiAcquisitionStatus: apiBindingStatusAdapter.data,
+  });
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
@@ -117,6 +136,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       fileName,
     };
   });
+
+  const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
+    .filter((entry) => entry.sourceFamily === 'api-acquisition')
+    .map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      requiredness: entry.requiredness,
+      status: entry.satisfied ? 'done' : 'todo',
+    }));
 
   const stepItems = toolConfig.steps.map((stepKey) => {
     const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
@@ -188,6 +216,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectId: z.string().min(1, copy.form.validation.projectRequired),
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
+    campaignObjective: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
     for (const fileEntry of inputFiles) {
@@ -213,17 +242,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
   });
 
-  const fileCompletion = deriveToolInputFileCompletion({
-    toolKey: props.toolKey,
-    completedFileKeys,
-  });
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
   const canStartExtraction = !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady
-    && formState.projectId.trim().length > 0
-    && fileCompletion.requiredFilesComplete;
+    && inputRequirementMatrix.requiredEntriesSatisfied;
   const isGenerationLocked = isGenerating || effectiveCanonicalState === 'running';
   const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
     ? {
@@ -237,6 +261,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       disabled: true,
     }
     : undefined;
+  const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
+    !inputRequirementMatrix.requiredEntriesSatisfied
+      && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
+      ? {
+        label: copy.primaryActionPolicy.disabledLabel,
+        disabled: true,
+        tooltip: copy.primaryActionPolicy.disabledTooltip,
+      }
+      : undefined;
   const extractionPrimaryOverride = canStartExtraction
     ? {
       label: copy.extraction.startActionLabel,
@@ -251,6 +284,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: data.projectId,
       model: data.model,
       tone: data.tone,
+      campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
     }));
 
     for (const fileEntry of inputFiles) {
@@ -285,6 +319,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
+      campaignObjective: formState.campaignObjective,
       ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
@@ -317,8 +352,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
+  useEffect(() => {
+    setValue('campaignObjective', formState.campaignObjective);
+  }, [formState.campaignObjective, setValue]);
+
   const basePrimaryAction = generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
+    ?? matrixBlockingPrimaryOverride
     ?? extractionPrimaryOverride
     ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
   const isGenerationInProgressCta = generationInProgressPrimaryOverride !== undefined;
@@ -435,6 +475,35 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 />
               </div>
 
+              {isMetaAdsTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="campaignObjective"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.campaignObjectiveLabel}
+                        disabled={isGenerationLocked}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, campaignObjective: e.target.value }));
+                        }}
+                        value={field.value ?? ''}
+                        fullWidth
+                      >
+                        <MenuItem value="">{copy.form.campaignObjectivePlaceholder}</MenuItem>
+                        {campaignObjectiveOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </div>
+              ) : null}
+
               {inputFiles.map((fileEntry) => (
                 <Controller
                   key={fileEntry.key}
@@ -494,6 +563,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               projectName={currentProject?.name ?? null}
               errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
               inputFilePayload={inputFilePayload}
+              apiAcquisitionPayload={apiAcquisitionPayload}
               generationProgress={generationProgress}
               primaryActionCta={unifiedPrimaryActionCta}
             />

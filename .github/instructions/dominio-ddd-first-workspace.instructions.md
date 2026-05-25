@@ -84,6 +84,13 @@ Run these commands from workspace root and ensure all succeed before considering
   - root image path must pass `npm ci --workspaces --include-workspace-root`
 - If `npm ci` reports "package.json and package-lock.json are not in sync", stop and regenerate lockfiles via `npm install` (never patch lockfiles manually).
 
+## Terminal Output Capture Determinism Gate (Execution Safety)
+- This gate is mandatory whenever agents run terminal commands whose output is used for analysis, verification, or reporting.
+- Prefer deterministic output capture via file redirection instead of relying on direct terminal scraping.
+- Canonical pattern: run command with stdout/stderr redirected to a workspace log file, then read the log file as the source of truth.
+- For application test runs, file-redirection capture is required and must be followed rigorously to prevent repeated output-acquisition error chains.
+- Keep logs isolated per command/run and avoid mixing outputs from multiple executions in one file unless explicitly intended.
+
 ## Code Analysis Gate
 - Before analyzing TypeScript/React code, identify which bounded context owns the file being analyzed.
 - Map every domain concept in the file to a canonical term in the glossary before proposing changes.

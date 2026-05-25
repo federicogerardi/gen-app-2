@@ -1,5 +1,6 @@
 import type { GenerationSystemEvent } from '../types/xstate';
 import {
+  getAcquisitionDoneOutput,
   getExtractionDoneOutput,
   getIdempotencyDoneOutput,
   getOwnershipDoneOutput,
@@ -24,6 +25,15 @@ export const generationSystemGuards = {
   routeIsExtraction: ({ context }: GenerationGuardArgs) => context.routeType === 'extraction',
   routeIsTool: ({ context }: GenerationGuardArgs) => context.routeType === 'tool',
   routeIsGeneric: ({ context }: GenerationGuardArgs) => context.routeType === 'generic',
+  hasApiAcquisition: ({ context }: GenerationGuardArgs) => {
+    const acquisition = context.requestInput.acquisition;
+    if (!acquisition || typeof acquisition !== 'object' || Array.isArray(acquisition)) {
+      return false;
+    }
+
+    const service = (acquisition as Record<string, unknown>).service;
+    return Boolean(service && typeof service === 'object' && !Array.isArray(service));
+  },
   idempotencyOutputIsReplay: ({ event }: GenerationGuardArgs) =>
     (getIdempotencyDoneOutput(event).type ?? '') === 'IDEMPOTENCY_REPLAY_READY',
   idempotencyOutputIsConflict: ({ event }: GenerationGuardArgs) =>
@@ -38,6 +48,8 @@ export const generationSystemGuards = {
     context.routeType !== 'extraction' && isEmptyStreamSuccess(event),
   extractionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
     getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
+  acquisitionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
+    getAcquisitionDoneOutput(event)?.type === 'ACQUISITION_ATTEMPT_ACCEPTED',
   toolOutputIsCompleted: ({ event }: GenerationGuardArgs) =>
     getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
 };

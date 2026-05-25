@@ -46,6 +46,16 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingRequiredFiles: [],
     missingOptionalFiles: [],
   }),
+  deriveToolInputRequirementMatrix: () => ({
+    entries: [],
+    requiredEntriesSatisfied: true,
+    missingRequiredEntries: [],
+    missingOptionalEntries: [],
+    missingRequiredFiles: [],
+    missingOptionalFiles: [],
+    missingRequiredApiAcquisition: [],
+    missingOptionalApiAcquisition: [],
+  }),
 }));
 
 vi.mock('../runtime/useToolPage', () => ({
@@ -58,6 +68,7 @@ vi.mock('../runtime/useToolPage', () => ({
       projectId: 'project-1',
       model: 'openrouter/auto',
       tone: 'Professional',
+      campaignObjective: '',
     },
     setFormState: vi.fn(),
     projects: [{ id: 'project-1', name: 'Project 1' }],
@@ -125,7 +136,7 @@ vi.mock('./ToolGenerationFlowVertical', () => ({
 }));
 
 describe('ToolPageTemplate extraction CTA single-file', () => {
-  it('starts extraction only after clicking Avvia estrazione and after briefing payload update', async () => {
+  it('starts extraction only after clicking Genera contesto and after briefing payload update', async () => {
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
     handleBriefingFileSelected.mockReset();
@@ -150,7 +161,7 @@ describe('ToolPageTemplate extraction CTA single-file', () => {
     expect(handleBriefingFileSelected).toHaveBeenCalledWith(briefingFile);
     expect(handleExtractionStart).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia estrazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /genera contesto/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);

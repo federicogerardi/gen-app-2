@@ -10,6 +10,14 @@ import type {
   AuthHttpWriteSuccessFn,
 } from './support';
 import {
+  createAdminApiServiceHandlers,
+  type AdminApiServiceHandlers,
+} from './admin-api-service-handlers';
+import {
+  createAdminApiServiceBindingHandlers,
+  type AdminApiServiceBindingHandlers,
+} from './admin-api-service-binding-handlers';
+import {
   createAdminFeedbackCenterHandlers,
   type AdminFeedbackCenterHandlers,
 } from './admin-feedback-center-handlers';
@@ -42,7 +50,12 @@ export type CreateAdminHandlersDependencies = {
   writeSuccess: AuthHttpWriteSuccessFn;
 };
 
-export type AdminHandlers = AdminLlmModelHandlers & AdminFeedbackCenterHandlers & AdminUserHandlers;
+export type AdminHandlers =
+  & AdminLlmModelHandlers
+  & AdminApiServiceHandlers
+  & AdminApiServiceBindingHandlers
+  & AdminFeedbackCenterHandlers
+  & AdminUserHandlers;
 
 export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): AdminHandlers => {
   const {
@@ -62,6 +75,26 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
     writeSuccess,
   } = deps;
   const llmModelHandlers = createAdminLlmModelHandlers({
+    repositories,
+    now,
+    requireAdminPrincipal,
+    requireDb,
+    parseJsonBody,
+    writeError,
+    writeSuccess,
+  });
+
+  const apiServiceHandlers = createAdminApiServiceHandlers({
+    repositories,
+    now,
+    requireAdminPrincipal,
+    requireDb,
+    parseJsonBody,
+    writeError,
+    writeSuccess,
+  });
+
+  const apiServiceBindingHandlers = createAdminApiServiceBindingHandlers({
     repositories,
     now,
     requireAdminPrincipal,
@@ -100,6 +133,8 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
 
   return {
     ...llmModelHandlers,
+    ...apiServiceHandlers,
+    ...apiServiceBindingHandlers,
     ...feedbackCenterHandlers,
     ...userHandlers,
   };

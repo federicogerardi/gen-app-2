@@ -77,6 +77,10 @@ export type ToolDoneOutput =
   | { type: 'WORKFLOW_STEP_UNLOCKED' }
   | { type: 'WORKFLOW_STEP_COMPLETED'; artifactId: string };
 
+export type AcquisitionDoneOutput =
+  | { type: 'ACQUISITION_ATTEMPT_ACCEPTED'; statusCode: number; payload: Record<string, unknown> }
+  | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
+
 export type CacheRequestMetaParams = {
   requestId: string;
   projectId: string;
@@ -116,6 +120,10 @@ export type CacheStreamResultParams = {
 export type CacheExtractionResultParams = {
   content: string;
   structuredPayload: Record<string, unknown>;
+};
+
+export type CacheAcquisitionResultParams = {
+  payload: Record<string, unknown>;
 };
 
 export type QueueFallbackDecisionParams = {

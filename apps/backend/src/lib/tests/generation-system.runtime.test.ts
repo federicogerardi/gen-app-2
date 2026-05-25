@@ -341,6 +341,151 @@ test('generation root tool flow completes from invoke input bootstrap', async ()
   assert.equal(result.streamEvents[result.streamEvents.length - 1]?.event, 'terminal');
 });
 
+test('generation root merges acquisition actor payload into generation request input before streaming', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const originalFetch = global.fetch;
+
+  global.fetch = (async () => {
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ marketSignals: { trend: 'ugc' }, confidence: 0.89 }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  let observedAcquisitionPayload: unknown = null;
+  adapters.llm.streamText = async function* (input) {
+    observedAcquisitionPayload = (input.requestInput as { acquisition?: unknown }).acquisition;
+    yield { type: 'chunk', chunk: 'acquisition-merged' };
+    yield {
+      type: 'completed',
+      usage: {
+        inputTokens: 11,
+        outputTokens: 7,
+        costUsd: 0.00002,
+      },
+    };
+  };
+
+  try {
+    const result = await runBackendGenerationSession(
+      {
+        requestId: 'req-root-acq-success-001',
+        userId: 'seed-user-001',
+        projectId: 'seed-project-001',
+        artifactType: 'content',
+        model: 'openrouter/gpt-5.3-codex',
+        toolKey: 'nextland',
+        workflowType: 'nextland',
+        input: {
+          prompt: 'tool run',
+          extractionPayload: {
+            acquisition: {
+              service: {
+                id: 'svc_1',
+                key: 'market-intel',
+                label: 'Market Intel',
+                baseUrl: 'https://api.example.com',
+                resourcePath: '/insights',
+                accessMode: 'public',
+                timeoutMs: 3000,
+                retryCount: 0,
+                requestMethod: 'GET',
+                requestTemplateJson: {},
+                requestMappingRulesJson: [],
+                requestHeadersTemplateJson: {},
+                responseMappingRulesJson: [],
+                errorMappingRulesJson: [],
+                contractProfileVersion: 1,
+                tokenRef: null,
+                tokenCiphertext: null,
+                status: 'active',
+                createdAt: new Date('2026-05-24T08:00:00.000Z'),
+                updatedAt: new Date('2026-05-24T08:00:00.000Z'),
+              },
+            },
+          },
+        },
+        idempotencyKey: 'idem-root-acq-success-001',
+        registrySnapshotRef: 'snapshot:root-acq-success',
+      },
+      adapters,
+    );
+
+    assert.equal(result.status, 'completed');
+    assert.equal(result.content, 'acquisition-merged');
+    assert.ok(observedAcquisitionPayload && typeof observedAcquisitionPayload === 'object');
+    assert.equal(
+      (observedAcquisitionPayload as { marketSignals?: { trend?: string } }).marketSignals?.trend,
+      'ugc',
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('generation root falls back when acquisition actor fails before streaming', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-acq-failure-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      toolKey: 'nextland',
+      workflowType: 'nextland',
+      input: {
+        prompt: 'tool run',
+        extractionPayload: {
+          acquisition: {
+            service: {
+              id: 'svc_1',
+              key: 'market-intel',
+              label: 'Market Intel',
+              baseUrl: 'https://api.example.com',
+              resourcePath: '/insights',
+              accessMode: 'public',
+              timeoutMs: 3000,
+              retryCount: 0,
+              requestMethod: 'GET',
+              requestTemplateJson: {},
+              requestMappingRulesJson: [
+                {
+                  sourcePath: 'query.missing',
+                  targetPath: 'query.q',
+                  required: true,
+                },
+              ],
+              requestHeadersTemplateJson: {},
+              responseMappingRulesJson: [],
+              errorMappingRulesJson: [],
+              contractProfileVersion: 1,
+              tokenRef: null,
+              tokenCiphertext: null,
+              status: 'active',
+              createdAt: new Date('2026-05-24T08:00:00.000Z'),
+              updatedAt: new Date('2026-05-24T08:00:00.000Z'),
+            },
+          },
+        },
+      },
+      idempotencyKey: 'idem-root-acq-failure-001',
+      registrySnapshotRef: 'snapshot:root-acq-failure',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'failed');
+  assert.equal(result.error?.code, 'generation_failed');
+  assert.equal(result.error?.message, 'acquisition_failed');
+});
+
 test('generation root fails when registry selector is missing', async () => {
   const adapters = createInMemoryGenerationAdapters();
   const actor = createActor(generationSystemMachine, { input: { adapters } });

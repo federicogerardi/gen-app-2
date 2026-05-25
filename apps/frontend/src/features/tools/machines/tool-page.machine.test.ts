@@ -27,7 +27,7 @@ vi.mock('./briefing-upload.machine', async () => {
             parsedFormat?: 'txt' | 'md' | 'docx' | null;
           },
       input: {} as {
-        toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script';
+        toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script' | 'meta-ads';
         projectId: string;
         apiBaseUrl: string;
         capabilities: Record<string, unknown>;
@@ -113,7 +113,7 @@ vi.mock('./briefing-upload.machine', async () => {
   });
 
   const hasReadyBriefingExtractionContext = (
-    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
+    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script' | 'meta-ads',
     briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
       extractionArtifactId: string | null;
       extractionPayload: Record<string, unknown> | null;
@@ -178,6 +178,23 @@ const createNextlandToolPageActor = () => {
   const actor = createActor(toolPageMachine, {
     input: {
       toolKey: 'nextland',
+      projectId: 'project-1',
+      model: 'openrouter/auto',
+      registrySnapshotRef: 'snapshot:default',
+      apiBaseUrl: '',
+      capabilities: { toolsUpload: true },
+      userId: 'user-1',
+    },
+  });
+
+  actor.start();
+  return actor;
+};
+
+const createMetaAdsToolPageActor = () => {
+  const actor = createActor(toolPageMachine, {
+    input: {
+      toolKey: 'meta-ads',
       projectId: 'project-1',
       model: 'openrouter/auto',
       registrySnapshotRef: 'snapshot:default',
@@ -1041,6 +1058,145 @@ describe('toolPageMachine', () => {
       intent: 'regenerate',
       sourceArtifact: null,
       runRequestPrefix: runPrefix,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('completed');
+    expect(vm.primaryActionPolicy).toBe('open-last-artifact');
+  });
+
+  it('keeps resume-checkpoint parity for meta-ads with canonical 2-step progress', () => {
+    const actor = createMetaAdsToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-meta-extract',
+      payload: {
+        product_or_service: 'Service',
+        target_audience: 'SMB',
+        campaign_objective: 'Leads',
+      },
+      briefingId: 'brief-meta',
+      normalizedText: 'meta brief text',
+      parsedFormat: 'md',
+    });
+
+    const sourceArtifact = {
+      artifactId: 'art-meta-context',
+      requestId: 'req-meta-context',
+      projectId: 'project-1',
+      artifactType: 'content' as const,
+      status: 'completed' as const,
+      model: 'openrouter/auto',
+      toolKey: 'meta-ads',
+      workflowType: 'meta_ads_generator',
+      content: 'context output',
+      createdAt: '2026-05-01T00:00:00.000Z',
+      updatedAt: '2026-05-01T00:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-meta-context',
+        userId: 'user-1',
+        projectId: 'project-1',
+        artifactType: 'content' as const,
+        model: 'openrouter/auto',
+        toolKey: 'meta-ads',
+        workflowType: 'meta_ads_generator',
+        input: {
+          step: 'context-generation',
+        },
+      },
+    } satisfies GenerationArtifact;
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [sourceArtifact],
+      intent: 'resume',
+      sourceArtifact,
+      runRequestPrefix: null,
+    });
+
+    const vm = actor.getSnapshot().context.viewModel;
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.canonicalState).toBe('paused-with-checkpoint');
+    expect(vm.primaryActionPolicy).toBe('resume-checkpoint');
+
+    actor.send({ type: 'REQUEST_STEP_START', step: 'ads-generation', runRequestPrefix: 'run-meta-resume-1' });
+    expect(actor.getSnapshot().value).toBe('generating');
+
+    actor.send({ type: 'STEP_DONE', step: 'ads-generation' });
+    expect(actor.getSnapshot().value).toBe('completed');
+  });
+
+  it('keeps regenerate parity for meta-ads and opens last artifact when current run completes both steps', () => {
+    const actor = createMetaAdsToolPageActor();
+
+    actor.getSnapshot().context.briefingActorRef?.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-meta-extract',
+      payload: {
+        product_or_service: 'Service',
+        target_audience: 'SMB',
+        campaign_objective: 'Leads',
+      },
+      briefingId: 'brief-meta',
+      normalizedText: 'meta brief text',
+      parsedFormat: 'md',
+    });
+
+    actor.send({
+      type: 'PROGRESS_SYNCED',
+      artifacts: [
+        {
+          artifactId: 'art-meta-context-current',
+          requestId: 'run-meta-current:context-generation',
+          projectId: 'project-1',
+          artifactType: 'content',
+          status: 'completed',
+          model: 'openrouter/auto',
+          toolKey: 'meta-ads',
+          workflowType: 'meta_ads_generator',
+          content: 'context output',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          updatedAt: '2026-05-01T00:00:00.000Z',
+          sourceRequest: {
+            requestId: 'run-meta-current:context-generation',
+            userId: 'user-1',
+            projectId: 'project-1',
+            artifactType: 'content',
+            model: 'openrouter/auto',
+            toolKey: 'meta-ads',
+            workflowType: 'meta_ads_generator',
+            input: { step: 'context-generation' },
+          },
+        },
+        {
+          artifactId: 'art-meta-ads-current',
+          requestId: 'run-meta-current:ads-generation',
+          projectId: 'project-1',
+          artifactType: 'content',
+          status: 'completed',
+          model: 'openrouter/auto',
+          toolKey: 'meta-ads',
+          workflowType: 'meta_ads_generator',
+          content: 'ads output',
+          createdAt: '2026-05-01T00:01:00.000Z',
+          updatedAt: '2026-05-01T00:01:00.000Z',
+          sourceRequest: {
+            requestId: 'run-meta-current:ads-generation',
+            userId: 'user-1',
+            projectId: 'project-1',
+            artifactType: 'content',
+            model: 'openrouter/auto',
+            toolKey: 'meta-ads',
+            workflowType: 'meta_ads_generator',
+            input: { step: 'ads-generation' },
+          },
+        },
+      ] satisfies GenerationArtifact[],
+      intent: 'regenerate',
+      sourceArtifact: null,
+      runRequestPrefix: 'run-meta-current',
     });
 
     const vm = actor.getSnapshot().context.viewModel;

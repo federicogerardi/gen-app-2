@@ -6,6 +6,7 @@ const PROMPT_FILE_BY_KEY = {
   extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
   'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_extraction.md',
   'angle-generator:extraction': 'src/lib/runtime/tool-prompts/angle-generator/prompt_extraction.md',
+  'meta-ads:extraction': 'src/lib/runtime/tool-prompts/meta-ads/prompt_extraction.md',
   'funnel-pages:optin': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_optin_generator.md',
   'funnel-pages:quiz': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_quiz_generator.md',
   'funnel-pages:vsl': 'src/lib/runtime/tool-prompts/hl_funnel/prompt_vsl_generator.md',
@@ -23,6 +24,8 @@ const PROMPT_FILE_BY_KEY = {
   'youtube-lf-script:body-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_body_structure.md',
   'youtube-lf-script:native-cta-embeds': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_native_cta_embeds.md',
   'youtube-lf-script:outro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_outro_structure.md',
+  'meta-ads:context-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_context_generation.md',
+  'meta-ads:ads-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_ads_generation.md',
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -62,6 +65,9 @@ const resolvePromptFilePath = (input: {
     }
     if (extractionToolKey === 'angle-generator') {
       return PROMPT_FILE_BY_KEY['angle-generator:extraction'];
+    }
+    if (extractionToolKey === 'meta-ads') {
+      return PROMPT_FILE_BY_KEY['meta-ads:extraction'];
     }
     return PROMPT_FILE_BY_KEY.extraction;
   }

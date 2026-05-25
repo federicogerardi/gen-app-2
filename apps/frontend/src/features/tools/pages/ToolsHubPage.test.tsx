@@ -3,8 +3,18 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToolsHubPage } from './ToolsHubPage';
 
+vi.mock('../../../app/providers/AuthSessionProvider', () => ({
+  useAuthSession: () => ({
+    session: {
+      user: {
+        role: 'member',
+      },
+    },
+  }),
+}));
+
 vi.mock('../runtime/tool-form-architecture', () => ({
-  getEnabledToolNavigationItems: () => ([
+  getEnabledToolNavigationItems: (_role: 'member' | 'admin') => ([
     { toolKey: 'funnel-pages', to: '/tools/funnel-pages', label: 'Hotlead Funnel', description: 'Desc funnel' },
     { toolKey: 'youtube-lf-script', to: '/tools/youtube-lf-script', label: 'YouTube LF Script', description: 'Desc youtube' },
   ]),

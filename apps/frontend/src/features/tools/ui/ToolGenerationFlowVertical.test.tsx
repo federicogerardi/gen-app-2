@@ -23,15 +23,15 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione in attesa');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in attesa');
   });
 
   it('renders the project shell in draft-empty state', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
     expect(screen.getByText('Nessun progetto selezionato')).toBeInTheDocument();
-    expect(screen.getByText('Fase: Estrazione')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Estrazione briefing')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione briefing in attesa')).toBeInTheDocument();
+    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in attesa')).toBeInTheDocument();
     expect(screen.queryByText('Seleziona un progetto per visualizzare i file del contesto')).toBeNull();
     expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
   });
@@ -43,7 +43,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione completata');
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto completata');
   });
 
   it('renders correct status text for draft-ready', () => {
@@ -103,11 +103,11 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     );
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-active');
-    expect(bar).toHaveAttribute('aria-label', 'Estrazione in corso');
-    expect(screen.getByText('Fase: Estrazione')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Estrazione briefing')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione briefing in corso')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione in corso…')).toBeInTheDocument();
+    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in corso');
+    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in corso')).toBeInTheDocument();
+    expect(screen.getByText('Generazione contesto in corso…')).toBeInTheDocument();
   });
 
   it('renders dynamic extraction metrics and progress value during processing-briefing', () => {
@@ -194,7 +194,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Contesto caricato')).toBeInTheDocument();
+    expect(screen.getByText('Informazioni di contesto')).toBeInTheDocument();
     expect(screen.getByText('Progetto')).toBeInTheDocument();
     const projectIndicator = container.querySelector('.ui-fv-context-project');
     expect(projectIndicator?.classList.contains('is-done')).toBe(true);
@@ -207,6 +207,28 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const actionButton = screen.getByRole('button', { name: 'Apri sessione' });
     expect(actionButton).toHaveClass('ui-fv-session-button');
     expect(actionButton).toHaveClass('ui-button');
+  });
+
+  it('renders api acquisition payload when configured by tool policy', () => {
+    render(
+      <ToolGenerationFlowVertical
+        {...baseProps}
+        canonicalState="draft-ready"
+        projectName="Acme S.r.l."
+        apiAcquisitionPayload={[
+          {
+            key: 'market-intel-service',
+            label: 'MarketIntelService',
+            requiredness: 'required-by-tool-setting',
+            status: 'done',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Acquisizione API')).toBeInTheDocument();
+    expect(screen.getByText('MarketIntelService')).toBeInTheDocument();
+    expect(screen.getByText('Connesso')).toBeInTheDocument();
   });
 });
 

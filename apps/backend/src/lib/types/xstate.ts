@@ -21,6 +21,7 @@ export type RequestRegistrySelector =
 
 export type { WorkflowRunMode } from '@gen-app-2/domain';
 export type WorkflowStepStatus = 'idle' | 'running' | 'done' | 'error' | 'skipped';
+export type WorkflowStepType = 'extraction' | 'generation' | 'acquisition';
 export type ExtractionResponseMode = 'structured' | 'text';
 
 export const GENERATION_ACTOR_SOURCES = [
@@ -32,6 +33,7 @@ export const GENERATION_ACTOR_SOURCES = [
   'persistenceBatchMachine',
   'toolWorkflowMachine',
   'extractionChainMachine',
+  'acquisitionChainMachine',
 ] as const;
 
 export type GenerationActorSource = (typeof GENERATION_ACTOR_SOURCES)[number];
@@ -64,6 +66,7 @@ export interface GenerationSystemContext {
 export interface WorkflowStepDescriptor {
   key: string;
   dependencies: string[];
+  type?: WorkflowStepType;
   optional?: boolean;
 }
 

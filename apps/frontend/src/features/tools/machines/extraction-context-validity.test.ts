@@ -42,4 +42,22 @@ describe('extraction-context-validity', () => {
       isExtractionContextValidForTool('youtube-lf-script', payload, 'brief text'),
     ).toBe(false);
   });
+
+  it('accepts meta-ads readiness with actionable payload and non-empty text', () => {
+    const payload = {
+      primary_offer: 'Sopralluogo tecnico gratuito',
+    };
+
+    expect(
+      isExtractionContextValidForTool('meta-ads', payload, 'brief text'),
+    ).toBe(true);
+  });
+
+  it('keeps meta-ads readiness blocked when payload is empty', () => {
+    const payload = {};
+
+    expect(
+      isExtractionContextValidForTool('meta-ads', payload, 'brief text'),
+    ).toBe(false);
+  });
 });

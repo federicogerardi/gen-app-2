@@ -423,12 +423,16 @@ describe('ToolPageTemplate wiring', () => {
       expect(startMock).toHaveBeenCalledTimes(1);
     });
 
+    const firstRequest = startMock.mock.calls[0]?.[0] as { requestId: string };
+    const runRequestPrefix = firstRequest.requestId.split(':')[0] ?? '';
+
     generationState.streamStatus = 'completed';
     generationState.isStreamActive = false;
     generationState.artifacts = [
       defaultExtractionArtifact,
       {
         artifactId: 'artifact-optin-001',
+        requestId: `${runRequestPrefix}:optin`,
         projectId: 'project-001',
         status: 'completed',
         toolKey: 'funnel-pages',
@@ -486,6 +490,7 @@ describe('ToolPageTemplate wiring', () => {
 
     // Step 1: optin
     const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
+    const runRequestPrefix = ((startMock.mock.calls[0]?.[0] as { requestId: string }).requestId.split(':')[0] ?? '');
     expect(firstRequest.input.step).toBe('optin');
     expect(firstRequest.input.briefingId).toBe('brief-001');
     expect(firstRequest.input.briefingText).toBe('brief text');
@@ -500,6 +505,7 @@ describe('ToolPageTemplate wiring', () => {
       defaultExtractionArtifact,
       {
         artifactId: 'artifact-optin-001',
+        requestId: `${runRequestPrefix}:optin`,
         projectId: 'project-001',
         status: 'completed',
         toolKey: 'funnel-pages',
@@ -533,6 +539,7 @@ describe('ToolPageTemplate wiring', () => {
       defaultExtractionArtifact,
       {
         artifactId: 'artifact-optin-001',
+        requestId: `${runRequestPrefix}:optin`,
         projectId: 'project-001',
         status: 'completed',
         toolKey: 'funnel-pages',
@@ -541,6 +548,7 @@ describe('ToolPageTemplate wiring', () => {
       },
       {
         artifactId: 'artifact-quiz-001',
+        requestId: `${runRequestPrefix}:quiz`,
         projectId: 'project-001',
         status: 'completed',
         toolKey: 'funnel-pages',
@@ -860,6 +868,95 @@ describe('resolveFlowProgressState', () => {
     expect([...result.completedSteps]).toEqual(['optin', 'quiz']);
     expect(result.lastCheckpointStep).toBe('optin');
     expect(result.latestArtifactByStep.quiz?.artifactId).toBe('art-quiz-run');
+  });
+
+  it('tracks only current run steps for new intent when runRequestPrefix is active', () => {
+    const artifacts = [
+      {
+        artifactId: 'art-optin-historical',
+        requestId: 'req-optin-historical',
+        projectId: 'project-001',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel_pages',
+        content: 'historical optin',
+        createdAt: '2026-05-01T00:00:00.000Z',
+        updatedAt: '2026-05-01T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'req-optin-historical',
+          userId: 'user-1',
+          projectId: 'project-001',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel_pages',
+          input: { step: 'optin' },
+        },
+      },
+      {
+        artifactId: 'art-quiz-run',
+        requestId: 'run-current:quiz',
+        projectId: 'project-001',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel_pages',
+        content: 'quiz content',
+        createdAt: '2026-05-03T00:00:00.000Z',
+        updatedAt: '2026-05-03T00:00:00.000Z',
+        sourceRequest: {
+          requestId: 'run-current:quiz',
+          userId: 'user-1',
+          projectId: 'project-001',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel_pages',
+          input: { step: 'quiz' },
+        },
+      },
+      {
+        artifactId: 'art-vsl-run',
+        requestId: 'run-current:vsl',
+        projectId: 'project-001',
+        artifactType: 'content',
+        status: 'completed',
+        model: 'openrouter/auto',
+        toolKey: 'funnel-pages',
+        workflowType: 'funnel_pages',
+        content: 'vsl content',
+        createdAt: '2026-05-03T00:01:00.000Z',
+        updatedAt: '2026-05-03T00:01:00.000Z',
+        sourceRequest: {
+          requestId: 'run-current:vsl',
+          userId: 'user-1',
+          projectId: 'project-001',
+          artifactType: 'content',
+          model: 'openrouter/auto',
+          toolKey: 'funnel-pages',
+          workflowType: 'funnel_pages',
+          input: { step: 'vsl' },
+        },
+      },
+    ] satisfies GenerationArtifact[];
+
+    const result = resolveFlowProgressState(
+      artifacts,
+      'funnel-pages',
+      'project-001',
+      null,
+      'new',
+      null,
+      'run-current',
+    );
+
+    expect([...result.completedSteps]).toEqual(['quiz', 'vsl']);
+    expect(result.latestArtifactByStep.optin).toBeUndefined();
+    expect(result.latestArtifactByStep.quiz?.artifactId).toBe('art-quiz-run');
+    expect(result.latestArtifactByStep.vsl?.artifactId).toBe('art-vsl-run');
   });
 });
 

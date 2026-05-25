@@ -167,6 +167,14 @@ export const resolveFlowProgressState = (
     };
   }
 
+  if (intent === 'new') {
+    return {
+      completedSteps: runCompletedSteps,
+      latestArtifactByStep: runLatestArtifactByStep,
+      lastCheckpointStep: null,
+    };
+  }
+
   if (intent === 'resume') {
     const baseCompletedSteps = hasRestoredCheckout ? restoredCheckpointState.completedSteps : historicalCompletedSteps;
     return {

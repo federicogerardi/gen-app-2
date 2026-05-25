@@ -85,6 +85,7 @@ export type ToolFormState = {
   projectId: string;
   model: string;
   tone: string;
+  campaignObjective: string;
   registrySnapshotRef: string;
   briefingFile: File | null;
   briefingFileName: string | null;
@@ -143,6 +144,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['angle-generator'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['angle-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  'meta-ads': {
+    toolKey: 'meta-ads',
+    availabilityPolicy: getToolAvailabilityPolicy('meta-ads'),
+    displayName: 'MetaAds Generator',
+    defaultPrompt: 'Genera copy Meta Ads ad alta chiarezza strategica a partire dal contesto estratto.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['meta-ads'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['meta-ads'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -258,6 +271,46 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     notes: ['Se carichi entrambi i file, devono descrivere lo stesso contesto di lavoro.', 'AngleDetectorFile arricchisce il contesto ma non blocca la generazione se assente.'],
     stepConstraints: ['La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
+  'meta-ads': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un BriefingFile obbligatorio e, se disponibile, un AngleDetectorFile con insight aggiuntivi.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'always-required',
+      },
+      {
+        key: 'angle-detector-file',
+        label: 'AngleDetectorFile',
+        accept: '.docx,.txt,.md',
+        requiredness: 'optional-by-tool-setting',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    requiredFieldKeys: [
+      'product_or_service',
+      'target_audience',
+      'campaign_objective',
+      'budget_context',
+      'primary_offer',
+      'proof_points',
+      'dominant_pain_points',
+      'objections',
+      'awareness_priority',
+      'lf8_priority',
+      'unique_mechanism',
+      'angle_candidates',
+    ],
+    optionalFields: ['Hook varianti', 'Vincoli legali o compliance', 'Blacklist claim', 'Learned insights da campagne precedenti'],
+    examples: [
+      'Campaign objective: acquisizione lead qualificati con CPL target sostenibile.',
+      'Primary offer: consulenza + audit gratuito per attivare la call strategica.',
+    ],
+    notes: ['Il formato estrazione è markdown con sezioni canoniche e campi non disponibili esplicitati.', 'AngleDetectorFile resta opzionale: se assente la pipeline resta operativa.'],
+    stepConstraints: ['La sequenza canonica è context-generation -> ads-generation.'],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -335,6 +388,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   nextland: appCopy.ui.navigation.nextland,
   'youtube-lf-script': appCopy.ui.navigation.youtubeLfScript,
   'angle-generator': appCopy.ui.navigation.angleGenerator,
+  'meta-ads': appCopy.ui.navigation.metaAds,
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -342,6 +396,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   nextland: 'Genera le pagine del sito Nextland a partire dal tuo brief di progetto.',
   'youtube-lf-script': 'Produci script video long-form guidato da una struttura passo passo.',
   'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
+  'meta-ads': 'Produci asset Meta Ads coerenti con contesto, obiettivo campagna e priorita strategiche.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -349,6 +404,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   nextland: '/tools/nextland',
   'youtube-lf-script': '/tools/youtube-lf-script',
   'angle-generator': '/tools/angle-generator',
+  'meta-ads': '/tools/meta-ads',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -519,6 +575,18 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Creative Activation',
       description: 'Trasforma gli angle prioritari in asset creativi attivabili',
       expectedOutputFormat: 'Markdown con headline e attivazioni creative',
+    },
+  },
+  'meta-ads': {
+    'context-generation': {
+      displayName: 'Context Generation',
+      description: 'Consolida il contesto strategico utile alla produzione degli asset Meta Ads',
+      expectedOutputFormat: 'Markdown con strategia, messaggi e priorita di attivazione',
+    },
+    'ads-generation': {
+      displayName: 'Ads Generation',
+      description: 'Genera i set creativi Meta Ads a partire dal contesto validato',
+      expectedOutputFormat: 'Markdown con ad set, varianti e piano di test',
     },
   },
 };

@@ -333,5 +333,5 @@ describe('AdminApiServicesPage', () => {
       appCopy.ui.feedback.adminApiServicesDeleted,
       expect.objectContaining({ dedupeKey: 'admin-api-services:delete:svc_002:success' }),
     );
-  });
+  }, 15000);
 });

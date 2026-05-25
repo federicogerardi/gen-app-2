@@ -17,6 +17,8 @@ import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifact
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { normalizeToolKeyCandidate } from '@gen-app-2/contracts';
 import { ArtifactContentPreview } from '../ui/ArtifactContentPreview';
 import { DownloadFormatDropdown } from '../ui/DownloadFormatDropdown';
 import { downloadArtifactFile, type DownloadFormat } from '../runtime/download-client';
@@ -24,14 +26,6 @@ import { downloadArtifactFile, type DownloadFormat } from '../runtime/download-c
 const isDeleteEnabled = (import.meta.env.VITE_ARTIFACT_DELETE_ENABLED as string | undefined) === 'true';
 
 export const isSessionSummaryRouteId = (id: string): boolean => isSessionSummaryId(id);
-
-const toolDisplayName = (toolKey: string | null): string => {
-  if (!toolKey) return 'Tool non disponibile';
-  if (toolKey === 'funnel-pages') return 'Hotlead Funnel';
-  if (toolKey === 'nextland') return 'Nextland';
-  if (toolKey === 'youtube-lf-script') return 'YouTube LF Script';
-  return toolKey;
-};
 
 const normalizeToolFromWorkflowType = (workflowType: string | null | undefined): string | null => {
   if (typeof workflowType !== 'string') {
@@ -43,19 +37,11 @@ const normalizeToolFromWorkflowType = (workflowType: string | null | undefined):
     return null;
   }
 
-  if (normalized === 'funnel_pages') {
-    return 'funnel-pages';
-  }
-
-  if (normalized === 'youtube_lf_script') {
-    return 'youtube-lf-script';
-  }
-
   if (normalized === 'youtube_long_form' || normalized === 'youtube-long-form') {
     return 'youtube-lf-script';
   }
 
-  return normalized;
+  return normalizeToolKeyCandidate(normalized) ?? normalized;
 };
 
 const resolveArtifactToolKey = (artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>): string | null => {
@@ -186,7 +172,10 @@ const LegacyArtifactView = ({
     return sessionId ? `/sessionsummary/${sessionId}` : null;
   }, [artifact.sessionId]);
   const resolvedToolKey = useMemo(() => resolveArtifactToolKey(artifact), [artifact]);
-  const toolName = useMemo(() => toolDisplayName(resolvedToolKey), [resolvedToolKey]);
+  const toolName = useMemo(
+    () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : 'Tool non disponibile'),
+    [resolvedToolKey],
+  );
   const toneLabel = useMemo(() => {
     const tone = artifact.sourceRequest.input?.tone;
     if (typeof tone !== 'string') {

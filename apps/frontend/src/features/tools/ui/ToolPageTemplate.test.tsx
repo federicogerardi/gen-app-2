@@ -285,6 +285,7 @@ vi.mock('../runtime/useToolForm', () => {
         projectId: 'project-001',
         model: 'openrouter/auto',
         tone: 'Professional',
+        campaignObjective: '',
         registrySnapshotRef: 'snapshot:default',
         briefingFile: null,
         briefingFileName: 'brief.md',

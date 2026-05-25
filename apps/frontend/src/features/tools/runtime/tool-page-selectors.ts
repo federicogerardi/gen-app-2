@@ -275,7 +275,7 @@ export const buildBaseGenerationRequest = ({
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'registrySnapshotRef'>;
+  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -305,7 +305,20 @@ export const buildBaseGenerationRequest = ({
     briefingText: extractionInfo.briefingText,
     briefingFileName: effectiveBriefingFileName ?? null,
     extractionArtifactId: extractionInfo.extractionArtifactId,
-    extractionPayload: extractionInfo.extractionPayload,
+    extractionPayload: (
+      toolKey === 'meta-ads'
+      && typeof formState.campaignObjective === 'string'
+      && formState.campaignObjective.trim().length > 0
+      && !(
+        typeof extractionInfo.extractionPayload.campaign_objective === 'string'
+        && extractionInfo.extractionPayload.campaign_objective.trim().length > 0
+      )
+    )
+      ? {
+        ...extractionInfo.extractionPayload,
+        campaign_objective: formState.campaignObjective.trim(),
+      }
+      : extractionInfo.extractionPayload,
   },
 });
 

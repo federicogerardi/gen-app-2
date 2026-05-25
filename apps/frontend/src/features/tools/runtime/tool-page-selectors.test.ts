@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildBaseGenerationRequest,
   deriveToolInputFileCompletion,
   deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
@@ -101,5 +102,82 @@ describe('selectToolFileInstructions', () => {
     expect(matrix.missingRequiredApiAcquisition).toEqual([]);
     expect(matrix.missingOptionalApiAcquisition).toEqual([]);
     expect(matrix.entries.some((entry) => entry.sourceFamily === 'api-acquisition')).toBe(false);
+  });
+});
+
+describe('buildBaseGenerationRequest', () => {
+  it('injects selected campaign objective for meta-ads when extraction payload is missing it', () => {
+    const request = buildBaseGenerationRequest({
+      userId: 'user-1',
+      projectId: 'project-1',
+      sessionId: 'session-1',
+      toolKey: 'meta-ads',
+      runtimeIntent: 'new',
+      formState: {
+        model: 'openrouter/auto',
+        tone: 'Professional',
+        campaignObjective: 'Leads',
+        registrySnapshotRef: 'snapshot:default',
+      },
+      toolConfig: {
+        defaultModel: 'openrouter/auto',
+      },
+      resolvedNotes: '',
+      resolvedRelaunchSource: null,
+      sourceArtifactId: null,
+      resolvedBriefingId: 'brief-1',
+      effectiveBriefingFileName: 'brief.md',
+      extractionInfo: {
+        extractionArtifactId: 'artifact-extract-1',
+        extractionPayload: {
+          product_or_service: 'Demo product',
+          target_audience: 'SMB',
+        },
+        briefingId: 'brief-1',
+        briefingText: 'brief text',
+      },
+      runPrefix: 'run-1',
+    });
+
+    expect(request.input.extractionPayload).toMatchObject({
+      campaign_objective: 'Leads',
+    });
+  });
+
+  it('does not overwrite existing campaign objective in extraction payload', () => {
+    const request = buildBaseGenerationRequest({
+      userId: 'user-1',
+      projectId: 'project-1',
+      sessionId: 'session-1',
+      toolKey: 'meta-ads',
+      runtimeIntent: 'new',
+      formState: {
+        model: 'openrouter/auto',
+        tone: 'Professional',
+        campaignObjective: 'Traffic',
+        registrySnapshotRef: 'snapshot:default',
+      },
+      toolConfig: {
+        defaultModel: 'openrouter/auto',
+      },
+      resolvedNotes: '',
+      resolvedRelaunchSource: null,
+      sourceArtifactId: null,
+      resolvedBriefingId: 'brief-1',
+      effectiveBriefingFileName: 'brief.md',
+      extractionInfo: {
+        extractionArtifactId: 'artifact-extract-1',
+        extractionPayload: {
+          campaign_objective: 'Sales',
+        },
+        briefingId: 'brief-1',
+        briefingText: 'brief text',
+      },
+      runPrefix: 'run-1',
+    });
+
+    expect(request.input.extractionPayload).toMatchObject({
+      campaign_objective: 'Sales',
+    });
   });
 });

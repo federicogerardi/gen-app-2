@@ -21,6 +21,7 @@ const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
 const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-generator/pages/AngleGeneratorToolPage').then(m => ({ default: m.AngleGeneratorToolPage })));
+const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/MetaAdsToolPage').then(m => ({ default: m.MetaAdsToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -38,6 +39,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   nextland: NextlandToolPage,
   'youtube-lf-script': YoutubeLfScriptToolPage,
   'angle-generator': AngleGeneratorToolPage,
+  'meta-ads': MetaAdsToolPage,
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -45,6 +47,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   nextland: '/tools/nextland',
   'youtube-lf-script': '/tools/youtube-lf-script',
   'angle-generator': '/tools/angle-generator',
+  'meta-ads': '/tools/meta-ads',
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {

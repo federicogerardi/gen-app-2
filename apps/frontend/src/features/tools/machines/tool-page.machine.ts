@@ -46,6 +46,7 @@ export const toolPageMachine = setup({
             toolKey: context.toolKey,
             projectId: context.projectId,
             model: context.model,
+            campaignObjective: context.campaignObjective,
             apiBaseUrl: context.apiBaseUrl,
             capabilities: context.capabilities,
             userId: context.userId,
@@ -57,6 +58,11 @@ export const toolPageMachine = setup({
     setProjectId: assign(({ context, event }) => buildSetProjectState(context, event)),
     setModel: assign({
       model: ({ event, context }) => (event.type === 'MODEL_CHANGED' ? event.model : context.model),
+    }),
+    setCampaignObjective: assign({
+      campaignObjective: ({ event, context }) => (
+        event.type === 'CAMPAIGN_OBJECTIVE_CHANGED' ? event.campaignObjective : context.campaignObjective
+      ),
     }),
     setStepArtifactId: assign({
       stepArtifactIds: ({ event, context }) => {
@@ -109,6 +115,9 @@ export const toolPageMachine = setup({
       type: 'INPUT_SYNCED',
       projectId: context.projectId,
       model: event.type === 'MODEL_CHANGED' ? event.model : context.model,
+      campaignObjective: event.type === 'CAMPAIGN_OBJECTIVE_CHANGED'
+        ? event.campaignObjective
+        : context.campaignObjective,
       apiBaseUrl: context.apiBaseUrl,
       capabilities: context.capabilities,
       userId: context.userId,
@@ -131,6 +140,7 @@ export const toolPageMachine = setup({
     sessionId: input.sessionId ?? generateSessionId(),
     projectId: input.projectId,
     model: input.model,
+    campaignObjective: input.campaignObjective ?? '',
     registrySnapshotRef: input.registrySnapshotRef,
     apiBaseUrl: input.apiBaseUrl,
     capabilities: input.capabilities,
@@ -166,6 +176,9 @@ export const toolPageMachine = setup({
         },
         MODEL_CHANGED: {
           actions: ['setModel', 'sendBriefingInputSynced'],
+        },
+        CAMPAIGN_OBJECTIVE_CHANGED: {
+          actions: ['setCampaignObjective', 'sendBriefingInputSynced'],
         },
         STEP_ARTIFACT_UPDATED: {
           actions: 'setStepArtifactId',

@@ -205,17 +205,17 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    const isAngleGenerator = toolKey === 'angle-generator';
-    const briefingEnvelope = isAngleGenerator ? parseEnvelope(body.briefing) : parseLegacyEnvelope(body);
-    const angleDetectorEnvelope = isAngleGenerator ? parseEnvelope(body.angleDetector) : null;
+    const isDualSourceTool = toolKey === 'angle-generator' || toolKey === 'meta-ads';
+    const briefingEnvelope = isDualSourceTool ? parseEnvelope(body.briefing) : parseLegacyEnvelope(body);
+    const angleDetectorEnvelope = isDualSourceTool ? parseEnvelope(body.angleDetector) : null;
 
     if (!briefingEnvelope) {
       writeError(
         response,
         400,
         'bad_request',
-        isAngleGenerator
-          ? 'For angle-generator, briefing.fileName and briefing.contentBase64 are required'
+        isDualSourceTool
+          ? 'For dual-source tools, briefing.fileName and briefing.contentBase64 are required'
           : 'projectId, toolKey, fileName and contentBase64 are required',
       );
       return;
@@ -225,7 +225,7 @@ export const createToolsBriefHandlers = (
     let parsedAngleDetector: ParsedUploadedBrief | null = null;
     try {
       parsedBriefing = await parseUploadedBriefEnvelope(briefingEnvelope);
-      if (isAngleGenerator && angleDetectorEnvelope) {
+      if (isDualSourceTool && angleDetectorEnvelope) {
         parsedAngleDetector = await parseUploadedBriefEnvelope(angleDetectorEnvelope);
       }
     } catch (error) {
@@ -242,7 +242,7 @@ export const createToolsBriefHandlers = (
 
     await repositories.sessions.touchSession(principal.session.id, now());
 
-    if (isAngleGenerator && parsedAngleDetector) {
+    if (isDualSourceTool && parsedAngleDetector) {
       writeSuccess(response, 201, {
         briefing: {
           briefingId,

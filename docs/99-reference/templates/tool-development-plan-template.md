@@ -169,6 +169,7 @@ Checklist:
 - Confirm Session Summary list parity for the new Tool: `/sessionsummary` must render the Tool display label (not raw `ToolKey` or fallback technical value) in the Tool column.
 - Confirm Session Summary detail parity for the new Tool: `/sessionsummary/{sessionId}` must resolve the same Tool display label in title and metadata without falling back to generic unavailability copy.
 - Confirm relaunch parity for the new Tool from session detail: `Relaunch` CTA must resolve a valid Tool route and remain enabled when stream is idle and artifact detail is available.
+- Confirm resume-checkpoint parity for the new Tool in Tool Workspace: when a paused checkpoint exists, the primary action must resolve to `resume-checkpoint` and target the paused `ToolStep` deterministically.
 
 Primary evidence anchors:
 

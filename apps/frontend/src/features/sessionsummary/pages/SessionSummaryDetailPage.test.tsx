@@ -125,6 +125,74 @@ const renderPage = (SessionSummaryDetailPage: () => ReactElement) =>
   );
 
 describe('SessionSummaryDetailPage', () => {
+  it('renders meta-ads canonical label and deterministic relaunch route', async () => {
+    const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
+
+    mocks.sessionGroup = {
+      sessionId: 'sess_meta_ads',
+      toolKey: 'meta-ads',
+      status: 'completed',
+      artifacts: [
+        {
+          artifactId: 'a-meta-context',
+          requestId: 'r-meta-context',
+          projectId: 'p-1',
+          stepKey: 'context-generation',
+          artifactRole: 'step',
+          status: 'completed',
+          content: 'meta context artifact',
+          updatedAt: '2026-05-09T10:00:00.000Z',
+          failureReason: null,
+          workflowType: 'meta_ads_generator',
+          toolKey: 'meta-ads',
+          runMode: 'regenerate',
+        },
+      ],
+    };
+
+    mocks.relaunchArtifact = {
+      artifactId: 'a-meta-context',
+      requestId: 'r-meta-context',
+      projectId: 'p-1',
+      sessionId: 'sess_meta_ads',
+      stepKey: 'context-generation',
+      artifactRole: 'step',
+      runMode: 'regenerate',
+      artifactType: 'content',
+      status: 'completed',
+      model: 'openrouter/auto',
+      toolKey: 'meta-ads',
+      workflowType: 'meta_ads_generator',
+      content: 'meta context artifact',
+      createdAt: '2026-05-09T09:00:00.000Z',
+      updatedAt: '2026-05-09T10:00:00.000Z',
+      sourceRequest: {
+        requestId: 'req-source-meta',
+        userId: 'user-1',
+        projectId: 'p-1',
+        artifactType: 'content',
+        model: 'openrouter/auto',
+        input: {
+          notes: 'meta notes',
+          tone: 'Formal',
+          briefingId: 'brief-meta',
+          briefingFileName: 'brief-meta.txt',
+        },
+        workflowType: 'meta_ads_generator',
+        outputFormat: 'markdown',
+        toolKey: 'meta-ads',
+      },
+    } as GenerationArtifact;
+
+    renderPage(SessionSummaryDetailPage);
+
+    const relaunchLink = await screen.findByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
+    expect(screen.getByRole('heading', { name: 'Project One - MetaAds Generator' })).toBeInTheDocument();
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('/tools/meta-ads?'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('intent=regenerate'));
+    expect(relaunchLink).toHaveAttribute('href', expect.stringContaining('sourceArtifactId=a-meta-context'));
+  });
+
   it('renders angle-generator label in title/details and never falls back to unavailable tool copy', async () => {
     const { SessionSummaryDetailPage } = await import('./SessionSummaryDetailPage');
 

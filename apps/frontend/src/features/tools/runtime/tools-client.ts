@@ -218,14 +218,14 @@ export const uploadBrief = async (
   const contentBase64 = await toBase64(input.file);
   const requiredInputFiles = getRequiredToolInputFiles(input.toolKey);
   const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
-  const isAngleGenerator = input.toolKey === 'angle-generator';
+  const isDualSourceTool = input.toolKey === 'angle-generator' || input.toolKey === 'meta-ads';
   const angleDetectorFile = input.angleDetectorFile;
 
   if (hasRequiredAngleDetector && !angleDetectorFile) {
     throw new Error(appCopy.ui.toolPage.runtimeErrors.requiredFilesMissing);
   }
 
-  const bodyPayload = isAngleGenerator
+  const bodyPayload = isDualSourceTool
     ? {
       projectId: input.projectId,
       toolKey: input.toolKey,

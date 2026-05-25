@@ -28,6 +28,7 @@ import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
+const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -46,10 +47,12 @@ type ToolPageFormValues = {
   projectId: string;
   model: string;
   tone: string;
+  campaignObjective: string;
 } & Record<string, unknown>;
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
+  const isMetaAdsTool = props.toolKey === 'meta-ads';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -213,6 +216,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectId: z.string().min(1, copy.form.validation.projectRequired),
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
+    campaignObjective: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
     for (const fileEntry of inputFiles) {
@@ -280,6 +284,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: data.projectId,
       model: data.model,
       tone: data.tone,
+      campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
     }));
 
     for (const fileEntry of inputFiles) {
@@ -314,6 +319,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
+      campaignObjective: formState.campaignObjective,
       ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
@@ -345,6 +351,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
+
+  useEffect(() => {
+    setValue('campaignObjective', formState.campaignObjective);
+  }, [formState.campaignObjective, setValue]);
 
   const basePrimaryAction = generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
@@ -464,6 +474,35 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   )}
                 />
               </div>
+
+              {isMetaAdsTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="campaignObjective"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.campaignObjectiveLabel}
+                        disabled={isGenerationLocked}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, campaignObjective: e.target.value }));
+                        }}
+                        value={field.value ?? ''}
+                        fullWidth
+                      >
+                        <MenuItem value="">{copy.form.campaignObjectivePlaceholder}</MenuItem>
+                        {campaignObjectiveOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </div>
+              ) : null}
 
               {inputFiles.map((fileEntry) => (
                 <Controller

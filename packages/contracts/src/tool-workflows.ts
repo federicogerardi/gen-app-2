@@ -37,6 +37,14 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'creative-activation', dependencies: ['angle-prioritization'] },
     ],
   },
+  'meta-ads': {
+    toolKey: 'meta-ads',
+    workflowType: 'meta_ads_generator',
+    steps: [
+      { key: 'context-generation', dependencies: [] },
+      { key: 'ads-generation', dependencies: ['context-generation'] },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -69,6 +77,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   nextland: 'enabled-for-admin-only',
   'youtube-lf-script': 'enabled-for-all',
   'angle-generator': 'enabled-for-all',
+  'meta-ads': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -179,6 +188,15 @@ export const normalizeToolKeyCandidate = (
 
   if (normalized === 'angle_generator' || normalized === 'anglegenerator') {
     return 'angle-generator';
+  }
+
+  if (
+    normalized === 'meta_ads'
+    || normalized === 'meta_ads_generator'
+    || normalized === 'metaads'
+    || normalized === 'meta-adsgenerator'
+  ) {
+    return 'meta-ads';
   }
 
   return isToolKey(normalized) ? normalized : null;

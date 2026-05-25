@@ -20,6 +20,7 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     projectId: prefillProjectId ?? '',
     model: config.defaultModel,
     tone: 'Professional',
+    campaignObjective: '',
     registrySnapshotRef: config.defaults.registrySnapshotRef,
     briefingFile: null,
     briefingFileName: null,

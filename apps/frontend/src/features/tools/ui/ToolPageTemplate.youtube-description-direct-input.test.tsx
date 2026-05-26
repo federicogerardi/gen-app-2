@@ -173,6 +173,10 @@ describe('ToolPageTemplate youtube-description direct input gating', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByLabelText('Video title').closest('.ui-tool-form-row')).toHaveClass('ui-tool-form-row--full');
+    expect(screen.getByLabelText('CTA text').closest('.ui-tool-form-row')).toHaveClass('ui-tool-form-row--double');
+    expect(screen.getByLabelText('CTA link').closest('.ui-tool-form-row')).toHaveClass('ui-tool-form-row--double');
+
     fireEvent.change(screen.getByLabelText('Video title'), { target: { value: 'Video title' } });
     fireEvent.change(screen.getByLabelText('Topic'), { target: { value: 'Topic' } });
     fireEvent.change(screen.getByLabelText('Keywords (comma-separated)'), { target: { value: 'kw1, kw2' } });

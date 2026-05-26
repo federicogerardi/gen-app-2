@@ -63,6 +63,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
   const isMetaAdsTool = props.toolKey === 'meta-ads';
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
+  const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -607,7 +608,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="videoTitle"
                     control={control}
@@ -630,7 +631,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="topic"
                     control={control}
@@ -653,7 +654,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="keywords"
                     control={control}
@@ -717,7 +718,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="credentialsOrProof"
                     control={control}
@@ -742,7 +743,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="chaptersWithTimestamps"
                     control={control}
@@ -767,7 +768,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="socialLinks"
                     control={control}
@@ -792,7 +793,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isYoutubeDescriptionTool ? (
-                <div className="ui-tool-form-row">
+                <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
                     name="hashtags"
                     control={control}

@@ -68,7 +68,7 @@ DDD-075 decision entry created with full specification:
 
 | Entry | Topic | Details |
 | --- | --- | --- |
-| **DDD-075** | Hydration Briefing Coherence Requirement | Decision: `/api/tools/hydrate` must filter extraction artifact candidates by `resolvedBriefingId` coherence BEFORE applying sourceExtractionArtifactId exact match and recency ranking. Filter rule: `artifact.input.briefingId === resolvedBriefingId` OR (legacy fallback) `!artifact.input.briefingId && artifact.artifactId === resolvedBriefingId`. When no candidates match: HTTP 404 `no_extraction_for_briefing`. When `resolvedBriefingId` is null: fall through to existing ranking (backward compat). **Rationale**: Enforces domain contract that `ExtractionContext` ↔ `Briefing` are semantically paired (DDD-007, DDD-038). Evidence: tools-hydrate-handlers.ts lines 95, 170-178; architecture-weaknesses-code-review-2026-05-18.md (CRITICAL) |
+| **DDD-075** | Hydration Briefing Coherence Requirement | Decision: `/api/tools/hydrate` must filter extraction artifact candidates by `resolvedBriefingId` coherence BEFORE applying sourceExtractionArtifactId exact match and recency ranking. Filter rule: `artifact.input.briefingId === resolvedBriefingId` OR (legacy fallback) `!artifact.input.briefingId && artifact.artifactId === resolvedBriefingId`. When no candidates match: HTTP 404 `no_extraction_for_briefing`. When `resolvedBriefingId` is null: fall through to existing ranking (backward compat). **Rationale**: Enforces domain contract that `ExtractionContext` ↔ `Briefing` are semantically paired (DDD-007, DDD-038). Evidence: tools-hydrate-handlers.ts lines 95, 170-178; architecture-weaknesses-code-review.md (CRITICAL) |
 
 ### Phase 2: Glossary & BCM Alignment ✅ COMPLETE
 
@@ -245,4 +245,4 @@ Phase 4 execution is complete and the hydration finding closure is validated end
 	- `npm --workspace apps/backend run test -- src/lib/tests/runtime.auth-http.test.ts` → PASS (`136` pass, `0` fail).
 	- `npm --workspace apps/backend run test` → PASS (`136` pass, `0` fail).
 - Governance closure propagation:
-	- Finding moved from Open Findings to Closed Since Previous Review in `docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md`.
+	- Finding moved from Open Findings to Closed Since Previous Review in `docs/07-governance/architecture-weaknesses-code-review.md`.

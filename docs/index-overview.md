@@ -109,7 +109,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Reviews
 
-- [architecture-weaknesses-code-review-2026-05-18](./07-governance/architecture-weaknesses-code-review-2026-05-18.md)
+- [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [architecture-weaknesses-code-review-2026-05-21](./07-governance/architecture-weaknesses-code-review-2026-05-21.md)
 - [architecture-weaknesses-code-review-severe-2026-05-21](./07-governance/architecture-weaknesses-code-review-severe-2026-05-21.md)
 

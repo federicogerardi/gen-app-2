@@ -13,7 +13,7 @@ The Node runtime request handler (`apps/backend/src/lib/runtime/node-server.ts`)
 
 The same runtime defaulted `csrfEnabled` to `true` but resolved `csrfTrustedOrigins` from optional config fields that can legitimately be absent in misconfigured or under-configured deployments.
 
-This issue was identified in the architecture code review documented in `docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md`.
+This issue was identified in the architecture code review documented in `docs/07-governance/architecture-weaknesses-code-review.md`.
 
 ## Decision Drivers
 
@@ -66,6 +66,6 @@ To roll back: revert `apps/backend/src/lib/runtime/node-server.ts` to the prior 
 ## Related Documents
 
 - `plan/architecture-csrf-fail-open-closure-1.md` — implementation plan
-- `docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md` — original weakness identification
+- `docs/07-governance/architecture-weaknesses-code-review.md` — original weakness identification
 - `docs/04-testing/streaming-generator-debug-runbook.md` — pre-deploy CSRF configuration gate
 - `docs/02-design/adr/frontend-data-access-layer-adr.md` — ADR format reference

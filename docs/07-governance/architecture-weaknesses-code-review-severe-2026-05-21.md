@@ -173,7 +173,7 @@ owner: Architecture Review
 
 ## Governance Alignment Notes
 - Existing governance snapshots report no currently open findings:
-  - [docs/07-governance/architecture-weaknesses-code-review-2026-05-18.md](./architecture-weaknesses-code-review-2026-05-18.md)
+  - [docs/07-governance/architecture-weaknesses-code-review.md](./architecture-weaknesses-code-review.md)
   - [docs/07-governance/architecture-weaknesses-code-review-2026-05-21.md](./architecture-weaknesses-code-review-2026-05-21.md)
 - This severe review records the historical findings and their closed remediations for preventive hardening.
 

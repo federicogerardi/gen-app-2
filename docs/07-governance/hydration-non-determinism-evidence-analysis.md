@@ -2,7 +2,7 @@
 status: evidence-audit
 version: 1.1
 reviewed-on: 2026-05-20 (DDD-075 added)
-finding-anchor: architecture-weaknesses-code-review-2026-05-18.md (CRITICAL)
+finding-anchor: architecture-weaknesses-code-review.md (CRITICAL)
 ---
 
 # Hydration Non-Determinism vs. Requested Briefing — Evidence Analysis
@@ -200,7 +200,7 @@ POST /api/tools/hydrate
 - **DDD-051, DDD-052**: `SessionSummary` and `SessionArtifactGroup` multi-briefing session support
 
 ### Related Architecture Documents
-- [architecture-weaknesses-code-review-2026-05-18.md](architecture-weaknesses-code-review-2026-05-18.md) — CRITICAL finding
+- [architecture-weaknesses-code-review.md](architecture-weaknesses-code-review.md) — CRITICAL finding
 - [domain-bounded-context-map.md](../02-design/domain-bounded-context-map.md) — ExtractionContext pairing constraint
 
 ---

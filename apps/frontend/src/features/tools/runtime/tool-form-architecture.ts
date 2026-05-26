@@ -353,10 +353,8 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'CTA link',
       'Credentials or proof',
       'Chapters with timestamps',
-      'Social links',
-      'Hashtags',
     ],
-    optionalFields: ['Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
+    optionalFields: ['Social links', 'Hashtags', 'Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
     examples: [
       'Keywords: youtube seo, descrizione youtube, aumento watch time.',
       'Chapters with timestamps: 0:00 Hook, 1:35 Metodo, 3:40 CTA.',

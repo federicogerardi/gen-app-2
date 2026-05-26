@@ -249,6 +249,23 @@ describe('useToolPage', () => {
     );
   });
 
+  it('re-syncs PROGRESS_SYNCED when project selection changes', () => {
+    const { rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    const progressSyncedCallsBefore = mocks.send.mock.calls.filter(
+      ([event]) => (event as { type?: string })?.type === 'PROGRESS_SYNCED',
+    ).length;
+
+    mocks.formState.projectId = 'project-002';
+    rerender();
+
+    const progressSyncedCallsAfter = mocks.send.mock.calls.filter(
+      ([event]) => (event as { type?: string })?.type === 'PROGRESS_SYNCED',
+    ).length;
+
+    expect(progressSyncedCallsAfter).toBeGreaterThan(progressSyncedCallsBefore);
+  });
+
   it('exposes semantic briefing handlers (including angle-detector source) and streamingStep without leaking internals', () => {
     mocks.generation.isStreamActive = true;
     mocks.generation.snapshot.context.lastRequest = {

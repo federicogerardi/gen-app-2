@@ -118,6 +118,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     includeApiAcquisition: apiBindingStatusAdapter.enabled,
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
   });
+  const hasToolInputFiles = inputFiles.length > 0;
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
@@ -238,6 +239,29 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     hashtags: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
+    if (isYoutubeDescriptionTool) {
+      const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
+        { key: 'videoTitle', label: 'Video title' },
+        { key: 'topic', label: 'Topic' },
+        { key: 'keywords', label: 'Keywords' },
+        { key: 'ctaText', label: 'CTA text' },
+        { key: 'ctaLink', label: 'CTA link' },
+        { key: 'credentialsOrProof', label: 'Credentials or proof' },
+        { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
+      ];
+
+      for (const field of requiredDirectFields) {
+        const candidate = value[field.key];
+        if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field.key],
+            message: `${field.label} required`,
+          });
+        }
+      }
+    }
+
     for (const fileEntry of inputFiles) {
       if (
         fileEntry.requiredness !== 'always-required'
@@ -263,7 +287,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = !isStreamActive
+  const canStartExtraction = hasToolInputFiles
+    && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady
     && inputRequirementMatrix.requiredEntriesSatisfied;
@@ -589,6 +614,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Video title"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.videoTitle}
+                        helperText={errors.videoTitle?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, videoTitle: e.target.value }));
@@ -610,6 +637,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Topic"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.topic}
+                        helperText={errors.topic?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, topic: e.target.value }));
@@ -631,6 +660,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Keywords (comma-separated)"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.keywords}
+                        helperText={errors.keywords?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, keywords: e.target.value }));
@@ -652,6 +683,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="CTA text"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.ctaText}
+                        helperText={errors.ctaText?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, ctaText: e.target.value }));
@@ -668,6 +701,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="CTA link"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.ctaLink}
+                        helperText={errors.ctaLink?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, ctaLink: e.target.value }));
@@ -689,6 +724,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Credentials or proof"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.credentialsOrProof}
+                        helperText={errors.credentialsOrProof?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, credentialsOrProof: e.target.value }));
@@ -712,6 +749,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Chapters with timestamps (one per line)"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.chaptersWithTimestamps}
+                        helperText={errors.chaptersWithTimestamps?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, chaptersWithTimestamps: e.target.value }));
@@ -735,6 +774,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Social links (one per line)"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.socialLinks}
+                        helperText={errors.socialLinks?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, socialLinks: e.target.value }));
@@ -758,6 +799,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         label="Hashtags (comma-separated, max 5)"
                         disabled={isGenerationLocked}
                         value={field.value}
+                        error={!!errors.hashtags}
+                        helperText={errors.hashtags?.message as string | undefined}
                         onChange={(e) => {
                           field.onChange(e);
                           setFormState((prev) => ({ ...prev, hashtags: e.target.value }));

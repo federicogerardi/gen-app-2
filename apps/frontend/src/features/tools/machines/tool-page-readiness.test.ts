@@ -40,6 +40,10 @@ describe('tool-page-readiness', () => {
     expect(deriveHasPrimaryTargetStep('youtube-lf-script')).toBe(true);
   });
 
+  it('marks direct-input-only tools as extraction-context-ready by policy', () => {
+    expect(deriveHasExtractionContext('youtube-description', null, null)).toBe(true);
+  });
+
   it('does not emit sensitive logs when production-path logging is disabled', async () => {
     (globalThis as Record<string, unknown>).__TOOL_PAGE_READINESS_LOGGING_ENABLED__ = false;
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildBaseGenerationRequest,
+  buildYoutubeDescriptionDirectInputExtractionInfo,
   deriveToolInputFileCompletion,
   deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
@@ -123,6 +124,59 @@ describe('selectToolFileInstructions', () => {
 
     expect(matrixReady.requiredEntriesSatisfied).toBe(true);
     expect(matrixReady.missingRequiredFiles).toEqual([]);
+  });
+
+  it('maps youtube-description required direct fields to canonical seven-field set', () => {
+    const instructions = selectToolFileInstructions('youtube-description');
+
+    expect(instructions).not.toBeNull();
+    expect(instructions?.requiredFields).toEqual([
+      'Video title',
+      'Topic',
+      'Keywords',
+      'CTA text',
+      'CTA link',
+      'Credentials or proof',
+      'Chapters with timestamps',
+    ]);
+    expect(instructions?.optionalFields).toContain('Social links');
+    expect(instructions?.optionalFields).toContain('Hashtags');
+  });
+});
+
+describe('buildYoutubeDescriptionDirectInputExtractionInfo', () => {
+  it('builds extraction info with canonical required fields only', () => {
+    const result = buildYoutubeDescriptionDirectInputExtractionInfo({
+      videoTitle: 'Title',
+      topic: 'Topic',
+      keywords: 'kw1,kw2',
+      ctaText: 'Do this',
+      ctaLink: 'https://example.com',
+      credentialsOrProof: 'Proof',
+      chaptersWithTimestamps: '0:00 Intro\n1:00 Body',
+      socialLinks: '',
+      hashtags: '',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.extractionPayload).not.toHaveProperty('socialLinks');
+    expect(result?.extractionPayload).not.toHaveProperty('hashtags');
+  });
+
+  it('returns null when one canonical required field is missing', () => {
+    const result = buildYoutubeDescriptionDirectInputExtractionInfo({
+      videoTitle: 'Title',
+      topic: 'Topic',
+      keywords: 'kw1,kw2',
+      ctaText: '',
+      ctaLink: 'https://example.com',
+      credentialsOrProof: 'Proof',
+      chaptersWithTimestamps: '0:00 Intro',
+      socialLinks: 'https://x.com/example',
+      hashtags: '#a,#b',
+    });
+
+    expect(result).toBeNull();
   });
 });
 

@@ -102,11 +102,20 @@ export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
     || !normalizedCtaLink
     || !normalizedCredentials
     || normalizedChapters.length === 0
-    || normalizedSocialLinks.length === 0
-    || normalizedHashtags.length === 0
   ) {
     return null;
   }
+
+  const socialLinksSection = normalizedSocialLinks.length > 0
+    ? [
+      'Social links:',
+      ...normalizedSocialLinks.map((entry) => `- ${entry}`),
+    ]
+    : [];
+
+  const hashtagsLine = normalizedHashtags.length > 0
+    ? [`Hashtags: ${normalizedHashtags.join(', ')}`]
+    : [];
 
   return {
     extractionArtifactId: 'direct-input:youtube-description',
@@ -120,9 +129,8 @@ export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
       `Credentials or proof: ${normalizedCredentials}`,
       'Chapters with timestamps:',
       ...normalizedChapters.map((entry) => `- ${entry}`),
-      'Social links:',
-      ...normalizedSocialLinks.map((entry) => `- ${entry}`),
-      `Hashtags: ${normalizedHashtags.join(', ')}`,
+      ...socialLinksSection,
+      ...hashtagsLine,
     ].join('\n'),
     extractionPayload: {
       videoTitle: normalizedVideoTitle,
@@ -132,8 +140,8 @@ export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
       ctaLink: normalizedCtaLink,
       credentialsOrProof: normalizedCredentials,
       chaptersWithTimestamps: normalizedChapters,
-      socialLinks: normalizedSocialLinks,
-      hashtags: normalizedHashtags,
+      ...(normalizedSocialLinks.length > 0 ? { socialLinks: normalizedSocialLinks } : {}),
+      ...(normalizedHashtags.length > 0 ? { hashtags: normalizedHashtags } : {}),
     },
   };
 };

@@ -125,7 +125,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   useEffect(() => {
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
-  }, [briefingStatus, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
+  }, [briefingStatus, formState.projectId, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
 
   const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const effectiveCanonicalState = isExtractionInProgress

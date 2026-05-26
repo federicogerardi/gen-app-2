@@ -10,6 +10,13 @@ import {
 } from '../runtime';
 import { createAuthStubRepositories } from '../adapters';
 
+const primaryApiServiceId = '11111111-1111-1111-1111-111111111111';
+const missingApiServiceId = '99999999-9999-9999-9999-999999999999';
+
+const buildApiServiceId = (index: number): string => (
+  `00000000-0000-0000-0000-${String(index).padStart(12, '0')}`
+);
+
 class MockIncomingMessage extends EventEmitter {
   method: string;
   url: string;
@@ -69,7 +76,7 @@ class MockServerResponse extends EventEmitter {
 class ApiServiceDbStub {
   private services: Array<Record<string, unknown>> = [
     {
-      id: 'svc_1',
+      id: primaryApiServiceId,
       key: 'github-issues',
       label: 'GitHub Issues',
       base_url: 'https://api.github.com',
@@ -96,7 +103,7 @@ class ApiServiceDbStub {
   private bindings: Array<Record<string, unknown>> = [
     {
       id: 'bind_1',
-      api_service_id: 'svc_1',
+      api_service_id: primaryApiServiceId,
       tool_key: 'funnel-pages',
       step_key: 'optin',
       workflow_step_type: 'acquisition',
@@ -133,7 +140,7 @@ class ApiServiceDbStub {
 
     if (sqlText.includes('INSERT INTO api_services')) {
       const now = new Date('2026-05-24T12:00:00.000Z');
-      const id = `svc_${this.services.length + 1}`;
+      const id = buildApiServiceId(this.services.length + 1);
       const row = {
         id,
         key: values?.[0] as string,
@@ -360,7 +367,7 @@ test('admin api-service bindings list returns deterministic binding payload', as
 
   const request = new MockIncomingMessage({
     method: 'GET',
-    url: '/api/admin/api-services/svc_1/bindings',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
     headers: { cookie },
   });
   const response = new MockServerResponse();
@@ -402,7 +409,7 @@ test('tools api-service resolve returns resolveContract metadata and redacted se
 
   const request = new MockIncomingMessage({
     method: 'GET',
-    url: '/api/tools/api-services?apiServiceId=svc_1',
+    url: `/api/tools/api-services?apiServiceId=${primaryApiServiceId}`,
     headers: { cookie },
   });
   const response = new MockServerResponse();
@@ -415,7 +422,7 @@ test('tools api-service resolve returns resolveContract metadata and redacted se
   const resolveContract = (data.resolveContract ?? {}) as Record<string, unknown>;
   const apiService = (data.apiService ?? {}) as Record<string, unknown>;
 
-  assert.equal(resolveContract.apiServiceId, 'svc_1');
+  assert.equal(resolveContract.apiServiceId, primaryApiServiceId);
   assert.equal(resolveContract.contractProfileVersion, 1);
   assert.equal(
     ((resolveContract.requestContractProfile ?? {}) as Record<string, unknown>).tokenHeaderName,
@@ -510,7 +517,7 @@ test('admin api-services update roundtrip persists tokenHeaderName', async () =>
 
   const updateRequest = new MockIncomingMessage({
     method: 'PUT',
-    url: '/api/admin/api-services/svc_1',
+    url: `/api/admin/api-services/${primaryApiServiceId}`,
     headers: { cookie },
     body: JSON.stringify({ tokenHeaderName: 'X-Service-Token' }),
   });
@@ -565,7 +572,7 @@ test('admin api-service bindings upsert returns 404 when api service is missing'
 
   const request = new MockIncomingMessage({
     method: 'PUT',
-    url: '/api/admin/api-services/svc_missing/bindings',
+    url: `/api/admin/api-services/${missingApiServiceId}/bindings`,
     headers: { cookie },
     body: JSON.stringify({
       toolKey: 'funnel-pages',
@@ -621,7 +628,7 @@ test('admin api-service bindings upsert maps unique DB conflict to 409', async (
 
   const request = new MockIncomingMessage({
     method: 'PUT',
-    url: '/api/admin/api-services/svc_1/bindings',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
     headers: { cookie },
     body: JSON.stringify({
       toolKey: 'funnel-pages',

@@ -18,6 +18,8 @@ test('normalizeToolWorkflowKey maps canonical aliases', () => {
   assert.equal(normalizeToolWorkflowKey('meta_ads'), 'meta-ads');
   assert.equal(normalizeToolWorkflowKey('meta_ads_generator'), 'meta-ads');
   assert.equal(normalizeToolWorkflowKey('metaadsgenerator'), 'meta-ads');
+  assert.equal(normalizeToolWorkflowKey('youtube_description'), 'youtube-description');
+  assert.equal(normalizeToolWorkflowKey('youtubedescription'), 'youtube-description');
   assert.equal(normalizeToolWorkflowKey('thank-you'), 'thank_you');
   assert.equal(normalizeToolWorkflowKey('thankyou'), 'thank_you');
 });
@@ -52,6 +54,8 @@ test('resolveToolStepArtifactRole maps final steps for funnel, nextland, and you
 
   assert.equal(resolveToolStepArtifactRole('meta-ads', 'context-generation'), 'step');
   assert.equal(resolveToolStepArtifactRole('meta-ads', 'ads-generation'), 'final');
+
+  assert.equal(resolveToolStepArtifactRole('youtube-description', 'youtube-description-generation'), 'final');
 });
 
 test('resolveToolStepArtifactRole preserves explicit role and returns null for unknown tool', () => {

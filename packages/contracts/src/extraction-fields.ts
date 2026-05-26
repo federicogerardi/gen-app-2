@@ -88,6 +88,7 @@ export const InstructionRequiredExtractionFieldKeysByTool: Readonly<Record<ToolK
     'unique_mechanism',
     'angle_candidates',
   ],
+  'youtube-description': [],
 } as const;
 
 export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey, readonly ExtractionFieldKey[]>> = {
@@ -102,6 +103,7 @@ export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey
   ],
   'angle-generator': [],
   'meta-ads': [],
+  'youtube-description': [],
 } as const;
 
 export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly<Record<string, ExtractionFieldKey>>>> = {
@@ -154,6 +156,7 @@ export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly
     'meccanismo unico': 'unique_mechanism',
     'angle candidates': 'angle_candidates',
   },
+  'youtube-description': {},
 } as const;
 
 const normalizeAliasCandidate = (value: string): string => value.trim().toLowerCase();

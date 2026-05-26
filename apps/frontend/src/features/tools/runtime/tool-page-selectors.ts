@@ -51,6 +51,101 @@ export type SelectedExtractionInfo = {
   briefingText: string;
 };
 
+const splitCommaOrLineList = (value: string): string[] => value
+  .split(/[\n,]/g)
+  .map((entry) => entry.trim())
+  .filter((entry) => entry.length > 0);
+
+export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
+  videoTitle,
+  topic,
+  keywords,
+  ctaText,
+  ctaLink,
+  credentialsOrProof,
+  chaptersWithTimestamps,
+  socialLinks,
+  hashtags,
+}: Pick<
+  ToolFormState,
+  | 'videoTitle'
+  | 'topic'
+  | 'keywords'
+  | 'ctaText'
+  | 'ctaLink'
+  | 'credentialsOrProof'
+  | 'chaptersWithTimestamps'
+  | 'socialLinks'
+  | 'hashtags'
+>): SelectedExtractionInfo | null => {
+  const normalizedVideoTitle = videoTitle.trim();
+  const normalizedTopic = topic.trim();
+  const normalizedCtaText = ctaText.trim();
+  const normalizedCtaLink = ctaLink.trim();
+  const normalizedCredentials = credentialsOrProof.trim();
+  const normalizedKeywords = splitCommaOrLineList(keywords);
+  const normalizedChapters = chaptersWithTimestamps
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const normalizedSocialLinks = socialLinks
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const normalizedHashtags = splitCommaOrLineList(hashtags);
+
+  if (
+    !normalizedVideoTitle
+    || !normalizedTopic
+    || normalizedKeywords.length === 0
+    || !normalizedCtaText
+    || !normalizedCtaLink
+    || !normalizedCredentials
+    || normalizedChapters.length === 0
+  ) {
+    return null;
+  }
+
+  const socialLinksSection = normalizedSocialLinks.length > 0
+    ? [
+      'Social links:',
+      ...normalizedSocialLinks.map((entry) => `- ${entry}`),
+    ]
+    : [];
+
+  const hashtagsLine = normalizedHashtags.length > 0
+    ? [`Hashtags: ${normalizedHashtags.join(', ')}`]
+    : [];
+
+  return {
+    extractionArtifactId: 'direct-input:youtube-description',
+    briefingId: 'direct-input:youtube-description',
+    briefingText: [
+      `Video title: ${normalizedVideoTitle}`,
+      `Topic: ${normalizedTopic}`,
+      `Keywords: ${normalizedKeywords.join(', ')}`,
+      `CTA text: ${normalizedCtaText}`,
+      `CTA link: ${normalizedCtaLink}`,
+      `Credentials or proof: ${normalizedCredentials}`,
+      'Chapters with timestamps:',
+      ...normalizedChapters.map((entry) => `- ${entry}`),
+      ...socialLinksSection,
+      ...hashtagsLine,
+    ].join('\n'),
+    extractionPayload: {
+      videoTitle: normalizedVideoTitle,
+      topic: normalizedTopic,
+      keywords: normalizedKeywords,
+      ctaText: normalizedCtaText,
+      ctaLink: normalizedCtaLink,
+      credentialsOrProof: normalizedCredentials,
+      chaptersWithTimestamps: normalizedChapters,
+      ...(normalizedSocialLinks.length > 0 ? { socialLinks: normalizedSocialLinks } : {}),
+      ...(normalizedHashtags.length > 0 ? { hashtags: normalizedHashtags } : {}),
+    },
+  };
+};
+
 type TerminalResolution =
   | { status: 'done'; step: ToolStep }
   | { status: 'failed'; step: ToolStep | null; message: string }
@@ -160,13 +255,19 @@ export const selectGenerationExtractionInfo = ({
   briefingSnapshot,
   toolKey,
   hasSourceArtifact,
+  directInputExtractionInfo = null,
 }: {
   machineHydrationResult: HydrationResult | null;
   workspaceExtractionContext: GenerationProjectWorkspaceValue['extractionByProject'][string] | null;
   briefingSnapshot: BriefingSnapshot;
   toolKey: SupportedTool;
   hasSourceArtifact: boolean;
+  directInputExtractionInfo?: SelectedExtractionInfo | null;
 }): SelectedExtractionInfo | null => {
+  if (toolKey === 'youtube-description' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
   const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
   if (machineHydrationResult !== null) {
     return {

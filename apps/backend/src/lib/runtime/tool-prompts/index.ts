@@ -2,6 +2,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { normalizeStepKey, normalizeToolWorkflowKey } from '../workflow-normalizers';
 
+const YOUTUBE_DESCRIPTION_CONTEXT_PROMPT_FILE =
+  'src/lib/runtime/tool-prompts/youtube-description/prompt_context_generation.md';
+const YOUTUBE_DESCRIPTION_GENERATION_PROMPT_FILE =
+  'src/lib/runtime/tool-prompts/youtube-description/prompt_youtube_description_generation.md';
+
 const PROMPT_FILE_BY_KEY = {
   extraction: 'src/lib/runtime/tool-prompts/extraction/prompt_generation.md',
   'youtube-lf-script:extraction': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_extraction.md',
@@ -26,6 +31,7 @@ const PROMPT_FILE_BY_KEY = {
   'youtube-lf-script:outro-structure': 'src/lib/runtime/tool-prompts/youtube-lf-script/prompt_outro_structure.md',
   'meta-ads:context-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_context_generation.md',
   'meta-ads:ads-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_ads_generation.md',
+  'youtube-description:youtube-description-generation': YOUTUBE_DESCRIPTION_GENERATION_PROMPT_FILE,
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -101,6 +107,33 @@ export const resolveToolPrompt = (input: {
   const filePath = resolvePromptFilePath(input);
   if (!filePath) {
     return null;
+  }
+
+  const normalizedToolKey = normalizeToolWorkflowKey(input.toolKey ?? input.workflowType ?? null);
+  const normalizedStepKey = normalizeStepKey(input.stepKey);
+  if (
+    normalizedToolKey === 'youtube-description'
+    && normalizedStepKey === 'youtube-description-generation'
+  ) {
+    const contextPrompt = readPromptFile(YOUTUBE_DESCRIPTION_CONTEXT_PROMPT_FILE);
+    const generationPrompt = readPromptFile(YOUTUBE_DESCRIPTION_GENERATION_PROMPT_FILE);
+    if (!contextPrompt || !generationPrompt) {
+      return null;
+    }
+
+    return {
+      key: `${YOUTUBE_DESCRIPTION_CONTEXT_PROMPT_FILE}|${filePath}`,
+      filePath,
+      prompt: [
+        contextPrompt,
+        '',
+        '## ORCHESTRATION CONTRACT',
+        '- Execute context validation first and stop generation on blocking errors.',
+        '- When validation status is ok, execute generation using the normalized context.',
+        '',
+        generationPrompt,
+      ].join('\n'),
+    };
   }
 
   const prompt = readPromptFile(filePath);

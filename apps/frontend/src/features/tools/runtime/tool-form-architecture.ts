@@ -43,6 +43,7 @@ export type ToolFileInstructionsConfig = {
   title: string;
   summary: string;
   inputFiles: readonly ToolInputFilePolicyEntry[];
+  allowNoFiles?: boolean;
   apiAcquisitionInputs?: readonly ToolApiAcquisitionPolicyEntry[];
   // Deprecated alias retained for one deprecation cycle.
   requiredFiles: readonly string[];
@@ -86,6 +87,15 @@ export type ToolFormState = {
   model: string;
   tone: string;
   campaignObjective: string;
+  videoTitle: string;
+  topic: string;
+  keywords: string;
+  ctaText: string;
+  ctaLink: string;
+  credentialsOrProof: string;
+  chaptersWithTimestamps: string;
+  socialLinks: string;
+  hashtags: string;
   registrySnapshotRef: string;
   briefingFile: File | null;
   briefingFileName: string | null;
@@ -156,6 +166,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['meta-ads'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['meta-ads'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  'youtube-description': {
+    toolKey: 'youtube-description',
+    availabilityPolicy: getToolAvailabilityPolicy('youtube-description'),
+    displayName: 'YT Description Generator',
+    defaultPrompt: 'Genera una descrizione YouTube ad alta leggibilita con CTA above-the-fold e struttura SEO completa.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['youtube-description'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-description'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -316,17 +338,44 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     notes: ['Il formato estrazione è markdown con sezioni canoniche e campi non disponibili esplicitati.', 'AngleDetectorFile resta opzionale: se assente la pipeline resta operativa.'],
     stepConstraints: ['La sequenza canonica è context-generation -> ads-generation.'],
   },
+  'youtube-description': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Inserisci i campi diretti del video: il contesto viene costruito senza upload file.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
+    requiredFieldKeys: [],
+    requiredFields: [
+      'Video title',
+      'Topic',
+      'Keywords',
+      'CTA text',
+      'CTA link',
+      'Credentials or proof',
+      'Chapters with timestamps',
+    ],
+    optionalFields: ['Social links', 'Hashtags', 'Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
+    examples: [
+      'Keywords: youtube seo, descrizione youtube, aumento watch time.',
+      'Chapters with timestamps: 0:00 Hook, 1:35 Metodo, 3:40 CTA.',
+    ],
+    notes: [
+      'Questo tool usa solo direct-input: nessun BriefingFile richiesto.',
+      'Timestamps ammessi: m:ss, mm:ss, h:mm:ss.',
+    ],
+    stepConstraints: ['La sequenza canonica è youtube-description-generation.'],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
   registry: Record<SupportedTool, ToolFileInstructionsConfig>,
 ): void => {
   for (const [toolKey, instructions] of Object.entries(registry) as Array<[SupportedTool, ToolFileInstructionsConfig]>) {
-    if (instructions.inputFiles.length === 0) {
+    if (instructions.inputFiles.length === 0 && instructions.allowNoFiles !== true) {
       throw new Error(`[tool-form-architecture] ${toolKey}: inputFiles must include at least one file entry`);
     }
 
-    if (instructions.inputFiles[0]?.requiredness !== 'always-required') {
+    if (instructions.inputFiles.length > 0 && instructions.inputFiles[0]?.requiredness !== 'always-required') {
       throw new Error(`[tool-form-architecture] ${toolKey}: inputFiles[0] must be always-required`);
     }
 
@@ -394,6 +443,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'youtube-lf-script': appCopy.ui.navigation.youtubeLfScript,
   'angle-generator': appCopy.ui.navigation.angleGenerator,
   'meta-ads': appCopy.ui.navigation.metaAds,
+  'youtube-description': appCopy.ui.navigation.youtubeDescription,
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -402,6 +452,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'youtube-lf-script': 'Produci script video long-form guidato da una struttura passo passo.',
   'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
   'meta-ads': 'Produci asset Meta Ads coerenti con contesto, obiettivo campagna e priorita strategiche.',
+  'youtube-description': 'Genera descrizioni YouTube complete con CTA iniziale, capitoli e blocchi SEO in un singolo step.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -410,6 +461,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'youtube-lf-script': '/tools/youtube-lf-script',
   'angle-generator': '/tools/angle-generator',
   'meta-ads': '/tools/meta-ads',
+  'youtube-description': '/tools/youtube-description',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -592,6 +644,13 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Ads Generation',
       description: 'Genera i set creativi Meta Ads a partire dal contesto validato',
       expectedOutputFormat: 'Markdown con ad set, varianti e piano di test',
+    },
+  },
+  'youtube-description': {
+    'youtube-description-generation': {
+      displayName: 'YouTube Description Generation',
+      description: 'Genera la descrizione finale con CTA above-the-fold, capitoli e blocchi SEO.',
+      expectedOutputFormat: 'Markdown con descrizione completa e quality report',
     },
   },
 };

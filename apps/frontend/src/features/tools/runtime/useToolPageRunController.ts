@@ -10,7 +10,7 @@ import type { ToolPageEvent } from '../machines/tool-page.types';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 
 type UseToolPageRunControllerArgs = {
@@ -81,6 +81,19 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       briefingSnapshot,
       toolKey,
       hasSourceArtifact: sourceArtifact !== null,
+      directInputExtractionInfo: toolKey === 'youtube-description'
+        ? buildYoutubeDescriptionDirectInputExtractionInfo({
+          videoTitle: formState.videoTitle,
+          topic: formState.topic,
+          keywords: formState.keywords,
+          ctaText: formState.ctaText,
+          ctaLink: formState.ctaLink,
+          credentialsOrProof: formState.credentialsOrProof,
+          chaptersWithTimestamps: formState.chaptersWithTimestamps,
+          socialLinks: formState.socialLinks,
+          hashtags: formState.hashtags,
+        })
+        : null,
     });
     if (!extractionInfo) return false;
 

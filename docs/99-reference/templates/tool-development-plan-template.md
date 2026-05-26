@@ -33,6 +33,9 @@ Checklist:
 - Identify the bounded context that owns the change.
 - Identify the canonical `ToolKey`, `ToolWorkflow`, and `ToolStep` sequence if the Tool already exists or if the new Tool is being introduced.
 - Determine whether the new characteristics affect input shape, output shape, step sequence, runtime prompts, readiness rules, or UI composition.
+- Identify the touched XState machines/actors and ownership boundary (Generation runtime actors vs Frontend Tool Workspace actors).
+- Define runtime gate failure conditions that require explicit machine events and blocked/error transition branches.
+- Draft a minimal transition matrix for touched machine paths (input, expected transition, expected terminal state) before implementation tasks are written.
 - Check whether the new concept already exists in the glossary, bounded-context map, or naming decision log.
 - If a new term is required, create or update the DDD decision before using the term in implementation files.
 - Flag drift candidates: synonyms, local abbreviations, duplicate terms, or mixed naming across FE/BE/docs.
@@ -44,6 +47,8 @@ Required DDD outputs:
 - Terms that must not be introduced.
 - Any new DDD decision needed before code changes.
 - The narrowest implementation boundary that can contain the change.
+- XState impact boundary list (machines, actors, guards, transition paths touched).
+- Runtime gate event map (gate condition -> canonical event -> blocked/error or completed terminal branch).
 
 Primary evidence anchors:
 
@@ -166,6 +171,9 @@ Checklist:
 - Confirm requiredness is derived through one `ToolInputRequirementMatrix` across source families and that optional entries remain advisory only.
 - Confirm API acquisition behavior is explicit: adapter path, backend source endpoint, and feature-flag policy (`VITE_FF_TOOLS_API_BINDING_STATUS`) with default-off non-regression semantics.
 - Confirm the UI uses canonical UI vocabulary and no new local synonyms.
+- Confirm each runtime gate failure path maps to explicit machine events (no implicit fallback success).
+- Confirm retry/regenerate recovery is event-driven with deterministic transitions.
+- Confirm single-step tools still preserve explicit `running` -> `completed` or blocked/error transitions.
 - Confirm Session Summary list parity for the new Tool: `/sessionsummary` must render the Tool display label (not raw `ToolKey` or fallback technical value) in the Tool column.
 - Confirm Session Summary detail parity for the new Tool: `/sessionsummary/{sessionId}` must resolve the same Tool display label in title and metadata without falling back to generic unavailability copy.
 - Confirm relaunch parity for the new Tool from session detail: `Relaunch` CTA must resolve a valid Tool route and remain enabled when stream is idle and artifact detail is available.
@@ -179,6 +187,8 @@ Primary evidence anchors:
 - `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
 - `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`
 - `apps/frontend/src/features/tools/machines/`
+- `apps/backend/src/lib/machines/generation-system.machine.ts`
+- `apps/backend/src/lib/machines/tool-workflow.machine.ts`
 - `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`
 - `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.tsx`
 - `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
@@ -196,6 +206,7 @@ Checklist:
 
 - Typecheck passes.
 - Focused tests pass.
+- Focused XState transition tests pass for all touched machines/actors.
 - Build passes.
 - Benchmark or runtime gate passes if the change affects orchestration or load-sensitive behavior.
 - DDD conformity is confirmed for all touched names and payloads.
@@ -206,6 +217,13 @@ DDD conformity checklist:
 - No non-canonical synonyms in code, tests, or docs.
 - No new term appears without glossary or decision-log coverage.
 - No payload or flow drift against the canonical runtime spec.
+
+XState conformity checklist:
+
+- Every runtime gate has an explicit event and deterministic transition branch.
+- No implicit success transitions for blocked/error gate outcomes.
+- Recovery path is explicit (`retry`/`regenerate`) and test-covered.
+- At least one non-regression pair verifies unchanged transition behavior for an existing Tool.
 
 ## 4. Execution Checklist
 
@@ -221,6 +239,7 @@ Mandatory precondition:
 | EXEC-001 | `npm run typecheck --workspaces --if-present` | Global static baseline | Exit code 0 |
 | EXEC-002 | `npm --workspace apps/backend run test -- src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/runtime.tools-orchestrate.test.ts src/lib/tests/runtime.auth-http.test.ts` | Backend regression net | Exit code 0 and no failing tests |
 | EXEC-003 | `npm --workspace apps/backend run bench:orchestrate` | Runtime scalability baseline | Exit code 0 and benchmark summary logged in OUT-001 |
+| EXEC-003A | `npm --workspace apps/backend run test -- <backend-machine-transition-tests> && npm --workspace apps/frontend run test -- <frontend-machine-transition-tests>` | XState transition determinism gate | Exit code 0 and no failing machine transition tests |
 | EXEC-004 | `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/runtime/tool-api-binding-status-adapter.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx src/features/tools/ui/ToolGenerationFlowVertical.test.tsx src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx src/features/artifacts/ui/SessionsListingSection.test.tsx src/features/generation/ui/SessionArtifactTabs.test.tsx src/features/generation/ui/artifact-history.test.ts` | Frontend parity regression net (Tool Workspace + Session Summary/Relaunch + API binding gate) | Exit code 0 and no failing tests |
 | EXEC-005 | `npm --workspace apps/frontend run build` | Frontend publication gate | Exit code 0 |
 | EXEC-006 | `npm run build` | End-to-end repo build gate | Exit code 0 |
@@ -311,6 +330,19 @@ Acceptance for Track D:
 - [ ] D-AC-001: All new tests pass.
 - [ ] D-AC-002: No regressions in existing suites.
 - [ ] D-AC-003: Session summary and relaunch coverage includes the target Tool and at least one previously supported Tool (non-regression pair).
+
+### Track E - XState Runtime Determinism
+
+- [ ] E-001: Define a compact XState acceptance matrix for touched machine paths (`input`, `expected transition`, `expected terminal state`).
+- [ ] E-002: Implement explicit runtime gate event handling in touched machines (blocked/error branches + completion branch).
+- [ ] E-003: Add focused backend/frontend transition tests covering gate-failure events and recovery events.
+- [ ] E-004: Add non-regression transition tests for at least one existing Tool flow.
+
+Acceptance for Track E:
+
+- [ ] E-AC-001: Every runtime gate condition maps to one explicit event and one deterministic branch.
+- [ ] E-AC-002: Recovery transitions are explicit and test-covered.
+- [ ] E-AC-003: Existing Tool transition behavior remains unchanged under non-regression pair tests.
 
 ## 5d. DDD Impact Gate
 

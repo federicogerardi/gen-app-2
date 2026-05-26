@@ -119,6 +119,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
   });
   const hasToolInputFiles = inputFiles.length > 0;
+  const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
@@ -288,7 +289,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = hasToolInputFiles
+  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
     && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady
@@ -376,15 +377,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       campaignObjective: formState.campaignObjective,
-      videoTitle: formState.videoTitle,
-      topic: formState.topic,
-      keywords: formState.keywords,
-      ctaText: formState.ctaText,
-      ctaLink: formState.ctaLink,
-      credentialsOrProof: formState.credentialsOrProof,
-      chaptersWithTimestamps: formState.chaptersWithTimestamps,
-      socialLinks: formState.socialLinks,
-      hashtags: formState.hashtags,
+      videoTitle: formState.videoTitle ?? '',
+      topic: formState.topic ?? '',
+      keywords: formState.keywords ?? '',
+      ctaText: formState.ctaText ?? '',
+      ctaLink: formState.ctaLink ?? '',
+      credentialsOrProof: formState.credentialsOrProof ?? '',
+      chaptersWithTimestamps: formState.chaptersWithTimestamps ?? '',
+      socialLinks: formState.socialLinks ?? '',
+      hashtags: formState.hashtags ?? '',
       ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
@@ -422,39 +423,39 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   }, [formState.campaignObjective, setValue]);
 
   useEffect(() => {
-    setValue('videoTitle', formState.videoTitle);
+    setValue('videoTitle', formState.videoTitle ?? '');
   }, [formState.videoTitle, setValue]);
 
   useEffect(() => {
-    setValue('topic', formState.topic);
+    setValue('topic', formState.topic ?? '');
   }, [formState.topic, setValue]);
 
   useEffect(() => {
-    setValue('keywords', formState.keywords);
+    setValue('keywords', formState.keywords ?? '');
   }, [formState.keywords, setValue]);
 
   useEffect(() => {
-    setValue('ctaText', formState.ctaText);
+    setValue('ctaText', formState.ctaText ?? '');
   }, [formState.ctaText, setValue]);
 
   useEffect(() => {
-    setValue('ctaLink', formState.ctaLink);
+    setValue('ctaLink', formState.ctaLink ?? '');
   }, [formState.ctaLink, setValue]);
 
   useEffect(() => {
-    setValue('credentialsOrProof', formState.credentialsOrProof);
+    setValue('credentialsOrProof', formState.credentialsOrProof ?? '');
   }, [formState.credentialsOrProof, setValue]);
 
   useEffect(() => {
-    setValue('chaptersWithTimestamps', formState.chaptersWithTimestamps);
+    setValue('chaptersWithTimestamps', formState.chaptersWithTimestamps ?? '');
   }, [formState.chaptersWithTimestamps, setValue]);
 
   useEffect(() => {
-    setValue('socialLinks', formState.socialLinks);
+    setValue('socialLinks', formState.socialLinks ?? '');
   }, [formState.socialLinks, setValue]);
 
   useEffect(() => {
-    setValue('hashtags', formState.hashtags);
+    setValue('hashtags', formState.hashtags ?? '');
   }, [formState.hashtags, setValue]);
 
   const basePrimaryAction = generationInProgressPrimaryOverride

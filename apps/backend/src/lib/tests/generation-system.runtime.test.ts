@@ -988,6 +988,58 @@ test('generation root executes Youtube LF Script chain with final artifact on ou
   assert.equal(outroWorkflow.artifactRole, 'final');
 });
 
+test('generation root executes youtube-description single step with final artifact role', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const persistedInputsByRequestId = new Map<string, Record<string, unknown>>();
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedInputsByRequestId.set(input.requestId, (input.inputJson ?? {}) as Record<string, unknown>);
+    await originalFinalizeSuccess(input);
+  };
+
+  const result = await runBackendGenerationSession(
+    {
+      requestId: 'req-root-youtube-description-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      toolKey: 'youtube-description',
+      workflowType: 'youtube_description',
+      briefingId: 'briefing-youtube-description-001',
+      extractionArtifactId: 'direct-input:youtube-description',
+      outputFormat: 'markdown',
+      input: {
+        step: 'youtube-description-generation',
+        intent: 'new',
+        extractionPayload: {
+          videoTitle: 'Titolo video',
+          topic: 'Topic di test',
+          keywords: ['keyword primaria'],
+          ctaText: 'Iscriviti ora',
+          ctaLink: 'https://example.com/cta',
+          credentialsOrProof: '10 anni di esperienza',
+          chaptersWithTimestamps: ['0:00 Intro', '1:10 Metodo'],
+          socialLinks: ['https://instagram.com/test'],
+          hashtags: ['#youtube', '#seo'],
+        },
+      },
+      idempotencyKey: 'idem-root-youtube-description-001',
+      registrySnapshotRef: 'snapshot:root-youtube-description',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'completed');
+
+  const inputJson = persistedInputsByRequestId.get('req-root-youtube-description-001') ?? {};
+  const workflow = (inputJson.toolWorkflow ?? {}) as Record<string, unknown>;
+
+  assert.equal(workflow.stepKey, 'youtube-description-generation');
+  assert.equal(workflow.artifactRole, 'final');
+});
+
 test('generation runtime keeps artifact lifecycle generating -> completed with stable SSE order for youtube-lf-script', async () => {
   const adapters = createInMemoryGenerationAdapters();
   const terminalPersistenceStateByArtifactId = new Map<string, string>();

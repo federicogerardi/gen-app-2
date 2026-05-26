@@ -16,6 +16,7 @@ import {
 import {
   applyModelAvailabilityGuard,
   applyOwnershipGuard,
+  applyRequestContractGuard,
 } from './generation-entry-guards';
 import {
   buildGenerationDebugInfo,
@@ -310,6 +311,10 @@ export const createNodeRuntimeRequestHandler = (
       logModelCheckDebug(correlationId, generationRequest, debugInfo.normalizedModel, modelGuard.isAvailable);
     }
     if (!modelGuard.allowed) {
+      return;
+    }
+
+    if (!applyRequestContractGuard(response, generationRequest)) {
       return;
     }
 

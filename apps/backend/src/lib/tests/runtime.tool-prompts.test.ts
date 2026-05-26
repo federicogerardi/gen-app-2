@@ -114,6 +114,21 @@ test('resolveToolPrompt loads meta-ads context-generation prompt', () => {
   assert.match(resolved.prompt, /CONTEXT GENERATION/i);
 });
 
+test('resolveToolPrompt composes youtube-description context and generation prompts', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'youtube-description',
+    workflowType: 'youtube_description',
+    artifactType: 'content',
+    stepKey: 'youtube-description-generation',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /youtube-description\/prompt_youtube_description_generation\.md$/);
+  assert.match(resolved.prompt, /PROMPT YOUTUBE DESCRIPTION - CONTEXT GENERATION/i);
+  assert.match(resolved.prompt, /PROMPT YOUTUBE DESCRIPTION - GENERATION/i);
+  assert.match(resolved.prompt, /ORCHESTRATION CONTRACT/i);
+});
+
 test('resolveToolPrompt enforces meta-ads ads-generation completeness contract', () => {
   const resolved = resolveToolPrompt({
     toolKey: 'meta-ads',

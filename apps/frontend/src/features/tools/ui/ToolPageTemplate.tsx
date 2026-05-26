@@ -48,11 +48,21 @@ type ToolPageFormValues = {
   model: string;
   tone: string;
   campaignObjective: string;
-} & Record<string, unknown>;
+  videoTitle: string;
+  topic: string;
+  keywords: string;
+  ctaText: string;
+  ctaLink: string;
+  credentialsOrProof: string;
+  chaptersWithTimestamps: string;
+  socialLinks: string;
+  hashtags: string;
+};
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
   const isMetaAdsTool = props.toolKey === 'meta-ads';
+  const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -217,6 +227,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
     campaignObjective: z.string(),
+    videoTitle: z.string(),
+    topic: z.string(),
+    keywords: z.string(),
+    ctaText: z.string(),
+    ctaLink: z.string(),
+    credentialsOrProof: z.string(),
+    chaptersWithTimestamps: z.string(),
+    socialLinks: z.string(),
+    hashtags: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
     for (const fileEntry of inputFiles) {
@@ -278,17 +297,28 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
     : undefined;
 
-  const executePrimaryActionFromForm = (data: ToolPageFormValues) => {
+  const executePrimaryActionFromForm = (data: ToolPageFormValues & Record<string, unknown>) => {
     setFormState((prev) => ({
       ...prev,
       projectId: data.projectId,
       model: data.model,
       tone: data.tone,
       campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
+      videoTitle: isYoutubeDescriptionTool ? data.videoTitle : prev.videoTitle,
+      topic: isYoutubeDescriptionTool ? data.topic : prev.topic,
+      keywords: isYoutubeDescriptionTool ? data.keywords : prev.keywords,
+      ctaText: isYoutubeDescriptionTool ? data.ctaText : prev.ctaText,
+      ctaLink: isYoutubeDescriptionTool ? data.ctaLink : prev.ctaLink,
+      credentialsOrProof: isYoutubeDescriptionTool ? data.credentialsOrProof : prev.credentialsOrProof,
+      chaptersWithTimestamps: isYoutubeDescriptionTool
+        ? data.chaptersWithTimestamps
+        : prev.chaptersWithTimestamps,
+      socialLinks: isYoutubeDescriptionTool ? data.socialLinks : prev.socialLinks,
+      hashtags: isYoutubeDescriptionTool ? data.hashtags : prev.hashtags,
     }));
 
     for (const fileEntry of inputFiles) {
-      const file = data[fileEntry.key];
+      const file = (data as Record<string, unknown>)[fileEntry.key];
       if (!(file instanceof File)) {
         continue;
       }
@@ -320,6 +350,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       campaignObjective: formState.campaignObjective,
+      videoTitle: formState.videoTitle,
+      topic: formState.topic,
+      keywords: formState.keywords,
+      ctaText: formState.ctaText,
+      ctaLink: formState.ctaLink,
+      credentialsOrProof: formState.credentialsOrProof,
+      chaptersWithTimestamps: formState.chaptersWithTimestamps,
+      socialLinks: formState.socialLinks,
+      hashtags: formState.hashtags,
       ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
@@ -355,6 +394,42 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('campaignObjective', formState.campaignObjective);
   }, [formState.campaignObjective, setValue]);
+
+  useEffect(() => {
+    setValue('videoTitle', formState.videoTitle);
+  }, [formState.videoTitle, setValue]);
+
+  useEffect(() => {
+    setValue('topic', formState.topic);
+  }, [formState.topic, setValue]);
+
+  useEffect(() => {
+    setValue('keywords', formState.keywords);
+  }, [formState.keywords, setValue]);
+
+  useEffect(() => {
+    setValue('ctaText', formState.ctaText);
+  }, [formState.ctaText, setValue]);
+
+  useEffect(() => {
+    setValue('ctaLink', formState.ctaLink);
+  }, [formState.ctaLink, setValue]);
+
+  useEffect(() => {
+    setValue('credentialsOrProof', formState.credentialsOrProof);
+  }, [formState.credentialsOrProof, setValue]);
+
+  useEffect(() => {
+    setValue('chaptersWithTimestamps', formState.chaptersWithTimestamps);
+  }, [formState.chaptersWithTimestamps, setValue]);
+
+  useEffect(() => {
+    setValue('socialLinks', formState.socialLinks);
+  }, [formState.socialLinks, setValue]);
+
+  useEffect(() => {
+    setValue('hashtags', formState.hashtags);
+  }, [formState.hashtags, setValue]);
 
   const basePrimaryAction = generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
@@ -504,10 +579,200 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 </div>
               ) : null}
 
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="videoTitle"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Video title"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, videoTitle: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="topic"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Topic"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, topic: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="keywords"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Keywords (comma-separated)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, keywords: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row ui-tool-form-row--double">
+                  <Controller
+                    name="ctaText"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="CTA text"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, ctaText: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="ctaLink"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="CTA link"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, ctaLink: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="credentialsOrProof"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Credentials or proof"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, credentialsOrProof: e.target.value }));
+                        }}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="chaptersWithTimestamps"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Chapters with timestamps (one per line)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, chaptersWithTimestamps: e.target.value }));
+                        }}
+                        multiline
+                        minRows={3}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="socialLinks"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Social links (one per line)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, socialLinks: e.target.value }));
+                        }}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="hashtags"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Hashtags (comma-separated, max 5)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, hashtags: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
               {inputFiles.map((fileEntry) => (
                 <Controller
                   key={fileEntry.key}
-                  name={fileEntry.key as keyof ToolPageFormValues}
+                  name={fileEntry.key as never}
                   control={control}
                   render={({ field }) => (
                     <div>

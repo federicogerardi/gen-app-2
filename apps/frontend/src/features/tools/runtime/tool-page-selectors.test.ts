@@ -103,6 +103,27 @@ describe('selectToolFileInstructions', () => {
     expect(matrix.missingOptionalApiAcquisition).toEqual([]);
     expect(matrix.entries.some((entry) => entry.sourceFamily === 'api-acquisition')).toBe(false);
   });
+
+  it('supports youtube-description direct-input policy without required file inputs', () => {
+    const matrixMissingProject = deriveToolInputRequirementMatrix({
+      toolKey: 'youtube-description',
+      hasProjectSelected: false,
+      completedFileKeys: [],
+    });
+
+    expect(matrixMissingProject.missingRequiredEntries.map((entry) => entry.key)).toEqual([
+      'project-selection',
+    ]);
+
+    const matrixReady = deriveToolInputRequirementMatrix({
+      toolKey: 'youtube-description',
+      hasProjectSelected: true,
+      completedFileKeys: [],
+    });
+
+    expect(matrixReady.requiredEntriesSatisfied).toBe(true);
+    expect(matrixReady.missingRequiredFiles).toEqual([]);
+  });
 });
 
 describe('buildBaseGenerationRequest', () => {

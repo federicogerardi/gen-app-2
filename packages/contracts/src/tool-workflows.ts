@@ -45,6 +45,13 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'ads-generation', dependencies: ['context-generation'] },
     ],
   },
+  'youtube-description': {
+    toolKey: 'youtube-description',
+    workflowType: 'youtube_description',
+    steps: [
+      { key: 'youtube-description-generation', dependencies: [] },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -78,6 +85,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'youtube-lf-script': 'enabled-for-all',
   'angle-generator': 'enabled-for-all',
   'meta-ads': 'enabled-for-all',
+  'youtube-description': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -184,6 +192,14 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'youtube_long_form'
   ) {
     return 'youtube-lf-script';
+  }
+
+  if (
+    normalized === 'youtube_description'
+    || normalized === 'youtubedescription'
+    || normalized === 'youtube-description-generator'
+  ) {
+    return 'youtube-description';
   }
 
   if (normalized === 'angle_generator' || normalized === 'anglegenerator') {

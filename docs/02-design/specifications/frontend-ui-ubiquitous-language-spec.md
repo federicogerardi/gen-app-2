@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 date_created: 2026-05-08
-last-reviewed: 2026-05-22
+last-reviewed: 2026-05-26
 next-review-date: 2026-06-08
 owner: Frontend Platform Team
 type: ui-governance-spec
@@ -150,7 +150,7 @@ Composition:
 - **Context generation trigger**: pre-step context assembly starts through one explicit setup CTA. During transition the visible copy can remain `Genera contesto`, but the action contract is `Start Context Generation Action` and can execute extraction, API-backed acquisition, and merge according to tool configuration.
 - **Blocking vs advisory semantics**: missing required files must produce blocking feedback and disable primary action; missing optional files must produce informational advisory feedback and must never disable primary action.
 - **Unified requiredness semantics**: readiness and CTA enablement must follow one `Tool Input Requirement Matrix` spanning direct fields, file uploads, and API acquisition inputs.
-- **Direct-input-only tool rule**: when a tool declares only `direct-input` entries in `Tool Input Requirement Matrix` (for example `youtube-description`), Setup Panel must not require file-upload completion for start eligibility; blocking validation is limited to required direct-input fields and their format constraints.
+- **Direct-input-only tool rule**: when a tool declares only `direct-input` entries in `Tool Input Requirement Matrix` (for example `youtube-description`), Setup Panel must not require file-upload completion for start eligibility. As-is baseline blocks only on required direct-input field presence; optional direct-input entries are advisory and non-blocking. Semantic format constraints (for example URL/timestamp strict parsing) may be introduced later, but they are not part of the current baseline guard contract.
 - **API binding status adapter (as-is)**: `api-acquisition` requiredness is feature-flagged by `VITE_FF_TOOLS_API_BINDING_STATUS`; default runtime keeps the flag OFF so legacy tools are not blocked by unresolved API bindings. When ON, binding connectivity is read from backend resolve endpoints and projected as `connected`/`disconnected` in Workflow Panel and matrix gating.
 - **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-070).
 - **Pre-dispatch orchestration contract**: before `generation.start`, Tool Workspace runtime resolves step dependencies through `/api/tools/orchestrate` (`orchestrateToolStep`) and injects returned dependency artifact IDs into the outgoing request. If orchestration fails, generation dispatch is aborted and feedback remains in the inline `Dispatch Error` slot.

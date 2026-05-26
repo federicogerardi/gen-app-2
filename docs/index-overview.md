@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 2.8
-last-reviewed: 2026-05-21
+version: 2.9
+last-reviewed: 2026-05-26
 next-review-date: 2026-08-16
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-05-21  
+Data: 2026-05-26  
 Stato: publication-ready  
-Versione indice: 2.8
+Versione indice: 2.9
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -18,9 +18,9 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 >
 > Questi tre documenti sono il riferimento primario obbligatorio per ogni sviluppatore, contributore, o revisore — sia su codice che su documentazione:
 >
-> 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico, 39 termini su 4 bounded context
+> 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 71 decisioni nomenclatura approvate (DDD-001–DDD-071), termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-095), termini deprecati e alias backward-compat
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
@@ -48,8 +48,8 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-11 | 2026-08-03 |
-| [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-07 | 2026-08-03 |
-| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-21 | 2026-08-03 |
+| [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-26 | 2026-08-03 |
+| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-26 | 2026-08-03 |
 | [frontend-spec](./02-design/specifications/frontend-spec.md) | approved | 2026-04-27 | 2026-07-27 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 

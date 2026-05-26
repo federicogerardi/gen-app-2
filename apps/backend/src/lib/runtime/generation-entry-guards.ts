@@ -41,43 +41,6 @@ const readYoutubeDescriptionField = (
   snakeKey: string,
 ): unknown => source[camelKey] ?? source[snakeKey];
 
-const hasValidTimestampPrefix = (value: string): boolean => {
-  const candidate = value.trim();
-  if (!candidate) {
-    return false;
-  }
-
-  const tokens = candidate.split(':');
-  if (tokens.length < 2 || tokens.length > 3) {
-    return false;
-  }
-
-  const first = tokens[0]?.trim() ?? '';
-  const second = tokens[1]?.trim() ?? '';
-  const third = tokens.length === 3 ? (tokens[2]?.trim() ?? '') : null;
-
-  if (!/^\d+$/.test(first) || !/^\d{2}$/.test(second)) {
-    return false;
-  }
-
-  const seconds = Number(tokens.length === 3 ? third : second);
-  const minutes = Number(tokens.length === 3 ? second : first);
-
-  if (!Number.isInteger(seconds) || seconds < 0 || seconds > 59) {
-    return false;
-  }
-
-  if (!Number.isInteger(minutes) || minutes < 0) {
-    return false;
-  }
-
-  if (tokens.length === 3 && (third === null || !/^\d{2}$/.test(third))) {
-    return false;
-  }
-
-  return true;
-};
-
 const validateYoutubeDescriptionRequest = (
   request: BackendGenerationRequest,
 ): string | null => {
@@ -108,22 +71,6 @@ const validateYoutubeDescriptionRequest = (
     }
   }
 
-  const ctaLink = readNonEmptyString(
-    readYoutubeDescriptionField(extractionPayload, 'ctaLink', 'cta_link'),
-  );
-  if (!ctaLink) {
-    return 'youtube_description_missing_cta_link';
-  }
-
-  try {
-    const parsed = new URL(ctaLink);
-    if (!parsed.protocol.startsWith('http')) {
-      return 'youtube_description_invalid_cta_link';
-    }
-  } catch {
-    return 'youtube_description_invalid_cta_link';
-  }
-
   const keywords = readArray(
     readYoutubeDescriptionField(extractionPayload, 'keywords', 'keywords'),
   );
@@ -134,37 +81,21 @@ const validateYoutubeDescriptionRequest = (
   const hashtags = readArray(
     readYoutubeDescriptionField(extractionPayload, 'hashtags', 'hashtags'),
   );
-  if (!hashtags || hashtags.length === 0) {
-    return 'youtube_description_missing_hashtags';
-  }
-  if (hashtags.length > 5) {
-    return 'youtube_description_hashtag_limit_exceeded';
-  }
+  void hashtags;
 
   const socialLinks = readArray(
     readYoutubeDescriptionField(extractionPayload, 'socialLinks', 'social_links'),
   );
-  if (!socialLinks || socialLinks.length === 0) {
-    return 'youtube_description_missing_social_links';
-  }
+
+  // Optional fields for youtube-description direct-input policy.
+  // When present, they are accepted; when absent, they do not block stream start.
+  void socialLinks;
 
   const chapters = readArray(
     readYoutubeDescriptionField(extractionPayload, 'chaptersWithTimestamps', 'chapters_with_timestamps'),
   );
   if (!chapters || chapters.length === 0) {
     return 'youtube_description_missing_chapters_with_timestamps';
-  }
-
-  const hasInvalidChapter = chapters.some((entry) => {
-    if (typeof entry !== 'string') {
-      return true;
-    }
-
-    const timestampToken = entry.trim().split(/\s+/)[0] ?? '';
-    return !hasValidTimestampPrefix(timestampToken);
-  });
-  if (hasInvalidChapter) {
-    return 'youtube_description_invalid_chapter_timestamp';
   }
 
   return null;

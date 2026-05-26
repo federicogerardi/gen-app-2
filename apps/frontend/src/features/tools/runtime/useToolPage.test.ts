@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useToolPage } from './useToolPage';
+import type { ToolStep } from '../machines/tool-flow.machine';
 
 const mocks = vi.hoisted(() => {
   const send = vi.fn();
@@ -8,6 +9,7 @@ const mocks = vi.hoisted(() => {
   const useSelector = vi.fn();
   const navigate = vi.fn();
   const setFormState = vi.fn();
+  const orchestrateToolStep = vi.fn();
 
   const machineSnapshot = {
     context: {
@@ -83,6 +85,15 @@ const mocks = vi.hoisted(() => {
     model: 'openrouter/auto',
     tone: 'Professional',
     campaignObjective: '',
+    videoTitle: '',
+    topic: '',
+    keywords: '',
+    ctaText: '',
+    ctaLink: '',
+    credentialsOrProof: '',
+    chaptersWithTimestamps: '',
+    socialLinks: '',
+    hashtags: '',
     registrySnapshotRef: 'snapshot:default',
     briefingFile: null,
     briefingFileName: null,
@@ -98,10 +109,10 @@ const mocks = vi.hoisted(() => {
     description: 'desc',
     defaultModel: 'openrouter/auto',
     defaults: { registrySnapshotRef: 'snapshot:default' },
-    steps: ['optin', 'quiz', 'vsl'] as Array<'optin' | 'quiz' | 'vsl'>,
+    steps: ['optin', 'quiz', 'vsl'] as ToolStep[],
   };
 
-  const availableSteps = ['optin'] as Array<'optin' | 'quiz' | 'vsl'>;
+  const availableSteps = ['optin'] as ToolStep[];
 
   return {
     send,
@@ -116,6 +127,7 @@ const mocks = vi.hoisted(() => {
     formState,
     toolConfig,
     availableSteps,
+    orchestrateToolStep,
   };
 });
 
@@ -172,16 +184,41 @@ vi.mock('../../artifacts/runtime/artifacts-client', () => ({
 }));
 
 vi.mock('../runtime/tools-client', () => ({
-  orchestrateToolStep: vi.fn().mockResolvedValue({
+  orchestrateToolStep: (...args: unknown[]) => mocks.orchestrateToolStep(...args),
+}));
+
+beforeEach(() => {
+  mocks.orchestrateToolStep.mockResolvedValue({
     toolKey: 'funnel-pages',
     targetStep: 'optin',
     stepDependencyArtifactIds: [],
     dependencyArtifactIdsByStep: {},
-  }),
-}));
-
-beforeEach(() => {
+  });
   vi.clearAllMocks();
+
+  mocks.toolConfig = {
+    toolKey: 'funnel-pages',
+    title: 'Funnel Pages',
+    description: 'desc',
+    defaultModel: 'openrouter/auto',
+    defaults: { registrySnapshotRef: 'snapshot:default' },
+    steps: ['optin', 'quiz', 'vsl'],
+  };
+  mocks.availableSteps = ['optin'];
+
+  mocks.formState.projectId = 'project-001';
+  mocks.formState.model = 'openrouter/auto';
+  mocks.formState.tone = 'Professional';
+  mocks.formState.campaignObjective = '';
+  mocks.formState.videoTitle = '';
+  mocks.formState.topic = '';
+  mocks.formState.keywords = '';
+  mocks.formState.ctaText = '';
+  mocks.formState.ctaLink = '';
+  mocks.formState.credentialsOrProof = '';
+  mocks.formState.chaptersWithTimestamps = '';
+  mocks.formState.socialLinks = '';
+  mocks.formState.hashtags = '';
 
   mocks.machineSnapshot.context.hydrationResult = null;
   mocks.machineSnapshot.context.pendingStepStart = null;
@@ -357,6 +394,76 @@ describe('useToolPage', () => {
 
     expect(request.model).toBe('openrouter/auto');
     expect(request.input.tone).toBe('Professional');
+  });
+
+  it('dispatches youtube-description with direct-input extraction payload after CTA flow', async () => {
+    mocks.toolConfig = {
+      ...mocks.toolConfig,
+      toolKey: 'youtube-description',
+      steps: ['youtube-description-generation'],
+    };
+    mocks.availableSteps = ['youtube-description-generation'];
+    mocks.orchestrateToolStep.mockResolvedValue({
+      toolKey: 'youtube-description',
+      targetStep: 'youtube-description-generation',
+      stepDependencyArtifactIds: [],
+      dependencyArtifactIdsByStep: {},
+    });
+
+    mocks.formState.model = 'openrouter/auto';
+    mocks.formState.tone = 'Professional';
+    mocks.formState.projectId = 'project-001';
+    mocks.formState.videoTitle = 'Strategia YouTube 2026';
+    mocks.formState.topic = 'Growth organica';
+    mocks.formState.keywords = 'youtube, growth, seo';
+    mocks.formState.ctaText = 'Prenota una call';
+    mocks.formState.ctaLink = 'https://example.com/call';
+    mocks.formState.credentialsOrProof = '10 anni di risultati misurabili';
+    mocks.formState.chaptersWithTimestamps = '0:00 Intro\n1:30 Strategia';
+    mocks.formState.socialLinks = '';
+    mocks.formState.hashtags = '';
+
+    mocks.machineSnapshot.context.pendingStepStart = {
+      step: 'youtube-description-generation',
+      runRequestPrefix: 'run-ytd-001',
+    };
+    mocks.machineSnapshot.context.hydrationResult = null;
+
+    renderHook(() => useToolPage({ toolKey: 'youtube-description' }));
+
+    await waitFor(() => {
+      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+    });
+
+    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+      toolKey: string;
+      workflowType: string;
+      input: {
+        briefingId: string;
+        briefingText: string;
+        extractionArtifactId: string;
+        extractionPayload: Record<string, unknown>;
+      };
+    };
+
+    expect(request.toolKey).toBe('youtube-description');
+    expect(request.workflowType).toBe('youtube_description');
+    expect(request.input.briefingId).toBe('direct-input:youtube-description');
+    expect(request.input.extractionArtifactId).toBe('direct-input:youtube-description');
+    expect(request.input.briefingText).toContain('Video title: Strategia YouTube 2026');
+    expect(request.input.briefingText).toContain('CTA text: Prenota una call');
+    expect(request.input.briefingText).toContain('Chapters with timestamps:');
+    expect(request.input.extractionPayload).toMatchObject({
+      videoTitle: 'Strategia YouTube 2026',
+      topic: 'Growth organica',
+      keywords: ['youtube', 'growth', 'seo'],
+      ctaText: 'Prenota una call',
+      ctaLink: 'https://example.com/call',
+      credentialsOrProof: '10 anni di risultati misurabili',
+      chaptersWithTimestamps: ['0:00 Intro', '1:30 Strategia'],
+    });
+    expect(request.input.extractionPayload).not.toHaveProperty('socialLinks');
+    expect(request.input.extractionPayload).not.toHaveProperty('hashtags');
   });
 
   it('declares failure and cancels run when terminal failed has no failedStep', async () => {

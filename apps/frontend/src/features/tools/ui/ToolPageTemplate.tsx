@@ -260,6 +260,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           });
         }
       }
+
     }
 
     for (const fileEntry of inputFiles) {

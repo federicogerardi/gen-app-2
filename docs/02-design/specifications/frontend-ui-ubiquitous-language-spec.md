@@ -156,7 +156,7 @@ Composition:
 - **Pre-dispatch orchestration contract**: before `generation.start`, Tool Workspace runtime resolves step dependencies through `/api/tools/orchestrate` (`orchestrateToolStep`) and injects returned dependency artifact IDs into the outgoing request. If orchestration fails, generation dispatch is aborted and feedback remains in the inline `Dispatch Error` slot.
 - **Channel ownership rule**: Tool Workspace Page feedback follows `Feedback Channel` mapping. `Dispatch Error` remains `inline-action`; query/list lifecycle remains `page-state`; `global` channel is optional and must not duplicate the same message already rendered inline.
 
-Convergence note (2026-05-23): canonical centralization reference for Tool Workspace feedback is `docs/ux/tool-page-sidebar-unified-flow.md` and its implementation plan `plan/refactor-tool-workspace-workflow-panel-unified-1.md`.
+Convergence note (2026-05-23): canonical centralization reference for Tool Workspace feedback is `docs/99-lifecycle/99-archive/superseded/ux/tool-page-sidebar-unified-flow.md` and its implementation plan `plan/refactor-tool-workspace-workflow-panel-unified-1.md`.
 
 ### 3.2 Data Table View (reference archetype)
 

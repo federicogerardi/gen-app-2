@@ -524,7 +524,7 @@ Policy-aware binding rule:
 
 Canonical UX convergence for Tool Workspace Page feedback is documented in:
 
-- `docs/ux/tool-page-sidebar-unified-flow.md`
+- `docs/99-lifecycle/99-archive/superseded/ux/tool-page-sidebar-unified-flow.md`
 - `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
 
 **Convergence rule implemented:**

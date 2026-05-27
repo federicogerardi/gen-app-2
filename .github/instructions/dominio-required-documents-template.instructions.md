@@ -4,6 +4,7 @@ applyTo:
   - "docs/01-requirements/domain-ubiquitous-language-glossary.md"
   - "docs/02-design/domain-bounded-context-map.md"
   - "docs/07-governance/domain-naming-decision-log.md"
+  - "docs/07-governance/documentation-ddd-ul-governance.md"
 description: "Deterministic template for the minimum canonical DDD documents required before Ubiquitous Language analysis."
 ---
 
@@ -25,6 +26,7 @@ description: "Deterministic template for the minimum canonical DDD documents req
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 - `docs/02-design/domain-bounded-context-map.md`
 - `docs/07-governance/domain-naming-decision-log.md`
+- `docs/07-governance/documentation-ddd-ul-governance.md`
 
 ## Minimal Frontmatter (for new files)
 Use this exact frontmatter when bootstrapping missing files:
@@ -61,6 +63,13 @@ Apply the following minimum structure when creating each missing file.
   - `## Decision Rules`
   - `## Approved Naming Decisions`
   - `## Open Naming Conflicts`
+
+### `docs/07-governance/documentation-ddd-ul-governance.md`
+- Title: `# Documentation Governance DDD and Ubiquitous Language`
+- Sections:
+  - `## Purpose`
+  - `## Mandatory Canonical References`
+  - `## Governance Model`
 
 ## Usage Notes
 - Keep content in English for domain artifacts.

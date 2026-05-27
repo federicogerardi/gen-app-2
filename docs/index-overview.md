@@ -119,6 +119,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Governance Tables
 
+- [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md)
 - [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
 
 ## Archive Registry

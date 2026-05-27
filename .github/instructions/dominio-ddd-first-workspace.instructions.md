@@ -42,6 +42,7 @@ Treat DDD documentation as mandatory source code and the single source of truth.
 
 ## Mandatory Pre-Work Gate (All Agents — All File Types)
 - Before editing **any** file — TypeScript, React, config, migration, or markdown — read these canonical DDD references in order:
+  0. `docs/07-governance/documentation-ddd-ul-governance.md` — primary governance reference for documentation production/modification under `docs/`
   1. `docs/01-requirements/domain-ubiquitous-language-glossary.md` — 39 canonical terms across 4 bounded contexts
   2. `docs/02-design/domain-bounded-context-map.md` — bounded context responsibilities and cross-context translation rules
   3. `docs/07-governance/domain-naming-decision-log.md` — 17 approved naming decisions, deprecated terms, backward-compat aliases

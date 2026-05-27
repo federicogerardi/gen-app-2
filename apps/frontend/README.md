@@ -1,166 +1,73 @@
-
 # apps/frontend
 
-Frontend/UI bounded context runtime.
+Frontend/UI bounded-context runtime.
 
-Package: gen-app-2-frontend
+Package: `gen-app-2-frontend`
 
-## Domain Role
+## Runtime Role
 
-The frontend owns interaction and presentation authority through ToolPage.
+The frontend owns interaction and projection for `ToolPage`:
 
-- Computes ReadinessSnapshot and ReadinessReasonCode.
-- Manages ToolStep progression for each SupportedTool.
-- Drives BriefingUpload and local StepHydration projection.
-- Consumes BackendStreamEvent from the backend.
+- computes `ReadinessSnapshot`
+- orchestrates `ToolStep` progression in UI
+- handles upload/extraction lifecycle (`BriefingUpload`)
+- consumes `BackendStreamEvent`
+- dispatches canonical `GenerationRequest` payloads
 
-The frontend does not own backend domain execution. It orchestrates user flow and sends canonical GenerationRequest payloads.
+Backend orchestration authority remains on backend endpoints and machines.
 
-UI is a projection, not a parliament.
+## Stack
 
-<!-- bomberto-egg-03 cipher:reverse asrebs -->
-
-## UI Architecture & Design System
-
-- Tutti i nuovi componenti e layout sono basati su **MUI (Material UI)** per garantire coerenza visiva e accessibilità.
-- Il tema centrale è definito in `apps/frontend/src/theme/theme.ts` e fornito globalmente tramite `ThemeProvider` in `App.tsx`.
-- La normalizzazione CSS e la gestione dark/light mode sono gestite tramite `CssBaseline` e la palette del tema MUI.
-- Tutti i form sono gestiti tramite **React Hook Form** e validati con **Zod**.
+- React 19 + Vite
+- XState v5 (`@xstate/react`)
+- MUI for UI primitives
+- React Hook Form + Zod for form state and validation
 
 ## Runtime Surfaces
 
-- src/: React + XState application
-- src/theme/: tema centrale MUI
-- server.mjs: same-origin frontend runtime and proxy layer
-- vite.config.ts: build pipeline
-
-## Backend Proxy Contract
-
-server.mjs proxies these paths to BACKEND_INTERNAL_URL:
-
-- /auth/*
-- /generation/*
-- /api/*
-- /admin/users/*
-
-The backend remains private from browser direct access.
-
-## Environment Variables
-
-Variables read by server.mjs only:
-
-| Variable | Required | Local default | Production intent |
-| --- | --- | --- | --- |
-| BACKEND_INTERNAL_URL | Yes in production | http://localhost:3000 | Railway private-network backend URL |
-| PORT | No | 3000 | Provided by platform |
-| NODE_ENV | No | development | production |
-
-Fail-fast behavior: when NODE_ENV=production, missing BACKEND_INTERNAL_URL stops startup.
-
-Build-time capability flags (Vite):
-
-- VITE_CAP_PROJECTS
-- VITE_CAP_ARTIFACTS
-- VITE_CAP_TOOLS_UPLOAD
-- VITE_CAP_MODELS
-- VITE_CAP_ADMIN_MODELS
-
-Important: VITE_* values are build-time inputs, not runtime toggles.
-
-Additional frontend quality flags (Vite build-time):
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| VITE_MONITORING_PROVIDER | none | Frontend monitoring bootstrap provider (`none`, `console`, `sentry`, `logrocket`) |
-| VITE_MONITORING_ENDPOINT | _(unset)_ | Optional telemetry endpoint used by monitoring bootstrap for `window.error` / `unhandledrejection`; when unset no telemetry POST is sent |
-
-## Onboarding: Canonical UI Patterns
-
-All new frontend UI code must follow these rules:
-
-1. Use MUI components as default UI primitives (`Button`, `TextField`, `MenuItem`, etc.).
-2. Keep Tool Workspace Page behavior state-driven: setup controls are form UI, primary action remains a `GenerationRequest` orchestration action.
-3. For CRUD forms, use React Hook Form + Zod validation.
-4. For tabular pages, keep row actions aligned with Data Table View governance (no MUI button CTAs inside `<td>`).
-
-Canonical references:
-
-1. `../../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-2. `../../docs/02-design/specifications/frontend-design-system-ui-kit-guide.md`
-3. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
-
-## Cookbook: Minimal Examples
-
-### 1) MUI unified theme + color scheme toggle
-
-```tsx
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme/theme';
-
-export const AppShell = ({ children }: { children: React.ReactNode }) => (
-	<ThemeProvider theme={theme} defaultMode="system">
-		<CssBaseline />
-		{children}
-	</ThemeProvider>
-);
-```
-
-### 2) RHF + Zod form validation
-
-```tsx
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-
-const schema = z.object({
-	email: z.string().email('Email non valida'),
-});
-
-type FormData = z.infer<typeof schema>;
-
-const form = useForm<FormData>({
-	resolver: zodResolver(schema),
-	defaultValues: { email: '' },
-});
-```
-
-### 3) Data Table row action pattern (canonical)
-
-```tsx
-<Link className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)} to={`/artifacts/${artifactId}`}>
-	Apri
-</Link>
-```
-
-## Monitoring And Recovery
-
-Monitoring baseline:
-
-1. Set `VITE_MONITORING_PROVIDER=console` in pre-production smoke checks.
-2. Optionally route the provider value to external SDK wiring (`sentry` or `logrocket`) through bootstrap hooks.
-3. Frontend runtime sends best-effort telemetry for `window.error` and `unhandledrejection` only when `VITE_MONITORING_ENDPOINT` is configured.
-
-Recovery plan:
-
-1. Rebuild and redeploy the frontend service.
-2. Verify telemetry and browser console health in pre-production before promotion.
-3. Run CI quality gates (`typecheck`, `test`, `test:forms`, `test:visual`, `audit:a11y`) before promoting again.
+- `src/`: frontend app code
+- `server.mjs`: same-origin proxy server for production-like runtime
+- `vite.config.ts`: build tooling
 
 ## Local Development
 
 From repository root:
 
 ```bash
-npm install
+npm install --workspaces --include-workspace-root
 npm --workspace apps/frontend run dev
 ```
 
-Local production-like server:
+Production-like local runtime:
 
 ```bash
 npm --workspace apps/frontend run build
 BACKEND_INTERNAL_URL=http://localhost:3000 node apps/frontend/server.mjs
 ```
+
+## Frontend Server Environment
+
+`server.mjs` reads:
+
+- `BACKEND_INTERNAL_URL` (required in production, default `http://localhost:3000`)
+- `PORT` (default `3000`)
+- `NODE_ENV`
+
+Fail-closed startup is enforced when `NODE_ENV=production` and `BACKEND_INTERNAL_URL` is missing.
+
+## Build-Time Environment (Vite)
+
+Main capability and runtime flags include:
+
+- `VITE_API_BASE_URL`
+- `VITE_CAP_*` feature-capability flags
+- `VITE_MONITORING_PROVIDER`
+- `VITE_MONITORING_ENDPOINT`
+- `VITE_FF_TOOLS_API_BINDING_STATUS`
+- `VITE_ARTIFACT_DELETE_ENABLED`
+- `VITE_DEBUG_HTTP_CLIENT`
+
+All `VITE_*` values are build-time inputs.
 
 ## Validation
 
@@ -168,12 +75,13 @@ BACKEND_INTERNAL_URL=http://localhost:3000 node apps/frontend/server.mjs
 npm --workspace apps/frontend run typecheck
 npm --workspace apps/frontend run test
 npm --workspace apps/frontend run test:forms
-npm --workspace apps/frontend run test:visual
+npm --workspace apps/frontend run test:admin-a11y
 npm --workspace apps/frontend run audit:a11y
 ```
 
-## DDD References
+## Canonical Docs
 
-1. ../../docs/01-requirements/domain-ubiquitous-language-glossary.md
-2. ../../docs/02-design/domain-bounded-context-map.md
-3. ../../docs/07-governance/domain-naming-decision-log.md
+1. `../../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
+2. `../../docs/02-design/specifications/frontend-spec.md`
+3. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
+4. `../../docs/07-governance/domain-naming-decision-log.md`

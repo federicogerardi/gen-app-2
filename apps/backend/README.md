@@ -1,71 +1,67 @@
 # apps/backend
 
-Backend runtime for three bounded contexts:
+Backend runtime for Generation, Auth, and Usage/Quota contexts.
 
-- Generation
-- Auth
-- Usage/Quota
+Package: `@gen-app-2/backend`
 
-Package: @gen-app-2/backend
+## Runtime Role
 
-## Domain Role
+The backend is execution authority for:
 
-The backend is the authority for domain execution and persistence.
+- `GenerationRequest` lifecycle orchestration (`GenerationSystem`)
+- auth and role gates through `AuthSessionPrincipal`
+- quota claim through `ClaimUsage`
+- SSE emission of `BackendStreamEvent`
+- `Artifact` and quota audit persistence
 
-- It executes GenerationRequest through GenerationSystem.
-- It validates access using AuthSessionPrincipal.
-- It enforces quota with ClaimUsage.
-- It streams BackendStreamEvent to Frontend/UI.
-- It persists Artifact lifecycle and QuotaHistory.
+## Main Runtime Entry
 
-## Core XState Actors
+- `src/server.ts`
 
-- generation-system.machine.ts: aggregate orchestration root
-- request-gateway.machine.ts: request validation and pre-authorization checks
-- idempotency-coordinator.machine.ts: IdempotencyKey claim and replay/conflict decisions
-- usage.machine.ts: ClaimUsage execution
-- tool-workflow.machine.ts: WorkflowStep progression
-- extraction-chain.machine.ts: ExtractionContext production path
-- stream-transport.machine.ts: live stream transport
-- persistence-batch.machine.ts: Artifact incremental and final persistence
+## Core Machines
 
-## Runtime Entry
+- `src/lib/machines/generation-system.machine.ts`
+- `src/lib/machines/request-gateway.machine.ts`
+- `src/lib/machines/idempotency-coordinator.machine.ts`
+- `src/lib/machines/usage.machine.ts`
+- `src/lib/machines/tool-workflow.machine.ts`
+- `src/lib/machines/extraction-chain.machine.ts`
+- `src/lib/machines/stream-transport.machine.ts`
+- `src/lib/machines/persistence-batch.machine.ts`
+- `src/lib/machines/generation/acquisition-chain.machine.ts`
 
-- src/server.ts
+## Common Commands
 
-## Contract Boundary
-
-Frontend/UI must consume backend contracts as canonical:
-
-- GenerationRequest
-- BackendStreamEvent
-- OutputFormat
-- ArtifactType
-
-Shared definitions are maintained in packages/contracts with compile-time parity checks.
-
-If an event is unnamed, it never happened.
-
-<!-- bomberto-egg-02 cipher:rot13 forefn -->
-
-## Local Development
-
-1. Install dependencies from repository root.
-2. Run minimal DB migrations.
-3. Start backend server.
-
-Example:
+From repository root:
 
 ```bash
-npm install
+npm install --workspaces --include-workspace-root
 npm --workspace apps/backend run db:migrate:minimal
 npm --workspace apps/backend run start:server
 ```
 
+Validation:
+
+```bash
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test
+npm --workspace apps/backend run go
+```
+
+Smoke flow requiring env load:
+
+```bash
+set -a && . ./.env.local && set +a && npm run test:smoke
+```
+
+## Contract Boundary
+
+Contract authority is in `packages/contracts` and includes `GenerationRequest`, `BackendStreamEvent`, `ArtifactType`, and `OutputFormat`.
+
+`packages/contracts/src/parity.guard.ts` enforces FE/BE contract parity at compile time.
+
 ## DDD References
 
-Read first for naming and boundary decisions:
-
-1. ../../docs/01-requirements/domain-ubiquitous-language-glossary.md
-2. ../../docs/02-design/domain-bounded-context-map.md
-3. ../../docs/07-governance/domain-naming-decision-log.md
+1. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
+2. `../../docs/02-design/domain-bounded-context-map.md`
+3. `../../docs/07-governance/domain-naming-decision-log.md`

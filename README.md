@@ -1,89 +1,87 @@
 # Gen App 2
 
-Gen App 2 helps teams turn ideas into production-ready communication assets.
+Gen App 2 is a DDD-first monorepo for deterministic tool-driven artifact generation.
 
-At its core, the product is built around Tools. A Tool takes your input, moves it through a deterministic step flow, and produces an Artifact you can use, review, and relaunch from.
+The product flow is centered on canonical terms:
 
-This repository is organized with Domain-Driven Design and a strict Ubiquitous Language so product, design, and engineering can describe the same behavior with the same words.
+- `Tool` as user-facing capability
+- `GenerationRequest` as backend command
+- `Artifact` as persisted output
+- `GenerationSession` and `SessionSummary` as aggregate navigation model
 
-## Why This Matters
+## Bounded Contexts
 
-Most content systems break when teams scale: terms drift, flows become unclear, and the same action means different things in different screens.
+| Context | Responsibility |
+| --- | --- |
+| Generation | Orchestration, streaming, persistence, extraction, idempotency |
+| Auth | Identity, roles, sessions, OAuth |
+| Usage/Quota | Quota claim and usage audit |
+| Frontend/UI | Tool Workspace flow, readiness, hydration, interaction |
 
-Gen App 2 solves that by anchoring every workflow around four bounded contexts and one shared language.
+## Current Tool Surface (as-is)
 
-## The Four Bounded Contexts
+- `funnel-pages`
+- `nextland`
+- `youtube-lf-script`
+- `angle-generator`
+- `meta-ads`
+- `youtube-description`
 
-| Bounded Context | What it owns | Canonical examples |
-| --- | --- | --- |
-| Generation | Producing and persisting Artifacts | GenerationSystem, GenerationRequest, Artifact, WorkflowStep |
-| Auth | Identity and session trust | User, AuthSession, AuthSessionPrincipal |
-| Usage/Quota | Fair usage and auditability | ClaimUsage, MonthlyQuota, QuotaHistory, Project |
-| Frontend/UI | Guided user experience | ToolPage, ReadinessSnapshot, HydrationResult, ToolStep |
+Tool visibility is governed by `ToolAvailabilityStatus` policy from shared contracts.
 
-## Product Story in One Flow
+## Repository Structure
 
-1. A user enters a ToolPage.
-2. The UI computes a ReadinessSnapshot.
-3. If ready, the app assembles and sends a GenerationRequest.
-4. Generation runs as a deterministic XState actor flow.
-5. The user sees live BackendStreamEvent updates.
-6. The final Artifact is stored and becomes relaunchable through ArtifactRelaunch.
+- `apps/backend`: backend runtime (`GenerationSystem` + auth/quota/http layers)
+- `apps/frontend`: React + XState frontend runtime and same-origin proxy server
+- `packages/contracts`: FE/BE shared contract authority
+- `packages/domain`: cross-context domain primitives (DDD-074)
+- `packages/infra-db`: SQL migrations, seeds, and DB scripts
+- `docs`: canonical domain, architecture, and governance documentation
 
-In business terms: users move from brief to reusable output with traceable decisions and predictable behavior.
+## Quick Start
 
-## Current Product Surface
+From repository root:
 
-- SupportedTool lineup: funnel-pages, nextland, youtube-lf-script.
-- ToolPage experience: briefing upload, ReadinessSnapshot gating, deterministic ToolStep progression.
-- Dual history model: Artifact history for single outputs plus SessionSummary for GenerationSession aggregate navigation.
-- AdminDashboard for user management, LLM model catalog management, changelog publishing, user report triage, and activity review.
+```bash
+npm install --workspaces --include-workspace-root
+npm run dev
+```
 
-## DDD + UL Promise
+`npm run dev` loads `.env.local`, starts backend server, and starts frontend Vite dev server.
 
-This codebase avoids synonym drift by design.
+## Validation Commands
 
-- Artifact always means persisted generation output.
-- ToolKey is the cross-context identifier of a Tool.
-- SupportedTool is the Frontend projection of ToolKey.
-- ToolWorkflow remains a Generation routing concept, separate from Tool identity.
-- SessionSummary is the aggregate listing projection for GenerationSession navigation.
+From repository root:
 
-## XState as Product Reliability Layer
+```bash
+npm run typecheck
+npm run test
+npm run build
+```
 
-XState is not just implementation detail here. It is how domain behavior stays explicit:
+Frontend focused:
 
-- clear state transitions
-- deterministic orchestration
-- resumable and regenerable runs through WorkflowRunMode
-- auditable stream and persistence lifecycle
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run test
+npm --workspace apps/frontend run build
+```
 
-## Quiet Principles
+Backend focused:
 
-Model first. Name things once. Let events tell the truth.
+```bash
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test
+npm --workspace apps/backend run go
+```
 
-<!-- bomberto-egg-01 cipher:b64 c2JlcnNh -->
+## Canonical Docs (read first)
 
-## Repository At A Glance
+1. `docs/01-requirements/domain-ubiquitous-language-glossary.md`
+2. `docs/02-design/domain-bounded-context-map.md`
+3. `docs/07-governance/domain-naming-decision-log.md`
+4. `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 
-- apps/backend: Generation, Auth, Usage/Quota runtime
-- apps/frontend: Frontend/UI runtime and user journey
-- packages/contracts: FE/BE contract authority for GenerationRequest and BackendStreamEvent
-- packages/domain: shared domain package
-- packages/infra-db: migrations, seeds, and DB execution utilities
-- docs: canonical DDD and Ubiquitous Language governance
+Index entrypoint:
 
-## Start Here
-
-If you are new to the project, read these in order:
-
-1. docs/01-requirements/domain-ubiquitous-language-glossary.md
-2. docs/02-design/domain-bounded-context-map.md
-3. docs/07-governance/domain-naming-decision-log.md
-4. docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md
-
-Then move to docs/index-overview.md for the full architecture and implementation map.
-
----
-
-With gratitude to Bomberto ❤️❤️
+- `docs/index-overview.md`

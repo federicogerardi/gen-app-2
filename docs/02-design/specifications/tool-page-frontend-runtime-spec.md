@@ -99,7 +99,7 @@ Spawned by `toolPageMachine` as `briefingActorRef`. Managed states:
 
 Behavior contract:
 - `BRIEFING_FILE_SELECTED` updates cached files and never auto-starts upload/extraction.
-- Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED` (Tool Workspace setup CTA copy: `Genera contesto`).
+- Upload/extraction starts only via explicit `BRIEFING_EXTRACTION_REQUESTED`, triggered by the single Tool Workspace primary CTA. In the current runtime that CTA is visually labeled `Avvia la generazione`; no dedicated `Genera contesto` button is shown.
 - The same manual trigger applies to all tools (single-file and multi-file).
 - API-backed acquisition for configured tools is part of the same pre-step runtime contract and must not introduce a second primary trigger.
 
@@ -130,7 +130,7 @@ Spawned by `toolPageMachine`. Tracks ordered step progression (`ToolStep[]`) wit
 Scope: `ToolInputSource` includes `api-acquisition` (DDD-086) through backend-owned `ApiService` resolution (DDD-087).
 
 Runtime contract:
-1. `toolPageMachine` keeps one setup-phase intent and one primary pre-step trigger (`StartContextGenerationAction`, transitional copy `Genera contesto`).
+1. `toolPageMachine` keeps one setup-phase intent and one primary pre-step trigger (`StartContextGenerationAction`) routed through the unified primary CTA currently labeled `Avvia la generazione`.
 2. `briefingUploadMachine` remains the file-processing actor; API acquisition for configured tools is integrated in the same umbrella `ContextGenerationPhase` and must not introduce a second top-level trigger.
 3. FE does not call third-party APIs directly for acquisition; FE calls backend tool endpoints and consumes machine-driven progress/error state.
 4. FE progress remains a single top-level context-generation signal; extraction/fetch/merge details are sub-status only.
@@ -511,7 +511,8 @@ All props come from `useToolPage` return value. Selected mapping:
 | `inputRequirementMatrix` | `deriveToolInputRequirementMatrix({ toolKey, hasProjectSelected, completedFileKeys, includeApiAcquisition, apiAcquisitionStatus })` | Canonical pre-dispatch gate for `ToolInputRequirementMatrix` (DDD-090); `includeApiAcquisition` follows feature-flag adapter enablement |
 | `apiAcquisitionPayload` | Derived from `inputRequirementMatrix.entries` filtered by `sourceFamily = 'api-acquisition'` | Optional `ToolGenerationFlowVertical` section; empty for current tools |
 | `workflowPanelFeedback` | Aggregated from briefingError, fileCompletion, readinessReasonCodes, artifactsReloadError, briefingGuidance | Transitional aggregation artifact in `ToolPageTemplate`; canonical monitor contract is governed by DDD-084 |
-| `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` |
+| `handlePrimaryAction` | `useCallback` in hook | Bound to primary CTA `onClick` when context is already ready or generation can start immediately |
+| `handleExtractionStart` | `useCallback` in hook | Armed by the same primary CTA when context generation is still required; may auto-chain into `handlePrimaryAction` once readiness is recomputed |
 | `handleBriefingFileSelected` | `useCallback` | Bound to file input change |
 | `handleBriefingReset` | `useCallback` | Bound to briefing reset button |
 
@@ -524,7 +525,6 @@ Policy-aware binding rule:
 
 Canonical UX convergence for Tool Workspace Page feedback is documented in:
 
-- `docs/99-lifecycle/99-archive/superseded/ux/tool-page-sidebar-unified-flow.md`
 - `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
 
 **Convergence rule implemented:**
@@ -621,6 +621,7 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-02 | Updated Tool Workspace runtime contract to the current single-click behavior: visible primary CTA remains `Avvia la generazione`; when context is missing, the same click emits `BRIEFING_EXTRACTION_REQUESTED` and FE auto-dispatches generation after readiness recomputation, without a second user click. Updated §2.2, §2.3b, and §9 prop mapping accordingly. | AI-first doc session |
 | 2026-05-24 | Added minimal backend-driven `apiBindingStatusAdapter` runtime notes in §9/§9b: `VITE_FF_TOOLS_API_BINDING_STATUS` keeps `api-acquisition` gating OFF by default; when enabled, readiness uses backend resolve status for binding-connected checks. Added regression test reference for `tool-api-binding-status-adapter.test.ts`. | AI-first doc session |
 | 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |
 | 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |

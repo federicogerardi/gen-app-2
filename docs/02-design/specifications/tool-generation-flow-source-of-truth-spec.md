@@ -294,8 +294,9 @@ Definition:
 
 Primary CTA contract:
 1. The canonical action is `Start Context Generation Action`.
-2. Transitional UI copy may remain `Genera contesto`.
-3. The action starts the full configured pre-step pipeline (extraction + fetch + merge), not extraction-only behavior.
+2. In the current runtime the visible primary CTA is unified under `Avvia la generazione`; a dedicated `Genera contesto` button is not rendered.
+3. When context is not ready, the same click starts the full configured pre-step pipeline (extraction + fetch + merge), not extraction-only behavior.
+4. On successful context completion, FE must auto-dispatch step-1 generation without requiring a second user click.
 
 Progress contract:
 1. During this phase, Workflow Panel progress represents `Context Generation Phase` state.
@@ -327,7 +328,7 @@ Requiredness values:
 3. `optional-by-tool-setting`
 
 Deterministic eligibility rule:
-1. `Start Context Generation Action` is enabled only when every matrix entry classified as `always-required` or `required-by-tool-setting` is satisfied.
+1. The unified primary CTA is enabled only when every matrix entry classified as `always-required` or `required-by-tool-setting` is satisfied.
 2. Entries classified as `optional-by-tool-setting` are non-blocking and must never disable the primary pre-step CTA.
 
 Feature-flag adapter gate (as-is runtime):
@@ -379,12 +380,12 @@ Component convergence rule:
 1. Utente apre tool (`/tools/funnel-pages` o `/tools/nextland`)
 2. Seleziona progetto
 3. Fornisce gli input richiesti dal tool (direct input, file upload, API acquisition settings)
-4. Avvia `Start Context Generation Action` (transitional copy: `Genera contesto`)
-5. Attende completamento `Context Generation Phase` (extraction + fetch + merge, per configurazione tool)
-6. (Opzionale) imposta modello, tono, note quando previsti dal tool surface
-7. Avvia generazione step-1 con payload composito già pronto
-7. Osserva avanzamento globale e per-step
-8. Apre artefatti o rilancia generazione
+4. Clicca la CTA primaria visibile `Avvia la generazione`
+5. FE esegue `Start Context Generation Action` quando il contesto non è ancora pronto
+6. Attende completamento `Context Generation Phase` (extraction + fetch + merge, per configurazione tool)
+7. FE avvia automaticamente la generazione step-1 con payload composito già pronto, senza secondo click
+8. Osserva avanzamento globale e per-step
+9. Apre artefatti o rilancia generazione
 
 **Resume/Regenerate path**:
 1. Utente arriva con `sourceArtifactId` + `intent` (`resume` o `regenerate`)

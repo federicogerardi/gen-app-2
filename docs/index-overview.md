@@ -78,8 +78,6 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 
 - [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
 
-Visual representations for superseded flow snapshots are archived under [archive superseded 02-design](./99-lifecycle/99-archive/superseded/02-design/).
-
 ### Design Specifications
 
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
@@ -91,7 +89,6 @@ Visual representations for superseded flow snapshots are archived under [archive
 - [dependency-unification-proposal](./02-design/specifications/dependency-unification-proposal.md) — **Ranked proposal for dependency-slot allocation focused on code unification (Zod-first recommendation)**
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned, including DDD-081 readiness branches)**
 - [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
-- Superseded specifications and flow snapshots: [archive superseded 02-design](./99-lifecycle/99-archive/superseded/02-design/)
 
 Validation path manifest (orphan-check canonical set):
 
@@ -125,25 +122,7 @@ Validation path manifest (orphan-check canonical set):
 
 ## Archive Registry
 
-Archive folder is maintained for future reference and historical context. See [99-lifecycle/99-archive](./99-lifecycle/99-archive/).
-
-### Archived Plans
-
-- [plans archive root](./99-lifecycle/99-archive/plans/)
-- Policy: keep historical plan details in archive folders and avoid enumerating every archived plan in this index.
-
-### Archived Superseded Docs
-
-- [superseded docs root](./99-lifecycle/99-archive/superseded/)
-- [superseded 02-design](./99-lifecycle/99-archive/superseded/02-design/)
-- [superseded 04-testing](./99-lifecycle/99-archive/superseded/04-testing/)
-- [superseded 07-governance](./99-lifecycle/99-archive/superseded/07-governance/)
-- [superseded 99-reference](./99-lifecycle/99-archive/superseded/99-reference/)
-- [superseded ux](./99-lifecycle/99-archive/superseded/ux/)
-
-### Archived Resources
-
-- [youtube-lf-script-prompts-index-mapping](./99-lifecycle/99-archive/resources/youtube-lf-script-prompts/index-mapping.md)
+Archive lifecycle area currently has no active markdown snapshots indexed.
 
 ---
 
@@ -163,7 +142,7 @@ This documentation reflects the **as-is state** of the gen-app-2 application at 
 
 ## Governance Rules Applied
 
-- **DDD-First Model (2026-05-04)**: All active documentation must reference canonical UL (glossary, BCM, decision log). Technical specifications superseded by UL are archived. See [ddd-first-docs-supersession-audit-2026-05-04](./99-lifecycle/99-archive/superseded/07-governance/ddd-first-docs-supersession-audit-2026-05-04.md).
+- **DDD-First Model (2026-05-04)**: All active documentation must reference canonical UL (glossary, BCM, decision log). Technical specifications superseded by UL are archived according to lifecycle governance.
 - Documenti attivi in aree operative; snapshot conclusi archiviati.
 - Naming markdown: lowercase kebab-case con topic + doc-type.
 - Rename/spostamenti: update link e indici nello stesso change set.

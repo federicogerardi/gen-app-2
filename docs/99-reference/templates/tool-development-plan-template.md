@@ -379,6 +379,5 @@ Acceptance for DDD Impact Gate:
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
 - `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
-- `docs/99-lifecycle/99-archive/superseded/04-testing/orchestrate-scalability-benchmark-2026-05-21.md`
 - `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx`
 - `apps/frontend/src/features/artifacts/ui/SessionsListingSection.test.tsx`

@@ -167,7 +167,7 @@ describe('ToolPageTemplate extraction CTA', () => {
 
   });
 
-  it('starts extraction only after clicking Genera contesto and after optional file payload update', async () => {
+  it('arms extraction from Avvia la generazione and refreshes optional file payload first', async () => {
     mockedEffectiveBriefingStatus = 'idle';
     handlePrimaryAction.mockReset();
     handleCancelGeneration.mockReset();
@@ -193,11 +193,13 @@ describe('ToolPageTemplate extraction CTA', () => {
     expect(handleAngleDetectorFileSelected).toHaveBeenCalledWith(angleFile);
     expect(handleExtractionStart).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: /genera contesto/i }));
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);
     });
+
+    expect(handlePrimaryAction).not.toHaveBeenCalled();
 
     expect(handleAngleDetectorFileSelected).toHaveBeenCalledTimes(2);
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { readInputField } from '../../../app/runtime/shared-utils';
@@ -26,6 +26,7 @@ export interface UseToolPageProps {
 }
 
 export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
+  const autoStartGenerationAfterExtractionRef = useRef(false);
   const auth = useAuthSession();
   const generationStream = useGenerationStreamWorkspace();
   const generationArtifacts = useGenerationArtifactsWorkspace();
@@ -134,6 +135,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       ? 'running'
       : machineViewModel.canonicalState;
   const handlePrimaryAction = useCallback(() => {
+    autoStartGenerationAfterExtractionRef.current = false;
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionId}`);
       return;
@@ -146,10 +148,34 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     file,
     sourceKey: 'angle-detector-file',
   }), [toolPageSend]);
-  const handleExtractionStart = useCallback(() => {
+  const handleExtractionStart = useCallback((options?: { autoStartGeneration?: boolean }) => {
+    autoStartGenerationAfterExtractionRef.current = options?.autoStartGeneration === true;
     toolPageSend({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
   }, [toolPageSend]);
-  const handleBriefingReset = useCallback(() => toolPageSend({ type: 'BRIEFING_RESET' }), [toolPageSend]);
+  const handleBriefingReset = useCallback(() => {
+    autoStartGenerationAfterExtractionRef.current = false;
+    toolPageSend({ type: 'BRIEFING_RESET' });
+  }, [toolPageSend]);
+
+  useEffect(() => {
+    if (!autoStartGenerationAfterExtractionRef.current) {
+      return;
+    }
+
+    if (effectiveBriefingStatus === 'ready') {
+      if (!readinessSnapshot.canStartFlow || machineViewModel.primaryActionPolicy === 'disabled') {
+        return;
+      }
+
+      autoStartGenerationAfterExtractionRef.current = false;
+      handleRunControllerPrimaryAction();
+      return;
+    }
+
+    if (effectiveBriefingStatus !== 'uploading' && effectiveBriefingStatus !== 'extracting') {
+      autoStartGenerationAfterExtractionRef.current = false;
+    }
+  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
   return {
     toolConfig,

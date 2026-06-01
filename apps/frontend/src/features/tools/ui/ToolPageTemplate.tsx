@@ -319,7 +319,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       : undefined;
   const extractionPrimaryOverride = canStartExtraction
     ? {
-      label: copy.extraction.startActionLabel,
+      label: copy.primaryActionPolicy.startGenerationLabel,
       disabled: false,
       tooltip: copy.extraction.startActionTooltip,
     }
@@ -359,7 +359,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
 
     if (canStartExtraction) {
-      handleExtractionStart();
+      handleExtractionStart({ autoStartGeneration: true });
       return;
     }
 

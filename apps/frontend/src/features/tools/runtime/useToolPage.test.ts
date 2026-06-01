@@ -286,6 +286,48 @@ describe('useToolPage', () => {
     );
   });
 
+  it('auto-starts generation only after extraction is ready and readiness has been recomputed', async () => {
+    const { result, rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
+
+    act(() => {
+      result.current.handleExtractionStart({ autoStartGeneration: true });
+    });
+
+    expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
+
+    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
+    mocks.briefingSnapshot.context.briefingId = 'brief-001';
+    mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-extract-001';
+    mocks.briefingSnapshot.context.extractionPayload = { schemaVersion: 'extraction.v1' };
+    mocks.briefingSnapshot.context.normalizedText = 'brief text';
+    mocks.briefingSnapshot.context.parsedFormat = 'md';
+    mocks.machineSnapshot.context.readiness.canStartFlow = false;
+    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
+
+    rerender();
+
+    expect(mocks.send).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'REQUEST_STEP_START',
+        step: 'optin',
+      }),
+    );
+
+    mocks.machineSnapshot.context.readiness.canStartFlow = true;
+    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
+
+    rerender();
+
+    await waitFor(() => {
+      expect(mocks.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'REQUEST_STEP_START',
+          step: 'optin',
+        }),
+      );
+    });
+  });
+
   it('re-syncs PROGRESS_SYNCED when project selection changes', () => {
     const { rerender } = renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
 

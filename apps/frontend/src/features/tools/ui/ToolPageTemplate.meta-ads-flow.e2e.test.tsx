@@ -143,8 +143,8 @@ describe('ToolPageTemplate meta-ads e2e flow', () => {
     handlePrimaryAction.mockClear();
   });
 
-  it('supports select objective -> extraction -> generation end-to-end flow', async () => {
-    const { rerender } = render(
+  it('uses the primary generation CTA to arm context extraction in a single click', async () => {
+    render(
       <MemoryRouter>
         <ToolPageTemplate toolKey="meta-ads" />
       </MemoryRouter>,
@@ -156,24 +156,12 @@ describe('ToolPageTemplate meta-ads e2e flow', () => {
 
     expect(formState.campaignObjective).toBe('Leads');
 
-    fireEvent.click(screen.getByRole('button', { name: /genera contesto/i }));
+    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);
     });
 
-    mockedEffectiveBriefingStatus = 'ready';
-
-    rerender(
-      <MemoryRouter>
-        <ToolPageTemplate toolKey="meta-ads" />
-      </MemoryRouter>,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
-
-    await waitFor(() => {
-      expect(handlePrimaryAction).toHaveBeenCalledTimes(1);
-    });
+    expect(handlePrimaryAction).not.toHaveBeenCalled();
   });
 });

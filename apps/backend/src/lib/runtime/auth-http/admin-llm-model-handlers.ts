@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
+import { z } from 'zod';
 
 import { type AuthRepositoryBundle } from '../../adapters';
 import {
@@ -15,6 +16,7 @@ import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
 } from './support';
+import { formatZodIssuesForBadRequest } from './zod-support';
 
 export type CreateAdminLlmModelHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
@@ -37,6 +39,64 @@ export type AdminLlmModelHandlers = {
 };
 
 const LLM_MODEL_KEY_REGEX = /^[a-zA-Z0-9/_\-.]+$/;
+
+const llmModelKeySchema = z.string()
+  .transform((value) => value.trim())
+  .refine((value) => value.length > 0 && value.length <= 128 && LLM_MODEL_KEY_REGEX.test(value), {
+    message: 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]',
+  });
+
+const llmModelLabelSchema = z.string()
+  .transform((value) => value.trim())
+  .refine((value) => value.length > 0 && value.length <= 256, {
+    message: 'label must be 1-256 chars',
+  });
+
+const llmModelStatusSchema = z.string()
+  .transform((value) => value.trim())
+  .refine((value) => value === 'enabled' || value === 'disabled', {
+    message: 'status must be enabled or disabled',
+  })
+  .transform((value) => value as LlmModelStatus);
+
+const sortOrderSchema = z.custom<number>((value) => typeof value === 'number', {
+  message: 'sortOrder must be a number',
+});
+
+const isDefaultSchema = z.custom<boolean>((value) => typeof value === 'boolean', {
+  message: 'isDefault must be a boolean',
+});
+
+const createAdminModelRequestSchema = z.object({
+  key: z.preprocess(
+    (value) => typeof value === 'string' ? value : '',
+    llmModelKeySchema,
+  ),
+  label: z.preprocess(
+    (value) => typeof value === 'string' ? value : '',
+    llmModelLabelSchema,
+  ),
+  status: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    llmModelStatusSchema.optional(),
+  ),
+  sortOrder: z.preprocess(
+    (value) => typeof value === 'number' ? value : undefined,
+    sortOrderSchema.optional(),
+  ),
+  isDefault: z.preprocess(
+    (value) => typeof value === 'boolean' ? value : undefined,
+    isDefaultSchema.optional(),
+  ),
+});
+
+const updateAdminModelRequestSchema = z.object({
+  key: llmModelKeySchema.optional(),
+  label: llmModelLabelSchema.optional(),
+  status: llmModelStatusSchema.optional(),
+  sortOrder: sortOrderSchema.optional(),
+  isDefault: isDefaultSchema.optional(),
+});
 
 export const createAdminLlmModelHandlers = (
   deps: CreateAdminLlmModelHandlersDependencies,
@@ -94,40 +154,33 @@ export const createAdminLlmModelHandlers = (
       return;
     }
 
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<Record<string, unknown>>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
 
-    const key = typeof body.key === 'string' ? body.key.trim() : '';
-    const label = typeof body.label === 'string' ? body.label.trim() : '';
-    const status = typeof body.status === 'string' ? body.status.trim() : 'enabled';
-    const sortOrder = typeof body.sortOrder === 'number' ? body.sortOrder : undefined;
-    const isDefault = typeof body.isDefault === 'boolean' ? body.isDefault : false;
-
-    if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
-      writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
+    const parsedBody = createAdminModelRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
       return;
     }
 
-    if (!label || label.length > 256) {
-      writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
-      return;
-    }
-
-    if (status !== 'enabled' && status !== 'disabled') {
-      writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
-      return;
-    }
+    const {
+      key,
+      label,
+      status,
+      sortOrder,
+      isDefault,
+    } = parsedBody.data;
 
     const model = await createModel(pool, {
       key,
       label,
-      status: status as LlmModelStatus,
-      isDefault,
+      status: status ?? 'enabled',
+      isDefault: isDefault ?? false,
       ...(sortOrder !== undefined ? { sortOrder } : {}),
     });
     await repositories.sessions.touchSession(principal.session.id, now());
@@ -154,11 +207,17 @@ export const createAdminLlmModelHandlers = (
       return;
     }
 
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<Record<string, unknown>>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const parsedBody = updateAdminModelRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
       return;
     }
 
@@ -170,46 +229,25 @@ export const createAdminLlmModelHandlers = (
       sortOrder: number;
     }> = {};
 
+    const body = parsedBody.data;
+
     if (body.key !== undefined) {
-      const key = typeof body.key === 'string' ? body.key.trim() : '';
-      if (!key || key.length > 128 || !LLM_MODEL_KEY_REGEX.test(key)) {
-        writeError(response, 400, 'bad_request', 'key must be 1-128 chars matching [a-zA-Z0-9/_-.]');
-        return;
-      }
-      payload.key = key;
+      payload.key = body.key;
     }
 
     if (body.label !== undefined) {
-      const label = typeof body.label === 'string' ? body.label.trim() : '';
-      if (!label || label.length > 256) {
-        writeError(response, 400, 'bad_request', 'label must be 1-256 chars');
-        return;
-      }
-      payload.label = label;
+      payload.label = body.label;
     }
 
     if (body.status !== undefined) {
-      const status = typeof body.status === 'string' ? body.status.trim() : '';
-      if (status !== 'enabled' && status !== 'disabled') {
-        writeError(response, 400, 'bad_request', 'status must be enabled or disabled');
-        return;
-      }
-      payload.status = status as LlmModelStatus;
+      payload.status = body.status;
     }
 
     if (body.sortOrder !== undefined) {
-      if (typeof body.sortOrder !== 'number') {
-        writeError(response, 400, 'bad_request', 'sortOrder must be a number');
-        return;
-      }
       payload.sortOrder = body.sortOrder;
     }
 
     if (body.isDefault !== undefined) {
-      if (typeof body.isDefault !== 'boolean') {
-        writeError(response, 400, 'bad_request', 'isDefault must be a boolean');
-        return;
-      }
       payload.isDefault = body.isDefault;
     }
 

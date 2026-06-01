@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
+import { z } from 'zod';
 
 import {
   getApiServiceById,
@@ -15,6 +16,11 @@ import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
 } from './support';
+import {
+  enumValue,
+  formatZodIssuesForBadRequest,
+  nonEmptyTrimmedString,
+} from './zod-support';
 
 export type CreateAdminApiServiceBindingHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
@@ -69,6 +75,23 @@ export const createAdminApiServiceBindingHandlers = (
     const code = (error as { code?: unknown }).code;
     return typeof code === 'string' ? code : null;
   };
+
+  const adminApiServiceBindingBaseSchema = z.object({
+    toolKey: nonEmptyTrimmedString('toolKey'),
+    stepKey: nonEmptyTrimmedString('stepKey'),
+    workflowStepType: enumValue(['acquisition'], 'workflowStepType').optional(),
+    bindingStatus: enumValue(['active', 'inactive'], 'bindingStatus').optional(),
+    requiredness: enumValue(
+      ['always-required', 'required-by-tool-setting', 'optional-by-tool-setting'],
+      'requiredness',
+    ).optional(),
+  });
+
+  const adminApiServiceBindingUpsertSchema = adminApiServiceBindingBaseSchema.extend({
+    id: z.string().trim().optional(),
+  });
+
+  type AdminApiServiceBindingUpsertBody = z.infer<typeof adminApiServiceBindingUpsertSchema>;
 
   const handleAdminApiServiceBindingsList = async (
     request: IncomingMessage,
@@ -128,26 +151,27 @@ export const createAdminApiServiceBindingHandlers = (
       return;
     }
 
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<Record<string, unknown>>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
 
-    const toolKey = typeof body.toolKey === 'string' ? body.toolKey.trim() : '';
-    const stepKey = typeof body.stepKey === 'string' ? body.stepKey.trim() : '';
-    const workflowStepType = typeof body.workflowStepType === 'string'
-      ? body.workflowStepType
-      : undefined;
-    const bindingStatus = typeof body.bindingStatus === 'string'
-      ? body.bindingStatus
-      : undefined;
-    const requiredness = typeof body.requiredness === 'string'
-      ? body.requiredness
-      : undefined;
-    const id = typeof body.id === 'string' ? body.id : undefined;
+    const parsedBody = adminApiServiceBindingUpsertSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body: AdminApiServiceBindingUpsertBody = parsedBody.data;
+    const toolKey = body.toolKey;
+    const stepKey = body.stepKey;
+    const workflowStepType = body.workflowStepType;
+    const bindingStatus = body.bindingStatus;
+    const requiredness = body.requiredness;
+    const id = body.id;
 
     const validationErrors = validateToolStepBindingInput({
       toolKey,
@@ -175,14 +199,11 @@ export const createAdminApiServiceBindingHandlers = (
         apiServiceId: serviceId,
         toolKey,
         stepKey,
-        ...(workflowStepType ? { workflowStepType: 'acquisition' as const } : {}),
-        ...(bindingStatus ? { bindingStatus: bindingStatus as 'active' | 'inactive' } : {}),
+        ...(workflowStepType ? { workflowStepType } : {}),
+        ...(bindingStatus ? { bindingStatus } : {}),
         ...(requiredness
           ? {
-            requiredness: requiredness as
-              | 'always-required'
-              | 'required-by-tool-setting'
-              | 'optional-by-tool-setting',
+            requiredness,
           }
           : {}),
       });

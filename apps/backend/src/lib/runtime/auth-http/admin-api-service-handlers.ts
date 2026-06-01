@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
+import { z } from 'zod';
 
 import {
   createApiService,
@@ -21,6 +22,14 @@ import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
 } from './support';
+import {
+  arrayPayload,
+  boundedInteger,
+  enumValue,
+  formatZodIssuesForBadRequest,
+  nonEmptyTrimmedString,
+  objectPayload,
+} from './zod-support';
 
 export type CreateAdminApiServiceHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
@@ -42,46 +51,76 @@ export type AdminApiServiceHandlers = {
   handleAdminApiServicesDelete(request: IncomingMessage, response: ServerResponse, serviceId: string): Promise<void>;
 };
 
-const parseAccessMode = (value: unknown): ApiServiceAccessMode | null => {
-  if (value === 'public' || value === 'token') {
-    return value;
-  }
-  return null;
-};
+const TOKEN_HEADER_NAME_REGEX = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/;
 
-const parseStatus = (value: unknown): ApiServiceStatus | null => {
-  if (value === 'active' || value === 'inactive') {
-    return value;
-  }
-  return null;
-};
+const apiServiceAccessModeSchema = enumValue(['public', 'token'], 'accessMode');
+const apiServiceStatusSchema = enumValue(['active', 'inactive'], 'status');
+const apiServiceRequestMethodSchema = enumValue(
+  ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  'requestMethod',
+);
+const tokenHeaderNameSchema = nonEmptyTrimmedString('tokenHeaderName').refine(
+  (value) => TOKEN_HEADER_NAME_REGEX.test(value),
+  'tokenHeaderName must be a valid HTTP header name',
+);
 
-const parseRequestMethod = (value: unknown): 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | null => {
-  if (
-    value === 'GET'
-    || value === 'POST'
-    || value === 'PUT'
-    || value === 'PATCH'
-    || value === 'DELETE'
-  ) {
-    return value;
-  }
-  return null;
-};
+const adminApiServiceCreateSchema = z.object({
+  key: nonEmptyTrimmedString('key'),
+  label: nonEmptyTrimmedString('label'),
+  baseUrl: nonEmptyTrimmedString('baseUrl'),
+  resourcePath: nonEmptyTrimmedString('resourcePath'),
+  accessMode: apiServiceAccessModeSchema,
+  timeoutMs: boundedInteger('timeoutMs', 100, 120000).optional(),
+  retryCount: boundedInteger('retryCount', 0, 5).optional(),
+  requestMethod: apiServiceRequestMethodSchema.optional().default('GET'),
+  requestTemplateJson: objectPayload('requestTemplateJson').default({}),
+  requestMappingRulesJson: arrayPayload('requestMappingRulesJson').default([]),
+  requestHeadersTemplateJson: objectPayload('requestHeadersTemplateJson').default({}),
+  responseMappingRulesJson: arrayPayload('responseMappingRulesJson').default([]),
+  errorMappingRulesJson: arrayPayload('errorMappingRulesJson').default([]),
+  contractProfileVersion: boundedInteger('contractProfileVersion', 1, Number.MAX_SAFE_INTEGER)
+    .optional()
+    .default(1),
+  tokenRef: z.union([nonEmptyTrimmedString('tokenRef'), z.null()]).optional().transform((value) => value ?? null),
+  tokenHeaderName: z.union([tokenHeaderNameSchema, z.null()]).optional().transform((value) => {
+    if (value === undefined) {
+      return null;
+    }
 
-const asRecordOrDefault = (value: unknown, fallback: Record<string, unknown>): Record<string, unknown> => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return fallback;
-};
+    return normalizeTokenHeaderName(value);
+  }),
+  status: apiServiceStatusSchema.optional().default('active'),
+});
 
-const asArrayOrDefault = (value: unknown, fallback: Array<Record<string, unknown>>): Array<Record<string, unknown>> => {
-  if (Array.isArray(value)) {
-    return value as Array<Record<string, unknown>>;
-  }
-  return fallback;
-};
+const adminApiServiceUpdateSchema = z.object({
+  key: nonEmptyTrimmedString('key').optional(),
+  label: nonEmptyTrimmedString('label').optional(),
+  baseUrl: nonEmptyTrimmedString('baseUrl').optional(),
+  resourcePath: nonEmptyTrimmedString('resourcePath').optional(),
+  accessMode: apiServiceAccessModeSchema.optional(),
+  timeoutMs: boundedInteger('timeoutMs', 100, 120000).optional(),
+  retryCount: boundedInteger('retryCount', 0, 5).optional(),
+  tokenRef: z.union([nonEmptyTrimmedString('tokenRef'), z.null()]).optional(),
+  tokenHeaderName: z.union([tokenHeaderNameSchema, z.null()]).optional().transform((value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return normalizeTokenHeaderName(value);
+  }),
+  status: apiServiceStatusSchema.optional(),
+  requestMethod: apiServiceRequestMethodSchema.optional(),
+  requestTemplateJson: objectPayload('requestTemplateJson').optional(),
+  requestMappingRulesJson: arrayPayload('requestMappingRulesJson').optional(),
+  requestHeadersTemplateJson: objectPayload('requestHeadersTemplateJson').optional(),
+  responseMappingRulesJson: arrayPayload('responseMappingRulesJson').optional(),
+  errorMappingRulesJson: arrayPayload('errorMappingRulesJson').optional(),
+  contractProfileVersion: boundedInteger('contractProfileVersion', 1, Number.MAX_SAFE_INTEGER).optional(),
+});
+
+type AdminApiServiceCreateBody = z.infer<typeof adminApiServiceCreateSchema>;
+type AdminApiServiceUpdateBody = z.infer<typeof adminApiServiceUpdateSchema>;
+
 
 export const createAdminApiServiceHandlers = (
   deps: CreateAdminApiServiceHandlersDependencies,
@@ -140,55 +179,32 @@ export const createAdminApiServiceHandlers = (
       return;
     }
 
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<Record<string, unknown>>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
 
-    const key = typeof body.key === 'string' ? body.key.trim() : '';
-    const label = typeof body.label === 'string' ? body.label.trim() : '';
-    const baseUrl = typeof body.baseUrl === 'string' ? body.baseUrl.trim() : '';
-    const resourcePath = typeof body.resourcePath === 'string' ? body.resourcePath.trim() : '';
-    const accessMode = parseAccessMode(body.accessMode);
-    const timeoutMs = typeof body.timeoutMs === 'number' ? body.timeoutMs : undefined;
-    const retryCount = typeof body.retryCount === 'number' ? body.retryCount : undefined;
-    const requestMethod = body.requestMethod === undefined ? 'GET' : parseRequestMethod(body.requestMethod);
-    const requestTemplateJson = asRecordOrDefault(body.requestTemplateJson, {});
-    const requestMappingRulesJson = asArrayOrDefault(body.requestMappingRulesJson, []);
-    const requestHeadersTemplateJson = asRecordOrDefault(body.requestHeadersTemplateJson, {});
-    const responseMappingRulesJson = asArrayOrDefault(body.responseMappingRulesJson, []);
-    const errorMappingRulesJson = asArrayOrDefault(body.errorMappingRulesJson, []);
-    const contractProfileVersion = typeof body.contractProfileVersion === 'number'
-      ? body.contractProfileVersion
-      : 1;
-    const tokenRef = typeof body.tokenRef === 'string' ? body.tokenRef.trim() : null;
-    const tokenHeaderName = normalizeTokenHeaderName(
-      typeof body.tokenHeaderName === 'string' ? body.tokenHeaderName : null,
-    );
-
-    if (!accessMode) {
-      writeError(response, 400, 'bad_request', 'accessMode must be public or token');
+    const parsedBody = adminApiServiceCreateSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
       return;
     }
 
-    if (!requestMethod) {
-      writeError(response, 400, 'bad_request', 'requestMethod must be GET, POST, PUT, PATCH, or DELETE');
-      return;
-    }
+    const body: AdminApiServiceCreateBody = parsedBody.data;
 
     const validationErrors = validateApiServiceInput({
-      key,
-      label,
-      baseUrl,
-      resourcePath,
-      accessMode,
-      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
-      ...(retryCount !== undefined ? { retryCount } : {}),
-      ...(tokenRef !== null ? { tokenRef } : {}),
-      ...(tokenHeaderName !== null ? { tokenHeaderName } : {}),
+      key: body.key,
+      label: body.label,
+      baseUrl: body.baseUrl,
+      resourcePath: body.resourcePath,
+      accessMode: body.accessMode,
+      ...(body.timeoutMs !== undefined ? { timeoutMs: body.timeoutMs } : {}),
+      ...(body.retryCount !== undefined ? { retryCount: body.retryCount } : {}),
+      ...(body.tokenRef !== null ? { tokenRef: body.tokenRef } : {}),
+      ...(body.tokenHeaderName !== null ? { tokenHeaderName: body.tokenHeaderName } : {}),
     });
 
     if (validationErrors.length > 0) {
@@ -197,23 +213,23 @@ export const createAdminApiServiceHandlers = (
     }
 
     const service = await createApiService(db, {
-      key,
-      label,
-      baseUrl,
-      resourcePath,
-      accessMode,
-      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
-      ...(retryCount !== undefined ? { retryCount } : {}),
-      requestMethod,
-      requestTemplateJson,
-      requestMappingRulesJson,
-      requestHeadersTemplateJson,
-      responseMappingRulesJson,
-      errorMappingRulesJson,
-      contractProfileVersion,
-      tokenRef,
-      tokenHeaderName,
-      status: 'active',
+      key: body.key,
+      label: body.label,
+      baseUrl: body.baseUrl,
+      resourcePath: body.resourcePath,
+      accessMode: body.accessMode,
+      ...(body.timeoutMs !== undefined ? { timeoutMs: body.timeoutMs } : {}),
+      ...(body.retryCount !== undefined ? { retryCount: body.retryCount } : {}),
+      requestMethod: body.requestMethod,
+      requestTemplateJson: body.requestTemplateJson,
+      requestMappingRulesJson: body.requestMappingRulesJson as Array<Record<string, unknown>>,
+      requestHeadersTemplateJson: body.requestHeadersTemplateJson,
+      responseMappingRulesJson: body.responseMappingRulesJson as Array<Record<string, unknown>>,
+      errorMappingRulesJson: body.errorMappingRulesJson as Array<Record<string, unknown>>,
+      contractProfileVersion: body.contractProfileVersion,
+      tokenRef: body.tokenRef,
+      tokenHeaderName: body.tokenHeaderName,
+      status: body.status,
     });
 
     await repositories.sessions.touchSession(principal.session.id, now());
@@ -242,14 +258,21 @@ export const createAdminApiServiceHandlers = (
       return;
     }
 
-    let body: Record<string, unknown>;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<Record<string, unknown>>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
 
+    const parsedBody = adminApiServiceUpdateSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body: AdminApiServiceUpdateBody = parsedBody.data;
     const payload: {
       key?: string;
       label?: string;
@@ -271,147 +294,70 @@ export const createAdminApiServiceHandlers = (
     } = {};
 
     if (body.key !== undefined) {
-      if (typeof body.key !== 'string') {
-        writeError(response, 400, 'bad_request', 'key must be a string');
-        return;
-      }
-      payload.key = body.key.trim();
+      payload.key = body.key;
     }
 
     if (body.label !== undefined) {
-      if (typeof body.label !== 'string') {
-        writeError(response, 400, 'bad_request', 'label must be a string');
-        return;
-      }
-      payload.label = body.label.trim();
+      payload.label = body.label;
     }
 
     if (body.baseUrl !== undefined) {
-      if (typeof body.baseUrl !== 'string') {
-        writeError(response, 400, 'bad_request', 'baseUrl must be a string');
-        return;
-      }
-      payload.baseUrl = body.baseUrl.trim();
+      payload.baseUrl = body.baseUrl;
     }
 
     if (body.resourcePath !== undefined) {
-      if (typeof body.resourcePath !== 'string') {
-        writeError(response, 400, 'bad_request', 'resourcePath must be a string');
-        return;
-      }
-      payload.resourcePath = body.resourcePath.trim();
+      payload.resourcePath = body.resourcePath;
     }
 
     if (body.accessMode !== undefined) {
-      const accessMode = parseAccessMode(body.accessMode);
-      if (!accessMode) {
-        writeError(response, 400, 'bad_request', 'accessMode must be public or token');
-        return;
-      }
-      payload.accessMode = accessMode;
+      payload.accessMode = body.accessMode;
     }
 
     if (body.timeoutMs !== undefined) {
-      if (typeof body.timeoutMs !== 'number') {
-        writeError(response, 400, 'bad_request', 'timeoutMs must be a number');
-        return;
-      }
       payload.timeoutMs = body.timeoutMs;
     }
 
     if (body.retryCount !== undefined) {
-      if (typeof body.retryCount !== 'number') {
-        writeError(response, 400, 'bad_request', 'retryCount must be a number');
-        return;
-      }
       payload.retryCount = body.retryCount;
     }
 
     if (body.tokenRef !== undefined) {
-      if (body.tokenRef !== null && typeof body.tokenRef !== 'string') {
-        writeError(response, 400, 'bad_request', 'tokenRef must be a string or null');
-        return;
-      }
-      payload.tokenRef = body.tokenRef === null ? null : body.tokenRef.trim();
+      payload.tokenRef = body.tokenRef;
     }
 
     if (body.tokenHeaderName !== undefined) {
-      if (body.tokenHeaderName !== null && typeof body.tokenHeaderName !== 'string') {
-        writeError(response, 400, 'bad_request', 'tokenHeaderName must be a string or null');
-        return;
-      }
-      payload.tokenHeaderName = normalizeTokenHeaderName(
-        body.tokenHeaderName === null ? null : body.tokenHeaderName,
-      );
+      payload.tokenHeaderName = body.tokenHeaderName;
     }
 
     if (body.status !== undefined) {
-      const status = parseStatus(body.status);
-      if (!status) {
-        writeError(response, 400, 'bad_request', 'status must be active or inactive');
-        return;
-      }
-      payload.status = status;
+      payload.status = body.status;
     }
 
     if (body.requestMethod !== undefined) {
-      const requestMethod = parseRequestMethod(body.requestMethod);
-      if (!requestMethod) {
-        writeError(response, 400, 'bad_request', 'requestMethod must be GET, POST, PUT, PATCH, or DELETE');
-        return;
-      }
-      payload.requestMethod = requestMethod;
+      payload.requestMethod = body.requestMethod;
     }
 
     if (body.requestTemplateJson !== undefined) {
-      if (!body.requestTemplateJson || typeof body.requestTemplateJson !== 'object' || Array.isArray(body.requestTemplateJson)) {
-        writeError(response, 400, 'bad_request', 'requestTemplateJson must be an object');
-        return;
-      }
-      payload.requestTemplateJson = body.requestTemplateJson as Record<string, unknown>;
+      payload.requestTemplateJson = body.requestTemplateJson;
     }
 
     if (body.requestMappingRulesJson !== undefined) {
-      if (!Array.isArray(body.requestMappingRulesJson)) {
-        writeError(response, 400, 'bad_request', 'requestMappingRulesJson must be an array');
-        return;
-      }
       payload.requestMappingRulesJson = body.requestMappingRulesJson as Array<Record<string, unknown>>;
     }
 
     if (body.requestHeadersTemplateJson !== undefined) {
-      if (
-        !body.requestHeadersTemplateJson
-        || typeof body.requestHeadersTemplateJson !== 'object'
-        || Array.isArray(body.requestHeadersTemplateJson)
-      ) {
-        writeError(response, 400, 'bad_request', 'requestHeadersTemplateJson must be an object');
-        return;
-      }
-      payload.requestHeadersTemplateJson = body.requestHeadersTemplateJson as Record<string, unknown>;
+      payload.requestHeadersTemplateJson = body.requestHeadersTemplateJson;
     }
 
     if (body.responseMappingRulesJson !== undefined) {
-      if (!Array.isArray(body.responseMappingRulesJson)) {
-        writeError(response, 400, 'bad_request', 'responseMappingRulesJson must be an array');
-        return;
-      }
       payload.responseMappingRulesJson = body.responseMappingRulesJson as Array<Record<string, unknown>>;
     }
 
     if (body.errorMappingRulesJson !== undefined) {
-      if (!Array.isArray(body.errorMappingRulesJson)) {
-        writeError(response, 400, 'bad_request', 'errorMappingRulesJson must be an array');
-        return;
-      }
       payload.errorMappingRulesJson = body.errorMappingRulesJson as Array<Record<string, unknown>>;
     }
 
     if (body.contractProfileVersion !== undefined) {
-      if (typeof body.contractProfileVersion !== 'number') {
-        writeError(response, 400, 'bad_request', 'contractProfileVersion must be a number');
-        return;
-      }
       payload.contractProfileVersion = body.contractProfileVersion;
     }
 

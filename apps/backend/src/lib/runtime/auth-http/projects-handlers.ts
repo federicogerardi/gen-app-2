@@ -8,6 +8,8 @@ import { isArtifactStatus, isArtifactType } from '../../types/artifact';
 import { contentTypeForFormat, parseDownloadFormat } from '../downloads/download-format';
 import { artifactDownloadFilename, contentDispositionAttachment } from '../downloads/download-filename';
 import { serializeArtifactDownload } from '../downloads/download-serializers';
+import { formatZodIssuesForBadRequest, nonEmptyTrimmedString, optionalTrimmedString } from './zod-support';
+import { z } from 'zod';
 
 export type ProjectsHandlers = {
   handleProjectsList(request: IncomingMessage, response: ServerResponse): Promise<void>;
@@ -20,11 +22,6 @@ export type ProjectsHandlers = {
     response: ServerResponse,
     artifactId: string,
   ): Promise<void>;
-};
-
-type CreateProjectRequestBody = {
-  name?: unknown;
-  description?: unknown;
 };
 
 type WriteError = (
@@ -71,6 +68,17 @@ export const parseArtifactReadProjection = (searchParams: URLSearchParams): Arti
     includeContent: parseBooleanQueryFlag(searchParams.get('includeContent')),
   };
 };
+
+const createProjectRequestSchema = z.object({
+  name: z.preprocess(
+    (value) => typeof value === 'string' ? value : '',
+    nonEmptyTrimmedString('Project name'),
+  ),
+  description: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  ),
+});
 
 export const createProjectsHandlers = (deps: CreateProjectsHandlersDependencies): ProjectsHandlers => {
   const {
@@ -127,24 +135,24 @@ export const createProjectsHandlers = (deps: CreateProjectsHandlersDependencies)
       return;
     }
 
-    let body: CreateProjectRequestBody;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<CreateProjectRequestBody>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
 
-    const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name) {
-      writeError(response, 400, 'bad_request', 'Project name is required');
+    const parsedBody = createProjectRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
       return;
     }
 
-    const description = typeof body.description === 'string' ? body.description.trim() : undefined;
+    const { name, description } = parsedBody.data;
     const project = await queries.projects.createProjectForUser(principal.user.id, {
       name,
-      ...(description ? { description } : {}),
+      ...(description && description.length > 0 ? { description } : {}),
     });
 
     await repositories.sessions.touchSession(principal.session.id, now());

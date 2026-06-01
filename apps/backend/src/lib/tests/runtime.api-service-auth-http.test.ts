@@ -226,6 +226,57 @@ class ApiServiceDbStub {
       return { rows: this.bindings.map((row) => ({ ...row } as T)) };
     }
 
+    if (sqlText.includes('INSERT INTO api_service_tool_step_bindings')) {
+      const now = new Date('2026-05-24T12:10:00.000Z');
+      const requestedId = values?.[0];
+      const apiServiceId = String(values?.[1] ?? '');
+      const toolKey = String(values?.[2] ?? '');
+      const stepKey = String(values?.[3] ?? '');
+      const workflowStepType = String(values?.[4] ?? 'acquisition');
+      const bindingStatus = String(values?.[5] ?? 'active');
+      const requiredness = String(values?.[6] ?? 'required-by-tool-setting');
+
+      const existingIndex = this.bindings.findIndex(
+        (binding) => binding.api_service_id === apiServiceId
+          && binding.tool_key === toolKey
+          && binding.step_key === stepKey,
+      );
+
+      if (existingIndex >= 0) {
+        const current = this.bindings[existingIndex];
+        if (!current) {
+          throw new Error('Binding upsert invariant violated: missing existing row');
+        }
+
+        const updated = {
+          ...current,
+          workflow_step_type: workflowStepType,
+          binding_status: bindingStatus,
+          requiredness,
+          updated_at: now,
+        };
+        this.bindings[existingIndex] = updated;
+        return { rows: [{ ...updated } as T] };
+      }
+
+      const created = {
+        id: typeof requestedId === 'string' && requestedId.length > 0
+          ? requestedId
+          : `bind_${this.bindings.length + 1}`,
+        api_service_id: apiServiceId,
+        tool_key: toolKey,
+        step_key: stepKey,
+        workflow_step_type: workflowStepType,
+        binding_status: bindingStatus,
+        requiredness,
+        created_at: now,
+        updated_at: now,
+      };
+
+      this.bindings.push(created);
+      return { rows: [{ ...created } as T] };
+    }
+
     throw new Error(`Unsupported SQL in ApiServiceDbStub: ${sqlText}`);
   }
 
@@ -256,6 +307,52 @@ const loginAndGetCookie = async (
   const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
   return (typeof raw === 'string' ? raw.split(';')[0] : '') ?? '';
 };
+
+const createAdminRuntimeWithCookie = async (): Promise<{
+  runtime: ReturnType<typeof createAuthHttpRuntime>;
+  cookie: string;
+}> => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+  return { runtime, cookie };
+};
+
+const validAdminApiServiceCreatePayload = (): Record<string, unknown> => ({
+  key: 'billing-api',
+  label: 'Billing API',
+  baseUrl: 'https://billing.example.com',
+  resourcePath: '/v1/billing',
+  accessMode: 'public',
+  requestMethod: 'GET',
+  requestTemplateJson: {},
+  requestMappingRulesJson: [],
+  requestHeadersTemplateJson: {},
+  responseMappingRulesJson: [],
+  errorMappingRulesJson: [],
+  contractProfileVersion: 1,
+});
 
 test('admin api-services list enforces admin role', async () => {
   const repositories = createAuthStubRepositories();
@@ -544,6 +641,375 @@ test('admin api-services update roundtrip persists tokenHeaderName', async () =>
   assert.equal(services[0]?.tokenHeaderName, 'X-Service-Token');
 });
 
+test('admin api-services create rejects unsupported accessMode through bad_request envelope', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      key: 'billing-api',
+      label: 'Billing API',
+      baseUrl: 'https://billing.example.com',
+      resourcePath: '/v1/billing',
+      accessMode: 'private',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /accessMode/);
+});
+
+test('admin api-services create rejects non-object requestTemplateJson through bad_request envelope', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      key: 'billing-api',
+      label: 'Billing API',
+      baseUrl: 'https://billing.example.com',
+      resourcePath: '/v1/billing',
+      accessMode: 'public',
+      requestTemplateJson: [],
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /requestTemplateJson/);
+});
+
+test('admin api-services update rejects unsupported requestMethod through bad_request envelope', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}`,
+    headers: { cookie },
+    body: JSON.stringify({ requestMethod: 'TRACE' }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /requestMethod/);
+});
+
+test('admin api-services create rejects unsupported status through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      status: 'paused',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /status/);
+});
+
+test('admin api-services create rejects non-array requestMappingRulesJson through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      requestMappingRulesJson: {},
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /requestMappingRulesJson/);
+});
+
+test('admin api-services create rejects non-object requestHeadersTemplateJson through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      requestHeadersTemplateJson: [],
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /requestHeadersTemplateJson/);
+});
+
+test('admin api-services create rejects non-array responseMappingRulesJson through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      responseMappingRulesJson: {},
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /responseMappingRulesJson/);
+});
+
+test('admin api-services create rejects non-array errorMappingRulesJson through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      errorMappingRulesJson: {},
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /errorMappingRulesJson/);
+});
+
+test('admin api-services create rejects invalid tokenHeaderName through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      accessMode: 'token',
+      tokenRef: 'vault://billing/token',
+      tokenHeaderName: 'X Header Invalid',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /tokenHeaderName/);
+});
+
+test('admin api-services create rejects timeoutMs below minimum through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      timeoutMs: 99,
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /timeoutMs/);
+});
+
+test('admin api-services create rejects timeoutMs above maximum through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      timeoutMs: 120001,
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /timeoutMs/);
+});
+
+test('admin api-services create rejects retryCount below minimum through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      retryCount: -1,
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /retryCount/);
+});
+
+test('admin api-services create rejects retryCount above maximum through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      retryCount: 6,
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /retryCount/);
+});
+
+test('admin api-services create rejects contractProfileVersion below minimum through bad_request envelope', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'POST',
+    url: '/api/admin/api-services',
+    headers: { cookie },
+    body: JSON.stringify({
+      ...validAdminApiServiceCreatePayload(),
+      contractProfileVersion: 0,
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /contractProfileVersion/);
+});
+
 test('admin api-service bindings upsert returns 404 when api service is missing', async () => {
   const repositories = createAuthStubRepositories();
   const hasher = createDefaultPasswordHashRuntime();
@@ -642,4 +1108,180 @@ test('admin api-service bindings upsert maps unique DB conflict to 409', async (
 
   await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
   assert.equal(response.statusCode, 409);
+});
+
+test('admin api-service bindings upsert succeeds with valid payload and returns deterministic binding shape', async () => {
+  const repositories = createAuthStubRepositories();
+  const hasher = createDefaultPasswordHashRuntime();
+  const cookieRuntime = createDefaultSessionCookieRuntime({ cookieName: 'genapp_session' });
+
+  const adminHash = await hasher.hashPassword('Admin-Pass-1!');
+  await repositories.users.createUser({
+    id: 'admin-001',
+    email: 'admin@example.com',
+    role: 'admin',
+    status: 'active',
+    passwordHash: adminHash,
+    passwordAlgo: hasher.passwordAlgorithm,
+  });
+
+  const runtime = createAuthHttpRuntime({
+    repositories,
+    db: new ApiServiceDbStub() as any,
+    passwordHashing: hasher,
+    sessionCookies: cookieRuntime,
+    now: () => new Date('2026-05-24T12:00:00.000Z'),
+    idGenerator: { nextSessionId: () => 'sess-admin-001' },
+  });
+
+  const cookie = await loginAndGetCookie(runtime, 'admin@example.com', 'Admin-Pass-1!');
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 200);
+  const body = response.jsonBody();
+  const binding = (((body.data ?? {}) as Record<string, unknown>).binding ?? {}) as Record<string, unknown>;
+  assert.equal(typeof binding.id, 'string');
+  assert.equal(binding.apiServiceId, primaryApiServiceId);
+  assert.equal(binding.toolKey, 'funnel-pages');
+  assert.equal(binding.stepKey, 'optin');
+  assert.equal(binding.workflowStepType, 'acquisition');
+  assert.equal(binding.bindingStatus, 'active');
+  assert.equal(binding.requiredness, 'required-by-tool-setting');
+});
+
+test('admin api-service bindings upsert rejects missing toolKey', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /toolKey/);
+  assert.equal(Array.isArray((body.error as { issues?: unknown }).issues), false);
+});
+
+test('admin api-service bindings upsert rejects missing stepKey', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /stepKey/);
+  assert.equal(Array.isArray((body.error as { issues?: unknown }).issues), false);
+});
+
+test('admin api-service bindings upsert rejects unsupported workflowStepType', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'delivery',
+      bindingStatus: 'active',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /workflowStepType/);
+  assert.equal(Array.isArray((body.error as { issues?: unknown }).issues), false);
+});
+
+test('admin api-service bindings upsert rejects unsupported bindingStatus', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'disabled',
+      requiredness: 'required-by-tool-setting',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /bindingStatus/);
+  assert.equal(Array.isArray((body.error as { issues?: unknown }).issues), false);
+});
+
+test('admin api-service bindings upsert rejects unsupported requiredness', async () => {
+  const { runtime, cookie } = await createAdminRuntimeWithCookie();
+
+  const request = new MockIncomingMessage({
+    method: 'PUT',
+    url: `/api/admin/api-services/${primaryApiServiceId}/bindings`,
+    headers: { cookie },
+    body: JSON.stringify({
+      toolKey: 'funnel-pages',
+      stepKey: 'optin',
+      workflowStepType: 'acquisition',
+      bindingStatus: 'active',
+      requiredness: 'required-when-available',
+    }),
+  });
+  const response = new MockServerResponse();
+
+  await runtime.handleRequest(request as unknown as IncomingMessage, response as unknown as ServerResponse);
+  assert.equal(response.statusCode, 400);
+  const body = response.jsonBody();
+  assert.equal((body.error as { code?: string }).code, 'bad_request');
+  assert.match(String((body.error as { message?: string }).message), /requiredness/);
+  assert.equal(Array.isArray((body.error as { issues?: unknown }).issues), false);
 });

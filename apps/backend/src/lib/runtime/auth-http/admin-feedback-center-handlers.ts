@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
+import { z } from 'zod';
 
 import { type AuthRepositoryBundle } from '../../adapters';
 import {
@@ -23,12 +24,10 @@ import {
 import type { GitHubApiConfig } from '../integrations/github-config';
 import { PublishGitHubIssueError, publishGitHubIssue } from '../integrations/github-issues';
 import type {
-  AdminCreateChangelogRequestBody,
-  AdminPublishUserReportIssueRequestBody,
-  AdminUpdateUserReportRequestBody,
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
 } from './support';
+import { formatZodIssuesForBadRequest, optionalTrimmedString } from './zod-support';
 
 export type CreateAdminFeedbackCenterHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
@@ -71,6 +70,28 @@ export const createAdminFeedbackCenterHandlers = (
     writeSuccess,
   } = deps;
 
+  const optionalRequestString = z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  );
+
+  const adminCreateChangelogRequestSchema = z.object({
+    title: optionalRequestString,
+    body: optionalRequestString,
+    status: optionalRequestString,
+  });
+
+  const adminUpdateUserReportRequestSchema = z.object({
+    status: optionalRequestString,
+  });
+
+  const adminPublishUserReportIssueRequestSchema = z.object({
+    owner: optionalRequestString,
+    repo: optionalRequestString,
+    title: optionalRequestString,
+    body: optionalRequestString,
+  });
+
   // Gated debug logging utility
   const debugLog = (message: string, data?: unknown): void => {
     if (process.env.NODE_ENV !== 'production') {
@@ -97,13 +118,21 @@ export const createAdminFeedbackCenterHandlers = (
       return;
     }
 
-    let body: AdminCreateChangelogRequestBody;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<AdminCreateChangelogRequestBody>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
+
+    const parsedBody = adminCreateChangelogRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body = parsedBody.data;
 
     const title = parseOptionalNonEmptyString(body.title) ?? '';
     const changelogBody = parseOptionalNonEmptyString(body.body) ?? '';
@@ -260,13 +289,21 @@ export const createAdminFeedbackCenterHandlers = (
       return;
     }
 
-    let body: AdminUpdateUserReportRequestBody;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<AdminUpdateUserReportRequestBody>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
+
+    const parsedBody = adminUpdateUserReportRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body = parsedBody.data;
 
     const status = normalizeUserReportStatus(parseOptionalNonEmptyString(body.status));
     if (!status) {
@@ -318,14 +355,22 @@ export const createAdminFeedbackCenterHandlers = (
       return;
     }
 
-    let body: AdminPublishUserReportIssueRequestBody;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<AdminPublishUserReportIssueRequestBody>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch (error) {
       debugLog('[POST /api/admin/user-reports/:id/publish-issue] JSON parsing error:', error);
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
+
+    const parsedBody = adminPublishUserReportIssueRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body = parsedBody.data;
     debugLog('[POST /api/admin/user-reports/:id/publish-issue] Request body parsed:', { body });
 
     const report = await getUserReportById(pool, reportId);

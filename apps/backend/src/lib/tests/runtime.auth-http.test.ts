@@ -969,6 +969,36 @@ test('auth HTTP runtime returns 401/404/400 for projects and artifacts constrain
   );
   assert.equal(missingProjectResponse.statusCode, 404);
 
+  const missingNameProjectResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/projects',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({ description: 'No project name' }),
+    }) as unknown as IncomingMessage,
+    missingNameProjectResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingNameProjectResponse.statusCode, 400);
+  const missingNameProjectBody = missingNameProjectResponse.jsonBody();
+  assert.equal((missingNameProjectBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingNameProjectBody.error as { message?: string }).message, 'name: Project name is required');
+
+  const invalidProjectJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/projects',
+      headers: { cookie: cookieHeader },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidProjectJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidProjectJsonResponse.statusCode, 400);
+  const invalidProjectJsonBody = invalidProjectJsonResponse.jsonBody();
+  assert.equal((invalidProjectJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidProjectJsonBody.error as { message?: string }).message, 'Invalid JSON body');
+
   const invalidArtifactsFilterResponse = new MockServerResponse();
   await runtime.handleRequest(
     new MockIncomingMessage({
@@ -3412,6 +3442,39 @@ test('auth HTTP runtime supports feedback-center report/changelog endpoints with
   );
   assert.equal(invalidCategoryResponse.statusCode, 400);
 
+  const missingTitleResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: JSON.stringify({
+        category: 'issue',
+        description: 'Missing title payload',
+      }),
+    }) as unknown as IncomingMessage,
+    missingTitleResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingTitleResponse.statusCode, 400);
+  const missingTitleBody = missingTitleResponse.jsonBody();
+  assert.equal((missingTitleBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingTitleBody.error as { message?: string }).message, 'title is required');
+
+  const invalidReportJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidReportJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidReportJsonResponse.statusCode, 400);
+  const invalidReportJsonBody = invalidReportJsonResponse.jsonBody();
+  assert.equal((invalidReportJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidReportJsonBody.error as { message?: string }).message, 'Invalid JSON body');
+
   const forbiddenListResponse = new MockServerResponse();
   await runtime.handleRequest(
     new MockIncomingMessage({
@@ -3439,6 +3502,21 @@ test('auth HTTP runtime supports feedback-center report/changelog endpoints with
     publishChangelogResponse as unknown as ServerResponse,
   );
   assert.equal(publishChangelogResponse.statusCode, 201);
+
+  const missingTitleChangelogResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/admin/changelog',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ body: 'Missing title' }),
+    }) as unknown as IncomingMessage,
+    missingTitleChangelogResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingTitleChangelogResponse.statusCode, 400);
+  const missingTitleChangelogBody = missingTitleChangelogResponse.jsonBody();
+  assert.equal((missingTitleChangelogBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingTitleChangelogBody.error as { message?: string }).message, 'title is required');
 
   const listChangelogResponse = new MockServerResponse();
   await runtime.handleRequest(
@@ -3547,6 +3625,21 @@ test('auth HTTP runtime enforces user-report admin validation, triage updates, a
     invalidPatchResponse as unknown as ServerResponse,
   );
   assert.equal(invalidPatchResponse.statusCode, 400);
+
+  const invalidPatchJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'PATCH',
+      url: '/api/admin/user-reports/rpt_seed_issue_001',
+      headers: { cookie: adminCookie },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidPatchJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidPatchJsonResponse.statusCode, 400);
+  const invalidPatchJsonBody = invalidPatchJsonResponse.jsonBody();
+  assert.equal((invalidPatchJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidPatchJsonBody.error as { message?: string }).message, 'Invalid JSON body');
 
   const patchResponse = new MockServerResponse();
   await runtime.handleRequest(

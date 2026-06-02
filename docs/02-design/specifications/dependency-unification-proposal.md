@@ -1,8 +1,8 @@
 ---
-status: proposed
-version: 1.0
-last-reviewed: 2026-05-29
-next-review-date: 2026-08-29
+status: partially-implemented
+version: 1.1
+last-reviewed: 2026-06-02
+next-review-date: 2026-09-02
 owner: Frontend Platform Team
 ---
 
@@ -29,7 +29,9 @@ Introduce one dependency slot focused on code unification and simplification, wi
 
 ## Ranked Shortlist (Top 3)
 
-### 1. Zod in Backend (recommended first)
+### 1. Zod in Backend (✅ implemented)
+
+**Status: Complete** — shipped across 6 waves covering all auth-http handler surfaces (admin-api-service, admin-api-service-binding, projects, admin-feedback-center, public, admin-llm-model). See `plan/feature-zod-backend-unification-1.md` for execution detail.
 
 Why:
 
@@ -84,19 +86,24 @@ Initial rollout scope:
 
 ## Recommendation
 
-If only one additional dependency slot is available now, adopt **Zod in backend first**.
+✅ **Phase 1 (Zod in backend) is complete.** The remaining candidates are:
 
-Selection rationale:
+1. **Kysely** — typed SQL builder for backend adapters (next priority).
+2. **Ky** — HTTP client for frontend HTTP runtime (follows Kysely).
 
-- Highest unification return with the lowest migration risk.
-- Immediate simplification in active handler codepaths.
-- Natural extension of an already adopted frontend validation stack.
+## Delivery Plan
 
-## Proposed Delivery Plan
+### ✅ Phase 1 (pilot) — Complete
+Add backend Zod schemas for one admin HTTP surface and replace manual parsing in that surface. Execution in `plan/feature-zod-backend-unification-1.md`.
 
-1. Phase 1 (pilot): add backend Zod schemas for one admin HTTP surface and replace manual parsing in that surface.
-2. Phase 2 (convergence): extract reusable schema helpers and align shared contracts where relevant.
-3. Phase 3 (hardening): extend schema coverage to remaining handler groups and enforce typed parse boundaries in tests.
+### ✅ Phase 2 (convergence) — Complete
+Extract reusable schema helpers and align shared contracts where relevant.
+
+### ✅ Phase 3 (hardening) — Complete
+Extend schema coverage to remaining handler groups and enforce typed parse boundaries in tests.
+
+### 🔲 Phase 4 — Kysely adoption in backend adapters
+### 🔲 Phase 5 — Ky adoption in frontend HTTP runtime
 
 ## Acceptance Criteria
 

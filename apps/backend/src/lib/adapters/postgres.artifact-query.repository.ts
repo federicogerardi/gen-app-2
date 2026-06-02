@@ -455,14 +455,20 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     const rows = result.slice(0, limit);
     const hasMore = result.length > limit;
 
-    const entries: SessionListEntry[] = rows.map((row) => ({
-      sessionId: row.session_id!,
-      projectId: row.project_id ?? '',
-      toolKey: normalizeToolWorkflowKey(row.workflow_type),
-      status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
-      artifactCount: parseInt(row.artifact_count, 10),
-      updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
-    }));
+    const entries: SessionListEntry[] = rows.map((row) => {
+      if (row.session_id === null || row.session_id === '') {
+        throw new Error('Session summary row missing session_id after non-null session filter');
+      }
+
+      return {
+        sessionId: row.session_id,
+        projectId: row.project_id ?? '',
+        toolKey: normalizeToolWorkflowKey(row.workflow_type),
+        status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
+        artifactCount: parseInt(row.artifact_count, 10),
+        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      };
+    });
 
     const last = entries[entries.length - 1];
     return {

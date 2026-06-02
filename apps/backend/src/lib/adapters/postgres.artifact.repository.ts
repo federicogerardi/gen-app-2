@@ -125,6 +125,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
     this.db = createKyselyDb(pg);
     this.artifactsSchema = options.artifactsSchema;
     this.quotaHistorySchema = options.quotaHistorySchema;
+    if (options.artifactsTableName !== undefined && options.artifactsTableName !== 'artifacts') {
+      throw new Error(`Unsupported artifactsTableName: ${options.artifactsTableName}`);
+    }
+    if (options.quotaHistoryTableName !== undefined && options.quotaHistoryTableName !== 'quota_history') {
+      throw new Error(`Unsupported quotaHistoryTableName: ${options.quotaHistoryTableName}`);
+    }
   }
 
   private getArtifactDb(): Kysely<DB> {

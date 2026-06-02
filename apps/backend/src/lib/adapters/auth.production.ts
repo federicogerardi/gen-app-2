@@ -181,6 +181,19 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
     this.db = createKyselyDb(pg);
     this.usersSchema = options.usersSchema;
     this.oauthAccountsSchema = options.oauthAccountsSchema;
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
+    if (options.oauthAccountsTableName !== undefined && options.oauthAccountsTableName !== 'oauth_accounts') {
+      throw new Error(`Unsupported oauthAccountsTableName: ${options.oauthAccountsTableName}`);
+    }
+    if (
+      options.usersSchema !== undefined
+      && options.oauthAccountsSchema !== undefined
+      && options.usersSchema !== options.oauthAccountsSchema
+    ) {
+      throw new Error('usersSchema must match oauthAccountsSchema for OAuth subject lookup joins');
+    }
   }
 
   private getUsersDb(): Kysely<DB> {
@@ -382,6 +395,19 @@ export class PostgresAuthSessionRepository implements AuthSessionRepository {
   ) {
     this.db = createKyselyDb(pg);
     this.authSessionsSchema = options.authSessionsSchema;
+    if (options.authSessionsTableName !== undefined && options.authSessionsTableName !== 'auth_sessions') {
+      throw new Error(`Unsupported authSessionsTableName: ${options.authSessionsTableName}`);
+    }
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
+    if (
+      options.usersSchema !== undefined
+      && options.authSessionsSchema !== undefined
+      && options.usersSchema !== options.authSessionsSchema
+    ) {
+      throw new Error('usersSchema must match authSessionsSchema for session principal joins');
+    }
   }
 
   private getSessionsDb(): Kysely<DB> {

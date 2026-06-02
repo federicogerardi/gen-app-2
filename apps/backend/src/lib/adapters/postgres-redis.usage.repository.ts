@@ -53,6 +53,9 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
     this.maxRequestsPerWindow = options.maxRequestsPerWindow ?? 120;
     this.redisKeyPrefix = options.redisKeyPrefix ?? 'generation:usage';
     this.usersSchema = options.usersSchema;
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
   }
 
   private getUsersDb(trx?: Kysely<DB>): Kysely<DB> {

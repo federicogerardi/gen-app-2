@@ -16,9 +16,9 @@ export class PostgresProjectOwnershipRepository implements ProjectOwnershipRepos
   ) {
     this.db = createKyselyDb(pg);
     this.schema = options.projectsSchema;
-    // Note: options.projectsTableName is accepted for API compatibility but is not applied
-    // to queries. With Kysely, the table name is fixed to 'projects' by the DB interface key.
-    // A custom table name would require adding it as a key in postgres-kysely.types.ts.
+    if (options.projectsTableName !== undefined && options.projectsTableName !== 'projects') {
+      throw new Error(`Unsupported projectsTableName: ${options.projectsTableName}`);
+    }
   }
 
   private getDb(): Kysely<DB> {

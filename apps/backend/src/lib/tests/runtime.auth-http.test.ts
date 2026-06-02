@@ -114,7 +114,7 @@ class FeedbackCenterDbStub {
       return { rows: [] };
     }
 
-    if (sqlText.includes('insert into "user_reports"')) {
+    if (s.includes('insert into "user_reports"')) {
       const createdAt = new Date('2026-05-16T10:00:00.000Z');
       const row: FeedbackCenterUserReportRecord = {
         id: String(values[0]),

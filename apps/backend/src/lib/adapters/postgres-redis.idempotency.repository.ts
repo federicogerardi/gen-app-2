@@ -41,6 +41,12 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
     this.redisLockTtlSeconds = options.redisLockTtlSeconds ?? 900;
     this.requestIdempotencySchema = options.requestIdempotencySchema;
     this.endpointResolver = options.endpointResolver ?? defaultEndpointResolver;
+    if (
+      options.requestIdempotencyTableName !== undefined
+      && options.requestIdempotencyTableName !== 'request_idempotency'
+    ) {
+      throw new Error(`Unsupported requestIdempotencyTableName: ${options.requestIdempotencyTableName}`);
+    }
   }
 
   private getDb(): Kysely<DB> {

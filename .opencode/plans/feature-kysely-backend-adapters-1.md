@@ -10,7 +10,7 @@ tags: [feature, backend, kysely, sql, adapters, persistence, ddd]
 
 # Introduction
 
-![Status: Draft](https://img.shields.io/badge/status-Draft-yellow)
+![Status: Completed](https://img.shields.io/badge/status-Completed-brightgreen)
 
 This plan defines a phased adoption of [Kysely](https://kysely.dev/) (typed SQL builder) for PostgreSQL in the backend adapter layer. The migration targets the ~69 raw `pg.query()` and `client.query()` calls across 12 production adapter files, replacing manual string concatenation patterns (`string[]` + `.push()` + `.join()`), manual parameter indexing (`$1..$N`), and raw template literal SQL with Kysely's typed query builder API.
 

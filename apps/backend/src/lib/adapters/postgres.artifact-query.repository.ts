@@ -30,6 +30,15 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
   ) {
     this.db = createKyselyDb(pg);
     this.artifactsSchema = options.artifactsSchema;
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
+    if (
+      options.usersSchema !== undefined
+      && options.usersSchema !== options.artifactsSchema
+    ) {
+      throw new Error('usersSchema must match artifactsSchema for artifact query joins');
+    }
   }
 
   private getArtifactDb(): Kysely<DB> {
@@ -447,7 +456,7 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     const hasMore = result.length > limit;
 
     const entries: SessionListEntry[] = rows.map((row) => ({
-      sessionId: row.session_id ?? '',
+      sessionId: row.session_id!,
       projectId: row.project_id ?? '',
       toolKey: normalizeToolWorkflowKey(row.workflow_type),
       status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',

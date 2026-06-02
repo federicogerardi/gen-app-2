@@ -29,6 +29,12 @@ import type { ProductionAdapterRuntime } from './postgres-redis.interfaces';
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
 const nowDate = (runtime?: ProductionAdapterRuntime): Date =>
   runtime?.now?.() ?? new Date();
 
@@ -189,6 +195,8 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
     const row = await this.getUsersDb()
       .selectFrom('users')
       .selectAll()
+      // Escape hatch: lower() is a PostgreSQL string function; Kysely has no typed
+      // builder equivalent for case-insensitive column comparison via LOWER().
       .where(sql<boolean>`lower(email) = lower(${email})`)
       .limit(1)
       .executeTakeFirst() as unknown as AuthUserRow | undefined;
@@ -218,6 +226,7 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
 
     if (filters?.query) {
       const pattern = `%${filters.query.toLowerCase()}%`;
+      // Escape hatch: lower(email) LIKE — same reason as findUserByEmail.
       query = query.where(sql<boolean>`lower(email) LIKE ${pattern}`);
     }
 
@@ -244,8 +253,8 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
         password_changed_at: input.passwordChangedAt ?? null,
         disabled_at: input.disabledAt ?? null,
         created_by_admin_user_id: input.createdByAdminUserId ?? null,
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
+        created_at: dbNow,
+        updated_at: dbNow,
       })
       .returningAll()
       .executeTakeFirstOrThrow() as unknown as AuthUserRow;
@@ -298,8 +307,10 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
         password_hash: input.passwordHash,
         password_algo: input.passwordAlgo,
         password_changed_at: input.passwordChangedAt ?? new Date(),
+        // Escape hatch: COALESCE mixing a parameterized value with a bare column reference.
+        // Kysely's typed .set() has no API for COALESCE(param, column) expressions.
         status: sql`COALESCE(${input.nextStatus ?? null}, status)`,
-        updated_at: sql`NOW()` as any,
+        updated_at: dbNow,
       })
       .where('id', '=', userId)
       .execute();
@@ -310,7 +321,7 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
       .updateTable('users')
       .set({
         last_login_at: at ?? new Date(),
-        updated_at: sql`NOW()` as any,
+        updated_at: dbNow,
       })
       .where('id', '=', userId)
       .execute();
@@ -343,8 +354,8 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
         provider_subject: input.providerSubject,
         email_at_provider: input.emailAtProvider ?? null,
         profile_json: input.profileJson ?? {},
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
+        created_at: dbNow,
+        updated_at: dbNow,
       })
       .onConflict((oc) => oc
         .columns(['provider', 'provider_subject'])
@@ -352,7 +363,7 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
           user_id: input.userId,
           email_at_provider: input.emailAtProvider ?? null,
           profile_json: input.profileJson ?? {},
-          updated_at: sql`NOW()` as any,
+          updated_at: dbNow,
         }))
       .returningAll()
       .executeTakeFirstOrThrow() as unknown as OAuthAccountRow;
@@ -388,8 +399,8 @@ export class PostgresAuthSessionRepository implements AuthSessionRepository {
         ip_address: input.ipAddress ?? null,
         user_agent: input.userAgent ?? null,
         expires_at: input.expiresAt,
-        created_at: sql`NOW()` as any,
-        last_seen_at: sql`NOW()` as any,
+        created_at: dbNow,
+        last_seen_at: dbNow,
       })
       .execute();
 
@@ -406,15 +417,19 @@ export class PostgresAuthSessionRepository implements AuthSessionRepository {
       .selectFrom('auth_sessions as s')
       .innerJoin('users as u', 'u.id', 's.user_id')
       .select([
+        // Escape hatch: aliasing a joined column requires sql tag — Kysely's typed
+        // string select does not support renaming columns across joined tables.
         sql<string>`s.id`.as('session_id'),
         's.user_id',
         's.session_token_hash',
         's.auth_method',
+        // Escape hatch: ::text cast is PostgreSQL-specific; no typed Kysely builder equivalent.
         sql<string>`s.ip_address::text`.as('ip_address'),
         's.user_agent',
         's.expires_at',
         's.revoked_at',
         's.last_seen_at',
+        // Escape hatch: explicit type annotation needed for the session_created_at alias.
         sql<Date>`s.created_at`.as('session_created_at'),
         'u.email',
         'u.role',
@@ -431,6 +446,8 @@ export class PostgresAuthSessionRepository implements AuthSessionRepository {
     await this.getSessionsDb()
       .updateTable('auth_sessions')
       .set({
+        // Escape hatch: COALESCE preserves an existing revoked_at if already set.
+        // Kysely's typed .set() has no API for COALESCE(column, param) expressions.
         revoked_at: sql`COALESCE(revoked_at, ${revokedAt ?? new Date()})`,
       })
       .where('id', '=', sessionId)
@@ -489,7 +506,7 @@ export class PostgresOAuthStateRepository implements OAuthStateRepository {
         redirect_uri: input.redirectUri,
         requested_by_ip: input.requestedByIp ?? null,
         expires_at: input.expiresAt,
-        created_at: sql`NOW()` as any,
+        created_at: dbNow,
         consumed_at: null,
       })
       .returningAll()

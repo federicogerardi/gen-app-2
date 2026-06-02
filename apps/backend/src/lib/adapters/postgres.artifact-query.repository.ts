@@ -84,6 +84,8 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       query = query.where('a.project_id', '=', filters.projectId);
     }
     if (filters.from) {
+      // Escape hatch: ::timestamptz cast is PostgreSQL-specific; Kysely's .where() has no
+      // typed builder for explicit column type coercion on timestamp comparisons.
       query = query.where(sql<boolean>`a.updated_at >= ${filters.from}::timestamptz`);
     }
     if (filters.to) {
@@ -187,6 +189,8 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
 
     let query = db
       .selectFrom('artifacts')
+      // Escape hatch: count(*) is a PostgreSQL aggregate function; Kysely has no typed
+      // builder equivalent for COUNT in a .select() context.
       .select(sql<string>`count(*)`.as('total'));
 
     if (filters.type) {
@@ -276,6 +280,8 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       .selectFrom('artifacts')
       .select(this.buildDetailSelection(projection))
       .where('user_id', '=', userId)
+      // Escape hatch: id = ANY(...::text[]) uses the PostgreSQL ANY operator with an
+      // array cast. Kysely has no typed builder equivalent for ANY with array parameters.
       .where(sql<boolean>`id = ANY(${artifactIds}::text[])`)
       .execute() as unknown as ArtifactRow[];
 
@@ -339,6 +345,8 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       .select(this.buildDetailSelection(projection))
       .where('user_id', '=', userId)
       .where('session_id', '=', sessionId)
+      // Escape hatch: COALESCE across a column and JSONB path operators (->, ->>) cannot
+      // be expressed via Kysely's typed .where() builder; requires the sql template tag.
       .where(sql<boolean>`COALESCE(step_key, input_json->'toolWorkflow'->>'stepKey', input_json->>'step') = ${stepKey}`)
       .orderBy('updated_at', 'asc')
       .orderBy('id', 'asc')
@@ -368,8 +376,12 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
           .select([
             'session_id',
             'project_id',
+            // Escape hatch: count(*) — no typed Kysely builder equivalent for COUNT.
             sql<string>`count(*)`.as('artifact_count'),
+            // Escape hatch: max() — no typed Kysely builder equivalent for MAX aggregate.
             sql<Date>`max(updated_at)`.as('updated_at'),
+            // Escape hatch: BOOL_OR is a PostgreSQL aggregate with no Kysely typed builder
+            // equivalent. CASE/WHEN also requires the sql template tag for complex conditionals.
             sql<string>`
               CASE
                 WHEN BOOL_OR(${sql.ref('status')} = 'generating') THEN 'generating'
@@ -380,6 +392,9 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
           ])
           .where('user_id', '=', userId)
           .where('session_id', 'is not', null)
+          // Escape hatch: session_id <> '' — Kysely's typed .where(col, op, val) would
+          // work here but only for the empty string literal; using sql for consistency
+          // with the is-not-null check directly above.
           .where(sql<boolean>`session_id <> ''`);
 
         if (projectId) {
@@ -412,6 +427,9 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       ]);
 
     if (cursor) {
+      // Escape hatch: compound cursor comparison (col < val OR (col = val AND col2 < val2))
+      // cannot be expressed via Kysely's typed .where() chains without nesting expression
+      // builders in a way that is less readable than the direct sql template tag.
       outerQuery = outerQuery.where(sql<boolean>`
         (grouped.updated_at < ${cursor.updatedAt}
          OR (grouped.updated_at = ${cursor.updatedAt} AND grouped.session_id < ${cursor.sessionId}))

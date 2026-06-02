@@ -13,8 +13,25 @@ import {
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
 function getDb(pool: Pool): Kysely<DB> {
-  return createKyselyDb(pool);
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
 }
 
 export const createUserReport = async (
@@ -28,22 +45,30 @@ export const createUserReport = async (
   },
 ): Promise<UserReport> => {
   const reportId = payload.id ?? `rpt_${randomUUID()}`;
-  const row = await getDb(pool)
-    .insertInto('user_reports')
-    .values({
-      id: reportId,
-      category: payload.category,
-      status: 'submitted',
-      title: payload.title,
-      description: payload.description,
-      created_by_user_id: payload.createdByUserId,
-      created_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow() as unknown as UserReportRow;
+  console.debug('[createUserReport] Starting insert with:', { reportId, category: payload.category, userId: payload.createdByUserId });
+  try {
+    const row = await getDb(pool)
+      .insertInto('user_reports')
+      .values({
+        id: reportId,
+        category: payload.category,
+        status: 'submitted',
+        title: payload.title,
+        description: payload.description,
+        created_by_user_id: payload.createdByUserId,
+        created_at: dbNow,
+        updated_at: dbNow,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow() as unknown as UserReportRow;
 
-  return rowToUserReport(row);
+    const report = rowToUserReport(row);
+    console.debug('[createUserReport] Report successfully created:', { id: report.id, status: report.status });
+    return report;
+  } catch (error) {
+    console.error('[createUserReport] Error during insert:', error instanceof Error ? { message: error.message, code: (error as any).code } : error);
+    throw error;
+  }
 };
 
 export const getUserReportById = async (pool: Pool, id: string): Promise<UserReport | null> => {
@@ -62,6 +87,9 @@ export const getUserReportById = async (pool: Pool, id: string): Promise<UserRep
       'ur.closed_at',
       'ur.created_at',
       'ur.updated_at',
+      // Escape hatch: gl.issue_url is a joined column from a LEFT JOIN and needs an alias.
+      // Kysely does not support renaming joined columns via the typed .select() API;
+      // the sql template tag with .as() is required for cross-table column aliasing.
       sql<string | null>`gl.issue_url`.as('github_issue_url'),
     ])
     .where('ur.id', '=', id)
@@ -89,6 +117,7 @@ export const listUserReports = async (
       'ur.closed_at',
       'ur.created_at',
       'ur.updated_at',
+      // Escape hatch: same as getUserReportById — cross-table column aliasing requires sql tag.
       sql<string | null>`gl.issue_url`.as('github_issue_url'),
     ]);
 
@@ -116,15 +145,15 @@ export const updateUserReportStatus = async (
 ): Promise<UserReport | null> => {
   const setValues: Record<string, unknown> = {
     status: payload.status,
-    updated_at: sql`NOW()` as any,
+    updated_at: dbNow,
   };
 
   if (payload.status === 'triaged') {
     setValues.triaged_by_user_id = payload.actedByUserId;
-    setValues.triaged_at = sql`NOW()` as any;
+    setValues.triaged_at = dbNow;
   }
   if (payload.status === 'closed') {
-    setValues.closed_at = sql`NOW()` as any;
+    setValues.closed_at = dbNow;
   }
 
   const row = await getDb(pool)

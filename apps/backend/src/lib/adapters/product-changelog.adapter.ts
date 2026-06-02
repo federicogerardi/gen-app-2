@@ -11,8 +11,25 @@ import {
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
 function getDb(pool: Pool): Kysely<DB> {
-  return createKyselyDb(pool);
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
 }
 
 export const createProductChangelog = async (
@@ -32,8 +49,8 @@ export const createProductChangelog = async (
       body: payload.body,
       status: 'draft',
       created_by_user_id: payload.createdByUserId,
-      created_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      created_at: dbNow,
+      updated_at: dbNow,
     })
     .returningAll()
     .executeTakeFirstOrThrow() as unknown as ProductChangelogRow;
@@ -53,8 +70,8 @@ export const publishProductChangelog = async (
     .set({
       status: 'published',
       published_by_user_id: payload.publishedByUserId,
-      published_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      published_at: dbNow,
+      updated_at: dbNow,
     })
     .where('id', '=', payload.id)
     .returningAll()
@@ -75,8 +92,8 @@ export const archiveProductChangelog = async (
     .set({
       status: 'archived',
       archived_by_user_id: payload.archivedByUserId,
-      archived_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      archived_at: dbNow,
+      updated_at: dbNow,
     })
     .where('id', '=', payload.id)
     .returningAll()

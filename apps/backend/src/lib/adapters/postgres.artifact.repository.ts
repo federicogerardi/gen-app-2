@@ -14,6 +14,18 @@ import type { PersistenceRepositoryOptions } from './postgres-redis.shared.types
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Escape hatch: same as dbNow but typed as Date | null for nullable timestamp columns
+ * (streamed_at, completed_at) that accept a nullable Date type in ArtifactsTable.
+ */
+const dbNowNullable = sql<Date | null>`NOW()`;
+
 const normalizeToolWorkflowInputJson = (
   inputJson: Record<string, unknown> | undefined,
   workflowType: string | null,
@@ -145,9 +157,9 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         cost_usd: input.costUsd ?? 0,
         registry_version: input.registryVersion ?? null,
         registry_snapshot_ref: input.registrySnapshotRef ?? null,
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
-        streamed_at: sql`NOW()` as any,
+        created_at: dbNow,
+        updated_at: dbNow,
+        streamed_at: dbNowNullable,
       })
       .onConflict((oc) => oc
         .column('id')
@@ -158,18 +170,25 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           output_tokens: input.outputTokens ?? 0,
           cost_usd: input.costUsd ?? 0,
           model: input.model ?? 'unknown',
+          // Escape hatch: COALESCE(EXCLUDED.col, existing_col) preserves the existing column
+          // value when the incoming EXCLUDED row has NULL. Kysely's doUpdateSet() has no typed
+          // API for COALESCE expressions mixing EXCLUDED pseudo-table references and sql.ref().
           user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
           project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
           session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
           step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
           artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
           run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
-          updated_at: sql`NOW()` as any,
-          streamed_at: sql`NOW()` as any,
+          updated_at: dbNow,
+          streamed_at: dbNowNullable,
           registry_version: input.registryVersion ?? null,
           registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          // Escape hatch: status guard — keep existing terminal status on conflict.
+          // CASE expression with IN operator has no typed Kysely builder equivalent.
           status: sql<string>`CASE WHEN ${sql.ref('status')} IN ('completed', 'failed') THEN ${sql.ref('status')} ELSE 'generating' END`,
         })
+        // Escape hatch: NOT IN filter on conflict clause — Kysely's .where() in onConflict
+        // context does not support the NOT IN operator via the typed builder API.
         .where(sql<boolean>`status NOT IN ('completed', 'failed')`))
       .execute();
   }
@@ -203,9 +222,9 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           cost_usd: input.costUsd ?? 0,
           registry_version: input.registryVersion ?? null,
           registry_snapshot_ref: input.registrySnapshotRef ?? null,
-          created_at: sql`NOW()` as any,
-          updated_at: sql`NOW()` as any,
-          completed_at: sql`NOW()` as any,
+          created_at: dbNow,
+          updated_at: dbNow,
+          completed_at: dbNowNullable,
         })
         .onConflict((oc) => oc
           .column('id')
@@ -217,18 +236,20 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             output_tokens: input.outputTokens ?? 0,
             cost_usd: input.costUsd ?? 0,
             model: input.model ?? 'unknown',
+            // Escape hatch: COALESCE(EXCLUDED.col, existing_col) — see flushProgress for reason.
             user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
             project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
             session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
             step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
             artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
             run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
-            updated_at: sql`NOW()` as any,
-            completed_at: sql`NOW()` as any,
+            updated_at: dbNow,
+            completed_at: dbNowNullable,
             failure_reason: null,
             registry_version: input.registryVersion ?? null,
             registry_snapshot_ref: input.registrySnapshotRef ?? null,
           })
+          // Escape hatch: <> 'failed' filter — see flushProgress for reason.
           .where(sql<boolean>`status <> 'failed'`))
         .execute();
 
@@ -247,7 +268,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             input_tokens: input.inputTokens ?? 0,
             output_tokens: input.outputTokens ?? 0,
             metadata_json: { workflowType: input.workflowType, model: input.model ?? 'unknown' },
-            created_at: sql`NOW()` as any,
+            created_at: dbNow,
           })
           .execute();
       }
@@ -284,8 +305,8 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           failure_reason: reason,
           registry_version: input.registryVersion ?? null,
           registry_snapshot_ref: input.registrySnapshotRef ?? null,
-          created_at: sql`NOW()` as any,
-          updated_at: sql`NOW()` as any,
+          created_at: dbNow,
+          updated_at: dbNow,
         })
         .onConflict((oc) => oc
           .column('id')
@@ -297,6 +318,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             output_tokens: input.outputTokens ?? 0,
             cost_usd: input.costUsd ?? 0,
             model: input.model ?? 'unknown',
+            // Escape hatch: COALESCE(EXCLUDED.col, existing_col) — see flushProgress for reason.
             user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
             project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
             session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
@@ -304,7 +326,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
             run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
             failure_reason: reason,
-            updated_at: sql`NOW()` as any,
+            updated_at: dbNow,
             registry_version: input.registryVersion ?? null,
             registry_snapshot_ref: input.registrySnapshotRef ?? null,
           }))
@@ -326,7 +348,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             input_tokens: input.inputTokens ?? 0,
             output_tokens: input.outputTokens ?? 0,
             metadata_json: { workflowType: input.workflowType, model: input.model ?? 'unknown', reason },
-            created_at: sql`NOW()` as any,
+            created_at: dbNow,
           })
           .execute();
       }

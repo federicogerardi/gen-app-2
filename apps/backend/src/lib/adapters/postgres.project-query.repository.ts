@@ -15,19 +15,30 @@ import type { DB } from './postgres-kysely.types';
 import type { ProjectQueryRepository } from './postgres-redis.interfaces';
 import type { PersistenceRepositoryOptions } from './postgres-redis.shared.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
 export class PostgresProjectQueryRepository implements ProjectQueryRepository {
+  private readonly db: Kysely<DB>;
   private readonly schema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: PersistenceRepositoryOptions = {},
   ) {
+    this.db = createKyselyDb(pg);
     this.schema = options.projectsSchema;
+    // Note: options.projectsTableName is accepted for API compatibility but is not applied
+    // to queries. With Kysely, the table name is fixed to 'projects' by the DB interface key.
+    // A custom table name would require adding it as a key in postgres-kysely.types.ts.
+    // Schema qualification is fully supported via db.withSchema(options.projectsSchema).
   }
 
   private getDb(): Kysely<DB> {
-    const db = createKyselyDb(this.pg);
-    return this.schema ? db.withSchema(this.schema) : db;
+    return this.schema ? this.db.withSchema(this.schema) : this.db;
   }
 
   async listProjectsByUser(userId: string): Promise<ProjectSummary[]> {
@@ -62,8 +73,8 @@ export class PostgresProjectQueryRepository implements ProjectQueryRepository {
         id: projectId,
         user_id: userId,
         name: input.name,
-        created_at: sql`NOW()` as any,
-        updated_at: sql`NOW()` as any,
+        created_at: dbNow,
+        updated_at: dbNow,
       })
       .returning(['id', 'user_id', 'name', 'created_at', 'updated_at'])
       .executeTakeFirstOrThrow();

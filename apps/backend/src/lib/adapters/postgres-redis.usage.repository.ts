@@ -11,6 +11,12 @@ import type { UsageRepositoryOptions } from './postgres-redis.shared.types';
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
 const toMonthStartUtc = (value: Date): Date => {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1, 0, 0, 0, 0));
 };
@@ -100,7 +106,7 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
             .set({
               monthly_used: 0,
               quota_window_started_at: normalizedWindowStart,
-              updated_at: sql`NOW()` as any,
+              updated_at: dbNow,
             })
             .where('id', '=', input.userId)
             .execute();
@@ -109,10 +115,15 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
         const incrementResult = await db
           .updateTable('users')
           .set({
+            // Escape hatch: arithmetic on a column value (monthly_used + 1) cannot be
+            // expressed via Kysely's typed .set() — it would require a concrete number.
             monthly_used: sql`monthly_used + 1`,
-            updated_at: sql`NOW()` as any,
+            updated_at: dbNow,
           })
           .where('id', '=', input.userId)
+          // Escape hatch: column-to-column comparison (monthly_used < monthly_quota) is
+          // not supported by Kysely's typed .where(col, op, value) — that form requires
+          // a concrete value on the right-hand side, not another column reference.
           .where(sql<boolean>`monthly_used < monthly_quota`)
           .returning(['monthly_used', 'monthly_quota'])
           .executeTakeFirst();

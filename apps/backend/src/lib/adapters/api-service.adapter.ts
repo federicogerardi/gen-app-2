@@ -18,6 +18,35 @@ import {
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag; the return type is Date to satisfy
+ * Generated<Date> column expectations in .values() and .set() contexts.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL UUID generation functions.
+ * gen_random_uuid() must be expressed via the sql template tag.
+ */
+const dbGenUuid = sql<string>`gen_random_uuid()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ * Prevents creating a new Kysely object on every function call.
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
+function getDb(pool: Pool): Kysely<DB> {
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
+}
+
 export type CreateApiServiceInput = {
   key: string;
   label: string;
@@ -55,10 +84,6 @@ export type ResolvedApiServiceForAcquisition = ApiService & {
   tokenCiphertext: string | null;
 };
 
-function getDb(pool: Pool): Kysely<DB> {
-  return createKyselyDb(pool);
-}
-
 export const listApiServices = async (pool: Pool): Promise<ApiService[]> => {
   const rows = await getDb(pool)
     .selectFrom('api_services')
@@ -89,7 +114,7 @@ export const createApiService = async (
   const row = await getDb(pool)
     .insertInto('api_services')
     .values({
-      id: sql<string>`gen_random_uuid()`,
+      id: dbGenUuid,
       key: payload.key,
       label: payload.label,
       base_url: payload.baseUrl,
@@ -108,8 +133,8 @@ export const createApiService = async (
       token_ref: payload.tokenRef ?? null,
       token_ciphertext: payload.tokenCiphertext ?? null,
       status: payload.status ?? 'active',
-      created_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      created_at: dbNow,
+      updated_at: dbNow,
     })
     .returningAll()
     .executeTakeFirstOrThrow() as unknown as ApiServiceRow;
@@ -147,7 +172,7 @@ export const updateApiService = async (
     return getApiServiceById(pool, id);
   }
 
-  setValues.updated_at = sql`NOW()` as any;
+  setValues.updated_at = dbNow;
 
   const row = await getDb(pool)
     .updateTable('api_services')
@@ -210,6 +235,9 @@ export const upsertApiServiceBinding = async (
   const row = await getDb(pool)
     .insertInto('api_service_tool_step_bindings')
     .values({
+      // Escape hatch: COALESCE with ::uuid cast preserves a caller-supplied id when
+      // present, otherwise falls back to gen_random_uuid(). Kysely has no typed API
+      // for conditional UUID generation or the PostgreSQL ::uuid cast operator.
       id: sql<string>`COALESCE(${payload.id ?? null}::uuid, gen_random_uuid())`,
       api_service_id: payload.apiServiceId,
       tool_key: payload.toolKey,
@@ -217,8 +245,8 @@ export const upsertApiServiceBinding = async (
       workflow_step_type: payload.workflowStepType ?? 'acquisition',
       binding_status: payload.bindingStatus ?? 'active',
       requiredness: payload.requiredness ?? 'required-by-tool-setting',
-      created_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      created_at: dbNow,
+      updated_at: dbNow,
     })
     .onConflict((oc) => oc
       .columns(['api_service_id', 'tool_key', 'step_key'])
@@ -226,7 +254,7 @@ export const upsertApiServiceBinding = async (
         workflow_step_type: payload.workflowStepType ?? 'acquisition',
         binding_status: payload.bindingStatus ?? 'active',
         requiredness: payload.requiredness ?? 'required-by-tool-setting',
-        updated_at: sql`NOW()` as any,
+        updated_at: dbNow,
       }))
     .returningAll()
     .executeTakeFirstOrThrow() as unknown as ApiServiceToolStepBindingRow;

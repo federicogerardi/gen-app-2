@@ -14,6 +14,12 @@ import type {
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
 const defaultEndpointResolver = (input: IdempotencyCoordinatorInput): string => {
   return input.workflowType ?? 'generation';
 };
@@ -87,15 +93,17 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
           status: 'in_progress',
           artifact_id: null,
           content: '',
-          created_at: sql`NOW()` as any,
-          updated_at: sql`NOW()` as any,
+          created_at: dbNow,
+          updated_at: dbNow,
         })
         .onConflict((oc) => oc
           .columns(['user_id', 'project_id', 'endpoint', 'idempotency_key'])
           .doNothing())
         .execute();
 
-      if (result.length > 0) {
+      // Kysely execute() without returning always returns [InsertResult] regardless of DO NOTHING.
+      // Check numInsertedOrUpdatedRows to distinguish an actual insert from a conflict skip.
+      if ((result[0]?.numInsertedOrUpdatedRows ?? 0n) > 0n) {
         return { status: 'claimed' };
       }
 
@@ -131,7 +139,7 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
         status: 'completed',
         artifact_id: artifactId,
         content,
-        updated_at: sql`NOW()` as any,
+        updated_at: dbNow,
       })
       .where('user_id', '=', input.userId)
       .where('project_id', '=', input.projectId)
@@ -147,7 +155,7 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
       .updateTable('request_idempotency')
       .set({
         status: 'failed',
-        updated_at: sql`NOW()` as any,
+        updated_at: dbNow,
       })
       .where('user_id', '=', input.userId)
       .where('project_id', '=', input.projectId)

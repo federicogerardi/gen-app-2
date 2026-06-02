@@ -11,8 +11,33 @@ import {
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
 
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL UUID generation functions.
+ * gen_random_uuid() must be expressed via the sql template tag.
+ * Used here because LlmModelsTable.id is typed as string (not Generated<string>),
+ * so Kysely requires an explicit value; the DB default is provided via this expression.
+ */
+const dbGenUuid = sql<string>`gen_random_uuid()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
 function getDb(pool: Pool): Kysely<DB> {
-  return createKyselyDb(pool);
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
 }
 
 export const listEnabledModels = async (pool: Pool): Promise<LlmModel[]> => {
@@ -20,8 +45,8 @@ export const listEnabledModels = async (pool: Pool): Promise<LlmModel[]> => {
     .selectFrom('llm_models')
     .selectAll()
     .where('status', '=', 'enabled')
-    .orderBy('is_default', 'desc')
     .orderBy('sort_order', 'asc')
+    .orderBy('created_at', 'asc')
     .execute() as unknown as LlmModelRow[];
 
   return rows.map(rowToLlmModel);
@@ -32,6 +57,7 @@ export const listAllModels = async (pool: Pool): Promise<LlmModel[]> => {
     .selectFrom('llm_models')
     .selectAll()
     .orderBy('sort_order', 'asc')
+    .orderBy('created_at', 'asc')
     .execute() as unknown as LlmModelRow[];
 
   return rows.map(rowToLlmModel);
@@ -44,14 +70,14 @@ export const createModel = async (
   const row = await getDb(pool)
     .insertInto('llm_models')
     .values({
-      id: sql<string>`gen_random_uuid()`,
+      id: dbGenUuid,
       key: payload.key,
       label: payload.label,
       status: payload.status ?? 'enabled',
       is_default: payload.isDefault ?? false,
       sort_order: payload.sortOrder ?? null,
-      created_at: sql`NOW()` as any,
-      updated_at: sql`NOW()` as any,
+      created_at: dbNow,
+      updated_at: dbNow,
     })
     .returningAll()
     .executeTakeFirstOrThrow() as unknown as LlmModelRow;
@@ -71,7 +97,7 @@ export const updateModel = async (
     return await db.transaction().execute(async (trx) => {
       await trx
         .updateTable('llm_models')
-        .set({ is_default: false, updated_at: sql`NOW()` as any })
+        .set({ is_default: false, updated_at: dbNow })
         .where('is_default', '=', true)
         .execute();
 
@@ -81,7 +107,7 @@ export const updateModel = async (
       if (rest.status !== undefined) setValues.status = rest.status;
       if (rest.sortOrder !== undefined) setValues.sort_order = rest.sortOrder;
       setValues.is_default = true;
-      setValues.updated_at = sql`NOW()` as any;
+      setValues.updated_at = dbNow;
 
       const row = await trx
         .updateTable('llm_models')
@@ -100,7 +126,7 @@ export const updateModel = async (
   if (rest.status !== undefined) setValues.status = rest.status;
   if (rest.sortOrder !== undefined) setValues.sort_order = rest.sortOrder;
   if (isDefault !== undefined) setValues.is_default = isDefault;
-  setValues.updated_at = sql`NOW()` as any;
+  setValues.updated_at = dbNow;
 
   if (Object.keys(setValues).length === 1 && 'updated_at' in setValues) {
     const row = await db

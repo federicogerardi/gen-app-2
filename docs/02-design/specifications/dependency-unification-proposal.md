@@ -1,5 +1,5 @@
 ---
-status: partially-implemented
+status: implemented
 version: 1.1
 last-reviewed: 2026-06-02
 next-review-date: 2026-09-02
@@ -88,10 +88,9 @@ Initial rollout scope:
 
 ## Recommendation
 
-✅ **Phase 1 (Zod in backend) is complete.** The remaining candidates are:
+✅ **Phase 1 (Zod in backend) is complete.** ✅ **Phase 4 (Kysely in backend adapters) is complete.** The remaining candidate is:
 
-1. **Kysely** — typed SQL builder for backend adapters (next priority).
-2. **Ky** — HTTP client for frontend HTTP runtime (follows Kysely).
+1. **Ky** — HTTP client for frontend HTTP runtime.
 
 ## Delivery Plan
 

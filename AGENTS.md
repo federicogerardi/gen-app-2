@@ -1,108 +1,124 @@
 # AGENTS
 
 ## Purpose
-Use this file as the fast start for AI coding agents in this repository.
-
-Priority focus for this workspace:
-- React + XState implementation quality
-- DDD-first naming governance and Ubiquitous Language consistency
-- Deterministic FE/BE contract behavior
+Fast-start instructions for AI coding agents. Every line answers: "Would an agent likely miss this without help?"
 
 ## Mandatory Read Order (Before Any Edit)
-Always read these canonical references first:
 1. [Domain Ubiquitous Language Glossary](docs/01-requirements/domain-ubiquitous-language-glossary.md)
 2. [Domain Bounded Context Map](docs/02-design/domain-bounded-context-map.md)
 3. [Domain Naming Decision Log](docs/07-governance/domain-naming-decision-log.md)
 
-If touching UI code or UI docs, also read:
-4. [Frontend UI Ubiquitous Language Spec](docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+If touching UI code: [Frontend UI Ubiquitous Language Spec](docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
 
-Do not introduce non-canonical domain terms in code, tests, docs, PR notes, or comments.
+Do not introduce non-canonical domain terms anywhere (code, tests, docs, PR notes, comments). New terms require a `DDD-NNN` entry in the decision log first.
 
-## Architecture Snapshot
-- Monorepo with npm workspaces: apps + packages.
-- Backend aggregate root: GenerationSystem and related XState actors.
-- Frontend aggregate root: ToolPage and related XState machines.
-- Shared contract authority: packages/contracts.
-- Shared domain primitives: packages/domain.
+## Architecture
+- **Monorepo**: npm workspaces — `apps/backend`, `apps/frontend`, `packages/contracts`, `packages/domain`, `packages/infra-db`.
+- **Backend**: Node.js, XState v5 actors (`GenerationSystem` aggregate root), Kysely typed SQL, pg driver, Redis, Zod validation.
+- **Frontend**: React 19, XState v5 (`ToolPage` aggregate root), MUI, Vite, Vitest, SWR.
+- **Contracts**: `packages/contracts` is the single authoritative source for FE/BE shared types. Frontend imports via `file:` reference. Compile-time parity guard enforces structural alignment.
+- **Domain**: `packages/domain` is framework-agnostic — never import backend/frontend-specific types here.
+- **Infra-DB**: `packages/infra-db` owns migrations and seeds. Backend runs them via `tsx scripts/run-sql-dir.ts`.
 
-Reference map: [Documentation Index Overview](docs/index-overview.md)
+## Commands
 
-## React + XState Conventions
-- Prefer XState v5 patterns already present in repo: setup().createMachine(), typed actors, typed events, fromPromise for async effects.
-- Keep machine logic in machines and selectors; keep components mostly declarative.
-- Preserve backend authority for orchestration ordering and dependency resolution. Frontend projects and renders state; it does not re-own backend orchestration rules.
-- Preserve canonical FE terms (ToolPage, ReadinessSnapshot, ToolStep, ExtractionContext, HydrationResult, DispatchError).
-- Keep user-facing production copy centralized. Do not introduce hardcoded UI text in components, hooks, machines, or query helpers when the owning surface already has a copy module.
-- Never make control flow depend on rendered copy text; use typed state, explicit reason codes, or booleans and map them to copy separately.
-- Favor scalable modular structure: split mixed-responsibility files into focused helpers, selectors, and presentational components when that improves reuse and keeps ownership clear.
+**Install** (from root):
+```
+npm install --workspaces --include-workspace-root
+```
 
-Known workspace pitfalls to avoid:
-- useMachine(..., { input }) initializes actor input once; if input props change after mount, sync via event or recreate actor.
-- In assign(...) with shared params typing, ensure fields share a compatible params shape to avoid TypeScript inference breakage.
-- In callback onDone branches with custom event typing, explicit event output narrowing/casting may be required when done event is not represented in local unions.
-- In React hooks, declare constants before useEffect if referenced in effect body or dependency array (avoid temporal dead zone runtime errors).
+**Full validation** (from root):
+```
+npm run typecheck    # all workspaces
+npm run test         # all workspaces
+npm run build        # backend typecheck + frontend build
+```
 
-## Build/Test Commands
-Run from repository root unless explicitly scoped.
+**Backend focused**:
+```
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test        # node --import tsx --test
+npm --workspace apps/backend run lint        # stricter: includes noUnused*
+npm --workspace apps/backend run go          # migrate + seed + typecheck + test
+```
 
-Install:
-- npm install --workspaces --include-workspace-root
+**Frontend focused**:
+```
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run test       # vitest run
+npm --workspace apps/frontend run build      # tsc + vite build
+```
 
-Primary checks:
-- npm run typecheck
-- npm run test
-- npm run build
+**Env-dependent commands** (require `.env.local`):
+```
+set -a && . ./.env.local && set +a && npm run test:smoke
+set -a && . ./.env.local && set +a && npm run backend:go
+```
 
-Frontend focused:
-- npm --workspace apps/frontend run typecheck
-- npm --workspace apps/frontend run test
-- npm --workspace apps/frontend run build
+**Running a single backend test**:
+```
+node --import tsx --test src/lib/tests/<filename>.test.ts
+```
 
-Backend focused:
-- npm --workspace apps/backend run typecheck
-- npm --workspace apps/backend run test
-- npm --workspace apps/backend run go
+**Running a single frontend test**:
+```
+npm --workspace apps/frontend run test -- <pattern>
+```
 
-Smoke scripts that require env loading locally:
-- set -a && . ./.env.local && set +a && npm run test:smoke
-- set -a && . ./.env.local && set +a && npm run backend:go
+## Backend Test Runner Quirks
+- Uses Node built-in test runner (`node --import tsx --test`), not Jest/Vitest.
+- Test files: `apps/backend/src/lib/tests/*.test.ts`.
+- Smoke tests (`postgres-redis.smoke.ts`, etc.) require live Postgres + Redis — they are NOT run by `npm run test`. Run via `npm run test:smoke` with env loaded.
+- `npm run go` = `db:migrate:minimal && db:seed:minimal && typecheck && test` — the standard full verification for backend changes.
 
-## Terminal Output Capture Policy
-- When terminal output is needed for analysis, verification, or reporting, prefer deterministic file capture over direct console scraping.
-- Use stdout/stderr redirection to a workspace file and read the file content afterward (example: `npm run test > .tmp/test-output.log 2>&1`).
-- For application test execution, this strategy is mandatory and must be applied rigorously to avoid repeated output-acquisition failures.
-- Keep one log file per command/run, then overwrite or rotate intentionally to prevent mixing outputs from different runs.
+## Frontend Test Runner Quirks
+- Vitest with jsdom environment, setup file: `src/test/setup.ts`.
+- Coverage thresholds: lines 70%, functions 70%, branches 60%, statements 70%.
+- A11y tests (`test:admin-a11y`) run axe against rendered routes.
+- MSW (Mock Service Worker) is available for API mocking in tests.
+- `vite.config.ts` proxies `/generation`, `/auth`, `/admin/users`, `/api` to backend at `localhost:3000`.
 
-## Dependency And Lockfile Safety
-If any package.json changes, regenerate lockfiles via npm only (never hand-edit lockfiles).
+## CI Workflows
+- **Backend Gate** (`backend-gate.yml`): typecheck + test. Triggered on changes to `apps/backend/**`, `packages/infra-db/**`, `packages/contracts/**`.
+- **Main PR Gate** (`main-pr-gate.yml`): typecheck + test + a11y + build. Triggered on changes to `apps/frontend/**`, `packages/contracts/**`.
+- CI uses Node 24, runs `npm ci` (not `npm install`).
 
-Required verification sequence:
-1. npm install --workspaces --include-workspace-root
-2. npm ci
-3. npm ci --workspaces --include-workspace-root
-4. npm --workspace apps/frontend run build
+## Dependency & Lockfile Safety
+If any `package.json` changes, regenerate lockfiles via npm only (never hand-edit lockfiles):
+1. `npm install --workspaces --include-workspace-root`
+2. `npm ci`
+3. `npm ci --workspaces --include-workspace-root`
+4. `npm --workspace apps/frontend run build` (verify workspace graph)
 
-## Responsible AI And Accessibility Checks
+## XState Pitfalls
+- `useMachine(..., { input })` initializes actor input once; if input props change after mount, sync via event or recreate actor.
+- In `assign(...)` with shared params typing, ensure fields share a compatible params shape to avoid TS inference breakage.
+- In callback `onDone` branches with custom event typing, explicit event output narrowing/casting may be required when done event is not in local unions.
+
+## React Pitfalls
+- Declare constants before `useEffect` if referenced in effect body or dependency array (temporal dead zone runtime error).
+
+## DDD Governance
+- Never rename domain concepts without a DDD decision-log entry.
+- When unsure about naming, stop and align with canonical terms before coding.
+- Keep user-facing copy centralized — no hardcoded UI text in components, hooks, machines, or query helpers.
+- Never make control flow depend on rendered copy text; use typed state/reason codes/booleans and map to copy separately.
+
+## Deployment
+- **Railway**: Dockerfile-based build. `npm run start` = migrate + start server. Healthcheck at `/health`.
+- **Docker**: `npm ci --workspaces --include-workspace-root` then `npm run start`. Exposes port 3000.
+- Frontend production serves via `server.mjs` (same-origin proxy to backend).
+
+## Accessibility
 For user-facing changes:
 - Verify keyboard navigation and visible focus.
 - Verify screen-reader labels for interactive controls.
 - Verify error messages are actionable and not color-only.
 
-For data/AI decision paths:
-- Minimize personal data handling to required fields.
-- Avoid unexplained decision logic that cannot be audited.
-- Test non-English and special-character inputs where relevant.
-
-## Editing Policy For Agents
-- Keep patches minimal and scoped.
-- Reuse existing docs and patterns; link to canonical docs rather than re-documenting them.
-- Do not rename domain concepts without prior DDD decision-log entry.
-- When unsure about naming, stop and align with canonical terms before coding.
-
 ## Useful Entrypoints
 - [Root README](README.md)
-- [Frontend README](apps/frontend/README.md)
-- [Backend README](apps/backend/README.md)
+- [Documentation Index](docs/index-overview.md)
 - [Frontend app root](apps/frontend/src/App.tsx)
 - [Backend server entry](apps/backend/src/server.ts)
+- [Backend adapters](apps/backend/src/lib/adapters/index.ts)
+- [Contracts index](packages/contracts/src/index.ts)

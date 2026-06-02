@@ -12,14 +12,14 @@ class TransactionClientStub {
   readonly calls: QueryCall[] = [];
   shouldFailOnUpdate = false;
 
-  async query<T = unknown>(sql: string, values: unknown[] = []): Promise<{ rows: T[] }> {
+  async query<T = unknown>(sql: string, values: unknown[] = []): Promise<{ rows: T[]; rowCount?: number; command?: string }> {
     this.calls.push({ sql, values });
 
-    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+    if (sql.toLowerCase() === 'begin' || sql.toLowerCase() === 'commit' || sql.toLowerCase() === 'rollback') {
       return { rows: [] };
     }
 
-    if (sql.includes('INSERT INTO user_report_github_links')) {
+    if (sql.toLowerCase().includes('insert into "user_report_github_links"')) {
       return {
         rows: [
           {
@@ -31,14 +31,16 @@ class TransactionClientStub {
             published_at: new Date('2026-05-16T13:00:00.000Z'),
           } as T,
         ],
+        rowCount: 1,
+        command: 'INSERT',
       };
     }
 
-    if (sql.includes('UPDATE user_reports')) {
+    if (sql.toLowerCase().includes('update "user_reports"')) {
       if (this.shouldFailOnUpdate) {
         throw new Error('update failed');
       }
-      return { rows: [] };
+      return { rows: [], rowCount: 1, command: 'UPDATE' };
     }
 
     throw new Error(`Unsupported SQL: ${sql}`);
@@ -75,14 +77,10 @@ test('publishUserReportIssueTransaction commits link insert and status update at
   assert.equal(link.issueNumber, 42);
 
   const callSql = client.calls.map((call) => call.sql);
-  assert.deepEqual(callSql, [
-    'BEGIN',
-    client.calls[1]?.sql ?? '',
-    client.calls[2]?.sql ?? '',
-    'COMMIT',
-  ]);
-  assert.ok(client.calls[1]?.sql.includes('INSERT INTO user_report_github_links'));
-  assert.ok(client.calls[2]?.sql.includes('UPDATE user_reports'));
+  assert.equal(callSql[0]?.toLowerCase(), 'begin');
+  assert.ok(callSql[1]?.toLowerCase().includes('insert into "user_report_github_links"'));
+  assert.ok(callSql[2]?.toLowerCase().includes('update "user_reports"'));
+  assert.equal(callSql[3]?.toLowerCase(), 'commit');
 });
 
 test('publishUserReportIssueTransaction rolls back when update fails', async () => {
@@ -102,8 +100,8 @@ test('publishUserReportIssueTransaction rolls back when update fails', async () 
   );
 
   const callSql = client.calls.map((call) => call.sql);
-  assert.equal(callSql[0], 'BEGIN');
-  assert.ok(callSql.some((sql) => sql.includes('INSERT INTO user_report_github_links')));
-  assert.ok(callSql.some((sql) => sql.includes('UPDATE user_reports')));
-  assert.equal(callSql[callSql.length - 1], 'ROLLBACK');
+  assert.equal(callSql[0]?.toLowerCase(), 'begin');
+  assert.ok(callSql.some((sql) => sql.toLowerCase().includes('insert into "user_report_github_links"')));
+  assert.ok(callSql.some((sql) => sql.toLowerCase().includes('update "user_reports"')));
+  assert.equal(callSql[callSql.length - 1]?.toLowerCase(), 'rollback');
 });

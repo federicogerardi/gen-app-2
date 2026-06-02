@@ -8,7 +8,11 @@ import { PostgresRedisUsageRepository } from '../adapters/postgres-redis.product
 test('PostgresRedisUsageRepository.claimUsage returns usage_failed on transactional error', async () => {
   const mockClient = {
     async query(queryText: string) {
-      if (queryText.includes('SELECT monthly_used, monthly_quota, quota_window_started_at')) {
+      if (
+        typeof queryText === 'string'
+        && queryText.includes('quota_window_started_at')
+        && queryText.includes('for update')
+      ) {
         throw new Error('forced db failure');
       }
 

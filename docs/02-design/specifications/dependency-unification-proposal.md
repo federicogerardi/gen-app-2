@@ -50,7 +50,9 @@ Initial rollout scope:
 - Adjacent handler payload modules in `apps/backend/src/lib/runtime/auth-http/`
 - Shared schema exports in `packages/contracts` when request/response boundaries are cross-context.
 
-### 2. Kysely (typed SQL builder) in Backend adapters
+### 2. Kysely (typed SQL builder) in Backend adapters (✅ implemented)
+
+**Status: Complete** — shipped across 8 waves covering all backend production adapter surfaces. See `.opencode/plans/feature-kysely-backend-adapters-1.md` for execution detail.
 
 Why:
 
@@ -102,7 +104,7 @@ Extract reusable schema helpers and align shared contracts where relevant.
 ### ✅ Phase 3 (hardening) — Complete
 Extend schema coverage to remaining handler groups and enforce typed parse boundaries in tests.
 
-### 🔲 Phase 4 — Kysely adoption in backend adapters
+### ✅ Phase 4 — Kysely adoption in backend adapters — Complete
 ### 🔲 Phase 5 — Ky adoption in frontend HTTP runtime
 
 ## Acceptance Criteria

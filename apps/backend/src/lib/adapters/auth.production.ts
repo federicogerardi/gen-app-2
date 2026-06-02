@@ -1,4 +1,5 @@
-import type { Pool, QueryResult } from 'pg';
+import { Kysely, sql } from 'kysely';
+import type { Pool } from 'pg';
 
 import type {
   AuthSessionPrincipal,
@@ -25,21 +26,11 @@ import type {
   OAuthStateRepository,
 } from './auth.interfaces';
 import type { ProductionAdapterRuntime } from './postgres-redis.interfaces';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 
 const nowDate = (runtime?: ProductionAdapterRuntime): Date =>
   runtime?.now?.() ?? new Date();
-
-const quoteIdentifier = (identifier: string): string => {
-  return `"${identifier.replace(/"/g, '""')}"`;
-};
-
-const buildQualifiedTableName = (schema: string | undefined, table: string): string => {
-  if (!schema) {
-    return quoteIdentifier(table);
-  }
-
-  return `${quoteIdentifier(schema)}.${quoteIdentifier(table)}`;
-};
 
 const toIsoTimestamp = (value: Date | string | null): string | null => {
   if (value === null) {
@@ -173,398 +164,234 @@ const mapOAuthStateRow = (row: OAuthStateRow): OAuthStateTokenRecord => {
 };
 
 export class PostgresAuthUserRepository implements AuthUserRepository {
-  private readonly usersTableName: string;
-  private readonly oauthAccountsTableName: string;
+  private readonly db: Kysely<DB>;
+  private readonly usersSchema: string | undefined;
+  private readonly oauthAccountsSchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: NonNullable<AuthProductionOptions['users']> = {},
   ) {
-    this.usersTableName = buildQualifiedTableName(
-      options.usersSchema,
-      options.usersTableName ?? 'users',
-    );
-    this.oauthAccountsTableName = buildQualifiedTableName(
-      options.oauthAccountsSchema,
-      options.oauthAccountsTableName ?? 'oauth_accounts',
-    );
+    this.db = createKyselyDb(pg);
+    this.usersSchema = options.usersSchema;
+    this.oauthAccountsSchema = options.oauthAccountsSchema;
+  }
+
+  private getUsersDb(): Kysely<DB> {
+    return this.usersSchema ? this.db.withSchema(this.usersSchema) : this.db;
+  }
+
+  private getOAuthDb(): Kysely<DB> {
+    return this.oauthAccountsSchema ? this.db.withSchema(this.oauthAccountsSchema) : this.db;
   }
 
   async findUserByEmail(email: string): Promise<AuthUserRecord | null> {
-    const query = `
-      SELECT
-        id,
-        email,
-        role,
-        status,
-        monthly_quota,
-        monthly_used,
-        password_hash,
-        password_algo,
-        password_changed_at,
-        last_login_at,
-        disabled_at,
-        created_by_admin_user_id,
-        created_at,
-        updated_at
-      FROM ${this.usersTableName}
-      WHERE lower(email) = lower($1)
-      LIMIT 1
-    `;
+    const row = await this.getUsersDb()
+      .selectFrom('users')
+      .selectAll()
+      .where(sql<boolean>`lower(email) = lower(${email})`)
+      .limit(1)
+      .executeTakeFirst() as unknown as AuthUserRow | undefined;
 
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, [email]);
-    return result.rows[0] ? mapAuthUserRow(result.rows[0]) : null;
+    return row ? mapAuthUserRow(row) : null;
   }
 
   async findUserById(userId: string): Promise<AuthUserRecord | null> {
-    const query = `
-      SELECT
-        id,
-        email,
-        role,
-        status,
-        monthly_quota,
-        monthly_used,
-        password_hash,
-        password_algo,
-        password_changed_at,
-        last_login_at,
-        disabled_at,
-        created_by_admin_user_id,
-        created_at,
-        updated_at
-      FROM ${this.usersTableName}
-      WHERE id = $1
-      LIMIT 1
-    `;
+    const row = await this.getUsersDb()
+      .selectFrom('users')
+      .selectAll()
+      .where('id', '=', userId)
+      .limit(1)
+      .executeTakeFirst() as unknown as AuthUserRow | undefined;
 
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, [userId]);
-    return result.rows[0] ? mapAuthUserRow(result.rows[0]) : null;
+    return row ? mapAuthUserRow(row) : null;
   }
 
   async listUsers(filters?: AuthUserListFilters): Promise<AuthUserRecord[]> {
-    const where: string[] = [];
-    const params: unknown[] = [];
+    let query = this.getUsersDb()
+      .selectFrom('users')
+      .selectAll();
 
     if (filters?.status) {
-      params.push(filters.status);
-      where.push(`status = $${params.length}`);
+      query = query.where('status', '=', filters.status);
     }
 
     if (filters?.query) {
-      params.push(`%${filters.query.toLowerCase()}%`);
-      where.push(`lower(email) LIKE $${params.length}`);
+      const pattern = `%${filters.query.toLowerCase()}%`;
+      query = query.where(sql<boolean>`lower(email) LIKE ${pattern}`);
     }
 
-    const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
-    const query = `
-      SELECT
-        id,
-        email,
-        role,
-        status,
-        monthly_quota,
-        monthly_used,
-        password_hash,
-        password_algo,
-        password_changed_at,
-        last_login_at,
-        disabled_at,
-        created_by_admin_user_id,
-        created_at,
-        updated_at
-      FROM ${this.usersTableName}
-      ${whereClause}
-      ORDER BY created_at DESC, id DESC
-    `;
+    const rows = await query
+      .orderBy('created_at', 'desc')
+      .orderBy('id', 'desc')
+      .execute() as unknown as AuthUserRow[];
 
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, params);
-    return result.rows.map(mapAuthUserRow);
+    return rows.map(mapAuthUserRow);
   }
 
   async createUser(input: CreateAuthUserInput): Promise<AuthUserRecord> {
-    const query = `
-      INSERT INTO ${this.usersTableName}
-        (
-          id,
-          email,
-          role,
-          status,
-          monthly_quota,
-          monthly_used,
-          password_hash,
-          password_algo,
-          password_changed_at,
-          disabled_at,
-          created_by_admin_user_id,
-          created_at,
-          updated_at
-        )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-      RETURNING
-        id,
-        email,
-        role,
-        status,
-        monthly_quota,
-        monthly_used,
-        password_hash,
-        password_algo,
-        password_changed_at,
-        last_login_at,
-        disabled_at,
-        created_by_admin_user_id,
-        created_at,
-        updated_at
-    `;
-
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, [
-      input.id,
-      input.email,
-      input.role,
-      input.status,
-      input.monthlyQuota ?? 100,
-      input.monthlyUsed ?? 0,
-      input.passwordHash ?? null,
-      input.passwordAlgo ?? null,
-      input.passwordChangedAt ?? null,
-      input.disabledAt ?? null,
-      input.createdByAdminUserId ?? null,
-    ]);
-
-    const row = result.rows[0];
-    if (!row) {
-      throw new Error(`Auth user ${input.id} was not returned after insert`);
-    }
+    const row = await this.getUsersDb()
+      .insertInto('users')
+      .values({
+        id: input.id,
+        email: input.email,
+        role: input.role,
+        status: input.status,
+        monthly_quota: input.monthlyQuota ?? 100,
+        monthly_used: input.monthlyUsed ?? 0,
+        password_hash: input.passwordHash ?? null,
+        password_algo: input.passwordAlgo ?? null,
+        password_changed_at: input.passwordChangedAt ?? null,
+        disabled_at: input.disabledAt ?? null,
+        created_by_admin_user_id: input.createdByAdminUserId ?? null,
+        created_at: sql`NOW()` as any,
+        updated_at: sql`NOW()` as any,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow() as unknown as AuthUserRow;
 
     return mapAuthUserRow(row);
   }
 
   async updateUser(userId: string, input: UpdateAuthUserInput): Promise<AuthUserRecord | null> {
-    const assignments: string[] = [];
-    const params: unknown[] = [];
+    const setValues: Record<string, unknown> = {
+      updated_at: sql`NOW()`,
+    };
 
     if (input.email !== undefined) {
-      params.push(input.email);
-      assignments.push(`email = $${params.length}`);
+      setValues.email = input.email;
     }
-
     if (input.role !== undefined) {
-      params.push(input.role);
-      assignments.push(`role = $${params.length}`);
+      setValues.role = input.role;
     }
-
     if (input.status !== undefined) {
-      params.push(input.status);
-      assignments.push(`status = $${params.length}`);
+      setValues.status = input.status;
     }
-
     if (input.monthlyQuota !== undefined) {
-      params.push(input.monthlyQuota);
-      assignments.push(`monthly_quota = $${params.length}`);
+      setValues.monthly_quota = input.monthlyQuota;
     }
-
     if (input.monthlyUsed !== undefined) {
-      params.push(input.monthlyUsed);
-      assignments.push(`monthly_used = $${params.length}`);
+      setValues.monthly_used = input.monthlyUsed;
     }
-
     if (input.disabledAt !== undefined) {
-      params.push(input.disabledAt);
-      assignments.push(`disabled_at = $${params.length}`);
+      setValues.disabled_at = input.disabledAt;
     }
 
-    if (assignments.length === 0) {
+    if (Object.keys(setValues).length <= 1) {
       return this.findUserById(userId);
     }
 
-    const query = `
-      UPDATE ${this.usersTableName}
-      SET
-        ${assignments.join(', ')},
-        updated_at = NOW()
-      WHERE id = $${params.length + 1}
-      RETURNING
-        id,
-        email,
-        role,
-        status,
-        monthly_quota,
-        monthly_used,
-        password_hash,
-        password_algo,
-        password_changed_at,
-        last_login_at,
-        disabled_at,
-        created_by_admin_user_id,
-        created_at,
-        updated_at
-    `;
+    const row = await this.getUsersDb()
+      .updateTable('users')
+      .set(setValues as any)
+      .where('id', '=', userId)
+      .returningAll()
+      .executeTakeFirst() as unknown as AuthUserRow | undefined;
 
-    params.push(userId);
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, params);
-    return result.rows[0] ? mapAuthUserRow(result.rows[0]) : null;
+    return row ? mapAuthUserRow(row) : null;
   }
 
   async setPassword(userId: string, input: SetAuthUserPasswordInput): Promise<void> {
-    const query = `
-      UPDATE ${this.usersTableName}
-      SET
-        password_hash = $1,
-        password_algo = $2,
-        password_changed_at = $3,
-        status = COALESCE($4, status),
-        updated_at = NOW()
-      WHERE id = $5
-    `;
-
-    await this.pg.query(query, [
-      input.passwordHash,
-      input.passwordAlgo,
-      input.passwordChangedAt ?? new Date(),
-      input.nextStatus ?? null,
-      userId,
-    ]);
+    await this.getUsersDb()
+      .updateTable('users')
+      .set({
+        password_hash: input.passwordHash,
+        password_algo: input.passwordAlgo,
+        password_changed_at: input.passwordChangedAt ?? new Date(),
+        status: sql`COALESCE(${input.nextStatus ?? null}, status)`,
+        updated_at: sql`NOW()` as any,
+      })
+      .where('id', '=', userId)
+      .execute();
   }
 
   async recordSuccessfulLogin(userId: string, at?: Date): Promise<void> {
-    const query = `
-      UPDATE ${this.usersTableName}
-      SET last_login_at = $1, updated_at = NOW()
-      WHERE id = $2
-    `;
-
-    await this.pg.query(query, [at ?? new Date(), userId]);
+    await this.getUsersDb()
+      .updateTable('users')
+      .set({
+        last_login_at: at ?? new Date(),
+        updated_at: sql`NOW()` as any,
+      })
+      .where('id', '=', userId)
+      .execute();
   }
 
   async findUserByOAuthSubject(
     provider: OAuthProvider,
     providerSubject: string,
   ): Promise<AuthUserRecord | null> {
-    const query = `
-      SELECT
-        u.id,
-        u.email,
-        u.role,
-        u.status,
-        u.monthly_quota,
-        u.monthly_used,
-        u.password_hash,
-        u.password_algo,
-        u.password_changed_at,
-        u.last_login_at,
-        u.disabled_at,
-        u.created_by_admin_user_id,
-        u.created_at,
-        u.updated_at
-      FROM ${this.usersTableName} AS u
-      INNER JOIN ${this.oauthAccountsTableName} AS oa
-        ON oa.user_id = u.id
-      WHERE oa.provider = $1
-        AND oa.provider_subject = $2
-      LIMIT 1
-    `;
+    const db = this.getUsersDb();
+    const row = await db
+      .selectFrom('users as u')
+      .innerJoin('oauth_accounts as oa', 'oa.user_id', 'u.id')
+      .selectAll('u')
+      .where('oa.provider', '=', provider)
+      .where('oa.provider_subject', '=', providerSubject)
+      .limit(1)
+      .executeTakeFirst() as unknown as AuthUserRow | undefined;
 
-    const result: QueryResult<AuthUserRow> = await this.pg.query(query, [provider, providerSubject]);
-    return result.rows[0] ? mapAuthUserRow(result.rows[0]) : null;
+    return row ? mapAuthUserRow(row) : null;
   }
 
   async linkOAuthAccount(input: LinkOAuthAccountInput): Promise<OAuthAccountRecord> {
-    const query = `
-      INSERT INTO ${this.oauthAccountsTableName}
-        (
-          user_id,
-          provider,
-          provider_subject,
-          email_at_provider,
-          profile_json,
-          created_at,
-          updated_at
-        )
-      VALUES
-        ($1, $2, $3, $4, $5::jsonb, NOW(), NOW())
-      ON CONFLICT (provider, provider_subject)
-      DO UPDATE SET
-        user_id = EXCLUDED.user_id,
-        email_at_provider = EXCLUDED.email_at_provider,
-        profile_json = EXCLUDED.profile_json,
-        updated_at = NOW()
-      RETURNING
-        id,
-        user_id,
-        provider,
-        provider_subject,
-        email_at_provider,
-        profile_json,
-        created_at,
-        updated_at
-    `;
-
-    const result: QueryResult<OAuthAccountRow> = await this.pg.query(query, [
-      input.userId,
-      input.provider,
-      input.providerSubject,
-      input.emailAtProvider ?? null,
-      JSON.stringify(input.profileJson ?? {}),
-    ]);
-
-    const row = result.rows[0];
-    if (!row) {
-      throw new Error(
-        `OAuth account ${input.provider}:${input.providerSubject} was not returned after upsert`,
-      );
-    }
+    const db = this.getOAuthDb();
+    const row = await db
+      .insertInto('oauth_accounts')
+      .values({
+        user_id: input.userId,
+        provider: input.provider,
+        provider_subject: input.providerSubject,
+        email_at_provider: input.emailAtProvider ?? null,
+        profile_json: input.profileJson ?? {},
+        created_at: sql`NOW()` as any,
+        updated_at: sql`NOW()` as any,
+      })
+      .onConflict((oc) => oc
+        .columns(['provider', 'provider_subject'])
+        .doUpdateSet({
+          user_id: input.userId,
+          email_at_provider: input.emailAtProvider ?? null,
+          profile_json: input.profileJson ?? {},
+          updated_at: sql`NOW()` as any,
+        }))
+      .returningAll()
+      .executeTakeFirstOrThrow() as unknown as OAuthAccountRow;
 
     return mapOAuthAccountRow(row);
   }
 }
 
 export class PostgresAuthSessionRepository implements AuthSessionRepository {
-  private readonly authSessionsTableName: string;
-  private readonly usersTableName: string;
+  private readonly db: Kysely<DB>;
+  private readonly authSessionsSchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: NonNullable<AuthProductionOptions['sessions']> = {},
   ) {
-    this.authSessionsTableName = buildQualifiedTableName(
-      options.authSessionsSchema,
-      options.authSessionsTableName ?? 'auth_sessions',
-    );
-    this.usersTableName = buildQualifiedTableName(
-      options.usersSchema,
-      options.usersTableName ?? 'users',
-    );
+    this.db = createKyselyDb(pg);
+    this.authSessionsSchema = options.authSessionsSchema;
+  }
+
+  private getSessionsDb(): Kysely<DB> {
+    return this.authSessionsSchema ? this.db.withSchema(this.authSessionsSchema) : this.db;
   }
 
   async createSession(input: CreateAuthSessionInput): Promise<AuthSessionPrincipal> {
-    const insertQuery = `
-      INSERT INTO ${this.authSessionsTableName}
-        (
-          id,
-          user_id,
-          session_token_hash,
-          auth_method,
-          ip_address,
-          user_agent,
-          expires_at,
-          created_at,
-          last_seen_at
-        )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-    `;
-
-    await this.pg.query(insertQuery, [
-      input.id,
-      input.userId,
-      input.sessionTokenHash,
-      input.authMethod,
-      input.ipAddress ?? null,
-      input.userAgent ?? null,
-      input.expiresAt,
-    ]);
+    await this.getSessionsDb()
+      .insertInto('auth_sessions')
+      .values({
+        id: input.id,
+        user_id: input.userId,
+        session_token_hash: input.sessionTokenHash,
+        auth_method: input.authMethod,
+        ip_address: input.ipAddress ?? null,
+        user_agent: input.userAgent ?? null,
+        expires_at: input.expiresAt,
+        created_at: sql`NOW()` as any,
+        last_seen_at: sql`NOW()` as any,
+      })
+      .execute();
 
     const session = await this.getSessionByTokenHash(input.sessionTokenHash);
     if (!session) {
@@ -575,124 +402,98 @@ export class PostgresAuthSessionRepository implements AuthSessionRepository {
   }
 
   async getSessionByTokenHash(sessionTokenHash: string): Promise<AuthSessionPrincipal | null> {
-    const query = `
-      SELECT
-        s.id AS session_id,
-        s.user_id,
-        s.session_token_hash,
-        s.auth_method,
-        s.ip_address::text AS ip_address,
-        s.user_agent,
-        s.expires_at,
-        s.revoked_at,
-        s.last_seen_at,
-        s.created_at AS session_created_at,
-        u.email,
-        u.role,
-        u.status
-      FROM ${this.authSessionsTableName} AS s
-      INNER JOIN ${this.usersTableName} AS u
-        ON u.id = s.user_id
-      WHERE s.session_token_hash = $1
-      LIMIT 1
-    `;
+    const row = await this.getSessionsDb()
+      .selectFrom('auth_sessions as s')
+      .innerJoin('users as u', 'u.id', 's.user_id')
+      .select([
+        sql<string>`s.id`.as('session_id'),
+        's.user_id',
+        's.session_token_hash',
+        's.auth_method',
+        sql<string>`s.ip_address::text`.as('ip_address'),
+        's.user_agent',
+        's.expires_at',
+        's.revoked_at',
+        's.last_seen_at',
+        sql<Date>`s.created_at`.as('session_created_at'),
+        'u.email',
+        'u.role',
+        'u.status',
+      ])
+      .where('s.session_token_hash', '=', sessionTokenHash)
+      .limit(1)
+      .executeTakeFirst() as unknown as AuthSessionJoinRow | undefined;
 
-    const result: QueryResult<AuthSessionJoinRow> = await this.pg.query(query, [sessionTokenHash]);
-    return result.rows[0] ? mapAuthSessionPrincipalRow(result.rows[0]) : null;
+    return row ? mapAuthSessionPrincipalRow(row) : null;
   }
 
   async revokeSession(sessionId: string, revokedAt?: Date): Promise<void> {
-    const query = `
-      UPDATE ${this.authSessionsTableName}
-      SET revoked_at = COALESCE(revoked_at, $1)
-      WHERE id = $2
-    `;
-
-    await this.pg.query(query, [revokedAt ?? new Date(), sessionId]);
+    await this.getSessionsDb()
+      .updateTable('auth_sessions')
+      .set({
+        revoked_at: sql`COALESCE(revoked_at, ${revokedAt ?? new Date()})`,
+      })
+      .where('id', '=', sessionId)
+      .execute();
   }
 
   async revokeUserSessions(input: RevokeAuthSessionsInput): Promise<number> {
-    const where: string[] = ['user_id = $1', 'revoked_at IS NULL'];
-    const params: unknown[] = [input.userId, input.revokedAt ?? nowDate()];
+    const result = await this.getSessionsDb()
+      .updateTable('auth_sessions')
+      .set({
+        revoked_at: input.revokedAt ?? nowDate(),
+      })
+      .where('user_id', '=', input.userId)
+      .where('revoked_at', 'is', null)
+      .$if(input.authMethod !== undefined, (qb) => qb.where('auth_method', '=', input.authMethod!))
+      .returning('id')
+      .execute();
 
-    if (input.authMethod !== undefined) {
-      where.push(`auth_method = $${params.length + 1}`);
-      params.push(input.authMethod);
-    }
-
-    const query = `
-      UPDATE ${this.authSessionsTableName}
-      SET revoked_at = $2
-      WHERE ${where.join(' AND ')}
-    `;
-
-    const result = await this.pg.query(query, params);
-    return result.rowCount ?? 0;
+    return result.length;
   }
 
   async touchSession(sessionId: string, seenAt?: Date): Promise<void> {
-    const query = `
-      UPDATE ${this.authSessionsTableName}
-      SET last_seen_at = $1
-      WHERE id = $2
-    `;
-
-    await this.pg.query(query, [seenAt ?? new Date(), sessionId]);
+    await this.getSessionsDb()
+      .updateTable('auth_sessions')
+      .set({
+        last_seen_at: seenAt ?? new Date(),
+      })
+      .where('id', '=', sessionId)
+      .execute();
   }
 }
 
 export class PostgresOAuthStateRepository implements OAuthStateRepository {
-  private readonly oauthStateTokensTableName: string;
+  private readonly db: Kysely<DB>;
+  private readonly oauthStateTokensSchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: NonNullable<AuthProductionOptions['oauthState']> = {},
   ) {
-    this.oauthStateTokensTableName = buildQualifiedTableName(
-      options.oauthStateTokensSchema,
-      options.oauthStateTokensTableName ?? 'oauth_state_tokens',
-    );
+    this.db = createKyselyDb(pg);
+    this.oauthStateTokensSchema = options.oauthStateTokensSchema;
+  }
+
+  private getDb(): Kysely<DB> {
+    return this.oauthStateTokensSchema ? this.db.withSchema(this.oauthStateTokensSchema) : this.db;
   }
 
   async createStateToken(input: CreateOAuthStateTokenInput): Promise<OAuthStateTokenRecord> {
-    const query = `
-      INSERT INTO ${this.oauthStateTokensTableName}
-        (
-          state,
-          provider,
-          code_verifier,
-          redirect_uri,
-          requested_by_ip,
-          expires_at,
-          created_at,
-          consumed_at
-        )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, NOW(), NULL)
-      RETURNING
-        state,
-        provider,
-        code_verifier,
-        redirect_uri,
-        requested_by_ip,
-        expires_at,
-        consumed_at,
-        created_at
-    `;
-
-    const result: QueryResult<OAuthStateRow> = await this.pg.query(query, [
-      input.state,
-      input.provider,
-      input.codeVerifier,
-      input.redirectUri,
-      input.requestedByIp ?? null,
-      input.expiresAt,
-    ]);
-
-    const row = result.rows[0];
-    if (!row) {
-      throw new Error(`OAuth state token ${input.state} was not returned after insert`);
-    }
+    const row = await this.getDb()
+      .insertInto('oauth_state_tokens')
+      .values({
+        state: input.state,
+        provider: input.provider,
+        code_verifier: input.codeVerifier,
+        redirect_uri: input.redirectUri,
+        requested_by_ip: input.requestedByIp ?? null,
+        expires_at: input.expiresAt,
+        created_at: sql`NOW()` as any,
+        consumed_at: null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow() as unknown as OAuthStateRow;
 
     return mapOAuthStateRow(row);
   }
@@ -702,30 +503,18 @@ export class PostgresOAuthStateRepository implements OAuthStateRepository {
     provider: OAuthProvider,
     consumedAt?: Date,
   ): Promise<OAuthStateTokenRecord | null> {
-    const query = `
-      UPDATE ${this.oauthStateTokensTableName}
-      SET consumed_at = $3
-      WHERE state = $1
-        AND provider = $2
-        AND consumed_at IS NULL
-      RETURNING
-        state,
-        provider,
-        code_verifier,
-        redirect_uri,
-        requested_by_ip,
-        expires_at,
-        consumed_at,
-        created_at
-    `;
+    const row = await this.getDb()
+      .updateTable('oauth_state_tokens')
+      .set({
+        consumed_at: consumedAt ?? new Date(),
+      })
+      .where('state', '=', state)
+      .where('provider', '=', provider)
+      .where('consumed_at', 'is', null)
+      .returningAll()
+      .executeTakeFirst() as unknown as OAuthStateRow | undefined;
 
-    const result: QueryResult<OAuthStateRow> = await this.pg.query(query, [
-      state,
-      provider,
-      consumedAt ?? new Date(),
-    ]);
-
-    return result.rows[0] ? mapOAuthStateRow(result.rows[0]) : null;
+    return row ? mapOAuthStateRow(row) : null;
   }
 }
 

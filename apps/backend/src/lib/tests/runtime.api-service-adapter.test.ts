@@ -48,12 +48,24 @@ type ApiServiceBindingStoreRow = {
   updated_at: Date;
 };
 
+const parseJsonValue = (value: unknown, fallback: unknown): unknown => {
+  if (typeof value === 'string') return JSON.parse(value);
+  if (value !== undefined && value !== null) return value;
+  return fallback;
+};
+
 class ApiServiceDbStub {
   private readonly rows: ApiServiceStoreRow[] = [];
   private readonly bindings: ApiServiceBindingStoreRow[] = [];
 
-  async query<T = unknown>(sqlText: string, values: unknown[] = []): Promise<{ rows: T[]; rowCount?: number }> {
-    if (sqlText.includes('INSERT INTO api_services')) {
+  async query<T = unknown>(sqlText: string, values: unknown[] = []): Promise<{ rows: T[]; rowCount?: number; command?: string }> {
+    const s = sqlText.toLowerCase();
+
+    if (s.includes('begin') || s.includes('commit') || s.includes('rollback')) {
+      return { rows: [] };
+    }
+
+    if (sqlText.includes('insert into "api_services"')) {
       const row: ApiServiceStoreRow = {
         id: `svc_${this.rows.length + 1}`,
         key: String(values[0]),
@@ -64,12 +76,12 @@ class ApiServiceDbStub {
         timeout_ms: Number(values[5]),
         retry_count: Number(values[6]),
         request_method: (values[7] as ApiServiceStoreRow['request_method']) ?? 'GET',
-        request_template_json: JSON.parse(String(values[8] ?? '{}')) as Record<string, unknown>,
-        request_mapping_rules_json: JSON.parse(String(values[9] ?? '[]')) as Array<Record<string, unknown>>,
-        request_headers_template_json: JSON.parse(String(values[10] ?? '{}')) as Record<string, unknown>,
+        request_template_json: parseJsonValue(values[8], {}) as Record<string, unknown>,
+        request_mapping_rules_json: parseJsonValue(values[9], []) as Array<Record<string, unknown>>,
+        request_headers_template_json: parseJsonValue(values[10], {}) as Record<string, unknown>,
         token_header_name: (values[11] as string | null) ?? null,
-        response_mapping_rules_json: JSON.parse(String(values[12] ?? '[]')) as Array<Record<string, unknown>>,
-        error_mapping_rules_json: JSON.parse(String(values[13] ?? '[]')) as Array<Record<string, unknown>>,
+        response_mapping_rules_json: parseJsonValue(values[12], []) as Array<Record<string, unknown>>,
+        error_mapping_rules_json: parseJsonValue(values[13], []) as Array<Record<string, unknown>>,
         contract_profile_version: Number(values[14] ?? 1),
         token_ref: (values[15] as string | null) ?? null,
         token_ciphertext: (values[16] as string | null) ?? null,
@@ -78,28 +90,31 @@ class ApiServiceDbStub {
         updated_at: new Date('2026-05-24T10:00:00.000Z'),
       };
       this.rows.push(row);
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'INSERT' };
     }
 
-    if (sqlText.includes('FROM api_services') && sqlText.includes('ORDER BY created_at DESC')) {
+    if (sqlText.includes('from "api_services"') && sqlText.includes('order by "created_at" desc')) {
       return { rows: [...this.rows] as unknown as T[] };
     }
 
-    if (sqlText.includes('UPDATE api_services')) {
+    if (sqlText.includes('update "api_services"')) {
       const id = String(values[values.length - 1]);
       const row = this.rows.find((item) => item.id === id);
       if (!row) {
         return { rows: [] };
       }
 
-      if (sqlText.includes('label =')) {
-        row.label = String(values[0]);
+      if (sqlText.includes('"label" =')) {
+        const labelIdx = this._extractParamIndex(sqlText, 'label');
+        if (labelIdx !== null) {
+          row.label = String(values[labelIdx]);
+        }
       }
       row.updated_at = new Date('2026-05-24T10:05:00.000Z');
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'UPDATE' };
     }
 
-    if (sqlText.includes('INSERT INTO api_service_tool_step_bindings')) {
+    if (sqlText.includes('insert into "api_service_tool_step_bindings"')) {
       const row: ApiServiceBindingStoreRow = {
         id: (values[0] as string | null) ?? `bind_${this.bindings.length + 1}`,
         api_service_id: String(values[1]),
@@ -127,14 +142,14 @@ class ApiServiceDbStub {
         current.binding_status = row.binding_status;
         current.requiredness = row.requiredness;
         current.updated_at = new Date('2026-05-24T10:05:00.000Z');
-        return { rows: [current as unknown as T] };
+        return { rows: [current as unknown as T], rowCount: 1, command: 'INSERT' };
       }
 
       this.bindings.push(row);
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'INSERT' };
     }
 
-    if (sqlText.includes('FROM api_service_tool_step_bindings') && sqlText.includes('ORDER BY created_at DESC')) {
+    if (sqlText.includes('from "api_service_tool_step_bindings"') && sqlText.includes('order by "created_at" desc')) {
       const apiServiceId = String(values[0]);
       return {
         rows: this.bindings
@@ -144,7 +159,7 @@ class ApiServiceDbStub {
       };
     }
 
-    if (sqlText.includes('DELETE FROM api_service_tool_step_bindings')) {
+    if (sqlText.includes('delete from "api_service_tool_step_bindings"')) {
       const bindingId = String(values[0]);
       const apiServiceId = String(values[1]);
       const before = this.bindings.length;
@@ -153,25 +168,39 @@ class ApiServiceDbStub {
       );
       this.bindings.length = 0;
       this.bindings.push(...filtered);
-      return { rows: [], rowCount: before - filtered.length };
+      return { rows: [], rowCount: before - filtered.length, command: 'DELETE' };
     }
 
-    if (sqlText.includes('SELECT') && sqlText.includes('token_ciphertext') && sqlText.includes("status = 'active'")) {
+    if (sqlText.includes('select') && sqlText.includes('from "api_services"') && sqlText.includes('"status" =')) {
       const id = String(values[0]);
       const row = this.rows.find((item) => item.id === id && item.status === 'active');
       return { rows: row ? [row as unknown as T] : [] };
     }
 
-    if (sqlText.includes('DELETE FROM api_services')) {
+    if (sqlText.includes('delete from "api_services"')) {
       const id = String(values[0]);
       const before = this.rows.length;
       const filtered = this.rows.filter((item) => item.id !== id);
       this.rows.length = 0;
       this.rows.push(...filtered);
-      return { rows: [], rowCount: before - filtered.length };
+      return { rows: [], rowCount: before - filtered.length, command: 'DELETE' };
     }
 
     throw new Error(`Unsupported SQL in ApiServiceDbStub: ${sqlText}`);
+  }
+
+  private _extractParamIndex(sqlText: string, column: string): number | null {
+    const normalized = sqlText.replace(/"/g, '');
+    const match = normalized.match(new RegExp(`${column} = \\$(\\d+)`));
+    if (!match) return null;
+    return Number(match[1]) - 1;
+  }
+
+  async connect() {
+    return {
+      query: this.query.bind(this),
+      release() {},
+    };
   }
 }
 

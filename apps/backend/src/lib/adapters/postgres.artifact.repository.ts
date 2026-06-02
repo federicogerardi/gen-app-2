@@ -1,3 +1,4 @@
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
 
 import type { PersistenceBatchInput } from '../types/xstate';
@@ -10,7 +11,8 @@ import {
 
 import type { PostgresArtifactRepository as PostgresArtifactRepositoryPort } from './postgres-redis.interfaces';
 import type { PersistenceRepositoryOptions } from './postgres-redis.shared.types';
-import { buildQualifiedTableName, withTransaction } from './postgres-redis.sql.utils';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 
 const normalizeToolWorkflowInputJson = (
   inputJson: Record<string, unknown> | undefined,
@@ -100,321 +102,233 @@ const extractToolWorkflowColumns = (
 };
 
 export class PostgresArtifactRepository implements PostgresArtifactRepositoryPort {
-  private readonly artifactsTableName: string;
-  private readonly quotaHistoryTableName: string;
+  private readonly db: Kysely<DB>;
+  private readonly artifactsSchema: string | undefined;
+  private readonly quotaHistorySchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: PersistenceRepositoryOptions = {},
   ) {
-    this.artifactsTableName = buildQualifiedTableName(
-      options.artifactsSchema,
-      options.artifactsTableName ?? 'artifacts',
-    );
-    this.quotaHistoryTableName = buildQualifiedTableName(
-      options.quotaHistorySchema,
-      options.quotaHistoryTableName ?? 'quota_history',
-    );
+    this.db = createKyselyDb(pg);
+    this.artifactsSchema = options.artifactsSchema;
+    this.quotaHistorySchema = options.quotaHistorySchema;
+  }
+
+  private getArtifactDb(): Kysely<DB> {
+    return this.artifactsSchema ? this.db.withSchema(this.artifactsSchema) : this.db;
   }
 
   async flushProgress(input: PersistenceBatchInput, _sequence: number): Promise<void> {
     const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
     const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
 
-    const query = `
-      INSERT INTO ${this.artifactsTableName}
-        (
-          id,
-          request_id,
-          user_id,
-          project_id,
-          type,
-          workflow_type,
-          session_id,
-          step_key,
-          artifact_role,
-          run_mode,
-          model,
-          input_json,
-          status,
-          content,
-          input_tokens,
-          output_tokens,
-          cost_usd,
-          registry_version,
-          registry_snapshot_ref,
-          created_at,
-          updated_at,
-          streamed_at
-        )
-      VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'generating', $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
-      ON CONFLICT (id)
-      DO UPDATE SET
-        content = EXCLUDED.content,
-        input_json = EXCLUDED.input_json,
-        input_tokens = EXCLUDED.input_tokens,
-        output_tokens = EXCLUDED.output_tokens,
-        cost_usd = EXCLUDED.cost_usd,
-        model = EXCLUDED.model,
-        user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
-        project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
-        session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
-        step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
-        artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
-        run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
-        updated_at = NOW(),
-        streamed_at = NOW(),
-        registry_version = EXCLUDED.registry_version,
-        registry_snapshot_ref = EXCLUDED.registry_snapshot_ref,
-        status = CASE
-          WHEN ${this.artifactsTableName}.status IN ('completed', 'failed') THEN ${this.artifactsTableName}.status
-          ELSE 'generating'
-        END
-      WHERE ${this.artifactsTableName}.status NOT IN ('completed', 'failed')
-    `;
-
-    await this.pg.query(query, [
-      input.artifactId,
-      input.requestId,
-      input.userId ?? null,
-      input.projectId ?? null,
-      input.artifactType,
-      input.workflowType,
-      toolWorkflowColumns.sessionId,
-      toolWorkflowColumns.stepKey,
-      toolWorkflowColumns.artifactRole,
-      toolWorkflowColumns.runMode,
-      input.model ?? 'unknown',
-      JSON.stringify(normalizedInputJson),
-      input.contentBuffer,
-      input.inputTokens ?? 0,
-      input.outputTokens ?? 0,
-      input.costUsd ?? 0,
-      input.registryVersion ?? null,
-      input.registrySnapshotRef ?? null,
-    ]);
+    await this.getArtifactDb()
+      .insertInto('artifacts')
+      .values({
+        id: input.artifactId,
+        request_id: input.requestId,
+        user_id: input.userId ?? null,
+        project_id: input.projectId ?? null,
+        type: input.artifactType,
+        workflow_type: input.workflowType,
+        session_id: toolWorkflowColumns.sessionId,
+        step_key: toolWorkflowColumns.stepKey,
+        artifact_role: toolWorkflowColumns.artifactRole,
+        run_mode: toolWorkflowColumns.runMode,
+        model: input.model ?? 'unknown',
+        input_json: normalizedInputJson,
+        status: 'generating',
+        content: input.contentBuffer,
+        input_tokens: input.inputTokens ?? 0,
+        output_tokens: input.outputTokens ?? 0,
+        cost_usd: input.costUsd ?? 0,
+        registry_version: input.registryVersion ?? null,
+        registry_snapshot_ref: input.registrySnapshotRef ?? null,
+        created_at: sql`NOW()` as any,
+        updated_at: sql`NOW()` as any,
+        streamed_at: sql`NOW()` as any,
+      })
+      .onConflict((oc) => oc
+        .column('id')
+        .doUpdateSet({
+          content: input.contentBuffer,
+          input_json: normalizedInputJson,
+          input_tokens: input.inputTokens ?? 0,
+          output_tokens: input.outputTokens ?? 0,
+          cost_usd: input.costUsd ?? 0,
+          model: input.model ?? 'unknown',
+          user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
+          project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
+          session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
+          step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
+          artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
+          run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+          updated_at: sql`NOW()` as any,
+          streamed_at: sql`NOW()` as any,
+          registry_version: input.registryVersion ?? null,
+          registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          status: sql<string>`CASE WHEN ${sql.ref('status')} IN ('completed', 'failed') THEN ${sql.ref('status')} ELSE 'generating' END`,
+        })
+        .where(sql<boolean>`status NOT IN ('completed', 'failed')`))
+      .execute();
   }
 
   async finalizeSuccess(input: PersistenceBatchInput): Promise<void> {
-    await withTransaction(this.pg, async (client) => {
+    await this.db.transaction().execute(async (trx) => {
       const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
       const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
 
-      const query = `
-        INSERT INTO ${this.artifactsTableName}
-          (
-            id,
-            request_id,
-            user_id,
-            project_id,
-            type,
-            workflow_type,
-            session_id,
-            step_key,
-            artifact_role,
-            run_mode,
-            model,
-            input_json,
-            status,
-            content,
-            input_tokens,
-            output_tokens,
-            cost_usd,
-            registry_version,
-            registry_snapshot_ref,
-            created_at,
-            updated_at,
-            completed_at
-          )
-        VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'completed', $13, $14, $15, $16, $17, $18, NOW(), NOW(), NOW())
-        ON CONFLICT (id)
-        DO UPDATE SET
-          status = 'completed',
-          content = EXCLUDED.content,
-          input_json = EXCLUDED.input_json,
-          input_tokens = EXCLUDED.input_tokens,
-          output_tokens = EXCLUDED.output_tokens,
-          cost_usd = EXCLUDED.cost_usd,
-          model = EXCLUDED.model,
-          user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
-          project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
-          session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
-          step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
-          artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
-          run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
-          updated_at = NOW(),
-          completed_at = NOW(),
-          failure_reason = NULL,
-          registry_version = EXCLUDED.registry_version,
-          registry_snapshot_ref = EXCLUDED.registry_snapshot_ref
-        WHERE ${this.artifactsTableName}.status <> 'failed'
-      `;
+      const artifactDb = this.artifactsSchema ? trx.withSchema(this.artifactsSchema) : trx;
 
-      await client.query(query, [
-        input.artifactId,
-        input.requestId,
-        input.userId ?? null,
-        input.projectId ?? null,
-        input.artifactType,
-        input.workflowType,
-        toolWorkflowColumns.sessionId,
-        toolWorkflowColumns.stepKey,
-        toolWorkflowColumns.artifactRole,
-        toolWorkflowColumns.runMode,
-        input.model ?? 'unknown',
-        JSON.stringify(normalizedInputJson),
-        input.contentBuffer,
-        input.inputTokens ?? 0,
-        input.outputTokens ?? 0,
-        input.costUsd ?? 0,
-        input.registryVersion ?? null,
-        input.registrySnapshotRef ?? null,
-      ]);
+      await artifactDb
+        .insertInto('artifacts')
+        .values({
+          id: input.artifactId,
+          request_id: input.requestId,
+          user_id: input.userId ?? null,
+          project_id: input.projectId ?? null,
+          type: input.artifactType,
+          workflow_type: input.workflowType,
+          session_id: toolWorkflowColumns.sessionId,
+          step_key: toolWorkflowColumns.stepKey,
+          artifact_role: toolWorkflowColumns.artifactRole,
+          run_mode: toolWorkflowColumns.runMode,
+          model: input.model ?? 'unknown',
+          input_json: normalizedInputJson,
+          status: 'completed',
+          content: input.contentBuffer,
+          input_tokens: input.inputTokens ?? 0,
+          output_tokens: input.outputTokens ?? 0,
+          cost_usd: input.costUsd ?? 0,
+          registry_version: input.registryVersion ?? null,
+          registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          created_at: sql`NOW()` as any,
+          updated_at: sql`NOW()` as any,
+          completed_at: sql`NOW()` as any,
+        })
+        .onConflict((oc) => oc
+          .column('id')
+          .doUpdateSet({
+            status: 'completed',
+            content: input.contentBuffer,
+            input_json: normalizedInputJson,
+            input_tokens: input.inputTokens ?? 0,
+            output_tokens: input.outputTokens ?? 0,
+            cost_usd: input.costUsd ?? 0,
+            model: input.model ?? 'unknown',
+            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
+            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
+            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
+            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
+            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
+            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+            updated_at: sql`NOW()` as any,
+            completed_at: sql`NOW()` as any,
+            failure_reason: null,
+            registry_version: input.registryVersion ?? null,
+            registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          })
+          .where(sql<boolean>`status <> 'failed'`))
+        .execute();
 
       if (input.userId) {
-        const quotaQuery = `
-          INSERT INTO ${this.quotaHistoryTableName}
-            (
-              user_id,
-              project_id,
-              request_id,
-              artifact_id,
-              status,
-              request_count,
-              cost_usd,
-              input_tokens,
-              output_tokens,
-              metadata_json,
-              created_at
-            )
-          VALUES
-            ($1, $2, $3, $4, 'success', 1, $5, $6, $7, $8::jsonb, NOW())
-        `;
-
-        await client.query(quotaQuery, [
-          input.userId,
-          input.projectId ?? null,
-          input.requestId,
-          input.artifactId,
-          input.costUsd ?? 0,
-          input.inputTokens ?? 0,
-          input.outputTokens ?? 0,
-          JSON.stringify({ workflowType: input.workflowType, model: input.model ?? 'unknown' }),
-        ]);
+        const quotaDb = this.quotaHistorySchema ? trx.withSchema(this.quotaHistorySchema) : trx;
+        await quotaDb
+          .insertInto('quota_history')
+          .values({
+            user_id: input.userId,
+            project_id: input.projectId ?? null,
+            request_id: input.requestId,
+            artifact_id: input.artifactId,
+            status: 'success',
+            request_count: 1,
+            cost_usd: input.costUsd ?? 0,
+            input_tokens: input.inputTokens ?? 0,
+            output_tokens: input.outputTokens ?? 0,
+            metadata_json: { workflowType: input.workflowType, model: input.model ?? 'unknown' },
+            created_at: sql`NOW()` as any,
+          })
+          .execute();
       }
     });
   }
 
   async finalizeFailure(input: PersistenceBatchInput, reason: string): Promise<void> {
-    await withTransaction(this.pg, async (client) => {
+    await this.db.transaction().execute(async (trx) => {
       const normalizedInputJson = normalizeToolWorkflowInputJson(input.inputJson, input.workflowType);
       const toolWorkflowColumns = extractToolWorkflowColumns(normalizedInputJson, input.sessionId);
 
-      const query = `
-        INSERT INTO ${this.artifactsTableName}
-          (
-            id,
-            request_id,
-            user_id,
-            project_id,
-            type,
-            workflow_type,
-            session_id,
-            step_key,
-            artifact_role,
-            run_mode,
-            model,
-            input_json,
-            status,
-            content,
-            input_tokens,
-            output_tokens,
-            cost_usd,
-            failure_reason,
-            registry_version,
-            registry_snapshot_ref,
-            created_at,
-            updated_at
-          )
-        VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, 'failed', $13, $14, $15, $16, $17, $18, $19, NOW(), NOW())
-        ON CONFLICT (id)
-        DO UPDATE SET
-          status = 'failed',
-          content = EXCLUDED.content,
-          input_json = EXCLUDED.input_json,
-          input_tokens = EXCLUDED.input_tokens,
-          output_tokens = EXCLUDED.output_tokens,
-          cost_usd = EXCLUDED.cost_usd,
-          model = EXCLUDED.model,
-          user_id = COALESCE(EXCLUDED.user_id, ${this.artifactsTableName}.user_id),
-          project_id = COALESCE(EXCLUDED.project_id, ${this.artifactsTableName}.project_id),
-          session_id = COALESCE(EXCLUDED.session_id, ${this.artifactsTableName}.session_id),
-          step_key = COALESCE(EXCLUDED.step_key, ${this.artifactsTableName}.step_key),
-          artifact_role = COALESCE(EXCLUDED.artifact_role, ${this.artifactsTableName}.artifact_role),
-          run_mode = COALESCE(EXCLUDED.run_mode, ${this.artifactsTableName}.run_mode),
-          failure_reason = EXCLUDED.failure_reason,
-          updated_at = NOW(),
-          registry_version = EXCLUDED.registry_version,
-          registry_snapshot_ref = EXCLUDED.registry_snapshot_ref
-      `;
+      const artifactDb = this.artifactsSchema ? trx.withSchema(this.artifactsSchema) : trx;
 
-      await client.query(query, [
-        input.artifactId,
-        input.requestId,
-        input.userId ?? null,
-        input.projectId ?? null,
-        input.artifactType,
-        input.workflowType,
-        toolWorkflowColumns.sessionId,
-        toolWorkflowColumns.stepKey,
-        toolWorkflowColumns.artifactRole,
-        toolWorkflowColumns.runMode,
-        input.model ?? 'unknown',
-        JSON.stringify(normalizedInputJson),
-        input.contentBuffer,
-        input.inputTokens ?? 0,
-        input.outputTokens ?? 0,
-        input.costUsd ?? 0,
-        reason,
-        input.registryVersion ?? null,
-        input.registrySnapshotRef ?? null,
-      ]);
+      await artifactDb
+        .insertInto('artifacts')
+        .values({
+          id: input.artifactId,
+          request_id: input.requestId,
+          user_id: input.userId ?? null,
+          project_id: input.projectId ?? null,
+          type: input.artifactType,
+          workflow_type: input.workflowType,
+          session_id: toolWorkflowColumns.sessionId,
+          step_key: toolWorkflowColumns.stepKey,
+          artifact_role: toolWorkflowColumns.artifactRole,
+          run_mode: toolWorkflowColumns.runMode,
+          model: input.model ?? 'unknown',
+          input_json: normalizedInputJson,
+          status: 'failed',
+          content: input.contentBuffer,
+          input_tokens: input.inputTokens ?? 0,
+          output_tokens: input.outputTokens ?? 0,
+          cost_usd: input.costUsd ?? 0,
+          failure_reason: reason,
+          registry_version: input.registryVersion ?? null,
+          registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          created_at: sql`NOW()` as any,
+          updated_at: sql`NOW()` as any,
+        })
+        .onConflict((oc) => oc
+          .column('id')
+          .doUpdateSet({
+            status: 'failed',
+            content: input.contentBuffer,
+            input_json: normalizedInputJson,
+            input_tokens: input.inputTokens ?? 0,
+            output_tokens: input.outputTokens ?? 0,
+            cost_usd: input.costUsd ?? 0,
+            model: input.model ?? 'unknown',
+            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
+            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
+            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
+            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
+            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
+            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+            failure_reason: reason,
+            updated_at: sql`NOW()` as any,
+            registry_version: input.registryVersion ?? null,
+            registry_snapshot_ref: input.registrySnapshotRef ?? null,
+          }))
+        .execute();
 
       if (input.userId) {
-        const status = reason === 'rate_limited' || reason === 'quota_exhausted' ? 'rate_limited' : 'error';
-        const quotaQuery = `
-          INSERT INTO ${this.quotaHistoryTableName}
-            (
-              user_id,
-              project_id,
-              request_id,
-              artifact_id,
-              status,
-              request_count,
-              cost_usd,
-              input_tokens,
-              output_tokens,
-              metadata_json,
-              created_at
-            )
-          VALUES
-            ($1, $2, $3, $4, $5, 1, $6, $7, $8, $9::jsonb, NOW())
-        `;
-
-        await client.query(quotaQuery, [
-          input.userId,
-          input.projectId ?? null,
-          input.requestId,
-          input.artifactId,
-          status,
-          input.costUsd ?? 0,
-          input.inputTokens ?? 0,
-          input.outputTokens ?? 0,
-          JSON.stringify({ workflowType: input.workflowType, model: input.model ?? 'unknown', reason }),
-        ]);
+        const quotaStatus = reason === 'rate_limited' || reason === 'quota_exhausted' ? 'rate_limited' : 'error';
+        const quotaDb = this.quotaHistorySchema ? trx.withSchema(this.quotaHistorySchema) : trx;
+        await quotaDb
+          .insertInto('quota_history')
+          .values({
+            user_id: input.userId,
+            project_id: input.projectId ?? null,
+            request_id: input.requestId,
+            artifact_id: input.artifactId,
+            status: quotaStatus,
+            request_count: 1,
+            cost_usd: input.costUsd ?? 0,
+            input_tokens: input.inputTokens ?? 0,
+            output_tokens: input.outputTokens ?? 0,
+            metadata_json: { workflowType: input.workflowType, model: input.model ?? 'unknown', reason },
+            created_at: sql`NOW()` as any,
+          })
+          .execute();
       }
     });
   }

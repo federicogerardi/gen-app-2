@@ -73,6 +73,12 @@ class MockServerResponse extends EventEmitter {
   }
 }
 
+const parseJsonValue = (value: unknown, fallback: unknown): unknown => {
+  if (typeof value === 'string') return JSON.parse(value);
+  if (value !== undefined && value !== null) return value;
+  return fallback;
+};
+
 class ApiServiceDbStub {
   private services: Array<Record<string, unknown>> = [
     {
@@ -114,8 +120,14 @@ class ApiServiceDbStub {
     },
   ];
 
-  async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[] }> {
-    if (sqlText.includes('FROM api_services') && sqlText.includes('ORDER BY created_at DESC')) {
+  async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[]; rowCount?: number; command?: string }> {
+    const s = sqlText.toLowerCase();
+
+    if (s.includes('begin') || s.includes('commit') || s.includes('rollback')) {
+      return { rows: [] };
+    }
+
+    if (sqlText.includes('from "api_services"') && sqlText.includes('order by "created_at" desc')) {
       const rows = [...this.services]
         .sort((a, b) => Number((b.created_at as Date).getTime()) - Number((a.created_at as Date).getTime()))
         .map((row) => ({ ...row })) as T[];
@@ -123,22 +135,22 @@ class ApiServiceDbStub {
     }
 
     if (
-      sqlText.includes('FROM api_services')
-      && sqlText.includes('WHERE id = $1')
-      && sqlText.includes("status = 'active'")
+      sqlText.includes('from "api_services"')
+      && sqlText.includes('where "id" =')
+      && sqlText.includes('"status" =')
     ) {
       const id = String(values?.[0] ?? '');
       const service = this.services.find((item) => item.id === id && item.status === 'active');
       return { rows: service ? [{ ...service } as T] : [] };
     }
 
-    if (sqlText.includes('FROM api_services') && sqlText.includes('WHERE id = $1')) {
+    if (sqlText.includes('from "api_services"') && sqlText.includes('where "id" =')) {
       const id = String(values?.[0] ?? '');
       const service = this.services.find((item) => item.id === id);
       return { rows: service ? [{ ...service } as T] : [] };
     }
 
-    if (sqlText.includes('INSERT INTO api_services')) {
+    if (sqlText.includes('insert into "api_services"')) {
       const now = new Date('2026-05-24T12:00:00.000Z');
       const id = buildApiServiceId(this.services.length + 1);
       const row = {
@@ -151,12 +163,12 @@ class ApiServiceDbStub {
         timeout_ms: values?.[5] as number,
         retry_count: values?.[6] as number,
         request_method: values?.[7] as string,
-        request_template_json: JSON.parse(String(values?.[8] ?? '{}')),
-        request_mapping_rules_json: JSON.parse(String(values?.[9] ?? '[]')),
-        request_headers_template_json: JSON.parse(String(values?.[10] ?? '{}')),
+        request_template_json: parseJsonValue(values?.[8], {}),
+        request_mapping_rules_json: parseJsonValue(values?.[9], []),
+        request_headers_template_json: parseJsonValue(values?.[10], {}),
         token_header_name: values?.[11] as string | null,
-        response_mapping_rules_json: JSON.parse(String(values?.[12] ?? '[]')),
-        error_mapping_rules_json: JSON.parse(String(values?.[13] ?? '[]')),
+        response_mapping_rules_json: parseJsonValue(values?.[12], []),
+        error_mapping_rules_json: parseJsonValue(values?.[13], []),
         contract_profile_version: values?.[14] as number,
         token_ref: values?.[15] as string | null,
         token_ciphertext: values?.[16] as string | null,
@@ -167,19 +179,23 @@ class ApiServiceDbStub {
       this.services.push(row);
       return {
         rows: [{ ...row } as T],
+        rowCount: 1,
+        command: 'INSERT',
       };
     }
 
-    if (sqlText.includes('UPDATE api_services')) {
+    if (sqlText.includes('update "api_services"')) {
       const id = String(values?.[values.length - 1] ?? '');
       const current = this.services.find((item) => item.id === id);
       if (!current) {
         return { rows: [] };
       }
 
+      const normalized = sqlText.replace(/"/g, '');
+
       const extract = (column: string): unknown => {
         const escaped = column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const match = sqlText.match(new RegExp(`${escaped} = \\$(\\d+)`));
+        const match = normalized.match(new RegExp(`${escaped} = \\$(\\d+)`));
         if (!match) {
           return undefined;
         }
@@ -219,14 +235,14 @@ class ApiServiceDbStub {
       };
 
       this.services = this.services.map((item) => (item.id === id ? updated : item));
-      return { rows: [{ ...updated } as T] };
+      return { rows: [{ ...updated } as T], rowCount: 1, command: 'UPDATE' };
     }
 
-    if (sqlText.includes('FROM api_service_tool_step_bindings') && sqlText.includes('ORDER BY created_at DESC')) {
+    if (sqlText.includes('from "api_service_tool_step_bindings"') && sqlText.includes('order by "created_at" desc')) {
       return { rows: this.bindings.map((row) => ({ ...row } as T)) };
     }
 
-    if (sqlText.includes('INSERT INTO api_service_tool_step_bindings')) {
+    if (sqlText.includes('insert into "api_service_tool_step_bindings"')) {
       const now = new Date('2026-05-24T12:10:00.000Z');
       const requestedId = values?.[0];
       const apiServiceId = String(values?.[1] ?? '');
@@ -256,7 +272,7 @@ class ApiServiceDbStub {
           updated_at: now,
         };
         this.bindings[existingIndex] = updated;
-        return { rows: [{ ...updated } as T] };
+        return { rows: [{ ...updated } as T], rowCount: 1, command: 'INSERT' };
       }
 
       const created = {
@@ -274,7 +290,7 @@ class ApiServiceDbStub {
       };
 
       this.bindings.push(created);
-      return { rows: [{ ...created } as T] };
+      return { rows: [{ ...created } as T], rowCount: 1, command: 'INSERT' };
     }
 
     throw new Error(`Unsupported SQL in ApiServiceDbStub: ${sqlText}`);
@@ -1071,7 +1087,7 @@ test('admin api-service bindings upsert maps unique DB conflict to 409', async (
 
   class ConflictApiServiceDbStub extends ApiServiceDbStub {
     override async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[] }> {
-      if (sqlText.includes('INSERT INTO api_service_tool_step_bindings')) {
+      if (sqlText.includes('insert into "api_service_tool_step_bindings"')) {
         const conflict = new Error('duplicate key') as Error & { code?: string };
         conflict.code = '23505';
         throw conflict;

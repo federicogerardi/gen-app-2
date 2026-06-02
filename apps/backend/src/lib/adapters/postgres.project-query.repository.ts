@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { Pool, QueryResult } from 'pg';
+import { Kysely, sql } from 'kysely';
+import type { Pool } from 'pg';
 
 import {
   mapProjectRowToDetail,
@@ -9,67 +10,63 @@ import {
   type ProjectSummary,
 } from '../types/projects';
 
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 import type { ProjectQueryRepository } from './postgres-redis.interfaces';
-import type { PersistenceRepositoryOptions, ProjectRow } from './postgres-redis.shared.types';
-import { buildQualifiedTableName } from './postgres-redis.sql.utils';
+import type { PersistenceRepositoryOptions } from './postgres-redis.shared.types';
 
 export class PostgresProjectQueryRepository implements ProjectQueryRepository {
-  private readonly projectsTableName: string;
+  private readonly schema: string | undefined;
 
   constructor(
     private readonly pg: Pool,
     options: PersistenceRepositoryOptions = {},
   ) {
-    this.projectsTableName = buildQualifiedTableName(
-      options.projectsSchema,
-      options.projectsTableName ?? 'projects',
-    );
+    this.schema = options.projectsSchema;
+  }
+
+  private getDb(): Kysely<DB> {
+    const db = createKyselyDb(this.pg);
+    return this.schema ? db.withSchema(this.schema) : db;
   }
 
   async listProjectsByUser(userId: string): Promise<ProjectSummary[]> {
-    const query = `
-      SELECT id, user_id, name, created_at, updated_at
-      FROM ${this.projectsTableName}
-      WHERE user_id = $1
-      ORDER BY updated_at DESC, id DESC
-    `;
+    const rows = await this.getDb()
+      .selectFrom('projects')
+      .select(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .where('user_id', '=', userId)
+      .orderBy('updated_at', 'desc')
+      .orderBy('id', 'desc')
+      .execute();
 
-    const result: QueryResult<ProjectRow> = await this.pg.query(query, [userId]);
-    return result.rows.map(mapProjectRowToSummary);
+    return rows.map(mapProjectRowToSummary);
   }
 
   async getProjectByIdForUser(userId: string, projectId: string): Promise<ProjectDetail | null> {
-    const query = `
-      SELECT id, user_id, name, created_at, updated_at
-      FROM ${this.projectsTableName}
-      WHERE user_id = $1 AND id = $2
-      LIMIT 1
-    `;
+    const row = await this.getDb()
+      .selectFrom('projects')
+      .select(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .where('user_id', '=', userId)
+      .where('id', '=', projectId)
+      .limit(1)
+      .executeTakeFirst();
 
-    const result: QueryResult<ProjectRow> = await this.pg.query(query, [userId, projectId]);
-    const row = result.rows[0];
     return row ? mapProjectRowToDetail(row) : null;
   }
 
   async createProjectForUser(userId: string, input: CreateProjectInput): Promise<ProjectDetail> {
-    const query = `
-      INSERT INTO ${this.projectsTableName}
-        (id, user_id, name, created_at, updated_at)
-      VALUES
-        ($1, $2, $3, NOW(), NOW())
-      RETURNING id, user_id, name, created_at, updated_at
-    `;
-
     const projectId = `proj_${randomUUID()}`;
-    const result: QueryResult<ProjectRow> = await this.pg.query(query, [
-      projectId,
-      userId,
-      input.name,
-    ]);
-    const row = result.rows[0];
-    if (!row) {
-      throw new Error('Failed to create project row');
-    }
+    const row = await this.getDb()
+      .insertInto('projects')
+      .values({
+        id: projectId,
+        user_id: userId,
+        name: input.name,
+        created_at: sql`NOW()` as any,
+        updated_at: sql`NOW()` as any,
+      })
+      .returning(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .executeTakeFirstOrThrow();
 
     return mapProjectRowToDetail(row);
   }

@@ -18,6 +18,7 @@ import { PostgresRedisStreamSessionRepository } from './postgres-redis.stream.re
 import { PostgresArtifactRepository } from './postgres.artifact.repository';
 import { PostgresProjectQueryRepository } from './postgres.project-query.repository';
 import { PostgresArtifactQueryRepository } from './postgres.artifact-query.repository';
+import { RedisOrchestrateArtifactCache } from './redis-orchestrate-artifact-cache';
 
 export {
   PostgresRedisUsageRepository,
@@ -50,6 +51,10 @@ export const createPostgresRedisProductionDependencies = (
         'production_llm_adapter_missing: provide options.llm.adapter or set OPENROUTER_API_KEY',
       );
     }
+    console.warn(
+      '[adapter][llm] OPENROUTER_API_KEY is not set; falling back to synthetic LLM adapter. ' +
+        'All generation requests will return stubbed content instead of calling a real LLM.',
+    );
   }
 
   return {
@@ -67,6 +72,7 @@ export const createPostgresRedisProductionDependencies = (
     ),
     llm: llm ?? createSyntheticLlmStreamAdapter(),
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
+    orchestrateCache: new RedisOrchestrateArtifactCache(clients.redis, options.orchestrateCache),
   };
 };
 

@@ -19,8 +19,10 @@ import {
   isSupportedToolWorkflow,
   resolveStepDependencyIds,
 } from '../tool-workflow-registry';
+import { toolWorkflowStepOrder } from '../tool-workflow-registry';
 import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
+import type { OrchestrateArtifactCache } from '../../adapters';
 
 type ToolOrchestrationRequestBody = {
   projectId?: unknown;
@@ -36,6 +38,7 @@ export type CreateToolsOrchestrateHandlersDependencies = {
   now: () => Date;
   toolsOrchestrateTimeoutMs: number;
   toolsOrchestrateArtifactScanLimit: number;
+  orchestrateCache: OrchestrateArtifactCache | null;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (
     request: IncomingMessage,
@@ -59,6 +62,7 @@ export const createToolsOrchestrateHandlers = (
     now,
     toolsOrchestrateTimeoutMs,
     toolsOrchestrateArtifactScanLimit,
+    orchestrateCache,
     parseJsonBody,
     requireSessionPrincipal,
     requireQueryRepositories,
@@ -221,8 +225,31 @@ export const createToolsOrchestrateHandlers = (
       }
     }
 
-    try {
-      ({ stepDependencyArtifactIds, dependencyArtifactIdsByStep } = await runGenerationRoutePipeline(
+    const order = toolWorkflowStepOrder[toolKey];
+    const stepIndex = order.indexOf(targetStep);
+    let cacheHit = false;
+
+    if (orchestrateCache) {
+      try {
+        const cachedByStep = await orchestrateCache.getCompletedArtifactsByStep(
+          principal.user.id,
+          projectId,
+          workflowType,
+        );
+        const cacheResolved = resolveStepDependencyIds(toolKey, targetStep, cachedByStep);
+        if (stepIndex === 0 || cacheResolved.stepDependencyArtifactIds.length === stepIndex) {
+          stepDependencyArtifactIds = cacheResolved.stepDependencyArtifactIds;
+          dependencyArtifactIdsByStep = cacheResolved.dependencyArtifactIdsByStep;
+          cacheHit = true;
+        }
+      } catch (err) {
+        console.warn('[orchestrate-cache] read failed (fallback to DB)', err);
+      }
+    }
+
+    if (!cacheHit) {
+      try {
+        ({ stepDependencyArtifactIds, dependencyArtifactIdsByStep } = await runGenerationRoutePipeline(
         route,
         correlationId,
         async () => {
@@ -242,7 +269,10 @@ export const createToolsOrchestrateHandlers = (
             allCompleted,
             async (userId, artifactIds) => {
               artifactDetailBatchCount += 1;
-              return queries.artifacts.getArtifactsByIdsForUser(userId, artifactIds, { includeInput: true });
+              return queries.artifacts.getArtifactsByIdsForUser(userId, artifactIds, {
+                includeInput: true,
+                includeContent: false,
+              });
             },
             route,
             correlationId,
@@ -267,21 +297,6 @@ export const createToolsOrchestrateHandlers = (
           },
         },
       ));
-
-      if (idempotencyInput && idempotency && idempotencyClaimed) {
-        idempotencyCompletionPending = true;
-        await idempotency.markCompleted(
-          idempotencyInput,
-          `orchestrate:${toolKey}:${targetStep}`,
-          JSON.stringify({
-            toolKey,
-            targetStep,
-            stepDependencyArtifactIds,
-            dependencyArtifactIdsByStep,
-          }),
-        );
-        idempotencyCompletionPending = false;
-      }
     } catch (error) {
       if (idempotencyInput && idempotency && idempotencyClaimed) {
         await idempotency.markFailed(idempotencyInput);
@@ -292,14 +307,39 @@ export const createToolsOrchestrateHandlers = (
         return;
       }
 
-      if (idempotencyCompletionPending) {
-        writeError(response, 500, 'internal', 'Failed idempotency completion for orchestrate request');
-        return;
-      }
-
       writeError(response, 500, 'internal', 'Failed to orchestrate tool dependencies');
       return;
     }
+  }
+
+  try {
+    if (idempotencyInput && idempotency && idempotencyClaimed) {
+      idempotencyCompletionPending = true;
+      await idempotency.markCompleted(
+        idempotencyInput,
+        `orchestrate:${toolKey}:${targetStep}`,
+        JSON.stringify({
+          toolKey,
+          targetStep,
+          stepDependencyArtifactIds,
+          dependencyArtifactIdsByStep,
+        }),
+      );
+      idempotencyCompletionPending = false;
+    }
+  } catch (error) {
+    if (idempotencyInput && idempotency && idempotencyClaimed) {
+      await idempotency.markFailed(idempotencyInput);
+    }
+
+    if (idempotencyCompletionPending) {
+      writeError(response, 500, 'internal', 'Failed idempotency completion for orchestrate request');
+      return;
+    }
+
+    writeError(response, 500, 'internal', 'Failed to orchestrate tool dependencies');
+    return;
+  }
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, {

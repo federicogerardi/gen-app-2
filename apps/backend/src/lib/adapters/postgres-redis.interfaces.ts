@@ -102,6 +102,22 @@ export interface ArtifactQueryRepository {
   ): Promise<SessionListPage>;
 }
 
+export interface OrchestrateArtifactCache {
+  setStepArtifact(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+    stepKey: string,
+    artifactId: string,
+  ): Promise<void>;
+
+  getCompletedArtifactsByStep(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+  ): Promise<Record<string, string>>;
+}
+
 export interface PostgresRedisAdapterDependencies {
   ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
@@ -109,4 +125,5 @@ export interface PostgresRedisAdapterDependencies {
   stream: RedisStreamSessionRepository;
   llm: LlmStreamAdapter;
   persistence: PostgresArtifactRepository;
+  orchestrateCache: OrchestrateArtifactCache | null;
 }

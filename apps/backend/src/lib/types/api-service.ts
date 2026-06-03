@@ -103,6 +103,7 @@ export type ApiServiceRow = {
   error_mapping_rules_json?: unknown;
   contract_profile_version?: number;
   token_ref: string | null;
+  token_ciphertext: string | null;
   status: string;
   created_at: Date;
   updated_at: Date;

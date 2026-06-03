@@ -1,5 +1,6 @@
 import type Redis from 'ioredis';
-import type { Pool, QueryResult } from 'pg';
+import { Kysely, sql } from 'kysely';
+import type { Pool } from 'pg';
 
 import type { IdempotencyCoordinatorInput } from '../types/xstate';
 
@@ -10,30 +11,46 @@ import type {
   IdempotencyRepositoryOptions,
   IdempotencyRow,
 } from './postgres-redis.shared.types';
-import { buildQualifiedTableName, nowDate } from './postgres-redis.sql.utils';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
 
 const defaultEndpointResolver = (input: IdempotencyCoordinatorInput): string => {
   return input.workflowType ?? 'generation';
 };
 
 export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepository {
+  private readonly db: Kysely<DB>;
   private readonly redisKeyPrefix: string;
   private readonly redisLockTtlSeconds: number;
-  private readonly requestIdempotencyTableName: string;
+  private readonly requestIdempotencySchema: string | undefined;
   private readonly endpointResolver: (input: IdempotencyCoordinatorInput) => string;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     private readonly redis: Redis,
     options: IdempotencyRepositoryOptions = {},
   ) {
+    this.db = createKyselyDb(pg);
     this.redisKeyPrefix = options.redisKeyPrefix ?? DEFAULT_IDEMPOTENCY_REDIS_KEY_PREFIX;
     this.redisLockTtlSeconds = options.redisLockTtlSeconds ?? 900;
-    this.requestIdempotencyTableName = buildQualifiedTableName(
-      options.requestIdempotencySchema,
-      options.requestIdempotencyTableName ?? 'request_idempotency',
-    );
+    this.requestIdempotencySchema = options.requestIdempotencySchema;
     this.endpointResolver = options.endpointResolver ?? defaultEndpointResolver;
+    if (
+      options.requestIdempotencyTableName !== undefined
+      && options.requestIdempotencyTableName !== 'request_idempotency'
+    ) {
+      throw new Error(`Unsupported requestIdempotencyTableName: ${options.requestIdempotencyTableName}`);
+    }
+  }
+
+  private getDb(): Kysely<DB> {
+    return this.requestIdempotencySchema ? this.db.withSchema(this.requestIdempotencySchema) : this.db;
   }
 
   async checkAndClaim(input: IdempotencyCoordinatorInput): Promise<IdempotencyDecision> {
@@ -55,7 +72,7 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
     }
 
     const lockKey = this.getLockKey(input, endpoint);
-    const lockValue = `${input.requestId}:${nowDate().toISOString()}`;
+    const lockValue = `${input.requestId}:${new Date().toISOString()}`;
     const lockResult = await this.redis.set(
       lockKey,
       lockValue,
@@ -71,25 +88,28 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
       };
     }
 
-    const query = `
-      INSERT INTO ${this.requestIdempotencyTableName}
-        (user_id, project_id, endpoint, idempotency_key, status, artifact_id, content, created_at, updated_at)
-      VALUES
-        ($1, $2, $3, $4, 'in_progress', NULL, '', NOW(), NOW())
-      ON CONFLICT (user_id, project_id, endpoint, idempotency_key)
-      DO NOTHING
-      RETURNING artifact_id
-    `;
-
     try {
-      const result = await this.pg.query(query, [
-        input.userId,
-        input.projectId,
-        endpoint,
-        input.idempotencyKey,
-      ]);
+      const result = await this.getDb()
+        .insertInto('request_idempotency')
+        .values({
+          user_id: input.userId,
+          project_id: input.projectId,
+          endpoint,
+          idempotency_key: input.idempotencyKey,
+          status: 'in_progress',
+          artifact_id: null,
+          content: '',
+          created_at: dbNow,
+          updated_at: dbNow,
+        })
+        .onConflict((oc) => oc
+          .columns(['user_id', 'project_id', 'endpoint', 'idempotency_key'])
+          .doNothing())
+        .execute();
 
-      if (result.rowCount && result.rowCount > 0) {
+      // Kysely execute() without returning always returns [InsertResult] regardless of DO NOTHING.
+      // Check numInsertedOrUpdatedRows to distinguish an actual insert from a conflict skip.
+      if ((result[0]?.numInsertedOrUpdatedRows ?? 0n) > 0n) {
         return { status: 'claimed' };
       }
 
@@ -119,43 +139,35 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
     content: string,
   ): Promise<void> {
     const endpoint = this.endpointResolver(input);
-    const query = `
-      UPDATE ${this.requestIdempotencyTableName}
-      SET status = 'completed', artifact_id = $5, content = $6, updated_at = NOW()
-      WHERE user_id = $1
-        AND project_id = $2
-        AND endpoint = $3
-        AND idempotency_key = $4
-    `;
-
-    await this.pg.query(query, [
-      input.userId,
-      input.projectId,
-      endpoint,
-      input.idempotencyKey,
-      artifactId,
-      content,
-    ]);
+    await this.getDb()
+      .updateTable('request_idempotency')
+      .set({
+        status: 'completed',
+        artifact_id: artifactId,
+        content,
+        updated_at: dbNow,
+      })
+      .where('user_id', '=', input.userId)
+      .where('project_id', '=', input.projectId)
+      .where('endpoint', '=', endpoint)
+      .where('idempotency_key', '=', input.idempotencyKey)
+      .execute();
     await this.redis.del(this.getLockKey(input, endpoint));
   }
 
   async markFailed(input: IdempotencyCoordinatorInput): Promise<void> {
     const endpoint = this.endpointResolver(input);
-    const query = `
-      UPDATE ${this.requestIdempotencyTableName}
-      SET status = 'failed', updated_at = NOW()
-      WHERE user_id = $1
-        AND project_id = $2
-        AND endpoint = $3
-        AND idempotency_key = $4
-    `;
-
-    await this.pg.query(query, [
-      input.userId,
-      input.projectId,
-      endpoint,
-      input.idempotencyKey,
-    ]);
+    await this.getDb()
+      .updateTable('request_idempotency')
+      .set({
+        status: 'failed',
+        updated_at: dbNow,
+      })
+      .where('user_id', '=', input.userId)
+      .where('project_id', '=', input.projectId)
+      .where('endpoint', '=', endpoint)
+      .where('idempotency_key', '=', input.idempotencyKey)
+      .execute();
     await this.redis.del(this.getLockKey(input, endpoint));
   }
 
@@ -163,24 +175,17 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
     input: IdempotencyCoordinatorInput,
     endpoint: string,
   ): Promise<IdempotencyRow | null> {
-    const query = `
-      SELECT status, artifact_id, content
-      FROM ${this.requestIdempotencyTableName}
-      WHERE user_id = $1
-        AND project_id = $2
-        AND endpoint = $3
-        AND idempotency_key = $4
-      LIMIT 1
-    `;
+    const row = await this.getDb()
+      .selectFrom('request_idempotency')
+      .select(['status', 'artifact_id', 'content'])
+      .where('user_id', '=', input.userId)
+      .where('project_id', '=', input.projectId)
+      .where('endpoint', '=', endpoint)
+      .where('idempotency_key', '=', input.idempotencyKey)
+      .limit(1)
+      .executeTakeFirst() as unknown as IdempotencyRow | undefined;
 
-    const result: QueryResult<IdempotencyRow> = await this.pg.query(query, [
-      input.userId,
-      input.projectId,
-      endpoint,
-      input.idempotencyKey,
-    ]);
-
-    return result.rows[0] ?? null;
+    return row ?? null;
   }
 
   private getLockKey(input: IdempotencyCoordinatorInput, endpoint: string): string {

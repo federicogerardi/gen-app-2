@@ -1,16 +1,39 @@
 import { randomUUID } from 'node:crypto';
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
+
 import {
   rowToProductChangelog,
   type ProductChangelog,
   type ProductChangelogRow,
 } from '../types/feedback-center';
 
-const SELECT_COLS =
-  'id, title, body, status, created_by_user_id, published_by_user_id, published_at, archived_by_user_id, archived_at, created_at, updated_at';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
+function getDb(pool: Pool): Kysely<DB> {
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
+}
 
 export const createProductChangelog = async (
-  db: Pool,
+  pool: Pool,
   payload: {
     title: string;
     body: string;
@@ -18,76 +41,85 @@ export const createProductChangelog = async (
     id?: string;
   },
 ): Promise<ProductChangelog> => {
-  const result = await db.query<ProductChangelogRow>(
-    `INSERT INTO product_changelogs (id, title, body, status, created_by_user_id)
-     VALUES ($1, $2, $3, 'draft', $4)
-     RETURNING ${SELECT_COLS}`,
-    [payload.id ?? `chg_${randomUUID()}`, payload.title, payload.body, payload.createdByUserId],
-  );
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error('Insert returned no row');
-  }
+  const row = await getDb(pool)
+    .insertInto('product_changelogs')
+    .values({
+      id: payload.id ?? `chg_${randomUUID()}`,
+      title: payload.title,
+      body: payload.body,
+      status: 'draft',
+      created_by_user_id: payload.createdByUserId,
+      created_at: dbNow,
+      updated_at: dbNow,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow() as unknown as ProductChangelogRow;
+
   return rowToProductChangelog(row);
 };
 
 export const publishProductChangelog = async (
-  db: Pool,
+  pool: Pool,
   payload: {
     id: string;
     publishedByUserId: string;
   },
 ): Promise<ProductChangelog | null> => {
-  const result = await db.query<ProductChangelogRow>(
-    `UPDATE product_changelogs
-     SET status = 'published',
-         published_by_user_id = $2,
-         published_at = now(),
-         updated_at = now()
-     WHERE id = $1
-     RETURNING ${SELECT_COLS}`,
-    [payload.id, payload.publishedByUserId],
-  );
-  const row = result.rows[0];
+  const row = await getDb(pool)
+    .updateTable('product_changelogs')
+    .set({
+      status: 'published',
+      published_by_user_id: payload.publishedByUserId,
+      published_at: dbNow,
+      updated_at: dbNow,
+    })
+    .where('id', '=', payload.id)
+    .returningAll()
+    .executeTakeFirst() as unknown as ProductChangelogRow | undefined;
+
   return row ? rowToProductChangelog(row) : null;
 };
 
 export const archiveProductChangelog = async (
-  db: Pool,
+  pool: Pool,
   payload: {
     id: string;
     archivedByUserId: string;
   },
 ): Promise<ProductChangelog | null> => {
-  const result = await db.query<ProductChangelogRow>(
-    `UPDATE product_changelogs
-     SET status = 'archived',
-         archived_by_user_id = $2,
-         archived_at = now(),
-         updated_at = now()
-     WHERE id = $1
-     RETURNING ${SELECT_COLS}`,
-    [payload.id, payload.archivedByUserId],
-  );
-  const row = result.rows[0];
+  const row = await getDb(pool)
+    .updateTable('product_changelogs')
+    .set({
+      status: 'archived',
+      archived_by_user_id: payload.archivedByUserId,
+      archived_at: dbNow,
+      updated_at: dbNow,
+    })
+    .where('id', '=', payload.id)
+    .returningAll()
+    .executeTakeFirst() as unknown as ProductChangelogRow | undefined;
+
   return row ? rowToProductChangelog(row) : null;
 };
 
-export const listPublishedProductChangelogs = async (db: Pool): Promise<ProductChangelog[]> => {
-  const result = await db.query<ProductChangelogRow>(
-    `SELECT ${SELECT_COLS}
-     FROM product_changelogs
-     WHERE status = 'published'
-     ORDER BY published_at DESC, created_at DESC`,
-  );
-  return result.rows.map(rowToProductChangelog);
+export const listPublishedProductChangelogs = async (pool: Pool): Promise<ProductChangelog[]> => {
+  const rows = await getDb(pool)
+    .selectFrom('product_changelogs')
+    .selectAll()
+    .where('status', '=', 'published')
+    .orderBy('published_at', 'desc')
+    .orderBy('created_at', 'desc')
+    .execute() as unknown as ProductChangelogRow[];
+
+  return rows.map(rowToProductChangelog);
 };
 
-export const listProductChangelogs = async (db: Pool): Promise<ProductChangelog[]> => {
-  const result = await db.query<ProductChangelogRow>(
-    `SELECT ${SELECT_COLS}
-     FROM product_changelogs
-     ORDER BY created_at DESC`,
-  );
-  return result.rows.map(rowToProductChangelog);
+export const listProductChangelogs = async (pool: Pool): Promise<ProductChangelog[]> => {
+  const rows = await getDb(pool)
+    .selectFrom('product_changelogs')
+    .selectAll()
+    .orderBy('created_at', 'desc')
+    .execute() as unknown as ProductChangelogRow[];
+
+  return rows.map(rowToProductChangelog);
 };

@@ -1,3 +1,4 @@
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
 
 import {
@@ -14,40 +15,37 @@ import {
   type ApiServiceToolStepBindingRow,
 } from '../types/api-service';
 
-const SELECT_COLS = `
-  id,
-  key,
-  label,
-  base_url,
-  resource_path,
-  access_mode,
-  timeout_ms,
-  retry_count,
-  request_method,
-  request_template_json,
-  request_mapping_rules_json,
-  request_headers_template_json,
-  token_header_name,
-  response_mapping_rules_json,
-  error_mapping_rules_json,
-  contract_profile_version,
-  token_ref,
-  status,
-  created_at,
-  updated_at
-`;
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 
-const SELECT_BINDING_COLS = `
-  id,
-  api_service_id,
-  tool_key,
-  step_key,
-  workflow_step_type,
-  binding_status,
-  requiredness,
-  created_at,
-  updated_at
-`;
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag; the return type is Date to satisfy
+ * Generated<Date> column expectations in .values() and .set() contexts.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL UUID generation functions.
+ * gen_random_uuid() must be expressed via the sql template tag.
+ */
+const dbGenUuid = sql<string>`gen_random_uuid()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ * Prevents creating a new Kysely object on every function call.
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
+function getDb(pool: Pool): Kysely<DB> {
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
+}
 
 export type CreateApiServiceInput = {
   key: string;
@@ -86,205 +84,126 @@ export type ResolvedApiServiceForAcquisition = ApiService & {
   tokenCiphertext: string | null;
 };
 
-export const listApiServices = async (db: Pool): Promise<ApiService[]> => {
-  const result = await db.query<ApiServiceRow>(
-    `SELECT ${SELECT_COLS}
-     FROM api_services
-     ORDER BY created_at DESC`,
-  );
-  return result.rows.map(rowToApiService);
+export const listApiServices = async (pool: Pool): Promise<ApiService[]> => {
+  const rows = await getDb(pool)
+    .selectFrom('api_services')
+    .selectAll()
+    .orderBy('created_at', 'desc')
+    .execute() as unknown as ApiServiceRow[];
+
+  return rows.map(rowToApiService);
 };
 
 export const getApiServiceById = async (
-  db: Pool,
+  pool: Pool,
   id: string,
 ): Promise<ApiService | null> => {
-  const result = await db.query<ApiServiceRow>(
-    `SELECT ${SELECT_COLS}
-     FROM api_services
-     WHERE id = $1`,
-    [id],
-  );
-  return result.rows[0] ? rowToApiService(result.rows[0]) : null;
+  const row = await getDb(pool)
+    .selectFrom('api_services')
+    .selectAll()
+    .where('id', '=', id)
+    .executeTakeFirst() as unknown as ApiServiceRow | undefined;
+
+  return row ? rowToApiService(row) : null;
 };
 
 export const createApiService = async (
-  db: Pool,
+  pool: Pool,
   payload: CreateApiServiceInput,
 ): Promise<ApiService> => {
-  const result = await db.query<ApiServiceRow>(
-    `INSERT INTO api_services (
-      key,
-      label,
-      base_url,
-      resource_path,
-      access_mode,
-      timeout_ms,
-      retry_count,
-      request_method,
-      request_template_json,
-      request_mapping_rules_json,
-      request_headers_template_json,
-      token_header_name,
-      response_mapping_rules_json,
-      error_mapping_rules_json,
-      contract_profile_version,
-      token_ref,
-      token_ciphertext,
-      status
-    )
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13::jsonb, $14::jsonb, $15, $16, $17, $18)
-     RETURNING ${SELECT_COLS}`,
-    [
-      payload.key,
-      payload.label,
-      payload.baseUrl,
-      payload.resourcePath,
-      payload.accessMode,
-      payload.timeoutMs ?? 10000,
-      payload.retryCount ?? 1,
-      payload.requestMethod ?? 'GET',
-      JSON.stringify(payload.requestTemplateJson ?? {}),
-      JSON.stringify(payload.requestMappingRulesJson ?? []),
-      JSON.stringify(payload.requestHeadersTemplateJson ?? {}),
-      payload.tokenHeaderName ?? null,
-      JSON.stringify(payload.responseMappingRulesJson ?? []),
-      JSON.stringify(payload.errorMappingRulesJson ?? []),
-      payload.contractProfileVersion ?? 1,
-      payload.tokenRef ?? null,
-      payload.tokenCiphertext ?? null,
-      payload.status ?? 'active',
-    ],
-  );
-
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error('Insert returned no row');
-  }
+  const row = await getDb(pool)
+    .insertInto('api_services')
+    .values({
+      id: dbGenUuid,
+      key: payload.key,
+      label: payload.label,
+      base_url: payload.baseUrl,
+      resource_path: payload.resourcePath,
+      access_mode: payload.accessMode,
+      timeout_ms: payload.timeoutMs ?? 10000,
+      retry_count: payload.retryCount ?? 1,
+      request_method: payload.requestMethod ?? 'GET',
+      request_template_json: payload.requestTemplateJson ?? {},
+      request_mapping_rules_json: payload.requestMappingRulesJson ?? [],
+      request_headers_template_json: payload.requestHeadersTemplateJson ?? {},
+      token_header_name: payload.tokenHeaderName ?? null,
+      response_mapping_rules_json: payload.responseMappingRulesJson ?? [],
+      error_mapping_rules_json: payload.errorMappingRulesJson ?? [],
+      contract_profile_version: payload.contractProfileVersion ?? 1,
+      token_ref: payload.tokenRef ?? null,
+      token_ciphertext: payload.tokenCiphertext ?? null,
+      status: payload.status ?? 'active',
+      created_at: dbNow,
+      updated_at: dbNow,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow() as unknown as ApiServiceRow;
 
   return rowToApiService(row);
 };
 
 export const updateApiService = async (
-  db: Pool,
+  pool: Pool,
   id: string,
   payload: UpdateApiServiceInput,
 ): Promise<ApiService | null> => {
-  const setClauses: string[] = [];
-  const values: unknown[] = [];
-  let index = 1;
+  const setValues: Record<string, unknown> = {};
 
-  if (payload.key !== undefined) {
-    setClauses.push(`key = $${index++}`);
-    values.push(payload.key);
-  }
-  if (payload.label !== undefined) {
-    setClauses.push(`label = $${index++}`);
-    values.push(payload.label);
-  }
-  if (payload.baseUrl !== undefined) {
-    setClauses.push(`base_url = $${index++}`);
-    values.push(payload.baseUrl);
-  }
-  if (payload.resourcePath !== undefined) {
-    setClauses.push(`resource_path = $${index++}`);
-    values.push(payload.resourcePath);
-  }
-  if (payload.accessMode !== undefined) {
-    setClauses.push(`access_mode = $${index++}`);
-    values.push(payload.accessMode);
-  }
-  if (payload.timeoutMs !== undefined) {
-    setClauses.push(`timeout_ms = $${index++}`);
-    values.push(payload.timeoutMs);
-  }
-  if (payload.retryCount !== undefined) {
-    setClauses.push(`retry_count = $${index++}`);
-    values.push(payload.retryCount);
-  }
-  if (payload.requestMethod !== undefined) {
-    setClauses.push(`request_method = $${index++}`);
-    values.push(payload.requestMethod);
-  }
-  if (payload.requestTemplateJson !== undefined) {
-    setClauses.push(`request_template_json = $${index++}::jsonb`);
-    values.push(JSON.stringify(payload.requestTemplateJson));
-  }
-  if (payload.requestMappingRulesJson !== undefined) {
-    setClauses.push(`request_mapping_rules_json = $${index++}::jsonb`);
-    values.push(JSON.stringify(payload.requestMappingRulesJson));
-  }
-  if (payload.requestHeadersTemplateJson !== undefined) {
-    setClauses.push(`request_headers_template_json = $${index++}::jsonb`);
-    values.push(JSON.stringify(payload.requestHeadersTemplateJson));
-  }
-  if (payload.tokenHeaderName !== undefined) {
-    setClauses.push(`token_header_name = $${index++}`);
-    values.push(payload.tokenHeaderName);
-  }
-  if (payload.responseMappingRulesJson !== undefined) {
-    setClauses.push(`response_mapping_rules_json = $${index++}::jsonb`);
-    values.push(JSON.stringify(payload.responseMappingRulesJson));
-  }
-  if (payload.errorMappingRulesJson !== undefined) {
-    setClauses.push(`error_mapping_rules_json = $${index++}::jsonb`);
-    values.push(JSON.stringify(payload.errorMappingRulesJson));
-  }
-  if (payload.contractProfileVersion !== undefined) {
-    setClauses.push(`contract_profile_version = $${index++}`);
-    values.push(payload.contractProfileVersion);
-  }
-  if (payload.tokenRef !== undefined) {
-    setClauses.push(`token_ref = $${index++}`);
-    values.push(payload.tokenRef);
-  }
-  if (payload.tokenCiphertext !== undefined) {
-    setClauses.push(`token_ciphertext = $${index++}`);
-    values.push(payload.tokenCiphertext);
-  }
-  if (payload.status !== undefined) {
-    setClauses.push(`status = $${index++}`);
-    values.push(payload.status);
+  if (payload.key !== undefined) setValues.key = payload.key;
+  if (payload.label !== undefined) setValues.label = payload.label;
+  if (payload.baseUrl !== undefined) setValues.base_url = payload.baseUrl;
+  if (payload.resourcePath !== undefined) setValues.resource_path = payload.resourcePath;
+  if (payload.accessMode !== undefined) setValues.access_mode = payload.accessMode;
+  if (payload.timeoutMs !== undefined) setValues.timeout_ms = payload.timeoutMs;
+  if (payload.retryCount !== undefined) setValues.retry_count = payload.retryCount;
+  if (payload.requestMethod !== undefined) setValues.request_method = payload.requestMethod;
+  if (payload.requestTemplateJson !== undefined) setValues.request_template_json = payload.requestTemplateJson;
+  if (payload.requestMappingRulesJson !== undefined) setValues.request_mapping_rules_json = payload.requestMappingRulesJson;
+  if (payload.requestHeadersTemplateJson !== undefined) setValues.request_headers_template_json = payload.requestHeadersTemplateJson;
+  if (payload.tokenHeaderName !== undefined) setValues.token_header_name = payload.tokenHeaderName;
+  if (payload.responseMappingRulesJson !== undefined) setValues.response_mapping_rules_json = payload.responseMappingRulesJson;
+  if (payload.errorMappingRulesJson !== undefined) setValues.error_mapping_rules_json = payload.errorMappingRulesJson;
+  if (payload.contractProfileVersion !== undefined) setValues.contract_profile_version = payload.contractProfileVersion;
+  if (payload.tokenRef !== undefined) setValues.token_ref = payload.tokenRef;
+  if (payload.tokenCiphertext !== undefined) setValues.token_ciphertext = payload.tokenCiphertext;
+  if (payload.status !== undefined) setValues.status = payload.status;
+
+  if (Object.keys(setValues).length === 0) {
+    return getApiServiceById(pool, id);
   }
 
-  if (setClauses.length === 0) {
-    return getApiServiceById(db, id);
-  }
+  setValues.updated_at = dbNow;
 
-  setClauses.push('updated_at = now()');
-  values.push(id);
+  const row = await getDb(pool)
+    .updateTable('api_services')
+    .set(setValues as any)
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst() as unknown as ApiServiceRow | undefined;
 
-  const result = await db.query<ApiServiceRow>(
-    `UPDATE api_services
-     SET ${setClauses.join(', ')}
-     WHERE id = $${index}
-     RETURNING ${SELECT_COLS}`,
-    values,
-  );
-
-  return result.rows[0] ? rowToApiService(result.rows[0]) : null;
+  return row ? rowToApiService(row) : null;
 };
 
-export const deleteApiService = async (db: Pool, id: string): Promise<boolean> => {
-  const result = await db.query('DELETE FROM api_services WHERE id = $1', [id]);
-  return (result.rowCount ?? 0) > 0;
+export const deleteApiService = async (pool: Pool, id: string): Promise<boolean> => {
+  const result = await getDb(pool)
+    .deleteFrom('api_services')
+    .where('id', '=', id)
+    .execute();
+
+  return Number(result[0]?.numDeletedRows ?? 0) > 0;
 };
 
 export const resolveApiServiceForAcquisition = async (
-  db: Pool,
+  pool: Pool,
   id: string,
 ): Promise<ResolvedApiServiceForAcquisition | null> => {
-  const result = await db.query<
-    ApiServiceRow & { token_ciphertext: string | null }
-  >(
-    `SELECT ${SELECT_COLS}, token_ciphertext
-     FROM api_services
-     WHERE id = $1
-       AND status = 'active'`,
-    [id],
-  );
+  const row = await getDb(pool)
+    .selectFrom('api_services')
+    .selectAll()
+    .where('id', '=', id)
+    .where('status', '=', 'active')
+    .executeTakeFirst() as unknown as ApiServiceRow | undefined;
 
-  const row = result.rows[0];
   if (!row) {
     return null;
   }
@@ -296,72 +215,63 @@ export const resolveApiServiceForAcquisition = async (
 };
 
 export const listApiServiceBindings = async (
-  db: Pool,
+  pool: Pool,
   apiServiceId: string,
 ): Promise<ApiServiceToolStepBinding[]> => {
-  const result = await db.query<ApiServiceToolStepBindingRow>(
-    `SELECT ${SELECT_BINDING_COLS}
-     FROM api_service_tool_step_bindings
-     WHERE api_service_id = $1
-     ORDER BY created_at DESC`,
-    [apiServiceId],
-  );
+  const rows = await getDb(pool)
+    .selectFrom('api_service_tool_step_bindings')
+    .selectAll()
+    .where('api_service_id', '=', apiServiceId)
+    .orderBy('created_at', 'desc')
+    .execute() as unknown as ApiServiceToolStepBindingRow[];
 
-  return result.rows.map(rowToApiServiceBinding);
+  return rows.map(rowToApiServiceBinding);
 };
 
 export const upsertApiServiceBinding = async (
-  db: Pool,
+  pool: Pool,
   payload: UpsertApiServiceBindingInput,
 ): Promise<ApiServiceToolStepBinding> => {
-  const result = await db.query<ApiServiceToolStepBindingRow>(
-    `INSERT INTO api_service_tool_step_bindings (
-      id,
-      api_service_id,
-      tool_key,
-      step_key,
-      workflow_step_type,
-      binding_status,
-      requiredness
-    )
-     VALUES (COALESCE($1::uuid, gen_random_uuid()), $2, $3, $4, $5, $6, $7)
-     ON CONFLICT (api_service_id, tool_key, step_key)
-     DO UPDATE SET
-       workflow_step_type = EXCLUDED.workflow_step_type,
-       binding_status = EXCLUDED.binding_status,
-       requiredness = EXCLUDED.requiredness,
-       updated_at = now()
-     RETURNING ${SELECT_BINDING_COLS}`,
-    [
-      payload.id ?? null,
-      payload.apiServiceId,
-      payload.toolKey,
-      payload.stepKey,
-      payload.workflowStepType ?? 'acquisition',
-      payload.bindingStatus ?? 'active',
-      payload.requiredness ?? 'required-by-tool-setting',
-    ],
-  );
-
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error('Binding upsert returned no row');
-  }
+  const row = await getDb(pool)
+    .insertInto('api_service_tool_step_bindings')
+    .values({
+      // Escape hatch: COALESCE with ::uuid cast preserves a caller-supplied id when
+      // present, otherwise falls back to gen_random_uuid(). Kysely has no typed API
+      // for conditional UUID generation or the PostgreSQL ::uuid cast operator.
+      id: sql<string>`COALESCE(${payload.id ?? null}::uuid, gen_random_uuid())`,
+      api_service_id: payload.apiServiceId,
+      tool_key: payload.toolKey,
+      step_key: payload.stepKey,
+      workflow_step_type: payload.workflowStepType ?? 'acquisition',
+      binding_status: payload.bindingStatus ?? 'active',
+      requiredness: payload.requiredness ?? 'required-by-tool-setting',
+      created_at: dbNow,
+      updated_at: dbNow,
+    })
+    .onConflict((oc) => oc
+      .columns(['api_service_id', 'tool_key', 'step_key'])
+      .doUpdateSet({
+        workflow_step_type: payload.workflowStepType ?? 'acquisition',
+        binding_status: payload.bindingStatus ?? 'active',
+        requiredness: payload.requiredness ?? 'required-by-tool-setting',
+        updated_at: dbNow,
+      }))
+    .returningAll()
+    .executeTakeFirstOrThrow() as unknown as ApiServiceToolStepBindingRow;
 
   return rowToApiServiceBinding(row);
 };
 
 export const deleteApiServiceBinding = async (
-  db: Pool,
+  pool: Pool,
   apiServiceId: string,
   bindingId: string,
 ): Promise<boolean> => {
-  const result = await db.query(
-    `DELETE FROM api_service_tool_step_bindings
-     WHERE id = $1
-       AND api_service_id = $2`,
-    [bindingId, apiServiceId],
-  );
+  const result = await getDb(pool)
+    .deleteFrom('api_service_tool_step_bindings')
+    .where('id', '=', bindingId)
+    .where('api_service_id', '=', apiServiceId)
+    .execute();
 
-  return (result.rowCount ?? 0) > 0;
+  return Number(result[0]?.numDeletedRows ?? 0) > 0;
 };

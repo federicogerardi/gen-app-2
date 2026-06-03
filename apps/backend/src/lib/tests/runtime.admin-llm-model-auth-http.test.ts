@@ -77,8 +77,14 @@ class LlmModelDbStub {
     },
   ];
 
-  async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[]; rowCount?: number }> {
-    if (sqlText.includes('INSERT INTO llm_models')) {
+  async query<T = unknown>(sqlText: string, values?: unknown[]): Promise<{ rows: T[]; rowCount?: number; command?: string }> {
+    const s = sqlText.toLowerCase();
+
+    if (s.includes('begin') || s.includes('commit') || s.includes('rollback')) {
+      return { rows: [] };
+    }
+
+    if (sqlText.includes('insert into "llm_models"')) {
       const row = {
         id: `model-${String(this.rows.length + 1).padStart(3, '0')}`,
         key: String(values?.[0] ?? ''),
@@ -90,43 +96,57 @@ class LlmModelDbStub {
         updated_at: new Date('2026-06-02T10:10:00.000Z'),
       };
       this.rows.push(row);
-      return { rows: [{ ...row } as T], rowCount: 1 };
+      return { rows: [{ ...row } as T], rowCount: 1, command: 'INSERT' };
     }
 
-    if (sqlText.includes('SELECT id, key, label, status, is_default, sort_order, created_at, updated_at FROM llm_models WHERE id = $1')) {
+    if (sqlText.includes('from "llm_models"') && sqlText.includes('where "id" =')) {
       const id = String(values?.[0] ?? '');
       const row = this.rows.find((item) => item.id === id);
       return { rows: row ? [{ ...row } as T] : [], rowCount: row ? 1 : 0 };
     }
 
-    if (sqlText.includes('UPDATE llm_models SET')) {
-      const id = String(values?.[values.length - 1] ?? '');
-      const current = this.rows.find((item) => item.id === id);
-      if (!current) {
-        return { rows: [], rowCount: 0 };
+    if (sqlText.includes('update "llm_models"')) {
+      if (sqlText.includes('where "is_default" =')) {
+        const newValue = Boolean(values?.[0] ?? false);
+        const targetValue = Boolean(values?.[1] ?? false);
+        this.rows = this.rows.map((item) =>
+          item.is_default === targetValue
+            ? { ...item, is_default: newValue, updated_at: new Date('2026-06-02T10:20:00.000Z') }
+            : item,
+        );
+        return { rows: [], rowCount: 1, command: 'UPDATE' };
       }
 
-      const extract = (column: string): unknown => {
-        const escaped = column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const match = sqlText.match(new RegExp(`${escaped} = \\$(\\d+)`));
-        if (!match) {
-          return undefined;
+      if (sqlText.includes('where "id" =')) {
+        const id = String(values?.[values.length - 1] ?? '');
+        const current = this.rows.find((item) => item.id === id);
+        if (!current) {
+          return { rows: [], rowCount: 0 };
         }
-        return values?.[Number(match[1]) - 1];
-      };
 
-      const updated = {
-        ...current,
-        ...(extract('key') !== undefined ? { key: String(extract('key')) } : {}),
-        ...(extract('label') !== undefined ? { label: String(extract('label')) } : {}),
-        ...(extract('status') !== undefined ? { status: String(extract('status')) } : {}),
-        ...(extract('sort_order') !== undefined ? { sort_order: Number(extract('sort_order')) } : {}),
-        ...(extract('is_default') !== undefined ? { is_default: Boolean(extract('is_default')) } : {}),
-        updated_at: new Date('2026-06-02T10:20:00.000Z'),
-      } satisfies LlmModelRow;
+        const normalized = sqlText.replace(/"/g, '');
+        const extract = (column: string): unknown => {
+          const escaped = column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const match = normalized.match(new RegExp(`${escaped} = \\$(\\d+)`));
+          if (!match) {
+            return undefined;
+          }
+          return values?.[Number(match[1]) - 1];
+        };
 
-      this.rows = this.rows.map((item) => item.id === id ? updated : item);
-      return { rows: [{ ...updated } as T], rowCount: 1 };
+        const updated = {
+          ...current,
+          ...(extract('key') !== undefined ? { key: String(extract('key')) } : {}),
+          ...(extract('label') !== undefined ? { label: String(extract('label')) } : {}),
+          ...(extract('status') !== undefined ? { status: String(extract('status')) } : {}),
+          ...(extract('sort_order') !== undefined ? { sort_order: Number(extract('sort_order')) } : {}),
+          ...(extract('is_default') !== undefined ? { is_default: Boolean(extract('is_default')) } : {}),
+          updated_at: new Date('2026-06-02T10:20:00.000Z'),
+        } satisfies LlmModelRow;
+
+        this.rows = this.rows.map((item) => item.id === id ? updated : item);
+        return { rows: [{ ...updated } as T], rowCount: 1, command: 'UPDATE' };
+      }
     }
 
     throw new Error(`Unhandled SQL in LlmModelDbStub: ${sqlText}`);

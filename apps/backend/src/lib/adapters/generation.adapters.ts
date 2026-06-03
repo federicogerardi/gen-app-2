@@ -6,6 +6,7 @@ import type {
   UsageActorInput,
 } from '../types/xstate';
 import type { ArtifactStatus } from '../types/artifact';
+import type { OrchestrateArtifactCache } from './postgres-redis.interfaces';
 
 export type { LlmUsageMetrics };
 
@@ -82,6 +83,7 @@ export interface GenerationAdapters {
   stream: StreamAdapter;
   llm: LlmStreamAdapter;
   persistence: PersistenceAdapter;
+  orchestrateCache: OrchestrateArtifactCache | null;
 }
 
 type QuotaBucket = {
@@ -247,5 +249,6 @@ export const createInMemoryGenerationAdapters = (
     stream,
     llm,
     persistence,
+    orchestrateCache: null,
   };
 };

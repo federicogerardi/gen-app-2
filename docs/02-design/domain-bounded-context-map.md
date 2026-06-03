@@ -1,7 +1,7 @@
 ---
 status: active
-version: 2.5
-last-reviewed: 2026-06-03
+version: 2.6
+last-reviewed: 2026-06-04
 next-review-date: 2026-09-03
 owner: Domain Architecture
 ---
@@ -57,6 +57,8 @@ owner: Domain Architecture
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 
+**Adapter layer**: `OrchestrateArtifactCache` — cache-first pattern adapter backed by Redis; consulted by the orchestrate handler (`/api/tools/orchestrate`) before falling through to full resolution pipeline.
+
 **Guard sequence (runtime truth)**: The `preGenerationGuards` compound state in `generationSystemMachine` executes `idempotency → ownershipCheck → usage`. Route entrypoints (`/generation/stream`, `/api/tools/orchestrate`) enforce Authentication and Ownership checks before execution; generation stream paths also apply model availability guard before usage claim.
 
 **Integration note**: `usageMachine` operates as a delegate actor inside `GenerationSystem` but implements the `ClaimUsage` command owned by the Usage/Quota context. Guard sequence at generation entrypoints is Authentication → Ownership → Model Availability → Usage Guards; no quota mutation occurs for ownership failures.
@@ -80,7 +82,7 @@ owner: Domain Architecture
 
 **Integration points**:
 - Redis is the primary store for real-time quota enforcement (atomic decrement via `RedisQuotaRepository`).
-- PostgreSQL stores `quota_history` for audit and billing.
+- PostgreSQL stores `quota_history` for audit and billing. Infrastructure parameter `PG_POOL_MAX` is configurable to tune connection pool sizing per deployment environment.
 - `Project` is shared with Generation (artifact scoping) — see Shared Concepts below.
 
 ---
@@ -102,6 +104,8 @@ owner: Domain Architecture
 **Feature orchestration concepts (provisional)**: `FeedbackCenterMachine` (XState application-service boundary for changelog publishing and user reporting workflows; see DDD-065)
 
 **Architecture boundary**: Frontend owns interaction and display only. Step ordering authority is BE (`toolWorkflowStepOrder`, `resolveStepDependencyIds`). Step dependency resolution at dispatch time should route through `/api/tools/orchestrate` (BE endpoint). See DDD-C-007 for the current code-level drift.
+
+**UI state flags**: `isFormLocked` — boolean flag on `ToolPage` aggregate that gates form mutability during active generation or pending dispatch; prevents concurrent input while step execution is in progress.
 
 **Organizing concept**: `SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolAvailabilityStatus` governs whether a `SupportedTool` is exposed in navigation, dashboard shortcuts, and generated tool routes without changing identity. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term.
 

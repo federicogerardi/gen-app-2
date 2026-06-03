@@ -1,8 +1,8 @@
 ---
 status: active
-version: 2.5
-last-reviewed: 2026-05-26
-next-review-date: 2026-08-21
+version: 2.6
+last-reviewed: 2026-06-04
+next-review-date: 2026-09-04
 owner: Architecture Review
 ---
 
@@ -89,14 +89,16 @@ Severity-first ranking of active findings identified in the 2026-05-26 refresh. 
   - **Validation**: backend typecheck ✅, auth-http suite ✅ (`27 pass / 0 fail`), session integration suite ✅ (`4 pass / 0 fail`), postgres query repository suite ✅ (`2 pass / 0 fail`), frontend typecheck ✅.
   - Closure evidence anchors: `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/session-query.adapter.ts`, `apps/backend/src/lib/runtime/auth-http/tools-session-handlers.ts`, `apps/backend/src/lib/tests/runtime.auth-http.test.ts`, `apps/backend/src/lib/tests/generation-session.integration.test.ts`, `apps/backend/src/lib/tests/postgres-artifact-query-repository.test.ts`, `apps/frontend/src/features/tools/runtime/session-client.ts`.
 
-- **Orchestration Step Scalability and Structural Timeout Risk is CLOSED** (executed 2026-05-21, Phase 1-4 complete):
-  - `/api/tools/orchestrate` deadline is now configurable (`TOOLS_ORCHESTRATE_TIMEOUT_MS`) with deterministic fallback to 3000 ms through runtime config resolution.
+- **Orchestration Step Scalability and Structural Timeout Risk is CLOSED** (executed 2026-05-21, Phase 1-4 complete; Redis cache structural fix added 2026-06-04):
+  - `/api/tools/orchestrate` deadline is now configurable (`TOOLS_ORCHESTRATE_TIMEOUT_MS`) with deterministic fallback to **15000 ms** through runtime config resolution (Phase 1 hotfix, 2026-06-04).
+  - PostgreSQL connection pool max is now configurable via `PG_POOL_MAX` env var (default **20**) to mitigate pool contention during concurrent generation streams (Phase 1 hotfix, 2026-06-04).
   - Completed artifact lookup is now bounded and workflow-filtered (`listRecentCompletedArtifactsForToolByUser`) with configurable limit (`TOOLS_ORCHESTRATE_ARTIFACT_SCAN_LIMIT`), replacing broad completed-history scans.
   - Step fallback resolution removed per-item N+1 detail fetch pattern: `buildCompletedArtifactsByStep` now applies two-pass strategy with batch detail fetch (`getArtifactsByIdsForUser`) and deterministic first-hit selection.
-  - Regression coverage expanded: orchestrate timeout default/custom/invalid fallback tests, bounded lookup usage test, large-history deterministic ordering test, and dedicated registry batch-fallback deterministic tests.
+  - **Redis OrchestrateArtifactCache** (structural fix, 2026-06-04): `/api/tools/orchestrate` now uses a Redis Hash cache (`orchestrate:artifacts:{userId}:{projectId}:{workflowType}`) populated by `finalizeSuccess` after each artifact completion. Cache-first lookup eliminates DB queries entirely during active sessions; graceful fallback to DB path on cache miss or Redis failure. Cache TTL: 14400s (4 hours).
+  - Regression coverage expanded: orchestrate timeout default/custom/invalid fallback tests, bounded lookup usage test, large-history deterministic ordering test, dedicated registry batch-fallback deterministic tests, Redis cache unit tests (6 cases), and orchestrate cache integration tests (4 cases: cache hit, cache miss, Redis error fallback, first-step resolution).
   - Benchmark evidence recorded in backend benchmark test coverage with concurrent runs over 1k/5k/10k datasets; timeout and error counts remain zero in all scenarios.
-  - **Validation**: backend typecheck ✅ passing, focused orchestrate suite ✅ passing (`32 pass / 0 fail`), registry suite ✅ passing (`3 pass / 0 fail`), backend full suite ✅ passing (`142 pass / 0 fail`).
-  - Closure evidence anchors: `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts`, `apps/backend/src/lib/runtime/auth-http/runtime.ts`, `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`, `apps/backend/src/lib/runtime/tool-workflow-registry.ts`, `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/runtime.tool-workflow-registry.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.benchmark.ts`, `plan/process-orchestration-timeout-risk-closure-1.md`.
+  - **Validation**: backend typecheck ✅ passing, focused orchestrate suite ✅ passing (`25 pass / 0 fail`), registry suite ✅ passing (`3 pass / 0 fail`), backend full suite ✅ passing (`258 pass / 0 fail`).
+  - Closure evidence anchors: `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-config.ts`, `apps/backend/src/lib/runtime/auth-http/runtime.ts`, `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`, `apps/backend/src/lib/runtime/tool-workflow-registry.ts`, `apps/backend/src/lib/adapters/postgres-redis.interfaces.ts`, `apps/backend/src/lib/adapters/postgres-redis.production.ts`, `apps/backend/src/lib/adapters/postgres-redis.stub.ts`, `apps/backend/src/lib/adapters/redis-orchestrate-artifact-cache.ts`, `apps/backend/src/lib/adapters/generation.adapters.ts`, `apps/backend/src/lib/adapters/postgres-redis.adapters.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/runtime.redis-orchestrate-cache.test.ts`, `apps/backend/src/lib/tests/runtime.tool-workflow-registry.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.benchmark.ts`, `apps/backend/src/server.ts`, `plan/fix-orchestrate-503-redis-cache-1.md`.
 
 - **Hydration Non-Determinism vs. Requested Briefing is CLOSED** (executed 2026-05-20, DDD-075 enforcement complete):
   - `/api/tools/hydrate` candidate selection now enforces briefing coherence when `resolvedBriefingId` is provided, before source exact-match and recency ranking.

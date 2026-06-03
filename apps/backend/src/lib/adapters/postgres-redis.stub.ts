@@ -714,6 +714,7 @@ export const createPostgresRedisStubDependencies = (
     stream: new RedisStreamSessionRepositoryStub(runtime),
     llm,
     persistence: new PostgresArtifactRepositoryStub(runtime),
+    orchestrateCache: null,
   };
 };
 

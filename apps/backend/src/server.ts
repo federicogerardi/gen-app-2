@@ -73,8 +73,10 @@ const run = async (): Promise<void> => {
     path: '/',
   });
 
+  const pgPoolMax = Number.parseInt(process.env.PG_POOL_MAX ?? '20', 10);
   const pg = new Pool({
     connectionString: databaseUrl,
+    max: Number.isFinite(pgPoolMax) && pgPoolMax > 0 ? pgPoolMax : 20,
   });
 
   const redis = new Redis(redisUrl);
@@ -123,6 +125,7 @@ const run = async (): Promise<void> => {
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
     idempotency: generationAdapters.idempotency,
+    orchestrateCache: generationAdapters.orchestrateCache,
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',

@@ -103,6 +103,7 @@ export {
 
 export type {
   ArtifactQueryRepository,
+  OrchestrateArtifactCache,
   PostgresArtifactRepository,
   PostgresRedisAdapterDependencies,
   ProjectQueryRepository,

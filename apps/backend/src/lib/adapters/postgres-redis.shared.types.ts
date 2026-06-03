@@ -72,6 +72,11 @@ export type PostgresRedisProductionClients = {
   redis: Redis;
 };
 
+export type OrchestrateCacheOptions = {
+  prefix?: string;
+  ttlSeconds?: number;
+};
+
 export type PostgresRedisProductionOptions = {
   runtime?: ProductionAdapterRuntime;
   usage?: UsageRepositoryOptions;
@@ -81,6 +86,7 @@ export type PostgresRedisProductionOptions = {
   llm?: {
     adapter?: LlmStreamAdapter;
   };
+  orchestrateCache?: OrchestrateCacheOptions;
 };
 
 export type IdempotencyRow = {

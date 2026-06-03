@@ -10,6 +10,7 @@ import {
   ProjectQueryRepositoryStub,
   type StubArtifactQueryRecord,
 } from '../adapters';
+import type { OrchestrateArtifactCache } from '../adapters';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,
@@ -87,6 +88,7 @@ const buildRuntime = (
   options: {
     toolsOrchestrateTimeoutMs?: number;
     toolsOrchestrateArtifactScanLimit?: number;
+    orchestrateCache?: OrchestrateArtifactCache | null;
   } = {},
 ) => {
   const repositories = createAuthStubRepositories();
@@ -116,6 +118,9 @@ const buildRuntime = (
         : {}),
       ...(typeof options.toolsOrchestrateArtifactScanLimit === 'number'
         ? { toolsOrchestrateArtifactScanLimit: options.toolsOrchestrateArtifactScanLimit }
+        : {}),
+      ...(options.orchestrateCache !== undefined
+        ? { orchestrateCache: options.orchestrateCache }
         : {}),
       passwordHashing: hasher,
       sessionCookies,
@@ -785,7 +790,7 @@ test('/api/tools/orchestrate uses default timeout config when env key is absent'
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 5000);
+    assert.equal(startMeta.deadlineMs, 15000);
     assert.equal(startMeta.artifactScanLimit, 120);
     assert.equal(startMeta.artifactScanLimitConfigured, 1000);
     assert.equal(startMeta.artifactSummaryCount, 0);
@@ -856,7 +861,7 @@ test('/api/tools/orchestrate falls back to default timeout when env key is inval
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 5000);
+    assert.equal(startMeta.deadlineMs, 15000);
   } finally {
     if (typeof originalTimeoutEnv === 'string') {
       process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;
@@ -972,4 +977,167 @@ test('/api/tools/orchestrate applies bounded ordering deterministically on large
     optin: 'art-optin-newest',
     quiz: 'art-quiz-newest',
   });
+});
+
+// ---------------------------------------------------------------------------
+// Cache tests: OrchestrateArtifactCache integration
+// ---------------------------------------------------------------------------
+
+class OrchestrateArtifactCacheStub implements OrchestrateArtifactCache {
+  private readonly store = new Map<string, Record<string, string>>();
+  calls: string[] = [];
+
+  private key(userId: string, projectId: string, workflowType: string): string {
+    return `${userId}:${projectId}:${workflowType}`;
+  }
+
+  seed(userId: string, projectId: string, workflowType: string, artifacts: Record<string, string>): void {
+    this.store.set(this.key(userId, projectId, workflowType), { ...artifacts });
+  }
+
+  async setStepArtifact(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+    stepKey: string,
+    artifactId: string,
+  ): Promise<void> {
+    this.calls.push(`set:${stepKey}:${artifactId}`);
+    const k = this.key(userId, projectId, workflowType);
+    const existing = this.store.get(k) ?? {};
+    this.store.set(k, { ...existing, [stepKey]: artifactId });
+  }
+
+  async getCompletedArtifactsByStep(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+  ): Promise<Record<string, string>> {
+    this.calls.push('get');
+    return this.store.get(this.key(userId, projectId, workflowType)) ?? {};
+  }
+}
+
+test('/api/tools/orchestrate resolves from cache hit when cache is populated', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  cacheStub.seed('user-orch-001', projectId, 'funnel_pages', {
+    optin: 'art-optin-cached',
+  });
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-cached']);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, { optin: 'art-optin-cached' });
+  assert.ok(cacheStub.calls.includes('get'));
+});
+
+test('/api/tools/orchestrate falls back to DB when cache is empty', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+  const dbCallSpy: string[] = [];
+  const originalList = artifactStub.listRecentCompletedArtifactsForToolByUser.bind(artifactStub);
+  artifactStub.listRecentCompletedArtifactsForToolByUser = async (userId, input) => {
+    dbCallSpy.push('listRecentCompleted');
+    return originalList(userId, input);
+  };
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(dbCallSpy.length, 1);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-001']);
+});
+
+test('/api/tools/orchestrate falls back to DB when cache throws', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+  cacheStub.getCompletedArtifactsByStep = async () => {
+    throw new Error('Redis down');
+  };
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+  const dbCallSpy: string[] = [];
+  const originalList = artifactStub.listRecentCompletedArtifactsForToolByUser.bind(artifactStub);
+  artifactStub.listRecentCompletedArtifactsForToolByUser = async (userId, input) => {
+    dbCallSpy.push('listRecentCompleted');
+    return originalList(userId, input);
+  };
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(dbCallSpy.length, 1);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-001']);
+});
+
+test('/api/tools/orchestrate resolves first step from cache with no dependencies', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'optin',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, []);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {});
 });

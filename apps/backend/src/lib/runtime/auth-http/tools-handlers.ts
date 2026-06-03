@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import type {
   AuthRepositoryBundle,
   IdempotencyAdapter,
+  OrchestrateArtifactCache,
   UserQueryRepositoryBundle,
 } from '../../adapters';
 import type { AuthSessionPrincipal } from '../../types/auth';
@@ -35,6 +36,7 @@ import {
 export type CreateToolsHandlersDependencies = {
   repositories: AuthRepositoryBundle;
   idempotency: IdempotencyAdapter | null;
+  orchestrateCache: OrchestrateArtifactCache | null;
   now: () => Date;
   toolsOrchestrateTimeoutMs: number;
   toolsOrchestrateArtifactScanLimit: number;

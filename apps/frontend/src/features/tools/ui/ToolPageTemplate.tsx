@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -98,6 +98,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleBriefingReset,
     angleDetectorFileName,
   } = useToolPage(props);
+  const [isFormLocked, setIsFormLocked] = useState(false);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
   const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
@@ -295,7 +296,18 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     && !extractionInProgress
     && !extractionAlreadyReady
     && inputRequirementMatrix.requiredEntriesSatisfied;
-  const isGenerationLocked = isGenerating || effectiveCanonicalState === 'running';
+  const isFormBusy = extractionInProgress || isGenerating || isStreamActive;
+  const isGenerationLocked = isFormLocked || isFormBusy;
+
+  useEffect(() => {
+    if (isFormBusy) {
+      setIsFormLocked(false);
+    }
+  }, [isFormBusy]);
+
+  const lockedPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = isFormLocked
+    ? { label: copy.flow.progressAria.generationInProgress, disabled: true }
+    : undefined;
   const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
     ? {
       label: copy.flow.progressAria.generationInProgress,
@@ -459,7 +471,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('hashtags', formState.hashtags ?? '');
   }, [formState.hashtags, setValue]);
 
-  const basePrimaryAction = generationInProgressPrimaryOverride
+  const basePrimaryAction = lockedPrimaryOverride
+    ?? generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
     ?? matrixBlockingPrimaryOverride
     ?? extractionPrimaryOverride
@@ -468,8 +481,14 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {
+      setIsFormLocked(true);
       executePrimaryActionFromForm(data);
     });
+
+  const handleCancelWithLockReset = useCallback(() => {
+    setIsFormLocked(false);
+    handleCancelGeneration();
+  }, [handleCancelGeneration]);
 
   const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
     label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
@@ -855,10 +874,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
 
               <div className="ui-tool-action-buttons">
-                {isGenerating ? (
+                {isFormLocked || isFormBusy ? (
                   <SecondaryCtaButton
                     type="button"
-                    onClick={handleCancelGeneration}
+                    onClick={handleCancelWithLockReset}
                     title={copy.form.cancelGenerationTooltip}
                   >
                     {copy.form.cancelGeneration}

@@ -206,6 +206,11 @@ export const toolPageMachine = setup({
             actions: 'clearGenerationError',
           },
         ],
+        CANCEL_GENERATION: {
+          target: 'configuring',
+          reenter: true,
+          actions: ['resetConfig', stopChild('briefingActor')],
+        },
         RESET: {
           target: 'configuring',
           reenter: true,

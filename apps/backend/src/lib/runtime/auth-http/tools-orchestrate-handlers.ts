@@ -242,7 +242,10 @@ export const createToolsOrchestrateHandlers = (
             allCompleted,
             async (userId, artifactIds) => {
               artifactDetailBatchCount += 1;
-              return queries.artifacts.getArtifactsByIdsForUser(userId, artifactIds, { includeInput: true });
+              return queries.artifacts.getArtifactsByIdsForUser(userId, artifactIds, {
+                includeInput: true,
+                includeContent: false,
+              });
             },
             route,
             correlationId,

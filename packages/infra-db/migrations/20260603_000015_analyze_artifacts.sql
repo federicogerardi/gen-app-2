@@ -1,0 +1,5 @@
+BEGIN;
+
+ANALYZE artifacts;
+
+COMMIT;

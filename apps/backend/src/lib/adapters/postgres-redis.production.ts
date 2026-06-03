@@ -50,6 +50,10 @@ export const createPostgresRedisProductionDependencies = (
         'production_llm_adapter_missing: provide options.llm.adapter or set OPENROUTER_API_KEY',
       );
     }
+    console.warn(
+      '[adapter][llm] OPENROUTER_API_KEY is not set; falling back to synthetic LLM adapter. ' +
+        'All generation requests will return stubbed content instead of calling a real LLM.',
+    );
   }
 
   return {

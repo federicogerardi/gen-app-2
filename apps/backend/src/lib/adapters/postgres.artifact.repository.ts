@@ -179,12 +179,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
           // Escape hatch: COALESCE(EXCLUDED.col, existing_col) preserves the existing column
           // value when the incoming EXCLUDED row has NULL. Kysely's doUpdateSet() has no typed
           // API for COALESCE expressions mixing EXCLUDED pseudo-table references and sql.ref().
-          user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
-          project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
-          session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
-          step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
-          artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
-          run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('artifacts.user_id')})` as any,
+            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('artifacts.project_id')})` as any,
+            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('artifacts.session_id')})` as any,
+            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('artifacts.step_key')})` as any,
+            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifacts.artifact_role')})` as any,
+            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('artifacts.run_mode')})` as any,
           updated_at: dbNow,
           streamed_at: dbNowNullable,
           registry_version: input.registryVersion ?? null,
@@ -195,7 +195,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
         })
         // Escape hatch: NOT IN filter on conflict clause — Kysely's .where() in onConflict
         // context does not support the NOT IN operator via the typed builder API.
-        .where(sql<boolean>`status NOT IN ('completed', 'failed')`))
+        .where(sql<boolean>`${sql.ref('artifacts.status')} NOT IN ('completed', 'failed')`))
       .execute();
   }
 
@@ -243,12 +243,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             cost_usd: input.costUsd ?? 0,
             model: input.model ?? 'unknown',
             // Escape hatch: COALESCE(EXCLUDED.col, existing_col) — see flushProgress for reason.
-            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
-            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
-            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
-            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
-            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
-            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('artifacts.user_id')})` as any,
+            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('artifacts.project_id')})` as any,
+            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('artifacts.session_id')})` as any,
+            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('artifacts.step_key')})` as any,
+            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifacts.artifact_role')})` as any,
+            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('artifacts.run_mode')})` as any,
             updated_at: dbNow,
             completed_at: dbNowNullable,
             failure_reason: null,
@@ -256,7 +256,7 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             registry_snapshot_ref: input.registrySnapshotRef ?? null,
           })
           // Escape hatch: <> 'failed' filter — see flushProgress for reason.
-          .where(sql<boolean>`status <> 'failed'`))
+          .where(sql<boolean>`${sql.ref('artifacts.status')} <> 'failed'`))
         .execute();
 
       if (input.userId) {
@@ -325,12 +325,12 @@ export class PostgresArtifactRepository implements PostgresArtifactRepositoryPor
             cost_usd: input.costUsd ?? 0,
             model: input.model ?? 'unknown',
             // Escape hatch: COALESCE(EXCLUDED.col, existing_col) — see flushProgress for reason.
-            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('user_id')})` as any,
-            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('project_id')})` as any,
-            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('session_id')})` as any,
-            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('step_key')})` as any,
-            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifact_role')})` as any,
-            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('run_mode')})` as any,
+            user_id: sql`COALESCE(EXCLUDED.user_id, ${sql.ref('artifacts.user_id')})` as any,
+            project_id: sql`COALESCE(EXCLUDED.project_id, ${sql.ref('artifacts.project_id')})` as any,
+            session_id: sql`COALESCE(EXCLUDED.session_id, ${sql.ref('artifacts.session_id')})` as any,
+            step_key: sql`COALESCE(EXCLUDED.step_key, ${sql.ref('artifacts.step_key')})` as any,
+            artifact_role: sql`COALESCE(EXCLUDED.artifact_role, ${sql.ref('artifacts.artifact_role')})` as any,
+            run_mode: sql`COALESCE(EXCLUDED.run_mode, ${sql.ref('artifacts.run_mode')})` as any,
             failure_reason: reason,
             updated_at: dbNow,
             registry_version: input.registryVersion ?? null,

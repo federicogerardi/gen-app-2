@@ -183,7 +183,11 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       ])
       .where('a.user_id', '=', userId)
       .where('a.project_id', '=', input.projectId)
-      .where('a.status', '=', 'completed')
+      // Escape hatch: the partial-index predicate (status = 'completed') must be an inline
+      // literal so PostgreSQL can match it during generic-plan evaluation. Kysely's
+      // .where(col, '=', val) always parameterizes the value, which prevents the planner
+      // from using the partial index artifacts_orchestrate_recent_completed_idx.
+      .where(sql<boolean>`a.status = 'completed'`)
       .where('a.workflow_type', '=', input.workflowType)
       .orderBy('a.updated_at', 'desc')
       .orderBy('a.id', 'desc')

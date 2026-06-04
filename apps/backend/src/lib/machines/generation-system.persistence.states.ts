@@ -121,7 +121,6 @@ export const generationSystemPersistenceStates = {
     },
   },
   persistingSuccessSync: {
-    entry: 'drivePersistenceFinalizeSuccess',
     invoke: {
       id: 'simplePersistenceActor',
       src: 'invokeSimplePersistence',
@@ -144,7 +143,6 @@ export const generationSystemPersistenceStates = {
     },
   },
   persistingFailureSync: {
-    entry: 'drivePersistenceFinalizeFailure',
     invoke: {
       id: 'simplePersistenceActor',
       src: 'invokeSimplePersistence',

@@ -74,6 +74,20 @@ const mocks = vi.hoisted(() => {
     upsertExtractionContext: vi.fn(),
   };
 
+  const generationRun = {
+    snapshot: {
+      context: {
+        lastRequest: null as { input?: Record<string, unknown> } | null,
+        errorMessage: null as string | null,
+      },
+      matches: vi.fn((state: string) => state === 'idle'),
+    },
+    generationStatus: 'idle' as 'idle' | 'running' | 'completed' | 'failed',
+    isGenerationActive: false,
+    startRun: generation.start,
+    resetRun: vi.fn(),
+  };
+
   const auth = {
     apiBaseUrl: '',
     capabilities: { artifacts: true, toolsUpload: true } as Record<string, unknown>,
@@ -122,7 +136,8 @@ const mocks = vi.hoisted(() => {
     setFormState,
     machineSnapshot,
     briefingSnapshot,
-    generation,
+generation,
+    generationRun,
     auth,
     formState,
     toolConfig,
@@ -147,6 +162,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => mocks.generation,
   useGenerationStreamWorkspace: () => mocks.generation,
+  useGenerationGenerationWorkspace: () => mocks.generationRun,
   useGenerationArtifactsWorkspace: () => ({
     artifacts: mocks.generation.artifacts,
     reloadArtifacts: vi.fn(),
@@ -365,6 +381,7 @@ describe('useToolPage', () => {
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file });
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_FILE_SELECTED', file: angleDetectorFile, sourceKey: 'angle-detector-file' });
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_RESET' });
+    expect(mocks.generationRun.startRun).not.toHaveBeenCalled();
     expect(mocks.generation.start).not.toHaveBeenCalled();
 
     expect('toolPageSend' in result.current).toBe(false);
@@ -390,10 +407,10 @@ describe('useToolPage', () => {
     renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
 
     await waitFor(() => {
-      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+      expect(mocks.generationRun.startRun).toHaveBeenCalledTimes(1);
     });
 
-    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+    const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
       model: string;
       input: { tone: string };
     };
@@ -426,10 +443,10 @@ describe('useToolPage', () => {
     renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
 
     await waitFor(() => {
-      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+      expect(mocks.generationRun.startRun).toHaveBeenCalledTimes(1);
     });
 
-    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+    const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
       model: string;
       input: { tone: string };
     };
@@ -474,10 +491,10 @@ describe('useToolPage', () => {
     renderHook(() => useToolPage({ toolKey: 'youtube-description' }));
 
     await waitFor(() => {
-      expect(mocks.generation.start).toHaveBeenCalledTimes(1);
+      expect(mocks.generationRun.startRun).toHaveBeenCalledTimes(1);
     });
 
-    const request = mocks.generation.start.mock.calls[0]?.[0] as {
+    const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
       toolKey: string;
       workflowType: string;
       input: {

@@ -1,7 +1,7 @@
 # Plan: Add Non-Streaming Generation Mode (Coexistence)
 
 **Date**: 2026-06-04
-**Status**: Draft — Revision 2
+**Status**: Completed — Phase 1, 2, 3 executed
 **Target**: Add non-streaming generation as default for tools; streaming stays dormant for future chat
 
 ---
@@ -577,3 +577,34 @@ persistingFailureSync   (invokeSimplePersistence — 1 DB write)
 - `GenerationRunResponse` is a cross-context contract type in `packages/contracts/src/index.ts` (DDD-023 authority)
 - `BackendStreamEvent` (DDD-009) remains valid and unchanged for the streaming path
 - No domain concept renamed or removed — purely additive technical change
+
+---
+
+## 9. Completion Summary
+
+### Executed Changes
+- **Phase 1**: All 16 backend steps completed. Added `LlmGenerateAdapter`, `generationActor`, `simpleFinalizationActor`, `dispatchingMode` gateway, `generating` state, `persistingSuccessSync`/`persistingFailureSync` states, `/generation/run` endpoint, and `runBackendGenerationSessionAsJson`.
+- **Phase 2**: All 4 frontend steps completed. Added `runGeneration` client, `frontendGenerationMachine`, updated `GenerationWorkspaceProvider` to support both machines, and wired `useToolPageRunController` to default to non-streaming path.
+- **Phase 3**: Tests added and passing:
+  - Backend: 7 new tests in `generation-nonstreaming.test.ts` covering happy path, empty-content failure, dispatchingMode routing (both modes), persistingSuccessSync (no flushProgress), and persistingFailureSync (single finalizeFailure).
+  - Frontend: 6 new tests in `frontend-generation.machine.test.ts` covering idle→running→completed/failed transitions, reset, and checkpoint handling. 3 new tests in `generation-client.test.ts` covering success, error, and abort scenarios.
+
+### Key Fixes During Execution
+1. `cacheRequestMeta` action hardcoded `mode: 'stream'`, overriding `initialContext.mode`. Fixed to preserve `context.mode`.
+2. `persistingSuccessSync`/`persistingFailureSync` had `entry` actions (`drivePersistenceFinalizeSuccess`/`drivePersistenceFinalizeFailure`) that sent events to `'persistenceActor'`, but the sync states use `'simplePersistenceActor'` (a `fromPromise` actor that cannot receive events). Removed the incompatible `entry` actions.
+3. `frontend-generation.machine.ts` `cacheSuccessResult` action incorrectly checked `event.type === 'GENERATION_SUCCESS'` instead of accessing `event.output` from the `done.invoke` event emitted by XState v5's `fromPromise`.
+
+### Validation Results
+- `npm run typecheck`: Passes all workspaces
+- `npm run test`: Backend 265/265 pass, Frontend 400/400 pass
+- `npm run build`: Frontend production build succeeds
+- `npm run test:smoke`: All 4 smoke suites pass:
+  - `smoke:idempotency` — claimed → completed → replay
+  - `smoke:conflict` — lock present → conflict; parallel usage → one grant, one exhausted
+  - `smoke:queries` — query repositories scoped and filtered correctly
+  - `smoke:nonstreaming` (NEW) — single DB write, quota_history recorded, idempotency replay verified
+
+### Notes
+- Smoke tests executed against live Postgres + Redis with `.env.local` credentials.
+- Non-streaming smoke test verified: single artifact INSERT, `quota_history` success record, zero `flushProgress` calls, idempotency replay returns cached artifact.
+- All existing streaming tests continue to pass unchanged, confirming zero regression on the dormant streaming path.

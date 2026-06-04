@@ -141,7 +141,7 @@ export const generationSystemActions = {
     registryVersion: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registryVersion,
     registrySnapshotRef: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registrySnapshotRef,
     routeType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.routeType,
-    mode: 'stream' as const,
+    mode: ({ context }: GenerationActionArgs) => context.mode,
     failureReason: null,
     syntheticResponse: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.syntheticResponse,
     inputTokens: 0,

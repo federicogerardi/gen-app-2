@@ -3,9 +3,11 @@ import type {
   AcquisitionDoneOutput,
   CacheAcquisitionResultParams,
   CacheExtractionResultParams,
+  CacheGenerateResultParams,
   CacheReplayPayloadParams,
   CacheStreamResultParams,
   ExtractionDoneOutput,
+  GenerateDoneOutput,
   IdempotencyDoneOutput,
   OwnershipDoneOutput,
   StreamDoneOutput,
@@ -24,6 +26,20 @@ export const getOwnershipDoneOutput = (event: unknown): OwnershipDoneOutput | un
 
 export const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
   (event as { output?: StreamDoneOutput }).output;
+
+export const getGenerateDoneOutput = (event: unknown): GenerateDoneOutput | undefined =>
+  (event as { output?: GenerateDoneOutput }).output;
+
+export const getGenerateResultParams = (event: unknown): CacheGenerateResultParams => {
+  const output = getGenerateDoneOutput(event);
+
+  return {
+    content: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.content ?? '') : '',
+    inputTokens: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.inputTokens ?? 0) : 0,
+    outputTokens: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.outputTokens ?? 0) : 0,
+    costUsd: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.costUsd ?? 0) : 0,
+  };
+};
 
 export const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
   const output = getStreamDoneOutput(event);

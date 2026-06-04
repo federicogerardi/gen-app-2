@@ -269,6 +269,21 @@ export type BackendStreamEvent =
     };
 
 /**
+ * Non-streaming generation response contract.
+ *
+ * DDD-107: `GenerationRunResponse` is the cross-context contract type for the
+ * non-streaming HTTP response body. Authoritative definition lives in this
+ * package (DDD-023 authority). Frontend imports via `@gen-app-2/contracts`.
+ */
+export type GenerationRunResponse = {
+  artifactId: string;
+  content: string;
+  status: 'completed' | 'failed';
+  reason?: string;
+  metrics?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined;
+};
+
+/**
  * Serialize a BackendStreamEvent for SSE wire transport.
  */
 export const serializeSseEvent = (event: BackendStreamEvent): string => {

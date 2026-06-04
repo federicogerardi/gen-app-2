@@ -44,6 +44,10 @@ export const generationSystemGuards = {
     getOwnershipDoneOutput(event)?.type === 'OWNERSHIP_REJECTED',
   streamOutputIsFailure: ({ event }: GenerationGuardArgs) =>
     getStreamDoneOutput(event)?.type === 'STREAM_TERMINATED_FAILURE',
+  generateOutputIsFailure: ({ event }: GenerationGuardArgs) => {
+    const output = (event as { output?: { type?: string } }).output;
+    return output?.type === 'GENERATE_TERMINATED_FAILURE';
+  },
   streamOutputIsEmptySuccess: ({ context, event }: GenerationGuardArgs) =>
     context.routeType !== 'extraction' && isEmptyStreamSuccess(event),
   extractionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
@@ -52,4 +56,5 @@ export const generationSystemGuards = {
     getAcquisitionDoneOutput(event)?.type === 'ACQUISITION_ATTEMPT_ACCEPTED',
   toolOutputIsCompleted: ({ event }: GenerationGuardArgs) =>
     getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
+  modeIsGenerate: ({ context }: GenerationGuardArgs) => context.mode === 'generate',
 };

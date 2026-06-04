@@ -23,6 +23,9 @@ export const createPostgresRedisGenerationAdapters = (
     llm: {
       streamText: (input) => dependencies.llm.streamText(input),
     },
+    generate: {
+      generateText: (input) => dependencies.generate.generateText(input),
+    },
     persistence: {
       flushProgress: (input, sequence) => dependencies.persistence.flushProgress(input, sequence),
       finalizeSuccess: async (input) => {

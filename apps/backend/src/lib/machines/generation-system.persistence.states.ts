@@ -26,19 +26,38 @@ export const generationSystemPersistenceStates = {
         retryCount: 0,
         maxRetries: 0,
       }),
-      onDone: {
-        target: 'persistingFailure',
-        actions: {
-          type: 'applyFallbackDecision',
-          params: ({ event }: UnknownEventArgs) => ({
-            reason: getFallbackDoneOutput(event)?.reason ?? 'generation_failed',
-          }),
+      onDone: [
+        {
+          guard: ({ context }: ContextArgs) => context.mode === 'generate',
+          target: 'persistingFailureSync',
+          actions: {
+            type: 'applyFallbackDecision',
+            params: ({ event }: UnknownEventArgs) => ({
+              reason: getFallbackDoneOutput(event)?.reason ?? 'generation_failed',
+            }),
+          },
         },
-      },
-      onError: {
-        target: 'persistingFailure',
-        actions: 'setFallbackPolicyFailure',
-      },
+        {
+          target: 'persistingFailure',
+          actions: {
+            type: 'applyFallbackDecision',
+            params: ({ event }: UnknownEventArgs) => ({
+              reason: getFallbackDoneOutput(event)?.reason ?? 'generation_failed',
+            }),
+          },
+        },
+      ],
+      onError: [
+        {
+          guard: ({ context }: ContextArgs) => context.mode === 'generate',
+          target: 'persistingFailureSync',
+          actions: 'setFallbackPolicyFailure',
+        },
+        {
+          target: 'persistingFailure',
+          actions: 'setFallbackPolicyFailure',
+        },
+      ],
     },
   },
   persistingSuccess: {
@@ -99,6 +118,47 @@ export const generationSystemPersistenceStates = {
       input: ({ context }: ContextArgs) => ({ context }),
       onDone: 'failed',
       onError: 'failed',
+    },
+  },
+  persistingSuccessSync: {
+    entry: 'drivePersistenceFinalizeSuccess',
+    invoke: {
+      id: 'simplePersistenceActor',
+      src: 'invokeSimplePersistence',
+      input: ({ context }: ContextArgs) => {
+        const artifactId = context.artifactId ?? context.artifactIdFactory();
+        return {
+          input: buildPersistenceBatchInput(context, artifactId),
+          mode: 'success' as const,
+          adapters: { persistence: context.adapters.persistence },
+        };
+      },
+      onDone: 'finalizeIdempotencySuccess',
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: { defaultReason: 'persistence_finalize_failed' },
+        },
+      },
+    },
+  },
+  persistingFailureSync: {
+    entry: 'drivePersistenceFinalizeFailure',
+    invoke: {
+      id: 'simplePersistenceActor',
+      src: 'invokeSimplePersistence',
+      input: ({ context }: ContextArgs) => {
+        const artifactId = context.artifactId ?? context.artifactIdFactory();
+        return {
+          input: buildPersistenceBatchInput(context, artifactId),
+          mode: 'failure' as const,
+          reason: context.failureReason ?? 'generation_failed',
+          adapters: { persistence: context.adapters.persistence },
+        };
+      },
+      onDone: 'finalizeIdempotencyFailure',
+      onError: 'finalizeIdempotencyFailure',
     },
   },
   completed: {

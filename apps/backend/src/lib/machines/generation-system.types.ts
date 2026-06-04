@@ -28,6 +28,7 @@ export type GenerationMachineContext = GenerationSystemContext & {
   outputTokens: number;
   costUsd: number;
   routeType: RouteType;
+  mode: 'generate' | 'stream';
   runtimeNow: () => Date;
   artifactIdFactory: () => string;
   responseBuilder: (request: RequestReceivedEvent) => string;
@@ -125,6 +126,17 @@ export type CacheExtractionResultParams = {
 export type CacheAcquisitionResultParams = {
   payload: Record<string, unknown>;
 };
+
+export type CacheGenerateResultParams = {
+  content: string;
+  inputTokens?: number | undefined;
+  outputTokens?: number | undefined;
+  costUsd?: number | undefined;
+};
+
+export type GenerateDoneOutput =
+  | { type: 'GENERATE_TERMINATED_SUCCESS'; content: string; metrics?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined }
+  | { type: 'GENERATE_TERMINATED_FAILURE'; reason: string };
 
 export type QueueFallbackDecisionParams = {
   reason?: string | null;

@@ -76,12 +76,29 @@ export interface PersistenceAdapter {
   finalizeFailure(input: PersistenceBatchInput, reason: string): Promise<void>;
 }
 
+export type LlmGenerateInput = {
+  requestId: string;
+  model: string;
+  requestInput: Record<string, unknown>;
+  signal?: AbortSignal | undefined;
+};
+
+export type LlmGenerateResult = {
+  content: string;
+  usage?: LlmUsageMetrics | undefined;
+};
+
+export interface LlmGenerateAdapter {
+  generateText(input: LlmGenerateInput): Promise<LlmGenerateResult>;
+}
+
 export interface GenerationAdapters {
   ownership: OwnershipAdapter;
   usage: UsageAdapter;
   idempotency: IdempotencyAdapter;
   stream: StreamAdapter;
   llm: LlmStreamAdapter;
+  generate: LlmGenerateAdapter;
   persistence: PersistenceAdapter;
   orchestrateCache: OrchestrateArtifactCache | null;
 }
@@ -129,6 +146,21 @@ export const createSyntheticLlmStreamAdapter = (): LlmStreamAdapter => ({
 
     yield {
       type: 'completed',
+      usage: {
+        inputTokens: Math.max(0, Math.ceil(JSON.stringify(input.requestInput).length / 4)),
+        outputTokens: Math.max(0, Math.ceil(content.length / 4)),
+        costUsd: Number((Math.max(1, content.length) * 0.000001).toFixed(6)),
+      },
+    };
+  },
+});
+
+export const createSyntheticLlmGenerateAdapter = (): LlmGenerateAdapter => ({
+  async generateText(input) {
+    const content = buildSyntheticResponse(input as unknown as LlmStreamInput);
+
+    return {
+      content,
       usage: {
         inputTokens: Math.max(0, Math.ceil(JSON.stringify(input.requestInput).length / 4)),
         outputTokens: Math.max(0, Math.ceil(content.length / 4)),
@@ -248,6 +280,7 @@ export const createInMemoryGenerationAdapters = (
     idempotency,
     stream,
     llm,
+    generate: createSyntheticLlmGenerateAdapter(),
     persistence,
     orchestrateCache: null,
   };

@@ -2,6 +2,9 @@ export {
   createInMemoryGenerationAdapters,
   type GenerationAdapters,
   type IdempotencyAdapter,
+  type LlmGenerateAdapter,
+  type LlmGenerateInput,
+  type LlmGenerateResult,
   type LlmStreamAdapter,
   type LlmStreamEvent,
   type LlmStreamInput,
@@ -12,11 +15,14 @@ export {
   type IdempotencyDecision,
   type UsageAdapter,
   createSyntheticLlmStreamAdapter,
+  createSyntheticLlmGenerateAdapter,
 } from './generation.adapters';
 
 export {
   createOpenRouterLlmStreamAdapter,
   createOpenRouterLlmStreamAdapterFromEnv,
+  createOpenRouterLlmGenerateAdapter,
+  createOpenRouterLlmGenerateAdapterFromEnv,
 } from './openrouter.adapter';
 
 export {

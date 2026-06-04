@@ -1,7 +1,7 @@
 # Plan: Add Non-Streaming Generation Mode (Coexistence)
 
 **Date**: 2026-06-04
-**Status**: Completed — Phase 1, 2, 3 executed
+**Status**: Completed — Phase 1, 2, 3 executed. **FE bug unresolved** — UI progress bar and CTA do not update after successful non-streaming generation despite 6 fix attempts (see §10).
 **Target**: Add non-streaming generation as default for tools; streaming stays dormant for future chat
 
 ---
@@ -608,3 +608,124 @@ persistingFailureSync   (invokeSimplePersistence — 1 DB write)
 - Smoke tests executed against live Postgres + Redis with `.env.local` credentials.
 - Non-streaming smoke test verified: single artifact INSERT, `quota_history` success record, zero `flushProgress` calls, idempotency replay returns cached artifact.
 - All existing streaming tests continue to pass unchanged, confirming zero regression on the dormant streaming path.
+
+---
+
+## 10. FE Bug: Non-Streaming Progress Stuck (Debug History)
+
+**Status**: RESOLVED — Final fix applied 2026-06-05
+
+### Symptom
+Backend generation completes all 3 steps successfully (confirmed via server logs: `/generation/run` → 200 with `artifactId` and `contentLen`). Auto-chain advances correctly. But:
+- Progress counter stays at "0/3" in sidebar
+- CTA reverts to "Avvia generazione" instead of "Visualizza sessione"
+
+### Root Cause
+`completedStepsForFlow` (used by UI for progress bar and viewModel) is populated ONLY via `PROGRESS_SYNCED` events, which call `resolveFlowProgressState()` — an artifact-based pipeline that filters DB artifacts by `projectId`, `toolKey`, `status`, and `runRequestPrefix`. The non-streaming artifacts from `/generation/run` are persisted in the DB but the artifact matching logic never finds them in the frontend's artifact cache, leaving `completedStepsForFlow` perpetually empty.
+
+### Fix Attempts & Evidence
+
+#### Attempt 1 (2026-06-05): `selectStreamingStep` / `readRequestedStep`
+**Observation**: FE stuck at "0/3 step completati" after backend completes.
+**Hypothesis**: `selectStreamingStep` returned `null` when `isStreamActive=false`, causing monitoring effect to not dispatch `STEP_DONE`.
+**Evidence**: Server logs confirmed completion, but debug logs showed `completedStepsForFlow: []` always.
+**Result**: ❌ Not the root cause. `STEP_DONE` was being dispatched correctly; the issue was `completedStepsForFlow` not updating.
+
+#### Attempt 2 (2026-06-05): `isGenerationActive` verification
+**Observation**: After `POST /generation/run → 200`, no further FE requests.
+**Hypothesis**: `isGenerationActive` check incorrectly prevented auto-chain advancement.
+**Evidence**: `isGenerationActive` correctly returns `generationSnapshot.matches('running')` — was `false` after completion as expected.
+**Result**: ❌ Ruled out. Auto-chain simply had no mechanism to advance because `completedStepsForFlow` was empty.
+
+#### Attempt 3 (2026-06-05): `reloadArtifacts` after completion
+**Fix**: Call `generationArtifacts.reloadArtifacts()` in monitoring effect after STEP_DONE.
+**Observation**: Auto-chain started advancing (step 1 → step 2 → step 3), but `completedStepsForFlow` remained `[]`. Loop: step 2 completed → `effectiveNextStep` computed correctly via `nonStreamingCompletedStepsRef` → started step 3, but then step 3's auto-chain check showed `completedStepsForFlow: []` still.
+**Evidence**: Browser console logs confirmed all 3 backend calls succeeded. `reloadArtifacts` fires `GET /api/artifacts` but `collectCompletedRunSteps` (called inside `useToolPage.ts` PROGRESS_SYNCED effect) returned empty steps.
+**Result**: ❌ `completedStepsForFlow` still empty. The artifact-based pipeline (`resolveFlowProgressState` → `collectCompletedRunSteps` → `filterArtifactsForStep`) never found the non-streaming artifacts.
+
+#### Attempt 4 (2026-06-05): Synthetic artifact PROGRESS_SYNCED
+**Fix**: After STEP_DONE, build a synthetic `GenerationArtifact` from `generationRun.snapshot.context` and dispatch `PROGRESS_SYNCED` with `[...generationArtifacts.artifacts, syntheticArtifact]`.
+**Observation**: Caused infinite re-render loop. `PROGRESS_SYNCED` → machine context update → React re-render → monitoring effect re-fires → `generationStatus === 'completed'` still true → dispatches another `PROGRESS_SYNCED` → loop.
+**Evidence**: Server logs showed hundreds of `GET /api/artifacts` requests flooding the backend (each synthetic PROGRESS_SYNCED also called `reloadArtifacts`). Browser tab became unresponsive.
+**Result**: ❌ Infinite loop. Reverted.
+
+#### Attempt 5 (2026-06-05): `processedArtifactIdsRef` + accumulated `syntheticArtifactsRef`
+**Fix**: Added `processedArtifactIdsRef` (re-entry guard) and `syntheticArtifactsRef` (accumulated artifacts across all steps). Dispatched PROGRESS_SYNCED with all accumulated synthetics on each completion.
+**Observation**: Guard prevented the infinite loop. Auto-chain advanced correctly. But `completedStepsForFlow` still `[]` after all 3 steps.
+**Evidence**: Browser console: `completedStepsForFlow: []` in every auto-chain check. The synthetic artifacts passed to PROGRESS_SYNCED were not being matched by `collectCompletedRunSteps` (likely rejected by `belongsToTool` or `projectId` matching on the synthetic artifact objects).
+**Result**: ❌ The synthetic artifact approach is fundamentally unreliable because the matching criteria in `collectCompletedRunSteps` are strict and the synthetic objects don't perfectly replicate server-returned artifacts.
+
+#### Attempt 6 (2026-06-05) — FINAL: `NONSTREAMING_STEP_COMPLETED` direct event
+**Fix**: Added a new event type `NONSTREAMING_STEP_COMPLETED` to `toolPageMachine` that directly updates `progress.completedSteps` via an XState assign action, bypassing the artifact-based pipeline entirely. The assign action:
+  - Adds the step to `context.progress.completedSteps` Set
+  - Rebuilds `viewModel` from the updated progress (triggers `primaryActionPolicy` recalculation)
+  
+  **Re-entry guard**: The monitoring effect checks `nonStreamingCompletedStepsRef.current.has(resolved)` and returns early if the step was already processed. This prevents any re-entry loop because:
+  1. First dispatch adds step to ref → dispatches STEP_DONE + NONSTREAMING_STEP_COMPLETED
+  2. Re-render triggers monitoring effect → `nonStreamingCompletedStepsRef.current.has(resolved)` is true → returns early
+
+**Files modified**:
+- `tool-page.types.ts` — Added `NONSTREAMING_STEP_COMPLETED` to `ToolPageEvent` union
+- `tool-page.machine.ts` — Added `updateNonStreamingProgress` assign action + `NONSTREAMING_STEP_COMPLETED` handler in top-level `on:`
+- `useToolPageRunController.ts` — Removed `syntheticArtifactsRef`/`processedArtifactIdsRef`, simplified monitoring effect to dispatch `NONSTREAMING_STEP_COMPLETED`
+
+**Evidence**: All 400 frontend tests pass. Build succeeds. TypeScript typecheck passes.
+
+**Result**: ❌ FE behavior unchanged. See Attempt 7.
+
+#### Attempt 7 (2026-06-05): `NONSTREAMING_STEP_COMPLETED` — LIVE TEST
+
+**What was done**: Dispatched `NONSTREAMING_STEP_COMPLETED` event to `toolPageMachine` from the monitoring effect after each non-streaming step completes. The machine's `updateNonStreamingProgress` assign action directly adds the step to `context.progress.completedSteps` and recalculates `viewModel` (which controls `primaryActionPolicy`). Re-entry guard via `nonStreamingCompletedStepsRef.has(resolved)` prevents loops.
+
+```
+monitoring effect:
+  if (resolved && nonStreamingCompletedStepsRef.has(resolved)) return;  // guard
+  nonStreamingCompletedStepsRef.add(resolved);
+  toolPageSend({ type: 'STEP_DONE', step: resolved });
+  toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
+```
+
+**Observation**: Auto-chain advances correctly (all 3 backend calls succeed, browser console shows `effectiveNextStep` progressing). But:
+- Browser console shows NO `completedStepsForFlow` content change in auto-chain logs (still `[]` after step 3)
+- UI still shows "0/3 step completati" and CTA stays "Avvia generazione"
+- No new errors in browser or server console
+
+**Evidence**: Console logs (trimmed from last live run):
+```
+[useToolPage] non-streaming completed → resolved: "context-and-angle-matrix"
+[useToolPage] auto-chain check → completedStepsForFlow: []
+[useToolPage] non-streaming completed → resolved: "angle-prioritization"  
+[useToolPage] auto-chain check → completedStepsForFlow: []
+[useToolPage] non-streaming completed → resolved: "creative-activation"
+```
+`completedStepsForFlow` remains `[]` through all 3 steps. The machine assign action either:
+  a. Does not fire (event not received by machine), or
+  b. Fires but the `progress.completedSteps` update is not reflected in React's `toolPageSnapshot` used to derive `completedStepsForFlow`, or
+  c. The snapshot context IS updated but the `completedStepsForFlow` variable reference is stale due to closure
+
+**Result**: ❌ Unresolved. `completedStepsForFlow` remains perpetually empty. Production flow blocked.
+
+---
+
+## 11. Debug Status Summary
+
+| # | Fix | Target | Result | Evidence |
+|---|-----|--------|--------|----------|
+| 1 | `selectStreamingStep` fallback to `readRequestedStep` | FE stuck at 0/3 | ❌ | STEP_DONE was already dispatching correctly |
+| 2 | `isGenerationActive` verification | FE stuck at 0/3 | ❌ | `isGenerationActive` correctly false after completion |
+| 3 | `reloadArtifacts` after completion | `completedStepsForFlow` empty | ❌ | Auto-chain advanced but completedStepsForFlow still empty |
+| 4 | Synthetic artifact PROGRESS_SYNCED | `completedStepsForFlow` empty | ❌ | Infinite re-render loop, hundreds of GET /api/artifacts |
+| 5 | Accumulated synthetic artifacts + re-entry guard | Loop + empty pipeline | ❌ | No loop, but completedStepsForFlow still empty (pipeline rejects synthetics) |
+| 6 | Direct `NONSTREAMING_STEP_COMPLETED` event | Bypass artifact pipeline | ❌ | FE behavior unchanged. Event may not reach machine or snapshot reference is stale |
+| 7 | Live test of Attempt 6 | Validate fix | ❌ | `completedStepsForFlow` still `[]`. Root cause deeper than expected |
+
+### Key Finding
+All artifact-based progress syncing (`PROGRESS_SYNCED` → `resolveFlowProgressState` → `collectCompletedRunSteps`) fails for non-streaming artifacts. Even the direct machine assign (`updateNonStreamingProgress`) does not update the React `completedStepsForFlow` variable — likely because the `toolPageSnapshot` used by `useToolPage.ts` to derive `progressState.completedSteps` is either:
+1. A stale closure over the snapshot before the assign action processed, or
+2. Not re-read after the machine transitions
+
+### Recommended Next Steps
+1. **Add console.log inside `updateNonStreamingProgress` action** (in `tool-page.machine.ts`) to confirm the action fires and the Set is populated
+2. **Add console.log in `useToolPage.ts`** where `completedStepsForFlow` is derived (`progressState.completedSteps = toolPageSnapshot.context.progress.completedSteps`) to check if the snapshot context changes
+3. If the snapshot DOES update but `completedStepsForFlow` doesn't, test with `useSelector` or `useSyncExternalStore` instead of the current snapshot derivation pattern
+4. Consider bypassing `toolPageProgressState` altogether and using a separate state/ref for non-streaming step completion in the run controller, syncing the UI via a different mechanism

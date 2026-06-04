@@ -179,6 +179,7 @@ vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
 vi.mock('../runtime/tool-form-architecture', () => ({
   getToolFormConfig: () => mocks.toolConfig,
   getRequiredToolInputFiles: () => [],
+  getAvailableSteps: () => [],
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({

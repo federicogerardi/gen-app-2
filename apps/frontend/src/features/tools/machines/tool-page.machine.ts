@@ -132,6 +132,27 @@ export const toolPageMachine = setup({
     ),
     sendGenerationLifecycleRetryStep: sendTo('generationLifecycleActor', { type: 'RETRY_STEP' }),
     cancelGenerationLifecycle: sendTo('generationLifecycleActor', { type: 'CANCEL' }),
+    updateNonStreamingProgress: assign({
+      progress: ({ context, event }) => {
+        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
+        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
+        return {
+          ...context.progress,
+          completedSteps: newCompleted,
+        };
+      },
+      viewModel: ({ context, event }) => {
+        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.viewModel;
+        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
+        const newProgress = { ...context.progress, completedSteps: newCompleted };
+        return buildToolPageViewModel({
+          toolKey: context.toolKey,
+          readiness: context.readiness,
+          progress: newProgress,
+          generationError: context.generationError,
+        });
+      },
+    }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -162,6 +183,9 @@ export const toolPageMachine = setup({
   on: {
     PROGRESS_SYNCED: {
       actions: 'syncProgress',
+    },
+    NONSTREAMING_STEP_COMPLETED: {
+      actions: 'updateNonStreamingProgress',
     },
   },
   initial: 'configuring',

@@ -10,8 +10,9 @@ import type { ToolPageEvent } from '../machines/tool-page.types';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import type { FrontendGenerationStatus } from '../../generation/machines/frontend-generation.machine';
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
+import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 
 type UseToolPageRunControllerArgs = {
@@ -48,6 +49,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
+  const nonStreamingCompletedStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
   const primaryActionPolicy = machineViewModel.primaryActionPolicy;
   const streamingStep = selectStreamingStep({ isStreamActive: generationStream.isStreamActive, lastRequest: generationStream.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
@@ -62,7 +64,6 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   })();
   const stopAutoChain = () => {
     setIsAutoChainEnabled(false);
-    currentRunPrefixRef.current = null;
   };
 
   useEffect(() => {
@@ -192,9 +193,18 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     wasStreamActiveRef.current = false;
 
     if (generationStatus === 'completed') {
-      const step = selectStreamingStep({ isStreamActive: false, lastRequest: generationRun.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
+      const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
       const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
-      if (resolved) toolPageSend({ type: 'STEP_DONE', step: resolved });
+      if (resolved && nonStreamingCompletedStepsRef.current.has(resolved)) return;
+      if (import.meta.env.DEV) {
+        console.info('[useToolPage] non-streaming completed', { step, nextAvailableStep, lastRequestedStep: lastRequestedStepRef.current, resolved });
+      }
+      if (resolved) {
+        nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
+        toolPageSend({ type: 'STEP_DONE', step: resolved });
+        toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
+      }
+      generationArtifacts.reloadArtifacts();
       return;
     }
     if (generationStatus === 'failed') {
@@ -247,24 +257,35 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       return;
     }
     if (generationStream.isStreamActive || generationRun.isGenerationActive) return;
-    if (!nextAvailableStep) {
+
+    const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
+    const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
+    if (!effectiveNextStep) {
       stopAutoChain();
       return;
     }
+
     const lastRequestedStep = lastRequestedStepRef.current;
-    if (lastRequestedStep && completedStepsForFlow.has(lastRequestedStep) && lastRequestedStep !== nextAvailableStep) {
-      void startGenerationStep(nextAvailableStep);
+    if (import.meta.env.DEV) {
+      console.info('[useToolPage] auto-chain check', { lastRequestedStep, nextAvailableStep, effectiveNextStep, locallyCompleted: Array.from(locallyCompleted), completedStepsForFlow: Array.from(completedStepsForFlow), isAutoChainEnabled });
+    }
+    if (lastRequestedStep && locallyCompleted.has(lastRequestedStep) && lastRequestedStep !== effectiveNextStep) {
+      if (import.meta.env.DEV) {
+        console.info('[useToolPage] auto-chain starting next step', { effectiveNextStep });
+      }
+      void startGenerationStep(effectiveNextStep);
     }
   }, [
     completedStepsForFlow, currentRunningStep, generationStream.isStreamActive,
     generationStream.streamStatus, generationRun.isGenerationActive, generationStatus,
-    isAutoChainEnabled, nextAvailableStep, startGenerationStep,
+    isAutoChainEnabled, nextAvailableStep, startGenerationStep, toolKey, toolConfig.steps,
   ]);
 
   const handlePrimaryAction = useCallback(() => {
     if (primaryActionPolicy === 'open-last-artifact' || !readinessSnapshot.canStartFlow || generationStream.isStreamActive || generationRun.isGenerationActive || !primaryTargetStep) return;
-    const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
+    const runPrefix = generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    nonStreamingCompletedStepsRef.current = new Set();
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
@@ -273,6 +294,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
 
   const handleCancelGeneration = useCallback(() => {
     setIsAutoChainEnabled(false);
+    nonStreamingCompletedStepsRef.current = new Set();
     const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
     if (interruptedStep) setPausedCheckpointStep(interruptedStep);
     currentRunPrefixRef.current = null;

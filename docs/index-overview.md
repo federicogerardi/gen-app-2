@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 3.0
-last-reviewed: 2026-05-27
-next-review-date: 2026-08-16
+version: 3.1
+last-reviewed: 2026-06-04
+next-review-date: 2026-09-04
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-05-27  
+Data: 2026-06-04  
 Stato: publication-ready  
-Versione indice: 3.0
+Versione indice: 3.1
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -105,11 +105,12 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
-- Nessun piano attivo al momento (sanitized per publication scope as-is).
+- [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completato: migrazione del percorso di generazione tool da streaming (dormiente) a non-streaming (default); streaming SSE preservato per futuri usi
 
 ### Active Runbooks
 
-- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md) — covers dormant streaming path; non-streaming is now the default for tools
+- [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completed migration plan for coexistence of streaming (dormant) and non-streaming (default) generation paths
 
 ### Active Reviews
 
@@ -136,7 +137,7 @@ This documentation reflects the **as-is state** of the gen-app-2 application at 
 - **npm workspaces monorepo**: `apps/backend`, `apps/frontend`, `packages/contracts`, `packages/infra-db`
 - **Railway deployment**: private-network same-origin topology (`frontend/server.mjs` proxy)
 - **Shared contract authority**: `packages/contracts/src/index.ts` with compile-time parity guard
-- **XState v5 orchestration**: `GenerationSystem` (backend aggregate root), `ToolPage` (frontend aggregate root)
+- **XState v5 orchestration**: `GenerationSystem` (backend aggregate root, dual-mode: `generate` default / `stream` dormant), `ToolPage` (frontend aggregate root)
 
 ---
 

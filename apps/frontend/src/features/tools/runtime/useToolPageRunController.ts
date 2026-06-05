@@ -202,7 +202,13 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       if (resolved) {
         nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
         toolPageSend({ type: 'STEP_DONE', step: resolved });
+        if (import.meta.env.DEV) {
+          console.info('[useToolPage] dispatching NONSTREAMING_STEP_COMPLETED', { step: resolved });
+        }
         toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
+        if (import.meta.env.DEV) {
+          console.info('[useToolPage] dispatched NONSTREAMING_STEP_COMPLETED', { step: resolved });
+        }
       }
       generationArtifacts.reloadArtifacts();
       return;

@@ -1,7 +1,7 @@
 # Plan: Add Non-Streaming Generation Mode (Coexistence)
 
 **Date**: 2026-06-04
-**Status**: Completed — Phase 1, 2, 3 executed. **FE bug unresolved** — UI progress bar and CTA do not update after successful non-streaming generation despite 6 fix attempts (see §10).
+**Status**: Completed — Phase 1, 2, 3 executed. **FE bug resolved** 2026-06-05 (see §10).
 **Target**: Add non-streaming generation as default for tools; streaming stays dormant for future chat
 
 ---
@@ -620,8 +620,27 @@ Backend generation completes all 3 steps successfully (confirmed via server logs
 - Progress counter stays at "0/3" in sidebar
 - CTA reverts to "Avvia generazione" instead of "Visualizza sessione"
 
-### Root Cause
-`completedStepsForFlow` (used by UI for progress bar and viewModel) is populated ONLY via `PROGRESS_SYNCED` events, which call `resolveFlowProgressState()` — an artifact-based pipeline that filters DB artifacts by `projectId`, `toolKey`, `status`, and `runRequestPrefix`. The non-streaming artifacts from `/generation/run` are persisted in the DB but the artifact matching logic never finds them in the frontend's artifact cache, leaving `completedStepsForFlow` perpetually empty.
+### Actual Root Cause
+The backend `listArtifacts` endpoint does **not** include `input_json` in its projection (it returns summary fields only). The frontend's `toGenerationArtifact` maps `step_key` → `artifact.stepKey`, but `sourceRequest.input` is `{}` because `input_json` is absent. The progress pipeline (`resolveFlowProgressState` → `collectCompletedRunSteps` → `extractArtifactStep`) only reads `sourceRequest.input.step`, ignoring the `artifact.stepKey` field. Therefore:
+1. `NONSTREAMING_STEP_COMPLETED` correctly updates `progress.completedSteps` in `toolPageMachine`
+2. `reloadArtifacts()` fetches the new artifact from the DB, triggering `PROGRESS_SYNCED`
+3. `resolveFlowProgressState` rebuilds progress from the DB-fetched artifacts
+4. `extractArtifactStep` returns `null` for every DB-fetched artifact (no `input.step`)
+5. `completedSteps` is overwritten back to `∅`, wiping the `NONSTREAMING_STEP_COMPLETED` update
+
+The streaming path never hit this because `liveArtifacts` are built from `streamSnapshot.context.lastRequest` (full request object with `input.step`), so `sourceRequest.input.step` is always present.
+
+### Fix
+One-line change in `extractArtifactStep` (`step-hydration.ts`) to fall back to `artifact.stepKey` when `sourceRequest.input.step` is missing:
+
+```typescript
+export const extractArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
+  const step = artifact?.sourceRequest.input?.step ?? artifact?.stepKey;
+  return typeof step === 'string' ? (step as ToolStep) : null;
+};
+```
+
+This leverages the existing `step_key` column that the backend already returns in list queries and the frontend already maps to `artifact.stepKey`.
 
 ### Fix Attempts & Evidence
 
@@ -716,16 +735,14 @@ monitoring effect:
 | 3 | `reloadArtifacts` after completion | `completedStepsForFlow` empty | ❌ | Auto-chain advanced but completedStepsForFlow still empty |
 | 4 | Synthetic artifact PROGRESS_SYNCED | `completedStepsForFlow` empty | ❌ | Infinite re-render loop, hundreds of GET /api/artifacts |
 | 5 | Accumulated synthetic artifacts + re-entry guard | Loop + empty pipeline | ❌ | No loop, but completedStepsForFlow still empty (pipeline rejects synthetics) |
-| 6 | Direct `NONSTREAMING_STEP_COMPLETED` event | Bypass artifact pipeline | ❌ | FE behavior unchanged. Event may not reach machine or snapshot reference is stale |
+| 6 | Direct `NONSTREAMING_STEP_COMPLETED` event | Bypass artifact pipeline | ❌ | FE behavior unchanged. Event reaches machine, but `PROGRESS_SYNCED` overwrites the update |
 | 7 | Live test of Attempt 6 | Validate fix | ❌ | `completedStepsForFlow` still `[]`. Root cause deeper than expected |
+| 8 | `extractArtifactStep` fallback to `artifact.stepKey` | Artifact pipeline can't read step from list response | ✅ | `listArtifacts` returns `step_key` but not `input_json`; `extractArtifactStep` ignored `stepKey` |
 
 ### Key Finding
-All artifact-based progress syncing (`PROGRESS_SYNCED` → `resolveFlowProgressState` → `collectCompletedRunSteps`) fails for non-streaming artifacts. Even the direct machine assign (`updateNonStreamingProgress`) does not update the React `completedStepsForFlow` variable — likely because the `toolPageSnapshot` used by `useToolPage.ts` to derive `progressState.completedSteps` is either:
-1. A stale closure over the snapshot before the assign action processed, or
-2. Not re-read after the machine transitions
+`extractArtifactStep` only read `sourceRequest.input.step`. For streaming artifacts, `sourceRequest` is built from the local stream machine's `lastRequest` (full object with `input.step`). For DB-fetched artifacts, `sourceRequest.input` is `{}` because the backend `listArtifacts` endpoint omits `input_json`. The `step_key` column IS present in list responses, but the frontend pipeline never consulted it.
 
-### Recommended Next Steps
-1. **Add console.log inside `updateNonStreamingProgress` action** (in `tool-page.machine.ts`) to confirm the action fires and the Set is populated
-2. **Add console.log in `useToolPage.ts`** where `completedStepsForFlow` is derived (`progressState.completedSteps = toolPageSnapshot.context.progress.completedSteps`) to check if the snapshot context changes
-3. If the snapshot DOES update but `completedStepsForFlow` doesn't, test with `useSelector` or `useSyncExternalStore` instead of the current snapshot derivation pattern
-4. Consider bypassing `toolPageProgressState` altogether and using a separate state/ref for non-streaming step completion in the run controller, syncing the UI via a different mechanism
+`NONSTREAMING_STEP_COMPLETED` was actually working: it populated `completedSteps`, but the subsequent `PROGRESS_SYNCED` (triggered by `reloadArtifacts`) rebuilt progress from DB artifacts. Since `extractArtifactStep` returned `null` for every DB artifact, the rebuilt `completedSteps` was empty, wiping the direct update.
+
+### Resolution
+One-line fallback in `extractArtifactStep` to check `artifact.stepKey`. All 400 frontend tests and 264 backend tests pass. Typecheck and build clean.

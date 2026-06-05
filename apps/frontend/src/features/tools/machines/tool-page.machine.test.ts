@@ -915,7 +915,7 @@ describe('toolPageMachine', () => {
       },
     ] satisfies GenerationArtifact[];
 
-  it('returns open-last-artifact when intent=new and all steps completed (TEST-002)', () => {
+  it('ignores historical artifacts when intent=new and no active run (TEST-002)', () => {
     const actor = createToolPageActor();
 
     actor.send({ type: 'BRIEFING_FILE_SELECTED', file: new File(['brief'], 'brief.md', { type: 'text/markdown' }) });
@@ -929,8 +929,8 @@ describe('toolPageMachine', () => {
 
     const vm = actor.getSnapshot().context.viewModel;
     expect(vm.readiness.canStartFlow).toBe(true);
-    expect(vm.canonicalState).toBe('completed');
-    expect(vm.primaryActionPolicy).toBe('open-last-artifact');
+    expect(vm.canonicalState).toBe('draft-ready');
+    expect(vm.primaryActionPolicy).toBe('start-generation');
   });
 
   it('returns open-last-artifact when intent=resume and all steps completed (TEST-003)', () => {

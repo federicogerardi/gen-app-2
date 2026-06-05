@@ -77,6 +77,17 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[useToolPage] progressState changed', {
+        completedSteps: Array.from(completedStepsForFlow),
+        completedStepsSize: completedStepsForFlow.size,
+        machineState: toolPageSnapshot.value,
+        primaryActionPolicy: machineViewModel.primaryActionPolicy,
+      });
+    }
+  }, [completedStepsForFlow, machineViewModel.primaryActionPolicy, toolPageSnapshot.value]);
   const completedArtifactsByStep = useMemo(() => Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, [step, artifact]) => {
     if (artifact?.artifactId) acc[step as ToolStep] = artifact.artifactId;
     return acc;

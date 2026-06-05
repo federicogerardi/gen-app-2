@@ -136,6 +136,13 @@ export const toolPageMachine = setup({
       progress: ({ context, event }) => {
         if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
         const newCompleted = new Set(context.progress.completedSteps).add(event.step);
+        if (import.meta.env.DEV) {
+          console.info('[toolPageMachine] updateNonStreamingProgress', {
+            step: event.step,
+            before: Array.from(context.progress.completedSteps),
+            after: Array.from(newCompleted),
+          });
+        }
         return {
           ...context.progress,
           completedSteps: newCompleted,
@@ -145,12 +152,20 @@ export const toolPageMachine = setup({
         if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.viewModel;
         const newCompleted = new Set(context.progress.completedSteps).add(event.step);
         const newProgress = { ...context.progress, completedSteps: newCompleted };
-        return buildToolPageViewModel({
+        const vm = buildToolPageViewModel({
           toolKey: context.toolKey,
           readiness: context.readiness,
           progress: newProgress,
           generationError: context.generationError,
         });
+        if (import.meta.env.DEV) {
+          console.info('[toolPageMachine] viewModel rebuilt', {
+            step: event.step,
+            primaryActionPolicy: vm.primaryActionPolicy,
+            completedStepsCount: newCompleted.size,
+          });
+        }
+        return vm;
       },
     }),
   },

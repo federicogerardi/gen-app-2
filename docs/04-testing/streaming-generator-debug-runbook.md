@@ -1,12 +1,14 @@
 ---
 status: approved
-version: 1.0
-last-reviewed: 2026-05-07
-next-review-date: 2026-08-07
+version: 1.1
+last-reviewed: 2026-06-04
+next-review-date: 2026-09-04
 owner: Frontend Platform Team
 ---
 
 # Streaming Generator Debug Runbook
+
+> **Nota architetturale (v1.1)**: Questo runbook documenta il percorso **streaming** (SSE), che e stato reso dormiente a giugno 2026. Il percorso di default per i tool e ora il modello **non-streaming** (`POST /generation/run`, risposta JSON). Per la diagnostica del percorso non-streaming, consultare i log strutturati del server (prefisso `[gen][json-session-*]`) e i test di smoke in `postgres-redis.nonstreaming.smoke.ts`. Per i dettagli della migrazione, vedere [Non-Streaming Generation Migration Plan](../../plan/migrate-to-nonstreaming-generation.md).
 
 > DDD reference:
 > - [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) for canonical terms such as `BackendStreamEvent`, `ToolPage`, and `ReadinessSnapshot`.

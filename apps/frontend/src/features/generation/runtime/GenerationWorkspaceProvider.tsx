@@ -14,6 +14,10 @@ import {
   type FrontendStreamStatus,
   type ExtractionContext,
 } from '../machines/frontend-stream.machine';
+import {
+  frontendGenerationMachine,
+  type FrontendGenerationStatus,
+} from '../machines/frontend-generation.machine';
 
 export type { ExtractionContext };
 import type { GenerationRequest } from '../contracts/backend-stream';
@@ -63,6 +67,14 @@ const getStreamStatus = (
   return 'failed';
 };
 
+export type GenerationGenerationWorkspaceValue = {
+  snapshot: ReturnType<typeof frontendGenerationMachine.transition>;
+  generationStatus: FrontendGenerationStatus;
+  isGenerationActive: boolean;
+  startRun: (request: GenerationRequest) => void;
+  resetRun: () => void;
+};
+
 export type GenerationStreamWorkspaceValue = {
   snapshot: ReturnType<typeof frontendStreamMachine.transition>;
   streamStatus: FrontendStreamStatus;
@@ -80,6 +92,7 @@ export type GenerationStreamWorkspaceValue = {
 type FrontendStreamSnapshot = ReturnType<typeof frontendStreamMachine.transition>;
 type FrontendStreamEvent = Parameters<typeof frontendStreamMachine.transition>[1];
 type FrontendStreamSend = (event: FrontendStreamEvent) => void;
+type FrontendGenerationSnapshot = ReturnType<typeof frontendGenerationMachine.transition>;
 
 export type GenerationArtifactsWorkspaceValue = {
   artifacts: GenerationArtifact[];
@@ -106,6 +119,7 @@ const GenerationArtifactsWorkspaceContext = createContext<GenerationArtifactsWor
   null,
 );
 const GenerationProjectWorkspaceContext = createContext<GenerationProjectWorkspaceValue | null>(null);
+const GenerationGenerationWorkspaceContext = createContext<GenerationGenerationWorkspaceValue | null>(null);
 
 const useGenerationArtifactsState = (
   auth: ReturnType<typeof useAuthSession>,
@@ -297,7 +311,7 @@ const useGenerationProjectState = (
 
 export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode }) => {
   const auth = useAuthSession();
-  const [snapshot, send] = useMachine(frontendStreamMachine, {
+  const [streamSnapshot, streamSend] = useMachine(frontendStreamMachine, {
     input: {
       apiBaseUrl: auth.apiBaseUrl,
       maxReconnectAttempts: STREAM_CONFIG.reconnect.maxAttempts,
@@ -305,39 +319,67 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       reconnectMaxDelayMs: STREAM_CONFIG.reconnect.maxDelayMs,
     },
   });
+  const [generationSnapshot, generationSend] = useMachine(frontendGenerationMachine, {
+    input: {
+      apiBaseUrl: auth.apiBaseUrl,
+    },
+  });
 
-  const streamStatus = getStreamStatus(snapshot);
+  const streamStatus = getStreamStatus(streamSnapshot);
+
+  const getGenerationStatus = (
+    snapshot: FrontendGenerationSnapshot,
+  ): FrontendGenerationStatus => {
+    if (snapshot.matches('idle')) return 'idle';
+    if (snapshot.matches('running')) return 'running';
+    if (snapshot.matches('completed')) return 'completed';
+    return 'failed';
+  };
+
+  const generationStatus = getGenerationStatus(generationSnapshot);
 
   useEffect(() => {
     if (auth.session) {
       return;
     }
 
-    send({ type: 'RESET' });
-  }, [auth.session, send]);
+    streamSend({ type: 'RESET' });
+    generationSend({ type: 'RESET' });
+  }, [auth.session, streamSend, generationSend]);
 
   const streamValue = useMemo<GenerationStreamWorkspaceValue>(
     () => ({
-      snapshot,
+      snapshot: streamSnapshot,
       streamStatus,
-      isStreamActive: snapshot.matches('active'),
-      terminalCompletedStep: snapshot.context.terminalCompletedStep,
-      terminalFailedStep: snapshot.context.terminalFailedStep,
-      checkpoints: snapshot.context.checkpoints,
-      start: (request) => send({ type: 'REQUEST_START', request }),
-      retry: () => send({ type: 'RETRY' }),
-      cancel: () => send({ type: 'CANCEL' }),
-      reset: () => send({ type: 'RESET' }),
+      isStreamActive: streamSnapshot.matches('active'),
+      terminalCompletedStep: streamSnapshot.context.terminalCompletedStep,
+      terminalFailedStep: streamSnapshot.context.terminalFailedStep,
+      checkpoints: streamSnapshot.context.checkpoints,
+      start: (request) => streamSend({ type: 'REQUEST_START', request }),
+      retry: () => streamSend({ type: 'RETRY' }),
+      cancel: () => streamSend({ type: 'CANCEL' }),
+      reset: () => streamSend({ type: 'RESET' }),
       relaunch: (artifact) => {
         const nextRequest = buildRelaunchRequest(artifact);
-        send({ type: 'REQUEST_START', request: nextRequest });
+        streamSend({ type: 'REQUEST_START', request: nextRequest });
       },
     }),
-    [send, snapshot, streamStatus],
+    [streamSend, streamSnapshot, streamStatus],
   );
 
-  const artifactsValue = useGenerationArtifactsState(auth, snapshot, send, streamStatus);
-  const projectValue = useGenerationProjectState(auth, snapshot, send);
+  const generationValue = useMemo<GenerationGenerationWorkspaceValue>(
+    () => ({
+      snapshot: generationSnapshot,
+      generationStatus,
+      isGenerationActive: generationSnapshot.matches('running'),
+      startRun: (request) => generationSend({ type: 'REQUEST_START', request }),
+      resetRun: () => generationSend({ type: 'RESET' }),
+    }),
+    [generationSend, generationSnapshot, generationStatus],
+  );
+
+  const artifactsValue = useGenerationArtifactsState(auth, streamSnapshot, streamSend, streamStatus);
+  const projectValue = useGenerationProjectState(auth, streamSnapshot, streamSend);
 
   const value = useMemo<GenerationWorkspaceValue>(
     () => ({
@@ -353,7 +395,9 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
       <GenerationStreamWorkspaceContext.Provider value={streamValue}>
         <GenerationArtifactsWorkspaceContext.Provider value={artifactsValue}>
           <GenerationProjectWorkspaceContext.Provider value={projectValue}>
-            {children}
+            <GenerationGenerationWorkspaceContext.Provider value={generationValue}>
+              {children}
+            </GenerationGenerationWorkspaceContext.Provider>
           </GenerationProjectWorkspaceContext.Provider>
         </GenerationArtifactsWorkspaceContext.Provider>
       </GenerationStreamWorkspaceContext.Provider>
@@ -384,3 +428,6 @@ export const useGenerationProjectWorkspace = (): GenerationProjectWorkspaceValue
 
 export const useGenerationWorkspace = (): GenerationWorkspaceValue =>
   useRequiredContext(GenerationWorkspaceContext, 'useGenerationWorkspace');
+
+export const useGenerationGenerationWorkspace = (): GenerationGenerationWorkspaceValue =>
+  useRequiredContext(GenerationGenerationWorkspaceContext, 'useGenerationGenerationWorkspace');

@@ -170,7 +170,7 @@ const validateToolStepCandidate = (
   return toolSteps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
 };
 
-const readRequestedStep = (
+export const readRequestedStep = (
   lastRequest: LastRequest,
   toolSteps: readonly ToolStep[],
 ): ToolStep | null => validateToolStepCandidate(lastRequest?.input?.step, toolSteps);

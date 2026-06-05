@@ -20,6 +20,7 @@ import type {
 
 import type {
   IdempotencyDecision,
+  LlmGenerateAdapter,
   LlmStreamAdapter,
   OwnershipDecision,
   UsageDecision,
@@ -124,6 +125,7 @@ export interface PostgresRedisAdapterDependencies {
   idempotency: RedisIdempotencyRepository;
   stream: RedisStreamSessionRepository;
   llm: LlmStreamAdapter;
+  generate: LlmGenerateAdapter;
   persistence: PostgresArtifactRepository;
   orchestrateCache: OrchestrateArtifactCache | null;
 }

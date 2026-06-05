@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { readInputField } from '../../../app/runtime/shared-utils';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { useGenerationArtifactsWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
+import { useGenerationArtifactsWorkspace, useGenerationGenerationWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { extractArtifactStep } from '../../generation/runtime/step-hydration';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
@@ -29,6 +29,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const autoStartGenerationAfterExtractionRef = useRef(false);
   const auth = useAuthSession();
   const generationStream = useGenerationStreamWorkspace();
+  const generationRun = useGenerationGenerationWorkspace();
   const generationArtifacts = useGenerationArtifactsWorkspace();
   const generationProject = useGenerationProjectWorkspace();
   const navigate = useNavigate();
@@ -76,6 +77,17 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[useToolPage] progressState changed', {
+        completedSteps: Array.from(completedStepsForFlow),
+        completedStepsSize: completedStepsForFlow.size,
+        machineState: toolPageSnapshot.value,
+        primaryActionPolicy: machineViewModel.primaryActionPolicy,
+      });
+    }
+  }, [completedStepsForFlow, machineViewModel.primaryActionPolicy, toolPageSnapshot.value]);
   const completedArtifactsByStep = useMemo(() => Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, [step, artifact]) => {
     if (artifact?.artifactId) acc[step as ToolStep] = artifact.artifactId;
     return acc;
@@ -96,6 +108,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     formState,
     intent,
     generationStream,
+    generationRun,
     generationArtifacts,
     sourceArtifact,
     sourceArtifactId: sourceArtifactId ?? null,

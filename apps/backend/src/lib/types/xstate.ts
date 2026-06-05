@@ -61,6 +61,7 @@ export interface GenerationSystemContext {
   artifactId: string | null;
   contentBuffer: string;
   failureReason: string | null;
+  mode: 'generate' | 'stream';
 }
 
 export interface WorkflowStepDescriptor {

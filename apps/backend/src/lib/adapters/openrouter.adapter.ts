@@ -1,4 +1,7 @@
 import type {
+  LlmGenerateAdapter,
+  LlmGenerateInput,
+  LlmGenerateResult,
   LlmStreamAdapter,
   LlmStreamEvent,
   LlmStreamInput,
@@ -264,6 +267,75 @@ export const createOpenRouterLlmStreamAdapter = (
     }
   },
 });
+
+export const createOpenRouterLlmGenerateAdapter = (
+  options: OpenRouterAdapterOptions,
+): LlmGenerateAdapter => ({
+  async generateText(input: LlmGenerateInput): Promise<LlmGenerateResult> {
+    const requestInit: RequestInit = {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${options.apiKey}`,
+        'Content-Type': 'application/json',
+        ...(options.httpReferer ? { 'HTTP-Referer': options.httpReferer } : {}),
+        ...(options.appName ? { 'X-Title': options.appName } : {}),
+      },
+      body: JSON.stringify({
+        model: normalizeOpenRouterModelId(input.model),
+        stream: false,
+        messages: buildMessages(input.requestInput),
+      }),
+      ...(input.signal ? { signal: input.signal } : {}),
+    };
+
+    const response = await fetch(`${options.baseUrl ?? DEFAULT_OPENROUTER_BASE_URL}/chat/completions`, {
+      ...requestInit,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`openrouter_generate_failed:${response.status}:${body}`);
+    }
+
+    const data = await response.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_cost?: number };
+    };
+
+    const content = typeof data.choices?.[0]?.message?.content === 'string'
+      ? data.choices[0].message.content
+      : '';
+
+    if (content.length === 0) {
+      throw new Error('openrouter_generate_empty_response');
+    }
+
+    return {
+      content,
+      usage: toUsageMetrics(data.usage),
+    };
+  },
+});
+
+export const createOpenRouterLlmGenerateAdapterFromEnv = (): LlmGenerateAdapter | null => {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  return createOpenRouterLlmGenerateAdapter({
+    apiKey,
+    ...(process.env.OPENROUTER_BASE_URL
+      ? { baseUrl: process.env.OPENROUTER_BASE_URL }
+      : {}),
+    ...(process.env.OPENROUTER_APP_NAME
+      ? { appName: process.env.OPENROUTER_APP_NAME }
+      : {}),
+    ...(process.env.OPENROUTER_HTTP_REFERER
+      ? { httpReferer: process.env.OPENROUTER_HTTP_REFERER }
+      : {}),
+  });
+};
 
 export const createOpenRouterLlmStreamAdapterFromEnv = (): LlmStreamAdapter | null => {
   const apiKey = process.env.OPENROUTER_API_KEY;

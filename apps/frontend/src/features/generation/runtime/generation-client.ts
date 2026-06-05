@@ -2,6 +2,7 @@ import type {
   BackendStreamEvent,
   GenerationRequest,
 } from '../contracts/backend-stream';
+import type { GenerationRunResponse } from '@gen-app-2/contracts';
 import {
   createSseFrameParser,
   parseBackendStreamEvent,
@@ -148,4 +149,51 @@ export const streamGeneration = async (
       true,
     );
   }
+};
+
+export type RunGenerationOptions = {
+  apiBaseUrl?: string;
+  signal?: AbortSignal;
+};
+
+export const runGeneration = async (
+  request: GenerationRequest,
+  options: RunGenerationOptions = {},
+): Promise<GenerationRunResponse> => {
+  const apiBaseUrl = options.apiBaseUrl ?? '';
+  const requestInit: RequestInit = {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  };
+
+  if (options.signal) {
+    requestInit.signal = options.signal;
+  }
+
+  const response = await fetch(joinApiPath(apiBaseUrl, '/generation/run'), requestInit);
+
+  if (!response.ok) {
+    throw new GenerationTransportError(
+      'transport_pre_start',
+      `HTTP ${response.status} from generation/run`,
+      response.status >= 500,
+    );
+  }
+
+  const data = await response.json() as { ok: boolean; data?: GenerationRunResponse; error?: { code: string; message: string } };
+
+  if (!data.ok || !data.data) {
+    const errorMessage = data.error?.message ?? 'Generation failed';
+    throw new GenerationTransportError(
+      'terminal_failed',
+      errorMessage,
+      false,
+    );
+  }
+
+  return data.data;
 };

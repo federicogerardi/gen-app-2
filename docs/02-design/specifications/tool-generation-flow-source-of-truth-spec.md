@@ -1,12 +1,12 @@
 ---
 goal: Source of truth machine-friendly per il flow tool generation frontend
-version: 1.2
+version: 1.3
 date_created: 2026-05-02
-last-reviewed: 2026-05-23
-next-review-date: 2026-08-03
+last-reviewed: 2026-06-04
+next-review-date: 2026-09-04
 status: Active
 owner: Frontend Platform Team
-tags: [xstate, tool-generation, source-of-truth, frontend, state-machine]
+tags: [xstate, tool-generation, source-of-truth, frontend, state-machine, non-streaming]
 ---
 
 # Tool Generation Flow Source Of Truth (Frontend)
@@ -28,6 +28,8 @@ Obiettivo:
 Out of scope:
 - dettagli visual design
 - contratti backend non necessari alla logica frontend
+
+> **Nota architetturale (v1.3)**: A partire da giugno 2026, il percorso di generazione per i tool e stato migrato al modello **non-streaming** (`POST /generation/run`, risposta JSON). Il percorso streaming (`POST /generation/stream`, SSE) resta intatto ma dormiente per futuri usi (es. chat con effetto typing). Il frontend utilizza `frontendGenerationMachine` come default per i tool, mentre `frontendStreamMachine` rimane disponibile. Per i dettagli tecnici completi della migrazione, vedere [Non-Streaming Generation Migration Plan](../../../plan/migrate-to-nonstreaming-generation.md).
 
 ## 2. Bounded Context
 

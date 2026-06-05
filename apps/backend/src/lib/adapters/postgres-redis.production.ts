@@ -1,9 +1,11 @@
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import {
   createSyntheticLlmStreamAdapter,
+  createSyntheticLlmGenerateAdapter,
   type LlmStreamAdapter,
+  type LlmGenerateAdapter,
 } from './generation.adapters';
-import { createOpenRouterLlmStreamAdapterFromEnv } from './openrouter.adapter';
+import { createOpenRouterLlmStreamAdapterFromEnv, createOpenRouterLlmGenerateAdapterFromEnv } from './openrouter.adapter';
 
 import type { PostgresRedisAdapterDependencies } from './postgres-redis.interfaces';
 import {
@@ -57,6 +59,24 @@ export const createPostgresRedisProductionDependencies = (
     );
   }
 
+  const explicitGenerateAdapter = options.generate?.adapter;
+  const openRouterGenerateAdapter = explicitGenerateAdapter
+    ? null
+    : createOpenRouterLlmGenerateAdapterFromEnv();
+
+  const generate: LlmGenerateAdapter | null = explicitGenerateAdapter ?? openRouterGenerateAdapter;
+  if (!generate) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'production_generate_adapter_missing: provide options.generate.adapter or set OPENROUTER_API_KEY',
+      );
+    }
+    console.warn(
+      '[adapter][generate] OPENROUTER_API_KEY is not set; falling back to synthetic generate adapter. ' +
+        'All non-streaming generation requests will return stubbed content instead of calling a real LLM.',
+    );
+  }
+
   return {
     ownership: new PostgresProjectOwnershipRepository(clients.pg, options.persistence),
     quota: new PostgresRedisUsageRepository(clients.pg, clients.redis, options.usage),
@@ -71,6 +91,7 @@ export const createPostgresRedisProductionDependencies = (
       options.stream,
     ),
     llm: llm ?? createSyntheticLlmStreamAdapter(),
+    generate: generate ?? createSyntheticLlmGenerateAdapter(),
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
     orchestrateCache: new RedisOrchestrateArtifactCache(clients.redis, options.orchestrateCache),
   };

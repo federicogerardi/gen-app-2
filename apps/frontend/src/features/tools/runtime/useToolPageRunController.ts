@@ -2,15 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
-import type { GenerationArtifactsWorkspaceValue, GenerationProjectWorkspaceValue, GenerationStreamWorkspaceValue } from '../../generation/runtime/GenerationWorkspaceProvider';
+import type { GenerationArtifactsWorkspaceValue, GenerationProjectWorkspaceValue, GenerationStreamWorkspaceValue, GenerationGenerationWorkspaceValue } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
 import type { HydrationResult, ReadinessSnapshot, ToolPageViewModel } from '../machines/tool-page.machine';
 import type { ToolPageEvent } from '../machines/tool-page.types';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import type { FrontendGenerationStatus } from '../../generation/machines/frontend-generation.machine';
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
+import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 
 type UseToolPageRunControllerArgs = {
@@ -20,6 +22,7 @@ type UseToolPageRunControllerArgs = {
   formState: ToolFormState;
   intent: 'new' | 'resume' | 'regenerate';
   generationStream: GenerationStreamWorkspaceValue;
+  generationRun: GenerationGenerationWorkspaceValue;
   generationArtifacts: GenerationArtifactsWorkspaceValue;
   sourceArtifact: GenerationArtifact | null;
   sourceArtifactId?: string | null;
@@ -40,21 +43,27 @@ type UseToolPageRunControllerArgs = {
   sessionId: string;
 };
 
-export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId }: UseToolPageRunControllerArgs) => {
+export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId }: UseToolPageRunControllerArgs) => {
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
+  const nonStreamingCompletedStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
   const primaryActionPolicy = machineViewModel.primaryActionPolicy;
   const streamingStep = selectStreamingStep({ isStreamActive: generationStream.isStreamActive, lastRequest: generationStream.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
   const currentRunningStep = streamingStep;
   const runtimeIntent = resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult });
   const primaryTargetStep = selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep });
+  const generationStatus: FrontendGenerationStatus = (() => {
+    if (generationRun.snapshot.matches('idle')) return 'idle';
+    if (generationRun.snapshot.matches('running')) return 'running';
+    if (generationRun.snapshot.matches('completed')) return 'completed';
+    return 'failed';
+  })();
   const stopAutoChain = () => {
     setIsAutoChainEnabled(false);
-    currentRunPrefixRef.current = null;
   };
 
   useEffect(() => {
@@ -146,14 +155,14 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
             : 0,
         });
       }
-      generationStream.start(request);
+      generationRun.startRun(request);
       return true;
     } catch (err) {
       console.error('[useToolPage] orchestrateToolStep failed', { toolKey, step, err });
       return false;
     }
   }, [
-    auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts.artifacts, generationStream,
+    auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts.artifacts, generationStream, generationRun,
     intent, machineHydrationResult, nextAvailableStep, pausedCheckpointStep, primaryActionPolicy,
     primaryTargetStep, readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
     runtimeIntent, sessionId, sourceArtifact, sourceArtifactId, sourceStep, toolConfig, toolKey,
@@ -177,8 +186,44 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       wasStreamActiveRef.current = true;
       return;
     }
-    if (!wasStreamActiveRef.current) return;
+    if (generationRun.isGenerationActive) {
+      return;
+    }
+    if (!wasStreamActiveRef.current && generationStatus !== 'completed' && generationStatus !== 'failed') return;
     wasStreamActiveRef.current = false;
+
+    if (generationStatus === 'completed') {
+      const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
+      const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
+      if (resolved && nonStreamingCompletedStepsRef.current.has(resolved)) return;
+      if (import.meta.env.DEV) {
+        console.info('[useToolPage] non-streaming completed', { step, nextAvailableStep, lastRequestedStep: lastRequestedStepRef.current, resolved });
+      }
+      if (resolved) {
+        nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
+        toolPageSend({ type: 'STEP_DONE', step: resolved });
+        if (import.meta.env.DEV) {
+          console.info('[useToolPage] dispatching NONSTREAMING_STEP_COMPLETED', { step: resolved });
+        }
+        toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
+        if (import.meta.env.DEV) {
+          console.info('[useToolPage] dispatched NONSTREAMING_STEP_COMPLETED', { step: resolved });
+        }
+      }
+      generationArtifacts.reloadArtifacts();
+      return;
+    }
+    if (generationStatus === 'failed') {
+      const errorMessage = generationRun.snapshot.context.errorMessage ?? 'Generation failed';
+      const resolvedStep = lastRequestedStepRef.current ?? nextAvailableStep;
+      if (resolvedStep) {
+        toolPageSend({ type: 'STEP_FAILED', step: resolvedStep, message: errorMessage });
+      }
+      setDispatchError(errorMessage);
+      stopAutoChain();
+      toolPageSend({ type: 'CANCEL_GENERATION' });
+      return;
+    }
 
     const terminalResolution = selectStreamTerminalResolution({
       streamStatus: generationStream.streamStatus,
@@ -203,50 +248,67 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   }, [
     generationStream.isStreamActive, generationStream.snapshot.context.errorMessage,
     generationStream.snapshot.context.lastRequest, generationStream.streamStatus,
-    generationStream.terminalCompletedStep, generationStream.terminalFailedStep, toolConfig.steps, toolPageSend,
+    generationStream.terminalCompletedStep, generationStream.terminalFailedStep,
+    generationRun.isGenerationActive, generationRun.snapshot.context.errorMessage,
+    generationRun.snapshot.context.lastRequest, generationStatus, toolConfig.steps, toolPageSend,
+    nextAvailableStep,
   ]);
 
   useEffect(() => {
     if (!isAutoChainEnabled) return;
-    if (generationStream.streamStatus === 'failed') {
+    if (generationStream.streamStatus === 'failed' || generationStatus === 'failed') {
       const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
       if (interruptedStep) setPausedCheckpointStep(interruptedStep);
       stopAutoChain();
       return;
     }
-    if (generationStream.isStreamActive) return;
-    if (!nextAvailableStep) {
+    if (generationStream.isStreamActive || generationRun.isGenerationActive) return;
+
+    const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
+    const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
+    if (!effectiveNextStep) {
       stopAutoChain();
       return;
     }
+
     const lastRequestedStep = lastRequestedStepRef.current;
-    if (lastRequestedStep && completedStepsForFlow.has(lastRequestedStep) && lastRequestedStep !== nextAvailableStep) {
-      void startGenerationStep(nextAvailableStep);
+    if (import.meta.env.DEV) {
+      console.info('[useToolPage] auto-chain check', { lastRequestedStep, nextAvailableStep, effectiveNextStep, locallyCompleted: Array.from(locallyCompleted), completedStepsForFlow: Array.from(completedStepsForFlow), isAutoChainEnabled });
+    }
+    if (lastRequestedStep && locallyCompleted.has(lastRequestedStep) && lastRequestedStep !== effectiveNextStep) {
+      if (import.meta.env.DEV) {
+        console.info('[useToolPage] auto-chain starting next step', { effectiveNextStep });
+      }
+      void startGenerationStep(effectiveNextStep);
     }
   }, [
     completedStepsForFlow, currentRunningStep, generationStream.isStreamActive,
-    generationStream.streamStatus, isAutoChainEnabled, nextAvailableStep, startGenerationStep,
+    generationStream.streamStatus, generationRun.isGenerationActive, generationStatus,
+    isAutoChainEnabled, nextAvailableStep, startGenerationStep, toolKey, toolConfig.steps,
   ]);
 
   const handlePrimaryAction = useCallback(() => {
-    if (primaryActionPolicy === 'open-last-artifact' || !readinessSnapshot.canStartFlow || generationStream.isStreamActive || !primaryTargetStep) return;
-    const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
+    if (primaryActionPolicy === 'open-last-artifact' || !readinessSnapshot.canStartFlow || generationStream.isStreamActive || generationRun.isGenerationActive || !primaryTargetStep) return;
+    const runPrefix = generateRequestId();
     currentRunPrefixRef.current = runPrefix;
+    nonStreamingCompletedStepsRef.current = new Set();
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
     toolPageSend({ type: 'REQUEST_STEP_START', step: primaryTargetStep, runRequestPrefix: runPrefix });
-  }, [generationStream.isStreamActive, primaryActionPolicy, primaryTargetStep, readinessSnapshot.canStartFlow, toolPageSend]);
+  }, [generationStream.isStreamActive, generationRun.isGenerationActive, primaryActionPolicy, primaryTargetStep, readinessSnapshot.canStartFlow, toolPageSend]);
 
   const handleCancelGeneration = useCallback(() => {
     setIsAutoChainEnabled(false);
+    nonStreamingCompletedStepsRef.current = new Set();
     const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
     if (interruptedStep) setPausedCheckpointStep(interruptedStep);
     currentRunPrefixRef.current = null;
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: null });
     toolPageSend({ type: 'CANCEL_GENERATION' });
     generationStream.cancel();
-  }, [currentRunningStep, generationArtifacts.artifacts, generationStream, intent, sourceArtifact, toolPageSend]);
+    generationRun.resetRun();
+  }, [currentRunningStep, generationArtifacts.artifacts, generationStream, generationRun, intent, sourceArtifact, toolPageSend]);
 
   const getCurrentRunRequestPrefix = useCallback(() => currentRunPrefixRef.current, []);
 

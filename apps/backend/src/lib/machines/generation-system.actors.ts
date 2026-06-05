@@ -6,6 +6,8 @@ import { streamTransportMachine } from './stream-transport.machine';
 import { toolWorkflowMachine } from './tool-workflow.machine';
 import { usageMachine } from './usage.machine';
 import { generationFallbackActor } from './generation-fallback.actor';
+import { generationActor } from './generation-actor';
+import { simpleFinalizationActor } from './persistence-actor';
 import { buildExtractionStructuredPayload } from './generation/extraction-parsers';
 import { getRegistrySelector } from './generation-routing';
 import { isExtractionPayloadSemanticallyValid } from './generation-system.events';
@@ -94,6 +96,8 @@ export const generationSystemActors = {
   ),
   invokeStream: streamTransportMachine,
   invokePersistence: persistenceBatchMachine,
+  invokeGeneration: generationActor,
+  invokeSimplePersistence: simpleFinalizationActor,
   invokeExtraction: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
     const payload = buildExtractionStructuredPayload(input.context);
 
@@ -184,4 +188,8 @@ export type GenerationSystemProvidedActor =
   | { src: 'invokeToolWorkflow'; logic: typeof generationSystemActors.invokeToolWorkflow; id: string | undefined }
   | { src: 'invokeFallbackPolicy'; logic: typeof generationSystemActors.invokeFallbackPolicy; id: string | undefined }
   | { src: 'markCompletedIdempotency'; logic: typeof generationSystemActors.markCompletedIdempotency; id: string | undefined }
-  | { src: 'markFailedIdempotency'; logic: typeof generationSystemActors.markFailedIdempotency; id: string | undefined };
+  | { src: 'invokeFallbackPolicy'; logic: typeof generationSystemActors.invokeFallbackPolicy; id: string | undefined }
+  | { src: 'markCompletedIdempotency'; logic: typeof generationSystemActors.markCompletedIdempotency; id: string | undefined }
+  | { src: 'markFailedIdempotency'; logic: typeof generationSystemActors.markFailedIdempotency; id: string | undefined }
+  | { src: 'invokeGeneration'; logic: typeof generationSystemActors.invokeGeneration; id: string | undefined }
+  | { src: 'invokeSimplePersistence'; logic: typeof generationSystemActors.invokeSimplePersistence; id: string | undefined };

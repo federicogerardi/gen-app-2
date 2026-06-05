@@ -1,6 +1,7 @@
 import {
   getAcquisitionResultParams,
   getExtractionResultParams,
+  getGenerateResultParams,
   getInvokeFailureReason,
   getStreamResultParams,
   getToolDoneOutput,
@@ -31,7 +32,7 @@ export const generationSystemExecutionStates = {
       onDone: [
         {
           guard: 'extractionOutputIsAccepted',
-          target: 'streaming',
+          target: 'dispatchingMode',
           actions: {
             type: 'cacheExtractionResult',
             params: ({ event }: UnknownEventArgs) => getExtractionResultParams(event),
@@ -69,7 +70,7 @@ export const generationSystemExecutionStates = {
       },
       {
         guard: ({ context }: ContextArgs) => resolveWorkflowRunMode(context) === 'new',
-        target: 'streaming',
+        target: 'dispatchingMode',
       },
     ],
     invoke: {
@@ -102,7 +103,7 @@ export const generationSystemExecutionStates = {
       onDone: [
         {
           guard: 'toolOutputIsCompleted',
-          target: 'streaming',
+          target: 'dispatchingMode',
           actions: {
             type: 'cacheToolArtifactFromOutput',
             params: ({ event }: UnknownEventArgs) => {
@@ -114,7 +115,7 @@ export const generationSystemExecutionStates = {
           },
         },
         {
-          target: 'streaming',
+          target: 'dispatchingMode',
         },
       ],
       onError: {
@@ -136,14 +137,14 @@ export const generationSystemExecutionStates = {
       onDone: [
         {
           guard: 'acquisitionOutputIsAccepted',
-          target: 'streaming',
+          target: 'dispatchingMode',
           actions: {
             type: 'cacheAcquisitionResult',
             params: ({ event }: UnknownEventArgs) => getAcquisitionResultParams(event),
           },
         },
         {
-          target: 'streaming',
+          target: 'dispatchingMode',
         },
       ],
       onError: {
@@ -158,7 +159,57 @@ export const generationSystemExecutionStates = {
     },
   },
   genericGenerationFlow: {
-    always: 'streaming',
+    always: 'dispatchingMode',
+  },
+  dispatchingMode: {
+    always: [
+      {
+        guard: 'modeIsGenerate',
+        target: 'generating',
+      },
+      { target: 'streaming' },
+    ],
+  },
+  generating: {
+    entry: ['ensureArtifactId'],
+    invoke: {
+      id: 'generationActor',
+      src: 'invokeGeneration',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'generateOutputIsFailure',
+          target: 'resolvingFallbackPolicy',
+          actions: [
+            {
+              type: 'cacheGenerateResult',
+              params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),
+            },
+            {
+              type: 'queueFallbackDecision',
+              params: ({ event }: UnknownEventArgs) => ({
+                reason: getInvokeFailureReason(event),
+                defaultReason: 'generate_failure',
+              }),
+            },
+          ],
+        },
+        {
+          target: 'persistingSuccessSync',
+          actions: {
+            type: 'cacheGenerateResult',
+            params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),
+          },
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: { defaultReason: 'generate_failure' },
+        },
+      },
+    },
   },
   streaming: {
     entry: ['ensureArtifactId'],

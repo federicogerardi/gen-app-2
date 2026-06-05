@@ -3,6 +3,7 @@ import type { GenerationAdapters } from '../adapters';
 
 import {
   runBackendGenerationSession,
+  runBackendGenerationSessionAsJson,
   type BackendSessionResult,
 } from './backend-session';
 import {
@@ -91,9 +92,33 @@ export const handleGenerationRequestAsNodeSse = async (
   await pipeSseStreamToNodeResponse(response, sseStream, options);
 };
 
+export const handleGenerationRequestAsJson = async (
+  request: BackendGenerationRequest,
+  adapters: GenerationAdapters,
+): Promise<{ ok: true; data: import('@gen-app-2/contracts').GenerationRunResponse } | { ok: false; error: import('./error-contract').BackendError }> => {
+  const result = await runBackendGenerationSessionAsJson(request, adapters);
+
+  if (result.status === 'completed') {
+    return {
+      ok: true,
+      data: {
+        artifactId: result.artifactId ?? '',
+        content: result.content,
+        status: 'completed',
+      },
+    };
+  }
+
+  return {
+    ok: false,
+    error: result.error ?? { code: 'generation_failed', message: result.content || 'generation_failed', retryable: false },
+  };
+};
+
 export type { BackendGenerationRequest } from './request-contract';
 export type { BackendError } from './error-contract';
 export type { BackendStreamEvent } from './stream-contract';
+export type { BackendJsonSessionResult } from './backend-session';
 export {
   createAuthHttpRuntime,
   type AuthHttpResponseBody,

@@ -245,6 +245,14 @@ const generationWorkspaceState = {
   start: startMock,
 };
 
+const generationRunWorkspaceState = {
+  snapshot: { context: { lastRequest: null, errorMessage: null }, matches: vi.fn((state: string) => state === 'idle') },
+  generationStatus: 'idle' as 'idle' | 'running' | 'completed' | 'failed',
+  isGenerationActive: false,
+  startRun: startMock,
+  resetRun: vi.fn(),
+};
+
 const availableStepsState = {
   steps: ['optin'] as Array<'optin' | 'quiz' | 'vsl' | 'landing' | 'thank_you'>,
 };
@@ -256,6 +264,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => generationWorkspaceState,
   useGenerationStreamWorkspace: () => generationWorkspaceState,
+  useGenerationGenerationWorkspace: () => generationRunWorkspaceState,
   useGenerationArtifactsWorkspace: () => ({
     artifacts: generationWorkspaceState.artifacts,
     reloadArtifacts: vi.fn(),

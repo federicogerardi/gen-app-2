@@ -35,8 +35,6 @@ type FrontendGenerationInput = {
 
 type FrontendGenerationEvent =
   | { type: 'REQUEST_START'; request: GenerationRequest }
-  | { type: 'GENERATION_SUCCESS'; response: GenerationRunResponse }
-  | { type: 'GENERATION_FAILURE'; error: string }
   | { type: 'RESET' }
   | { type: 'CHECKPOINT_UPSERTED'; checkpoint: ToolCheckpoint };
 

@@ -31,7 +31,7 @@ export const ProjectSelector = ({
     <label>
       {appCopy.ui.labels.projectId}
       <select value={projectId} onChange={e => onChange(e.target.value)} disabled={disabled || loading}>
-        <option value="">Select a project</option>
+        <option value="">{appCopy.ui.toolPage.form.selectProject}</option>
         {projects.map(p => (
           <option key={p.id} value={p.id}>
             {p.name} ({p.id})
@@ -98,7 +98,7 @@ export const GenerationInputs = ({
       {appCopy.ui.labels.model}
       <select value={model} onChange={e => onModelChange(e.target.value)} disabled={disabled}>
         {modelOptions.length === 0 ? (
-          <option value={model} disabled>{model || 'No models available'}</option>
+          <option value={model} disabled>{model || appCopy.ui.toolPage.form.noModelsAvailable}</option>
         ) : (
           modelOptions.map(o => (
             <option key={o.key} value={o.key}>{o.label}</option>
@@ -148,7 +148,7 @@ export const StepSelector = ({
         {step}
         {completedSteps.has(step) ? <span className={uiPrimitives.metaLine}> ✓ {appCopy.ui.states.completed}</span> : null}
         {!availableSteps.includes(step) && !completedSteps.has(step) ? (
-          <span className={uiPrimitives.metaLine}> (waiting for dependencies)</span>
+          <span className={uiPrimitives.metaLine}> ({appCopy.ui.states.pending})</span>
         ) : null}
       </label>
     ))}

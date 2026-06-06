@@ -222,9 +222,9 @@ describe('ToolPageTemplate extraction CTA', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('combobox', { name: /project/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('combobox', { name: /model/i })).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('combobox', { name: /tone/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: /progetto/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: /modello/i })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('combobox', { name: /tono/i })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('button', { name: /briefing file/i })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('button', { name: /angle detector file/i })).toHaveAttribute('aria-disabled', 'true');
 

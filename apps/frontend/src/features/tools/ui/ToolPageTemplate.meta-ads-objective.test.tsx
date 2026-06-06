@@ -128,7 +128,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('combobox', { name: /campaign objective/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /obiettivo campagna/i })).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
@@ -136,7 +136,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('combobox', { name: /campaign objective/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /obiettivo campagna/i })).not.toBeInTheDocument();
   });
 
   it('updates form state when campaign objective changes', () => {
@@ -146,7 +146,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    const objectiveSelect = screen.getByRole('combobox', { name: /campaign objective/i });
+    const objectiveSelect = screen.getByRole('combobox', { name: /obiettivo campagna/i });
     fireEvent.mouseDown(objectiveSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Leads' }));
 

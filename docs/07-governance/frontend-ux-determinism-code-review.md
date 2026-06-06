@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 date_created: 2026-06-06
 last-reviewed: 2026-06-06
 next-review-date: 2026-07-06
@@ -19,7 +19,7 @@ type: code-review
 
 ## A. XState Machines — Determinism
 
-### A1. Error strings instead of explicit error states (3 machines)
+### A1. Error strings instead of explicit error states (3 machines) — OPEN
 
 | Machine | Flag | Location |
 |---|---|---|
@@ -29,7 +29,7 @@ type: code-review
 
 Machines with better error handling (`generation-lifecycle`, `frontend-stream`, `feedback-center`) use explicit error states. The others hide sub-states inside `context.error !== null`, making UX behavior non-deterministic from state alone — the same `idle` or `unauthenticated` state covers both "clean" and "error" conditions.
 
-**Recommendation**: Introduce child states (`idle.error`, `unauthenticated.error`) or orthogonal regions for error. This makes the UI transition to/from error a traceable machine event, not a flag derivation.
+**Recommendation**: Introduce child states (`idle.error`, `unauthenticated.error`) or orthogonal regions for error. This makes the UI transition to/from error a traceable machine event, not a flag derivation. Requires significant machine restructuring — deferred.
 
 ### A2. Inline guards duplicating named guards (2 machines)
 
@@ -44,18 +44,22 @@ Machines with better error handling (`generation-lifecycle`, `frontend-stream`, 
 
 **Recommendation**: Derive `viewModel` reactively (pure selector on context) instead of dual-writing in actions.
 
-### A4. Dead code in machines
+### A4. Dead code in machines — RESOLVED
 
-| File | Line | Element |
+~~| File | Line | Element |
 |---|---|---|
 | `tool-page.machine.ts` | 96 | `setGenerationError` — defined but never used in any transition |
 | `frontend-generation.machine.ts` | 38-39 | `GENERATION_SUCCESS`/`GENERATION_FAILURE` — event types declared but never used |
 | `frontend-stream.machine.ts` | 153 | `isMonotonicSequence` — guard defined but never referenced |
-| `frontend-stream.machine.ts` | 169 | `isTerminalForActiveArtifact` — guard defined but never referenced |
+| `frontend-stream.machine.ts` | 169 | `isTerminalForActiveArtifact` — guard defined but never referenced |~~
 
-### A5. `tool-flow.machine.ts` — unused machine
+**RESOLVED** — All dead code removed from `tool-page.machine.ts`, `frontend-generation.machine.ts`, `frontend-stream.machine.ts`.
 
-`generation-lifecycle.machine.ts` has replaced `tool-flow.machine.ts`, which remains in the codebase with tests but no runtime consumer.
+### A5. `tool-flow.machine.ts` — unused machine actor — RESOLVED
+
+~~`generation-lifecycle.machine.ts` has replaced `tool-flow.machine.ts`, which remains in the codebase with tests but no runtime consumer.~~
+
+**RESOLVED** — `toolFlowMachine` removed from `tool-page.machine.ts` actors registration and import. The file `tool-flow.machine.ts` is retained because it exports canonical types (`SupportedTool`, `ToolStep`, `ToolStepStatus`, `toolStepOrder`) consumed by 20+ files. Only the unused actor registration was removed.
 
 ### A6. Pull-based cross-machine coupling
 
@@ -69,7 +73,7 @@ Machines with better error handling (`generation-lifecycle`, `frontend-stream`, 
 
 ## B. Copy Centralization
 
-### B1. ~100+ hardcoded strings in components
+### B1. ~100+ hardcoded strings in components — PARTIALLY RESOLVED
 
 Most significant violations:
 
@@ -82,18 +86,22 @@ Most significant violations:
 | Admin dashboard | `AdminDashboardPage.tsx:28-48` | 4 KPI widgets with hardcoded text | open |
 | Admin navigation | `admin-navigation.ts:13-51` | 7 labels + 7 descriptions outside `copy/system.ts` | open |
 | Artifact detail | `ArtifactDetailPage.tsx:231` | `"Apri sessione"` duplicates `appCopy.ui.toolPage.openSessionLabel` | open |
-| Feedback center | `UserReportSubmissionPage.tsx:84` | `"Report submitted successfully."` vs `appCopy.ui.feedback.userReportSubmitted` | **resolved** — now uses `appCopy.ui.feedback.userReportSubmitted` |
+| Feedback center | `UserReportSubmissionPage.tsx:84` | `"Report submitted successfully."` vs `appCopy.ui.feedback.userReportSubmitted` | **resolved** |
+| ToolFormComponents | `ToolFormComponents.tsx:34,101,151` | `"Select a project"`, `"No models available"`, `"waiting for dependencies"` | **resolved** |
+| NewProjectPage | `NewProjectPage.tsx:13` | `'Project name is required'` | **resolved** |
 
-### B2. Language inconsistency
+### B2. Language inconsistency — RESOLVED
 
-| Copy section | Language |
+~~| Copy section | Language |
 |---|---|
 | `appCopy.ui.fallbackErrors.*` | All English |
 | `appCopy.ui.feedback.*` | All Italian |
 | `appCopy.ui.states.*` | Mixed (`completed`/`pending` in English, loading list in Italian) |
 | `appCopy.ui.toolPage.form.*` | Mixed (`projectLabel` Italian, `campaignObjective*` English) |
 | Admin form labels | English (`Email`, `Role`, `Status`, `Key`, `Label`) |
-| Zod validation messages | Mixed (`LoginForm`: Italian, `NewProjectPage`: English) |
+| Zod validation messages | Mixed (`LoginForm`: Italian, `NewProjectPage`: English) |~~
+
+**RESOLVED** — All `appCopy` sections aligned to Italian: `fallbackErrors.*`, `states.completed/pending/present/missing`, `meta.*` labels, `toolPage.form.*` labels, `toolPage.flow.ariaRegionLabel/ariaContextFilesLabel`. `ToolFormComponents` and `NewProjectPage` hardcoded strings converged to `appCopy`.
 
 ### B3. Duplicate definitions with different labels
 
@@ -105,13 +113,15 @@ Most significant violations:
 
 ## C. UI Patterns — Unification
 
-### C1. Two competing button systems
+### C1. Two competing button systems — PARTIALLY RESOLVED
 
-- `primitives.tsx` exports `Button` (native HTML with `ui-button` class)
+~~- `primitives.tsx` exports `Button` (native HTML with `ui-button` class)
 - `CtaButtons.tsx` exports 3 MUI CTAs (`PrimaryCtaButton`, `SecondaryCtaButton`, `SoftCtaButton`)
-- `UploadFieldButton.tsx`, `LoginForm.tsx`, all admin forms use MUI `Button` directly
+- `UploadFieldButton.tsx`, `LoginForm.tsx`, all admin forms use MUI `Button` directly~~
 
-**Recommendation**: Converge to a single system. The UI spec (Section 4b) already defines 3 canonical patterns (`ui-button`, `inlineLink`, `bordered-chip`) but implementation is fragmented across two libraries.
+**PARTIALLY RESOLVED** — `CtaButtons.tsx` applies variant-specific CSS classes: `PrimaryCtaButton` uses `uiPrimitives.button` (primary gradient styling), `SecondaryCtaButton` uses `ui-button-secondary` (outlined variant with subtle border), `SoftCtaButton` uses `ui-button-soft` (text variant, no border). MUI Button remains in use for form integrations (TextField, loading states) where native button lacks equivalent functionality. Full convergence to a single button system deferred — requires design system decision on MUI vs native strategy.
+
+**Correction (2026-06-06)** — Initial Fix 10 incorrectly applied `ui-button` class to all CTA variants, causing secondary/soft buttons to inherit primary button styling (gradient background, light text). Fixed by applying variant-specific classes: only `PrimaryCtaButton` gets `ui-button`; secondary/soft buttons get their own styling classes that override visual properties while preserving MUI layout/typography.
 
 ### C2. Two visually distinct error CSS classes
 
@@ -166,9 +176,11 @@ Classes like `ui-tool-page-template`, `ui-fv-root`, `ui-admin-kpi-widget-card`, 
 
 ## E. Listing Patterns — DRY
 
-### E1. 3 admin pages manually replicate `ListingTableSection` gating logic
+### E1. 3 admin pages manually replicate `ListingTableSection` gating logic — OPEN
 
 `AdminUsersPage.tsx`, `AdminModelsPage.tsx`, `AdminApiServicesPage.tsx` implement inline loading/error/empty/table gating, duplicating the logic that `ListingTableSection` encapsulates. If the contract changes, 3 files must be updated.
+
+**Deferred** — Migration requires restructuring `AdminUsersTable` (inline editing rows), `LLMTable` (bordered-chip action convergence), and `AdminApiServicesTable` (selection + bindings panel). Each table has custom interaction patterns that do not fit the generic `ListingTableSection` column/cell model without significant refactoring.
 
 ### E2. `useAdminModelsMutations.ts:88` uses raw `fetch()` for DELETE
 
@@ -176,12 +188,14 @@ All other mutations use `requestVoid()` from the typed HTTP client. This is the 
 
 ---
 
-## F. `FeedbackChannel` — Duplicated and disconnected type
+## F. `FeedbackChannel` — Duplicated and disconnected type — RESOLVED
 
-`FeedbackMessageProvider.tsx:4` defines `FeedbackChannel = 'global'` (1 value only).
+~~`FeedbackMessageProvider.tsx:4` defines `FeedbackChannel = 'global'` (1 value only).
 `feedback-channel-map.ts:11` defines `FeedbackChannel = 'inline-action' | 'page-state' | 'global'` (3 values).
 
-These are **two separate type declarations with the same name**. The channel map (`resolveFeedbackChannel`) is never imported by the provider. The map is an aspirational specification, not active routing logic. The provider supports only `publishSuccess`/`publishError` (2 of 4 declared severity levels).
+These are **two separate type declarations with the same name**. The channel map (`resolveFeedbackChannel`) is never imported by the provider. The map is an aspirational specification, not active routing logic. The provider supports only `publishSuccess`/`publishError` (2 of 4 declared severity levels).~~
+
+**RESOLVED** — `FeedbackMessageProvider` now imports and re-exports `FeedbackChannel` from `feedback-channel-map.ts`, eliminating the duplicate type declaration. Added `publishInfo` and `publishWarning` methods to the provider, completing all 4 severity levels (`success`, `info`, `warning`, `error`). The channel map remains an aspirational routing specification; the provider continues to emit `channel: 'global'` for all messages.
 
 ---
 
@@ -189,24 +203,24 @@ These are **two separate type declarations with the same name**. The channel map
 
 | # | Area | Impact | Effort | Status |
 |---|---|---|---|---|
-| 1 | Fix missing `ui-badge-*` CSS (C4) | Broken UX — invisible badges | Low | **resolved** — `ToolStepCard` now uses `StatusBadge` component |
-| 2 | Fix `artifactsReloadError` not rendered (C5) | Silent error | Low | **resolved** — error now passed to Workflow Panel |
-| 3 | Fix missing `role="alert"` (D1) | Accessibility | Low | **resolved** — added to all 7 error renderings |
-| 4 | Unify error classes `.ui-error` vs `.ui-fv-error` (C2) | Visual determinism | Low | **resolved** — `.ui-fv-error` removed, all use `uiPrimitives.error` |
-| 5 | Converge hardcoded copy to `appCopy` (B1) | UX determinism / maintainability | Medium | **partial** — `UserReportSubmissionPage` converged; remaining items open |
-| 6 | Fix report category label bug (B3) — `'Issue'` vs `'Bug'` | Deterministic UX bug | Low | **resolved** — uses `appCopy.ui.feedbackCenterOptions.categories` |
-| 7 | Align copy language (B2) | UX consistency | Medium | open |
-| 8 | Explicit error states in machines (A1) | State determinism | Medium-High | open |
-| 9 | Remove machine dead code (A4) + unused `tool-flow.machine.ts` (A5) | Cleanup | Low | open |
-| 10 | Unify button system (C1) | UI determinism | Medium-High | open |
-| 11 | Wire `feedback-channel-map` to provider (F) | Infrastructure completeness | Medium | open |
-| 12 | Migrate 3 admin pages to `ListingTableSection` (E1) | DRY | Medium | open |
+| 1 | Fix missing `ui-badge-*` CSS (C4) | Broken UX — invisible badges | Low | **resolved** |
+| 2 | Fix `artifactsReloadError` not rendered (C5) | Silent error | Low | **resolved** |
+| 3 | Fix missing `role="alert"` (D1) | Accessibility | Low | **resolved** |
+| 4 | Unify error classes `.ui-error` vs `.ui-fv-error` (C2) | Visual determinism | Low | **resolved** |
+| 5 | Converge hardcoded copy to `appCopy` (B1) | UX determinism / maintainability | Medium | **partial** — `UserReportSubmissionPage`, `ToolFormComponents`, `NewProjectPage` converged; admin forms/tables/dashboard/navigation open |
+| 6 | Fix report category label bug (B3) | Deterministic UX bug | Low | **resolved** |
+| 7 | Align copy language (B2) | UX consistency | Medium | **resolved** — all `appCopy` sections aligned to Italian |
+| 8 | Explicit error states in machines (A1) | State determinism | Medium-High | open — requires machine restructuring |
+| 9 | Remove machine dead code (A4) + unused actor (A5) | Cleanup | Low | **resolved** |
+| 10 | Unify button system (C1) | UI determinism | Medium-High | **partial** — `CtaButtons` now carries `ui-button` class; full MUI/native convergence deferred |
+| 11 | Wire `feedback-channel-map` to provider (F) | Infrastructure completeness | Medium | **resolved** — types aligned, `publishInfo`/`publishWarning` added |
+| 12 | Migrate 3 admin pages to `ListingTableSection` (E1) | DRY | Medium | open — requires table restructuring |
 
 ---
 
-## Resolution Delta (2026-06-06)
+## Resolution Delta (2026-06-06, pass 1)
 
-Interventions 1-6 completed in a single pass. Files modified:
+Interventions 1-6 completed. Files modified:
 
 | File | Changes |
 |---|---|
@@ -222,3 +236,54 @@ Interventions 1-6 completed in a single pass. Files modified:
 | `features/feedback-center/pages/UserReportSubmissionPage.test.tsx` | Updated expected copy to `appCopy.ui.feedback.userReportSubmitted` |
 
 Verification: typecheck clean, 400/400 tests pass, build succeeds.
+
+---
+
+## Resolution Delta (2026-06-06, pass 2)
+
+Interventions 7, 9, 10, 11 completed. Findings 8 (A1) and 12 (E1) documented as open with deferral rationale.
+
+| File | Changes |
+|---|---|
+| `features/tools/machines/tool-page.machine.ts` | Removed unused `toolFlowMachine` import and actor registration; removed dead `setGenerationError` action |
+| `features/generation/machines/frontend-generation.machine.ts` | Removed unused `GENERATION_SUCCESS`/`GENERATION_FAILURE` event types |
+| `features/generation/machines/frontend-stream.machine.ts` | Removed unused `isMonotonicSequence` and `isTerminalForActiveArtifact` guards |
+| `app/providers/FeedbackMessageProvider.tsx` | Aligned `FeedbackChannel` type to import/re-export from `feedback-channel-map.ts`; added `publishInfo` and `publishWarning` methods |
+| `app/ui/CtaButtons.tsx` | Added variant-specific CSS classes: `PrimaryCtaButton` uses `uiPrimitives.button`, `SecondaryCtaButton` uses `ui-button-secondary`, `SoftCtaButton` uses `ui-button-soft` |
+| `styles.css` | Added `.ui-button-soft` CSS class for text variant buttons |
+| `app/copy/system.ts` | Aligned all English sections to Italian: `fallbackErrors.*`, `states.completed/pending/present/missing`, `meta.*` labels, `toolPage.form.*` labels, `toolPage.flow.ariaRegionLabel/ariaContextFilesLabel`, `toolPage.headingMetaSuffix` |
+| `features/tools/ui/ToolFormComponents.tsx` | Replaced hardcoded `"Select a project"`, `"No models available"`, `"waiting for dependencies"` with `appCopy` references |
+| `features/projects/pages/NewProjectPage.tsx` | Replaced hardcoded `'Project name is required'` with `appCopy` reference |
+| `features/tools/ui/ToolGenerationFlowVertical.test.tsx` | Updated aria label query to Italian (`'Flusso di generazione'`) |
+| `features/tools/ui/ToolPageTemplate.extraction-cta.test.tsx` | Updated combobox queries to Italian (`/progetto/i`, `/modello/i`, `/tono/i`) |
+| `features/tools/ui/ToolPageTemplate.meta-ads-flow.e2e.test.tsx` | Updated combobox query to Italian (`/obiettivo campagna/i`) |
+| `features/tools/ui/ToolPageTemplate.meta-ads-objective.test.tsx` | Updated combobox queries to Italian (`/obiettivo campagna/i`) |
+
+Verification: typecheck clean, 400/400 tests pass, build succeeds.
+
+---
+
+## Correction (2026-06-06, post-pass 2)
+
+**Issue**: Fix 10 (pass 2) incorrectly applied `ui-button` CSS class to all 3 CTA button variants (`PrimaryCtaButton`, `SecondaryCtaButton`, `SoftCtaButton`). The `.ui-button` class defines primary button styling (gradient background, light text color, shadow) which overrode MUI's `variant="outlined"` and `variant="text"` styling, making secondary/soft buttons visually identical to primary buttons with poor text visibility.
+
+**Fix**: 
+- `PrimaryCtaButton` retains `uiPrimitives.button` (`ui-button` class) for primary gradient styling
+- `SecondaryCtaButton` uses `ui-button-secondary` class (transparent background, subtle border, muted text)
+- `SoftCtaButton` uses new `ui-button-soft` class (transparent background, no border, muted text)
+- Added `.ui-button-soft` CSS class to `styles.css`
+
+**Files modified**:
+- `app/ui/CtaButtons.tsx` — variant-specific CSS class application
+- `styles.css` — added `.ui-button-soft` and `.ui-button-soft:hover` rules
+
+Verification: typecheck clean, 400/400 tests pass.
+
+### Open findings (deferred)
+
+| # | Finding | Rationale |
+|---|---|---|
+| 8 (A1) | Explicit error states in 3 machines | Requires restructuring `tool-page.machine.ts`, `briefing-upload.machine.ts`, `auth-session.machine.ts` context and state definitions. High regression risk. |
+| 12 (E1) | Migrate 3 admin pages to `ListingTableSection` | `AdminUsersTable` (inline editing), `LLMTable` (action patterns), `AdminApiServicesTable` (selection + bindings panel) have custom interaction models that don't fit generic `ListingTableSection` without significant refactoring. |
+| 5 (B1) | Remaining hardcoded strings | Admin forms, admin tables, admin dashboard, admin navigation, YouTube Description form, `ToolActionButtons` — all have hardcoded strings not yet centralized in `appCopy`. Non-blocking, incremental convergence. |
+| 10 (C1) | Full button system convergence | MUI Button remains necessary for form integrations (TextField, loading states). Full native/MUI convergence requires design system decision. |

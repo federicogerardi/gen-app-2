@@ -15,7 +15,7 @@ const baseProps: ToolGenerationFlowVerticalProps = {
 describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
   it('renders the region container', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
-    expect(screen.getByRole('region', { name: 'Generation flow' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Flusso di generazione' })).toBeInTheDocument();
   });
 
   it('renders extraction bar in idle stop state on draft-empty', () => {

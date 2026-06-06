@@ -2294,6 +2294,20 @@ button:not(.MuiButton-root):not([class]):disabled,
   transform: none;
 }
 
+.ui-button-soft {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ui-button-soft:hover {
+  background: var(--surface-steel);
+  color: var(--text-primary);
+  box-shadow: none;
+  transform: none;
+}
+
 .dashboard-grid,
 .ui-dashboard-grid {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

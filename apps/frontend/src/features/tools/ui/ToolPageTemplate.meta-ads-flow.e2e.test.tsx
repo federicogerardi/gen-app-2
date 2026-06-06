@@ -150,7 +150,7 @@ describe('ToolPageTemplate meta-ads e2e flow', () => {
       </MemoryRouter>,
     );
 
-    const objectiveSelect = screen.getByRole('combobox', { name: /campaign objective/i });
+    const objectiveSelect = screen.getByRole('combobox', { name: /obiettivo campagna/i });
     fireEvent.mouseDown(objectiveSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Leads' }));
 

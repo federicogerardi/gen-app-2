@@ -2,7 +2,6 @@ import { assign, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { generationLifecycleMachine } from './generation-lifecycle.machine';
 import { hydrationMachine } from './hydration.machine';
-import { toolFlowMachine } from './tool-flow.machine';
 import { generateSessionId } from '../../../app/runtime/shared-utils';
 import { buildReadinessSnapshot, deriveHasPrimaryTargetStep } from './tool-page-readiness';
 import { buildDefaultViewModel, buildToolPageViewModel, canStartFromPolicy } from './tool-page-view-model';
@@ -25,7 +24,6 @@ export const toolPageMachine = setup({
   },
   actors: {
     briefingUploadMachine,
-    toolFlowMachine,
     generationLifecycleMachine,
     hydrationMachine,
   },
@@ -92,15 +90,6 @@ export const toolPageMachine = setup({
     }),
     clearPendingStepStart: assign({
       pendingStepStart: () => null,
-    }),
-    setGenerationError: assign({
-      generationError: () => 'Tool flow failed',
-      viewModel: ({ context }) => buildToolPageViewModel({
-        toolKey: context.toolKey,
-        readiness: context.readiness,
-        progress: context.progress,
-        generationError: 'Tool flow failed',
-      }),
     }),
     resetConfig: assign(({ context }) => buildResetConfigState(context)),
     sendBriefingSelected: sendTo(

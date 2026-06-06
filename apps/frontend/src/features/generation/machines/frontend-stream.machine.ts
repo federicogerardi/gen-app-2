@@ -150,9 +150,6 @@ export const frontendStreamMachine = setup({
     isExpectedStartEvent: ({ context, event }) => {
       return event.type === 'SSE_START' && event.requestId === context.requestId;
     },
-    isMonotonicSequence: ({ context, event }) => {
-      return event.type === 'SSE_CHUNK' && event.sequence > context.lastSequence;
-    },
     isChunkForActiveArtifact: ({ context, event }) => {
       return event.type === 'SSE_CHUNK'
         && event.sequence > context.lastSequence
@@ -165,11 +162,6 @@ export const frontendStreamMachine = setup({
     hasRequestToRetry: ({ context }) => context.lastRequest !== null,
     isReconnectExhausted: ({ context }) => {
       return context.reconnectAttempts > context.maxReconnectAttempts;
-    },
-    isTerminalForActiveArtifact: ({ context, event }) => {
-      return event.type === 'SSE_TERMINAL'
-        && context.artifactId !== null
-        && (event.artifactId === null || event.artifactId === context.artifactId);
     },
     isTerminalCompleted: ({ context, event }) => {
       return event.type === 'SSE_TERMINAL'

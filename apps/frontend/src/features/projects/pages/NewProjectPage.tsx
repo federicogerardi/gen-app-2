@@ -10,7 +10,7 @@ import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { createProject } from '../runtime/projects-client';
 
 const newProjectSchema = z.object({
-  name: z.string().min(1, 'Project name is required'),
+  name: z.string().min(1, appCopy.ui.toolPage.runtimeErrors.projectRequired),
   description: z.string().optional(),
 });
 

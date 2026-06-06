@@ -3,7 +3,7 @@ import { Menu, MenuItem } from '@mui/material';
 import { ChevronDown, Download } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { cx } from '../../../app/ui/primitives';
-import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
+import { PrimaryCtaButton } from '../../../app/ui/CtaButtons';
 import type { DownloadFormat } from '../runtime/download-client';
 
 const DOWNLOAD_FORMATS: DownloadFormat[] = ['docx', 'md'];
@@ -21,14 +21,14 @@ const getFormatLabel = (format: DownloadFormat): string => {
 type DownloadFormatDropdownProps = {
   onDownload: (format: DownloadFormat) => void;
   disabled?: boolean;
-  triggerVariant?: 'secondary' | 'icon';
+  triggerVariant?: 'primary' | 'secondary' | 'icon';
   className?: string;
 };
 
 export const DownloadFormatDropdown = ({
   onDownload,
   disabled = false,
-  triggerVariant = 'secondary',
+  triggerVariant = 'primary',
   className,
 }: DownloadFormatDropdownProps) => {
   const [selectedFormat, setSelectedFormat] = useState<DownloadFormat>('docx');
@@ -72,7 +72,7 @@ export const DownloadFormatDropdown = ({
           <Download size={13} />
         </button>
       ) : (
-        <SecondaryCtaButton
+        <PrimaryCtaButton
           type="button"
           className={cx('ui-download-split-button', className)}
           aria-haspopup="menu"
@@ -106,7 +106,7 @@ export const DownloadFormatDropdown = ({
               </span>
             </span>
           </span>
-        </SecondaryCtaButton>
+        </PrimaryCtaButton>
       )}
 
       <Menu

@@ -39,7 +39,7 @@ export const ProjectSelector = ({
         ))}
       </select>
     </label>
-    {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+    {error ? <p className={uiPrimitives.error} role="alert">{error}</p> : null}
     {loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingProjects}</p> : null}
   </>
 );
@@ -72,7 +72,7 @@ export const BriefingUpload = ({
     {status === 'uploading' ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.uploadingBriefing}</p> : null}
     {status === 'extracting' ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.extractingInformation}</p> : null}
     {fileName ? <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, fileName)}</p> : null}
-    {error ? <p className={uiPrimitives.error}>{error}</p> : null}
+    {error ? <p className={uiPrimitives.error} role="alert">{error}</p> : null}
   </>
 );
 
@@ -173,7 +173,7 @@ export const FormStatus = ({
     <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.extraction, extractionLifecycle)}</p>
     <p className={uiPrimitives.metaLine}>{formatMeta(appCopy.ui.meta.briefing, briefingFileName ?? '-')}</p>
     {warnings.map((warning, i) => (
-      <p key={i} className={uiPrimitives.error}>
+      <p key={i} className={uiPrimitives.error} role="alert">
         {warning}
       </p>
     ))}

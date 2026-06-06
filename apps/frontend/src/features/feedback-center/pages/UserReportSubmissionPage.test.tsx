@@ -83,17 +83,17 @@ describe('UserReportSubmissionPage', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /descrizione/i }), { target: { value: 'Save fails with 500.' } });
     fireEvent.click(screen.getByRole('button', { name: 'Invia report' }));
 
-    expect(await screen.findByText('Report submitted successfully.')).toBeInTheDocument();
+    expect(await screen.findByText('Segnalazione inviata con successo.')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Report submitted successfully.',
+        'Segnalazione inviata con successo.',
         expect.objectContaining({ dedupeKey: 'feedback-center:user-report:submit:success' }),
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to form' }));
-    expect(screen.queryByText('Report submitted successfully.')).toBeNull();
+    expect(screen.queryByText('Segnalazione inviata con successo.')).toBeNull();
   });
 
   it('shows inline-action error on submit failure and supports RESET_TO_IDLE', async () => {

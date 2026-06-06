@@ -78,6 +78,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectsLoading,
     briefingError,
     dispatchError,
+    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -871,7 +872,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
-                {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
+                {dispatchError ? <p className={uiPrimitives.error} role="alert">{dispatchError}</p> : null}
 
               <div className="ui-tool-action-buttons">
                 {isFormLocked || isFormBusy ? (
@@ -891,7 +892,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
-              errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
+              errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
               inputFilePayload={inputFilePayload}
               apiAcquisitionPayload={apiAcquisitionPayload}
               generationProgress={generationProgress}

@@ -613,7 +613,7 @@ describe('ToolPageTemplate wiring', () => {
     ).toBeInTheDocument();
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
   });
 
   it('blocks primary action when a required api-acquisition binding is missing', async () => {

@@ -115,6 +115,7 @@ Validation path manifest (orphan-check canonical set):
 ### Active Reviews
 
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
+- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
 
 ### Governance Tables
 

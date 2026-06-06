@@ -3201,16 +3201,6 @@ ul {
   line-height: 1.25;
 }
 
-/* ── global error banner ── */
-.ui-fv-error {
-  padding: 0.625rem 0.75rem;
-  border-left: 2px solid var(--alert-brick);
-  background: var(--error-bg);
-  font-size: 0.85rem;
-  color: var(--error-fg);
-  font-family: var(--font-family-ui);
-}
-
 /* ── reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .workflow-preload-bar.is-active::after,

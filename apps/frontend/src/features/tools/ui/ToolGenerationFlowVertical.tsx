@@ -280,7 +280,7 @@ export const ToolGenerationFlowVertical = ({
 
         </section>
       </div>
-      {errorMessage && <p className="ui-fv-error" role="alert">{errorMessage}</p>}
+      {errorMessage && <p className={uiPrimitives.error} role="alert">{errorMessage}</p>}
     </div>
   );
 };

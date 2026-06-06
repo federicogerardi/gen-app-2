@@ -74,7 +74,7 @@ export const NewProjectPage = () => {
           fullWidth
         />
 
-        {errors.root ? <p className={uiPrimitives.error}>{errors.root.message}</p> : null}
+        {errors.root ? <p className={uiPrimitives.error} role="alert">{errors.root.message}</p> : null}
 
         <MuiButton type="submit" variant="contained" disabled={isSubmitting}>
           {appCopy.ui.actions.createProject}

@@ -12,6 +12,25 @@ If touching UI code: [Frontend UI Ubiquitous Language Spec](docs/02-design/speci
 
 Do not introduce non-canonical domain terms anywhere (code, tests, docs, PR notes, comments). New terms require a `DDD-NNN` entry in the decision log first.
 
+## Documentation Frontmatter
+Every file under `docs/` MUST start with a YAML frontmatter block delimited by `---` lines. No exceptions, including archived files (keep frontmatter valid for tooling even when content freezes).
+
+**Required fields** (all documents):
+- `status` — one of `active` | `approved` | `draft` | `archived`
+- `version` — semver-style document version
+- `last-reviewed` — ISO date `YYYY-MM-DD`
+- `next-review-date` — ISO date `YYYY-MM-DD`
+- `owner` — team or role responsible for the document
+
+**Common optional fields** (use when relevant):
+- `date_created` — ISO date, original creation date
+- `title` — explicit display title (otherwise inferred from H1)
+- `type` — document kind (e.g. `code-review`, `ui-governance-spec`, `adr`)
+- `tags` — YAML list of topical tags for search/indexing
+- `goal` — short statement of objective (for plans/templates)
+
+On any content change: bump `version`, refresh `last-reviewed`, push `next-review-date`, and update `owner` if ownership changed. Reference template: [docs/99-reference/templates/tool-development-plan-template.md](docs/99-reference/templates/tool-development-plan-template.md).
+
 ## Architecture
 - **Monorepo**: npm workspaces — `apps/backend`, `apps/frontend`, `packages/contracts`, `packages/domain`, `packages/infra-db`.
 - **Backend**: Node.js, XState v5 actors (`GenerationSystem` aggregate root), Kysely typed SQL, pg driver, Redis, Zod validation.

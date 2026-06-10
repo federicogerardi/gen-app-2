@@ -73,7 +73,7 @@ export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: Log
           fullWidth
         />
 
-        {error || externalError ? <p className={uiPrimitives.error}>{error ?? externalError}</p> : null}
+        {error || externalError ? <p className={uiPrimitives.error} role="alert">{error ?? externalError}</p> : null}
 
         <MuiButton type="submit" variant="contained" disabled={pending}>
           {pending ? appCopy.editorial.auth.pendingAccess : appCopy.ui.actions.enterWorkspace}

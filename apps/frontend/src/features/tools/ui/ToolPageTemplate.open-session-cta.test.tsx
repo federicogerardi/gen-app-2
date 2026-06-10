@@ -41,6 +41,31 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingRequiredFiles: ['briefing-file'],
     missingOptionalFiles: [],
   }),
+  deriveToolInputRequirementMatrix: () => ({
+    entries: [
+      {
+        key: 'project-selection',
+        label: 'ProjectSelection',
+        sourceFamily: 'direct-input',
+        requiredness: 'always-required',
+        satisfied: false,
+      },
+      {
+        key: 'briefing-file',
+        label: 'Briefing File',
+        sourceFamily: 'tool-input-file',
+        requiredness: 'always-required',
+        satisfied: false,
+      },
+    ],
+    requiredEntriesSatisfied: false,
+    missingRequiredEntries: [],
+    missingOptionalEntries: [],
+    missingRequiredFiles: [],
+    missingOptionalFiles: [],
+    missingRequiredApiAcquisition: [],
+    missingOptionalApiAcquisition: [],
+  }),
 }));
 
 vi.mock('../runtime/useToolPage', () => ({

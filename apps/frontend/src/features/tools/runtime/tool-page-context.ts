@@ -56,6 +56,7 @@ export const useToolPageContext = ({
       sessionId: generateSessionId(),
       projectId: generationProject.focusedProjectId ?? initialProjectId ?? '',
       model: toolConfig.defaultModel,
+      campaignObjective: formState.campaignObjective,
       registrySnapshotRef: toolConfig.defaults.registrySnapshotRef,
       apiBaseUrl: auth.apiBaseUrl,
       capabilities: auth.capabilities,
@@ -65,6 +66,7 @@ export const useToolPageContext = ({
   const [sourceArtifact, setSourceArtifact] = useState<GenerationArtifact | null>(null);
   const initialPrefillDoneRef = useRef(false);
   const previousProjectIdRef = useRef((generationProject.focusedProjectId ?? initialProjectId ?? '').trim());
+  const previousCampaignObjectiveRef = useRef(formState.campaignObjective.trim());
   const tonePrefillDoneRef = useRef(false);
   const sessionIdRef = useRef(toolPageSnapshot.context.sessionId);
   const briefingSnapshot = useSelector(
@@ -188,6 +190,13 @@ export const useToolPageContext = ({
     toolPageSend({ type: 'PROJECT_SELECTED', projectId: normalizedProjectId });
     previousProjectIdRef.current = normalizedProjectId;
   }, [normalizedProjectId, toolPageSend]);
+
+  useEffect(() => {
+    const normalizedCampaignObjective = formState.campaignObjective.trim();
+    if (previousCampaignObjectiveRef.current === normalizedCampaignObjective) return;
+    toolPageSend({ type: 'CAMPAIGN_OBJECTIVE_CHANGED', campaignObjective: normalizedCampaignObjective });
+    previousCampaignObjectiveRef.current = normalizedCampaignObjective;
+  }, [formState.campaignObjective, toolPageSend]);
 
   useEffect(() => {
     if (tonePrefillDoneRef.current) return;

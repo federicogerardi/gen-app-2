@@ -1,133 +1,158 @@
-/**
- * LlmModelCatalog DB adapter.
- * Implements CRUD operations for LlmModel entities.
- * DDD-055: LlmModelCatalog is the service-layer term for model catalog management.
- */
-
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
-import { rowToLlmModel, type LlmModel, type LlmModelRow, type LlmModelStatus } from '../types/llm-model';
 
-const ORDER_CLAUSE = 'ORDER BY sort_order ASC NULLS LAST, created_at ASC';
-const SELECT_COLS = 'id, key, label, status, is_default, sort_order, created_at, updated_at';
+import {
+  rowToLlmModel,
+  type LlmModel,
+  type LlmModelRow,
+  type LlmModelStatus,
+} from '../types/llm-model';
 
-export const listEnabledModels = async (db: Pool): Promise<LlmModel[]> => {
-  const result = await db.query<LlmModelRow>(
-    `SELECT ${SELECT_COLS}
-     FROM llm_models
-     WHERE status = 'enabled'
-     ${ORDER_CLAUSE}`,
-  );
-  return result.rows.map(rowToLlmModel);
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL UUID generation functions.
+ * gen_random_uuid() must be expressed via the sql template tag.
+ * Used here because LlmModelsTable.id is typed as string (not Generated<string>),
+ * so Kysely requires an explicit value; the DB default is provided via this expression.
+ */
+const dbGenUuid = sql<string>`gen_random_uuid()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
+function getDb(pool: Pool): Kysely<DB> {
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
+}
+
+export const listEnabledModels = async (pool: Pool): Promise<LlmModel[]> => {
+  const rows = await getDb(pool)
+    .selectFrom('llm_models')
+    .selectAll()
+    .where('status', '=', 'enabled')
+    .orderBy('sort_order', 'asc')
+    .orderBy('created_at', 'asc')
+    .execute() as unknown as LlmModelRow[];
+
+  return rows.map(rowToLlmModel);
 };
 
-export const listAllModels = async (db: Pool): Promise<LlmModel[]> => {
-  const result = await db.query<LlmModelRow>(
-    `SELECT ${SELECT_COLS}
-     FROM llm_models
-     ${ORDER_CLAUSE}`,
-  );
-  return result.rows.map(rowToLlmModel);
+export const listAllModels = async (pool: Pool): Promise<LlmModel[]> => {
+  const rows = await getDb(pool)
+    .selectFrom('llm_models')
+    .selectAll()
+    .orderBy('sort_order', 'asc')
+    .orderBy('created_at', 'asc')
+    .execute() as unknown as LlmModelRow[];
+
+  return rows.map(rowToLlmModel);
 };
 
 export const createModel = async (
-  db: Pool,
+  pool: Pool,
   payload: { key: string; label: string; status?: LlmModelStatus; isDefault?: boolean; sortOrder?: number },
 ): Promise<LlmModel> => {
-  const result = await db.query<LlmModelRow>(
-    `INSERT INTO llm_models (key, label, status, is_default, sort_order)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING ${SELECT_COLS}`,
-    [
-      payload.key,
-      payload.label,
-      payload.status ?? 'enabled',
-      payload.isDefault ?? false,
-      payload.sortOrder ?? null,
-    ],
-  );
-  const row = result.rows[0];
-  if (!row) {
-    throw new Error('Insert returned no row');
-  }
+  const row = await getDb(pool)
+    .insertInto('llm_models')
+    .values({
+      id: dbGenUuid,
+      key: payload.key,
+      label: payload.label,
+      status: payload.status ?? 'enabled',
+      is_default: payload.isDefault ?? false,
+      sort_order: payload.sortOrder ?? null,
+      created_at: dbNow,
+      updated_at: dbNow,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow() as unknown as LlmModelRow;
+
   return rowToLlmModel(row);
 };
 
 export const updateModel = async (
-  db: Pool,
+  pool: Pool,
   id: string,
   payload: Partial<{ key: string; label: string; status: LlmModelStatus; isDefault: boolean; sortOrder: number }>,
 ): Promise<LlmModel | null> => {
+  const db = getDb(pool);
   const { isDefault, ...rest } = payload;
 
-  // If isDefault is being set to true, run an atomic transaction:
-  // unset any existing default, then apply all changes to the target model.
   if (isDefault === true) {
-    const client = await db.connect();
-    try {
-      await client.query('BEGIN');
-      // Clear existing default (partial unique index allows only one TRUE)
-      await client.query(
-        `UPDATE llm_models SET is_default = FALSE, updated_at = now() WHERE is_default = TRUE AND id != $1`,
-        [id],
-      );
-      const setClauses: string[] = ['is_default = TRUE'];
-      const values: unknown[] = [];
-      let idx = 1;
+    return await db.transaction().execute(async (trx) => {
+      await trx
+        .updateTable('llm_models')
+        .set({ is_default: false, updated_at: dbNow })
+        .where('is_default', '=', true)
+        .execute();
 
-      if (rest.key !== undefined) { setClauses.push(`key = $${idx++}`); values.push(rest.key); }
-      if (rest.label !== undefined) { setClauses.push(`label = $${idx++}`); values.push(rest.label); }
-      if (rest.status !== undefined) { setClauses.push(`status = $${idx++}`); values.push(rest.status); }
-      if (rest.sortOrder !== undefined) { setClauses.push(`sort_order = $${idx++}`); values.push(rest.sortOrder); }
-      setClauses.push(`updated_at = now()`);
-      values.push(id);
+      const setValues: Record<string, unknown> = {};
+      if (rest.key !== undefined) setValues.key = rest.key;
+      if (rest.label !== undefined) setValues.label = rest.label;
+      if (rest.status !== undefined) setValues.status = rest.status;
+      if (rest.sortOrder !== undefined) setValues.sort_order = rest.sortOrder;
+      setValues.is_default = true;
+      setValues.updated_at = dbNow;
 
-      const result = await client.query<LlmModelRow>(
-        `UPDATE llm_models SET ${setClauses.join(', ')} WHERE id = $${idx}
-         RETURNING ${SELECT_COLS}`,
-        values,
-      );
-      await client.query('COMMIT');
-      return result.rows[0] ? rowToLlmModel(result.rows[0]) : null;
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+      const row = await trx
+        .updateTable('llm_models')
+        .set(setValues as any)
+        .where('id', '=', id)
+        .returningAll()
+        .executeTakeFirst() as unknown as LlmModelRow | undefined;
+
+      return row ? rowToLlmModel(row) : null;
+    });
   }
 
-  // Non-default-swap update: regular SET clause.
-  const setClauses: string[] = [];
-  const values: unknown[] = [];
-  let idx = 1;
+  const setValues: Record<string, unknown> = {};
+  if (rest.key !== undefined) setValues.key = rest.key;
+  if (rest.label !== undefined) setValues.label = rest.label;
+  if (rest.status !== undefined) setValues.status = rest.status;
+  if (rest.sortOrder !== undefined) setValues.sort_order = rest.sortOrder;
+  if (isDefault !== undefined) setValues.is_default = isDefault;
+  setValues.updated_at = dbNow;
 
-  if (rest.key !== undefined) { setClauses.push(`key = $${idx++}`); values.push(rest.key); }
-  if (rest.label !== undefined) { setClauses.push(`label = $${idx++}`); values.push(rest.label); }
-  if (rest.status !== undefined) { setClauses.push(`status = $${idx++}`); values.push(rest.status); }
-  if (rest.sortOrder !== undefined) { setClauses.push(`sort_order = $${idx++}`); values.push(rest.sortOrder); }
-  // isDefault === false: explicitly unset (only allowed if model is not the current default via DB constraint)
-  if (isDefault === false) { setClauses.push(`is_default = $${idx++}`); values.push(false); }
+  if (Object.keys(setValues).length === 1 && 'updated_at' in setValues) {
+    const row = await db
+      .selectFrom('llm_models')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst() as unknown as LlmModelRow | undefined;
 
-  if (setClauses.length === 0) {
-    const existing = await db.query<LlmModelRow>(
-      `SELECT ${SELECT_COLS} FROM llm_models WHERE id = $1`,
-      [id],
-    );
-    return existing.rows[0] ? rowToLlmModel(existing.rows[0]) : null;
+    return row ? rowToLlmModel(row) : null;
   }
 
-  setClauses.push(`updated_at = now()`);
-  values.push(id);
+  const row = await db
+    .updateTable('llm_models')
+    .set(setValues as any)
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst() as unknown as LlmModelRow | undefined;
 
-  const result = await db.query<LlmModelRow>(
-    `UPDATE llm_models SET ${setClauses.join(', ')} WHERE id = $${idx}
-     RETURNING ${SELECT_COLS}`,
-    values,
-  );
-  return result.rows[0] ? rowToLlmModel(result.rows[0]) : null;
+  return row ? rowToLlmModel(row) : null;
 };
 
-export const deleteModel = async (db: Pool, id: string): Promise<boolean> => {
-  const result = await db.query('DELETE FROM llm_models WHERE id = $1', [id]);
-  return (result.rowCount ?? 0) > 0;
+export const deleteModel = async (pool: Pool, id: string): Promise<boolean> => {
+  const result = await getDb(pool)
+    .deleteFrom('llm_models')
+    .where('id', '=', id)
+    .execute();
+
+  return Number(result[0]?.numDeletedRows ?? 0) > 0;
 };

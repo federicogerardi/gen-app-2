@@ -271,7 +271,7 @@ In caso di conflitto tra documenti:
 
 - per regole visuali prevale questo documento
 - per dettagli architetturali tool pages prevale frontend-tool-pages-architecture-spec.md
-- per contratti runtime/copy centralizzato si integra con frontend-spec.md
+- per contratti runtime/copy centralizzato si integra con tool-page-frontend-runtime-spec.md
 
 ## 10. Checklist rapida per PR frontend GUI
 

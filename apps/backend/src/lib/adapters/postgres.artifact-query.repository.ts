@@ -1,4 +1,5 @@
-import type { Pool, QueryResult } from 'pg';
+import { Kysely, sql } from 'kysely';
+import type { Pool } from 'pg';
 
 import {
   mapArtifactRowToDetail,
@@ -16,187 +17,148 @@ import { normalizeToolWorkflowKey } from '../runtime/workflow-normalizers';
 
 import type { ArtifactQueryRepository } from './postgres-redis.interfaces';
 import type { ArtifactRow, PersistenceRepositoryOptions } from './postgres-redis.shared.types';
-import { buildQualifiedTableName } from './postgres-redis.sql.utils';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 
 export class PostgresArtifactQueryRepository implements ArtifactQueryRepository {
-  private readonly artifactsTableName: string;
-  private readonly usersTableName: string;
+  private readonly db: Kysely<DB>;
+  private readonly artifactsSchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     options: PersistenceRepositoryOptions = {},
   ) {
-    this.artifactsTableName = buildQualifiedTableName(
-      options.artifactsSchema,
-      options.artifactsTableName ?? 'artifacts',
-    );
-    this.usersTableName = buildQualifiedTableName(
-      options.usersSchema,
-      options.usersTableName ?? 'users',
-    );
+    this.db = createKyselyDb(pg);
+    this.artifactsSchema = options.artifactsSchema;
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
+    if (
+      options.usersSchema !== undefined
+      && options.usersSchema !== options.artifactsSchema
+    ) {
+      throw new Error('usersSchema must match artifactsSchema for artifact query joins');
+    }
   }
 
-  private buildProjectedDetailSelect(projection: ArtifactReadProjection): string {
+  private getArtifactDb(): Kysely<DB> {
+    return this.artifactsSchema ? this.db.withSchema(this.artifactsSchema) : this.db;
+  }
+
+  private buildDetailSelection(projection: ArtifactReadProjection): any[] {
     const includeInput = projection.includeInput === true;
     const includeContent = projection.includeContent === true;
 
-    return [
-      'id',
-      'request_id',
-      'user_id',
-      'project_id',
-      'type',
-      'status',
-      'model',
-      'workflow_type',
-      'session_id',
-      'step_key',
-      'artifact_role',
-      'run_mode',
-      includeInput ? 'input_json' : 'NULL::jsonb AS input_json',
-      includeContent ? 'content' : "''::text AS content",
-      'failure_reason',
-      'created_at',
-      'updated_at',
-    ].join(',\n        ');
+    const fields: any[] = [
+      'id', 'request_id', 'user_id', 'project_id', 'type', 'status',
+      'model', 'workflow_type', 'session_id', 'step_key', 'artifact_role',
+      'run_mode', 'failure_reason', 'created_at', 'updated_at',
+    ];
+
+    fields.push(
+      includeInput
+        ? 'input_json'
+        : sql<Record<string, unknown> | null>`NULL::jsonb`.as('input_json'),
+    );
+
+    fields.push(
+      includeContent
+        ? 'content'
+        : sql<string>`''::text`.as('content'),
+    );
+
+    return fields;
   }
 
   async listArtifacts(filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
-    const where: string[] = [];
-    const params: unknown[] = [];
+    const db = this.getArtifactDb();
+
+    let query = db
+      .selectFrom('artifacts as a')
+      .leftJoin('users as u', 'u.id', 'a.user_id')
+      .select([
+        'a.id', 'a.request_id', 'a.user_id', 'u.email as user_email',
+        'a.project_id', 'a.type', 'a.status', 'a.model', 'a.workflow_type',
+        'a.session_id', 'a.step_key', 'a.artifact_role', 'a.run_mode',
+        'a.created_at', 'a.updated_at',
+      ]);
 
     if (filters.type) {
-      params.push(filters.type);
-      where.push(`a.type = $${params.length}`);
+      query = query.where('a.type', '=', filters.type);
     }
-
     if (filters.status) {
-      params.push(filters.status);
-      where.push(`a.status = $${params.length}`);
+      query = query.where('a.status', '=', filters.status);
     }
-
     if (filters.projectId) {
-      params.push(filters.projectId);
-      where.push(`a.project_id = $${params.length}`);
+      query = query.where('a.project_id', '=', filters.projectId);
     }
-
     if (filters.from) {
-      params.push(filters.from);
-      where.push(`a.updated_at >= $${params.length}::timestamptz`);
+      // Escape hatch: ::timestamptz cast is PostgreSQL-specific; Kysely's .where() has no
+      // typed builder for explicit column type coercion on timestamp comparisons.
+      query = query.where(sql<boolean>`a.updated_at >= ${filters.from}::timestamptz`);
     }
-
     if (filters.to) {
-      params.push(filters.to);
-      where.push(`a.updated_at <= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`a.updated_at <= ${filters.to}::timestamptz`);
     }
 
-    const whereClause = where.length > 0 ? where.join(' AND ') : 'TRUE';
+    query = query
+      .orderBy('a.updated_at', 'desc')
+      .orderBy('a.id', 'desc');
 
-    let paginationClause = '';
     if (typeof filters.limit === 'number') {
-      params.push(filters.limit);
-      paginationClause += `\n      LIMIT $${params.length}`;
+      query = query.limit(filters.limit);
     }
-
     if (typeof filters.offset === 'number') {
-      params.push(filters.offset);
-      paginationClause += `\n      OFFSET $${params.length}`;
+      query = query.offset(filters.offset);
     }
 
-    const query = `
-      SELECT
-        a.id,
-        a.request_id,
-        a.user_id,
-        u.email AS user_email,
-        a.project_id,
-        a.type,
-        a.status,
-        a.model,
-        a.workflow_type,
-        a.session_id,
-        a.step_key,
-        a.artifact_role,
-        a.run_mode,
-        a.created_at,
-        a.updated_at
-      FROM ${this.artifactsTableName} a
-      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
-      WHERE ${whereClause}
-      ORDER BY a.updated_at DESC, a.id DESC
-      ${paginationClause}
-    `;
-
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);
-    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+    const rows = await query.execute() as unknown as ArtifactRow[];
+    return rows.map(mapArtifactRowToSummary);
   }
 
   async listArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<ArtifactSummary[]> {
-    const where: string[] = ['a.user_id = $1'];
-    const params: unknown[] = [userId];
+    const db = this.getArtifactDb();
+
+    let query = db
+      .selectFrom('artifacts as a')
+      .leftJoin('users as u', 'u.id', 'a.user_id')
+      .select([
+        'a.id', 'a.request_id', 'a.user_id', 'u.email as user_email',
+        'a.project_id', 'a.type', 'a.status', 'a.model', 'a.workflow_type',
+        'a.session_id', 'a.step_key', 'a.artifact_role', 'a.run_mode',
+        'a.created_at', 'a.updated_at',
+      ])
+      .where('a.user_id', '=', userId);
 
     if (filters.type) {
-      params.push(filters.type);
-      where.push(`a.type = $${params.length}`);
+      query = query.where('a.type', '=', filters.type);
     }
-
     if (filters.status) {
-      params.push(filters.status);
-      where.push(`a.status = $${params.length}`);
+      query = query.where('a.status', '=', filters.status);
     }
-
     if (filters.projectId) {
-      params.push(filters.projectId);
-      where.push(`a.project_id = $${params.length}`);
+      query = query.where('a.project_id', '=', filters.projectId);
     }
-
     if (filters.from) {
-      params.push(filters.from);
-      where.push(`a.updated_at >= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`a.updated_at >= ${filters.from}::timestamptz`);
     }
-
     if (filters.to) {
-      params.push(filters.to);
-      where.push(`a.updated_at <= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`a.updated_at <= ${filters.to}::timestamptz`);
     }
 
-    let paginationClause = '';
+    query = query
+      .orderBy('a.updated_at', 'desc')
+      .orderBy('a.id', 'desc');
+
     if (typeof filters.limit === 'number') {
-      params.push(filters.limit);
-      paginationClause += `\n      LIMIT $${params.length}`;
+      query = query.limit(filters.limit);
     }
-
     if (typeof filters.offset === 'number') {
-      params.push(filters.offset);
-      paginationClause += `\n      OFFSET $${params.length}`;
+      query = query.offset(filters.offset);
     }
 
-    const query = `
-      SELECT
-        a.id,
-        a.request_id,
-        a.user_id,
-        u.email AS user_email,
-        a.project_id,
-        a.type,
-        a.status,
-        a.model,
-        a.workflow_type,
-        a.session_id,
-        a.step_key,
-        a.artifact_role,
-        a.run_mode,
-        a.created_at,
-        a.updated_at
-      FROM ${this.artifactsTableName} a
-      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
-      WHERE ${where.join(' AND ')}
-      ORDER BY a.updated_at DESC, a.id DESC
-      ${paginationClause}
-    `;
-
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, params);
-    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+    const rows = await query.execute() as unknown as ArtifactRow[];
+    return rows.map(mapArtifactRowToSummary);
   }
 
   async listRecentCompletedArtifactsForToolByUser(
@@ -211,120 +173,85 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       return [];
     }
 
-    const query = `
-      SELECT
-        a.id,
-        a.request_id,
-        a.user_id,
-        u.email AS user_email,
-        a.project_id,
-        a.type,
-        a.status,
-        a.model,
-        a.workflow_type,
-        a.session_id,
-        a.step_key,
-        a.artifact_role,
-        a.run_mode,
-        a.created_at,
-        a.updated_at
-      FROM ${this.artifactsTableName} a
-      LEFT JOIN ${this.usersTableName} u ON u.id = a.user_id
-      WHERE a.user_id = $1
-        AND a.project_id = $2
-        AND a.status = 'completed'
-        AND a.workflow_type = $3
-      ORDER BY a.updated_at DESC, a.id DESC
-      LIMIT $4
-    `;
+    const db = this.getArtifactDb();
+    const rows = await db
+      .selectFrom('artifacts as a')
+      .select([
+        'a.id', 'a.request_id', 'a.user_id', 'a.project_id', 'a.type',
+        'a.status', 'a.model', 'a.workflow_type', 'a.session_id', 'a.step_key',
+        'a.artifact_role', 'a.run_mode', 'a.created_at', 'a.updated_at',
+      ])
+      .where('a.user_id', '=', userId)
+      .where('a.project_id', '=', input.projectId)
+      // Escape hatch: the partial-index predicate (status = 'completed') must be an inline
+      // literal so PostgreSQL can match it during generic-plan evaluation. Kysely's
+      // .where(col, '=', val) always parameterizes the value, which prevents the planner
+      // from using the partial index artifacts_orchestrate_recent_completed_idx.
+      .where(sql<boolean>`a.status = 'completed'`)
+      .where('a.workflow_type', '=', input.workflowType)
+      .orderBy('a.updated_at', 'desc')
+      .orderBy('a.id', 'desc')
+      .limit(limit)
+      .execute() as unknown as ArtifactRow[];
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [
-      userId,
-      input.projectId,
-      input.workflowType,
-      limit,
-    ]);
-    return result.rows.map((row): ArtifactSummary => mapArtifactRowToSummary(row));
+    return rows.map(mapArtifactRowToSummary);
   }
 
   async countArtifacts(filters: ArtifactListFilters): Promise<number> {
-    const where: string[] = [];
-    const params: unknown[] = [];
+    const db = this.getArtifactDb();
+
+    let query = db
+      .selectFrom('artifacts')
+      // Escape hatch: count(*) is a PostgreSQL aggregate function; Kysely has no typed
+      // builder equivalent for COUNT in a .select() context.
+      .select(sql<string>`count(*)`.as('total'));
 
     if (filters.type) {
-      params.push(filters.type);
-      where.push(`type = $${params.length}`);
+      query = query.where('type', '=', filters.type);
     }
-
     if (filters.status) {
-      params.push(filters.status);
-      where.push(`status = $${params.length}`);
+      query = query.where('status', '=', filters.status);
     }
-
     if (filters.projectId) {
-      params.push(filters.projectId);
-      where.push(`project_id = $${params.length}`);
+      query = query.where('project_id', '=', filters.projectId);
     }
-
     if (filters.from) {
-      params.push(filters.from);
-      where.push(`updated_at >= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`updated_at >= ${filters.from}::timestamptz`);
     }
-
     if (filters.to) {
-      params.push(filters.to);
-      where.push(`updated_at <= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`updated_at <= ${filters.to}::timestamptz`);
     }
 
-    const whereClause = where.length > 0 ? where.join(' AND ') : 'TRUE';
-
-    const query = `
-      SELECT COUNT(*) as total
-      FROM ${this.artifactsTableName}
-      WHERE ${whereClause}
-    `;
-
-    const result: QueryResult<{ total: string }> = await this.pg.query(query, params);
-    return parseInt(result.rows[0]?.total ?? '0', 10);
+    const result = await query.execute();
+    return parseInt(result[0]?.total ?? '0', 10);
   }
 
   async countArtifactsByUser(userId: string, filters: ArtifactListFilters): Promise<number> {
-    const where: string[] = ['user_id = $1'];
-    const params: unknown[] = [userId];
+    const db = this.getArtifactDb();
+
+    let query = db
+      .selectFrom('artifacts')
+      .select(sql<string>`count(*)`.as('total'))
+      .where('user_id', '=', userId);
 
     if (filters.type) {
-      params.push(filters.type);
-      where.push(`type = $${params.length}`);
+      query = query.where('type', '=', filters.type);
     }
-
     if (filters.status) {
-      params.push(filters.status);
-      where.push(`status = $${params.length}`);
+      query = query.where('status', '=', filters.status);
     }
-
     if (filters.projectId) {
-      params.push(filters.projectId);
-      where.push(`project_id = $${params.length}`);
+      query = query.where('project_id', '=', filters.projectId);
     }
-
     if (filters.from) {
-      params.push(filters.from);
-      where.push(`updated_at >= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`updated_at >= ${filters.from}::timestamptz`);
     }
-
     if (filters.to) {
-      params.push(filters.to);
-      where.push(`updated_at <= $${params.length}::timestamptz`);
+      query = query.where(sql<boolean>`updated_at <= ${filters.to}::timestamptz`);
     }
 
-    const query = `
-      SELECT COUNT(*) as total
-      FROM ${this.artifactsTableName}
-      WHERE ${where.join(' AND ')}
-    `;
-
-    const result: QueryResult<{ total: string }> = await this.pg.query(query, params);
-    return parseInt(result.rows[0]?.total ?? '0', 10);
+    const result = await query.execute();
+    return parseInt(result[0]?.total ?? '0', 10);
   }
 
   async getArtifactByIdForUser(
@@ -335,17 +262,16 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       includeContent: true,
     },
   ): Promise<ArtifactDetail | null> {
-    const select = this.buildProjectedDetailSelect(projection);
-    const query = `
-      SELECT
-        ${select}
-      FROM ${this.artifactsTableName}
-      WHERE user_id = $1 AND id = $2
-      LIMIT 1
-    `;
+    const db = this.getArtifactDb();
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, artifactId]);
-    const row = result.rows[0];
+    const row = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('user_id', '=', userId)
+      .where('id', '=', artifactId)
+      .limit(1)
+      .executeTakeFirst() as unknown as ArtifactRow | undefined;
+
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
@@ -361,17 +287,18 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       return [];
     }
 
-    const select = this.buildProjectedDetailSelect(projection);
-    const query = `
-      SELECT
-        ${select}
-      FROM ${this.artifactsTableName}
-      WHERE user_id = $1
-        AND id = ANY($2::text[])
-    `;
+    const db = this.getArtifactDb();
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, artifactIds]);
-    return result.rows.map((row) => mapArtifactRowToDetail(row));
+    const rows = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('user_id', '=', userId)
+      // Escape hatch: id = ANY(...::text[]) uses the PostgreSQL ANY operator with an
+      // array cast. Kysely has no typed builder equivalent for ANY with array parameters.
+      .where(sql<boolean>`id = ANY(${artifactIds}::text[])`)
+      .execute() as unknown as ArtifactRow[];
+
+    return rows.map(mapArtifactRowToDetail);
   }
 
   async getArtifactById(
@@ -381,17 +308,15 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       includeContent: true,
     },
   ): Promise<ArtifactDetail | null> {
-    const select = this.buildProjectedDetailSelect(projection);
-    const query = `
-      SELECT
-        ${select}
-      FROM ${this.artifactsTableName}
-      WHERE id = $1
-      LIMIT 1
-    `;
+    const db = this.getArtifactDb();
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [artifactId]);
-    const row = result.rows[0];
+    const row = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('id', '=', artifactId)
+      .limit(1)
+      .executeTakeFirst() as unknown as ArtifactRow | undefined;
+
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
@@ -403,17 +328,18 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       includeContent: true,
     },
   ): Promise<ArtifactDetail[]> {
-    const select = this.buildProjectedDetailSelect(projection);
-    const query = `
-      SELECT
-        ${select}
-      FROM ${this.artifactsTableName}
-      WHERE user_id = $1 AND session_id = $2
-      ORDER BY updated_at ASC, id ASC
-    `;
+    const db = this.getArtifactDb();
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, sessionId]);
-    return result.rows.map((row) => mapArtifactRowToDetail(row));
+    const rows = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('user_id', '=', userId)
+      .where('session_id', '=', sessionId)
+      .orderBy('updated_at', 'asc')
+      .orderBy('id', 'asc')
+      .execute() as unknown as ArtifactRow[];
+
+    return rows.map(mapArtifactRowToDetail);
   }
 
   async getArtifactDetailBySessionStep(
@@ -425,20 +351,21 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
       includeContent: true,
     },
   ): Promise<ArtifactDetail | null> {
-    const select = this.buildProjectedDetailSelect(projection);
-    const query = `
-      SELECT
-        ${select}
-      FROM ${this.artifactsTableName}
-      WHERE user_id = $1
-        AND session_id = $2
-        AND COALESCE(step_key, input_json->'toolWorkflow'->>'stepKey', input_json->>'step') = $3
-      ORDER BY updated_at ASC, id ASC
-      LIMIT 1
-    `;
+    const db = this.getArtifactDb();
 
-    const result: QueryResult<ArtifactRow> = await this.pg.query(query, [userId, sessionId, stepKey]);
-    const row = result.rows[0];
+    const row = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('user_id', '=', userId)
+      .where('session_id', '=', sessionId)
+      // Escape hatch: COALESCE across a column and JSONB path operators (->, ->>) cannot
+      // be expressed via Kysely's typed .where() builder; requires the sql template tag.
+      .where(sql<boolean>`COALESCE(step_key, input_json->'toolWorkflow'->>'stepKey', input_json->>'step') = ${stepKey}`)
+      .orderBy('updated_at', 'asc')
+      .orderBy('id', 'asc')
+      .limit(1)
+      .executeTakeFirst() as unknown as ArtifactRow | undefined;
+
     return row ? mapArtifactRowToDetail(row) : null;
   }
 
@@ -447,100 +374,105 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
     projectId: string | null,
     options: { limit?: number; cursor?: SessionListCursor | null } = {},
   ): Promise<SessionListPage> {
-    const where: string[] = [
-      'user_id = $1',
-      "session_id IS NOT NULL",
-      "session_id <> ''",
-    ];
-    const params: unknown[] = [userId];
-
-    if (projectId) {
-      params.push(projectId);
-      where.push(`project_id = $${params.length}`);
-    }
-
     const limit = Number.isFinite(options.limit) && (options.limit ?? 0) > 0
       ? Math.trunc(options.limit as number)
       : 500;
     const cursor = options.cursor ?? null;
 
-    const cursorFilter = cursor
-      ? `
-      WHERE (
-        grouped.updated_at < $${params.length + 1}::timestamptz
-        OR (
-          grouped.updated_at = $${params.length + 1}::timestamptz
-          AND grouped.session_id < $${params.length + 2}
-        )
-      )`
-      : '';
+    const db = this.getArtifactDb();
+    const limitWithExtra = limit + 1;
+
+    let outerQuery = db
+      .with('grouped', (qb) => {
+        let q = qb
+          .selectFrom('artifacts')
+          .select([
+            'session_id',
+            'project_id',
+            // Escape hatch: count(*) — no typed Kysely builder equivalent for COUNT.
+            sql<string>`count(*)`.as('artifact_count'),
+            // Escape hatch: max() — no typed Kysely builder equivalent for MAX aggregate.
+            sql<Date>`max(updated_at)`.as('updated_at'),
+            // Escape hatch: BOOL_OR is a PostgreSQL aggregate with no Kysely typed builder
+            // equivalent. CASE/WHEN also requires the sql template tag for complex conditionals.
+            sql<string>`
+              CASE
+                WHEN BOOL_OR(${sql.ref('status')} = 'generating') THEN 'generating'
+                WHEN BOOL_OR(${sql.ref('status')} = 'failed') THEN 'failed'
+                ELSE 'completed'
+              END
+            `.as('status'),
+          ])
+          .where('user_id', '=', userId)
+          .where('session_id', 'is not', null)
+          // Escape hatch: session_id <> '' — Kysely's typed .where(col, op, val) would
+          // work here but only for the empty string literal; using sql for consistency
+          // with the is-not-null check directly above.
+          .where(sql<boolean>`session_id <> ''`);
+
+        if (projectId) {
+          q = q.where('project_id', '=', projectId);
+        }
+
+        return q.groupBy(['session_id', 'project_id']);
+      })
+      .selectFrom('grouped')
+      .leftJoinLateral(
+        (eb) => eb
+          .selectFrom('artifacts as a')
+          .select('a.workflow_type')
+          .where('a.user_id', '=', userId)
+          .whereRef('a.session_id', '=', 'grouped.session_id')
+          .whereRef('a.project_id', '=', 'grouped.project_id')
+          .orderBy('a.updated_at', 'desc')
+          .orderBy('a.id', 'desc')
+          .limit(1)
+          .as('latest'),
+        (join) => join.onTrue(),
+      )
+      .select([
+        'grouped.session_id',
+        'grouped.project_id',
+        'latest.workflow_type',
+        'grouped.artifact_count',
+        'grouped.updated_at',
+        'grouped.status',
+      ]);
 
     if (cursor) {
-      params.push(cursor.updatedAt);
-      params.push(cursor.sessionId);
+      // Escape hatch: compound cursor comparison (col < val OR (col = val AND col2 < val2))
+      // cannot be expressed via Kysely's typed .where() chains without nesting expression
+      // builders in a way that is less readable than the direct sql template tag.
+      outerQuery = outerQuery.where(sql<boolean>`
+        (grouped.updated_at < ${cursor.updatedAt}
+         OR (grouped.updated_at = ${cursor.updatedAt} AND grouped.session_id < ${cursor.sessionId}))
+      `);
     }
 
-    params.push(limit + 1);
-    const limitParam = `$${params.length}`;
+    outerQuery = outerQuery
+      .orderBy('grouped.updated_at', 'desc')
+      .orderBy('grouped.session_id', 'desc')
+      .limit(limitWithExtra);
 
-    type SessionRow = {
-      session_id: string;
-      project_id: string | null;
-      workflow_type: string | null;
-      artifact_count: string;
-      updated_at: Date | string;
-      status: 'generating' | 'failed' | 'completed';
-    };
+    const result = await outerQuery.execute();
 
-    const query = `
-      WITH grouped AS (
-        SELECT
-          session_id,
-          project_id,
-          COUNT(*) AS artifact_count,
-          MAX(updated_at) AS updated_at,
-          CASE
-            WHEN BOOL_OR(status = 'generating') THEN 'generating'
-            WHEN BOOL_OR(status = 'failed') THEN 'failed'
-            ELSE 'completed'
-          END AS status
-        FROM ${this.artifactsTableName}
-        WHERE ${where.join(' AND ')}
-        GROUP BY session_id, project_id
-      )
-      SELECT
-        grouped.session_id,
-        grouped.project_id,
-        latest.workflow_type,
-        grouped.artifact_count,
-        grouped.updated_at,
-        grouped.status
-      FROM grouped
-      LEFT JOIN LATERAL (
-        SELECT a.workflow_type
-        FROM ${this.artifactsTableName} a
-        WHERE a.user_id = $1
-          AND a.session_id = grouped.session_id
-          AND a.project_id = grouped.project_id
-        ORDER BY a.updated_at DESC, a.id DESC
-        LIMIT 1
-      ) latest ON TRUE
-      ${cursorFilter}
-      ORDER BY grouped.updated_at DESC, grouped.session_id DESC
-      LIMIT ${limitParam}
-    `;
+    const rows = result.slice(0, limit);
+    const hasMore = result.length > limit;
 
-    const result: QueryResult<SessionRow> = await this.pg.query(query, params);
-    const rows = result.rows.slice(0, limit);
-    const hasMore = result.rows.length > limit;
-    const entries: SessionListEntry[] = rows.map((row) => ({
-      sessionId: row.session_id,
-      projectId: row.project_id ?? '',
-      toolKey: normalizeToolWorkflowKey(row.workflow_type),
-      status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
-      artifactCount: parseInt(row.artifact_count, 10),
-      updatedAt: typeof row.updated_at === 'string' ? row.updated_at : row.updated_at.toISOString(),
-    }));
+    const entries: SessionListEntry[] = rows.map((row) => {
+      if (row.session_id === null || row.session_id === '') {
+        throw new Error('Session summary row missing session_id after non-null session filter');
+      }
+
+      return {
+        sessionId: row.session_id,
+        projectId: row.project_id ?? '',
+        toolKey: normalizeToolWorkflowKey(row.workflow_type),
+        status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
+        artifactCount: parseInt(row.artifact_count, 10),
+        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      };
+    });
 
     const last = entries[entries.length - 1];
     return {

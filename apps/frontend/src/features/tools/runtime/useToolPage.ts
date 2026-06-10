@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { readInputField } from '../../../app/runtime/shared-utils';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { useGenerationArtifactsWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
+import { useGenerationArtifactsWorkspace, useGenerationGenerationWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { extractArtifactStep } from '../../generation/runtime/step-hydration';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
@@ -26,8 +26,10 @@ export interface UseToolPageProps {
 }
 
 export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
+  const autoStartGenerationAfterExtractionRef = useRef(false);
   const auth = useAuthSession();
   const generationStream = useGenerationStreamWorkspace();
+  const generationRun = useGenerationGenerationWorkspace();
   const generationArtifacts = useGenerationArtifactsWorkspace();
   const generationProject = useGenerationProjectWorkspace();
   const navigate = useNavigate();
@@ -75,6 +77,17 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.info('[useToolPage] progressState changed', {
+        completedSteps: Array.from(completedStepsForFlow),
+        completedStepsSize: completedStepsForFlow.size,
+        machineState: toolPageSnapshot.value,
+        primaryActionPolicy: machineViewModel.primaryActionPolicy,
+      });
+    }
+  }, [completedStepsForFlow, machineViewModel.primaryActionPolicy, toolPageSnapshot.value]);
   const completedArtifactsByStep = useMemo(() => Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, [step, artifact]) => {
     if (artifact?.artifactId) acc[step as ToolStep] = artifact.artifactId;
     return acc;
@@ -95,6 +108,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     formState,
     intent,
     generationStream,
+    generationRun,
     generationArtifacts,
     sourceArtifact,
     sourceArtifactId: sourceArtifactId ?? null,
@@ -125,7 +139,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   useEffect(() => {
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
-  }, [briefingStatus, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
+  }, [briefingStatus, formState.projectId, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
 
   const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const effectiveCanonicalState = isExtractionInProgress
@@ -134,6 +148,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       ? 'running'
       : machineViewModel.canonicalState;
   const handlePrimaryAction = useCallback(() => {
+    autoStartGenerationAfterExtractionRef.current = false;
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionId}`);
       return;
@@ -146,10 +161,34 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     file,
     sourceKey: 'angle-detector-file',
   }), [toolPageSend]);
-  const handleExtractionStart = useCallback(() => {
+  const handleExtractionStart = useCallback((options?: { autoStartGeneration?: boolean }) => {
+    autoStartGenerationAfterExtractionRef.current = options?.autoStartGeneration === true;
     toolPageSend({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
   }, [toolPageSend]);
-  const handleBriefingReset = useCallback(() => toolPageSend({ type: 'BRIEFING_RESET' }), [toolPageSend]);
+  const handleBriefingReset = useCallback(() => {
+    autoStartGenerationAfterExtractionRef.current = false;
+    toolPageSend({ type: 'BRIEFING_RESET' });
+  }, [toolPageSend]);
+
+  useEffect(() => {
+    if (!autoStartGenerationAfterExtractionRef.current) {
+      return;
+    }
+
+    if (effectiveBriefingStatus === 'ready') {
+      if (!readinessSnapshot.canStartFlow || machineViewModel.primaryActionPolicy === 'disabled') {
+        return;
+      }
+
+      autoStartGenerationAfterExtractionRef.current = false;
+      handleRunControllerPrimaryAction();
+      return;
+    }
+
+    if (effectiveBriefingStatus !== 'uploading' && effectiveBriefingStatus !== 'extracting') {
+      autoStartGenerationAfterExtractionRef.current = false;
+    }
+  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
   return {
     toolConfig,

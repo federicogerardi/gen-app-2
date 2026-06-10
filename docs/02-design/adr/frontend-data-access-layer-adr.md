@@ -84,10 +84,7 @@ Regole operative approvate:
 
 ## References
 
-- [Frontend as-is](../specifications/frontend-spec.md)
-- [Frontend Unification Replication Guide](../specifications/frontend-unification-replication-guide.md)
 - [Frontend Tool Pages Architecture](../specifications/frontend-tool-pages-architecture-spec.md)
-- [Refactor frontend deterministic unification plan (archived snapshot)](../../99-lifecycle/99-archive/planning/refactor-frontend-deterministic-unification-1-snapshot-2026-04-27.md)
 
 ## Monorepo Boundary Addendum (2026-05-06)
 

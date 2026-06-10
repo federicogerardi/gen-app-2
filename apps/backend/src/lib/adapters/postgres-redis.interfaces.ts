@@ -20,6 +20,7 @@ import type {
 
 import type {
   IdempotencyDecision,
+  LlmGenerateAdapter,
   LlmStreamAdapter,
   OwnershipDecision,
   UsageDecision,
@@ -102,11 +103,29 @@ export interface ArtifactQueryRepository {
   ): Promise<SessionListPage>;
 }
 
+export interface OrchestrateArtifactCache {
+  setStepArtifact(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+    stepKey: string,
+    artifactId: string,
+  ): Promise<void>;
+
+  getCompletedArtifactsByStep(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+  ): Promise<Record<string, string>>;
+}
+
 export interface PostgresRedisAdapterDependencies {
   ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;
   stream: RedisStreamSessionRepository;
   llm: LlmStreamAdapter;
+  generate: LlmGenerateAdapter;
   persistence: PostgresArtifactRepository;
+  orchestrateCache: OrchestrateArtifactCache | null;
 }

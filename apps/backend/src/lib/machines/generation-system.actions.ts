@@ -1,12 +1,15 @@
 import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
+import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
+  CacheAcquisitionResultParams,
   CacheExtractionResultParams,
+  CacheGenerateResultParams,
   CacheReplayPayloadParams,
   CacheRequestMetaParams,
   CacheStreamResultParams,
@@ -33,12 +36,15 @@ type GenerationSystemActionObject =
   | { type: 'setUsageFailedFailure'; params: undefined }
   | { type: 'setOwnershipFailedFailure'; params: undefined }
   | { type: 'setStreamFailureFailure'; params: undefined }
+  | { type: 'setGenerateFailureFailure'; params: undefined }
   | { type: 'setPersistenceFinalizeFailedFailure'; params: undefined }
   | { type: 'cacheReplayPayload'; params: CacheReplayPayloadParams }
   | { type: 'cacheArtifactId'; params: undefined }
   | { type: 'ensureArtifactId'; params: undefined }
   | { type: 'cacheSyntheticChunk'; params: undefined }
   | { type: 'cacheStreamResult'; params: CacheStreamResultParams }
+  | { type: 'cacheGenerateResult'; params: CacheGenerateResultParams }
+  | { type: 'cacheAcquisitionResult'; params: CacheAcquisitionResultParams }
   | { type: 'cacheExtractionResult'; params: CacheExtractionResultParams }
   | { type: 'drivePersistenceFinalizeSuccess'; params: undefined }
   | { type: 'drivePersistenceFinalizeFailure'; params: undefined }
@@ -56,13 +62,16 @@ type GenerationSystemGuardObject =
   | { type: 'routeIsExtraction'; params: unknown }
   | { type: 'routeIsTool'; params: unknown }
   | { type: 'routeIsGeneric'; params: unknown }
+  | { type: 'hasApiAcquisition'; params: unknown }
   | { type: 'idempotencyOutputIsReplay'; params: unknown }
   | { type: 'idempotencyOutputIsConflict'; params: unknown }
   | { type: 'usageOutputIsRejected'; params: unknown }
   | { type: 'ownershipOutputIsRejected'; params: unknown }
   | { type: 'streamOutputIsFailure'; params: unknown }
   | { type: 'streamOutputIsEmptySuccess'; params: unknown }
+  | { type: 'generateOutputIsFailure'; params: unknown }
   | { type: 'extractionOutputIsAccepted'; params: unknown }
+  | { type: 'acquisitionOutputIsAccepted'; params: unknown }
   | { type: 'toolOutputIsCompleted'; params: unknown };
 
 type GenerationAssignment<TParams extends ParameterizedObject['params'] | undefined> =
@@ -132,6 +141,7 @@ export const generationSystemActions = {
     registryVersion: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registryVersion,
     registrySnapshotRef: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registrySnapshotRef,
     routeType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.routeType,
+    mode: ({ context }: GenerationActionArgs) => context.mode,
     failureReason: null,
     syntheticResponse: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.syntheticResponse,
     inputTokens: 0,
@@ -177,6 +187,9 @@ export const generationSystemActions = {
   setStreamFailureFailure: assignGeneration<undefined>({
     failureReason: 'stream_failure',
   }),
+  setGenerateFailureFailure: assignGeneration<undefined>({
+    failureReason: 'generate_failure',
+  }),
   setPersistenceFinalizeFailedFailure: assignGeneration<undefined>({
     failureReason: 'persistence_finalize_failed',
   }),
@@ -207,6 +220,20 @@ export const generationSystemActions = {
       params.outputTokens > 0 ? params.outputTokens : context.outputTokens,
     costUsd: ({ context }: GenerationActionArgs, params: CacheStreamResultParams) =>
       params.costUsd > 0 ? params.costUsd : context.costUsd,
+  }),
+  cacheGenerateResult: assignGeneration<CacheGenerateResultParams>({
+    contentBuffer: ({ context }: GenerationActionArgs, params: CacheGenerateResultParams) =>
+      (params.content ?? '').length > 0 ? params.content : context.contentBuffer,
+    inputTokens: ({ context }: GenerationActionArgs, params: CacheGenerateResultParams) =>
+      (params.inputTokens ?? 0) > 0 ? (params.inputTokens ?? 0) : context.inputTokens,
+    outputTokens: ({ context }: GenerationActionArgs, params: CacheGenerateResultParams) =>
+      (params.outputTokens ?? 0) > 0 ? (params.outputTokens ?? 0) : context.outputTokens,
+    costUsd: ({ context }: GenerationActionArgs, params: CacheGenerateResultParams) =>
+      (params.costUsd ?? 0) > 0 ? (params.costUsd ?? 0) : context.costUsd,
+  }),
+  cacheAcquisitionResult: assignGeneration<CacheAcquisitionResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheAcquisitionResultParams) =>
+      mergeAcquisitionIntoGenerationInput(context.requestInput, params.payload),
   }),
   cacheExtractionResult: assignGeneration<CacheExtractionResultParams>({
     contentBuffer: (_: GenerationActionArgs, params: CacheExtractionResultParams) => params.content,
@@ -291,5 +318,6 @@ export const generationSystemActions = {
     costUsd: 0,
     routeType: null,
     pendingFallback: null,
+    mode: 'stream' as const,
   }),
 };

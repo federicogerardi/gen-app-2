@@ -1,49 +1,46 @@
 # packages/infra-db
 
-Database infrastructure package for schema evolution and seed operations.
+Database infrastructure package for schema migration and seed execution.
 
-Package: @gen-app-2/infra-db
+Package: `@gen-app-2/infra-db`
 
-## Domain-Aware Persistence Scope
+## Scope
 
-This package supports persistence for canonical entities and value-object storage needs across contexts, including:
+This package contains:
 
-- Artifact and ToolWorkflowPersistenceMetadata footprint
-- QuotaHistory and Project linkage
-- User, AuthSession, and OAuth-related records
-- request_idempotency support for IdempotencyCoordinator behavior
-
-No migration, no memory.
-
-<!-- bomberto-egg-05 cipher:binary 01110011 01100010 01100101 01110010 01110011 01100001 -->
+- SQL migrations for persistence schema evolution
+- SQL and script-based seeds
+- shared SQL directory runner utilities
 
 ## Layout
 
-- migrations/: SQL schema evolution
-- seeds/: local and smoke-test seed assets
-- scripts/: SQL directory runners and execution helpers
+- `migrations/`
+- `seeds/`
+- `scripts/run-sql-dir.ts`
 
-## Entrypoint
-
-- scripts/run-sql-dir.ts
-
-## Typical Usage
+## Package Commands
 
 From repository root:
+
+```bash
+npm --workspace packages/infra-db run migrate:minimal
+npm --workspace packages/infra-db run seed:minimal
+npm --workspace packages/infra-db run seed:redis:minimal
+```
+
+Common backend path:
 
 ```bash
 npm --workspace apps/backend run db:migrate:minimal
 ```
 
-For dedicated seed flows, use package-specific scripts exposed by workspace tooling.
+## Notes
 
-## DDD Notes
-
-- Database naming may remain snake_case for storage compatibility.
-- Domain language in docs and code remains canonical camelCase terms (for example ArtifactType, ToolWorkflow, MonthlyQuota).
+- DB columns may stay snake_case for storage compatibility.
+- Domain terminology in code/docs remains canonical DDD terminology.
 
 ## DDD References
 
-1. ../../docs/01-requirements/domain-ubiquitous-language-glossary.md
-2. ../../docs/02-design/domain-bounded-context-map.md
-3. ../../docs/07-governance/domain-naming-decision-log.md
+1. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
+2. `../../docs/02-design/domain-bounded-context-map.md`
+3. `../../docs/07-governance/domain-naming-decision-log.md`

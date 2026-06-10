@@ -14,11 +14,14 @@ import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
 import { mapExtractionFieldKeysToLabels } from './extraction-field-matrix';
 import {
+  getToolApiAcquisitionPolicy,
   toolFileInstructionsRegistry,
+  type ToolApiAcquisitionPolicyEntry,
   type ToolInputFilePolicyEntry,
   type ToolFileInstructionsConfig,
   type ToolFormConfig,
   type ToolFormState,
+  type ToolInputSourceFamily,
 } from './tool-form-architecture';
 import {
   isEmptyPayload,
@@ -48,6 +51,101 @@ export type SelectedExtractionInfo = {
   briefingText: string;
 };
 
+const splitCommaOrLineList = (value: string): string[] => value
+  .split(/[\n,]/g)
+  .map((entry) => entry.trim())
+  .filter((entry) => entry.length > 0);
+
+export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
+  videoTitle,
+  topic,
+  keywords,
+  ctaText,
+  ctaLink,
+  credentialsOrProof,
+  chaptersWithTimestamps,
+  socialLinks,
+  hashtags,
+}: Pick<
+  ToolFormState,
+  | 'videoTitle'
+  | 'topic'
+  | 'keywords'
+  | 'ctaText'
+  | 'ctaLink'
+  | 'credentialsOrProof'
+  | 'chaptersWithTimestamps'
+  | 'socialLinks'
+  | 'hashtags'
+>): SelectedExtractionInfo | null => {
+  const normalizedVideoTitle = videoTitle.trim();
+  const normalizedTopic = topic.trim();
+  const normalizedCtaText = ctaText.trim();
+  const normalizedCtaLink = ctaLink.trim();
+  const normalizedCredentials = credentialsOrProof.trim();
+  const normalizedKeywords = splitCommaOrLineList(keywords);
+  const normalizedChapters = chaptersWithTimestamps
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const normalizedSocialLinks = socialLinks
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const normalizedHashtags = splitCommaOrLineList(hashtags);
+
+  if (
+    !normalizedVideoTitle
+    || !normalizedTopic
+    || normalizedKeywords.length === 0
+    || !normalizedCtaText
+    || !normalizedCtaLink
+    || !normalizedCredentials
+    || normalizedChapters.length === 0
+  ) {
+    return null;
+  }
+
+  const socialLinksSection = normalizedSocialLinks.length > 0
+    ? [
+      'Social links:',
+      ...normalizedSocialLinks.map((entry) => `- ${entry}`),
+    ]
+    : [];
+
+  const hashtagsLine = normalizedHashtags.length > 0
+    ? [`Hashtags: ${normalizedHashtags.join(', ')}`]
+    : [];
+
+  return {
+    extractionArtifactId: 'direct-input:youtube-description',
+    briefingId: 'direct-input:youtube-description',
+    briefingText: [
+      `Video title: ${normalizedVideoTitle}`,
+      `Topic: ${normalizedTopic}`,
+      `Keywords: ${normalizedKeywords.join(', ')}`,
+      `CTA text: ${normalizedCtaText}`,
+      `CTA link: ${normalizedCtaLink}`,
+      `Credentials or proof: ${normalizedCredentials}`,
+      'Chapters with timestamps:',
+      ...normalizedChapters.map((entry) => `- ${entry}`),
+      ...socialLinksSection,
+      ...hashtagsLine,
+    ].join('\n'),
+    extractionPayload: {
+      videoTitle: normalizedVideoTitle,
+      topic: normalizedTopic,
+      keywords: normalizedKeywords,
+      ctaText: normalizedCtaText,
+      ctaLink: normalizedCtaLink,
+      credentialsOrProof: normalizedCredentials,
+      chaptersWithTimestamps: normalizedChapters,
+      ...(normalizedSocialLinks.length > 0 ? { socialLinks: normalizedSocialLinks } : {}),
+      ...(normalizedHashtags.length > 0 ? { hashtags: normalizedHashtags } : {}),
+    },
+  };
+};
+
 type TerminalResolution =
   | { status: 'done'; step: ToolStep }
   | { status: 'failed'; step: ToolStep | null; message: string }
@@ -72,7 +170,7 @@ const validateToolStepCandidate = (
   return toolSteps.includes(candidate as ToolStep) ? (candidate as ToolStep) : null;
 };
 
-const readRequestedStep = (
+export const readRequestedStep = (
   lastRequest: LastRequest,
   toolSteps: readonly ToolStep[],
 ): ToolStep | null => validateToolStepCandidate(lastRequest?.input?.step, toolSteps);
@@ -157,13 +255,19 @@ export const selectGenerationExtractionInfo = ({
   briefingSnapshot,
   toolKey,
   hasSourceArtifact,
+  directInputExtractionInfo = null,
 }: {
   machineHydrationResult: HydrationResult | null;
   workspaceExtractionContext: GenerationProjectWorkspaceValue['extractionByProject'][string] | null;
   briefingSnapshot: BriefingSnapshot;
   toolKey: SupportedTool;
   hasSourceArtifact: boolean;
+  directInputExtractionInfo?: SelectedExtractionInfo | null;
 }): SelectedExtractionInfo | null => {
+  if (toolKey === 'youtube-description' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
   const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
   if (machineHydrationResult !== null) {
     return {
@@ -272,7 +376,7 @@ export const buildBaseGenerationRequest = ({
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'registrySnapshotRef'>;
+  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -302,7 +406,20 @@ export const buildBaseGenerationRequest = ({
     briefingText: extractionInfo.briefingText,
     briefingFileName: effectiveBriefingFileName ?? null,
     extractionArtifactId: extractionInfo.extractionArtifactId,
-    extractionPayload: extractionInfo.extractionPayload,
+    extractionPayload: (
+      toolKey === 'meta-ads'
+      && typeof formState.campaignObjective === 'string'
+      && formState.campaignObjective.trim().length > 0
+      && !(
+        typeof extractionInfo.extractionPayload.campaign_objective === 'string'
+        && extractionInfo.extractionPayload.campaign_objective.trim().length > 0
+      )
+    )
+      ? {
+        ...extractionInfo.extractionPayload,
+        campaign_objective: formState.campaignObjective.trim(),
+      }
+      : extractionInfo.extractionPayload,
   },
 });
 
@@ -392,15 +509,85 @@ export type ToolInputFileCompletion = {
   missingOptionalFiles: ToolInputFilePolicyEntry[];
 };
 
-export const deriveToolInputFileCompletion = ({
+export type ToolInputRequirementMatrixEntry = {
+  key: string;
+  label: string;
+  sourceFamily: ToolInputSourceFamily;
+  requiredness: ToolInputFilePolicyEntry['requiredness'];
+  satisfied: boolean;
+};
+
+export type ToolApiAcquisitionStatus = {
+  key: string;
+  connected: boolean;
+  bindingLabel?: string | null;
+};
+
+export type ToolInputRequirementMatrix = {
+  entries: ToolInputRequirementMatrixEntry[];
+  requiredEntriesSatisfied: boolean;
+  missingRequiredEntries: ToolInputRequirementMatrixEntry[];
+  missingOptionalEntries: ToolInputRequirementMatrixEntry[];
+  missingRequiredFiles: ToolInputFilePolicyEntry[];
+  missingOptionalFiles: ToolInputFilePolicyEntry[];
+  missingRequiredApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+  missingOptionalApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+};
+
+export const deriveToolInputRequirementMatrix = ({
   toolKey,
+  hasProjectSelected,
   completedFileKeys,
+  apiAcquisitionStatus = [],
+  includeApiAcquisition = true,
 }: {
   toolKey: SupportedTool;
+  hasProjectSelected: boolean;
   completedFileKeys: readonly string[];
-}): ToolInputFileCompletion => {
+  apiAcquisitionStatus?: readonly ToolApiAcquisitionStatus[];
+  includeApiAcquisition?: boolean;
+}): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
+  const apiStatusByKey = new Map(
+    apiAcquisitionStatus.map((status) => [status.key, status.connected]),
+  );
+  const apiAcquisitionInputs = includeApiAcquisition ? getToolApiAcquisitionPolicy(toolKey) : [];
+
+  const directEntries: ToolInputRequirementMatrixEntry[] = [
+    {
+      key: 'project-selection',
+      label: 'ProjectSelection',
+      sourceFamily: 'direct-input',
+      requiredness: 'always-required',
+      satisfied: hasProjectSelected,
+    },
+  ];
+
+  const fileEntries: ToolInputRequirementMatrixEntry[] = instructions.inputFiles.map((file) => ({
+    key: file.key,
+    label: file.label,
+    sourceFamily: 'tool-input-file',
+    requiredness: file.requiredness,
+    satisfied: completedKeys.has(file.key),
+  }));
+
+  const apiEntries: ToolInputRequirementMatrixEntry[] = apiAcquisitionInputs.map((apiInput) => ({
+    key: apiInput.key,
+    label: apiInput.label,
+    sourceFamily: 'api-acquisition',
+    requiredness: apiInput.requiredness,
+    satisfied: apiStatusByKey.get(apiInput.key) ?? false,
+  }));
+
+  const entries = [...directEntries, ...fileEntries, ...apiEntries];
+  const missingRequiredEntries = entries.filter((entry) => (
+    (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
+    && !entry.satisfied
+  ));
+  const missingOptionalEntries = entries.filter((entry) => (
+    entry.requiredness === 'optional-by-tool-setting' && !entry.satisfied
+  ));
 
   const missingRequiredFiles = instructions.inputFiles.filter((file) => (
     (file.requiredness === 'always-required' || file.requiredness === 'required-by-tool-setting')
@@ -412,9 +599,44 @@ export const deriveToolInputFileCompletion = ({
     && !completedKeys.has(file.key)
   ));
 
+  const missingRequiredApiAcquisition = apiAcquisitionInputs.filter((apiInput) => (
+    (apiInput.requiredness === 'always-required' || apiInput.requiredness === 'required-by-tool-setting')
+    && !(apiStatusByKey.get(apiInput.key) ?? false)
+  ));
+
+  const missingOptionalApiAcquisition = apiAcquisitionInputs.filter((apiInput) => (
+    apiInput.requiredness === 'optional-by-tool-setting'
+    && !(apiStatusByKey.get(apiInput.key) ?? false)
+  ));
+
   return {
-    requiredFilesComplete: missingRequiredFiles.length === 0,
+    entries,
+    requiredEntriesSatisfied: missingRequiredEntries.length === 0,
+    missingRequiredEntries,
+    missingOptionalEntries,
     missingRequiredFiles,
     missingOptionalFiles,
+    missingRequiredApiAcquisition,
+    missingOptionalApiAcquisition,
+  };
+};
+
+export const deriveToolInputFileCompletion = ({
+  toolKey,
+  completedFileKeys,
+}: {
+  toolKey: SupportedTool;
+  completedFileKeys: readonly string[];
+}): ToolInputFileCompletion => {
+  const matrix = deriveToolInputRequirementMatrix({
+    toolKey,
+    hasProjectSelected: true,
+    completedFileKeys,
+  });
+
+  return {
+    requiredFilesComplete: matrix.missingRequiredFiles.length === 0,
+    missingRequiredFiles: matrix.missingRequiredFiles,
+    missingOptionalFiles: matrix.missingOptionalFiles,
   };
 };

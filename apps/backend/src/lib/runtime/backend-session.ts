@@ -256,3 +256,70 @@ export const runBackendGenerationSession = async (
     error,
   };
 };
+
+export type BackendJsonSessionResult = {
+  status: 'completed' | 'failed';
+  artifactId: string | null;
+  content: string;
+  error: BackendError | null;
+};
+
+export const runBackendGenerationSessionAsJson = async (
+  request: BackendGenerationRequest,
+  adapters: GenerationAdapters,
+): Promise<BackendJsonSessionResult> => {
+  const correlationId = `run-json:${request.requestId}`;
+
+  console.info(
+    [
+      '[gen][json-session-start]',
+      `corr=${correlationId}`,
+      `requestId=${request.requestId}`,
+      `projectId=${request.projectId}`,
+      `mode=generate`,
+    ].join(' '),
+  );
+
+  const actor = createActor(generationSystemMachine, {
+    input: {
+      adapters,
+      initialContext: { mode: 'generate' as const },
+    },
+  });
+
+  actor.start();
+  actor.send(buildRequestReceivedEvent(request));
+  actor.send(buildAuthOkEvent(request));
+  actor.send(buildValidationOkEvent(request));
+
+  const doneSnapshot = await waitFor(actor, (snapshot) => {
+    const stateValue = String(snapshot.value);
+    return stateValue === 'completed' || stateValue === 'failed';
+  });
+
+  const status = resolveTerminalStatus(String(doneSnapshot.value));
+  const error = status === 'failed'
+    ? mapFailureReasonToBackendError(doneSnapshot.context.failureReason)
+    : null;
+
+  console.info(
+    [
+      '[gen][json-session-terminal]',
+      `corr=${correlationId}`,
+      `requestId=${request.requestId}`,
+      `status=${status}`,
+      `artifactId=${doneSnapshot.context.artifactId ?? '-'}`,
+      `failureReason=${doneSnapshot.context.failureReason ?? '-'}`,
+      `contentLen=${doneSnapshot.context.contentBuffer.length}`,
+    ].join(' '),
+  );
+
+  actor.stop();
+
+  return {
+    status,
+    artifactId: doneSnapshot.context.artifactId,
+    content: doneSnapshot.context.contentBuffer,
+    error,
+  };
+};

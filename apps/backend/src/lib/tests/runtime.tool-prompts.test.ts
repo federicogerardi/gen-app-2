@@ -101,6 +101,56 @@ test('resolveToolPrompt loads angle-generator context-and-angle-matrix prompt', 
   assert.match(resolved.prompt, /CONTEXT AND ANGLE MATRIX/i);
 });
 
+test('resolveToolPrompt loads meta-ads context-generation prompt', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'meta-ads',
+    workflowType: 'meta_ads_generator',
+    artifactType: 'content',
+    stepKey: 'context-generation',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /meta-ads\/prompt_context_generation\.md$/);
+  assert.match(resolved.prompt, /CONTEXT GENERATION/i);
+});
+
+test('resolveToolPrompt composes youtube-description context and generation prompts', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'youtube-description',
+    workflowType: 'youtube_description',
+    artifactType: 'content',
+    stepKey: 'youtube-description-generation',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /youtube-description\/prompt_youtube_description_generation\.md$/);
+  assert.match(resolved.prompt, /PROMPT YOUTUBE DESCRIPTION - CONTEXT GENERATION/i);
+  assert.match(resolved.prompt, /PROMPT YOUTUBE DESCRIPTION - GENERATION/i);
+  assert.match(resolved.prompt, /ORCHESTRATION CONTRACT/i);
+});
+
+test('resolveToolPrompt enforces meta-ads ads-generation completeness contract', () => {
+  const resolved = resolveToolPrompt({
+    toolKey: 'meta-ads',
+    workflowType: 'meta_ads_generator',
+    artifactType: 'content',
+    stepKey: 'ads-generation',
+  });
+
+  assert.ok(resolved);
+  assert.match(resolved.filePath, /meta-ads\/prompt_ads_generation\.md$/);
+  assert.match(resolved.prompt, /Italian only \(`it-IT`\)/i);
+  assert.match(resolved.prompt, /exactly 3 variants: A, B, C/i);
+  assert.match(resolved.prompt, /very_short \(40-60 words\)/i);
+  assert.match(resolved.prompt, /short \(60-90 words\)/i);
+  assert.match(resolved.prompt, /medium \(90-120 words\)/i);
+  assert.match(resolved.prompt, /long \(120-200 words\)/i);
+  assert.match(resolved.prompt, /cta_option_1/i);
+  assert.match(resolved.prompt, /cta_option_2/i);
+  assert.match(resolved.prompt, /visual_suggestion/i);
+  assert.match(resolved.prompt, /targeting_suggestion/i);
+});
+
 test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {
   const event = buildRequestReceivedEvent({
     requestId: 'req-youtube-extraction-001',
@@ -141,6 +191,28 @@ test('buildRequestReceivedEvent resolves angle-generator extraction prompt from 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
   assert.match(String(input.resolvedPromptSource), /angle-generator/);
+  assert.equal(input.tone, 'analitico');
+});
+
+test('buildRequestReceivedEvent resolves meta-ads extraction prompt from extraction target tool key', () => {
+  const event = buildRequestReceivedEvent({
+    requestId: 'req-meta-ads-extraction-001',
+    userId: 'seed-user-001',
+    projectId: 'seed-project-001',
+    artifactType: 'extraction',
+    model: 'openrouter/auto',
+    toolKey: 'extraction',
+    workflowType: 'extraction',
+    input: {
+      toolKey: 'meta-ads',
+      briefingText: 'Brief text',
+    },
+    registrySnapshotRef: 'snapshot:meta-ads-extraction',
+  } as unknown as BackendGenerationRequest);
+
+  const input = event.input as Record<string, unknown>;
+  assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
+  assert.match(String(input.resolvedPromptSource), /meta-ads/);
   assert.equal(input.tone, 'analitico');
 });
 

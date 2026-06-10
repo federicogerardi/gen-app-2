@@ -3,6 +3,7 @@ import { hasReadyBriefingExtractionContext, briefingUploadMachine } from './brie
 import { isExtractionContextValidForTool } from './extraction-context-validity';
 import type { HydrationResult } from './hydration.machine';
 import { toolStepOrder } from '../runtime/tool-generation-engine';
+import { getRequiredToolInputFiles } from '../runtime/tool-form-architecture';
 import type { SupportedTool } from './tool-flow.machine';
 
 export type ReadinessReasonCode =
@@ -63,6 +64,11 @@ export const deriveHasExtractionContext = (
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null,
   hydrationResult: HydrationResult | null,
 ): boolean => {
+  // Direct-input-only tools do not require BriefingUpload/ExtractionContext.
+  if (getRequiredToolInputFiles(toolKey).length === 0) {
+    return true;
+  }
+
   const logInvalidExtractionContext = (
     message: string,
     details: {

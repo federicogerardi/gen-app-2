@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
+
 import {
   rowToUserReport,
   type UserReport,
@@ -8,14 +10,32 @@ import {
   type UserReportStatus,
 } from '../types/feedback-center';
 
-const SELECT_COLS =
-  'ur.id, ur.category, ur.status, ur.title, ur.description, ur.created_by_user_id, ur.triaged_by_user_id, ur.triaged_at, ur.closed_at, ur.created_at, ur.updated_at, gl.issue_url AS github_issue_url';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
 
-const SELECT_COLS_NO_ALIAS =
-  'id, category, status, title, description, created_by_user_id, triaged_by_user_id, triaged_at, closed_at, created_at, updated_at, NULL::text AS github_issue_url';
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
+
+/**
+ * Module-level Kysely instance cache keyed by pool identity, mirroring the
+ * class-based repository pattern (this.db = createKyselyDb(pg) in constructor).
+ */
+const _kyselyDbCache = new WeakMap<object, Kysely<DB>>();
+
+function getDb(pool: Pool): Kysely<DB> {
+  let db = _kyselyDbCache.get(pool);
+  if (!db) {
+    db = createKyselyDb(pool);
+    _kyselyDbCache.set(pool, db);
+  }
+  return db;
+}
 
 export const createUserReport = async (
-  db: Pool,
+  pool: Pool,
   payload: {
     category: UserReportCategory;
     title: string;
@@ -27,17 +47,21 @@ export const createUserReport = async (
   const reportId = payload.id ?? `rpt_${randomUUID()}`;
   console.debug('[createUserReport] Starting insert with:', { reportId, category: payload.category, userId: payload.createdByUserId });
   try {
-    const result = await db.query<UserReportRow>(
-      `INSERT INTO user_reports (id, category, status, title, description, created_by_user_id)
-       VALUES ($1, $2, 'submitted', $3, $4, $5)
-       RETURNING ${SELECT_COLS_NO_ALIAS}`,
-      [reportId, payload.category, payload.title, payload.description, payload.createdByUserId],
-    );
-    console.debug('[createUserReport] Query executed, rows returned:', result.rows.length);
-    const row = result.rows[0];
-    if (!row) {
-      throw new Error('Insert returned no row');
-    }
+    const row = await getDb(pool)
+      .insertInto('user_reports')
+      .values({
+        id: reportId,
+        category: payload.category,
+        status: 'submitted',
+        title: payload.title,
+        description: payload.description,
+        created_by_user_id: payload.createdByUserId,
+        created_at: dbNow,
+        updated_at: dbNow,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow() as unknown as UserReportRow;
+
     const report = rowToUserReport(row);
     console.debug('[createUserReport] Report successfully created:', { id: report.id, status: report.status });
     return report;
@@ -47,67 +71,97 @@ export const createUserReport = async (
   }
 };
 
-export const getUserReportById = async (db: Pool, id: string): Promise<UserReport | null> => {
-  const result = await db.query<UserReportRow>(
-    `SELECT ${SELECT_COLS}
-     FROM user_reports ur
-     LEFT JOIN user_report_github_links gl ON gl.user_report_id = ur.id
-     WHERE ur.id = $1`,
-    [id],
-  );
-  const row = result.rows[0];
+export const getUserReportById = async (pool: Pool, id: string): Promise<UserReport | null> => {
+  const row = await getDb(pool)
+    .selectFrom('user_reports as ur')
+    .leftJoin('user_report_github_links as gl', 'gl.user_report_id', 'ur.id')
+    .select([
+      'ur.id',
+      'ur.category',
+      'ur.status',
+      'ur.title',
+      'ur.description',
+      'ur.created_by_user_id',
+      'ur.triaged_by_user_id',
+      'ur.triaged_at',
+      'ur.closed_at',
+      'ur.created_at',
+      'ur.updated_at',
+      // Escape hatch: gl.issue_url is a joined column from a LEFT JOIN and needs an alias.
+      // Kysely does not support renaming joined columns via the typed .select() API;
+      // the sql template tag with .as() is required for cross-table column aliasing.
+      sql<string | null>`gl.issue_url`.as('github_issue_url'),
+    ])
+    .where('ur.id', '=', id)
+    .executeTakeFirst() as unknown as UserReportRow | undefined;
+
   return row ? rowToUserReport(row) : null;
 };
 
 export const listUserReports = async (
-  db: Pool,
+  pool: Pool,
   filters?: Partial<{ status: UserReportStatus; category: UserReportCategory }>,
 ): Promise<UserReport[]> => {
-  const clauses: string[] = [];
-  const values: unknown[] = [];
-  let idx = 1;
+  let query = getDb(pool)
+    .selectFrom('user_reports as ur')
+    .leftJoin('user_report_github_links as gl', 'gl.user_report_id', 'ur.id')
+    .select([
+      'ur.id',
+      'ur.category',
+      'ur.status',
+      'ur.title',
+      'ur.description',
+      'ur.created_by_user_id',
+      'ur.triaged_by_user_id',
+      'ur.triaged_at',
+      'ur.closed_at',
+      'ur.created_at',
+      'ur.updated_at',
+      // Escape hatch: same as getUserReportById — cross-table column aliasing requires sql tag.
+      sql<string | null>`gl.issue_url`.as('github_issue_url'),
+    ]);
+
   if (filters?.status) {
-    clauses.push(`ur.status = $${idx++}`);
-    values.push(filters.status);
+    query = query.where('ur.status', '=', filters.status);
   }
   if (filters?.category) {
-    clauses.push(`ur.category = $${idx++}`);
-    values.push(filters.category);
+    query = query.where('ur.category', '=', filters.category);
   }
-  const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
-  const result = await db.query<UserReportRow>(
-    `SELECT ${SELECT_COLS}
-     FROM user_reports ur
-     LEFT JOIN user_report_github_links gl ON gl.user_report_id = ur.id
-     ${whereClause}
-     ORDER BY ur.created_at DESC`,
-    values,
-  );
-  return result.rows.map(rowToUserReport);
+
+  const rows = await query
+    .orderBy('ur.created_at', 'desc')
+    .execute() as unknown as UserReportRow[];
+
+  return rows.map(rowToUserReport);
 };
 
 export const updateUserReportStatus = async (
-  db: Pool,
+  pool: Pool,
   payload: {
     id: string;
     status: UserReportStatus;
     actedByUserId: string;
   },
 ): Promise<UserReport | null> => {
-  const setClauses: string[] = ['status = $2', 'updated_at = now()'];
+  const setValues: Record<string, unknown> = {
+    status: payload.status,
+    updated_at: dbNow,
+  };
+
   if (payload.status === 'triaged') {
-    setClauses.push('triaged_by_user_id = $3', 'triaged_at = now()');
+    setValues.triaged_by_user_id = payload.actedByUserId;
+    setValues.triaged_at = dbNow;
   }
   if (payload.status === 'closed') {
-    setClauses.push('closed_at = now()');
+    setValues.closed_at = dbNow;
   }
-  const result = await db.query<UserReportRow>(
-    `UPDATE user_reports
-     SET ${setClauses.join(', ')}
-     WHERE id = $1
-     RETURNING ${SELECT_COLS_NO_ALIAS}`,
-    [payload.id, payload.status, payload.actedByUserId],
-  );
-  const row = result.rows[0];
+
+  const row = await getDb(pool)
+    .updateTable('user_reports')
+    .set(setValues as any)
+    .where('id', '=', payload.id)
+    .returningAll()
+    .executeTakeFirst() as unknown as UserReportRow | undefined;
+
   return row ? rowToUserReport(row) : null;
 };

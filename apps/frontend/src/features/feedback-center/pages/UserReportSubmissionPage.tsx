@@ -20,12 +20,6 @@ import {
   updateUserReportStatus,
 } from '../runtime/feedback-center-client';
 
-const USER_REPORT_CATEGORY_OPTIONS: ReadonlyArray<{ value: UserReportCategory; label: string }> = [
-  { value: 'issue', label: 'Issue' },
-  { value: 'feature-request', label: 'Feature request' },
-  { value: 'other', label: 'Other' },
-];
-
 export const UserReportSubmissionPage = () => {
   const auth = useAuthSession();
   const { publishSuccess } = useFeedbackMessage();
@@ -81,7 +75,7 @@ export const UserReportSubmissionPage = () => {
 
   useEffect(() => {
     if (isSubmitSuccess && !hasNotifiedSubmitSuccessRef.current) {
-      publishSuccess('Report submitted successfully.', {
+      publishSuccess(appCopy.ui.feedback.userReportSubmitted, {
         dedupeKey: 'feedback-center:user-report:submit:success',
       });
       hasNotifiedSubmitSuccessRef.current = true;
@@ -129,7 +123,7 @@ export const UserReportSubmissionPage = () => {
               fullWidth
               disabled={isSubmitting}
             >
-              {USER_REPORT_CATEGORY_OPTIONS.map((option) => (
+              {appCopy.ui.feedbackCenterOptions.categories.map((option) => (
                 <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
               ))}
             </TextField>
@@ -180,7 +174,7 @@ export const UserReportSubmissionPage = () => {
 
             {isSubmitSuccess ? (
               <>
-                <p className={uiPrimitives.metaLine}>Report submitted successfully.</p>
+                <p className={uiPrimitives.metaLine}>{appCopy.ui.feedback.userReportSubmitted}</p>
                 <div className={uiPrimitives.actions}>
                   <button
                     type="button"

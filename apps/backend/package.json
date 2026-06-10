@@ -16,10 +16,11 @@
     "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations --track --table=schema_migrations",
     "db:seed:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/seeds",
     "db:seed:redis:minimal": "tsx ../../packages/infra-db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",
-    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict && npm run smoke:queries",
+    "test:smoke": "npm run smoke:idempotency && npm run smoke:conflict && npm run smoke:queries && npm run smoke:nonstreaming",
     "smoke:idempotency": "tsx src/lib/adapters/postgres-redis.smoke.ts",
     "smoke:conflict": "tsx src/lib/adapters/postgres-redis.conflict.smoke.ts",
     "smoke:queries": "tsx src/lib/adapters/postgres-redis.query.smoke.ts",
+    "smoke:nonstreaming": "tsx src/lib/adapters/postgres-redis.nonstreaming.smoke.ts",
     "go": "npm run db:migrate:minimal && npm run db:seed:minimal && npm run typecheck && npm run test",
     "go:smoke": "npm run go && npm run test:smoke"
   },
@@ -28,10 +29,12 @@
     "@gen-app-2/domain": "*",
     "docx": "^9.5.1",
     "ioredis": "^5.8.2",
+    "kysely": "^0.27.6",
     "mammoth": "^1.12.0",
     "pg": "^8.16.3",
     "typescript": "^6.0.3",
-    "xstate": "^5.30.0"
+    "xstate": "^5.30.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.9.2",

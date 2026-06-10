@@ -25,11 +25,17 @@ description: "Use when creating, updating, reorganizing, archiving, or reviewing
 
 ## DDD-First Policy
 - Every new or updated documentation artifact must be DDD-first.
-- Use canonical terms from the DDD reference set before introducing new terminology:
+- Use canonical terms and governance rules from the DDD reference set before introducing new terminology:
+  - `docs/07-governance/documentation-ddd-ul-governance.md`
   - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
   - `docs/02-design/domain-bounded-context-map.md`
   - `docs/07-governance/domain-naming-decision-log.md`
 - If a required canonical term is missing, add it to the reference set first, then proceed with the target document.
+
+## Primary Governance Reference (Production/Modification)
+- For documentation production or modification under `docs/`, the primary governance reference is:
+  - `docs/07-governance/documentation-ddd-ul-governance.md`
+- This reference is mandatory and complements the canonical DDD trilogy (glossary, bounded context map, decision log).
 
 ## Naming Rules
 - Use lowercase kebab-case for all markdown filenames.

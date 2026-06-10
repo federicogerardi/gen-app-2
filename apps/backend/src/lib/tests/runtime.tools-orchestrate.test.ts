@@ -10,6 +10,7 @@ import {
   ProjectQueryRepositoryStub,
   type StubArtifactQueryRecord,
 } from '../adapters';
+import type { OrchestrateArtifactCache } from '../adapters';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,
@@ -87,6 +88,7 @@ const buildRuntime = (
   options: {
     toolsOrchestrateTimeoutMs?: number;
     toolsOrchestrateArtifactScanLimit?: number;
+    orchestrateCache?: OrchestrateArtifactCache | null;
   } = {},
 ) => {
   const repositories = createAuthStubRepositories();
@@ -117,6 +119,9 @@ const buildRuntime = (
       ...(typeof options.toolsOrchestrateArtifactScanLimit === 'number'
         ? { toolsOrchestrateArtifactScanLimit: options.toolsOrchestrateArtifactScanLimit }
         : {}),
+      ...(options.orchestrateCache !== undefined
+        ? { orchestrateCache: options.orchestrateCache }
+        : {}),
       passwordHashing: hasher,
       sessionCookies,
       now: () => FIXED_NOW,
@@ -129,12 +134,13 @@ const createAndLoginUser = async (
   runtime: ReturnType<typeof createAuthHttpRuntime>,
   repositories: ReturnType<typeof createAuthStubRepositories>,
   hasher: ReturnType<typeof createDefaultPasswordHashRuntime>,
+  role: 'admin' | 'member' = 'member',
 ): Promise<string> => {
   const passwordHash = await hasher.hashPassword('Orch-Pass-1!');
   await repositories.users.createUser({
     id: 'user-orch-001',
     email: 'orch@example.com',
-    role: 'member',
+    role,
     status: 'active',
     passwordHash,
     passwordAlgo: hasher.passwordAlgorithm,
@@ -281,6 +287,61 @@ const NEXTLAND_LANDING_ARTIFACT: StubArtifactQueryRecord = {
   failureReason: null,
   createdAt: '2026-05-04T09:00:00.000Z',
   updatedAt: '2026-05-04T09:05:00.000Z',
+};
+
+const ANGLE_CONTEXT_AND_MATRIX_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-context-and-matrix-001',
+  requestId: 'req-angle-context-and-matrix-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: {
+    toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+    step: 'context-and-angle-matrix',
+    acquisition: { source: 'api-service:market-intel' },
+  },
+  content: '{"matrix":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:00:00.000Z',
+  updatedAt: '2026-05-04T09:05:00.000Z',
+};
+
+const ANGLE_PRIORITIZATION_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-prioritization-001',
+  requestId: 'req-angle-prioritization-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'content',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: { toolWorkflow: { stepKey: 'angle-prioritization' }, step: 'angle-prioritization' },
+  content: '{"prioritization":"ok"}',
+  failureReason: null,
+  createdAt: '2026-05-04T09:10:00.000Z',
+  updatedAt: '2026-05-04T09:15:00.000Z',
+};
+
+const ANGLE_EXTRACTION_ARTIFACT: StubArtifactQueryRecord = {
+  artifactId: 'art-angle-extraction-001',
+  requestId: 'req-angle-extraction-001',
+  userId: 'user-orch-001',
+  projectId: 'project-orch-001',
+  artifactType: 'extraction',
+  status: 'completed',
+  model: 'gpt-4o',
+  workflowType: 'angle_generator',
+  input: {
+    toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+    extraction: { payload: { key: 'value' } },
+  },
+  content: '{"normalizedText":"briefing"}',
+  failureReason: null,
+  createdAt: '2026-05-04T08:50:00.000Z',
+  updatedAt: '2026-05-04T08:55:00.000Z',
 };
 
 // ---------------------------------------------------------------------------
@@ -459,7 +520,7 @@ test('/api/tools/orchestrate resolves canonical youtube-lf-script dependencies',
 test('/api/tools/orchestrate resolves canonical nextland dependencies', async () => {
   const artifactStub = new ArtifactQueryRepositoryStub();
   const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
-  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher, 'admin');
   const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
   artifactStub.seed([{ ...NEXTLAND_LANDING_ARTIFACT, projectId }]);
 
@@ -477,6 +538,100 @@ test('/api/tools/orchestrate resolves canonical nextland dependencies', async ()
   assert.deepEqual(orch.stepDependencyArtifactIds, ['art-nextland-landing-001']);
   assert.deepEqual(orch.dependencyArtifactIdsByStep, {
     landing: 'art-nextland-landing-001',
+  });
+});
+
+test('/api/tools/orchestrate returns 403 for member role on admin-only tool', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher, 'member');
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'nextland',
+    targetStep: 'thank_you',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 403);
+});
+
+test('/api/tools/orchestrate covers extraction + acquisition-context + generation chain for angle-generator', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([
+    { ...ANGLE_EXTRACTION_ARTIFACT, projectId },
+    { ...ANGLE_CONTEXT_AND_MATRIX_ARTIFACT, projectId },
+    { ...ANGLE_PRIORITIZATION_ARTIFACT, projectId },
+  ]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'angle-generator',
+    targetStep: 'creative-activation',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.equal(orch.toolKey, 'angle-generator');
+  assert.deepEqual(orch.stepDependencyArtifactIds, [
+    'art-angle-context-and-matrix-001',
+    'art-angle-prioritization-001',
+  ]);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    'context-and-angle-matrix': 'art-angle-context-and-matrix-001',
+    'angle-prioritization': 'art-angle-prioritization-001',
+  });
+});
+
+test('/api/tools/orchestrate keeps deterministic dependencies when acquisition payload is profile-mapped', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub);
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  artifactStub.seed([
+    { ...ANGLE_EXTRACTION_ARTIFACT, projectId },
+    {
+      ...ANGLE_CONTEXT_AND_MATRIX_ARTIFACT,
+      projectId,
+      input: {
+        toolWorkflow: { stepKey: 'context-and-angle-matrix' },
+        step: 'context-and-angle-matrix',
+        acquisition: {
+          source: 'api-service:market-intel',
+          marketSignals: { trend: 'ugc' },
+          audienceSignals: { intent: 'high' },
+          confidence: 0.87,
+        },
+      },
+    },
+    { ...ANGLE_PRIORITIZATION_ARTIFACT, projectId },
+  ]);
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'angle-generator',
+    targetStep: 'creative-activation',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, [
+    'art-angle-context-and-matrix-001',
+    'art-angle-prioritization-001',
+  ]);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {
+    'context-and-angle-matrix': 'art-angle-context-and-matrix-001',
+    'angle-prioritization': 'art-angle-prioritization-001',
   });
 });
 
@@ -635,7 +790,9 @@ test('/api/tools/orchestrate uses default timeout config when env key is absent'
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 3000);
+    assert.equal(startMeta.deadlineMs, 15000);
+    assert.equal(startMeta.artifactScanLimit, 120);
+    assert.equal(startMeta.artifactScanLimitConfigured, 1000);
     assert.equal(startMeta.artifactSummaryCount, 0);
     assert.equal(startMeta.artifactDetailBatchCount, 0);
     assert.equal(typeof startMeta.elapsedMs, 'number');
@@ -704,7 +861,7 @@ test('/api/tools/orchestrate falls back to default timeout when env key is inval
     });
 
     assert.ok(startMeta);
-    assert.equal(startMeta.deadlineMs, 3000);
+    assert.equal(startMeta.deadlineMs, 15000);
   } finally {
     if (typeof originalTimeoutEnv === 'string') {
       process.env.TOOLS_ORCHESTRATE_TIMEOUT_MS = originalTimeoutEnv;
@@ -820,4 +977,167 @@ test('/api/tools/orchestrate applies bounded ordering deterministically on large
     optin: 'art-optin-newest',
     quiz: 'art-quiz-newest',
   });
+});
+
+// ---------------------------------------------------------------------------
+// Cache tests: OrchestrateArtifactCache integration
+// ---------------------------------------------------------------------------
+
+class OrchestrateArtifactCacheStub implements OrchestrateArtifactCache {
+  private readonly store = new Map<string, Record<string, string>>();
+  calls: string[] = [];
+
+  private key(userId: string, projectId: string, workflowType: string): string {
+    return `${userId}:${projectId}:${workflowType}`;
+  }
+
+  seed(userId: string, projectId: string, workflowType: string, artifacts: Record<string, string>): void {
+    this.store.set(this.key(userId, projectId, workflowType), { ...artifacts });
+  }
+
+  async setStepArtifact(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+    stepKey: string,
+    artifactId: string,
+  ): Promise<void> {
+    this.calls.push(`set:${stepKey}:${artifactId}`);
+    const k = this.key(userId, projectId, workflowType);
+    const existing = this.store.get(k) ?? {};
+    this.store.set(k, { ...existing, [stepKey]: artifactId });
+  }
+
+  async getCompletedArtifactsByStep(
+    userId: string,
+    projectId: string,
+    workflowType: string,
+  ): Promise<Record<string, string>> {
+    this.calls.push('get');
+    return this.store.get(this.key(userId, projectId, workflowType)) ?? {};
+  }
+}
+
+test('/api/tools/orchestrate resolves from cache hit when cache is populated', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  cacheStub.seed('user-orch-001', projectId, 'funnel_pages', {
+    optin: 'art-optin-cached',
+  });
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-cached']);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, { optin: 'art-optin-cached' });
+  assert.ok(cacheStub.calls.includes('get'));
+});
+
+test('/api/tools/orchestrate falls back to DB when cache is empty', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+  const dbCallSpy: string[] = [];
+  const originalList = artifactStub.listRecentCompletedArtifactsForToolByUser.bind(artifactStub);
+  artifactStub.listRecentCompletedArtifactsForToolByUser = async (userId, input) => {
+    dbCallSpy.push('listRecentCompleted');
+    return originalList(userId, input);
+  };
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(dbCallSpy.length, 1);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-001']);
+});
+
+test('/api/tools/orchestrate falls back to DB when cache throws', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+  cacheStub.getCompletedArtifactsByStep = async () => {
+    throw new Error('Redis down');
+  };
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+  artifactStub.seed([{ ...OPTIN_ARTIFACT, projectId }]);
+
+  const dbCallSpy: string[] = [];
+  const originalList = artifactStub.listRecentCompletedArtifactsForToolByUser.bind(artifactStub);
+  artifactStub.listRecentCompletedArtifactsForToolByUser = async (userId, input) => {
+    dbCallSpy.push('listRecentCompleted');
+    return originalList(userId, input);
+  };
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'quiz',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(dbCallSpy.length, 1);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, ['art-optin-001']);
+});
+
+test('/api/tools/orchestrate resolves first step from cache with no dependencies', async () => {
+  const artifactStub = new ArtifactQueryRepositoryStub();
+
+  const cacheStub = new OrchestrateArtifactCacheStub();
+
+  const { repositories, hasher, runtime, projectQueries } = buildRuntime(artifactStub, {
+    orchestrateCache: cacheStub,
+  });
+  const cookie = await createAndLoginUser(runtime, repositories, hasher);
+  const projectId = await ensureOwnedProject(projectQueries, 'user-orch-001');
+
+  const req = POST_ORCHESTRATE(cookie, {
+    projectId,
+    toolKey: 'funnel-pages',
+    targetStep: 'optin',
+  });
+  const res = new MockServerResponse();
+  await runtime.handleRequest(req as unknown as IncomingMessage, res as unknown as ServerResponse);
+
+  assert.equal(res.statusCode, 200);
+  const orch = (res.jsonBody().data as { orchestration: Record<string, unknown> }).orchestration;
+  assert.deepEqual(orch.stepDependencyArtifactIds, []);
+  assert.deepEqual(orch.dependencyArtifactIdsByStep, {});
 });

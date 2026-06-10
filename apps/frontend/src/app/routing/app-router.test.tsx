@@ -7,7 +7,11 @@ import { createAppRouter } from './app-router';
 // Minimal stubs for route smoke tests
 vi.mock('../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
-    session: null,
+    session: {
+      user: {
+        role: 'admin',
+      },
+    },
     loading: false,
     error: null,
     apiBaseUrl: '',
@@ -52,6 +56,10 @@ vi.mock('../../features/admin/pages/AdminUsersPage', () => ({
 
 vi.mock('../../features/admin/pages/AdminModelsPage', () => ({
   AdminModelsPage: () => <h1>Admin models</h1>,
+}));
+
+vi.mock('../../features/admin/pages/AdminApiServicesPage', () => ({
+  AdminApiServicesPage: () => <h1>Admin api services</h1>,
 }));
 
 vi.mock('../../features/admin/pages/AdminChangelogPage', () => ({
@@ -162,6 +170,16 @@ describe('app router – integration', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole('heading', { name: /dashboard admin/i })).toBeInTheDocument();
+    router.dispose();
+  });
+
+  it('renders the admin api services page at /admin/api-services', async () => {
+    window.history.pushState({}, '', '/admin/api-services');
+    const router = createAppRouter();
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: /admin api services/i })).toBeInTheDocument();
     router.dispose();
   });
 

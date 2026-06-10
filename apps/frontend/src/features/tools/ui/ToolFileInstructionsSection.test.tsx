@@ -24,4 +24,34 @@ describe('ToolFileInstructionsSection', () => {
     expect(screen.queryByRole('heading', { name: 'File opzionali dalla configurazione tool' })).toBeNull();
     expect(screen.queryByText('Tone of voice')).toBeNull();
   });
+
+  it('keeps meta-ads required fields focused on core marketing brief information', () => {
+    const instructions = selectToolFileInstructions('meta-ads');
+    expect(instructions?.requiredFields).toEqual([
+      'Prodotto o servizio',
+      'Target',
+      'Obiettivo campagna',
+      'Offerta principale',
+      'Proof points',
+      'Pain point dominanti',
+      'Obiezioni',
+    ]);
+
+    render(<ToolFileInstructionsSection instructions={instructions} />);
+
+    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
+
+    expect(screen.getByText('Prodotto o servizio')).toBeInTheDocument();
+    expect(screen.getByText('Target')).toBeInTheDocument();
+    expect(screen.getByText('Obiettivo campagna')).toBeInTheDocument();
+    expect(screen.getByText('Offerta principale')).toBeInTheDocument();
+    expect(screen.getByText('Proof points')).toBeInTheDocument();
+    expect(screen.getByText('Pain point dominanti')).toBeInTheDocument();
+    expect(screen.getByText('Obiezioni')).toBeInTheDocument();
+
+    expect(screen.queryByText('Priorita LF8')).toBeNull();
+    expect(screen.queryByText('Awareness priority')).toBeNull();
+    expect(screen.queryByText('Meccanismo unico')).toBeNull();
+    expect(screen.queryByText('Angle candidates')).toBeNull();
+  });
 });

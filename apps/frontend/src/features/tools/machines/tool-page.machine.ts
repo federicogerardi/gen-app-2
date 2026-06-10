@@ -2,7 +2,6 @@ import { assign, sendTo, setup, stopChild, type ActorRefFrom } from 'xstate';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { generationLifecycleMachine } from './generation-lifecycle.machine';
 import { hydrationMachine } from './hydration.machine';
-import { toolFlowMachine } from './tool-flow.machine';
 import { generateSessionId } from '../../../app/runtime/shared-utils';
 import { buildReadinessSnapshot, deriveHasPrimaryTargetStep } from './tool-page-readiness';
 import { buildDefaultViewModel, buildToolPageViewModel, canStartFromPolicy } from './tool-page-view-model';
@@ -25,7 +24,6 @@ export const toolPageMachine = setup({
   },
   actors: {
     briefingUploadMachine,
-    toolFlowMachine,
     generationLifecycleMachine,
     hydrationMachine,
   },
@@ -46,6 +44,7 @@ export const toolPageMachine = setup({
             toolKey: context.toolKey,
             projectId: context.projectId,
             model: context.model,
+            campaignObjective: context.campaignObjective,
             apiBaseUrl: context.apiBaseUrl,
             capabilities: context.capabilities,
             userId: context.userId,
@@ -57,6 +56,11 @@ export const toolPageMachine = setup({
     setProjectId: assign(({ context, event }) => buildSetProjectState(context, event)),
     setModel: assign({
       model: ({ event, context }) => (event.type === 'MODEL_CHANGED' ? event.model : context.model),
+    }),
+    setCampaignObjective: assign({
+      campaignObjective: ({ event, context }) => (
+        event.type === 'CAMPAIGN_OBJECTIVE_CHANGED' ? event.campaignObjective : context.campaignObjective
+      ),
     }),
     setStepArtifactId: assign({
       stepArtifactIds: ({ event, context }) => {
@@ -87,15 +91,6 @@ export const toolPageMachine = setup({
     clearPendingStepStart: assign({
       pendingStepStart: () => null,
     }),
-    setGenerationError: assign({
-      generationError: () => 'Tool flow failed',
-      viewModel: ({ context }) => buildToolPageViewModel({
-        toolKey: context.toolKey,
-        readiness: context.readiness,
-        progress: context.progress,
-        generationError: 'Tool flow failed',
-      }),
-    }),
     resetConfig: assign(({ context }) => buildResetConfigState(context)),
     sendBriefingSelected: sendTo(
       'briefingActor',
@@ -109,6 +104,9 @@ export const toolPageMachine = setup({
       type: 'INPUT_SYNCED',
       projectId: context.projectId,
       model: event.type === 'MODEL_CHANGED' ? event.model : context.model,
+      campaignObjective: event.type === 'CAMPAIGN_OBJECTIVE_CHANGED'
+        ? event.campaignObjective
+        : context.campaignObjective,
       apiBaseUrl: context.apiBaseUrl,
       capabilities: context.capabilities,
       userId: context.userId,
@@ -123,6 +121,42 @@ export const toolPageMachine = setup({
     ),
     sendGenerationLifecycleRetryStep: sendTo('generationLifecycleActor', { type: 'RETRY_STEP' }),
     cancelGenerationLifecycle: sendTo('generationLifecycleActor', { type: 'CANCEL' }),
+    updateNonStreamingProgress: assign({
+      progress: ({ context, event }) => {
+        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
+        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
+        if (import.meta.env.DEV) {
+          console.info('[toolPageMachine] updateNonStreamingProgress', {
+            step: event.step,
+            before: Array.from(context.progress.completedSteps),
+            after: Array.from(newCompleted),
+          });
+        }
+        return {
+          ...context.progress,
+          completedSteps: newCompleted,
+        };
+      },
+      viewModel: ({ context, event }) => {
+        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.viewModel;
+        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
+        const newProgress = { ...context.progress, completedSteps: newCompleted };
+        const vm = buildToolPageViewModel({
+          toolKey: context.toolKey,
+          readiness: context.readiness,
+          progress: newProgress,
+          generationError: context.generationError,
+        });
+        if (import.meta.env.DEV) {
+          console.info('[toolPageMachine] viewModel rebuilt', {
+            step: event.step,
+            primaryActionPolicy: vm.primaryActionPolicy,
+            completedStepsCount: newCompleted.size,
+          });
+        }
+        return vm;
+      },
+    }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -131,6 +165,7 @@ export const toolPageMachine = setup({
     sessionId: input.sessionId ?? generateSessionId(),
     projectId: input.projectId,
     model: input.model,
+    campaignObjective: input.campaignObjective ?? '',
     registrySnapshotRef: input.registrySnapshotRef,
     apiBaseUrl: input.apiBaseUrl,
     capabilities: input.capabilities,
@@ -153,6 +188,9 @@ export const toolPageMachine = setup({
     PROGRESS_SYNCED: {
       actions: 'syncProgress',
     },
+    NONSTREAMING_STEP_COMPLETED: {
+      actions: 'updateNonStreamingProgress',
+    },
   },
   initial: 'configuring',
   states: {
@@ -166,6 +204,9 @@ export const toolPageMachine = setup({
         },
         MODEL_CHANGED: {
           actions: ['setModel', 'sendBriefingInputSynced'],
+        },
+        CAMPAIGN_OBJECTIVE_CHANGED: {
+          actions: ['setCampaignObjective', 'sendBriefingInputSynced'],
         },
         STEP_ARTIFACT_UPDATED: {
           actions: 'setStepArtifactId',
@@ -193,6 +234,11 @@ export const toolPageMachine = setup({
             actions: 'clearGenerationError',
           },
         ],
+        CANCEL_GENERATION: {
+          target: 'configuring',
+          reenter: true,
+          actions: ['resetConfig', stopChild('briefingActor')],
+        },
         RESET: {
           target: 'configuring',
           reenter: true,

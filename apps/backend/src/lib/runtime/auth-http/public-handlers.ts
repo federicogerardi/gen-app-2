@@ -15,6 +15,8 @@ import {
   writeError,
   writeSuccess,
 } from './support';
+import { formatZodIssuesForBadRequest, optionalTrimmedString } from './zod-support';
+import { z } from 'zod';
 
 export type CreatePublicHandlersDependencies = {
   repositories: AuthRepositoryBundle;
@@ -32,11 +34,20 @@ export type PublicHandlers = {
   handleListPublishedChangelog(request: IncomingMessage, response: ServerResponse): Promise<void>;
 };
 
-type CreateUserReportRequestBody = {
-  category?: unknown;
-  title?: unknown;
-  description?: unknown;
-};
+const createUserReportRequestSchema = z.object({
+  category: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  ),
+  title: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  ),
+  description: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  ),
+});
 
 export const createPublicHandlers = (deps: CreatePublicHandlersDependencies): PublicHandlers => {
   const { repositories, now, requireSessionPrincipal, requireDb } = deps;
@@ -84,13 +95,21 @@ export const createPublicHandlers = (deps: CreatePublicHandlersDependencies): Pu
       return;
     }
 
-    let body: CreateUserReportRequestBody;
+    let rawBody: unknown;
     try {
-      body = await parseJsonBody<CreateUserReportRequestBody>(request);
+      rawBody = await parseJsonBody<unknown>(request);
     } catch {
       writeError(response, 400, 'bad_request', 'Invalid JSON body');
       return;
     }
+
+    const parsedBody = createUserReportRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const body = parsedBody.data;
 
     const category = normalizeUserReportCategory(parseOptionalNonEmptyString(body.category));
     const title = parseOptionalNonEmptyString(body.title) ?? '';

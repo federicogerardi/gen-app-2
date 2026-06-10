@@ -2259,6 +2259,10 @@ button:not(.MuiButton-root):not([class]):disabled,
   grid-template-columns: 1fr;
 }
 
+.ui-tool-form-row--full {
+  grid-template-columns: 1fr;
+}
+
 .ui-tool-steps-container {
   display: grid;
   gap: var(--space-2);
@@ -2284,6 +2288,20 @@ button:not(.MuiButton-root):not([class]):disabled,
 }
 
 .ui-button-secondary:hover {
+  background: var(--surface-steel);
+  color: var(--text-primary);
+  box-shadow: none;
+  transform: none;
+}
+
+.ui-button-soft {
+  color: var(--text-muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ui-button-soft:hover {
   background: var(--surface-steel);
   color: var(--text-primary);
   box-shadow: none;
@@ -2349,6 +2367,43 @@ button:not(.MuiButton-root):not([class]):disabled,
   display: grid;
   gap: var(--space-2);
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.ui-admin-api-service-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ui-admin-api-service-form-headline {
+  display: grid;
+  gap: var(--space-micro);
+}
+
+.ui-admin-api-service-form-grid {
+  display: grid;
+  gap: var(--space-1-5);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ui-admin-api-service-form-advanced {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
+  padding: var(--space-1-5);
+}
+
+.ui-admin-api-service-form-advanced > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ui-admin-api-service-form-advanced > p {
+  margin-top: var(--space-1);
+}
+
+.ui-admin-api-service-form-grid--json {
+  margin-top: var(--space-1-5);
+  grid-template-columns: 1fr;
 }
 
 .ui-admin-user-card {
@@ -2760,6 +2815,10 @@ ul {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 
+  .ui-tool-form-row--full {
+    grid-template-columns: 1fr;
+  }
+
   .ui-admin-user-card {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3154,16 +3213,6 @@ ul {
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.25;
-}
-
-/* ── global error banner ── */
-.ui-fv-error {
-  padding: 0.625rem 0.75rem;
-  border-left: 2px solid var(--alert-brick);
-  background: var(--error-bg);
-  font-size: 0.85rem;
-  color: var(--error-fg);
-  font-family: var(--font-family-ui);
 }
 
 /* ── reduced motion ── */

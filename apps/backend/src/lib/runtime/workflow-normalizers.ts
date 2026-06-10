@@ -18,6 +18,8 @@ const FINAL_STEP_BY_TOOL = {
   nextland: 'thank_you',
   'youtube-lf-script': 'outro-structure',
   'angle-generator': 'creative-activation',
+  'meta-ads': 'ads-generation',
+  'youtube-description': 'youtube-description-generation',
 } as const;
 
 type StepMappedToolKey = keyof typeof FINAL_STEP_BY_TOOL;
@@ -26,7 +28,9 @@ const isStepMappedToolKey = (value: string | null): value is StepMappedToolKey =
   return value === 'funnel-pages'
     || value === 'nextland'
     || value === 'youtube-lf-script'
-    || value === 'angle-generator';
+    || value === 'angle-generator'
+    || value === 'meta-ads'
+    || value === 'youtube-description';
 };
 
 export const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {
@@ -46,6 +50,21 @@ export const normalizeToolWorkflowKey = (value: string | null | undefined): stri
 
   if (normalized === 'thank-you' || normalized === 'thankyou') {
     return 'thank_you';
+  }
+
+  if (
+    normalized === 'meta_ads'
+    || normalized === 'meta_ads_generator'
+    || normalized === 'metaadsgenerator'
+  ) {
+    return 'meta-ads';
+  }
+
+  if (
+    normalized === 'youtube_description'
+    || normalized === 'youtubedescription'
+  ) {
+    return 'youtube-description';
   }
 
   return normalized;

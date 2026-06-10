@@ -107,16 +107,22 @@ class FeedbackCenterDbStub {
     this.userReports.push(record);
   }
 
-  async query<T = unknown>(sqlText: string, values: unknown[] = []): Promise<{ rows: T[] }> {
-    if (sqlText.includes('INSERT INTO user_reports')) {
+  async query<T = unknown>(sqlText: string, values: unknown[] = []): Promise<{ rows: T[]; rowCount?: number; command?: string }> {
+    const s = sqlText.toLowerCase();
+
+    if (s.includes('begin') || s.includes('commit') || s.includes('rollback')) {
+      return { rows: [] };
+    }
+
+    if (s.includes('insert into "user_reports"')) {
       const createdAt = new Date('2026-05-16T10:00:00.000Z');
       const row: FeedbackCenterUserReportRecord = {
         id: String(values[0]),
         category: String(values[1]) as FeedbackCenterUserReportRecord['category'],
         status: 'submitted',
-        title: String(values[2]),
-        description: String(values[3]),
-        created_by_user_id: String(values[4]),
+        title: String(values[3]),
+        description: String(values[4]),
+        created_by_user_id: String(values[5]),
         triaged_by_user_id: null,
         triaged_at: null,
         closed_at: null,
@@ -124,7 +130,7 @@ class FeedbackCenterDbStub {
         updated_at: createdAt,
       };
       this.userReports.push(row);
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'INSERT' };
     }
 
     if (
@@ -133,7 +139,7 @@ class FeedbackCenterDbStub {
         && sqlText.includes('FROM user_reports')
         && sqlText.includes('WHERE id = $1')
       )
-      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('WHERE ur.id = $1'))
+      || (sqlText.includes('from "user_reports"') && (sqlText.includes('where "id" =') || sqlText.includes('where "ur"."id" =')))
     ) {
       const id = String(values[0]);
       const row = this.userReports.find((report) => report.id === id);
@@ -149,13 +155,13 @@ class FeedbackCenterDbStub {
         && sqlText.includes('FROM user_reports')
         && sqlText.includes('ORDER BY created_at DESC')
       )
-      || (sqlText.includes('FROM user_reports ur') && sqlText.includes('ORDER BY ur.created_at DESC'))
+      || (sqlText.includes('from "user_reports"') && sqlText.includes('order by'))
     ) {
       let filtered = [...this.userReports];
 
-      const statusFilterClause = sqlText.includes('status = $1') || sqlText.includes('ur.status = $1');
-      const categoryFilterClauseAsSecond = sqlText.includes('category = $2') || sqlText.includes('ur.category = $2');
-      const categoryFilterClauseAsFirst = sqlText.includes('category = $1') || sqlText.includes('ur.category = $1');
+      const statusFilterClause = sqlText.includes('"status" = $1') || sqlText.includes('"ur"."status" = $1');
+      const categoryFilterClauseAsSecond = sqlText.includes('"category" = $2') || sqlText.includes('"ur"."category" = $2');
+      const categoryFilterClauseAsFirst = sqlText.includes('"category" = $1') || sqlText.includes('"ur"."category" = $1');
 
       if (statusFilterClause && categoryFilterClauseAsSecond) {
         filtered = filtered.filter((report) => report.status === values[0] && report.category === values[1]);
@@ -173,10 +179,19 @@ class FeedbackCenterDbStub {
       return { rows: rowsWithJoinProjection as unknown as T[] };
     }
 
-    if (sqlText.includes('UPDATE user_reports') && sqlText.includes('RETURNING id, category, status, title, description')) {
-      const id = String(values[0]);
-      const status = String(values[1]) as FeedbackCenterUserReportRecord['status'];
-      const actedByUserId = values.length > 2 ? String(values[2]) : null;
+    if (sqlText.includes('update "user_reports"')) {
+      const normalized = sqlText.replace(/"/g, '').toLowerCase();
+      const idMatch = normalized.match(/where id = \$(\d+)/);
+      const idIdx = idMatch ? Number(idMatch[1]) - 1 : values.length - 1;
+      const id = String(values[idIdx]);
+
+      const statusMatch = normalized.match(/status = \$(\d+)/);
+      const statusIdx = statusMatch ? Number(statusMatch[1]) - 1 : 0;
+      const status = String(values[statusIdx]) as FeedbackCenterUserReportRecord['status'];
+
+      const triagedMatch = normalized.match(/triaged_by_user_id = \$(\d+)/);
+      const actedByUserId = triagedMatch ? String(values[Number(triagedMatch[1]) - 1]) : null;
+
       const row = this.userReports.find((report) => report.id === id);
       if (!row) {
         return { rows: [] };
@@ -194,29 +209,36 @@ class FeedbackCenterDbStub {
         row.closed_at = new Date('2026-05-16T11:00:00.000Z');
       }
 
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'UPDATE' };
     }
 
-    if (sqlText.includes('INSERT INTO product_changelogs')) {
+    if (sqlText.includes('insert into "product_changelogs"')) {
       const createdAt = new Date('2026-05-16T12:00:00.000Z');
       const row: FeedbackCenterProductChangelogRecord = {
         id: String(values[0]),
         title: String(values[1]),
         body: String(values[2]),
         status: 'draft',
-        created_by_user_id: String(values[3]),
+        created_by_user_id: String(values[4]),
         published_by_user_id: null,
         published_at: null,
         created_at: createdAt,
         updated_at: createdAt,
       };
       this.changelogs.push(row);
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'INSERT' };
     }
 
-    if (sqlText.includes('UPDATE product_changelogs') && sqlText.includes('RETURNING id, title, body, status')) {
-      const id = String(values[0]);
-      const publishedByUserId = String(values[1]);
+    if (sqlText.includes('update "product_changelogs"')) {
+      const normalized = sqlText.replace(/"/g, '').toLowerCase();
+      const idMatch = normalized.match(/where id = \$(\d+)/);
+      const idIdx = idMatch ? Number(idMatch[1]) - 1 : values.length - 1;
+      const id = String(values[idIdx]);
+
+      const publishedByMatch = normalized.match(/published_by_user_id = \$(\d+)/);
+      const publishedByIdx = publishedByMatch ? Number(publishedByMatch[1]) - 1 : 0;
+      const publishedByUserId = String(values[publishedByIdx]);
+
       const row = this.changelogs.find((entry) => entry.id === id);
       if (!row) {
         return { rows: [] };
@@ -226,22 +248,18 @@ class FeedbackCenterDbStub {
       row.published_by_user_id = publishedByUserId;
       row.published_at = new Date('2026-05-16T12:30:00.000Z');
       row.updated_at = new Date('2026-05-16T12:30:00.000Z');
-      return { rows: [row as unknown as T] };
+      return { rows: [row as unknown as T], rowCount: 1, command: 'UPDATE' };
     }
 
-    if (sqlText.includes('FROM product_changelogs') && sqlText.includes("WHERE status = 'published'")) {
+    if (sqlText.includes('from "product_changelogs"') && sqlText.includes('"status" =')) {
       const rows = this.changelogs.filter((entry) => entry.status === 'published');
       return { rows: rows as unknown as T[] };
-    }
-
-    if (sqlText === 'BEGIN' || sqlText === 'COMMIT' || sqlText === 'ROLLBACK') {
-      return { rows: [] };
     }
 
     throw new Error(`Unsupported SQL in FeedbackCenterDbStub: ${sqlText}`);
   }
 
-  async connect(): Promise<{ query: <T = unknown>(sqlText: string, values?: unknown[]) => Promise<{ rows: T[] }>; release: () => void }> {
+  async connect(): Promise<{ query: <T = unknown>(sqlText: string, values?: unknown[]) => Promise<{ rows: T[]; rowCount?: number; command?: string }>; release: () => void }> {
     return {
       query: <T = unknown>(sqlText: string, values: unknown[] = []) => this.query<T>(sqlText, values),
       release: () => {},
@@ -968,6 +986,36 @@ test('auth HTTP runtime returns 401/404/400 for projects and artifacts constrain
     missingProjectResponse as unknown as ServerResponse,
   );
   assert.equal(missingProjectResponse.statusCode, 404);
+
+  const missingNameProjectResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/projects',
+      headers: { cookie: cookieHeader },
+      body: JSON.stringify({ description: 'No project name' }),
+    }) as unknown as IncomingMessage,
+    missingNameProjectResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingNameProjectResponse.statusCode, 400);
+  const missingNameProjectBody = missingNameProjectResponse.jsonBody();
+  assert.equal((missingNameProjectBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingNameProjectBody.error as { message?: string }).message, 'name: Project name is required');
+
+  const invalidProjectJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/projects',
+      headers: { cookie: cookieHeader },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidProjectJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidProjectJsonResponse.statusCode, 400);
+  const invalidProjectJsonBody = invalidProjectJsonResponse.jsonBody();
+  assert.equal((invalidProjectJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidProjectJsonBody.error as { message?: string }).message, 'Invalid JSON body');
 
   const invalidArtifactsFilterResponse = new MockServerResponse();
   await runtime.handleRequest(
@@ -3412,6 +3460,39 @@ test('auth HTTP runtime supports feedback-center report/changelog endpoints with
   );
   assert.equal(invalidCategoryResponse.statusCode, 400);
 
+  const missingTitleResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: JSON.stringify({
+        category: 'issue',
+        description: 'Missing title payload',
+      }),
+    }) as unknown as IncomingMessage,
+    missingTitleResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingTitleResponse.statusCode, 400);
+  const missingTitleBody = missingTitleResponse.jsonBody();
+  assert.equal((missingTitleBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingTitleBody.error as { message?: string }).message, 'title is required');
+
+  const invalidReportJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/user-reports',
+      headers: { cookie: memberCookie },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidReportJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidReportJsonResponse.statusCode, 400);
+  const invalidReportJsonBody = invalidReportJsonResponse.jsonBody();
+  assert.equal((invalidReportJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidReportJsonBody.error as { message?: string }).message, 'Invalid JSON body');
+
   const forbiddenListResponse = new MockServerResponse();
   await runtime.handleRequest(
     new MockIncomingMessage({
@@ -3439,6 +3520,21 @@ test('auth HTTP runtime supports feedback-center report/changelog endpoints with
     publishChangelogResponse as unknown as ServerResponse,
   );
   assert.equal(publishChangelogResponse.statusCode, 201);
+
+  const missingTitleChangelogResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'POST',
+      url: '/api/admin/changelog',
+      headers: { cookie: adminCookie },
+      body: JSON.stringify({ body: 'Missing title' }),
+    }) as unknown as IncomingMessage,
+    missingTitleChangelogResponse as unknown as ServerResponse,
+  );
+  assert.equal(missingTitleChangelogResponse.statusCode, 400);
+  const missingTitleChangelogBody = missingTitleChangelogResponse.jsonBody();
+  assert.equal((missingTitleChangelogBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((missingTitleChangelogBody.error as { message?: string }).message, 'title is required');
 
   const listChangelogResponse = new MockServerResponse();
   await runtime.handleRequest(
@@ -3547,6 +3643,21 @@ test('auth HTTP runtime enforces user-report admin validation, triage updates, a
     invalidPatchResponse as unknown as ServerResponse,
   );
   assert.equal(invalidPatchResponse.statusCode, 400);
+
+  const invalidPatchJsonResponse = new MockServerResponse();
+  await runtime.handleRequest(
+    new MockIncomingMessage({
+      method: 'PATCH',
+      url: '/api/admin/user-reports/rpt_seed_issue_001',
+      headers: { cookie: adminCookie },
+      body: '{',
+    }) as unknown as IncomingMessage,
+    invalidPatchJsonResponse as unknown as ServerResponse,
+  );
+  assert.equal(invalidPatchJsonResponse.statusCode, 400);
+  const invalidPatchJsonBody = invalidPatchJsonResponse.jsonBody();
+  assert.equal((invalidPatchJsonBody.error as { code?: string }).code, 'bad_request');
+  assert.equal((invalidPatchJsonBody.error as { message?: string }).message, 'Invalid JSON body');
 
   const patchResponse = new MockServerResponse();
   await runtime.handleRequest(

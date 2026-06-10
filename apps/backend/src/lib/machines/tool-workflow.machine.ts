@@ -1,4 +1,5 @@
 import { assign, setup } from 'xstate';
+import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
 
 import type {
   ToolWorkflowEvent,
@@ -14,13 +15,14 @@ type ToolWorkflowMachineContext = {
   activeStepIndex: number;
   currentArtifactId: string;
   lastUnlockedStep: string | null;
+  assembledGenerationInput: Record<string, unknown>;
 };
 
 type ToolWorkflowMachineInput = ToolWorkflowInput;
 
 type ToolWorkflowMachineEvent =
   | { type: 'STEP_START'; stepKey: string }
-  | { type: 'STEP_SUCCESS'; stepKey: string; output: string; artifactId: string }
+  | { type: 'STEP_SUCCESS'; stepKey: string; output: unknown; artifactId: string }
   | { type: 'STEP_FAILURE'; stepKey: string; reason: string }
   | { type: 'STEP_RETRY'; stepKey: string }
   | { type: 'STEP_SKIP'; stepKey: string }
@@ -41,6 +43,33 @@ const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] 
 
 const findFirstNonTerminalStepIndex = (stepStates: WorkflowStepState[]): number =>
   stepStates.findIndex((step) => step.status === 'idle' || step.status === 'running' || step.status === 'error');
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+};
+
+const parseAcquisitionOutput = (output: unknown): unknown => {
+  if (typeof output === 'string') {
+    try {
+      return JSON.parse(output) as unknown;
+    } catch {
+      return null;
+    }
+  }
+
+  if (isPlainRecord(output)) {
+    const eventType = output.type;
+    const payload = output.payload;
+
+    if (eventType === 'ACQUISITION_COMPLETED' && isPlainRecord(payload)) {
+      return payload;
+    }
+
+    return output;
+  }
+
+  return null;
+};
 
 export const toolWorkflowMachine = setup({
   types: {
@@ -126,6 +155,21 @@ export const toolWorkflowMachine = setup({
     cacheUnlockedStep: assign({
       lastUnlockedStep: ({ event }) => ('stepKey' in event ? event.stepKey : null),
     }),
+    mergeAcquisitionOutput: assign({
+      assembledGenerationInput: ({ context, event }) => {
+        if (event.type !== 'STEP_SUCCESS') {
+          return context.assembledGenerationInput;
+        }
+
+        const stepDescriptor = context.input.steps.find((step) => step.key === event.stepKey);
+        if (stepDescriptor?.type !== 'acquisition') {
+          return context.assembledGenerationInput;
+        }
+
+        const acquisitionOutput = parseAcquisitionOutput(event.output);
+        return mergeAcquisitionIntoGenerationInput(context.assembledGenerationInput, acquisitionOutput);
+      },
+    }),
   },
 }).createMachine({
   id: 'toolWorkflowMachine',
@@ -138,6 +182,7 @@ export const toolWorkflowMachine = setup({
       activeStepIndex: Math.max(findFirstNonTerminalStepIndex(stepStates), 0),
       currentArtifactId: input.bootstrap?.artifactId ?? '',
       lastUnlockedStep: input.bootstrap?.stepKey ?? null,
+      assembledGenerationInput: {},
     };
   },
   states: {
@@ -148,7 +193,7 @@ export const toolWorkflowMachine = setup({
           actions: ['cacheUnlockedStep', 'markStepRunning', 'syncActiveStepIndex'],
         },
         STEP_SUCCESS: {
-          actions: ['markStepDone', 'syncActiveStepIndex'],
+          actions: ['markStepDone', 'mergeAcquisitionOutput', 'syncActiveStepIndex'],
         },
         STEP_FAILURE: {
           target: 'error',

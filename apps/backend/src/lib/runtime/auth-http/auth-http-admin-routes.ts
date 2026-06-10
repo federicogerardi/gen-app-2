@@ -62,6 +62,64 @@ export const buildAdminRoutes = (
     },
     {
       method: 'GET',
+      pattern: '/api/admin/api-services',
+      handler: adminHandlers.handleAdminApiServicesList,
+    },
+    {
+      method: 'POST',
+      pattern: '/api/admin/api-services',
+      handler: adminHandlers.handleAdminApiServicesCreate,
+    },
+    {
+      method: 'PUT',
+      pattern: /^\/api\/admin\/api-services\/([^/]+)$/,
+      handler: async (request, response, serviceId) => {
+        await adminHandlers.handleAdminApiServicesUpdate(request, response, decodeURIComponent(serviceId ?? ''));
+      },
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/api\/admin\/api-services\/([^/]+)$/,
+      handler: async (request, response, serviceId) => {
+        await adminHandlers.handleAdminApiServicesDelete(request, response, decodeURIComponent(serviceId ?? ''));
+      },
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/admin\/api-services\/([^/]+)\/bindings$/,
+      handler: async (request, response, serviceId) => {
+        await adminHandlers.handleAdminApiServiceBindingsList(
+          request,
+          response,
+          decodeURIComponent(serviceId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: /^\/api\/admin\/api-services\/([^/]+)\/bindings$/,
+      handler: async (request, response, serviceId) => {
+        await adminHandlers.handleAdminApiServiceBindingsUpsert(
+          request,
+          response,
+          decodeURIComponent(serviceId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'DELETE',
+      pattern: /^\/api\/admin\/api-services\/([^/]+)\/bindings\/([^/]+)$/,
+      handler: async (request, response, serviceId, bindingId) => {
+        await adminHandlers.handleAdminApiServiceBindingsDelete(
+          request,
+          response,
+          decodeURIComponent(serviceId ?? ''),
+          decodeURIComponent(bindingId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'GET',
       pattern: '/api/admin/changelog',
       handler: adminHandlers.handleAdminListChangelog,
     },

@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { GenerationAdapters } from '../adapters';
 import {
   handleGenerationRequestAsNodeSse,
+  handleGenerationRequestAsJson,
   type BackendGenerationRequest,
 } from './index';
 import {
@@ -16,6 +17,7 @@ import {
 import {
   applyModelAvailabilityGuard,
   applyOwnershipGuard,
+  applyRequestContractGuard,
 } from './generation-entry-guards';
 import {
   buildGenerationDebugInfo,
@@ -42,6 +44,7 @@ export type NodeRuntimeServerOptions = {
   generationAdapters: GenerationAdapters;
   authRuntime: AuthHttpRequestHandler;
   generationRoutePath?: string;
+  generationRunRoutePath?: string;
   debugGenerationLogs?: boolean;
   checkProjectOwnership?: (
     userId: string,
@@ -156,6 +159,7 @@ export const createNodeRuntimeRequestHandler = (
   }
 
   const generationRoutePath = options.generationRoutePath ?? '/generation/stream';
+  const generationRunRoutePath = options.generationRunRoutePath ?? '/generation/run';
   const csrfEnabled = options.csrf?.enabled ?? true;
   const csrfProtectedMethods = options.csrf?.protectedMethods ?? ['POST', 'PATCH', 'PUT', 'DELETE'];
   const csrfExcludePaths = options.csrf?.excludePaths ?? ['/auth/login', '/auth/google/start', '/auth/google/callback'];
@@ -239,7 +243,7 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
-    if (path !== generationRoutePath) {
+    if (path !== generationRoutePath && path !== generationRunRoutePath) {
       writeJson(response, 404, {
         ok: false,
         error: {
@@ -255,7 +259,7 @@ export const createNodeRuntimeRequestHandler = (
         ok: false,
         error: {
           code: 'method_not_allowed',
-          message: 'Use POST for generation stream',
+          message: 'Use POST for generation',
         },
       });
       return;
@@ -313,8 +317,21 @@ export const createNodeRuntimeRequestHandler = (
       return;
     }
 
+    if (!applyRequestContractGuard(response, generationRequest)) {
+      return;
+    }
+
     try {
-      await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
+      if (path === generationRunRoutePath) {
+        const result = await handleGenerationRequestAsJson(generationRequest, options.generationAdapters);
+        if (result.ok) {
+          writeJson(response, 200, result);
+        } else {
+          writeJson(response, 500, result);
+        }
+      } else {
+        await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
+      }
     } catch (error) {
       logGenerationStreamError(correlationId, generationRequest, debugInfo, error);
       if (!response.writableEnded && !response.destroyed) {

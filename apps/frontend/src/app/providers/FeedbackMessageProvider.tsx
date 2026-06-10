@@ -1,7 +1,8 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from 'react';
 import { UI_CONFIG } from '../config/ui-config';
+import type { FeedbackChannel } from '../runtime/feedback-channel-map';
 
-export type FeedbackChannel = 'global';
+export type { FeedbackChannel } from '../runtime/feedback-channel-map';
 export type FeedbackSeverity = 'success' | 'info' | 'warning' | 'error';
 
 export type GlobalFeedbackMessage = {
@@ -22,6 +23,8 @@ type PublishFeedbackOptions = {
 type FeedbackMessageContextValue = {
   messages: ReadonlyArray<GlobalFeedbackMessage>;
   publishSuccess: (text: string, options?: PublishFeedbackOptions) => void;
+  publishInfo: (text: string, options?: PublishFeedbackOptions) => void;
+  publishWarning: (text: string, options?: PublishFeedbackOptions) => void;
   publishError: (text: string, options?: PublishFeedbackOptions) => void;
   dismiss: (messageId: string) => void;
   dismissAll: () => void;
@@ -123,6 +126,18 @@ export const FeedbackMessageProvider = ({ children }: { children: ReactNode }) =
       dispatch({
         type: 'publish',
         message: buildMessage('success', text, options),
+      });
+    },
+    publishInfo: (text, options) => {
+      dispatch({
+        type: 'publish',
+        message: buildMessage('info', text, options),
+      });
+    },
+    publishWarning: (text, options) => {
+      dispatch({
+        type: 'publish',
+        message: buildMessage('warning', text, options),
       });
     },
     publishError: (text, options) => {

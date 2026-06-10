@@ -263,7 +263,7 @@ export const collectCompletedRunSteps = (
  * Returns null if step is not a string or artifact is null.
  */
 export const extractArtifactStep = (artifact: GenerationArtifact | null): ToolStep | null => {
-  const step = artifact?.sourceRequest.input?.step;
+  const step = artifact?.sourceRequest.input?.step ?? artifact?.stepKey;
   return typeof step === 'string' ? (step as ToolStep) : null;
 };
 

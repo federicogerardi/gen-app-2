@@ -1,4 +1,5 @@
 import type Redis from 'ioredis';
+import { Kysely, sql } from 'kysely';
 import type { Pool } from 'pg';
 
 import type { UsageActorInput } from '../types/xstate';
@@ -7,7 +8,14 @@ import { resolveClaimUsageDecision } from './postgres-redis.shared';
 import type { UsageDecision } from './generation.adapters';
 import type { RedisQuotaRepository } from './postgres-redis.interfaces';
 import type { UsageRepositoryOptions } from './postgres-redis.shared.types';
-import { buildQualifiedTableName, nowDate, withTransaction } from './postgres-redis.sql.utils';
+import { createKyselyDb } from './postgres-kysely.dialect';
+import type { DB } from './postgres-kysely.types';
+
+/**
+ * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
+ * NOW() must be expressed via the sql template tag.
+ */
+const dbNow = sql<Date>`NOW()`;
 
 const toMonthStartUtc = (value: Date): Date => {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), 1, 0, 0, 0, 0));
@@ -25,24 +33,34 @@ const hasMonthWindowExpired = (windowStartedAt: Date | null, now: Date): boolean
   return windowYear !== nowYear || windowMonth !== nowMonth;
 };
 
+const nowDate = (runtime?: { now?: () => Date }): Date =>
+  runtime?.now?.() ?? new Date();
+
 export class PostgresRedisUsageRepository implements RedisQuotaRepository {
+  private readonly db: Kysely<DB>;
   private readonly rateLimitWindowSeconds: number;
   private readonly maxRequestsPerWindow: number;
   private readonly redisKeyPrefix: string;
-  private readonly usersTableName: string;
+  private readonly usersSchema: string | undefined;
 
   constructor(
-    private readonly pg: Pool,
+    pg: Pool,
     private readonly redis: Redis,
     options: UsageRepositoryOptions = {},
   ) {
+    this.db = createKyselyDb(pg);
     this.rateLimitWindowSeconds = options.rateLimitWindowSeconds ?? 60;
     this.maxRequestsPerWindow = options.maxRequestsPerWindow ?? 120;
     this.redisKeyPrefix = options.redisKeyPrefix ?? 'generation:usage';
-    this.usersTableName = buildQualifiedTableName(
-      options.usersSchema,
-      options.usersTableName ?? 'users',
-    );
+    this.usersSchema = options.usersSchema;
+    if (options.usersTableName !== undefined && options.usersTableName !== 'users') {
+      throw new Error(`Unsupported usersTableName: ${options.usersTableName}`);
+    }
+  }
+
+  private getUsersDb(trx?: Kysely<DB>): Kysely<DB> {
+    const base = trx ?? this.db;
+    return this.usersSchema ? base.withSchema(this.usersSchema) : base;
   }
 
   async claimUsage(input: UsageActorInput): Promise<UsageDecision> {
@@ -61,35 +79,22 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
     }
 
     try {
-      const claimResult = await withTransaction(this.pg, async (client) => {
+      const claimResult = await this.db.transaction().execute(async (trx) => {
+        const db = this.getUsersDb(trx);
         const now = nowDate(input.runtime);
         const normalizedWindowStart = toMonthStartUtc(now);
 
-        const lockedUserResult = await client.query<{
-          monthly_used: number;
-          monthly_quota: number;
-          quota_window_started_at: Date | string | null;
-        }>(
-          `
-            SELECT monthly_used, monthly_quota, quota_window_started_at
-            FROM ${this.usersTableName}
-            WHERE id = $1
-            FOR UPDATE
-          `,
-          [input.userId],
-        );
+        const lockedUser = await db
+          .selectFrom('users')
+          .select(['monthly_used', 'monthly_quota', 'quota_window_started_at'])
+          .where('id', '=', input.userId)
+          .forUpdate()
+          .executeTakeFirst();
 
-        if (lockedUserResult.rowCount !== 1) {
-          return {
-            quotaAvailable: false,
-            resetDate: undefined as Date | undefined,
-          };
-        }
-
-        const lockedUser = lockedUserResult.rows[0];
         if (!lockedUser) {
           return {
             quotaAvailable: false,
+            resetDate: undefined as Date | undefined,
           };
         }
 
@@ -99,31 +104,35 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
         const shouldResetWindow = hasMonthWindowExpired(quotaWindowStartedAt, now);
 
         if (shouldResetWindow) {
-          await client.query(
-            `
-              UPDATE ${this.usersTableName}
-              SET monthly_used = 0,
-                  quota_window_started_at = $2,
-                  updated_at = NOW()
-              WHERE id = $1
-            `,
-            [input.userId, normalizedWindowStart.toISOString()],
-          );
+          await db
+            .updateTable('users')
+            .set({
+              monthly_used: 0,
+              quota_window_started_at: normalizedWindowStart,
+              updated_at: dbNow,
+            })
+            .where('id', '=', input.userId)
+            .execute();
         }
 
-        const incrementResult = await client.query(
-          `
-            UPDATE ${this.usersTableName}
-            SET monthly_used = monthly_used + 1,
-                updated_at = NOW()
-            WHERE id = $1 AND monthly_used < monthly_quota
-            RETURNING monthly_used, monthly_quota
-          `,
-          [input.userId],
-        );
+        const incrementResult = await db
+          .updateTable('users')
+          .set({
+            // Escape hatch: arithmetic on a column value (monthly_used + 1) cannot be
+            // expressed via Kysely's typed .set() — it would require a concrete number.
+            monthly_used: sql`monthly_used + 1`,
+            updated_at: dbNow,
+          })
+          .where('id', '=', input.userId)
+          // Escape hatch: column-to-column comparison (monthly_used < monthly_quota) is
+          // not supported by Kysely's typed .where(col, op, value) — that form requires
+          // a concrete value on the right-hand side, not another column reference.
+          .where(sql<boolean>`monthly_used < monthly_quota`)
+          .returning(['monthly_used', 'monthly_quota'])
+          .executeTakeFirst();
 
         return {
-          quotaAvailable: Boolean(incrementResult.rowCount && incrementResult.rowCount > 0),
+          quotaAvailable: incrementResult !== undefined,
           resetDate: shouldResetWindow ? normalizedWindowStart : undefined,
         };
       });

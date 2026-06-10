@@ -22,6 +22,45 @@ export type RouteEntry = {
   handler: (request: IncomingMessage, response: ServerResponse, ...matches: string[]) => Promise<void>;
 };
 
+export type AuthHttpRouteCapability =
+  | 'auth.login'
+  | 'auth.logout'
+  | 'auth.session'
+  | 'auth.google.start'
+  | 'admin.users'
+  | 'admin.models'
+  | 'admin.api-services'
+  | 'admin.api-service-bindings'
+  | 'projects'
+  | 'artifacts'
+  | 'tools.briefs'
+  | 'tools.hydrate'
+  | 'tools.orchestrate'
+  | 'tools.api-services'
+  | 'tools.sessions'
+  | 'feedback.public'
+  | 'feedback.admin';
+
+export const AUTH_HTTP_ROUTE_CAPABILITIES: Readonly<Record<AuthHttpRouteCapability, true>> = {
+  'auth.login': true,
+  'auth.logout': true,
+  'auth.session': true,
+  'auth.google.start': true,
+  'admin.users': true,
+  'admin.models': true,
+  'admin.api-services': true,
+  'admin.api-service-bindings': true,
+  projects: true,
+  artifacts: true,
+  'tools.briefs': true,
+  'tools.hydrate': true,
+  'tools.orchestrate': true,
+  'tools.api-services': true,
+  'tools.sessions': true,
+  'feedback.public': true,
+  'feedback.admin': true,
+} as const;
+
 export type AllHandlerGroups = {
   authHandlers: AuthHandlers;
   adminHandlers: AdminHandlers;

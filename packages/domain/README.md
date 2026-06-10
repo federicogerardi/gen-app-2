@@ -1,29 +1,39 @@
 # packages/domain
 
-Reserved package for future domain-level consolidation.
+Cross-context canonical domain primitives package.
 
-Package: @gen-app-2/domain
-
-## Intended Scope
-
-When activated, this package should host only true cross-context domain assets, such as:
-
-- stable Value Objects shared by multiple bounded contexts
-- invariant-preserving factories with domain meaning
-- domain primitives that must remain framework-agnostic
+Package: `@gen-app-2/domain`
 
 ## Current Status
 
-Not yet active in production runtime.
+Active and consumed by backend and contracts (DDD-074).
 
-Until activation, canonical language and decisions remain governed by docs and context-local types in backend/frontend packages.
+## Scope
 
-## Activation Rule
+This package hosts stable, framework-agnostic domain primitives shared across contexts.
 
-Do not move types into this package only for convenience. Promote here only when a concept is truly shared and stable across bounded contexts.
+Current canonical exports include core value sets such as:
+
+- `ArtifactType`
+- `ArtifactStatus`
+- `OutputFormat`
+- `WorkflowRunMode`
+- `ArtifactRole`
+
+## Rule Of Use
+
+Promote a concept here only when it is truly cross-context and stable.
+
+Do not move symbols to this package only for convenience.
+
+## Package Commands
+
+```bash
+npm --workspace packages/domain run typecheck
+```
 
 ## DDD References
 
-1. ../../docs/01-requirements/domain-ubiquitous-language-glossary.md
-2. ../../docs/02-design/domain-bounded-context-map.md
-3. ../../docs/07-governance/domain-naming-decision-log.md
+1. `../../docs/01-requirements/domain-ubiquitous-language-glossary.md`
+2. `../../docs/02-design/domain-bounded-context-map.md`
+3. `../../docs/07-governance/domain-naming-decision-log.md`

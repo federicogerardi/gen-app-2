@@ -1,6 +1,6 @@
 export type AdminNavigationItem = {
-  key: 'overview' | 'users' | 'models' | 'changelog' | 'user-reports' | 'activity';
-  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity';
+  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity';
+  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity';
   label: string;
   description: string;
   end?: boolean;
@@ -25,6 +25,12 @@ export const adminNavigationItems: readonly AdminNavigationItem[] = [
     to: '/admin/models',
     label: 'Modelli LLM',
     description: 'Catalogo LlmModel e stato di disponibilita.',
+  },
+  {
+    key: 'api-services',
+    to: '/admin/api-services',
+    label: 'ApiService',
+    description: 'Catalogo ApiService e binding dei tool step.',
   },
   {
     key: 'changelog',

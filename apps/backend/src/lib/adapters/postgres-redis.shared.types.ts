@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 
 import type { IdempotencyCoordinatorInput } from '../types/xstate';
 
-import type { LlmStreamAdapter } from './generation.adapters';
+import type { LlmGenerateAdapter, LlmStreamAdapter } from './generation.adapters';
 import type { ProductionAdapterRuntime } from './postgres-redis.interfaces';
 
 export type UsageRepositoryOptions = {
@@ -72,6 +72,11 @@ export type PostgresRedisProductionClients = {
   redis: Redis;
 };
 
+export type OrchestrateCacheOptions = {
+  prefix?: string;
+  ttlSeconds?: number;
+};
+
 export type PostgresRedisProductionOptions = {
   runtime?: ProductionAdapterRuntime;
   usage?: UsageRepositoryOptions;
@@ -81,6 +86,10 @@ export type PostgresRedisProductionOptions = {
   llm?: {
     adapter?: LlmStreamAdapter;
   };
+  generate?: {
+    adapter?: LlmGenerateAdapter;
+  };
+  orchestrateCache?: OrchestrateCacheOptions;
 };
 
 export type IdempotencyRow = {

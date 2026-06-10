@@ -3,24 +3,34 @@ import type { ToolKey } from './tool-workflows';
 export const EXTRACTION_FIELD_KEYS = [
   'avatar',
   'brand_or_company',
+  'budget_context',
+  'campaign_objective',
   'creative_constraints',
+  'dominant_pain_points',
   'funnel_goal',
   'goal',
+  'lf8_priority',
   'knowledge_content',
   'market',
+  'objections',
   'offer',
   'offer_or_service',
   'pain_point',
+  'primary_offer',
   'primary_cta',
   'product_or_service',
   'proof',
+  'proof_points',
   'proprietary_methodology_disclosure',
   'purchase_process_type',
   'required_sections',
   'target_audience',
   'target_duration_minutes',
   'tone',
+  'unique_mechanism',
   'website_goal',
+  'awareness_priority',
+  'angle_candidates',
 ] as const;
 
 export type ExtractionFieldKey = (typeof EXTRACTION_FIELD_KEYS)[number];
@@ -64,6 +74,21 @@ export const InstructionRequiredExtractionFieldKeysByTool: Readonly<Record<ToolK
     'proof',
     'creative_constraints',
   ],
+  'meta-ads': [
+    'product_or_service',
+    'target_audience',
+    'campaign_objective',
+    'budget_context',
+    'primary_offer',
+    'proof_points',
+    'dominant_pain_points',
+    'objections',
+    'awareness_priority',
+    'lf8_priority',
+    'unique_mechanism',
+    'angle_candidates',
+  ],
+  'youtube-description': [],
 } as const;
 
 export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey, readonly ExtractionFieldKey[]>> = {
@@ -77,6 +102,8 @@ export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey
     'proof',
   ],
   'angle-generator': [],
+  'meta-ads': [],
+  'youtube-description': [],
 } as const;
 
 export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly<Record<string, ExtractionFieldKey>>>> = {
@@ -115,6 +142,21 @@ export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly
     'vincoli creativi': 'creative_constraints',
     offerta: 'offer',
   },
+  'meta-ads': {
+    'prodotto o servizio': 'product_or_service',
+    target: 'target_audience',
+    'obiettivo campagna': 'campaign_objective',
+    'contesto budget': 'budget_context',
+    'offerta principale': 'primary_offer',
+    'punti di prova': 'proof_points',
+    'pain point dominanti': 'dominant_pain_points',
+    obiezioni: 'objections',
+    'awareness priority': 'awareness_priority',
+    'lf8 priority': 'lf8_priority',
+    'meccanismo unico': 'unique_mechanism',
+    'angle candidates': 'angle_candidates',
+  },
+  'youtube-description': {},
 } as const;
 
 const normalizeAliasCandidate = (value: string): string => value.trim().toLowerCase();

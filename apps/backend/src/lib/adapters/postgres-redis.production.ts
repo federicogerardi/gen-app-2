@@ -1,9 +1,11 @@
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import {
   createSyntheticLlmStreamAdapter,
+  createSyntheticLlmGenerateAdapter,
   type LlmStreamAdapter,
+  type LlmGenerateAdapter,
 } from './generation.adapters';
-import { createOpenRouterLlmStreamAdapterFromEnv } from './openrouter.adapter';
+import { createOpenRouterLlmStreamAdapterFromEnv, createOpenRouterLlmGenerateAdapterFromEnv } from './openrouter.adapter';
 
 import type { PostgresRedisAdapterDependencies } from './postgres-redis.interfaces';
 import {
@@ -18,6 +20,7 @@ import { PostgresRedisStreamSessionRepository } from './postgres-redis.stream.re
 import { PostgresArtifactRepository } from './postgres.artifact.repository';
 import { PostgresProjectQueryRepository } from './postgres.project-query.repository';
 import { PostgresArtifactQueryRepository } from './postgres.artifact-query.repository';
+import { RedisOrchestrateArtifactCache } from './redis-orchestrate-artifact-cache';
 
 export {
   PostgresRedisUsageRepository,
@@ -50,6 +53,28 @@ export const createPostgresRedisProductionDependencies = (
         'production_llm_adapter_missing: provide options.llm.adapter or set OPENROUTER_API_KEY',
       );
     }
+    console.warn(
+      '[adapter][llm] OPENROUTER_API_KEY is not set; falling back to synthetic LLM adapter. ' +
+        'All generation requests will return stubbed content instead of calling a real LLM.',
+    );
+  }
+
+  const explicitGenerateAdapter = options.generate?.adapter;
+  const openRouterGenerateAdapter = explicitGenerateAdapter
+    ? null
+    : createOpenRouterLlmGenerateAdapterFromEnv();
+
+  const generate: LlmGenerateAdapter | null = explicitGenerateAdapter ?? openRouterGenerateAdapter;
+  if (!generate) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'production_generate_adapter_missing: provide options.generate.adapter or set OPENROUTER_API_KEY',
+      );
+    }
+    console.warn(
+      '[adapter][generate] OPENROUTER_API_KEY is not set; falling back to synthetic generate adapter. ' +
+        'All non-streaming generation requests will return stubbed content instead of calling a real LLM.',
+    );
   }
 
   return {
@@ -66,7 +91,9 @@ export const createPostgresRedisProductionDependencies = (
       options.stream,
     ),
     llm: llm ?? createSyntheticLlmStreamAdapter(),
+    generate: generate ?? createSyntheticLlmGenerateAdapter(),
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
+    orchestrateCache: new RedisOrchestrateArtifactCache(clients.redis, options.orchestrateCache),
   };
 };
 

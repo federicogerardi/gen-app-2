@@ -54,6 +54,7 @@ export const generationSystemMachine = setup({
     outputTokens: 0,
     costUsd: 0,
     routeType: null,
+    mode: 'stream' as const,
     pendingFallback: null,
     adapters: input.adapters,
     runtimeNow: input.runtime?.now ?? (() => new Date()),

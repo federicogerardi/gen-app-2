@@ -16,6 +16,11 @@ import {
   ARTIFACT_ROLES,
   WORKFLOW_RUN_MODES,
 } from '@gen-app-2/domain';
+import {
+  TOOL_KEYS,
+  TOOL_WORKFLOW_BY_TOOL_KEY,
+  type ToolWorkflowType,
+} from '@gen-app-2/contracts';
 import type { ArtifactType, ArtifactStatus, OutputFormat, ArtifactRole, WorkflowRunMode } from '@gen-app-2/domain';
 export {
   ARTIFACT_TYPES,
@@ -54,8 +59,11 @@ export const ARTIFACT_FAILURE_REASONS = [
 export type ArtifactFailureReason = (typeof ARTIFACT_FAILURE_REASONS)[number];
 
 /** Tool workflow identifier—maps to routes and determines artifact type. */
-export const TOOL_WORKFLOWS = ['funnel_pages', 'nextland', 'youtube_lf_script', 'extraction'] as const;
-export type ToolWorkflow = (typeof TOOL_WORKFLOWS)[number];
+const CONTRACT_TOOL_WORKFLOWS: ToolWorkflowType[] = TOOL_KEYS.map(
+  (toolKey) => TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType,
+);
+export const TOOL_WORKFLOWS = [...CONTRACT_TOOL_WORKFLOWS, 'extraction'] as const;
+export type ToolWorkflow = ToolWorkflowType | 'extraction';
 
 /** Quota history event status—records the outcome of a generation attempt. */
 export const QUOTA_EVENT_STATUSES = ['success', 'error', 'rate_limited'] as const;

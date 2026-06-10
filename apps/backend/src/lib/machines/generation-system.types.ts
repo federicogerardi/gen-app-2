@@ -28,6 +28,7 @@ export type GenerationMachineContext = GenerationSystemContext & {
   outputTokens: number;
   costUsd: number;
   routeType: RouteType;
+  mode: 'generate' | 'stream';
   runtimeNow: () => Date;
   artifactIdFactory: () => string;
   responseBuilder: (request: RequestReceivedEvent) => string;
@@ -77,6 +78,10 @@ export type ToolDoneOutput =
   | { type: 'WORKFLOW_STEP_UNLOCKED' }
   | { type: 'WORKFLOW_STEP_COMPLETED'; artifactId: string };
 
+export type AcquisitionDoneOutput =
+  | { type: 'ACQUISITION_ATTEMPT_ACCEPTED'; statusCode: number; payload: Record<string, unknown> }
+  | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
+
 export type CacheRequestMetaParams = {
   requestId: string;
   projectId: string;
@@ -117,6 +122,21 @@ export type CacheExtractionResultParams = {
   content: string;
   structuredPayload: Record<string, unknown>;
 };
+
+export type CacheAcquisitionResultParams = {
+  payload: Record<string, unknown>;
+};
+
+export type CacheGenerateResultParams = {
+  content: string;
+  inputTokens?: number | undefined;
+  outputTokens?: number | undefined;
+  costUsd?: number | undefined;
+};
+
+export type GenerateDoneOutput =
+  | { type: 'GENERATE_TERMINATED_SUCCESS'; content: string; metrics?: { inputTokens: number; outputTokens: number; costUsd: number } | undefined }
+  | { type: 'GENERATE_TERMINATED_FAILURE'; reason: string };
 
 export type QueueFallbackDecisionParams = {
   reason?: string | null;

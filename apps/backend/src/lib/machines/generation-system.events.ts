@@ -1,9 +1,13 @@
 import type { GenerationFallbackOutput } from './generation-fallback.actor';
 import type {
+  AcquisitionDoneOutput,
+  CacheAcquisitionResultParams,
   CacheExtractionResultParams,
+  CacheGenerateResultParams,
   CacheReplayPayloadParams,
   CacheStreamResultParams,
   ExtractionDoneOutput,
+  GenerateDoneOutput,
   IdempotencyDoneOutput,
   OwnershipDoneOutput,
   StreamDoneOutput,
@@ -22,6 +26,20 @@ export const getOwnershipDoneOutput = (event: unknown): OwnershipDoneOutput | un
 
 export const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
   (event as { output?: StreamDoneOutput }).output;
+
+export const getGenerateDoneOutput = (event: unknown): GenerateDoneOutput | undefined =>
+  (event as { output?: GenerateDoneOutput }).output;
+
+export const getGenerateResultParams = (event: unknown): CacheGenerateResultParams => {
+  const output = getGenerateDoneOutput(event);
+
+  return {
+    content: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.content ?? '') : '',
+    inputTokens: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.inputTokens ?? 0) : 0,
+    outputTokens: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.outputTokens ?? 0) : 0,
+    costUsd: output?.type === 'GENERATE_TERMINATED_SUCCESS' ? (output.metrics?.costUsd ?? 0) : 0,
+  };
+};
 
 export const getStreamResultParams = (event: unknown): CacheStreamResultParams => {
   const output = getStreamDoneOutput(event);
@@ -65,6 +83,22 @@ export const getExtractionResultParams = (event: unknown): CacheExtractionResult
 
 export const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
   (event as { output?: ToolDoneOutput }).output;
+
+export const getAcquisitionDoneOutput = (event: unknown): AcquisitionDoneOutput | undefined =>
+  (event as { output?: AcquisitionDoneOutput }).output;
+
+export const getAcquisitionResultParams = (event: unknown): CacheAcquisitionResultParams => {
+  const output = getAcquisitionDoneOutput(event);
+  if (!output || output.type !== 'ACQUISITION_ATTEMPT_ACCEPTED') {
+    return {
+      payload: {},
+    };
+  }
+
+  return {
+    payload: output.payload,
+  };
+};
 
 export const getFallbackDoneOutput = (event: unknown): GenerationFallbackOutput | undefined =>
   (event as { output?: GenerationFallbackOutput }).output;

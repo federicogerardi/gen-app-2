@@ -13,6 +13,7 @@ export type ToolPageContext = {
   sessionId: string;
   projectId: string;
   model: string;
+  campaignObjective: string;
   registrySnapshotRef: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
@@ -34,6 +35,7 @@ export type ToolPageInput = {
   sessionId?: string;
   projectId: string;
   model: string;
+  campaignObjective?: string;
   registrySnapshotRef: string;
   apiBaseUrl: string;
   capabilities: Partial<BackendCapabilities>;
@@ -43,6 +45,7 @@ export type ToolPageInput = {
 export type ToolPageEvent =
   | { type: 'PROJECT_SELECTED'; projectId: string }
   | { type: 'MODEL_CHANGED'; model: string }
+  | { type: 'CAMPAIGN_OBJECTIVE_CHANGED'; campaignObjective: string }
   | { type: 'STEP_ARTIFACT_UPDATED'; step: ToolStep; artifactId: string }
   | { type: 'BRIEFING_FILE_SELECTED'; file: File; sourceKey?: string }
   | { type: 'BRIEFING_EXTRACTION_REQUESTED' }
@@ -55,6 +58,7 @@ export type ToolPageEvent =
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' }
+  | { type: 'NONSTREAMING_STEP_COMPLETED'; step: ToolStep }
   | {
       type: 'PROGRESS_SYNCED';
       artifacts: GenerationArtifact[];

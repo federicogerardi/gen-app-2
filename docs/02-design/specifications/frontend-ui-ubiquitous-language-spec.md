@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 date_created: 2026-05-08
-last-reviewed: 2026-05-22
+last-reviewed: 2026-05-26
 next-review-date: 2026-06-08
 owner: Frontend Platform Team
 type: ui-governance-spec
@@ -36,6 +36,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Canonical UI Term | Definition | Canonical Source Pattern | Not This |
 | --- | --- | --- | --- |
 | Tool Workspace Page | The canonical two-column tool execution page built from `ToolPageTemplate` with setup panel and workflow panel. | Tool pages under `apps/frontend/src/features/tools/` | Wizard page, generator page, flow page |
+| Tool Availability Policy | Role-aware tri-state exposure policy for tools: `enabled-for-all`, `disabled-for-all`, `enabled-for-admin-only`. Applies to discovery (Tools hub, navigation shortcuts) and route access. | Tool discovery and routing surfaces | Binary enabled/disabled flag without role semantics |
 | Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. | `ToolPageTemplate` form area | Left column form, input area |
 | Workflow Panel | Right panel in Tool Workspace Page for status, payload visibility, and unified process feedback. | `ToolGenerationFlowVertical` (payload + monitoring + feedback sections) | Progress column, steps area |
 | Status Card | Summary card exposing run status and actionable context. | Shared tool UI cards | Header card, info block |
@@ -51,9 +52,15 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Dispatch Error | Inline error message rendered adjacent to the primary CTA when a run cannot proceed or must be force-closed back to `configuring`. This includes `startGenerationStep` returning `false`, extraction semantic invalidity (`extraction_context_insufficient`), and stream terminal failures that do not expose a recoverable `failedStep`. Cleared on every new primary action attempt. Canonical implementation: `dispatchError` state in `useToolPage`; rendered as `<p className={uiPrimitives.error}>` in `ToolPageTemplate`. UI copy must be user-readable and must not display raw tokens such as `stream_empty_output` or `extraction_context_insufficient`. See DDD-061 and DDD-064. | `ToolPageTemplate` area below primary CTA | Step error, briefing error, terminal stream failure |
 | Tool File Instructions Section | Deterministic inline guidance accordion inside the Tool Workspace Page Setup Panel that lists only the required fields for a specific tool. The section is driven by registry metadata, appears only when tool instructions exist, and is closed by default. | Tool Workspace Page setup area, directly below upload/form controls | Popover guidance, tabbed instructions |
 | Tool Input File Requirement Policy | Canonical rule for tool input-file requiredness. If a tool has one input file, it is always required. If a tool has multiple files, only the first file is always required; each subsequent file is explicitly classified by tool setting as required or optional. | Tool Workspace setup metadata and file-upload guidance | Implicit multi-file requiredness, all-files-required-by-default |
+| Context Generation Phase | Canonical Tool Workspace pre-step phase where FE assembles the context payload from configured sources: direct input fields, text-file extraction, API-backed acquisition, and deterministic merge rules. | Tool Workspace setup and workflow panel pre-step progress | Extraction-only phase naming for mixed-source tools |
+| Start Context Generation Action | Canonical primary CTA contract that starts `Context Generation Phase`. In the current runtime the visible Setup Panel CTA remains the primary generation CTA (`Avvia la generazione`); when context is missing, the same click starts extraction/fetch/merge and, once ready, continues automatically to generation dispatch without a second user click. | Tool Workspace primary CTA in Setup Panel | Separate buttons for extraction and API fetch in the same pre-step flow |
+| Tool Input Requirement Matrix | Canonical requiredness matrix across all input source families (`direct-input`, `tool-input-file`, `api-acquisition`) using values `always-required`, `required-by-tool-setting`, `optional-by-tool-setting`. | Tool Workspace readiness and CTA enablement | Source-specific ad-hoc requiredness logic |
 | Missing Required Files Message | Blocking process feedback listing policy-required files that must be uploaded to enable primary generation action. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Generic upload warning without required list |
 | Missing Optional Files Advisory | Non-blocking informational recommendation shown when optional files are missing but required files are complete. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Warning/error feedback that blocks CTA |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
+
+Tri-state policy rule:
+Tool discovery and tool route access must evaluate the same policy from shared contracts. `enabled-for-admin-only` tools are hidden for `member` users and accessible for `admin` users only.
 
 ### 2.1 Extraction Field Key-To-Label Operational Convergence Matrix
 
@@ -139,13 +146,17 @@ Composition:
 - **Workflow Panel feedback centralization**: process-feedback messages are centralized in Workflow Panel `inline-action` feedback section. This includes `briefingError`, missing required files, readiness feedback, `artifactsReloadError`, `briefingGuidance`, missing optional files advisory, and extraction-start hint. Setup Panel remains interaction-only for these process messages.
 - **Tool File Instructions Section**: a deterministic inline guidance accordion is rendered directly below the upload/form controls when registry metadata exists. The accordion is closed by default; the section title is fixed and the body shows only the required fields list; no optional groups, examples, notes, or tone guidance are rendered in the card body.
 - **Tool Input File Requirement Policy**: file-requiredness in setup follows deterministic index semantics. For one-file tools, the single file is required. For multi-file tools, the first file remains always required; each file from second onward is explicitly marked required or optional by tool setting and must be reflected in setup guidance.
-- **Manual extraction trigger**: file selection is a cache action only. Extraction must start through explicit setup CTA (`Avvia estrazione`) after required files are present. This rule is uniform for all tools, including single-file tools.
+- **Manual extraction trigger**: file selection is a cache action only. Extraction must start through the single primary setup CTA, currently labeled `Avvia la generazione`, after required inputs are present. This rule is uniform for all tools, including single-file tools.
+- **Context generation trigger**: pre-step context assembly starts through one explicit setup CTA. In the current runtime the visible CTA is unified under `Avvia la generazione`; the action contract remains `Start Context Generation Action` and can execute extraction, API-backed acquisition, and merge according to tool configuration before silently continuing to generation.
 - **Blocking vs advisory semantics**: missing required files must produce blocking feedback and disable primary action; missing optional files must produce informational advisory feedback and must never disable primary action.
+- **Unified requiredness semantics**: readiness and CTA enablement must follow one `Tool Input Requirement Matrix` spanning direct fields, file uploads, and API acquisition inputs.
+- **Direct-input-only tool rule**: when a tool declares only `direct-input` entries in `Tool Input Requirement Matrix` (for example `youtube-description`), Setup Panel must not require file-upload completion for start eligibility. As-is baseline blocks only on required direct-input field presence; optional direct-input entries are advisory and non-blocking. Semantic format constraints (for example URL/timestamp strict parsing) may be introduced later, but they are not part of the current baseline guard contract.
+- **API binding status adapter (as-is)**: `api-acquisition` requiredness is feature-flagged by `VITE_FF_TOOLS_API_BINDING_STATUS`; default runtime keeps the flag OFF so legacy tools are not blocked by unresolved API bindings. When ON, binding connectivity is read from backend resolve endpoints and projected as `connected`/`disconnected` in Workflow Panel and matrix gating.
 - **Extraction Context Bridge**: invisible but mandatory. Any change to briefing upload or workspace provider logic must verify that the bridge still fires and the idempotency guard still holds before the primary CTA can be clicked (see DDD-070).
 - **Pre-dispatch orchestration contract**: before `generation.start`, Tool Workspace runtime resolves step dependencies through `/api/tools/orchestrate` (`orchestrateToolStep`) and injects returned dependency artifact IDs into the outgoing request. If orchestration fails, generation dispatch is aborted and feedback remains in the inline `Dispatch Error` slot.
 - **Channel ownership rule**: Tool Workspace Page feedback follows `Feedback Channel` mapping. `Dispatch Error` remains `inline-action`; query/list lifecycle remains `page-state`; `global` channel is optional and must not duplicate the same message already rendered inline.
 
-Convergence note (2026-05-23): canonical centralization reference for Tool Workspace feedback is `docs/ux/tool-page-sidebar-unified-flow.md` and its implementation plan `plan/refactor-tool-workspace-workflow-panel-unified-1.md`.
+Convergence note (2026-05-23): canonical centralization reference for Tool Workspace feedback is the implementation plan `plan/refactor-tool-workspace-workflow-panel-unified-1.md`.
 
 ### 3.2 Data Table View (reference archetype)
 
@@ -198,7 +209,7 @@ Canonical composition:
 
 #### 3.2.3 Admin Overview companion layout (`/admin`)
 
-`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
+`/admin` is governed as the operational-overview companion of the Admin `Data Table View` pages (`/admin/users`, `/admin/models`, `/admin/api-services`, `/admin/changelog`, `/admin/user-reports`, `/admin/activity`), not as a third standalone archetype.
 
 Canonical composition:
 
@@ -318,6 +329,7 @@ A zero-state screen (empty data condition, onboarding entry) must use **Pattern 
 | Page | Archetype declared | Drift resolved | Date |
 | --- | --- | --- | --- |
 | Admin Users (`/admin/users`) | Data Table View | Card-list → table with toolbar, bordered-chip row actions, inline edit row | 2026-05-08 |
+| Admin ApiServices (`/admin/api-services`) | Data Table View | Introduced canonical ApiService catalog + binding management surface with toolbar, table row actions, and scoped binding panel | 2026-05-24 |
 | Admin Overview (`/admin`) | Data Table View companion | Declared canonical operational-overview companion with persistent admin navigation + KPI widget state cards (`loading`/`empty`/`error`/`ready`) | 2026-05-17 |
 | Projects List (`/dashboard/projects`) | Data Table View | Card-list → table with header columns, bordered-chip detail link | 2026-05-08 |
 | Admin Models (`/admin/models`) | Data Table View | `<Button>` CTAs in `<td>` → `cx(inlineLink, artifactTableActionLink)` row actions | 2026-05-08 |

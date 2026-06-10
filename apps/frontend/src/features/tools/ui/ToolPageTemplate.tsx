@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,9 +17,10 @@ import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { useToolPage } from '../runtime/useToolPage';
 import {
-  deriveToolInputFileCompletion,
+  deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
 } from '../runtime/tool-page-selectors';
+import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-status-adapter';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
@@ -27,6 +28,7 @@ import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 
 const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
+const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
 
 interface ToolPageTemplateProps {
   toolKey: SupportedTool;
@@ -45,10 +47,23 @@ type ToolPageFormValues = {
   projectId: string;
   model: string;
   tone: string;
-} & Record<string, unknown>;
+  campaignObjective: string;
+  videoTitle: string;
+  topic: string;
+  keywords: string;
+  ctaText: string;
+  ctaLink: string;
+  credentialsOrProof: string;
+  chaptersWithTimestamps: string;
+  socialLinks: string;
+  hashtags: string;
+};
 
 export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
+  const isMetaAdsTool = props.toolKey === 'meta-ads';
+  const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
+  const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
     apiBaseUrl: auth.apiBaseUrl,
@@ -63,6 +78,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectsLoading,
     briefingError,
     dispatchError,
+    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
@@ -83,12 +99,30 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleBriefingReset,
     angleDetectorFileName,
   } = useToolPage(props);
+  const [isFormLocked, setIsFormLocked] = useState(false);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
+  const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    toolKey: props.toolKey,
+    apiAcquisitionInputs,
+  });
+  const hasProjectSelected = formState.projectId.trim().length > 0;
   const completedFileKeys = [
     ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
+  const inputRequirementMatrix = deriveToolInputRequirementMatrix({
+    toolKey: props.toolKey,
+    hasProjectSelected,
+    completedFileKeys,
+    includeApiAcquisition: apiBindingStatusAdapter.enabled,
+    apiAcquisitionStatus: apiBindingStatusAdapter.data,
+  });
+  const hasToolInputFiles = inputFiles.length > 0;
+  const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
@@ -117,6 +151,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       fileName,
     };
   });
+
+  const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
+    .filter((entry) => entry.sourceFamily === 'api-acquisition')
+    .map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      requiredness: entry.requiredness,
+      status: entry.satisfied ? 'done' : 'todo',
+    }));
 
   const stepItems = toolConfig.steps.map((stepKey) => {
     const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
@@ -188,8 +231,42 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectId: z.string().min(1, copy.form.validation.projectRequired),
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
+    campaignObjective: z.string(),
+    videoTitle: z.string(),
+    topic: z.string(),
+    keywords: z.string(),
+    ctaText: z.string(),
+    ctaLink: z.string(),
+    credentialsOrProof: z.string(),
+    chaptersWithTimestamps: z.string(),
+    socialLinks: z.string(),
+    hashtags: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
+    if (isYoutubeDescriptionTool) {
+      const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
+        { key: 'videoTitle', label: 'Video title' },
+        { key: 'topic', label: 'Topic' },
+        { key: 'keywords', label: 'Keywords' },
+        { key: 'ctaText', label: 'CTA text' },
+        { key: 'ctaLink', label: 'CTA link' },
+        { key: 'credentialsOrProof', label: 'Credentials or proof' },
+        { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
+      ];
+
+      for (const field of requiredDirectFields) {
+        const candidate = value[field.key];
+        if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field.key],
+            message: `${field.label} required`,
+          });
+        }
+      }
+
+    }
+
     for (const fileEntry of inputFiles) {
       if (
         fileEntry.requiredness !== 'always-required'
@@ -213,18 +290,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
   });
 
-  const fileCompletion = deriveToolInputFileCompletion({
-    toolKey: props.toolKey,
-    completedFileKeys,
-  });
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = !isStreamActive
+  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
+    && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady
-    && formState.projectId.trim().length > 0
-    && fileCompletion.requiredFilesComplete;
-  const isGenerationLocked = isGenerating || effectiveCanonicalState === 'running';
+    && inputRequirementMatrix.requiredEntriesSatisfied;
+  const isFormBusy = extractionInProgress || isGenerating || isStreamActive;
+  const isGenerationLocked = isFormLocked || isFormBusy;
+
+  useEffect(() => {
+    if (isFormBusy) {
+      setIsFormLocked(false);
+    }
+  }, [isFormBusy]);
+
+  const lockedPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = isFormLocked
+    ? { label: copy.flow.progressAria.generationInProgress, disabled: true }
+    : undefined;
   const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
     ? {
       label: copy.flow.progressAria.generationInProgress,
@@ -237,24 +321,45 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       disabled: true,
     }
     : undefined;
+  const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
+    !inputRequirementMatrix.requiredEntriesSatisfied
+      && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
+      ? {
+        label: copy.primaryActionPolicy.disabledLabel,
+        disabled: true,
+        tooltip: copy.primaryActionPolicy.disabledTooltip,
+      }
+      : undefined;
   const extractionPrimaryOverride = canStartExtraction
     ? {
-      label: copy.extraction.startActionLabel,
+      label: copy.primaryActionPolicy.startGenerationLabel,
       disabled: false,
       tooltip: copy.extraction.startActionTooltip,
     }
     : undefined;
 
-  const executePrimaryActionFromForm = (data: ToolPageFormValues) => {
+  const executePrimaryActionFromForm = (data: ToolPageFormValues & Record<string, unknown>) => {
     setFormState((prev) => ({
       ...prev,
       projectId: data.projectId,
       model: data.model,
       tone: data.tone,
+      campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
+      videoTitle: isYoutubeDescriptionTool ? data.videoTitle : prev.videoTitle,
+      topic: isYoutubeDescriptionTool ? data.topic : prev.topic,
+      keywords: isYoutubeDescriptionTool ? data.keywords : prev.keywords,
+      ctaText: isYoutubeDescriptionTool ? data.ctaText : prev.ctaText,
+      ctaLink: isYoutubeDescriptionTool ? data.ctaLink : prev.ctaLink,
+      credentialsOrProof: isYoutubeDescriptionTool ? data.credentialsOrProof : prev.credentialsOrProof,
+      chaptersWithTimestamps: isYoutubeDescriptionTool
+        ? data.chaptersWithTimestamps
+        : prev.chaptersWithTimestamps,
+      socialLinks: isYoutubeDescriptionTool ? data.socialLinks : prev.socialLinks,
+      hashtags: isYoutubeDescriptionTool ? data.hashtags : prev.hashtags,
     }));
 
     for (const fileEntry of inputFiles) {
-      const file = data[fileEntry.key];
+      const file = (data as Record<string, unknown>)[fileEntry.key];
       if (!(file instanceof File)) {
         continue;
       }
@@ -267,7 +372,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
 
     if (canStartExtraction) {
-      handleExtractionStart();
+      handleExtractionStart({ autoStartGeneration: true });
       return;
     }
 
@@ -285,6 +390,16 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
+      campaignObjective: formState.campaignObjective,
+      videoTitle: formState.videoTitle ?? '',
+      topic: formState.topic ?? '',
+      keywords: formState.keywords ?? '',
+      ctaText: formState.ctaText ?? '',
+      ctaLink: formState.ctaLink ?? '',
+      credentialsOrProof: formState.credentialsOrProof ?? '',
+      chaptersWithTimestamps: formState.chaptersWithTimestamps ?? '',
+      socialLinks: formState.socialLinks ?? '',
+      hashtags: formState.hashtags ?? '',
       ...Object.fromEntries(inputFiles.map((entry) => [entry.key, undefined])),
     },
     mode: 'onChange',
@@ -317,16 +432,64 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
 
-  const basePrimaryAction = generationInProgressPrimaryOverride
+  useEffect(() => {
+    setValue('campaignObjective', formState.campaignObjective);
+  }, [formState.campaignObjective, setValue]);
+
+  useEffect(() => {
+    setValue('videoTitle', formState.videoTitle ?? '');
+  }, [formState.videoTitle, setValue]);
+
+  useEffect(() => {
+    setValue('topic', formState.topic ?? '');
+  }, [formState.topic, setValue]);
+
+  useEffect(() => {
+    setValue('keywords', formState.keywords ?? '');
+  }, [formState.keywords, setValue]);
+
+  useEffect(() => {
+    setValue('ctaText', formState.ctaText ?? '');
+  }, [formState.ctaText, setValue]);
+
+  useEffect(() => {
+    setValue('ctaLink', formState.ctaLink ?? '');
+  }, [formState.ctaLink, setValue]);
+
+  useEffect(() => {
+    setValue('credentialsOrProof', formState.credentialsOrProof ?? '');
+  }, [formState.credentialsOrProof, setValue]);
+
+  useEffect(() => {
+    setValue('chaptersWithTimestamps', formState.chaptersWithTimestamps ?? '');
+  }, [formState.chaptersWithTimestamps, setValue]);
+
+  useEffect(() => {
+    setValue('socialLinks', formState.socialLinks ?? '');
+  }, [formState.socialLinks, setValue]);
+
+  useEffect(() => {
+    setValue('hashtags', formState.hashtags ?? '');
+  }, [formState.hashtags, setValue]);
+
+  const basePrimaryAction = lockedPrimaryOverride
+    ?? generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
+    ?? matrixBlockingPrimaryOverride
     ?? extractionPrimaryOverride
     ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
   const isGenerationInProgressCta = generationInProgressPrimaryOverride !== undefined;
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {
+      setIsFormLocked(true);
       executePrimaryActionFromForm(data);
     });
+
+  const handleCancelWithLockReset = useCallback(() => {
+    setIsFormLocked(false);
+    handleCancelGeneration();
+  }, [handleCancelGeneration]);
 
   const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
     label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
@@ -435,10 +598,247 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 />
               </div>
 
+              {isMetaAdsTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="campaignObjective"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.campaignObjectiveLabel}
+                        disabled={isGenerationLocked}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, campaignObjective: e.target.value }));
+                        }}
+                        value={field.value ?? ''}
+                        fullWidth
+                      >
+                        <MenuItem value="">{copy.form.campaignObjectivePlaceholder}</MenuItem>
+                        {campaignObjectiveOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="videoTitle"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Video title"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.videoTitle}
+                        helperText={errors.videoTitle?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, videoTitle: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="topic"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Topic"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.topic}
+                        helperText={errors.topic?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, topic: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="keywords"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Keywords (comma-separated)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.keywords}
+                        helperText={errors.keywords?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, keywords: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className="ui-tool-form-row ui-tool-form-row--double">
+                  <Controller
+                    name="ctaText"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="CTA text"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.ctaText}
+                        helperText={errors.ctaText?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, ctaText: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="ctaLink"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="CTA link"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.ctaLink}
+                        helperText={errors.ctaLink?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, ctaLink: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="credentialsOrProof"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Credentials or proof"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.credentialsOrProof}
+                        helperText={errors.credentialsOrProof?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, credentialsOrProof: e.target.value }));
+                        }}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="chaptersWithTimestamps"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Chapters with timestamps (one per line)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.chaptersWithTimestamps}
+                        helperText={errors.chaptersWithTimestamps?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, chaptersWithTimestamps: e.target.value }));
+                        }}
+                        multiline
+                        minRows={3}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="socialLinks"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Social links (one per line)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.socialLinks}
+                        helperText={errors.socialLinks?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, socialLinks: e.target.value }));
+                        }}
+                        multiline
+                        minRows={2}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isYoutubeDescriptionTool ? (
+                <div className={youtubeDescriptionSingleRowClassName}>
+                  <Controller
+                    name="hashtags"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Hashtags (comma-separated, max 5)"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.hashtags}
+                        helperText={errors.hashtags?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, hashtags: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
+
               {inputFiles.map((fileEntry) => (
                 <Controller
                   key={fileEntry.key}
-                  name={fileEntry.key as keyof ToolPageFormValues}
+                  name={fileEntry.key as never}
                   control={control}
                   render={({ field }) => (
                     <div>
@@ -472,13 +872,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
-                {dispatchError ? <p className={uiPrimitives.error}>{dispatchError}</p> : null}
+                {dispatchError ? <p className={uiPrimitives.error} role="alert">{dispatchError}</p> : null}
 
               <div className="ui-tool-action-buttons">
-                {isGenerating ? (
+                {isFormLocked || isFormBusy ? (
                   <SecondaryCtaButton
                     type="button"
-                    onClick={handleCancelGeneration}
+                    onClick={handleCancelWithLockReset}
                     title={copy.form.cancelGenerationTooltip}
                   >
                     {copy.form.cancelGeneration}
@@ -492,8 +892,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
               projectName={currentProject?.name ?? null}
-              errorMessage={machineViewModel.messages.error ?? briefingError ?? null}
+              errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
               inputFilePayload={inputFilePayload}
+              apiAcquisitionPayload={apiAcquisitionPayload}
               generationProgress={generationProgress}
               primaryActionCta={unifiedPrimaryActionCta}
             />

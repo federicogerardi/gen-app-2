@@ -6,6 +6,7 @@ import type { AuthSessionPrincipal } from '../../types/auth';
 import { BriefParseError, parseBriefInput } from '../brief-parser';
 import { isSupportedToolWorkflow } from '../tool-workflow-registry';
 import { normalizeToolWorkflowKey } from '../workflow-normalizers';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 
 const MAX_BRIEF_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -188,8 +189,13 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    if (!isSupportedToolWorkflow(toolKey) && toolKey !== 'angle-generator') {
+    if (!isSupportedToolWorkflow(toolKey)) {
       writeError(response, 400, 'bad_request', `Unsupported toolKey: ${submittedToolKey} (normalized to: ${toolKey})`);
+      return;
+    }
+
+    if (!canPrincipalRoleAccessToolKey(toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${toolKey}`);
       return;
     }
 
@@ -199,17 +205,17 @@ export const createToolsBriefHandlers = (
       return;
     }
 
-    const isAngleGenerator = toolKey === 'angle-generator';
-    const briefingEnvelope = isAngleGenerator ? parseEnvelope(body.briefing) : parseLegacyEnvelope(body);
-    const angleDetectorEnvelope = isAngleGenerator ? parseEnvelope(body.angleDetector) : null;
+    const isDualSourceTool = toolKey === 'angle-generator' || toolKey === 'meta-ads';
+    const briefingEnvelope = isDualSourceTool ? parseEnvelope(body.briefing) : parseLegacyEnvelope(body);
+    const angleDetectorEnvelope = isDualSourceTool ? parseEnvelope(body.angleDetector) : null;
 
     if (!briefingEnvelope) {
       writeError(
         response,
         400,
         'bad_request',
-        isAngleGenerator
-          ? 'For angle-generator, briefing.fileName and briefing.contentBase64 are required'
+        isDualSourceTool
+          ? 'For dual-source tools, briefing.fileName and briefing.contentBase64 are required'
           : 'projectId, toolKey, fileName and contentBase64 are required',
       );
       return;
@@ -219,7 +225,7 @@ export const createToolsBriefHandlers = (
     let parsedAngleDetector: ParsedUploadedBrief | null = null;
     try {
       parsedBriefing = await parseUploadedBriefEnvelope(briefingEnvelope);
-      if (isAngleGenerator && angleDetectorEnvelope) {
+      if (isDualSourceTool && angleDetectorEnvelope) {
         parsedAngleDetector = await parseUploadedBriefEnvelope(angleDetectorEnvelope);
       }
     } catch (error) {
@@ -236,7 +242,7 @@ export const createToolsBriefHandlers = (
 
     await repositories.sessions.touchSession(principal.session.id, now());
 
-    if (isAngleGenerator && parsedAngleDetector) {
+    if (isDualSourceTool && parsedAngleDetector) {
       writeSuccess(response, 201, {
         briefing: {
           briefingId,

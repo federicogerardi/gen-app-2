@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 import type {
   AuthRepositoryBundle,
   IdempotencyAdapter,
+  OrchestrateArtifactCache,
   UserQueryRepositoryBundle,
 } from '../../adapters';
 import type {
@@ -57,6 +58,7 @@ export type AuthHttpRuntimeOptions = {
   repositories: AuthRepositoryBundle;
   queryRepositories?: UserQueryRepositoryBundle;
   idempotency?: IdempotencyAdapter;
+  orchestrateCache?: OrchestrateArtifactCache | null;
   db?: Pool;
   sessionCookies?: SessionCookieRuntime;
   passwordHashing?: PasswordHashRuntime;
@@ -94,6 +96,7 @@ export const createAuthHttpRuntime = (
   const passwordHashing = options.passwordHashing ?? createDefaultPasswordHashRuntime();
   const googleOAuth = options.googleOAuth ?? createGoogleOAuthRuntimeFromEnv();
   const idempotency = options.idempotency ?? null;
+  const orchestrateCache = options.orchestrateCache ?? null;
   const githubApiConfig = readGitHubApiConfigFromEnv();
   assertGitHubApiConfig(githubApiConfig);
   const idGenerator = options.idGenerator ?? createDefaultAuthIdGenerator();
@@ -211,10 +214,12 @@ export const createAuthHttpRuntime = (
   const toolsHandlers = createToolsHandlers({
     repositories,
     idempotency,
+    orchestrateCache,
     now,
     toolsOrchestrateTimeoutMs,
     toolsOrchestrateArtifactScanLimit,
     toolsHydrateArtifactScanLimit,
+    requireDb,
     parseRequestUrl,
     parseJsonBody,
     requireSessionPrincipal,

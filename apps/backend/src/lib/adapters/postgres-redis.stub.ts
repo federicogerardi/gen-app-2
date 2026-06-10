@@ -7,10 +7,11 @@ import type {
 
 import type {
   IdempotencyDecision,
+  LlmGenerateAdapter,
   LlmStreamAdapter,
   UsageDecision,
 } from './generation.adapters';
-import { createSyntheticLlmStreamAdapter } from './generation.adapters';
+import { createSyntheticLlmStreamAdapter, createSyntheticLlmGenerateAdapter } from './generation.adapters';
 import type { ArtifactStatus } from '../types/artifact';
 import { createPostgresRedisGenerationAdapters } from './postgres-redis.adapters';
 import type {
@@ -706,6 +707,7 @@ export const createPostgresRedisStubDependencies = (
 ): PostgresRedisAdapterDependencies => {
   const { defaultQuotaLimit = 100, runtime } = options;
   const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
+  const generate: LlmGenerateAdapter = createSyntheticLlmGenerateAdapter();
 
   return {
     ownership: new ProjectOwnershipRepositoryStub(),
@@ -713,7 +715,9 @@ export const createPostgresRedisStubDependencies = (
     idempotency: new RedisIdempotencyRepositoryStub(),
     stream: new RedisStreamSessionRepositoryStub(runtime),
     llm,
+    generate,
     persistence: new PostgresArtifactRepositoryStub(runtime),
+    orchestrateCache: null,
   };
 };
 

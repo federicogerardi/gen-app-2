@@ -1,4 +1,11 @@
-import { getExtractionResultParams, getInvokeFailureReason, getStreamResultParams, getToolDoneOutput } from './generation-system.events';
+import {
+  getAcquisitionResultParams,
+  getExtractionResultParams,
+  getGenerateResultParams,
+  getInvokeFailureReason,
+  getStreamResultParams,
+  getToolDoneOutput,
+} from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
 import {
   getRegistrySelector,
@@ -25,7 +32,7 @@ export const generationSystemExecutionStates = {
       onDone: [
         {
           guard: 'extractionOutputIsAccepted',
-          target: 'streaming',
+          target: 'dispatchingMode',
           actions: {
             type: 'cacheExtractionResult',
             params: ({ event }: UnknownEventArgs) => getExtractionResultParams(event),
@@ -57,8 +64,13 @@ export const generationSystemExecutionStates = {
     entry: ['ensureArtifactId'],
     always: [
       {
+        guard: ({ context }: ContextArgs) =>
+          resolveWorkflowRunMode(context) === 'new' && context.routeType === 'tool',
+        target: 'acquiringContext',
+      },
+      {
         guard: ({ context }: ContextArgs) => resolveWorkflowRunMode(context) === 'new',
-        target: 'streaming',
+        target: 'dispatchingMode',
       },
     ],
     invoke: {
@@ -91,7 +103,7 @@ export const generationSystemExecutionStates = {
       onDone: [
         {
           guard: 'toolOutputIsCompleted',
-          target: 'streaming',
+          target: 'dispatchingMode',
           actions: {
             type: 'cacheToolArtifactFromOutput',
             params: ({ event }: UnknownEventArgs) => {
@@ -103,7 +115,7 @@ export const generationSystemExecutionStates = {
           },
         },
         {
-          target: 'streaming',
+          target: 'dispatchingMode',
         },
       ],
       onError: {
@@ -117,8 +129,87 @@ export const generationSystemExecutionStates = {
       },
     },
   },
+  acquiringContext: {
+    invoke: {
+      id: 'acquisitionActor',
+      src: 'invokeApiAcquisition',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'acquisitionOutputIsAccepted',
+          target: 'dispatchingMode',
+          actions: {
+            type: 'cacheAcquisitionResult',
+            params: ({ event }: UnknownEventArgs) => getAcquisitionResultParams(event),
+          },
+        },
+        {
+          target: 'dispatchingMode',
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: {
+            defaultReason: 'acquisition_failed',
+          },
+        },
+      },
+    },
+  },
   genericGenerationFlow: {
-    always: 'streaming',
+    always: 'dispatchingMode',
+  },
+  dispatchingMode: {
+    always: [
+      {
+        guard: 'modeIsGenerate',
+        target: 'generating',
+      },
+      { target: 'streaming' },
+    ],
+  },
+  generating: {
+    entry: ['ensureArtifactId'],
+    invoke: {
+      id: 'generationActor',
+      src: 'invokeGeneration',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'generateOutputIsFailure',
+          target: 'resolvingFallbackPolicy',
+          actions: [
+            {
+              type: 'cacheGenerateResult',
+              params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),
+            },
+            {
+              type: 'queueFallbackDecision',
+              params: ({ event }: UnknownEventArgs) => ({
+                reason: getInvokeFailureReason(event),
+                defaultReason: 'generate_failure',
+              }),
+            },
+          ],
+        },
+        {
+          target: 'persistingSuccessSync',
+          actions: {
+            type: 'cacheGenerateResult',
+            params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),
+          },
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: { defaultReason: 'generate_failure' },
+        },
+      },
+    },
   },
   streaming: {
     entry: ['ensureArtifactId'],

@@ -5,6 +5,7 @@
 
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import { Button } from '@mui/material';
+import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { ToolStep, ToolStepStatus, SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
 import { appCopy } from '../../../app/copy/system';
@@ -20,17 +21,11 @@ interface ToolStepCardProps {
   isStreaming?: boolean;
 }
 
-const getStatusBadge = (status: ToolStepStatus): { label: string; className: string } => {
-  switch (status) {
-    case 'idle':
-      return { label: appCopy.ui.statusLabels.idle, className: 'ui-badge-idle' };
-    case 'running':
-      return { label: appCopy.ui.statusLabels.running, className: 'ui-badge-running' };
-    case 'done':
-      return { label: appCopy.ui.statusLabels.done, className: 'ui-badge-completed' };
-    case 'error':
-      return { label: appCopy.ui.statusLabels.error, className: 'ui-badge-error' };
-  }
+const STEP_STATUS_TO_BADGE: Record<ToolStepStatus, string> = {
+  idle: 'neutral',
+  running: 'info',
+  done: 'completed',
+  error: 'failed',
 };
 
 export const ToolStepCard = ({
@@ -43,16 +38,13 @@ export const ToolStepCard = ({
   isStreaming = false,
 }: ToolStepCardProps) => {
   const config = mapToolStepToCardConfig(toolKey, step);
-  const badge = getStatusBadge(status);
 
   return (
     <Surface className="ui-tool-step-card">
       <div className="ui-tool-step-header">
         <div className="ui-tool-step-title-group">
           <h4>{config.displayName}</h4>
-          <span className={`ui-badge ${badge.className}`} title={config.description}>
-            {badge.label}
-          </span>
+          <StatusBadge status={STEP_STATUS_TO_BADGE[status]} />
         </div>
         <p className={uiPrimitives.metaLine}>{config.description}</p>
       </div>
@@ -62,7 +54,7 @@ export const ToolStepCard = ({
         <div className="ui-tool-step-preview">
           <div className="ui-tool-step-preview-header">
             <p className={uiPrimitives.metaLine}>{appCopy.ui.labels.format}: {config.expectedOutputFormat}</p>
-            {isStreaming && <span className="ui-badge ui-badge-streaming">{appCopy.ui.badges.streaming}</span>}
+            {isStreaming && <StatusBadge status="generating" label={appCopy.ui.badges.streaming} />}
           </div>
           <div className="ui-tool-step-preview-content">
             {previewContent.slice(0, UI_CONFIG.preview.toolStepPreviewMaxChars)}
@@ -84,7 +76,7 @@ export const ToolStepCard = ({
           </Button>
         )}
         {status === 'error' && (
-          <p className={uiPrimitives.error}>{appCopy.ui.toolStep.stepGenerationFailed}</p>
+          <p className={uiPrimitives.error} role="alert">{appCopy.ui.toolStep.stepGenerationFailed}</p>
         )}
       </div>
     </Surface>

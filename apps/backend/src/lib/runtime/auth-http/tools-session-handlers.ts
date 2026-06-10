@@ -7,6 +7,7 @@ import { contentTypeForFormat, parseDownloadFormat } from '../downloads/download
 import { contentDispositionAttachment, sessionDownloadFilename } from '../downloads/download-filename';
 import { serializeSessionDownload } from '../downloads/download-serializers';
 import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow } from '../tool-workflow-registry';
+import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
 import { parseArtifactReadProjection } from './projects-handlers';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
 
@@ -99,7 +100,13 @@ export const createToolsSessionHandlers = (
       ...(typeof limit === 'number' ? { limit } : {}),
       ...(cursor ? { cursor } : {}),
     });
-    const sessions: SessionListEntry[] = page.sessions;
+    const sessions: SessionListEntry[] = page.sessions.filter((session) => {
+      if (!session.toolKey) {
+        return true;
+      }
+
+      return canPrincipalRoleAccessToolKey(session.toolKey, principal.user.role);
+    });
 
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, {
@@ -137,6 +144,11 @@ export const createToolsSessionHandlers = (
       return;
     }
 
+    if (group.toolKey && !canPrincipalRoleAccessToolKey(group.toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${group.toolKey}`);
+      return;
+    }
+
     await repositories.sessions.touchSession(principal.session.id, now());
     writeSuccess(response, 200, { session: group });
   };
@@ -168,6 +180,11 @@ export const createToolsSessionHandlers = (
     const artifact = await adapter.fetchStepArtifact(sessionId, stepKey, principal.user.id, projection);
     if (!artifact) {
       writeError(response, 404, 'not_found', 'Session step artifact not found');
+      return;
+    }
+
+    if (artifact.toolKey && !canPrincipalRoleAccessToolKey(artifact.toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${artifact.toolKey}`);
       return;
     }
 
@@ -207,6 +224,11 @@ export const createToolsSessionHandlers = (
     });
     if (!group) {
       writeError(response, 404, 'not_found', 'Session not found');
+      return;
+    }
+
+    if (group.toolKey && !canPrincipalRoleAccessToolKey(group.toolKey, principal.user.role)) {
+      writeError(response, 403, 'forbidden', `Tool disabled for current role: ${group.toolKey}`);
       return;
     }
 

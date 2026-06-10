@@ -165,12 +165,15 @@ export const buildRequestReceivedEvent = (
   const dedupedDependencyArtifactIds = [...new Set(stepDependencyArtifactIds)];
 
   const { step: _rawStep, tone: _rawTone, ...inputRest } = request.input;
+  const resolvedOutputFormat = normalizedToolKey === 'youtube-description'
+    ? 'markdown'
+    : toOutputFormat(request.outputFormat);
 
   const enrichedInput = {
     ...inputRest,
     ...(canonicalStep ? { step: canonicalStep } : {}),
     ...(canonicalTone ? { tone: canonicalTone } : {}),
-    outputFormat: toOutputFormat(request.outputFormat),
+    outputFormat: resolvedOutputFormat,
     ...(briefingId ? { briefingId } : {}),
     ...(extractionArtifactId ? { extractionArtifactId } : {}),
     ...(dedupedDependencyArtifactIds.length > 0

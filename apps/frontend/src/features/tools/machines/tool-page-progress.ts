@@ -134,8 +134,11 @@ export const resolveFlowProgressState = (
   const hasRestoredCheckout = restoredCheckpointState.completedSteps.size > 0;
 
   if (!runRequestPrefix) {
-    // Relaunch "new" from artifact should behave like a fresh run with prefilled briefing context.
-    if (intent === 'new' && sourceArtifact) {
+    // "new" intent means a fresh generation run; never show historical artifacts as
+    // completed for the current flow. This prevents the CTA from jumping to
+    // "open-last-artifact" and the progress card from showing stale steps when the
+    // user simply selects a project before starting generation.
+    if (intent === 'new') {
       return {
         completedSteps: new Set<ToolStep>(),
         latestArtifactByStep: {},
@@ -160,6 +163,14 @@ export const resolveFlowProgressState = (
   const runLatestArtifactByStep = buildLatestRunArtifactByStep(artifacts, toolKey, projectId, runRequestPrefix);
 
   if (intent === 'regenerate') {
+    return {
+      completedSteps: runCompletedSteps,
+      latestArtifactByStep: runLatestArtifactByStep,
+      lastCheckpointStep: null,
+    };
+  }
+
+  if (intent === 'new') {
     return {
       completedSteps: runCompletedSteps,
       latestArtifactByStep: runLatestArtifactByStep,

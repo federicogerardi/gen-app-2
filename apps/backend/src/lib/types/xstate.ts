@@ -21,7 +21,7 @@ export type RequestRegistrySelector =
 
 export type { WorkflowRunMode } from '@gen-app-2/domain';
 export type WorkflowStepStatus = 'idle' | 'running' | 'done' | 'error' | 'skipped';
-export type WorkflowStepType = 'extraction' | 'generation' | 'acquisition';
+export type WorkflowStepType = 'extraction' | 'generation' | 'acquisition' | 'crawling' | 'scoring';
 export type ExtractionResponseMode = 'structured' | 'text';
 
 export const GENERATION_ACTOR_SOURCES = [
@@ -169,6 +169,7 @@ export type ToolWorkflowInput = RequestRegistrySelector & {
   runMode: WorkflowRunMode;
   steps: WorkflowStepDescriptor[];
   dependencyGraph: Record<string, string[]>;
+  requestInput?: Record<string, unknown>;
   bootstrap?: {
     stepKey: string;
     output: string;

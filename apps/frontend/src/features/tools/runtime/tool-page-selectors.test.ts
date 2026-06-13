@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildBaseGenerationRequest,
+  buildGeometricDirectInputExtractionInfo,
   buildYoutubeDescriptionDirectInputExtractionInfo,
   deriveToolInputFileCompletion,
   deriveToolInputRequirementMatrix,
@@ -177,6 +178,35 @@ describe('buildYoutubeDescriptionDirectInputExtractionInfo', () => {
     });
 
     expect(result).toBeNull();
+  });
+});
+
+describe('buildGeometricDirectInputExtractionInfo', () => {
+  it('builds extraction info with canonical fields', () => {
+    const result = buildGeometricDirectInputExtractionInfo({
+      baseQuery: 'protein supplements',
+      language: 'it',
+      country: 'google.it',
+      brandName: '',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.extractionPayload).toEqual({
+      baseQuery: 'protein supplements',
+      language: 'it',
+      country: 'google.it',
+    });
+    expect(result?.briefingText).toContain('Base query: protein supplements');
+    expect(result?.briefingText).toContain('Language: it');
+    expect(result?.briefingText).toContain('Country: google.it');
+    expect(result?.extractionArtifactId).toBe('direct-input:geometric');
+    expect(result?.briefingId).toBe('direct-input:geometric');
+  });
+
+  it('returns null when any required field is missing', () => {
+    expect(buildGeometricDirectInputExtractionInfo({ baseQuery: '', language: 'it', country: 'google.it', brandName: '' })).toBeNull();
+    expect(buildGeometricDirectInputExtractionInfo({ baseQuery: 'query', language: '', country: 'google.it', brandName: '' })).toBeNull();
+    expect(buildGeometricDirectInputExtractionInfo({ baseQuery: 'query', language: 'it', country: '', brandName: '' })).toBeNull();
   });
 });
 

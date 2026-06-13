@@ -1,17 +1,19 @@
 import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
-import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
+import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput } from './generation/context-generation-assembly';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
   CacheAcquisitionResultParams,
+  CacheCrawlingResultParams,
   CacheExtractionResultParams,
   CacheGenerateResultParams,
   CacheReplayPayloadParams,
   CacheRequestMetaParams,
+  CacheScoringResultParams,
   CacheStreamResultParams,
   QueueFallbackDecisionParams,
   SetValidationDataParams,
@@ -45,6 +47,8 @@ type GenerationSystemActionObject =
   | { type: 'cacheStreamResult'; params: CacheStreamResultParams }
   | { type: 'cacheGenerateResult'; params: CacheGenerateResultParams }
   | { type: 'cacheAcquisitionResult'; params: CacheAcquisitionResultParams }
+  | { type: 'cacheCrawlingResult'; params: CacheCrawlingResultParams }
+  | { type: 'cacheScoringResult'; params: CacheScoringResultParams }
   | { type: 'cacheExtractionResult'; params: CacheExtractionResultParams }
   | { type: 'drivePersistenceFinalizeSuccess'; params: undefined }
   | { type: 'drivePersistenceFinalizeFailure'; params: undefined }
@@ -72,6 +76,8 @@ type GenerationSystemGuardObject =
   | { type: 'generateOutputIsFailure'; params: unknown }
   | { type: 'extractionOutputIsAccepted'; params: unknown }
   | { type: 'acquisitionOutputIsAccepted'; params: unknown }
+  | { type: 'crawlingOutputIsAccepted'; params: unknown }
+  | { type: 'scoringOutputIsAccepted'; params: unknown }
   | { type: 'toolOutputIsCompleted'; params: unknown };
 
 type GenerationAssignment<TParams extends ParameterizedObject['params'] | undefined> =
@@ -234,6 +240,19 @@ export const generationSystemActions = {
   cacheAcquisitionResult: assignGeneration<CacheAcquisitionResultParams>({
     requestInput: ({ context }: GenerationActionArgs, params: CacheAcquisitionResultParams) =>
       mergeAcquisitionIntoGenerationInput(context.requestInput, params.payload),
+  }),
+  cacheCrawlingResult: assignGeneration<CacheCrawlingResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheCrawlingResultParams) =>
+      mergeCrawlingIntoGenerationInput(context.requestInput, {
+        crawlArtifacts: params.crawlArtifacts,
+        paaQueries: params.paaQueries,
+      }),
+  }),
+  cacheScoringResult: assignGeneration<CacheScoringResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheScoringResultParams) => ({
+      ...context.requestInput,
+      scoring: params.ranking,
+    }),
   }),
   cacheExtractionResult: assignGeneration<CacheExtractionResultParams>({
     contentBuffer: (_: GenerationActionArgs, params: CacheExtractionResultParams) => params.content,

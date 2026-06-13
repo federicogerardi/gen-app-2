@@ -1,9 +1,11 @@
 import type { GenerationSystemEvent } from '../types/xstate';
 import {
   getAcquisitionDoneOutput,
+  getCrawlingDoneOutput,
   getExtractionDoneOutput,
   getIdempotencyDoneOutput,
   getOwnershipDoneOutput,
+  getScoringDoneOutput,
   getStreamDoneOutput,
   getToolDoneOutput,
   getUsageDoneOutput,
@@ -54,7 +56,15 @@ export const generationSystemGuards = {
     getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
   acquisitionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
     getAcquisitionDoneOutput(event)?.type === 'ACQUISITION_ATTEMPT_ACCEPTED',
+  crawlingOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
+    getCrawlingDoneOutput(event)?.type === 'CRAWLING_COMPLETED',
+  scoringOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
+    getScoringDoneOutput(event)?.type === 'SCORING_COMPLETED',
   toolOutputIsCompleted: ({ event }: GenerationGuardArgs) =>
     getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
   modeIsGenerate: ({ context }: GenerationGuardArgs) => context.mode === 'generate',
+  isNotGeometric: ({ context }: GenerationGuardArgs) => {
+    const toolKey = context.toolKey ?? '';
+    return toolKey !== 'geometric';
+  },
 };

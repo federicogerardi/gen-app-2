@@ -1,10 +1,10 @@
 ---
 goal: Implement the canonical Geometric Tool (Generative Engine Optimization Analysis) with multi-step crawling, competitor scoring, and LLM strategic reporting
-version: 1.3
+version: 1.7
 date_created: 2026-06-12
 last_updated: 2026-06-12
 owner: Frontend Platform + Backend Runtime
-status: Planned
+status: Completed
 tags: [feature, tool-workspace, backend, frontend, ddd, crawling, scoring, analysis, geometric, bullmq, puppeteer]
 ---
 
@@ -60,9 +60,9 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-000A | Verify all DDD entries DDD-113 through DDD-128 are registered and consistent across Decision Log (v3.6), Glossary (v2.11), and BCM (v2.9). | | |
-| TASK-000B | Add new npm dependencies: `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`, `bullmq`, `markdown-docx`. Run `npm install --workspaces --include-workspace-root` then `npm ci` sequence. | | |
-| TASK-000C | Validate plan-scope invariants against `docs/99-reference/templates/tool-development-plan-template.md`. | | |
+| TASK-000A | Verify all DDD entries DDD-113 through DDD-128 are registered and consistent across Decision Log (v3.6), Glossary (v2.11), and BCM (v2.9). | Yes | 2026-06-12 |
+| TASK-000B | Add new npm dependencies: `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`, `bullmq`, `markdown-docx`. Run `npm install --workspaces --include-workspace-root` then `npm ci` sequence. | Yes | 2026-06-12 |
+| TASK-000C | Validate plan-scope invariants against `docs/99-reference/templates/tool-development-plan-template.md`. | Yes | 2026-06-12 |
 
 ### Implementation Phase 1
 
@@ -70,12 +70,12 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-001 | Extend `ARTIFACT_TYPES` in `packages/domain/src/index.ts` with `'crawl'` and `'analysis'` values. | | |
-| TASK-002 | Add Geometric tool definition to `packages/contracts/src/tool-workflows.ts` with ToolKey `geometric`, ToolWorkflow `geometric_analysis`, and 4-step sequence: `serp-crawling` (deps: []), `competitor-scoring` (deps: [`serp-crawling`]), `strategic-reporting` (deps: [`serp-crawling`, `competitor-scoring`]), `unified-report` (deps: [`strategic-reporting`, `competitor-scoring`]). **Note**: the `type` field (`crawling`, `scoring`, `generation`) is NOT defined in contracts `ToolWorkflowStepDefinition` — it is mapped at the backend registry level (TASK-009). | | |
-| TASK-003 | Extend tool availability map in `packages/contracts/src/tool-workflows.ts` with policy for `geometric` (default: `enabled-for-admin-only` for controlled rollout). | | |
-| TASK-004 | Add normalization aliases in `packages/contracts/src/tool-workflows.ts`: `geometric_analysis` → `geometric`, `geometric-analysis` → `geometric`. | | |
-| TASK-005 | Add `ExtractionFieldKey` entries `base_query`, `language`, `country` to `packages/contracts/src/extraction-fields.ts`. Also add three empty entries for `geometric` to satisfy `ToolKey`-typed records: `InstructionRequiredExtractionFieldKeysByTool['geometric'] = []`, `ReadinessRequiredExtractionFieldKeysByTool['geometric'] = []` (direct-input readiness is handled by Zod validation, not extraction field matrix), `LegacyExtractionFieldAliasByTool['geometric'] = {}`. | | |
-| TASK-006 | Update contract tests and parity guards for new ArtifactType values, tool/workflow normalization, and step-order integrity. | | |
+| TASK-001 | Extend `ARTIFACT_TYPES` in `packages/domain/src/index.ts` with `'crawl'` and `'analysis'` values. | Yes | 2026-06-12 |
+| TASK-002 | Add Geometric tool definition to `packages/contracts/src/tool-workflows.ts` with ToolKey `geometric`, ToolWorkflow `geometric_analysis`, and 4-step sequence: `serp-crawling` (deps: []), `competitor-scoring` (deps: [`serp-crawling`]), `strategic-reporting` (deps: [`serp-crawling`, `competitor-scoring`]), `unified-report` (deps: [`strategic-reporting`, `competitor-scoring`]). **Note**: the `type` field (`crawling`, `scoring`, `generation`) is NOT defined in contracts `ToolWorkflowStepDefinition` — it is mapped at the backend registry level (TASK-009). | Yes | 2026-06-12 |
+| TASK-003 | Extend tool availability map in `packages/contracts/src/tool-workflows.ts` with policy for `geometric` (default: `enabled-for-admin-only` for controlled rollout). | Yes | 2026-06-12 |
+| TASK-004 | Add normalization aliases in `packages/contracts/src/tool-workflows.ts`: `geometric_analysis` → `geometric`, `geometric-analysis` → `geometric`. | Yes | 2026-06-12 |
+| TASK-005 | Add `ExtractionFieldKey` entries `base_query`, `language`, `country` to `packages/contracts/src/extraction-fields.ts`. Also add three empty entries for `geometric` to satisfy `ToolKey`-typed records: `InstructionRequiredExtractionFieldKeysByTool['geometric'] = []`, `ReadinessRequiredExtractionFieldKeysByTool['geometric'] = []` (direct-input readiness is handled by Zod validation, not extraction field matrix), `LegacyExtractionFieldAliasByTool['geometric'] = {}`. | Yes | 2026-06-12 |
+| TASK-006 | Update contract tests and parity guards for new ArtifactType values, tool/workflow normalization, and step-order integrity. | Yes | 2026-06-12 |
 
 ### Implementation Phase 2
 
@@ -83,10 +83,10 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-007 | Extend `WorkflowStepType` union in `apps/backend/src/lib/types/xstate.ts` with `'crawling'` and `'scoring'`. | | |
-| TASK-008 | Extend normalizers in `apps/backend/src/lib/runtime/workflow-normalizers.ts` with Geometric aliases and final-step mapping (`unified-report` → `artifactRole = 'final'`). **Also update**: (a) `FINAL_STEP_BY_TOOL` to add `'geometric': 'unified-report'`; (b) `StepMappedToolKey` type to include `'geometric'`; (c) `isStepMappedToolKey` guard to include `value === 'geometric'`. Without (b)+(c), `resolveToolStepArtifactRole` returns `null` for all geometric steps, breaking final artifact role resolution. | | |
-| TASK-009 | Update backend workflow registry in `apps/backend/src/lib/runtime/tool-workflow-registry.ts` to include Geometric plan and dependency resolution path. **Critical**: map `type` field for geometric `WorkflowStepDescriptor` entries. The current registry construction (riga 57-70) maps `key` + `dependencies` but NOT `type`. For geometric, add: `{ 'serp-crawling': 'crawling', 'competitor-scoring': 'scoring', 'strategic-reporting': 'generation', 'unified-report': 'generation' }`. Without `type` mapping, `toolWorkflowMachine` cannot distinguish crawling/scoring steps from generation steps, and merge actions (`mergeCrawlingOutput`, `mergeScoringOutput`) will not execute. | | |
-| TASK-010 | Add backend focused tests for tool identity normalization, step-order integrity, and final-step artifact role mapping. | | |
+| TASK-007 | Extend `WorkflowStepType` union in `apps/backend/src/lib/types/xstate.ts` with `'crawling'` and `'scoring'`. | Yes | 2026-06-12 |
+| TASK-008 | Extend normalizers in `apps/backend/src/lib/runtime/workflow-normalizers.ts` with Geometric aliases and final-step mapping (`unified-report` → `artifactRole = 'final'`). **Also update**: (a) `FINAL_STEP_BY_TOOL` to add `'geometric': 'unified-report'`; (b) `StepMappedToolKey` type to include `'geometric'`; (c) `isStepMappedToolKey` guard to include `value === 'geometric'`. Without (b)+(c), `resolveToolStepArtifactRole` returns `null` for all geometric steps, breaking final artifact role resolution. | Yes | 2026-06-12 |
+| TASK-009 | Update backend workflow registry in `apps/backend/src/lib/runtime/tool-workflow-registry.ts` to include Geometric plan and dependency resolution path. **Critical**: map `type` field for geometric `WorkflowStepDescriptor` entries. The current registry construction (riga 57-70) maps `key` + `dependencies` but NOT `type`. For geometric, add: `{ 'serp-crawling': 'crawling', 'competitor-scoring': 'scoring', 'strategic-reporting': 'generation', 'unified-report': 'generation' }`. Without `type` mapping, `toolWorkflowMachine` cannot distinguish crawling/scoring steps from generation steps, and merge actions (`mergeCrawlingOutput`, `mergeScoringOutput`) will not execute. | Yes | 2026-06-12 |
+| TASK-010 | Add backend focused tests for tool identity normalization, step-order integrity, and final-step artifact role mapping. | Yes | 2026-06-12 |
 
 ### Implementation Phase 3
 
@@ -94,17 +94,17 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-011A | Add `CrawlingDoneOutput` and `CacheCrawlingResultParams` types to `apps/backend/src/lib/machines/generation-system.types.ts`. Pattern: follow `AcquisitionDoneOutput` / `CacheAcquisitionResultParams`. | | |
-| TASK-011B | Add `getCrawlingDoneOutput()` and `getCrawlingResultParams()` helper functions to `apps/backend/src/lib/machines/generation-system.events.ts`. Pattern: follow `getAcquisitionDoneOutput` / `getAcquisitionResultParams`. | | |
-| TASK-011C | Create `apps/backend/src/lib/machines/generation/crawling-chain.machine.ts` following the `acquisitionChainMachine` pattern: `setup()` with typed `context`, `input`, `output`; initial state `'done'` (immediate final); output discriminator `{ type: 'CRAWLING_COMPLETED', ... }`. Input shape: `{ requestId, stepKey, baseQuery, language, country, sessionId, analysisSessionIdentifier }`. Output shape: `{ type: 'CRAWLING_COMPLETED', requestId, stepKey, crawlArtifacts: CrawlArtifact[], paaQueries: PAAQuery[] }`. **NOT a multi-state machine** — the actual async work happens in the `fromPromise` actor (TASK-012). | | |
-| TASK-012 | Add `invokeCrawling` `fromPromise` actor to `apps/backend/src/lib/machines/generation-system.actors.ts`. This actor orchestrates the full crawling flow: (1) calls `crawlSerp(baseQuery, language, country)` via `crawling.adapter.ts` to get base query results + discovered PAA queries; (2) if PAA queries discovered (max 4), calls `crawlSerp(paaQuery, language, country)` for each in parallel via `Promise.all`; (3) merges base + PAA results into a single `CrawlArtifact[]` array; (4) returns `CRAWLING_COMPLETED` output. The BullMQ job queue (`geometric-crawling`) is managed internally by the crawling adapter — the XState machine only sees a Promise. Update `GenerationSystemProvidedActor` union type to include the new actor entry. | | |
-| TASK-012A | Create `apps/backend/src/lib/runtime/integrations/crawling.adapter.ts` with Puppeteer + stealth plugin. Methods: `crawlSerp(query, language, country)` → `CrawlingResult` (SerpAIOverviewSnippet + SerpSource list + SerpScreenshot path), `discoverPAAQueries(baseQuery, language, country)` → `PAAQuery[]`. | | |
-| TASK-012B | Create `apps/backend/src/lib/runtime/integrations/crawling-queue.ts` with BullMQ queue `geometric-crawling`. Worker: concurrency 3 (env-configurable), retry 3 attempts with exponential backoff, progress reporting via `job.updateProgress()`. The queue is consumed by the `invokeCrawling` actor, NOT directly by XState. | | |
-| TASK-013 | Update `toolWorkflowMachine` in `apps/backend/src/lib/machines/tool-workflow.machine.ts`: (a) add `mergeCrawlingOutput` action analogous to `mergeAcquisitionOutput` — checks `stepDescriptor?.type === 'crawling'` and merges crawling result into `assembledGenerationInput`; (b) add SERP source parsing helper if needed; (c) ensure `STEP_SUCCESS` actions array includes `mergeCrawlingOutput`. | | |
-| TASK-014 | Add `crawlingOutputIsAccepted` guard to `apps/backend/src/lib/machines/generation-system.guards.ts`. Pattern: follow `acquisitionOutputIsAccepted` — checks `getCrawlingDoneOutput(event)?.type === 'CRAWLING_COMPLETED'`. | | |
-| TASK-015 | Add `cacheCrawlingResult` action to `apps/backend/src/lib/machines/generation-system.actions.ts`. Pattern: follow `cacheAcquisitionResult` — merges crawling output payload into `requestInput` for downstream step consumption. | | |
-| TASK-016 | Extend `context-generation-assembly.ts` with `mergeCrawlingIntoGenerationInput()` function. This merges SerpAIOverviewSnippet texts and SerpSource lists from crawling output into the generation input under a recognizable key: `requestInput.crawling = { sources: SerpSource[], snippets: SerpAIOverviewSnippet[], paaQueries: PAAQuery[] }`. This key structure allows `invokeScoring` (TASK-020) to extract crawling data via `assembledGenerationInput.crawling.sources`. Pattern: follow `mergeAcquisitionIntoGenerationInput`. | | |
-| TASK-017 | Add backend tests for crawling chain machine (input/output type formatting), crawling adapter (mock browser, SERP parsing, screenshot capture, PAA click sequence), `invokeCrawling` actor (BullMQ integration, retry behavior), and `mergeCrawlingOutput` action in `toolWorkflowMachine`. | | |
+| TASK-011A | Add `CrawlingDoneOutput` and `CacheCrawlingResultParams` types to `apps/backend/src/lib/machines/generation-system.types.ts`. Pattern: follow `AcquisitionDoneOutput` / `CacheAcquisitionResultParams`. | ✅ | 2026-06-12 |
+| TASK-011B | Add `getCrawlingDoneOutput()` and `getCrawlingResultParams()` helper functions to `apps/backend/src/lib/machines/generation-system.events.ts`. Pattern: follow `getAcquisitionDoneOutput` / `getAcquisitionResultParams`. | ✅ | 2026-06-12 |
+| TASK-011C | Create `apps/backend/src/lib/machines/generation/crawling-chain.machine.ts` following the `acquisitionChainMachine` pattern: `setup()` with typed `context`, `input`, `output`; initial state `'done'` (immediate final); output discriminator `{ type: 'CRAWLING_COMPLETED', ... }`. Input shape: `{ requestId, stepKey, baseQuery, language, country, sessionId, analysisSessionIdentifier }`. Output shape: `{ type: 'CRAWLING_COMPLETED', requestId, stepKey, crawlArtifacts: CrawlArtifact[], paaQueries: PAAQuery[] }`. **NOT a multi-state machine** — the actual async work happens in the `fromPromise` actor (TASK-012). | ✅ | 2026-06-12 |
+| TASK-012 | Add `invokeCrawling` `fromPromise` actor to `apps/backend/src/lib/machines/generation-system.actors.ts`. This actor orchestrates the full crawling flow: (1) calls `crawlSerp(baseQuery, language, country)` via `crawling.adapter.ts` to get base query results + discovered PAA queries; (2) if PAA queries discovered (max 4), calls `crawlSerp(paaQuery, language, country)` for each in parallel via `Promise.all`; (3) merges base + PAA results into a single `CrawlArtifact[]` array; (4) returns `CRAWLING_COMPLETED` output. The BullMQ job queue (`geometric-crawling`) is managed internally by the crawling adapter — the XState machine only sees a Promise. Update `GenerationSystemProvidedActor` union type to include the new actor entry. | ✅ | 2026-06-12 |
+| TASK-012A | Create `apps/backend/src/lib/runtime/integrations/crawling.adapter.ts` with Puppeteer + stealth plugin. Methods: `crawlSerp(query, language, country)` → `CrawlingResult` (SerpAIOverviewSnippet + SerpSource list + SerpScreenshot path), `discoverPAAQueries(baseQuery, language, country)` → `PAAQuery[]`. | ✅ | 2026-06-12 |
+| TASK-012B | Create `apps/backend/src/lib/runtime/integrations/crawling-queue.ts` with BullMQ queue `geometric-crawling`. Worker: concurrency 3 (env-configurable), retry 3 attempts with exponential backoff, progress reporting via `job.updateProgress()`. The queue is consumed by the `invokeCrawling` actor, NOT directly by XState. | ✅ | 2026-06-12 |
+| TASK-013 | Update `toolWorkflowMachine` in `apps/backend/src/lib/machines/tool-workflow.machine.ts`: (a) add `mergeCrawlingOutput` action analogous to `mergeAcquisitionOutput` — checks `stepDescriptor?.type === 'crawling'` and merges crawling result into `assembledGenerationInput`; (b) add SERP source parsing helper if needed; (c) ensure `STEP_SUCCESS` actions array includes `mergeCrawlingOutput`. | ✅ | 2026-06-12 |
+| TASK-014 | Add `crawlingOutputIsAccepted` guard to `apps/backend/src/lib/machines/generation-system.guards.ts`. Pattern: follow `acquisitionOutputIsAccepted` — checks `getCrawlingDoneOutput(event)?.type === 'CRAWLING_COMPLETED'`. | ✅ | 2026-06-12 |
+| TASK-015 | Add `cacheCrawlingResult` action to `apps/backend/src/lib/machines/generation-system.actions.ts`. Pattern: follow `cacheAcquisitionResult` — merges crawling output payload into `requestInput` for downstream step consumption. | ✅ | 2026-06-12 |
+| TASK-016 | Extend `context-generation-assembly.ts` with `mergeCrawlingIntoGenerationInput()` function. This merges SerpAIOverviewSnippet texts and SerpSource lists from crawling output into the generation input under a recognizable key: `requestInput.crawling = { sources: SerpSource[], snippets: SerpAIOverviewSnippet[], paaQueries: PAAQuery[] }`. This key structure allows `invokeScoring` (TASK-020) to extract crawling data via `assembledGenerationInput.crawling.sources`. Pattern: follow `mergeAcquisitionIntoGenerationInput`. | ✅ | 2026-06-12 |
+| TASK-017 | Add backend tests for crawling chain machine (input/output type formatting), crawling adapter (mock browser, SERP parsing, screenshot capture, PAA click sequence), `invokeCrawling` actor (BullMQ integration, retry behavior), and `mergeCrawlingOutput` action in `toolWorkflowMachine`. | ✅ | 2026-06-12 |
 
 ### Implementation Phase 4
 
@@ -112,15 +112,28 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-018A | Add `ScoringDoneOutput` and `CacheScoringResultParams` types to `apps/backend/src/lib/machines/generation-system.types.ts`. Pattern: follow `AcquisitionDoneOutput` / `CacheAcquisitionResultParams`. | | |
-| TASK-018B | Add `getScoringDoneOutput()` and `getScoringResultParams()` helper functions to `apps/backend/src/lib/machines/generation-system.events.ts`. Pattern: follow `getAcquisitionDoneOutput` / `getAcquisitionResultParams`. | | |
-| TASK-019 | Create `apps/backend/src/lib/machines/generation/scoring-chain.machine.ts` following the `acquisitionChainMachine` pattern: `setup()` with typed `context`, `input`, `output`; initial state `'done'` (immediate final); output discriminator `{ type: 'SCORING_COMPLETED', ... }`. Input shape: `{ requestId, stepKey, crawlArtifacts, sessionId }`. Output shape: `{ type: 'SCORING_COMPLETED', requestId, stepKey, ranking: CompetitorRanking }`. **NOT a multi-state machine** — the actual scoring computation happens in the `fromPromise` actor (TASK-020). | | |
-| TASK-020 | Add `invokeScoring` `fromPromise` actor to `apps/backend/src/lib/machines/generation-system.actors.ts`. This actor wraps the scoring logic: (1) extracts SerpSource lists from `assembledGenerationInput.crawling.sources` (the key set by `mergeCrawlingIntoGenerationInput` in TASK-016); (2) calls `computeCompetitorRanking(sources)` via scoring engine; (3) returns `SCORING_COMPLETED` output. Update `GenerationSystemProvidedActor` union type to include the new actor entry. | | |
-| TASK-021 | Create `apps/backend/src/lib/runtime/analysis/scoring-engine.ts` as pure function: group by domain, classify by SerpSourceType, compute weighted scores (organic +3.0, sitelink +2.0, video +2.0, sponsored +1.5), normalize to 1-10, assign tiers (TIER_1: 8-10, TIER_2: 5-7.9, TIER_3: 1-4.9). | | |
-| TASK-022 | Update `toolWorkflowMachine` in `apps/backend/src/lib/machines/tool-workflow.machine.ts`: add `mergeScoringOutput` action analogous to `mergeAcquisitionOutput` — checks `stepDescriptor?.type === 'scoring'` and merges scoring result into `assembledGenerationInput`. Ensure `STEP_SUCCESS` actions array includes `mergeScoringOutput`. | | |
-| TASK-023 | Add `scoringOutputIsAccepted` guard to `apps/backend/src/lib/machines/generation-system.guards.ts`. Pattern: follow `acquisitionOutputIsAccepted`. | | |
-| TASK-024 | Add `cacheScoringResult` action to `apps/backend/src/lib/machines/generation-system.actions.ts`. Pattern: follow `cacheAcquisitionResult`. | | |
-| TASK-025 | Add backend tests for scoring chain machine (input/output type formatting), scoring engine (weights, normalization, tier assignment, edge cases), `invokeScoring` actor, and `mergeScoringOutput` action in `toolWorkflowMachine`. | | |
+| TASK-018A | Add `ScoringDoneOutput` and `CacheScoringResultParams` types to `apps/backend/src/lib/machines/generation-system.types.ts`. Pattern: follow `AcquisitionDoneOutput` / `CacheAcquisitionResultParams`. | ✅ | 2026-06-12 |
+| TASK-018B | Add `getScoringDoneOutput()` and `getScoringResultParams()` helper functions to `apps/backend/src/lib/machines/generation-system.events.ts`. Pattern: follow `getAcquisitionDoneOutput` / `getAcquisitionResultParams`. | ✅ | 2026-06-12 |
+| TASK-019 | Create `apps/backend/src/lib/machines/generation/scoring-chain.machine.ts` following the `acquisitionChainMachine` pattern: `setup()` with typed `context`, `input`, `output`; initial state `'done'` (immediate final); output discriminator `{ type: 'SCORING_COMPLETED', ... }`. Input shape: `{ requestId, stepKey, crawlArtifacts, sessionId }`. Output shape: `{ type: 'SCORING_COMPLETED', requestId, stepKey, ranking: CompetitorRanking }`. **NOT a multi-state machine** — the actual scoring computation happens in the `fromPromise` actor (TASK-020). | ✅ | 2026-06-12 |
+| TASK-020 | Add `invokeScoring` `fromPromise` actor to `apps/backend/src/lib/machines/generation-system.actors.ts`. This actor wraps the scoring logic: (1) extracts SerpSource lists from `assembledGenerationInput.crawling.sources` (the key set by `mergeCrawlingIntoGenerationInput` in TASK-016); (2) calls `computeCompetitorRanking(sources)` via scoring engine; (3) returns `SCORING_COMPLETED` output. Update `GenerationSystemProvidedActor` union type to include the new actor entry. | ✅ | 2026-06-12 |
+| TASK-021 | Create `apps/backend/src/lib/runtime/analysis/scoring-engine.ts` as pure function: group by domain, classify by SerpSourceType, compute weighted scores (organic +3.0, sitelink +2.0, video +2.0, sponsored +1.5), normalize to 1-10, assign tiers (TIER_1: 8-10, TIER_2: 5-7.9, TIER_3: 1-4.9). | ✅ | 2026-06-12 |
+| TASK-022 | Update `toolWorkflowMachine` in `apps/backend/src/lib/machines/tool-workflow.machine.ts`: add `mergeScoringOutput` action analogous to `mergeAcquisitionOutput` — checks `stepDescriptor?.type === 'scoring'` and merges scoring result into `assembledGenerationInput`. Ensure `STEP_SUCCESS` actions array includes `mergeScoringOutput`. | ✅ | 2026-06-12 |
+| TASK-023 | Add `scoringOutputIsAccepted` guard to `apps/backend/src/lib/machines/generation-system.guards.ts`. Pattern: follow `acquisitionOutputIsAccepted`. | ✅ | 2026-06-12 |
+| TASK-024 | Add `cacheScoringResult` action to `apps/backend/src/lib/machines/generation-system.actions.ts`. Pattern: follow `cacheAcquisitionResult`. | ✅ | 2026-06-12 |
+| TASK-025 | Add backend tests for scoring chain machine (input/output type formatting), scoring engine (weights, normalization, tier assignment, edge cases), `invokeScoring` actor, and `mergeScoringOutput` action in `toolWorkflowMachine`. | ✅ | 2026-06-12 |
+
+### Implementation Phase 5
+
+- GOAL-005: Prompt specification and gap analysis — integrate the real-world GEO Analyst prompt and identify missing tool capabilities.
+
+| Task | Description | Completed | Date |
+|------|-------------|-----------|------|
+| TASK-050 | Update `apps/backend/src/lib/runtime/tool-prompts/geometric/prompt_unified_report.md` with the full GEO Analyst prompt structure: title, query cluster, data analysis, 3 cross-cutting patterns (A/B/C), Tier-Based competitor ranking (Tier 1/2/3), strategic recommendations, and CSV dataset generation for Looker Studio. | ✅ | 2026-06-12 |
+| TASK-051 | **Gap Analysis**: Identify missing fields compared to the prompt requirements. (a) `brandName` field: the prompt asks to highlight the client brand in SERP analysis — not present in tool. (b) `sourceType` classification: the prompt asks for organic/sitelink/video/sponsored/UGC breakdown — the crawling adapter only extracts title/url/snippet without type classification. (c) `currentDate`: the prompt requires "Data di Analisi" — not automatically injected. (d) CSV export: the prompt explicitly requires a CSV dataset block for Looker Studio — the tool only supports markdown/docx export. | ✅ | 2026-06-12 |
+| TASK-052 | Add optional `brandName` field to Geometric direct input: (a) `ToolFormState` type in `tool-form-architecture.ts`; (b) `useToolForm.ts` default; (c) `ToolPageTemplate.tsx` form type, Zod schema, submit handler, render block; (d) `tool-page-selectors.ts` `buildGeometricDirectInputExtractionInfo` to include `brandName` in payload; (e) `generation-system.actors.ts` `invokeCrawling` to log and forward `brandName`; (f) `tool-workflow.machine.ts` `mergeCrawlingOutput` to preserve `brandName` in `assembledGenerationInput`; (g) `context-generation-assembly.ts` to include `brandName` in both `assembleStrategicReportingInput` and `assembleUnifiedReportInput`. | ✅ | 2026-06-12 |
+| TASK-053 | Extend `crawling.adapter.ts` to extract and classify `sourceType` (organic, sitelink, video, sponsored, ugc, news) for each SERP result: (a) add `SourceType` union type; (b) update `CrawlingResult` with `sources[].sourceType`, `sources[].sitelinks`, `sources[].videoMeta`; (c) add `adsCount` and `videoCount` to result; (d) use Puppeteer selectors to detect sponsored blocks, video thumbnails, sitelink blocks, and UGC links (Reddit, Quora, forum). | ✅ | 2026-06-12 |
+| TASK-054 | Inject `currentDate` into prompt context via `assembleStrategicReportingInput` and `assembleUnifiedReportInput` using `new Date().toLocaleDateString('it-IT')`. | ✅ | 2026-06-12 |
+| TASK-055 | **Deferred**: CSV export / Looker Studio dataset generation — the prompt requires a CSV block but the tool architecture only supports markdown/docx. This requires a new export step or artifact type. Marked as future enhancement (post-MVP). | ⏸️ | 2026-06-12 |
 
 ### Implementation Phase 6
 
@@ -128,13 +141,13 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-026 | Add Geometric tool configuration in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`: (a) `toolFormRegistry['geometric']` with `inputFiles: []`, `allowNoFiles: true`, `defaults: { baseQuery: '', language: 'it', country: 'google.it' }`; (b) `toolNavigationLabelByKey['geometric']` → `appCopy.ui.navigation.geometric`; (c) `toolNavigationDescriptionByKey['geometric']` → `appCopy.editorial.tools.geometric.description`; (d) `toolRouteByKey['geometric']` → `/tools/geometric`; (e) `stepCardConfigRegistry` entries for 4 steps. | | |
-| TASK-027 | Add page wrapper `apps/frontend/src/features/tools/geometric/pages/GeometricToolPage.tsx` using `createToolPage('geometric')` factory. | | |
-| TASK-028 | Register lazy route in `apps/frontend/src/app/routing/app-router.tsx` and include component mapping for `geometric` tool key. | | |
-| TASK-029 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`: (a) add `isGeometricTool` flag; (b) add conditional rendering blocks for 3 direct-input fields (`baseQuery` TextField, `language` Select, `country` Select); (c) add Zod `superRefine` validation requiring all 3 fields non-empty. | | |
-| TASK-030 | Add `buildGeometricDirectInputExtractionInfo()` in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` and branch in `selectGenerationExtractionInfo()`: `if (toolKey === 'geometric' && directInputExtractionInfo) return directInputExtractionInfo`. | | |
-| TASK-031 | Add copy entries in `apps/frontend/src/app/copy/system.ts`: navigation label, editorial tool description, field labels for `baseQuery`, `language`, `country`. | | |
-| TASK-032 | Add frontend tests: tool registry (route/label), Tool Workspace (no file upload, 3 fields rendered, Zod validation), readiness (3 fields required), direct-input extraction info, session list/detail label rendering. | | |
+| TASK-026 | Add Geometric tool configuration in `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`: (a) `toolFormRegistry['geometric']` with `inputFiles: []`, `allowNoFiles: true`, `defaults: { baseQuery: '', language: 'it', country: 'google.it' }`; (b) `toolNavigationLabelByKey['geometric']` → `appCopy.ui.navigation.geometric`; (c) `toolNavigationDescriptionByKey['geometric']` → `appCopy.editorial.tools.geometric.description`; (d) `toolRouteByKey['geometric']` → `/tools/geometric`; (e) `stepCardConfigRegistry` entries for 4 steps. | ✅ | 2026-06-12 |
+| TASK-027 | Add page wrapper `apps/frontend/src/features/tools/geometric/pages/GeometricToolPage.tsx` using `createToolPage('geometric')` factory. | ✅ | 2026-06-12 |
+| TASK-028 | Register lazy route in `apps/frontend/src/app/routing/app-router.tsx` and include component mapping for `geometric` tool key. | ✅ | 2026-06-12 |
+| TASK-029 | Update `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`: (a) add `isGeometricTool` flag; (b) add conditional rendering blocks for 3 direct-input fields (`baseQuery` TextField, `language` Select, `country` Select); (c) add Zod `superRefine` validation requiring all 3 fields non-empty. | ✅ | 2026-06-12 |
+| TASK-030 | Add `buildGeometricDirectInputExtractionInfo()` in `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` and branch in `selectGenerationExtractionInfo()`: `if (toolKey === 'geometric' && directInputExtractionInfo) return directInputExtractionInfo`. | ✅ | 2026-06-12 |
+| TASK-031 | Add copy entries in `apps/frontend/src/app/copy/system.ts`: navigation label, editorial tool description, field labels for `baseQuery`, `language`, `country`. | ✅ | 2026-06-12 |
+| TASK-032 | Add frontend tests: tool registry (route/label), Tool Workspace (no file upload, 3 fields rendered, Zod validation), readiness (3 fields required), direct-input extraction info, session list/detail label rendering. | ✅ | 2026-06-12 |
 
 ### Implementation Phase 7
 
@@ -142,11 +155,11 @@ The tool explicitly does not support file upload. Context generation is derived 
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-033 | Extend `apps/backend/src/lib/machines/generation/context-generation-assembly.ts` with assembly logic for `strategic-reporting` (input: SerpAIOverviewSnippet + CompetitorRanking JSON) and `unified-report` (input: StrategicReport content + CompetitorRanking JSON). | | |
-| TASK-034 | Create prompt module folder `apps/backend/src/lib/runtime/tool-prompts/geometric/` with `prompt_strategic_reporting.md` (Prompt A) and `prompt_unified_report.md` (Prompt B). | | |
-| TASK-035 | Update prompt resolver map in `apps/backend/src/lib/runtime/tool-prompts/index.ts` to route Geometric steps to dedicated prompt files. | | |
-| TASK-036 | Enforce token efficiency rule: `SerpScreenshot` data is NEVER forwarded to LLM — only text and structured JSON. | | |
-| TASK-037 | Add backend tests for context assembly correctness (proper dependency artifact content extraction, no screenshot leakage). | | |
+| TASK-033 | Extend `apps/backend/src/lib/machines/generation/context-generation-assembly.ts` with assembly logic for `strategic-reporting` (input: SerpAIOverviewSnippet + CompetitorRanking JSON) and `unified-report` (input: StrategicReport content + CompetitorRanking JSON). | ✅ | 2026-06-12 |
+| TASK-034 | Create prompt module folder `apps/backend/src/lib/runtime/tool-prompts/geometric/` with `prompt_strategic_reporting.md` (Prompt A) and `prompt_unified_report.md` (Prompt B). | ✅ | 2026-06-12 |
+| TASK-035 | Update prompt resolver map in `apps/backend/src/lib/runtime/tool-prompts/index.ts` to route Geometric steps to dedicated prompt files. | ✅ | 2026-06-12 |
+| TASK-036 | Enforce token efficiency rule: `SerpScreenshot` data is NEVER forwarded to LLM — only text and structured JSON. | ✅ | 2026-06-12 |
+| TASK-037 | Add backend tests for context assembly correctness (proper dependency artifact content extraction, no screenshot leakage). | ✅ | 2026-06-12 |
 
 ## 2b. Prompt Specifications (Deterministic)
 
@@ -363,6 +376,19 @@ The `analysisSessionIdentifier` (DDD-127) ensures all dynamically discovered PAA
 - **ASSUMPTION-003**: Tool availability policy defaults to `enabled-for-admin-only` for controlled rollout, then promoted to `enabled-for-all`.
 - **ASSUMPTION-004**: LLM model supports Italian (`it-IT`) output for reporting steps.
 - **ASSUMPTION-005**: `AnalysisSession` can be treated as a `GenerationSession` with `toolKey = 'geometric'` — no separate DB table needed.
+
+### Implementation Phase 8
+
+- GOAL-008: Monitoring & Logging — structured server-side observability for all Geometric operations.
+
+| Task | Description | Completed | Date |
+|------|-------------|-----------|------|
+| TASK-038 | Create `apps/backend/src/lib/runtime/integrations/geometric-logger.ts` with structured logging functions: `logGeometricInfo`, `logGeometricWarn`, `logGeometricError`, `logGeometricDebug`. All functions use prefix `[geometric]`, include `requestId` for cross-step correlation, and sanitize meta (truncate queries to 80 chars, strip `screenshot`/`htmlContent`/`rawBuffer`). | ✅ | 2026-06-12 |
+| TASK-039 | Add logging to `invokeCrawling` actor in `generation-system.actors.ts`: log `crawling.start` (with baseQuery/language/country), `crawling.paa.discovered` (count), `crawling.paa.single_failed` (per-query), `crawling.completed` (duration, sourceCount, paaCount), `crawling.failed` (duration, error). | ✅ | 2026-06-12 |
+| TASK-040 | Add logging to `invokeScoring` actor in `generation-system.actors.ts`: log `scoring.start` (sourceCount), `scoring.completed` (duration, competitorCount), `scoring.failed` (duration, error), `scoring.failed.no_sources` (when sources array is empty). | ✅ | 2026-06-12 |
+| TASK-041 | Add logging to `mergeCrawlingOutput` and `mergeScoringOutput` actions in `tool-workflow.machine.ts`: log `merge.crawling.completed` (sourceCount, paaCount, snippetLength) and `merge.crawling.empty` (when crawlArtifacts empty); log `merge.scoring.completed` (competitorCount) and `merge.scoring.empty` (when ranking missing). | ✅ | 2026-06-12 |
+| TASK-042 | Add logging to `assembleStrategicReportingInput` and `assembleUnifiedReportInput` in `context-generation-assembly.ts`: log `assembly.strategic_reporting` (snippetCount, paaCount, competitorCount) and `assembly.unified_report` (competitorCount); log `assembly.select` (stepKey) from `selectGeometricAssembly`. | ✅ | 2026-06-12 |
+| TASK-043 | Add backend test for geometric logging: verify that log functions produce correct prefix, include requestId, and sanitize sensitive data (screenshot, raw HTML). | ✅ | 2026-06-12 |
 
 ## 8. Related Specifications / Further Reading
 

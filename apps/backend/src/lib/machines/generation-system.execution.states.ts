@@ -90,6 +90,7 @@ export const generationSystemExecutionStates = {
           dependencyGraph: {
             [stepDescriptor.key]: plan?.dependencyGraph[stepDescriptor.key] ?? stepDescriptor.dependencies,
           },
+          requestInput: context.requestInput,
           ...(runMode === 'new' ? {} : {
             bootstrap: {
               stepKey: stepDescriptor.key,

@@ -52,6 +52,16 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'youtube-description-generation', dependencies: [] },
     ],
   },
+  'geometric': {
+    toolKey: 'geometric',
+    workflowType: 'geometric_analysis',
+    steps: [
+      { key: 'serp-crawling', dependencies: [] },
+      { key: 'competitor-scoring', dependencies: ['serp-crawling'] },
+      { key: 'strategic-reporting', dependencies: ['serp-crawling', 'competitor-scoring'] },
+      { key: 'unified-report', dependencies: ['strategic-reporting', 'competitor-scoring'] },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -86,6 +96,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'angle-generator': 'enabled-for-all',
   'meta-ads': 'enabled-for-all',
   'youtube-description': 'enabled-for-all',
+  'geometric': 'enabled-for-admin-only',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -213,6 +224,14 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'meta-adsgenerator'
   ) {
     return 'meta-ads';
+  }
+
+  if (
+    normalized === 'geometric_analysis'
+    || normalized === 'geometric-analysis'
+    || normalized === 'geometricanalysis'
+  ) {
+    return 'geometric';
   }
 
   return isToolKey(normalized) ? normalized : null;

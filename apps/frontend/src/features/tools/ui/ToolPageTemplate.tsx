@@ -50,6 +50,10 @@ type ToolPageFormValues = {
   campaignObjective: string;
   videoTitle: string;
   topic: string;
+  baseQuery: string;
+  language: string;
+  country: string;
+  brandName: string;
   keywords: string;
   ctaText: string;
   ctaLink: string;
@@ -63,6 +67,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
   const isMetaAdsTool = props.toolKey === 'meta-ads';
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
+  const isGeometricTool = props.toolKey === 'geometric';
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
@@ -234,6 +239,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     campaignObjective: z.string(),
     videoTitle: z.string(),
     topic: z.string(),
+    baseQuery: z.string(),
+    language: z.string(),
+    country: z.string(),
+    brandName: z.string(),
     keywords: z.string(),
     ctaText: z.string(),
     ctaLink: z.string(),
@@ -254,18 +263,36 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
       ];
 
-      for (const field of requiredDirectFields) {
-        const candidate = value[field.key];
-        if (typeof candidate !== 'string' || candidate.trim().length === 0) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [field.key],
-            message: `${field.label} required`,
-          });
+          for (const field of requiredDirectFields) {
+            const candidate = value[field.key];
+            if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [field.key],
+                message: `${field.label} required`,
+              });
+            }
+          }
         }
-      }
 
-    }
+        if (isGeometricTool) {
+          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
+            { key: 'baseQuery', label: 'Base query' },
+            { key: 'language', label: 'Language' },
+            { key: 'country', label: 'Country' },
+          ];
+
+          for (const field of requiredDirectFields) {
+            const candidate = value[field.key];
+            if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [field.key],
+                message: `${field.label} required`,
+              });
+            }
+          }
+        }
 
     for (const fileEntry of inputFiles) {
       if (
@@ -356,6 +383,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         : prev.chaptersWithTimestamps,
       socialLinks: isYoutubeDescriptionTool ? data.socialLinks : prev.socialLinks,
       hashtags: isYoutubeDescriptionTool ? data.hashtags : prev.hashtags,
+      baseQuery: isGeometricTool ? data.baseQuery : prev.baseQuery,
+      language: isGeometricTool ? data.language : prev.language,
+      country: isGeometricTool ? data.country : prev.country,
+      brandName: isGeometricTool ? data.brandName : prev.brandName,
     }));
 
     for (const fileEntry of inputFiles) {
@@ -393,6 +424,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       campaignObjective: formState.campaignObjective,
       videoTitle: formState.videoTitle ?? '',
       topic: formState.topic ?? '',
+      baseQuery: formState.baseQuery ?? '',
+      language: formState.language ?? '',
+      country: formState.country ?? '',
+      brandName: formState.brandName ?? '',
       keywords: formState.keywords ?? '',
       ctaText: formState.ctaText ?? '',
       ctaLink: formState.ctaLink ?? '',
@@ -445,6 +480,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   }, [formState.topic, setValue]);
 
   useEffect(() => {
+    setValue('brandName', formState.brandName ?? '');
+  }, [formState.brandName, setValue]);
+
+  useEffect(() => {
     setValue('keywords', formState.keywords ?? '');
   }, [formState.keywords, setValue]);
 
@@ -472,7 +511,19 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('hashtags', formState.hashtags ?? '');
   }, [formState.hashtags, setValue]);
 
-  const basePrimaryAction = lockedPrimaryOverride
+   useEffect(() => {
+    setValue('baseQuery', formState.baseQuery ?? '');
+  }, [formState.baseQuery, setValue]);
+
+  useEffect(() => {
+    setValue('language', formState.language ?? '');
+  }, [formState.language, setValue]);
+
+  useEffect(() => {
+    setValue('country', formState.country ?? '');
+  }, [formState.country, setValue]);
+
+ const basePrimaryAction = lockedPrimaryOverride
     ?? generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
     ?? matrixBlockingPrimaryOverride
@@ -835,7 +886,113 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 </div>
               ) : null}
 
-              {inputFiles.map((fileEntry) => (
+              {/* Geometric direct-input fields */}
+              {isGeometricTool ? (
+                <>
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="baseQuery"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          label="Base query"
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.baseQuery}
+                          helperText={errors.baseQuery?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, baseQuery: e.target.value }));
+                          }}
+                          fullWidth
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="language"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          select
+                          label="Language"
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.language}
+                          helperText={errors.language?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, language: e.target.value }));
+                          }}
+                          fullWidth
+                        >
+                          <MenuItem value="">Select language</MenuItem>
+                          <MenuItem value="it">Italiano (it)</MenuItem>
+                          <MenuItem value="en">English (en)</MenuItem>
+                          <MenuItem value="es">Español (es)</MenuItem>
+                          <MenuItem value="fr">Français (fr)</MenuItem>
+                          <MenuItem value="de">Deutsch (de)</MenuItem>
+                        </TextField>
+                      )}
+                    />
+                  </div>
+
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="country"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          select
+                          label="Country / Google Domain"
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.country}
+                          helperText={errors.country?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, country: e.target.value }));
+                          }}
+                          fullWidth
+                        >
+                          <MenuItem value="">Select domain</MenuItem>
+                          <MenuItem value="google.it">google.it (Italy)</MenuItem>
+                          <MenuItem value="google.com">google.com (Global)</MenuItem>
+                          <MenuItem value="google.es">google.es (Spain)</MenuItem>
+                          <MenuItem value="google.fr">google.fr (France)</MenuItem>
+                          <MenuItem value="google.de">google.de (Germany)</MenuItem>
+                          <MenuItem value="google.co.uk">google.co.uk (UK)</MenuItem>
+                        </TextField>
+                      )}
+                    />
+                   </div>
+
+                   <div className="ui-tool-form-row ui-tool-form-row--full">
+                     <Controller
+                       name="brandName"
+                       control={control}
+                       render={({ field }) => (
+                         <TextField
+                           label="Brand name (optional)"
+                           disabled={isGenerationLocked}
+                           value={field.value}
+                           error={!!errors.brandName}
+                           helperText={errors.brandName?.message as string | undefined}
+                           onChange={(e) => {
+                             field.onChange(e);
+                             setFormState((prev) => ({ ...prev, brandName: e.target.value }));
+                           }}
+                           fullWidth
+                         />
+                       )}
+                     />
+                   </div>
+                 </>
+               ) : null}
+
+               {inputFiles.map((fileEntry) => (
                 <Controller
                   key={fileEntry.key}
                   name={fileEntry.key as never}

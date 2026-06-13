@@ -15,6 +15,7 @@ import {
   type ToolKey as SupportedToolWorkflow,
 } from '@gen-app-2/contracts';
 import type { WorkflowStepDescriptor } from '../types/xstate';
+import type { WorkflowStepType } from '../types/xstate';
 import {
   assertGenerationRouteDeadline,
   type GenerationRouteDeadline,
@@ -48,6 +49,18 @@ const buildWorkflowPlan = (
 });
 
 /**
+ * Maps step keys to their WorkflowStepType for tools that use non-generation step types.
+ * Only entries for steps with type !== 'generation' need to be listed.
+ * Used by buildWorkflowPlan to attach type metadata to WorkflowStepDescriptor.
+ */
+const STEP_TYPE_BY_TOOL_AND_STEP: Partial<Record<SupportedToolWorkflow, Record<string, WorkflowStepType>>> = {
+  'geometric': {
+    'serp-crawling': 'crawling',
+    'competitor-scoring': 'scoring',
+  },
+};
+
+/**
  * Registry of all supported ToolWorkflow plans.
  * Single source of truth for step ordering and dependency graphs in the backend.
  * Mirrors `toolStepOrder` / `stepDependencies` from the frontend tool-form-architecture.ts.
@@ -60,10 +73,17 @@ export const TOOL_WORKFLOW_REGISTRY: Record<SupportedToolWorkflow, ToolWorkflowP
       toolKey,
       buildWorkflowPlan(
         toolKey,
-        TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].steps.map((step) => ({
-          key: step.key,
-          dependencies: [...step.dependencies],
-        })),
+        TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].steps.map((step) => {
+          const descriptor: WorkflowStepDescriptor = {
+            key: step.key,
+            dependencies: [...step.dependencies],
+          };
+          const stepTypeMap = STEP_TYPE_BY_TOOL_AND_STEP[toolKey];
+          if (stepTypeMap && stepTypeMap[step.key]) {
+            descriptor.type = stepTypeMap[step.key]!;
+          }
+          return descriptor;
+        }),
       ),
     ]),
   ),

@@ -14,6 +14,9 @@ import { isExtractionPayloadSemanticallyValid } from './generation-system.events
 import type { GenerationMachineContext } from './generation-system.types';
 import { executeApiAcquisition } from '../runtime/integrations/api-acquisition.adapter';
 import type { ResolvedApiServiceForAcquisition } from '../adapters/api-service.adapter';
+import { crawlSerp, discoverPAAQueries } from '../runtime/integrations/crawling.adapter';
+import { computeCompetitorRanking } from '../runtime/analysis/scoring-engine';
+import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../runtime/integrations/geometric-logger';
 
 const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -175,6 +178,170 @@ export const generationSystemActors = {
       ...getRegistrySelector(context),
     });
   }),
+  invokeCrawling: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
+    const { context } = input;
+    const requestInput = context.requestInput as Record<string, unknown>;
+    const extractionPayload = requestInput.extractionPayload as Record<string, unknown> | undefined;
+    const baseQuery = typeof requestInput.baseQuery === 'string'
+      ? requestInput.baseQuery
+      : (typeof extractionPayload?.baseQuery === 'string' ? extractionPayload.baseQuery : '');
+    const language = typeof requestInput.language === 'string'
+      ? requestInput.language
+      : (typeof extractionPayload?.language === 'string' ? extractionPayload.language : 'it');
+    const country = typeof requestInput.country === 'string'
+      ? requestInput.country
+      : (typeof extractionPayload?.country === 'string' ? extractionPayload.country : 'google.it');
+    const brandName = typeof requestInput.brandName === 'string'
+      ? requestInput.brandName
+      : (typeof extractionPayload?.brandName === 'string' ? extractionPayload.brandName : '');
+    const requestId = context.requestId ?? 'unknown';
+
+    logGeometricInfo('crawling.start', {
+      requestId,
+      operation: 'invokeCrawling',
+      baseQuery,
+      language,
+      country,
+      brandName,
+    });
+
+    if (!baseQuery) {
+      logGeometricError('crawling.failed.base_query_missing', { requestId, operation: 'invokeCrawling' });
+      return {
+        type: 'CRAWLING_FAILED' as const,
+        reason: 'base_query_missing',
+      };
+    }
+
+    const startMs = Date.now();
+    try {
+      const baseResult = await crawlSerp(baseQuery, language, country);
+      const paaQueries = await discoverPAAQueries(baseQuery, language, country);
+
+      const crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[] = [
+        {
+          query: baseQuery,
+          isPaa: false,
+          content: baseResult.aiOverviewSnippet ?? '',
+          structuredPayload: {
+            sources: baseResult.sources,
+            paaQueries: paaQueries,
+          },
+        },
+      ];
+
+      if (paaQueries.length > 0) {
+        logGeometricInfo('crawling.paa.discovered', {
+          requestId,
+          operation: 'invokeCrawling',
+          paaCount: paaQueries.length,
+        });
+
+        const paaResults = await Promise.all(
+          paaQueries.slice(0, 4).map(async (paaQuery) => {
+            try {
+              const result = await crawlSerp(paaQuery, language, country);
+              return {
+                query: paaQuery,
+                isPaa: true,
+                content: result.aiOverviewSnippet ?? '',
+                structuredPayload: { sources: result.sources },
+              };
+            } catch {
+              logGeometricWarn('crawling.paa.single_failed', {
+                requestId,
+                operation: 'invokeCrawling',
+                paaQuery,
+              });
+              return null;
+            }
+          }),
+        );
+        crawlArtifacts.push(...paaResults.filter((r): r is NonNullable<typeof r> => r !== null));
+      }
+
+      const durationMs = Date.now() - startMs;
+      logGeometricInfo('crawling.completed', {
+        requestId,
+        operation: 'invokeCrawling',
+        durationMs,
+        sourceCount: baseResult.sources.length,
+        paaCount: paaQueries.length,
+      });
+
+      return {
+        type: 'CRAWLING_COMPLETED' as const,
+        crawlArtifacts,
+        paaQueries: paaQueries.slice(0, 4),
+      };
+    } catch (err) {
+      const durationMs = Date.now() - startMs;
+      logGeometricError('crawling.failed', {
+        requestId,
+        operation: 'invokeCrawling',
+        durationMs,
+        error: err instanceof Error ? err.message : 'crawling_error',
+      });
+      return {
+        type: 'CRAWLING_FAILED' as const,
+        reason: err instanceof Error ? err.message : 'crawling_error',
+      };
+    }
+  }),
+  invokeScoring: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
+    const { context } = input;
+    const requestInput = context.requestInput as Record<string, unknown>;
+    const crawling = requestInput.crawling as Record<string, unknown> | undefined;
+    const sources = Array.isArray(crawling?.sources)
+      ? (crawling.sources as { url: string; sourceType?: string }[])
+      : [];
+    const requestId = context.requestId ?? 'unknown';
+
+    logGeometricInfo('scoring.start', {
+      requestId,
+      operation: 'invokeScoring',
+      sourceCount: sources.length,
+    });
+
+    if (sources.length === 0) {
+      logGeometricError('scoring.failed.no_sources', { requestId, operation: 'invokeScoring' });
+      return {
+        type: 'SCORING_FAILED' as const,
+        reason: 'no_crawling_sources_for_scoring',
+      };
+    }
+
+    const startMs = Date.now();
+    try {
+      const ranking = computeCompetitorRanking(sources);
+      const durationMs = Date.now() - startMs;
+      const competitorCount = Object.keys(ranking).length;
+
+      logGeometricInfo('scoring.completed', {
+        requestId,
+        operation: 'invokeScoring',
+        durationMs,
+        competitorCount,
+      });
+
+      return {
+        type: 'SCORING_COMPLETED' as const,
+        ranking,
+      };
+    } catch (err) {
+      const durationMs = Date.now() - startMs;
+      logGeometricError('scoring.failed', {
+        requestId,
+        operation: 'invokeScoring',
+        durationMs,
+        error: err instanceof Error ? err.message : 'scoring_error',
+      });
+      return {
+        type: 'SCORING_FAILED' as const,
+        reason: err instanceof Error ? err.message : 'scoring_error',
+      };
+    }
+  }),
 };
 
 export type GenerationSystemProvidedActor =
@@ -185,6 +352,8 @@ export type GenerationSystemProvidedActor =
   | { src: 'invokePersistence'; logic: typeof generationSystemActors.invokePersistence; id: string | undefined }
   | { src: 'invokeExtraction'; logic: typeof generationSystemActors.invokeExtraction; id: string | undefined }
   | { src: 'invokeApiAcquisition'; logic: typeof generationSystemActors.invokeApiAcquisition; id: string | undefined }
+  | { src: 'invokeCrawling'; logic: typeof generationSystemActors.invokeCrawling; id: string | undefined }
+  | { src: 'invokeScoring'; logic: typeof generationSystemActors.invokeScoring; id: string | undefined }
   | { src: 'invokeToolWorkflow'; logic: typeof generationSystemActors.invokeToolWorkflow; id: string | undefined }
   | { src: 'invokeFallbackPolicy'; logic: typeof generationSystemActors.invokeFallbackPolicy; id: string | undefined }
   | { src: 'markCompletedIdempotency'; logic: typeof generationSystemActors.markCompletedIdempotency; id: string | undefined }

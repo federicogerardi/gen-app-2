@@ -9,6 +9,7 @@ import {
   toolWorkflowMachine,
 } from '../machines';
 import { runBackendGenerationSession } from '../runtime/backend-session';
+import type { CompetitorRanking } from '../runtime/analysis/scoring-engine';
 
 const createCountingToolWorkflowMachine = (counter: { count: number }) =>
   toolWorkflowMachine.provide({
@@ -1129,4 +1130,104 @@ test('generation runtime keeps artifact lifecycle generating -> failed with term
     terminalPersistenceStateByArtifactId.get(result.artifactId as string),
     'failed',
   );
+});
+
+test('generation root executes geometric flow through crawling and scoring to generation', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  const persistedInputsByRequestId = new Map<string, Record<string, unknown>>();
+
+  const originalFinalizeSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    persistedInputsByRequestId.set(input.requestId, (input.inputJson ?? {}) as Record<string, unknown>);
+    await originalFinalizeSuccess(input);
+  };
+
+  let crawlingInvoked = false;
+  let scoringInvoked = false;
+
+  const machine = generationSystemMachine.provide({
+    actors: {
+      invokeCrawling: fromPromise(async (): Promise<{ type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[] } | { type: 'CRAWLING_FAILED'; reason: string }> => {
+        crawlingInvoked = true;
+        return {
+          type: 'CRAWLING_COMPLETED' as const,
+          crawlArtifacts: [
+            {
+              query: 'protein supplements',
+              isPaa: false,
+              content: 'AI overview: protein supplements help muscle growth',
+              structuredPayload: {
+                sources: [
+                  { title: 'Healthline', url: 'https://healthline.com', snippet: 'Best protein powders 2026' },
+                ],
+                paaQueries: ['What is the best protein powder?'],
+              },
+            },
+          ],
+          paaQueries: ['What is the best protein powder?'],
+        };
+      }),
+      invokeScoring: fromPromise(async (): Promise<{ type: 'SCORING_COMPLETED'; ranking: CompetitorRanking } | { type: 'SCORING_FAILED'; reason: string }> => {
+        scoringInvoked = true;
+        return {
+          type: 'SCORING_COMPLETED' as const,
+          ranking: {
+            'healthline.com': { geoScore: 92, tier: 'S', queriesCovered: ['protein supplements'] },
+          },
+        };
+      }),
+    },
+  });
+
+  const actor = createActor(machine, { input: { adapters } });
+  actor.start();
+  actor.send({
+    type: 'REQUEST_RECEIVED',
+    requestId: 'req-root-geometric-001',
+    projectId: 'seed-project-001',
+    toolKey: 'geometric',
+    artifactType: 'content',
+    model: 'openrouter/gpt-5.3-codex',
+    input: {
+      baseQuery: 'protein supplements',
+      language: 'it',
+      country: 'google.it',
+      step: 'strategic-reporting',
+      outputFormat: 'plain',
+      prompt: 'SERP snippets: {{serpSnippets}}\nPAA queries: {{paaQueries}}\nCompetitor ranking: {{competitorRanking}}',
+    },
+    workflowType: 'geometric',
+    idempotencyKey: 'idem-root-geometric-001',
+    registrySnapshotRef: 'snapshot:root-geometric' as never,
+  });
+  actor.send({ type: 'AUTH_OK', userId: 'seed-user-001' });
+  actor.send({
+    type: 'VALIDATION_OK',
+    workflowType: 'geometric',
+    registryVersion: null as never,
+    registrySnapshotRef: 'snapshot:root-geometric' as never,
+  });
+
+  try {
+    const snapshot = await waitFor(actor, (s) => {
+      const stateValue = String(s.value);
+      return stateValue === 'completed' || stateValue === 'failed';
+    });
+
+    const status = String(snapshot.value);
+    assert.equal(status, 'completed');
+    assert.equal(crawlingInvoked, true, 'invokeCrawling should be invoked');
+    assert.equal(scoringInvoked, true, 'invokeScoring should be invoked');
+
+    const inputJson = persistedInputsByRequestId.get('req-root-geometric-001') ?? {};
+    const requestInput = (inputJson as Record<string, unknown>);
+    const prompt = typeof requestInput.prompt === 'string' ? requestInput.prompt : '';
+
+    // Verify prompt was filled with assembled data
+    assert.equal(prompt.includes('{{serpSnippets}}'), false, 'prompt should not contain raw placeholder');
+    assert.equal(prompt.includes('AI overview: protein supplements help muscle growth'), true, 'prompt should contain SERP snippets');
+    assert.equal(prompt.includes('healthline.com'), true, 'prompt should contain competitor ranking');
+  } finally {
+    actor.stop();
+  }
 });

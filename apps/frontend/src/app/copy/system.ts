@@ -619,6 +619,8 @@ export const appCopy = {
       apiServicesTitle: 'Admin ApiService',
       apiServicesBody: 'Catalogo amministrativo per ApiService e binding dei tool step.',
       apiServiceBindingsTitle: 'Binding ApiService',
+      geometricScreenshotsTitle: 'Screenshot SERP',
+      geometricScreenshotsBody: 'Visualizza gli screenshot archiviati delle sessioni di crawling Geometric.',
     },
     feedback: {
       userReportTitle: 'User report submission',

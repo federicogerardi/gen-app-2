@@ -214,9 +214,26 @@ export const generationSystemActors = {
     }
 
     const startMs = Date.now();
+    console.log(`[DEBUG][screenshot] invokeCrawling start — requestId=${requestId}, sessionId=${context.sessionId ?? 'null'}, screenshotArchival=${context.adapters.screenshotArchival ? 'present' : 'NULL'}`);
     try {
       const baseResult = await crawlSerp(baseQuery, language, country);
       const paaQueries = await discoverPAAQueries(baseQuery, language, country);
+      console.log(`[DEBUG][screenshot] crawlSerp completed — screenshotPath=${baseResult.screenshotPath ?? 'null'}, aiOverviewConfidence=${baseResult.aiOverviewConfidence}, selectorUsed=${baseResult.selectorUsed}`);
+
+      if (baseResult.screenshotPath) {
+        console.log(`[DEBUG][screenshot] archiving base screenshot — path=${baseResult.screenshotPath}, sessionId=${context.sessionId ?? context.requestId}`);
+        void context.adapters.screenshotArchival?.archiveScreenshot({
+          screenshotPath: baseResult.screenshotPath,
+          sessionId: context.sessionId ?? context.requestId,
+          requestId,
+          query: baseQuery,
+          isPaa: false,
+          aiOverviewConfidence: baseResult.aiOverviewConfidence,
+          selectorUsed: baseResult.selectorUsed,
+        });
+      } else {
+        console.log(`[DEBUG][screenshot] baseResult.screenshotPath is null — skipping archival`);
+      }
 
       const crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[] = [
         {
@@ -241,6 +258,21 @@ export const generationSystemActors = {
           paaQueries.slice(0, 4).map(async (paaQuery) => {
             try {
               const result = await crawlSerp(paaQuery, language, country);
+              console.log(`[DEBUG][screenshot] crawlSerp PAA completed — query=${paaQuery}, screenshotPath=${result.screenshotPath ?? 'null'}`);
+              if (result.screenshotPath) {
+                console.log(`[DEBUG][screenshot] archiving PAA screenshot — path=${result.screenshotPath}, sessionId=${context.sessionId ?? context.requestId}`);
+                void context.adapters.screenshotArchival?.archiveScreenshot({
+                  screenshotPath: result.screenshotPath,
+                  sessionId: context.sessionId ?? context.requestId,
+                  requestId,
+                  query: paaQuery,
+                  isPaa: true,
+                  aiOverviewConfidence: result.aiOverviewConfidence,
+                  selectorUsed: result.selectorUsed,
+                });
+              } else {
+                console.log(`[DEBUG][screenshot] PAA result.screenshotPath is null — skipping archival`);
+              }
               return {
                 query: paaQuery,
                 isPaa: true,

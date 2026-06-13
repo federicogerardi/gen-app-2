@@ -67,4 +67,9 @@ export const generationSystemGuards = {
     const toolKey = context.toolKey ?? '';
     return toolKey !== 'geometric';
   },
+  routeIsGeometric: ({ context }: GenerationGuardArgs) => {
+    const toolKey = context.toolKey ?? '';
+    const workflowType = context.workflowType ?? '';
+    return toolKey === 'geometric' || workflowType === 'geometric';
+  },
 };

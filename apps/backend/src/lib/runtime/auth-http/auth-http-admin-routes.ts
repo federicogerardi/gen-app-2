@@ -166,5 +166,32 @@ export const buildAdminRoutes = (
         );
       },
     },
+    {
+      method: 'GET',
+      pattern: '/api/admin/geometric/screenshots',
+      handler: adminHandlers.handleAdminListAllScreenshots,
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/admin\/geometric\/sessions\/([^/]+)\/screenshots$/,
+      handler: async (request, response, sessionId) => {
+        await adminHandlers.handleAdminListSessionScreenshots(
+          request,
+          response,
+          decodeURIComponent(sessionId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/admin\/geometric\/screenshots\/([^/]+)$/,
+      handler: async (request, response, screenshotId) => {
+        await adminHandlers.handleAdminGetScreenshot(
+          request,
+          response,
+          decodeURIComponent(screenshotId ?? ''),
+        );
+      },
+    },
   ];
 };

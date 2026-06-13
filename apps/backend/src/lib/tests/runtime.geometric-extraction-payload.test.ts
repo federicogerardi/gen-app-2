@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { generationSystemActors } from '../machines/generation-system.actors';
 import type { GenerationMachineContext } from '../machines/generation-system.types';
 
 test('invokeCrawling extracts baseQuery/language/country from extractionPayload when not in root requestInput', async () => {

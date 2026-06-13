@@ -1,8 +1,10 @@
 import {
   getAcquisitionResultParams,
+  getCrawlingResultParams,
   getExtractionResultParams,
   getGenerateResultParams,
   getInvokeFailureReason,
+  getScoringResultParams,
   getStreamResultParams,
   getToolDoneOutput,
 } from './generation-system.events';
@@ -154,6 +156,85 @@ export const generationSystemExecutionStates = {
           type: 'queueFallbackDecision',
           params: {
             defaultReason: 'acquisition_failed',
+          },
+        },
+      },
+    },
+  },
+  crawlingFlow: {
+    entry: ['ensureArtifactId'],
+    invoke: {
+      id: 'crawlingActor',
+      src: 'invokeCrawling',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'crawlingOutputIsAccepted',
+          target: 'scoringFlow',
+          actions: {
+            type: 'cacheCrawlingResult',
+            params: ({ event }: UnknownEventArgs) => getCrawlingResultParams(event),
+          },
+        },
+        {
+          target: 'resolvingFallbackPolicy',
+          actions: {
+            type: 'queueFallbackDecision',
+            params: ({ event }: UnknownEventArgs) => ({
+              reason: getInvokeFailureReason(event),
+              defaultReason: 'crawling_failed',
+            }),
+          },
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: {
+            defaultReason: 'crawling_failed',
+          },
+        },
+      },
+    },
+  },
+  scoringFlow: {
+    entry: ['ensureArtifactId'],
+    invoke: {
+      id: 'scoringActor',
+      src: 'invokeScoring',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: [
+        {
+          guard: 'scoringOutputIsAccepted',
+          target: 'dispatchingMode',
+          actions: [
+            {
+              type: 'cacheScoringResult',
+              params: ({ event }: UnknownEventArgs) => getScoringResultParams(event),
+            },
+            {
+              type: 'assembleGeometricPrompt',
+            },
+          ],
+        },
+        {
+          target: 'resolvingFallbackPolicy',
+          actions: {
+            type: 'queueFallbackDecision',
+            params: ({ event }: UnknownEventArgs) => ({
+              reason: getInvokeFailureReason(event),
+              defaultReason: 'scoring_failed',
+            }),
+          },
+        },
+      ],
+      onError: {
+        target: 'resolvingFallbackPolicy',
+        actions: {
+          type: 'queueFallbackDecision',
+          params: {
+            defaultReason: 'scoring_failed',
           },
         },
       },

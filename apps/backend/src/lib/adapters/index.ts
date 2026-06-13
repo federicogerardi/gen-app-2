@@ -14,6 +14,8 @@ export {
   type UsageDecision,
   type IdempotencyDecision,
   type UsageAdapter,
+  type ScreenshotArchivalAdapter,
+  type ScreenshotArchivalParams,
   createSyntheticLlmStreamAdapter,
   createSyntheticLlmGenerateAdapter,
 } from './generation.adapters';
@@ -50,6 +52,16 @@ export {
   listUserReports,
   updateUserReportStatus,
 } from './user-report.adapter';
+
+export {
+  insertScreenshotMetadata,
+  listAllScreenshots,
+  listScreenshotsBySession,
+  getScreenshotById,
+  deleteExpiredScreenshots,
+  type ScreenshotMetadata,
+  type InsertScreenshotMetadataInput,
+} from './geometric-screenshot.repository';
 
 export {
   createUserReportGithubLink,

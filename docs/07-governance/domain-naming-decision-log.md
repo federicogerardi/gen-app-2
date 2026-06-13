@@ -149,6 +149,17 @@ owner: Domain Architecture
 - Runtime constraint: runtime logic must consume existing map policies and reason-code sets; ad-hoc literals first/documentation later is forbidden.
 - Evidence rationale: extends map-driven governance pattern already established by DDD-080, DDD-090, and DDD-097.
 
+### DDD-129
+- Decision detail: SERP API integration as primary crawling channel for GEOMETRIC `serp-crawling` step (`WorkflowStepType = 'crawling'`, DDD-116).
+- Decision detail: The SERP API is configured through the existing `ApiService` system (DDD-102) — no dedicated adapter is introduced.
+- Decision detail: `ApiService` binding uses `workflowStepType = 'crawling'` (not `'acquisition'`) — the SERP API is a data acquisition **channel** for the crawling step, not a change to the step type.
+- Decision detail: Puppeteer remains as fallback when SERP API fails (429 rate limit, 403 quota exhausted, timeout, network error).
+- Decision detail: Screenshot is produced **only** by Puppeteer fallback — SERP API providers (SerpAPI, DataForSEO) do not return screenshots.
+- Decision detail: Domain translation layer maps SERP API response fields to canonical crawling concepts: `organic_results[]` → `SerpSource`, `answer_box.snippet` → `SerpAIOverviewSnippet`, `related_questions[]` → `PAAQuery`.
+- Rationale: Google blocks direct Puppeteer scraping (sourceCount: 0 in production logs). SERP API provides reliable structured data while Puppeteer fallback preserves screenshot capture capability.
+- Scope: Crawling & Extraction Context, Generation Context (via `invokeCrawling` actor).
+- Related: DDD-114 (Crawling & Extraction Context), DDD-116 (WorkflowStepType = 'crawling'), DDD-102 (ApiService).
+
 ## Naming Conflicts Register
 
 | Conflict ID | Candidate Terms | Impacted Areas | Proposed Resolution | Status |

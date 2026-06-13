@@ -83,7 +83,7 @@ export type AcquisitionDoneOutput =
   | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
 
 export type CrawlingDoneOutput =
-  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[] }
+  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[]; screenshotIds?: string[] }
   | { type: 'CRAWLING_FAILED'; reason: string };
 
 export type CacheCrawlingResultParams = {

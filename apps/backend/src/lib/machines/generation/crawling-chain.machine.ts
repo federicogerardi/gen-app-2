@@ -1,4 +1,6 @@
-import { setup } from 'xstate';
+import { fromPromise, setup } from 'xstate';
+import { crawlSerp, discoverPAAQueries } from '../../runtime/integrations/crawling.adapter';
+import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../../runtime/integrations/geometric-logger';
 
 export type CrawlingChainInput = {
   requestId: string;
@@ -7,6 +9,17 @@ export type CrawlingChainInput = {
   language: string;
   country: string;
   sessionId: string;
+  screenshotArchival?: {
+    archiveScreenshot: (params: {
+      screenshotPath: string;
+      sessionId: string;
+      requestId: string;
+      query: string;
+      isPaa: boolean;
+      aiOverviewConfidence: number;
+      selectorUsed: string;
+    }) => Promise<string | null>;
+  } | null;
 };
 
 export type CrawlingChainOutput = {
@@ -27,20 +40,155 @@ export const crawlingChainMachine = setup({
     input: {} as CrawlingChainInput,
     output: {} as CrawlingChainOutput,
   },
+  actors: {
+    invokeCrawling: fromPromise(async ({ input }: { input: { context: CrawlingChainContext } }) => {
+      const { input: chainInput } = input.context;
+      const requestId = chainInput.requestId ?? 'unknown';
+      const baseQuery = chainInput.baseQuery;
+      const language = chainInput.language || 'it';
+      const country = chainInput.country || 'google.it';
+
+      logGeometricInfo('crawling.start', {
+        requestId,
+        operation: 'crawlingChainMachine',
+        baseQuery,
+        language,
+        country,
+      });
+
+      if (!baseQuery) {
+        logGeometricError('crawling.failed.base_query_missing', { requestId, operation: 'crawlingChainMachine' });
+        throw new Error('base_query_missing');
+      }
+
+      const startMs = Date.now();
+      try {
+        const baseResult = await crawlSerp(baseQuery, language, country);
+        const paaQueries = await discoverPAAQueries(baseQuery, language, country);
+
+        if (baseResult.screenshotPath && chainInput.screenshotArchival) {
+          void chainInput.screenshotArchival.archiveScreenshot({
+            screenshotPath: baseResult.screenshotPath,
+            sessionId: chainInput.sessionId ?? requestId,
+            requestId,
+            query: baseQuery,
+            isPaa: false,
+            aiOverviewConfidence: baseResult.aiOverviewConfidence,
+            selectorUsed: baseResult.selectorUsed,
+          });
+        }
+
+        const crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[] = [
+          {
+            query: baseQuery,
+            isPaa: false,
+            content: baseResult.aiOverviewSnippet ?? '',
+            structuredPayload: {
+              sources: baseResult.sources,
+              paaQueries: paaQueries,
+            },
+          },
+        ];
+
+        if (paaQueries.length > 0) {
+          logGeometricInfo('crawling.paa.discovered', {
+            requestId,
+            operation: 'crawlingChainMachine',
+            paaCount: paaQueries.length,
+          });
+
+          const paaResults = await Promise.all(
+            paaQueries.slice(0, 4).map(async (paaQuery) => {
+              try {
+                const result = await crawlSerp(paaQuery, language, country);
+                if (result.screenshotPath && chainInput.screenshotArchival) {
+                  void chainInput.screenshotArchival.archiveScreenshot({
+                    screenshotPath: result.screenshotPath,
+                    sessionId: chainInput.sessionId ?? requestId,
+                    requestId,
+                    query: paaQuery,
+                    isPaa: true,
+                    aiOverviewConfidence: result.aiOverviewConfidence,
+                    selectorUsed: result.selectorUsed,
+                  });
+                }
+                return {
+                  query: paaQuery,
+                  isPaa: true,
+                  content: result.aiOverviewSnippet ?? '',
+                  structuredPayload: { sources: result.sources },
+                };
+              } catch {
+                logGeometricWarn('crawling.paa.single_failed', {
+                  requestId,
+                  operation: 'crawlingChainMachine',
+                  paaQuery,
+                });
+                return null;
+              }
+            }),
+          );
+          crawlArtifacts.push(...paaResults.filter((r): r is NonNullable<typeof r> => r !== null));
+        }
+
+        const durationMs = Date.now() - startMs;
+        logGeometricInfo('crawling.completed', {
+          requestId,
+          operation: 'crawlingChainMachine',
+          durationMs,
+          sourceCount: baseResult.sources.length,
+          paaCount: paaQueries.length,
+        });
+
+        return {
+          type: 'CRAWLING_COMPLETED' as const,
+          requestId,
+          stepKey: chainInput.stepKey,
+          crawlArtifacts,
+          paaQueries: paaQueries.slice(0, 4),
+        };
+      } catch (err) {
+        const durationMs = Date.now() - startMs;
+        logGeometricError('crawling.failed', {
+          requestId,
+          operation: 'crawlingChainMachine',
+          durationMs,
+          error: err instanceof Error ? err.message : 'crawling_error',
+        });
+        throw err;
+      }
+    }),
+  },
 }).createMachine({
   id: 'crawlingChainMachine',
-  initial: 'done',
+  initial: 'crawling',
   context: ({ input }) => ({ input }),
   states: {
+    crawling: {
+      invoke: {
+        id: 'crawlingActor',
+        src: 'invokeCrawling',
+        input: ({ context }) => ({ context }),
+        onDone: {
+          target: 'done',
+        },
+        onError: {
+          target: 'done',
+        },
+      },
+    },
     done: {
       type: 'final',
-      output: ({ context }) => ({
-        type: 'CRAWLING_COMPLETED',
-        requestId: context.input.requestId,
-        stepKey: context.input.stepKey,
-        crawlArtifacts: [],
-        paaQueries: [],
-      }),
+      output: ({ context }) => {
+        const output = (context as unknown as { output?: CrawlingChainOutput }).output;
+        return output ?? {
+          type: 'CRAWLING_COMPLETED' as const,
+          requestId: context.input.requestId,
+          stepKey: context.input.stepKey,
+          crawlArtifacts: [],
+          paaQueries: [],
+        };
+      },
     },
   },
 });

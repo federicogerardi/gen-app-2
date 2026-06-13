@@ -24,6 +24,8 @@ export type SourceType = 'organic' | 'sitelink' | 'video' | 'sponsored' | 'ugc' 
 
 export type CrawlingResult = {
   aiOverviewSnippet: string | null;
+  aiOverviewConfidence: number;
+  selectorUsed: string;
   sources: {
     title: string;
     url: string;
@@ -35,6 +37,15 @@ export type CrawlingResult = {
   screenshotPath: string | null;
   adsCount: number;
   videoCount: number;
+};
+
+export const computeAiOverviewConfidence = (selectorUsed: string): number => {
+  const map: Record<string, number> = {
+    '[data-snf]': 0.95,
+    '.AIHVYe': 0.90,
+    '[data-attrid="wa:/description"]': 0.85,
+  };
+  return map[selectorUsed] ?? 0.50;
 };
 
 export const crawlSerp = async (
@@ -60,13 +71,19 @@ export const crawlSerp = async (
     const searchUrl = `https://www.${country}/search?q=${encodeURIComponent(query)}&hl=${language}`;
     await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
 
-    // Extract AI Overview snippet
-    const aiOverviewSnippet = await page.evaluate(() => {
-      const overviewEl = document.querySelector('[data-snf]')
-        ?? document.querySelector('.AIHVYe')
-        ?? document.querySelector('[data-attrid="wa:/description"]');
-      return overviewEl?.textContent?.trim() ?? null;
+    // Extract AI Overview snippet and selector used
+    const aiOverviewExtraction = await page.evaluate(() => {
+      const selectors = ['[data-snf]', '.AIHVYe', '[data-attrid="wa:/description"]'];
+      for (const selector of selectors) {
+        const el = document.querySelector(selector);
+        if (el) {
+          return { text: el.textContent?.trim() ?? null, selectorUsed: selector };
+        }
+      }
+      return { text: null, selectorUsed: '' };
     });
+    const aiOverviewSnippet = aiOverviewExtraction.text;
+    const selectorUsed = aiOverviewExtraction.selectorUsed;
 
     // Extract sources with type classification
     const sources = await page.evaluate(() => {
@@ -122,7 +139,15 @@ export const crawlSerp = async (
     await page.screenshot({ path: screenshotPath, fullPage: false });
 
     await page.close();
-    return { aiOverviewSnippet, sources, screenshotPath, adsCount, videoCount };
+    return {
+      aiOverviewSnippet,
+      aiOverviewConfidence: computeAiOverviewConfidence(selectorUsed),
+      selectorUsed,
+      sources,
+      screenshotPath,
+      adsCount,
+      videoCount,
+    };
   } catch {
     await browser.close();
     throw new Error(`Crawling failed for query: ${query}`);

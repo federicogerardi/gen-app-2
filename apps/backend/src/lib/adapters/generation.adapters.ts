@@ -92,6 +92,21 @@ export interface LlmGenerateAdapter {
   generateText(input: LlmGenerateInput): Promise<LlmGenerateResult>;
 }
 
+export type ScreenshotArchivalParams = {
+  screenshotPath: string;
+  sessionId: string;
+  requestId: string;
+  query: string;
+  isPaa: boolean;
+  aiOverviewConfidence: number;
+  selectorUsed: string;
+};
+
+export interface ScreenshotArchivalAdapter {
+  archiveScreenshot(params: ScreenshotArchivalParams): Promise<string | null>;
+  cleanupExpiredScreenshots(now: Date): Promise<{ deletedFiles: number; deletedRecords: number }>;
+}
+
 export interface GenerationAdapters {
   ownership: OwnershipAdapter;
   usage: UsageAdapter;
@@ -101,6 +116,7 @@ export interface GenerationAdapters {
   generate: LlmGenerateAdapter;
   persistence: PersistenceAdapter;
   orchestrateCache: OrchestrateArtifactCache | null;
+  screenshotArchival: ScreenshotArchivalAdapter | null;
 }
 
 type QuotaBucket = {
@@ -283,5 +299,6 @@ export const createInMemoryGenerationAdapters = (
     generate: createSyntheticLlmGenerateAdapter(),
     persistence,
     orchestrateCache: null,
+    screenshotArchival: null,
   };
 };

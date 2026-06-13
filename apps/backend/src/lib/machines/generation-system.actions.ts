@@ -1,7 +1,7 @@
 import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
-import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput } from './generation/context-generation-assembly';
+import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput, selectGeometricAssembly } from './generation/context-generation-assembly';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
@@ -58,6 +58,7 @@ type GenerationSystemActionObject =
   | { type: 'setFallbackPolicyFailure'; params: undefined }
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
+  | { type: 'assembleGeometricPrompt'; params: undefined }
   | { type: 'resetVolatileContext'; params: undefined };
 
 type GenerationSystemGuardObject =
@@ -66,6 +67,7 @@ type GenerationSystemGuardObject =
   | { type: 'routeIsExtraction'; params: unknown }
   | { type: 'routeIsTool'; params: unknown }
   | { type: 'routeIsGeneric'; params: unknown }
+  | { type: 'routeIsGeometric'; params: unknown }
   | { type: 'hasApiAcquisition'; params: unknown }
   | { type: 'idempotencyOutputIsReplay'; params: unknown }
   | { type: 'idempotencyOutputIsConflict'; params: unknown }
@@ -314,6 +316,53 @@ export const generationSystemActions = {
   appendStreamChunk: assignGeneration<{ chunk: string }>({
     contentBuffer: ({ context }: GenerationActionArgs, params: { chunk: string }) =>
       `${context.contentBuffer}${params.chunk}`,
+  }),
+  assembleGeometricPrompt: assignGeneration<undefined>({
+    requestInput: ({ context }: GenerationActionArgs) => {
+      const toolKey = context.toolKey ?? '';
+      const workflowType = context.workflowType ?? '';
+      if (toolKey !== 'geometric' && workflowType !== 'geometric') {
+        return context.requestInput;
+      }
+
+      const step = typeof context.requestInput.step === 'string'
+        ? context.requestInput.step
+        : 'strategic-reporting';
+      const assembly = selectGeometricAssembly(step, context.requestInput, context.requestId);
+      if (!assembly) {
+        return context.requestInput;
+      }
+
+      const promptTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
+        ? context.requestInput.resolvedPromptTemplate
+        : (typeof context.requestInput.prompt === 'string' ? context.requestInput.prompt : '');
+
+      if (!promptTemplate) {
+        return context.requestInput;
+      }
+
+      let filledPrompt = promptTemplate;
+      if (Array.isArray(assembly.serpSnippets)) {
+        filledPrompt = filledPrompt.replace(/{{serpSnippets}}/g, (assembly.serpSnippets as string[]).join('\n\n'));
+      }
+      if (Array.isArray(assembly.paaQueries)) {
+        filledPrompt = filledPrompt.replace(/{{paaQueries}}/g, (assembly.paaQueries as string[]).join(', '));
+      }
+      if (assembly.competitorRanking && typeof assembly.competitorRanking === 'object') {
+        filledPrompt = filledPrompt.replace(/{{competitorRanking}}/g, JSON.stringify(assembly.competitorRanking, null, 2));
+      }
+      if (typeof assembly.currentDate === 'string') {
+        filledPrompt = filledPrompt.replace(/{{currentDate}}/g, assembly.currentDate);
+      }
+      if (typeof assembly.brandName === 'string') {
+        filledPrompt = filledPrompt.replace(/{{brandName}}/g, assembly.brandName);
+      }
+
+      return {
+        ...context.requestInput,
+        prompt: filledPrompt,
+      };
+    },
   }),
   resetVolatileContext: assignGeneration<undefined>({
     requestId: '',

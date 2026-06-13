@@ -56,6 +56,13 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 | 99-reference | [99-reference](./99-reference/) | Documentation Archivist |
 | 99-lifecycle | [99-lifecycle](./99-lifecycle/) | Documentation Archivist |
 
+## Geometric Tool Documents
+
+| Documento | Percorso | Tipo | Stato |
+| --- | --- | --- | --- |
+| [Geometric Crawling Step Reference](./99-reference/geometric-crawling-step-reference.md) | `99-reference/geometric-crawling-step-reference.md` | Reference | active |
+| [Geometric Admin Debug & Monitoring Proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) | `02-design/geometric-admin-debug-monitoring-proposal.md` | Proposal | draft |
+
 ## Critical Documents Status
 
 | Documento | Stato | Last reviewed | Next review |
@@ -78,6 +85,11 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 
 - [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
 
+### Geometric Tool References
+
+- [geometric-crawling-step-reference](./99-reference/geometric-crawling-step-reference.md) — **Backend operations reference for Geometric crawling step: XState actors, Puppeteer adapter, BullMQ queue, merge actions, and validation guards**
+- [geometric-operation-schematic](./99-reference/geometric-operation-schematic.md) — **Visual schematic of Geometric tool 4-step flow: crawling → scoring → strategic reporting → unified report**
+
 ### Design Specifications
 
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
@@ -89,6 +101,7 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 - [dependency-unification-proposal](./02-design/specifications/dependency-unification-proposal.md) — **Ranked proposal for dependency-slot allocation focused on code unification (Zod + Kysely implemented; Ky pending)**
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned, including DDD-081 readiness branches)**
 - [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
+- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Admin debug, AI Overview validation, error tracking, and monitoring proposal for Geometric tool**
 
 Validation path manifest (orphan-check canonical set):
 

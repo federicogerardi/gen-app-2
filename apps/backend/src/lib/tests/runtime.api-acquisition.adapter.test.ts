@@ -59,8 +59,8 @@ test('executeApiAcquisition injects token as query parameter for query-param mod
   const originalFetch = global.fetch;
   const observed: { url: string | undefined } = { url: undefined };
 
-  global.fetch = (async (url: string) => {
-    observed.url = url;
+  global.fetch = (async (url: string | URL) => {
+    observed.url = String(url);
     return {
       ok: true,
       status: 200,
@@ -97,8 +97,8 @@ test('executeApiAcquisition uses default api_key param name when tokenParamName 
   const originalFetch = global.fetch;
   const observed: { url: string | undefined } = { url: undefined };
 
-  global.fetch = (async (url: string) => {
-    observed.url = url;
+  global.fetch = (async (url: string | URL) => {
+    observed.url = String(url);
     return {
       ok: true,
       status: 200,

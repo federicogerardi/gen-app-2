@@ -8,6 +8,8 @@ import {
   listApiServiceBindings,
   listApiServices,
   resolveApiServiceForAcquisition,
+  resolveApiServiceById,
+  resolveApiServiceForCrawling,
   upsertApiServiceBinding,
   updateApiService,
 } from '../adapters/api-service.adapter';
@@ -18,7 +20,7 @@ type ApiServiceStoreRow = {
   label: string;
   base_url: string;
   resource_path: string;
-  access_mode: 'public' | 'token';
+  access_mode: 'public' | 'token' | 'query-param';
   timeout_ms: number;
   retry_count: number;
   request_method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -26,6 +28,7 @@ type ApiServiceStoreRow = {
   request_mapping_rules_json: Array<Record<string, unknown>>;
   request_headers_template_json: Record<string, unknown>;
   token_header_name: string | null;
+  token_param_name: string | null;
   response_mapping_rules_json: Array<Record<string, unknown>>;
   error_mapping_rules_json: Array<Record<string, unknown>>;
   contract_profile_version: number;
@@ -41,7 +44,7 @@ type ApiServiceBindingStoreRow = {
   api_service_id: string;
   tool_key: string;
   step_key: string;
-  workflow_step_type: 'acquisition';
+  workflow_step_type: 'acquisition' | 'crawling';
   binding_status: 'active' | 'inactive';
   requiredness: 'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting';
   created_at: Date;
@@ -80,12 +83,13 @@ class ApiServiceDbStub {
         request_mapping_rules_json: parseJsonValue(values[9], []) as Array<Record<string, unknown>>,
         request_headers_template_json: parseJsonValue(values[10], {}) as Record<string, unknown>,
         token_header_name: (values[11] as string | null) ?? null,
-        response_mapping_rules_json: parseJsonValue(values[12], []) as Array<Record<string, unknown>>,
-        error_mapping_rules_json: parseJsonValue(values[13], []) as Array<Record<string, unknown>>,
-        contract_profile_version: Number(values[14] ?? 1),
-        token_ref: (values[15] as string | null) ?? null,
-        token_ciphertext: (values[16] as string | null) ?? null,
-        status: (values[17] as ApiServiceStoreRow['status']) ?? 'active',
+        token_param_name: (values[12] as string | null) ?? null,
+        response_mapping_rules_json: parseJsonValue(values[13], []) as Array<Record<string, unknown>>,
+        error_mapping_rules_json: parseJsonValue(values[14], []) as Array<Record<string, unknown>>,
+        contract_profile_version: Number(values[15] ?? 1),
+        token_ref: (values[16] as string | null) ?? null,
+        token_ciphertext: (values[17] as string | null) ?? null,
+        status: (values[18] as ApiServiceStoreRow['status']) ?? 'active',
         created_at: new Date('2026-05-24T10:00:00.000Z'),
         updated_at: new Date('2026-05-24T10:00:00.000Z'),
       };
@@ -247,6 +251,77 @@ test('resolveApiServiceForAcquisition returns only active services', async () =>
   const resolved = await resolveApiServiceForAcquisition(db as any, created.id);
   assert.ok(resolved);
   assert.equal(resolved?.tokenCiphertext, 'encrypted-token');
+});
+
+test('resolveApiServiceById and resolveApiServiceForCrawling return identical results', async () => {
+  const db = new ApiServiceDbStub();
+
+  const created = await createApiService(db as any, {
+    key: 'test-service',
+    label: 'Test Service',
+    baseUrl: 'https://example.com',
+    resourcePath: '/v1/test',
+    accessMode: 'token',
+    tokenRef: 'vault://test',
+    tokenCiphertext: 'encrypted-token',
+    status: 'active',
+  });
+
+  // Test all three function variants return identical results
+  const resolvedOriginal = await resolveApiServiceForAcquisition(db as any, created.id);
+  const resolvedById = await resolveApiServiceById(db as any, created.id);
+  const resolvedForCrawling = await resolveApiServiceForCrawling(db as any, created.id);
+
+  // All should return the same object
+  assert.deepEqual(resolvedById, resolvedOriginal);
+  assert.deepEqual(resolvedForCrawling, resolvedOriginal);
+  
+  // Verify the resolved service has expected properties
+  assert.ok(resolvedById);
+  assert.equal(resolvedById.id, created.id);
+  assert.equal(resolvedById.tokenCiphertext, 'encrypted-token');
+});
+
+test('semantic function aliases return null for non-existent service', async () => {
+  const db = new ApiServiceDbStub();
+  const nonExistentId = 'non-existent-id';
+
+  const resolvedById = await resolveApiServiceById(db as any, nonExistentId);
+  const resolvedForCrawling = await resolveApiServiceForCrawling(db as any, nonExistentId);
+
+  assert.equal(resolvedById, null);
+  assert.equal(resolvedForCrawling, null);
+});
+
+test('upsertApiServiceBinding supports crawling workflowStepType', async () => {
+  const db = new ApiServiceDbStub();
+
+  const service = await createApiService(db as any, {
+    key: 'serp-api',
+    label: 'SERP API',
+    baseUrl: 'https://serpapi.com',
+    resourcePath: '/search.json',
+    accessMode: 'query-param',
+    tokenRef: 'vault://serp-api',
+    tokenParamName: 'api_key',
+  });
+
+  const createdBinding = await upsertApiServiceBinding(db as any, {
+    apiServiceId: service.id,
+    toolKey: 'geometric',
+    stepKey: 'serp-crawling',
+    workflowStepType: 'crawling',
+    bindingStatus: 'active',
+    requiredness: 'required-by-tool-setting',
+  });
+
+  assert.equal(createdBinding.workflowStepType, 'crawling');
+  assert.equal(createdBinding.toolKey, 'geometric');
+  assert.equal(createdBinding.stepKey, 'serp-crawling');
+
+  const listedBindings = await listApiServiceBindings(db as any, service.id);
+  assert.equal(listedBindings.length, 1);
+  assert.equal(listedBindings[0]?.workflowStepType, 'crawling');
 });
 
 test('api-service adapter binding CRUD lifecycle supports list/upsert/delete', async () => {

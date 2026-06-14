@@ -1,11 +1,11 @@
 ---
 goal: Replace Puppeteer-based Google SERP crawling in Geometric with SERP API as the sole channel; reposition Puppeteer for future non-Google tool contexts
-version: 2.2
+version: 2.3
 date_created: 2026-06-13
-last-reviewed: 2026-06-13
+last-reviewed: 2026-06-15
 next-review-date: 2026-09-13
 owner: Backend Runtime
-status: draft
+status: active
 type: adr
 tags: [geometric, serp-api, serpapi, crawling, api-service, puppeteer-repurpose, paa, related-questions, ddd-129]
 ---
@@ -115,16 +115,15 @@ Esempi di futuri tool che beneficiano di Puppeteer:
 
 L'engine `google` standard è la scelta corretta per Geometric: fornisce in una sola chiamata tutti i dati necessari.
 
-| Campo | Valore attuale (workaround) | Valore target (dopo Blockers) |
-|-------|-------|-------|
-| baseUrl | `https://serpapi.com` | invariato |
-| resourcePath | `/search.json` | invariato |
-| accessMode | `token` ⚠️ workaround BLOCKER-001 | `query-param` |
-| tokenHeaderName | `X-API-KEY` (da verificare) | `null` |
-| tokenParamName | — campo non esiste ancora | `api_key` |
-| requestMethod | `GET` | invariato |
-| timeoutMs | `15000` | invariato |
-| retryCount | `2` | invariato |
+| Campo | Valore |
+|-------|-------|
+| baseUrl | `https://serpapi.com` |
+| resourcePath | `/search.json` |
+| accessMode | `query-param` |
+| tokenParamName | `api_key` |
+| requestMethod | `GET` |
+| timeoutMs | `15000` |
+| retryCount | `2` |
 
 **Request template** (parametri fissi per tutte le richieste):
 ```json
@@ -233,14 +232,13 @@ Se non impostata, `invokeCrawling` per Geometric ritorna `CRAWLING_FAILED` con r
 
 ### Step 4 — Registrare l'ApiService SerpAPI
 
-Via admin UI o seed script. **Il campo `access_mode` usa `'token'` come workaround** (BLOCKER-001 pending: `'query-param'` non supportato).
+Via admin UI o seed script.
 
 ```sql
 INSERT INTO api_services (
   id, key, label, base_url, resource_path,
   access_mode,
-  token_header_name,            -- workaround BLOCKER-001: 'X-API-KEY' se SerpAPI lo accetta
-                                -- altrimenti null e settare manualmente api_key nel template
+  token_param_name,
   timeout_ms, retry_count, request_method,
   request_template_json,
   request_mapping_rules_json,
@@ -253,8 +251,8 @@ INSERT INTO api_services (
   'SerpAPI Google Standard',
   'https://serpapi.com',
   '/search.json',
-  'token',                      -- workaround: 'query-param' richiede BLOCKER-001
-  'X-API-KEY',                  -- da verificare: SerpAPI accetta header X-API-KEY?
+  'query-param',
+  'api_key',
   15000, 2, 'GET',
   '{"query":{"engine":"google","num":"10"}}',
   '[{"sourcePath":"input.query","targetPath":"query.q","required":true},{"sourcePath":"input.language","targetPath":"query.hl"},{"sourcePath":"input.country","targetPath":"query.gl"}]',
@@ -268,19 +266,17 @@ INSERT INTO api_services (
 
 ### Step 5 — Binding al Geometric tool
 
-**Nota DDD**: `workflowStepType = 'crawling'` (DDD-116) è il valore semanticamente corretto. **Workaround BLOCKER-002**: il tipo `UpsertApiServiceBindingInput.workflowStepType` in `api-service.adapter.ts` accetta solo `'acquisition'`. Usare `'acquisition'` temporaneamente — il lookup avviene per ID via `SERP_API_SERVICE_ID`, quindi il valore del campo non impatta il funzionamento.
+**Nota DDD**: `workflowStepType = 'crawling'` (DDD-116) è il valore semanticamente corretto.
 
 ```sql
 -- Upsert via upsertApiServiceBinding() in api-service.adapter.ts
--- workflowStepType='acquisition' è workaround per BLOCKER-002
--- TODO: aggiornare a 'crawling' dopo migration (BLOCKER-002)
 INSERT INTO api_service_tool_step_bindings (
   api_service_id, tool_key, step_key,
   workflow_step_type,
   binding_status, requiredness
 ) VALUES (
   <serp-api-service-id>, 'geometric', 'serp-crawling',
-  'acquisition',
+  'crawling',
   'active', 'required-by-tool-setting'
 )
 ON CONFLICT (api_service_id, tool_key, step_key) DO UPDATE SET
@@ -424,129 +420,86 @@ Per uso admin-only (Geometric è `enabled-for-admin-only`), 5,000 query/mese son
 
 ## Blockers
 
-### BLOCKER-001 — `accessMode: 'query-param'` non supportato dall'adapter
+### BLOCKER-001 — `accessMode: 'query-param'` non supportato dall'adapter ✅ RISOLTO
 
-**Evidenza nel codice**: `ApiServiceAccessMode` in `apps/backend/src/lib/types/api-service.ts` è `'public' | 'token'` — non include `'query-param'`. `CreateApiServiceInput` non ha il campo `tokenParamName`. Il DB schema `api_services` non ha colonna `token_param_name`.
+**Stato**: Risolto il 2026-06-14. Migrazione `20260614_000017_add_token_param_name_column.sql` applicata.
 
-SerpAPI richiede la chiave come parametro query (`?api_key=YOUR_KEY`). Il corrente `api-acquisition.adapter.ts` supporta solo token come header HTTP.
+**Variazioni applicate**:
 
-**Variazioni richieste**:
-
-1. **`api-service.ts`** — estendere `ApiServiceAccessMode`:
+1. **`api-service.ts`** — `ApiServiceAccessMode` esteso:
 ```typescript
-// Prima: 'public' | 'token'
-// Dopo:
 export type ApiServiceAccessMode = 'public' | 'token' | 'query-param';
 ```
 
-2. **`CreateApiServiceInput`** — aggiungere campo:
+2. **`CreateApiServiceInput`** — campo aggiunto:
 ```typescript
 tokenParamName?: string | null;  // es. 'api_key' per SerpAPI
 ```
 
-3. **Migrazione DB** — nuova colonna in `api_services`:
+3. **Migrazione DB** — colonna aggiunta in `api_services`:
 ```sql
 ALTER TABLE api_services ADD COLUMN token_param_name TEXT DEFAULT NULL;
 ```
 
-4. **`api-acquisition.adapter.ts`** — iniettare token come query param:
+4. **`api-acquisition.adapter.ts`** — token iniettato come query param:
 ```typescript
 if (input.service.accessMode === 'query-param' && input.service.tokenCiphertext) {
   requestEnvelope.query[input.service.tokenParamName ?? 'api_key'] = input.service.tokenCiphertext;
 }
 ```
 
-5. **`api-service-validation.ts`** — accettare il nuovo accessMode nella validazione.
+5. **`api-service-validation.ts`** — validazione aggiornata per accettare `'query-param'`.
 
-**Workaround temporaneo**: testare se SerpAPI accetta `tokenHeaderName: 'X-API-KEY'` con `accessMode: 'token'`. Se sì, è operativo senza migration. La migration resta necessaria per il design corretto.
+6. **Contracts** — `packages/contracts/src/api-service.ts` aggiornato con nuovo campo e tipo.
+
+**Decisione DDD**: DDD-130 nel domain-naming-decision-log.md.
 
 ---
 
-### BLOCKER-002 — `workflowStepType` nel binding supporta solo `'acquisition'`
+### BLOCKER-002 — `workflowStepType` nel binding supporta solo `'acquisition'` ✅ RISOLTO
 
-**Evidenza nel codice** (`api-service.adapter.ts` linea 78):
+**Stato**: Risolto il 2026-06-14. Migrazione `20260614_000018_extend_workflow_step_type_constraint.sql` applicata.
+
+**Variazioni applicate**:
+
+1. **`api-service.ts`** — tipo esteso:
 ```typescript
-export type UpsertApiServiceBindingInput = {
-  ...
-  workflowStepType?: 'acquisition';  // ← solo 'acquisition' ammesso
-  ...
-};
-```
-
-Linea 245 e 254: il default è `'acquisition'` hardcoded. Passare `'crawling'` viola il type constraint TypeScript e causa errore di compilazione.
-
-**Impatto sulla proposal**: il binding SQL Step 5 che usa `workflowStepType = 'crawling'` non è compilabile con il codice attuale.
-
-**Variazioni richieste**:
-
-1. **`api-service.ts`** — estendere `ApiServiceToolStepBinding.workflowStepType`:
-```typescript
-// Il tipo è derivato da ApiServiceToolStepBindingRow
-// Prima: workflowStepType: 'acquisition'
-// Dopo:
 workflowStepType: 'acquisition' | 'crawling';
 ```
 
-2. **`api-service.adapter.ts`** — aggiornare `UpsertApiServiceBindingInput`:
+2. **`api-service.adapter.ts`** — `UpsertApiServiceBindingInput` aggiornato:
 ```typescript
 workflowStepType?: 'acquisition' | 'crawling';
 ```
 
-3. **Migrazione DB** — rimuovere o aggiornare il CHECK constraint su `api_service_tool_step_bindings.workflow_step_type` se presente:
+3. **Migrazione DB** — CHECK constraint aggiornato su `api_service_tool_step_bindings.workflow_step_type`:
 ```sql
--- Se esiste un constraint come: CHECK (workflow_step_type = 'acquisition')
--- Va aggiornato a: CHECK (workflow_step_type IN ('acquisition', 'crawling'))
+-- Constraint aggiornato a: CHECK (workflow_step_type IN ('acquisition', 'crawling'))
 ```
 
-**Workaround temporaneo**: registrare il binding con `workflowStepType: 'acquisition'` per ora. Funzionalmente non impatta il lookup (che avviene per ID via `SERP_API_SERVICE_ID`), ma è semanticamente errato rispetto al DDD. Migration richiesta prima del rollout completo.
+4. **Contracts** — `packages/contracts/src/api-service.ts` aggiornato con opzioni estese.
 
 ---
 
-### BLOCKER-003 — `resolveApiServiceForAcquisition` ha naming fuorviante per step `crawling`
+### BLOCKER-003 — `resolveApiServiceForAcquisition` ha naming fuorviante per step `crawling` ✅ RISOLTO
 
-**Evidenza nel codice** (`api-service.adapter.ts` linea 196):
-```typescript
-export const resolveApiServiceForAcquisition = async (
-  pool: Pool,
-  id: string,
-): Promise<ResolvedApiServiceForAcquisition | null> => {
-  // ...query by id WHERE status = 'active'
-};
-```
+**Stato**: Risolto il 2026-06-14. Alias aggiunti senza breaking changes.
 
-La funzione funziona per qualsiasi step (cerca per ID + `status=active`). Il nome include `ForAcquisition` che è fuorviante per l'uso in `invokeCrawling` (step `crawling`).
-
-**Non è un breaking issue** per il codice — è un debito semantico. La funzione va rinominata o duplicata con nome appropriato:
+**Variazioni applicate**:
 
 ```typescript
-// Opzione A — rinominare (breaking change per i chiamanti attuali)
-export const resolveApiServiceById = ...
-
-// Opzione B — aggiungere alias (non-breaking)
+// Alias aggiunti in api-service.adapter.ts
 export const resolveApiServiceForCrawling = resolveApiServiceForAcquisition;
+export const resolveApiServiceById = resolveApiServiceForAcquisition;
 ```
 
-Per il MVP, usare `resolveApiServiceForAcquisition` direttamente — funziona. Rinominare in follow-up.
+La funzione originale mantiene il nome per backward compatibility. JSDoc aggiornato per chiarire che funziona per qualsiasi step type.
 
 ---
 
-### Step 5 aggiornato — Binding con workaround per BLOCKER-002
+### Step 5 — Binding al Geometric tool
 
-Fino a quando BLOCKER-002 non è risolto, il binding usa `'acquisition'` come tipo. Il lookup via `SERP_API_SERVICE_ID` non dipende da `workflowStepType` quindi il workaround è funzionalmente corretto:
-
-```sql
-INSERT INTO api_service_tool_step_bindings (
-  api_service_id, tool_key, step_key,
-  workflow_step_type,           -- 'acquisition' come workaround (BLOCKER-002 pending)
-  binding_status, requiredness
-) VALUES (
-  <serp-api-service-id>, 'geometric', 'serp-crawling',
-  'acquisition',                -- TODO: aggiornare a 'crawling' dopo migration
-  'active', 'required-by-tool-setting'
-);
-```
-
-**Note DDD**: il `workflowStepType` corretto per DDD è `'crawling'` (DDD-116). Il workaround `'acquisition'` è un debito temporaneo documentato in BLOCKER-002.
+Il binding usa `workflowStepType: 'crawling'` come valore semanticamente corretto (DDD-116).
 
 ## Related
 

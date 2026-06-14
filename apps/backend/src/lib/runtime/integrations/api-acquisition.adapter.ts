@@ -397,6 +397,9 @@ export const executeApiAcquisition = async (
           ? `Bearer ${input.service.tokenCiphertext}`
           : input.service.tokenCiphertext;
         upsertHeaderCaseInsensitive(headers, tokenHeaderName, tokenValue);
+      } else if (input.service.accessMode === 'query-param' && input.service.tokenCiphertext) {
+        const paramName = input.service.tokenParamName || 'api_key';
+        url.searchParams.set(paramName, input.service.tokenCiphertext);
       }
 
       const method = requestEnvelope.method;

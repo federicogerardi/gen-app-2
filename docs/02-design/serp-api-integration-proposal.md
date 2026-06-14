@@ -1,133 +1,227 @@
 ---
-goal: Integrate SERP API as primary crawling channel for Geometric tool, replacing direct Puppeteer scraping as the default path while keeping Puppeteer as fallback
-version: 1.1
+goal: Replace Puppeteer-based Google SERP crawling in Geometric with SERP API as the sole channel; reposition Puppeteer for future non-Google tool contexts
+version: 2.2
 date_created: 2026-06-13
 last-reviewed: 2026-06-13
 next-review-date: 2026-09-13
 owner: Backend Runtime
 status: draft
 type: adr
-tags: [geometric, serp-api, crawling, api-service, acquisition, puppeteer-fallback, ddd-129]
+tags: [geometric, serp-api, serpapi, crawling, api-service, puppeteer-repurpose, paa, related-questions, ddd-129]
 ---
 
-# ADR — SERP API Integration as Primary Crawling Channel
+# ADR — Architectural Split: SERP API for Geometric, Puppeteer for Future Web Tools
 
 ## Context
 
-Il crawling SERP attuale usa Puppeteer + stealth plugin per navigare direttamente `google.it`. Google rileva e blocca le richieste automatizzate (sourceCount: 0, paaCount: 0 nei log). Lo screenshot viene comunque catturato, ma i dati strutturati (fonti, snippet, PAA) non vengono estratti.
+Il Geometric tool usa Puppeteer + stealth plugin per navigare direttamente `google.it`. Google rileva sistematicamente le richieste automatizzate (sourceCount: 0, paaCount: 0 nei log di produzione) indipendentemente dal livello di stealth.
 
-Il sistema ha già un componente **ApiService** completo e configurabile che gestisce:
-- Chiamate HTTP con auth token, retry, timeout
+**Constatazione**: nessuna quantità di configurazione Puppeteer risolverà il problema con Google a lungo termine. Google investe significativamente in anti-bot detection. Le SERP API commerciali gestiscono già questa complessità e offrono dati strutturati affidabili.
+
+Il sistema ha già un componente **ApiService** completo e configurabile:
+- Chiamate HTTP con auth token, retry, timeout configurabili
 - Request/response mapping via JSON rules
 - Error mapping con projection
 - Binding a tool+step specifici
-- Cache Redis per orchestrazione
+
+**Realtà del crawler Puppeteer esistente**: è uno strumento efficace per accedere a siti web con livelli di protezione moderati (blog, articoli, pagine statiche). Il suo valore non è zero — semplicemente non è adatto per Google SERP.
 
 ## Decision
 
-Usare **SERP API** (SerpAPI o DataForSEO) come canale **primario** per il crawling SERP, configurato tramite il sistema ApiService esistente. Puppeteer rimane come **fallback** quando la SERP API fallisce o la quota è esaurita.
+**Separazione architetturale per canale di crawling**:
+
+| Tool | Canale | Ragione |
+|---|---|---|
+| **Geometric** | SERP API (SerpAPI, futuri provider) | Google blocca Puppeteer; le API sono il solo canale affidabile per Google SERP |
+| **Futuri tool** (webfetch, blog scraper, ecc.) | Puppeteer (già implementato) | Siti con protezione moderata — browser automation è efficace e non richiede costi API |
+
+**Per Geometric**: Puppeteer è rimosso dal path di esecuzione. Non esiste più un "fallback" a Puppeteer — se la SERP API è non configurata o non disponibile, lo step `serp-crawling` fallisce con `CRAWLING_FAILED`. Il risultato è un errore esplicito anziché dati vuoti silenziosamente accettati.
+
+**Per futuri tool**: Puppeteer (`crawlSerp`, `discoverPAAQueries`) rimane nell'adapter `crawling.adapter.ts` disponibile per step `WorkflowStepType = 'crawling'` che operano su siti non-Google.
+
+### Perché non mantenere il fallback Puppeteer per Geometric
+
+Il fallback Puppeteer per Geometric è **illusorio**:
+1. Google blocca Puppeteer → il fallback ritorna sempre `sourceCount: 0`, `paaCount: 0`
+2. Un `CRAWLING_COMPLETED` con zero fonti è peggio di un `CRAWLING_FAILED` esplicito: causa un `scoring_failed.no_sources` ed un 500 silenzioso ugualmente, ma maschera il vero problema
+3. Mantenere un path di codice che non funziona crea ambiguità operativa
 
 ### Perché non implementare un adapter SERP API dedicato
 
-L'architettura ApiService è già sufficiente per integrare qualsiasi SERP API:
+L'architettura ApiService esistente è sufficiente:
 - **baseUrl** + **resourcePath** = URL dell'endpoint SERP
-- **accessMode: token** = API key nell'header
-- **requestMappingRulesJson** = mappa `query` → parametro della SERP API
-- **responseMappingRulesJson** = estrae `sources`, `snippets`, `paaQueries` dalla risposta JSON
-- **errorMappingRulesJson** = gestisce errori specifici (quota exceeded, rate limit)
-- **retryCount** + **timeoutMs** = già configurabili
+- **accessMode** = autenticazione token o query-param
+- **requestMappingRulesJson** = mappa query → parametri API
+- **responseMappingRulesJson** = estrae `sources`, `aiOverviewSnippet`, `paaQueries`
+- **errorMappingRulesJson** = gestisce errori specifici (rate limit, quota)
+- **retryCount** + **timeoutMs** = configurabili
 
-Non serve un nuovo adapter. Serve solo:
-1. Registrare un ApiService per la SERP API scelta
-2. Bindarlo al geometric tool `serp-crawling` step
-3. Modificare `invokeCrawling` per tentare prima la SERP API, poi fallback a Puppeteer
+Non serve nuovo codice infrastructure. Serve solo:
+1. Registrare un ApiService per SerpAPI nel DB
+2. Bindarlo al Geometric tool `serp-crawling` step
+3. Riscrivere `invokeCrawling` per usare **esclusivamente** la SERP API per Geometric
 
-## Architettura Proposta
+## Architettura Aggiornata
+
+### Geometric — `invokeCrawling` (SOLO API)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  invokeCrawling (generation-system.actors.ts)                │
-│                                                              │
-│  1. resolveApiServiceForAcquisition(serp-api-service-id)     │
-│     ↓                                                        │
-│  2. executeApiAcquisition({ service: serpApi, query })       │
-│     ↓                                                        │
-│  3. Se OK → parse SERP API response → crawlArtifacts         │
-│     ↓                                                        │
-│  4. Se FAIL → fallback a crawlSerp() (Puppeteer)            │
-│     ↓                                                        │
-│  5. archiveScreenshot() SOLO da Puppeteer fallback           │
-│     (SERP API non restituisce screenshot)                    │
-│     ↓                                                        │
-│  6. return CRAWLING_COMPLETED                                │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  invokeCrawling — Geometric (generation-system.actors.ts)        │
+│                                                                  │
+│  1. resolveApiService(SERP_API_SERVICE_ID)                       │
+│     ↓                                                            │
+│     Se non configurato → return CRAWLING_FAILED                  │
+│     (config error: non mascherare con dati vuoti)                │
+│     ↓                                                            │
+│  2. executeApiAcquisition({ service, query, language, country }) │
+│     ↓                                                            │
+│  3. Se 429/quota → retry con backoff (max retryCount)            │
+│     Se ancora KO → return CRAWLING_FAILED                        │
+│     ↓                                                            │
+│  4. normalizeSerpApiResponse(payload)                            │
+│     → SerpSource[], SerpAIOverviewSnippet, PAAQuery[]            │
+│     → SerpScreenshot = null (SERP API non restituisce immagini)  │
+│     → queryHints[] (related_searches, non PAAQuery per DDD-118) │
+│     ↓                                                            │
+│  5. return CRAWLING_COMPLETED                                    │
+│     (nessun screenshot: SERP API non restituisce immagini)       │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-**Nota screenshot**: Le SERP API commerciali (SerpAPI, DataForSEO) **non restituiscono screenshot**. Lo screenshot è prodotto **solo** dal fallback Puppeteer (`crawlSerp()`). Se la SERP API ha successo e il fallback non viene eseguito, nessun screenshot viene archiviato per quella query. Questo è un trade-off accettabile: la SERP API fornisce dati strutturati affidabili; lo screenshot è un bonus del fallback Puppeteer.
+**Nota screenshot**: SERP API non restituisce screenshot. Lo screenshot archival (`screenshot-archival.ts`) rimane nel sistema ma non viene invocato per Geometric. Rimarrà utile per futuri tool che usano Puppeteer.
 
-## Configurazione SERP API
+### Futuri tool — Puppeteer rimane disponibile
 
-### Opzione A — SerpAPI (raccomandata)
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  invokeCrawling — Tool generico con Puppeteer                    │
+│                                                                  │
+│  1. crawlSerp(url, language, country)  ← Puppeteer               │
+│     → SerpSource[], SerpAIOverviewSnippet, screenshotPath        │
+│     ↓                                                            │
+│  2. archiveScreenshot(screenshotPath)  ← già implementato        │
+│     ↓                                                            │
+│  3. return CRAWLING_COMPLETED                                    │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-| Campo | Valore |
-|-------|--------|
-| baseUrl | `https://serpapi.com` |
-| resourcePath | `/search.json` |
-| accessMode | `token` |
-| tokenHeaderName | `Authorization` |
-| requestMethod | `GET` |
-| timeoutMs | `15000` |
-| retryCount | `2` |
+Esempi di futuri tool che beneficiano di Puppeteer:
+- Webfetch di articoli blog
+- Scraping di pagine prodotto (e-commerce non protetto)
+- Estrazione contenuto da CMS statici
 
-**Request mapping:**
+## Configurazione SerpAPI — `engine=google`
+
+L'engine `google` standard è la scelta corretta per Geometric: fornisce in una sola chiamata tutti i dati necessari.
+
+| Campo | Valore attuale (workaround) | Valore target (dopo Blockers) |
+|-------|-------|-------|
+| baseUrl | `https://serpapi.com` | invariato |
+| resourcePath | `/search.json` | invariato |
+| accessMode | `token` ⚠️ workaround BLOCKER-001 | `query-param` |
+| tokenHeaderName | `X-API-KEY` (da verificare) | `null` |
+| tokenParamName | — campo non esiste ancora | `api_key` |
+| requestMethod | `GET` | invariato |
+| timeoutMs | `15000` | invariato |
+| retryCount | `2` | invariato |
+
+**Request template** (parametri fissi per tutte le richieste):
+```json
+{
+  "query": {
+    "engine": "google",
+    "num": "10"
+  }
+}
+```
+
+**Request mapping** (parametri dinamici):
 ```json
 [
-  { "sourcePath": "input.query", "targetPath": "query.q", "required": true },
-  { "sourcePath": "input.language", "targetPath": "query.hl" },
-  { "sourcePath": "input.country", "targetPath": "query.gl" }
+  { "sourcePath": "input.query",    "targetPath": "query.q",  "required": true },
+  { "sourcePath": "input.language", "targetPath": "query.hl"                   },
+  { "sourcePath": "input.country",  "targetPath": "query.gl"                   }
 ]
 ```
 
-**Response mapping (SerpAPI → formato interno):**
+**Response mapping**:
 ```json
 [
-  { "sourcePath": "organic_results", "targetPath": "sources", "required": false },
-  { "sourcePath": "answer_box.snippet", "targetPath": "aiOverviewSnippet" },
-  { "sourcePath": "related_questions", "targetPath": "paaQueries" }
+  { "sourcePath": "organic_results",    "targetPath": "sources",          "required": false },
+  { "sourcePath": "answer_box.snippet", "targetPath": "aiOverviewSnippet"                   },
+  { "sourcePath": "related_questions",  "targetPath": "paaQuestions"                        },
+  { "sourcePath": "related_searches",   "targetPath": "relatedSearches"                     }
 ]
 ```
 
-### Opzione B — DataForSEO
+**Error mapping**:
+```json
+[
+  { "statusCode": 429, "errorCode": "rate_limited",    "message": "SerpAPI rate limit exceeded"    },
+  { "statusCode": 401, "errorCode": "api_auth_failed", "message": "SerpAPI API key invalid"        },
+  { "statusCode": 403, "errorCode": "quota_exceeded",  "message": "SerpAPI quota exhausted"        }
+]
+```
 
-| Campo | Valore |
-|-------|--------|
-| baseUrl | `https://api.dataforseo.com` |
-| resourcePath | `/v3/serp/google/organic/live/advanced` |
-| accessMode | `token` |
-| tokenHeaderName | `Authorization` |
-| requestMethod | `POST` |
-| timeoutMs | `30000` |
-| retryCount | `1` |
+### PAA — People Also Ask e Related Searches
+
+Tre campi distinti nella risposta SerpAPI `engine=google` per l'espansione del `QueryCluster`:
+
+| Campo SerpAPI | Engine | Struttura | Semantica | Uso |
+|---|---|---|---|---|
+| `related_questions[]` | `google` | `{ question, snippet, title, link, next_page_token }` | "People Also Ask" — domande reali con risposta | ✅ **Fonte primaria PAA** |
+| `related_searches[]` | `google` | `{ query, block_position, link }` | "People Also Search For" — query correlate | Fallback se PAA assenti |
+| PAA espanse | `google_related_questions` | `{ question, type, snippet\|text_blocks, next_page_token }` | PAA aggiuntive via `next_page_token` | 🔄 Opzionale (fase 2) |
+
+**Flusso PAA** — `engine=google_related_questions` è un engine separato che richiede un `next_page_token` dalla risposta `engine=google`. Non accetta query dirette:
+
+```
+Chiamata 1: engine=google + q=baseQuery
+  → related_questions[].question     → PAAQuery[] (fino a 4)
+  → related_questions[].next_page_token → token per espansione
+
+Chiamata 2 (opzionale): engine=google_related_questions + next_page_token=<token>
+  → related_questions[]  → PAA con snippet/AI answer strutturati
+```
+
+Due tipi di risposta PAA:
+- `type: "featured_snippet"` — snippet testuale nel campo `snippet`
+- `type: "ai_overview"` — risposta AI con `text_blocks[]` e `references[]`
 
 ## Implementation Steps
 
-### Step 1 — Modificare `invokeCrawling` per usare ApiService come primary
+### Step 1 — Riscrivere `invokeCrawling` per Geometric (solo API)
 
 **File**: `apps/backend/src/lib/machines/generation-system.actors.ts`
 
-L'actor `invokeCrawling` attualmente:
-1. Chiama `crawlSerp()` (Puppeteer) direttamente
-2. Chiama `discoverPAAQueries()` (Puppeteer)
-3. Chiama `archiveScreenshot()`
+L'actor attuale chiama Puppeteer direttamente. **Il nuovo flusso Geometric non usa più Puppeteer**:
 
-Nuovo flusso:
-1. Risolve l'ApiService per la SERP API (dal DB, via binding o env var `SERP_API_SERVICE_ID`)
-2. Se trovato e attivo → `executeApiAcquisition()` con la query
-3. Se la risposta è valida → parse → `crawlArtifacts`
-4. Se fallisce o non trovato → fallback a `crawlSerp()` (Puppeteer)
-5. Sempre → `archiveScreenshot()` dallo screenshot del fallback o dalla SERP API
+```
+PRIMA (da rimuovere per Geometric):
+1. crawlSerp() (Puppeteer)
+2. discoverPAAQueries() (Puppeteer)
+3. archiveScreenshot()
 
-### Step 2 — Aggiungere env var `SERP_API_SERVICE_ID`
+DOPO (Geometric — solo API):
+1. resolveApiService(SERP_API_SERVICE_ID)
+   → se null → return CRAWLING_FAILED "serp_api_not_configured"
+2. executeApiAcquisition({ service, query: baseQuery, language, country })
+   → retry automatico su 429 (max retryCount del servizio)
+   → se fallisce → return CRAWLING_FAILED con reason dall'error mapping
+3. normalizeSerpApiResponse(payload) → { sources, aiOverviewSnippet, paaQueries }
+4. return CRAWLING_COMPLETED
+```
+
+La funzione `crawlSerp()` di Puppeteer non viene più chiamata in `invokeCrawling` per il Geometric tool. Rimane disponibile nell'adapter per futuri tool.
+
+### Step 2 — Rimuovere `discoverPAAQueries()` dal path Geometric
+
+**File**: `apps/backend/src/lib/runtime/integrations/crawling.adapter.ts`
+
+`discoverPAAQueries()` apre un browser Puppeteer separato per ogni PAA query. Con SerpAPI le PAA arrivano già dalla risposta principale (`related_questions[]`). La funzione rimane disponibile nell'adapter per futuri tool Puppeteer, ma non viene più chiamata per Geometric.
+
+### Step 3 — Aggiungere env var `SERP_API_SERVICE_ID`
 
 **File**: `apps/backend/src/server.ts`
 
@@ -135,87 +229,170 @@ Nuovo flusso:
 SERP_API_SERVICE_ID=<uuid-dell-api-service-serp>
 ```
 
-Se non impostata, il sistema usa solo Puppeteer (comportamento attuale).
+Se non impostata, `invokeCrawling` per Geometric ritorna `CRAWLING_FAILED` con reason `serp_api_not_configured`. Questo è il comportamento corretto — **non** un fallback silenzioso a Puppeteer.
 
-### Step 3 — Registrare l'ApiService SERP
+### Step 4 — Registrare l'ApiService SerpAPI
 
-Via admin UI o seed script:
+Via admin UI o seed script. **Il campo `access_mode` usa `'token'` come workaround** (BLOCKER-001 pending: `'query-param'` non supportato).
+
 ```sql
 INSERT INTO api_services (
-  id, key, label, base_url, resource_path, access_mode,
+  id, key, label, base_url, resource_path,
+  access_mode,
+  token_header_name,            -- workaround BLOCKER-001: 'X-API-KEY' se SerpAPI lo accetta
+                                -- altrimenti null e settare manualmente api_key nel template
   timeout_ms, retry_count, request_method,
-  request_mapping_rules_json, response_mapping_rules_json,
-  error_mapping_rules_json, status
+  request_template_json,
+  request_mapping_rules_json,
+  response_mapping_rules_json,
+  error_mapping_rules_json,
+  status
 ) VALUES (
   gen_random_uuid(),
-  'serp-api',
-  'SERP API Primary',
+  'serpapi-google-standard',
+  'SerpAPI Google Standard',
   'https://serpapi.com',
   '/search.json',
-  'token',
+  'token',                      -- workaround: 'query-param' richiede BLOCKER-001
+  'X-API-KEY',                  -- da verificare: SerpAPI accetta header X-API-KEY?
   15000, 2, 'GET',
+  '{"query":{"engine":"google","num":"10"}}',
   '[{"sourcePath":"input.query","targetPath":"query.q","required":true},{"sourcePath":"input.language","targetPath":"query.hl"},{"sourcePath":"input.country","targetPath":"query.gl"}]',
-  '[{"sourcePath":"organic_results","targetPath":"sources"},{"sourcePath":"answer_box.snippet","targetPath":"aiOverviewSnippet"},{"sourcePath":"related_questions","targetPath":"paaQueries"}]',
-  '[{"statusCode":429,"errorCode":"rate_limited","message":"SERP API rate limit exceeded"},{"statusCode":403,"errorCode":"quota_exceeded","message":"SERP API quota exhausted"}]',
+  '[{"sourcePath":"organic_results","targetPath":"sources"},{"sourcePath":"answer_box.snippet","targetPath":"aiOverviewSnippet"},{"sourcePath":"related_questions","targetPath":"paaQuestions"},{"sourcePath":"related_searches","targetPath":"relatedSearches"}]',
+  '[{"statusCode":429,"errorCode":"rate_limited","message":"SerpAPI rate limit exceeded"},{"statusCode":401,"errorCode":"api_auth_failed","message":"SerpAPI API key invalid"},{"statusCode":403,"errorCode":"quota_exceeded","message":"SerpAPI quota exhausted"}]',
   'active'
 );
 ```
 
-### Step 4 — Binding al geometric tool
+> **Note sulla struttura dati**: i campi mappano esattamente a `CreateApiServiceInput` in `api-service.adapter.ts`. `tokenCiphertext` (la chiave reale) viene salvata tramite admin UI separatamente — non va nel seed SQL per sicurezza.
 
-**Nota DDD**: Il `workflowStepType` rimane `'crawling'` (DDD-116), non `'acquisition'`. La SERP API è un **canale di acquisizione dati** per lo step di crawling, ma non cambia il tipo dello step. Il `WorkflowStepType` rimane `'crawling'`; cambia solo il **mezzo** di acquisizione (SERP API invece di Puppeteer).
+### Step 5 — Binding al Geometric tool
+
+**Nota DDD**: `workflowStepType = 'crawling'` (DDD-116) è il valore semanticamente corretto. **Workaround BLOCKER-002**: il tipo `UpsertApiServiceBindingInput.workflowStepType` in `api-service.adapter.ts` accetta solo `'acquisition'`. Usare `'acquisition'` temporaneamente — il lookup avviene per ID via `SERP_API_SERVICE_ID`, quindi il valore del campo non impatta il funzionamento.
 
 ```sql
+-- Upsert via upsertApiServiceBinding() in api-service.adapter.ts
+-- workflowStepType='acquisition' è workaround per BLOCKER-002
+-- TODO: aggiornare a 'crawling' dopo migration (BLOCKER-002)
 INSERT INTO api_service_tool_step_bindings (
-  api_service_id, tool_key, step_key, workflow_step_type,
+  api_service_id, tool_key, step_key,
+  workflow_step_type,
   binding_status, requiredness
 ) VALUES (
-  <serp-api-service-id>, 'geometric', 'serp-crawling', 'crawling',
+  <serp-api-service-id>, 'geometric', 'serp-crawling',
+  'acquisition',
   'active', 'required-by-tool-setting'
-);
+)
+ON CONFLICT (api_service_id, tool_key, step_key) DO UPDATE SET
+  workflow_step_type = EXCLUDED.workflow_step_type,
+  binding_status = EXCLUDED.binding_status,
+  requiredness = EXCLUDED.requiredness,
+  updated_at = NOW();
 ```
 
-### Step 5 — Domain Translation: SERP API → Concetti di Dominio
+### Step 6 — Domain Translation: SerpAPI Google Standard → Concetti di Dominio
 
-La risposta SERP API ha un formato diverso dal payload generico. Serve un **response normalizer** che converte i campi SERP API ai concetti di dominio del Crawling & Extraction Context (DDD-114):
+Normalizer `normalizeSerpApiResponse(payload)` in `crawling.adapter.ts`:
 
-| Campo SERP API | Concetto di Dominio | Tipo | Note |
+**Fonti competitor:**
+
+| Campo SerpAPI | Concetto di Dominio | Tipo | Note |
 |---|---|---|---|
 | `organic_results[].title` | `SerpSource.title` | `string` | Titolo del risultato organico |
-| `organic_results[].link` | `SerpSource.url` | `string` | URL del dominio |
-| `organic_results[].snippet` | `SerpSource.snippet` | `string \| null` | Testo snippet |
-| `organic_results[].position` | `SerpSource.position` | `number` | Posizione nella SERP (opzionale) |
-| `answer_box.snippet` | `SerpAIOverviewSnippet` | `string \| null` | Testo dell'AI Overview |
-| `related_questions[].question` | `PAAQuery` | `string` | Query "People Also Ask" |
-| `search_metadata.status` | `CrawlingResult.status` | `string` | Stato della richiesta SERP API |
-| `search_metadata.total_time_taken` | `CrawlingResult.durationMs` | `number` | Tempo di esecuzione in secondi |
+| `organic_results[].link` | `SerpSource.url` | `string` | URL del dominio competitor |
+| `organic_results[].snippet` | `SerpSource.snippet` | `string \| null` | Snippet di testo |
+| `organic_results[].displayed_link` | `SerpSource.domain` | `string` | Per scoring |
+| `organic_results[].position` | `SerpSource.position` | `number` | Posizione SERP |
 
-**Mappatura `SerpSourceType`**: Tutti i risultati da `organic_results` sono classificati come `SerpSourceType = 'organic'`. I risultati `paid_results` (se presenti nella risposta SERP API) sono classificati come `'sponsored'`. I risultati `video_results` sono classificati come `'video'`.
+**AI Overview:**
 
-**Normalizer dedicato**: La mappatura deve avvenire in `crawling.adapter.ts` tramite una funzione `normalizeSerpApiResponse(payload)` che riceve il payload grezzo dalla SERP API e restituisce un `CrawlingResult` con i campi di dominio corretti. Questo normalizer è responsabile della traduzione del formato SERP API al formato `CrawlArtifact` consumato dal downstream (`CompetitorAnalysisContext`).
-
-### Step 6 — Error Mapping: SERP API → Crawling Failure Reasons
-
-| Errore SERP API | HTTP Status | Crawling Failure Reason | Comportamento |
+| Campo SerpAPI | Concetto di Dominio | Tipo | Note |
 |---|---|---|---|
-| Rate limit exceeded | `429` | `crawling_rate_limited` | Retry con backoff (max 2), poi fallback Puppeteer |
-| Quota exhausted | `403` | `crawling_quota_exceeded` | Fallback immediato a Puppeteer, log warning |
-| Invalid API key | `401` | `crawling_api_auth_failed` | Fallback a Puppeteer, log error (configurazione errata) |
-| Timeout | — | `crawling_api_timeout` | Fallback a Puppeteer |
-| Network error | — | `crawling_api_network_error` | Fallback a Puppeteer |
-| SERP API non configurata | — | — | Usa solo Puppeteer (comportamento attuale) |
+| `answer_box.snippet` | `SerpAIOverviewSnippet` | `string \| null` | Può essere assente |
 
-## Fallback Strategy
+**Query espansione QueryCluster:**
 
-| Scenario | Comportamento |
-|----------|--------------|
-| SERP API OK | Usa dati SERP API → `crawlArtifacts` con `SerpSource`, `SerpAIOverviewSnippet`, `PAAQuery`. **Nessuno screenshot** (SERP API non restituisce immagini). |
-| SERP API 429 (rate limit) | Retry con backoff (max 2), poi fallback Puppeteer |
-| SERP API 403 (quota) | Fallback immediato a Puppeteer |
-| SERP API timeout | Fallback a Puppeteer |
-| SERP API non configurata | Usa solo Puppeteer (comportamento attuale) |
-| Puppeteer fallisce | `sourceCount: 0`, `paaCount: 0`, screenshot comunque archiviato (se catturato prima del fallimento) |
-| Puppeteer OK (fallback) | Dati da Puppeteer + screenshot archiviato |
+| Campo SerpAPI | Concetto di Dominio | Semantica |
+|---|---|---|
+| `related_questions[].question` | `PAAQuery` | **Fonte primaria** — "People Also Ask": domande PAA canoniche (DDD-118) con risposta |
+| `related_questions[].snippet` | *(metadata)* | Risposta quando `type: "featured_snippet"` |
+| `related_questions[].next_page_token` | *(token espansione)* | Per `engine=google_related_questions` (opzionale) |
+| `related_searches[].query` | *(query hint non-PAA)* | "People Also Search For" — **non è `PAAQuery`** (DDD-118): query correlate senza risposta, non derivate da "People Also Ask". Usato come sorgente alternativa per espansione `QueryCluster` quando PAA è assente, ma classificato come query hint distinto. |
+
+> **Nota DDD**: `PAAQuery` è canonicamente definito come "Google People Also Ask correlated query" (DDD-118). `related_searches[]` sono query correlate di tipo diverso ("People Also Search For"). Mescolare i due come `PAAQuery` viola la semantica. Il normalizer deve tenere separati i due tipi e usare `PAAQuery` solo per `related_questions[].question`.
+
+**Mappatura `SerpSourceType`** — i valori canonici sono definiti nel glossario (DDD-114, status: provisional):
+- `organic_results[]` → `SerpSourceType.ORGANIC_WEBSITE`
+- `paid_results[]` (se presente) → `SerpSourceType.SPONSORED_ADS`
+- `video_results[]` con `youtube.com` → `SerpSourceType.YOUTUBE_VIDEO`
+- `video_results[]` altri → `SerpSourceType.SOCIAL_MEDIA` (approssimazione conservativa)
+
+**Normalizer — logica priorità PAA e separazione concettuale:**
+
+```typescript
+// PAAQuery (DDD-118): SOLO da related_questions — "People Also Ask"
+const paaQueries: string[] = Array.isArray(payload.paaQuestions)
+  ? (payload.paaQuestions as { question?: string }[])
+      .map(q => q.question)
+      .filter((q): q is string => typeof q === 'string' && q.length > 0)
+      .slice(0, 4)
+  : [];
+
+// queryHints: da related_searches — "People Also Search For" (NON PAAQuery)
+// Usati separatamente per eventuale espansione del QueryCluster
+const queryHints: string[] = Array.isArray(payload.relatedSearches)
+  ? (payload.relatedSearches as { query?: string }[])
+      .map(s => s.query)
+      .filter((q): q is string => typeof q === 'string' && q.length > 0)
+      .slice(0, 4)
+  : [];
+
+// SerpScreenshot è sempre null per SERP API (nessuna immagine restituita)
+// ma deve essere presente nel CrawlingResult per conformità al glossario (DDD-114)
+const serpScreenshot: null = null;
+
+// CrawlingResult output — conforme a CrawlingResult (DDD-114)
+return {
+  sources,           // SerpSource[] da organic_results
+  aiOverviewSnippet, // SerpAIOverviewSnippet | null da answer_box
+  paaQueries,        // PAAQuery[] da related_questions (DDD-118)
+  queryHints,        // string[] da related_searches (non PAAQuery — held separate)
+  screenshotPath: serpScreenshot, // SerpScreenshot = null — SERP API non restituisce immagini
+};
+
+// Token PAA per espansione opzionale futura (conservati, non usati in MVP)
+const paaTokens = Array.isArray(payload.paaQuestions)
+  ? (payload.paaQuestions as { question?: string; next_page_token?: string }[])
+      .filter(q => q.question && q.next_page_token)
+      .map(q => ({ question: q.question!, token: q.next_page_token! }))
+      .slice(0, 4)
+  : [];
+```
+
+### Step 7 — Error Handling: SERP API → CRAWLING_FAILED (no fallback)
+
+Con la rimozione del fallback Puppeteer, ogni errore SERP API diventa un `CRAWLING_FAILED` esplicito che il `generationSystemMachine` gestisce via `resolvingFallbackPolicy`:
+
+| Scenario | HTTP Status | Reason Code | Comportamento |
+|---|---|---|---|
+| SERP API non configurata | — | `serp_api_not_configured` | `CRAWLING_FAILED` — config error, richiede setup |
+| Rate limit | `429` | `crawling_rate_limited` | Retry max `retryCount`, poi `CRAWLING_FAILED` |
+| Quota esaurita | `403` | `crawling_quota_exceeded` | `CRAWLING_FAILED` — richiede upgrade piano |
+| API key non valida | `401` | `crawling_api_auth_failed` | `CRAWLING_FAILED` — config error |
+| Timeout | — | `crawling_api_timeout` | `CRAWLING_FAILED` dopo timeout |
+| Errore di rete | — | `crawling_api_network_error` | `CRAWLING_FAILED` |
+| SERP API OK | 200 | — | `CRAWLING_COMPLETED` con dati strutturati |
+
+## Comportamento del sistema a fronte di errori
+
+| Scenario | Risultato visibile all'utente | Log |
+|---|---|---|
+| SERP API OK | Workflow Geometric completa normalmente | `crawling.completed` |
+| SERP API non configurata | 500 con `failureReason: serp_api_not_configured` | `crawling.failed.serp_api_not_configured` |
+| Quota esaurita | 500 con `failureReason: crawling_quota_exceeded` | `crawling.failed.quota_exceeded` — upgrade piano |
+| Rate limit (tutti i retry esauriti) | 500 con `failureReason: crawling_rate_limited` | `crawling.failed.rate_limited` — ridurre frequenza |
+
+Questo è preferibile al comportamento precedente in cui Puppeteer silenziosamente ritornava zero fonti con status 500 ugualmente.
 
 ## Costi Stimati
 
@@ -231,21 +408,149 @@ Per uso admin-only (Geometric è `enabled-for-admin-only`), 5,000 query/mese son
 
 | Rischio | Probabilità | Impatto | Mitigazione |
 |---------|------------|---------|-------------|
-| SERP API down | Bassa | Medio | Fallback a Puppeteer automatico |
-| Quota esaurita | Media | Medio | Alert + fallback a Puppeteer |
-| Formato risposta SERP API cambia | Bassa | Alto | Test di integrazione + response mapping configurabile |
-| Costi superiori al previsto | Bassa | Basso | Monitoraggio usage + alert |
+| SERP API down | Bassa | Alto | Alert monitoring; il tool fallisce esplicitamente; pianificare multi-provider |
+| Quota esaurita | Media | Alto | Alert a soglia 80%; upgrade piano automatico o manuale |
+| Formato risposta cambia | Bassa | Alto | Response mapping configurabile via DB (no deploy); test di integrazione periodici |
+| Costi superiori al previsto | Bassa | Basso | Monitoraggio usage; quota/mese configurabile |
+| Provider SERP API depreca endpoint | Bassa | Medio | `ApiService` registrato in DB — cambio provider = nuovo record + binding, no codice |
 
 ## Alternatives Considerate
 
-- **ALT-001**: Proxy rotation + Puppeteer — Rifiutato: costi proxy residenziali ($10-15/GB), manutenzione continua, efficacia incerta contro Google 2026
-- **ALT-002**: Bing Web Search API — Rifiutato: risultati inferiori per SEO analysis, non compatibili con il workflow Geometric
-- **ALT-003**: Adapter SERP API dedicato — Rifiutato: il sistema ApiService esistente è già sufficiente, non serve duplicare la logica
+- **ALT-001**: Puppeteer + fallback per Geometric — Rifiutato: Google blocca sistematicamente; il fallback è illusorio e maschera il problema con dati vuoti e 500 uguale
+- **ALT-002**: Proxy rotation + Puppeteer — Rifiutato: costi proxy residenziali elevati, manutenzione continua, efficacia incerta contro Google 2026
+- **ALT-003**: Bing Web Search API — Rifiutato: risultati su Google SERP sono il requisito; Bing non sostituisce Google per GEO analysis
+- **ALT-004**: Adapter SERP API dedicato — Rifiutato: il sistema `ApiService` esistente è sufficiente; nessun nuovo codice infrastructure
+- **ALT-005**: SerpAPI `engine=google_ai_mode` — Non scelto come primary: non restituisce `organic_results` né PAA standard; adatto come enrich opzionale dello snippet AI in una fase futura
+
+## Blockers
+
+### BLOCKER-001 — `accessMode: 'query-param'` non supportato dall'adapter
+
+**Evidenza nel codice**: `ApiServiceAccessMode` in `apps/backend/src/lib/types/api-service.ts` è `'public' | 'token'` — non include `'query-param'`. `CreateApiServiceInput` non ha il campo `tokenParamName`. Il DB schema `api_services` non ha colonna `token_param_name`.
+
+SerpAPI richiede la chiave come parametro query (`?api_key=YOUR_KEY`). Il corrente `api-acquisition.adapter.ts` supporta solo token come header HTTP.
+
+**Variazioni richieste**:
+
+1. **`api-service.ts`** — estendere `ApiServiceAccessMode`:
+```typescript
+// Prima: 'public' | 'token'
+// Dopo:
+export type ApiServiceAccessMode = 'public' | 'token' | 'query-param';
+```
+
+2. **`CreateApiServiceInput`** — aggiungere campo:
+```typescript
+tokenParamName?: string | null;  // es. 'api_key' per SerpAPI
+```
+
+3. **Migrazione DB** — nuova colonna in `api_services`:
+```sql
+ALTER TABLE api_services ADD COLUMN token_param_name TEXT DEFAULT NULL;
+```
+
+4. **`api-acquisition.adapter.ts`** — iniettare token come query param:
+```typescript
+if (input.service.accessMode === 'query-param' && input.service.tokenCiphertext) {
+  requestEnvelope.query[input.service.tokenParamName ?? 'api_key'] = input.service.tokenCiphertext;
+}
+```
+
+5. **`api-service-validation.ts`** — accettare il nuovo accessMode nella validazione.
+
+**Workaround temporaneo**: testare se SerpAPI accetta `tokenHeaderName: 'X-API-KEY'` con `accessMode: 'token'`. Se sì, è operativo senza migration. La migration resta necessaria per il design corretto.
+
+---
+
+### BLOCKER-002 — `workflowStepType` nel binding supporta solo `'acquisition'`
+
+**Evidenza nel codice** (`api-service.adapter.ts` linea 78):
+```typescript
+export type UpsertApiServiceBindingInput = {
+  ...
+  workflowStepType?: 'acquisition';  // ← solo 'acquisition' ammesso
+  ...
+};
+```
+
+Linea 245 e 254: il default è `'acquisition'` hardcoded. Passare `'crawling'` viola il type constraint TypeScript e causa errore di compilazione.
+
+**Impatto sulla proposal**: il binding SQL Step 5 che usa `workflowStepType = 'crawling'` non è compilabile con il codice attuale.
+
+**Variazioni richieste**:
+
+1. **`api-service.ts`** — estendere `ApiServiceToolStepBinding.workflowStepType`:
+```typescript
+// Il tipo è derivato da ApiServiceToolStepBindingRow
+// Prima: workflowStepType: 'acquisition'
+// Dopo:
+workflowStepType: 'acquisition' | 'crawling';
+```
+
+2. **`api-service.adapter.ts`** — aggiornare `UpsertApiServiceBindingInput`:
+```typescript
+workflowStepType?: 'acquisition' | 'crawling';
+```
+
+3. **Migrazione DB** — rimuovere o aggiornare il CHECK constraint su `api_service_tool_step_bindings.workflow_step_type` se presente:
+```sql
+-- Se esiste un constraint come: CHECK (workflow_step_type = 'acquisition')
+-- Va aggiornato a: CHECK (workflow_step_type IN ('acquisition', 'crawling'))
+```
+
+**Workaround temporaneo**: registrare il binding con `workflowStepType: 'acquisition'` per ora. Funzionalmente non impatta il lookup (che avviene per ID via `SERP_API_SERVICE_ID`), ma è semanticamente errato rispetto al DDD. Migration richiesta prima del rollout completo.
+
+---
+
+### BLOCKER-003 — `resolveApiServiceForAcquisition` ha naming fuorviante per step `crawling`
+
+**Evidenza nel codice** (`api-service.adapter.ts` linea 196):
+```typescript
+export const resolveApiServiceForAcquisition = async (
+  pool: Pool,
+  id: string,
+): Promise<ResolvedApiServiceForAcquisition | null> => {
+  // ...query by id WHERE status = 'active'
+};
+```
+
+La funzione funziona per qualsiasi step (cerca per ID + `status=active`). Il nome include `ForAcquisition` che è fuorviante per l'uso in `invokeCrawling` (step `crawling`).
+
+**Non è un breaking issue** per il codice — è un debito semantico. La funzione va rinominata o duplicata con nome appropriato:
+
+```typescript
+// Opzione A — rinominare (breaking change per i chiamanti attuali)
+export const resolveApiServiceById = ...
+
+// Opzione B — aggiungere alias (non-breaking)
+export const resolveApiServiceForCrawling = resolveApiServiceForAcquisition;
+```
+
+Per il MVP, usare `resolveApiServiceForAcquisition` direttamente — funziona. Rinominare in follow-up.
+
+---
+
+### Step 5 aggiornato — Binding con workaround per BLOCKER-002
+
+Fino a quando BLOCKER-002 non è risolto, il binding usa `'acquisition'` come tipo. Il lookup via `SERP_API_SERVICE_ID` non dipende da `workflowStepType` quindi il workaround è funzionalmente corretto:
+
+```sql
+INSERT INTO api_service_tool_step_bindings (
+  api_service_id, tool_key, step_key,
+  workflow_step_type,           -- 'acquisition' come workaround (BLOCKER-002 pending)
+  binding_status, requiredness
+) VALUES (
+  <serp-api-service-id>, 'geometric', 'serp-crawling',
+  'acquisition',                -- TODO: aggiornare a 'crawling' dopo migration
+  'active', 'required-by-tool-setting'
+);
+```
+
+**Note DDD**: il `workflowStepType` corretto per DDD è `'crawling'` (DDD-116). Il workaround `'acquisition'` è un debito temporaneo documentato in BLOCKER-002.
 
 ## Related
 
-- [ApiService Architecture](../02-design/api-service-architecture.md) — se esiste
 - [Geometric Tool Plan](./feature-geometric-tool-1.md)
-- [Geometric Screenshot Archival Plan](./feature-geometric-screenshot-archival-1.md)
+- [Geometric Screenshot Archival Plan](./feature-geometric-screenshot-archival-1.md) — screenshot rimane per futuri tool Puppeteer
 - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) — DDD-129
-- [Domain Bounded Context Map](./domain-bounded-context-map.md) — Crawling & Extraction Context (dual-channel)
+- [Domain Bounded Context Map](./domain-bounded-context-map.md) — Crawling & Extraction Context

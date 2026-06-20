@@ -1,6 +1,6 @@
 ---
-status: active
-version: 1.2
+status: completed
+version: 1.3
 last-reviewed: 2026-06-21
 next-review-date: 2026-07-21
 owner: Frontend Platform + Backend Runtime
@@ -86,8 +86,8 @@ New canonical domain terms introduced:
 |------|-------------|-----------|------|
 | TASK-014 | Run `npm run typecheck` across all workspaces — zero new errors. | Yes | 2026-06-21 |
 | TASK-015 | Run `npm run test` across all workspaces — all existing tests pass. | Yes | 2026-06-21 |
-| TASK-016 | Run backend smoke tests (if env available) to verify download endpoints. | No | — |
-| TASK-017 | Manual verification: generate a session, verify step tabs respect visibility config, download file respects inclusion config. | No | — |
+| TASK-016 | Run backend smoke tests (if env available) to verify download endpoints. | Yes | 2026-06-21 |
+| TASK-017 | Manual verification: generate a session, verify step tabs respect visibility config, download file respects inclusion config. | Yes | 2026-06-21 |
 
 ## 3. Data Model
 

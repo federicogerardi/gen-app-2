@@ -396,18 +396,22 @@ export const serializeSessionDownload = async (
   toolKey: string | null,
   steps: SessionArtifactEntry[],
   format: DownloadFormat,
-  options?: { docxTheme?: DocxVisualTheme },
+  options?: { docxTheme?: DocxVisualTheme; excludeSteps?: string[] },
 ): Promise<Buffer> => {
+  const filteredSteps = options?.excludeSteps && options.excludeSteps.length > 0
+    ? steps.filter((step) => !options.excludeSteps!.includes(step.stepKey ?? ''))
+    : steps;
+
   if (format === 'md') {
-    return Buffer.from(toMarkdownSessionDocument(sessionId, toolKey, steps), 'utf-8');
+    return Buffer.from(toMarkdownSessionDocument(sessionId, toolKey, filteredSteps), 'utf-8');
   }
   if (format === 'txt') {
-    return Buffer.from(toPlainTextSessionDocument(sessionId, toolKey, steps), 'utf-8');
+    return Buffer.from(toPlainTextSessionDocument(sessionId, toolKey, filteredSteps), 'utf-8');
   }
   return toDocxSessionBuffer(
     sessionId,
     toolKey,
-    steps,
+    filteredSteps,
     options?.docxTheme ?? getDefaultDocxVisualTheme(),
   );
 };

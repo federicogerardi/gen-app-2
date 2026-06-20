@@ -4,13 +4,19 @@
  */
 
 import { buildApiPaths } from '../../../app/runtime/api-paths';
-import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
+import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 
 export type DownloadFormat = 'md' | 'txt' | 'docx';
 
 type DownloadClientOptions = {
   apiBaseUrl: string;
-  capabilities: BackendCapabilities;
+  capabilities: Partial<BackendCapabilities>;
+};
+
+/** Options specific to session downloads. */
+export type SessionDownloadOptions = {
+  /** Optional step keys to exclude from the downloaded content (DDD-135). */
+  excludeSteps?: string[];
 };
 
 const triggerBlobDownload = (blob: Blob, filename: string): void => {
@@ -34,7 +40,7 @@ export const downloadArtifactFile = async (
   format: DownloadFormat,
   options: DownloadClientOptions,
 ): Promise<void> => {
-  const paths = buildApiPaths(options.capabilities);
+  const paths = buildApiPaths(resolveBackendCapabilities(options.capabilities));
   const url = paths.artifacts.downloadById(artifactId, format);
   if (!url) {
     throw new Error('Artifact download capability is not enabled');
@@ -53,15 +59,16 @@ export const downloadArtifactFile = async (
 
 /**
  * Downloads an aggregated session file as the specified format.
- * Invokes `GET /api/tools/sessions/:sessionId/download?format=...`
+ * Invokes `GET /api/tools/sessions/:sessionId/download?format=...&excludeSteps=...`
  */
 export const downloadSessionFile = async (
   sessionId: string,
   format: DownloadFormat,
   options: DownloadClientOptions,
+  sessionOptions?: SessionDownloadOptions,
 ): Promise<void> => {
-  const paths = buildApiPaths(options.capabilities);
-  const url = paths.tools.sessions.downloadById(sessionId, format);
+  const paths = buildApiPaths(resolveBackendCapabilities(options.capabilities));
+  const url = paths.tools.sessions.downloadById(sessionId, format, sessionOptions?.excludeSteps);
   if (!url) {
     throw new Error('Session download capability is not enabled');
   }

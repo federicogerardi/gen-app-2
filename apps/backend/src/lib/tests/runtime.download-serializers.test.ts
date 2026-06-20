@@ -6,6 +6,7 @@ import {
   parseInlineMarkdownRuns,
   parseMarkdownToDocxBlocks,
   serializeArtifactDownload,
+  serializeSessionDownload,
 } from '../runtime/downloads/download-serializers';
 import type { DocxVisualTheme } from '../runtime/downloads/docx-theme';
 import {
@@ -131,4 +132,92 @@ test('docxThemeFromPreset returns a deterministic theme object', () => {
   assert.equal(googleDocsTheme.runByRole?.default?.size, 24);
   assert.equal(googleDocsTheme.runByRole?.heading?.size, 30);
   assert.equal(googleDocsParagraphSpacing?.line, 320);
+});
+
+// ── Phase 4: serializeSessionDownload with excludeSteps ──────────────────────
+
+const buildMockSessionArtifacts = (): import('../adapters/session-query.adapter').SessionArtifactEntry[] => [
+  { artifactId: 'a-1', requestId: 'r-1', projectId: 'p-1', stepKey: 'optin', artifactRole: 'step', runMode: 'new', status: 'completed', content: '# Optin\n\nOptin content', updatedAt: '2026-05-09T10:00:00.000Z', failureReason: null, workflowType: 'funnel_pages', toolKey: 'funnel-pages' },
+  { artifactId: 'a-2', requestId: 'r-2', projectId: 'p-1', stepKey: 'quiz', artifactRole: 'step', runMode: 'new', status: 'completed', content: '# Quiz\n\nQuiz content', updatedAt: '2026-05-09T10:01:00.000Z', failureReason: null, workflowType: 'funnel_pages', toolKey: 'funnel-pages' },
+  { artifactId: 'a-3', requestId: 'r-3', projectId: 'p-1', stepKey: 'vsl', artifactRole: 'final', runMode: 'new', status: 'completed', content: '# VSL\n\nVSL content', updatedAt: '2026-05-09T10:02:00.000Z', failureReason: null, workflowType: 'funnel_pages', toolKey: 'funnel-pages' },
+];
+
+test('serializeSessionDownload md includes all steps when excludeSteps is absent', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md');
+  const text = buffer.toString('utf-8');
+
+  assert.match(text, /Step: optin/);
+  assert.match(text, /Step: quiz/);
+  assert.match(text, /Step: vsl/);
+});
+
+test('serializeSessionDownload md excludes specified steps when excludeSteps is provided', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md', {
+    excludeSteps: ['quiz'],
+  });
+  const text = buffer.toString('utf-8');
+
+  assert.match(text, /Step: optin/);
+  assert.equal(text.includes('Step: quiz'), false);
+  assert.match(text, /Step: vsl/);
+});
+
+test('serializeSessionDownload md excludes multiple steps when excludeSteps has multiple entries', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md', {
+    excludeSteps: ['optin', 'vsl'],
+  });
+  const text = buffer.toString('utf-8');
+
+  assert.equal(text.includes('Step: optin'), false);
+  assert.match(text, /Step: quiz/);
+  assert.equal(text.includes('Step: vsl'), false);
+});
+
+test('serializeSessionDownload txt excludes specified steps', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'txt', {
+    excludeSteps: ['quiz'],
+  });
+  const text = buffer.toString('utf-8');
+
+  assert.match(text, /STEP: OPTIN/);
+  assert.equal(text.includes('STEP: QUIZ'), false);
+  assert.match(text, /STEP: VSL/);
+});
+
+test('serializeSessionDownload docx excludes specified steps', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'docx', {
+    excludeSteps: ['quiz'],
+  });
+  const raw = await mammoth.extractRawText({ buffer });
+
+  assert.match(raw.value, /Step: optin/i);
+  assert.equal(raw.value.toLowerCase().includes('step: quiz'), false);
+  assert.match(raw.value, /Step: vsl/i);
+});
+
+test('serializeSessionDownload with empty excludeSteps includes all steps (backward compatibility)', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md', {
+    excludeSteps: [],
+  });
+  const text = buffer.toString('utf-8');
+
+  assert.match(text, /Step: optin/);
+  assert.match(text, /Step: quiz/);
+  assert.match(text, /Step: vsl/);
+});
+
+test('serializeSessionDownload without excludeSteps option includes all steps (backward compatibility)', async () => {
+  const steps = buildMockSessionArtifacts();
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md');
+  const text = buffer.toString('utf-8');
+
+  assert.match(text, /Step: optin/);
+  assert.match(text, /Step: quiz/);
+  assert.match(text, /Step: vsl/);
 });

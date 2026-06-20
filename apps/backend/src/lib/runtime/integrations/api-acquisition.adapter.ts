@@ -192,6 +192,22 @@ const buildProfileEnvelope = (input: ApiAcquisitionExecutionInput): RequestEnvel
     }
   }
 
+  // Merge runtime input.query BEFORE mapping rules — rules can override
+  if (input.query && Object.keys(input.query).length > 0) {
+    envelope.query = {
+      ...(envelope.query as Record<string, unknown>),
+      ...input.query,
+    };
+  }
+
+  // Merge runtime input.headers BEFORE mapping rules — rules can override
+  if (input.headers && Object.keys(input.headers).length > 0) {
+    envelope.headers = {
+      ...(envelope.headers as Record<string, unknown>),
+      ...normalizeStringRecord(input.headers),
+    };
+  }
+
   const source = {
     query: input.query ?? {},
     body: input.body ?? {},

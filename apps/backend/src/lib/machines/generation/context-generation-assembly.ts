@@ -104,17 +104,28 @@ export const assembleStrategicReportingInput = (
 
 /**
  * Assemble input for unified-report step.
- * Receives assembledGenerationInput (strategic-report content + scoring) and produces LLM prompt context.
+ * Receives assembledGenerationInput (crawling + scoring) and produces LLM prompt context.
  * **Token efficiency rule**: NEVER includes screenshot data — only text and structured JSON.
  */
 export const assembleUnifiedReportInput = (
   assembledInput: Record<string, unknown>,
   requestId?: string,
 ): Record<string, unknown> => {
+  const crawling = assembledInput.crawling as Record<string, unknown> | undefined;
   const scoring = assembledInput.scoring as Record<string, unknown> | undefined;
   const brandName = typeof assembledInput.brandName === 'string' ? assembledInput.brandName : '';
+  const baseQuery = typeof assembledInput.baseQuery === 'string' ? assembledInput.baseQuery : '';
+
+  const serpSnippets = (typeof crawling?.snippets === 'string' && crawling.snippets.length > 0)
+    ? [crawling.snippets]
+    : [];
+  const paaQueries = Array.isArray(crawling?.paaQueries) ? crawling.paaQueries : [];
 
   const result: Record<string, unknown> = {
+    serpSnippets,
+    paaQueries,
+    baseQuery,
+    queryCount: 1 + paaQueries.length,
     competitorRanking: scoring ?? {},
     currentDate: new Date().toLocaleDateString('it-IT'),
     // No screenshot data (DDD-120, REQ-011)
@@ -127,8 +138,11 @@ export const assembleUnifiedReportInput = (
   console.info(`[geometric] assembly.unified_report`, {
     requestId: requestId ?? 'unknown',
     operation: 'assembleUnifiedReportInput',
+    snippetCount: serpSnippets.length,
+    paaCount: paaQueries.length,
     competitorCount: Object.keys(result.competitorRanking as Record<string, unknown>).length,
     brandName: brandName || 'none',
+    baseQuery: baseQuery || 'none',
   });
 
   return result;

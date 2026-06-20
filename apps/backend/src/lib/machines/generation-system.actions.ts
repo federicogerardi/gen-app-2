@@ -357,6 +357,12 @@ export const generationSystemActions = {
       if (typeof assembly.brandName === 'string') {
         filledPrompt = filledPrompt.replace(/{{brandName}}/g, assembly.brandName);
       }
+      if (typeof assembly.baseQuery === 'string') {
+        filledPrompt = filledPrompt.replace(/{{baseQuery}}/g, assembly.baseQuery);
+      }
+      if (typeof assembly.queryCount === 'number') {
+        filledPrompt = filledPrompt.replace(/{{queryCount}}/g, String(assembly.queryCount));
+      }
 
       return {
         ...context.requestInput,

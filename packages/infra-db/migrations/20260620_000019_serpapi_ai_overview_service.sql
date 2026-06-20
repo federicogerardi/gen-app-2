@@ -1,6 +1,6 @@
 -- Migration: SerpApi Google AI Overview API Service configuration
 -- Creates ApiService entry for SerpApi Google AI Overview integration
--- Used by Geometric tool for dual-channel crawling (API-first, Puppeteer fallback)
+-- Used by Geometric tool for SerpApi-only crawling
 
 -- Extend access_mode constraint to include 'query-param'
 ALTER TABLE api_services DROP CONSTRAINT IF EXISTS api_services_access_mode_check;

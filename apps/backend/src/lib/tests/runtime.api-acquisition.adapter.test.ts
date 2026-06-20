@@ -287,7 +287,7 @@ test('executeApiAcquisition assembles profile-driven request and maps response p
 
     assert.equal(result.statusCode, 200);
     assert.equal(observed.method, 'POST');
-    assert.equal(observed.url, 'https://api.github.com/repos/acme/repo/issues?lang=en&q=copilot');
+    assert.equal(observed.url, 'https://api.github.com/repos/acme/repo/issues?lang=en&search=copilot&q=copilot');
     assert.equal(observed.headers?.['x-api-profile'], 'contract-v1');
     assert.deepEqual(observed.body, {
       staticFlag: true,

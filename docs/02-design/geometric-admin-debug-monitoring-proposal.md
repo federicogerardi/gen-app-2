@@ -62,8 +62,8 @@ const aiOverviewConfidence = (element: Element): number => {
 | Tipo Errore | Strategia | Azione Admin |
 |-------------|-----------|--------------|
 | **Crawling timeout** | Log `crawling.failed` con `durationMs > 30000` | Retry manuale o modifica timeout |
-| **Anti-bot detection** | Log quando Puppeteer viene bloccato (pagina captcha/429) | Aggiornare stealth plugin, cambiare IP |
-| **0 sources estratte** | Log `merge.crawling.empty` | Verificare selettori Google aggiornati |
+| **0 sources estratte** | Log `merge.crawling.empty` | Verificare query e configurazione SerpApi |
+| **SerpApi API error** | Log `crawling.failed` con status code HTTP | Verificare API key e quota SerpApi |
 | **PAA discovery fallita** | Log `crawling.paa.single_failed` per query | Accettabile, ma monitorare frequenza |
 | **Scoring insufficiente** | Log `scoring.failed.no_sources` | Verificare crawling precedente |
 | **LLM output non-markdown** | Log `generateOutputIsFailure` | Retry con prompt refinement |
@@ -93,7 +93,7 @@ const aiOverviewConfidence = (element: Element): number => {
 | **Crawling success rate** | < 80% su 100 sessioni | Verificare selettori/stealth |
 | **AI Overview extraction rate** | < 70% | Aggiornare selettori |
 | **PAA discovery rate** | < 30% | Accettabile, ma monitorare trend |
-| **Average crawling duration** | > 25s | Ottimizzare Puppeteer o ridurre timeout |
+| **Average crawling duration** | > 25s | Verificare tempo di risposta SerpApi o ridurre timeout |
 | **Scoring completion rate** | < 90% | Verificare crawling sources |
 | **LLM generation success rate** | < 85% | Verificare prompt e context |
 

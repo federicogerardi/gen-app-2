@@ -244,13 +244,32 @@ export const resolveApiServiceById = resolveApiServiceForAcquisition;
 
 /**
  * Semantically clear alias for crawling workflow steps.
- * Resolves an active ApiService by ID for crawling step execution.
+ * Resolves an active ApiService by key for crawling step execution.
  * 
  * @param pool Database connection pool  
- * @param id ApiService UUID to resolve
+ * @param key ApiService key to resolve
  * @returns ResolvedApiServiceForAcquisition with tokenCiphertext, or null if not found/inactive
  */
-export const resolveApiServiceForCrawling = resolveApiServiceForAcquisition;
+export const resolveApiServiceForCrawling = async (
+  pool: Pool,
+  key: string,
+): Promise<ResolvedApiServiceForAcquisition | null> => {
+  const row = await getDb(pool)
+    .selectFrom('api_services')
+    .selectAll()
+    .where('key', '=', key)
+    .where('status', '=', 'active')
+    .executeTakeFirst() as unknown as ApiServiceRow | undefined;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...rowToApiService(row),
+    tokenCiphertext: row.token_ciphertext,
+  };
+};
 
 export const listApiServiceBindings = async (
   pool: Pool,

@@ -233,6 +233,10 @@ test('geometric context assembly produces correct unified-report input', async (
   const assembly = selectGeometricAssembly('unified-report', assembled);
   assert.ok(assembly);
   assert.deepEqual(assembly, {
+    serpSnippets: ['AI overview snippet'],
+    paaQueries: ['What is the best protein?'],
+    baseQuery: '',
+    queryCount: 2,
     competitorRanking: {
       'healthline.com': { geoScore: 92, tier: 'S' },
     },

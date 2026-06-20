@@ -1,7 +1,7 @@
 /**
  * Crawling adapter — SerpApi-only SERP extraction.
  * Uses SerpApi Google Search + Google AI Overview APIs.
- * No Puppeteer fallback — if SerpApi fails, the error propagates and stops the process.
+ * If SerpApi fails, the error propagates and stops the process.
  *
  * Used by invokeCrawling fromPromise actor in crawling-chain.machine.ts.
  */
@@ -48,7 +48,7 @@ export const computeAiOverviewConfidence = (selectorUsed: string): number => {
 
 /**
  * API Channel: Crawl using SerpApi Google Search + AI Overview APIs.
- * No fallback — if SerpApi fails, the error propagates and stops the crawling process.
+ * If SerpApi fails, the error propagates and stops the crawling process.
  */
 const crawlSerpViaApi = async (
   query: string,
@@ -187,8 +187,8 @@ const discoverPAAQueriesViaApi = async (
 };
 
 /**
- * SerpApi Channel: Crawl using SerpApi Google Search + AI Overview APIs.
- * If SerpApi fails, the error propagates — no Puppeteer fallback.
+ * SerpApi Channel: Crawl using SerpApi Google Search + Google AI Overview APIs.
+ * If SerpApi fails, the error propagates.
  */
 export const crawlSerp = async (
   query: string,
@@ -201,7 +201,7 @@ export const crawlSerp = async (
 
 /**
  * SerpApi Channel: Discover PAA queries using SerpApi.
- * If SerpApi fails, the error propagates — no Puppeteer fallback.
+ * If SerpApi fails, the error propagates.
  */
 export const discoverPAAQueries = async (
   baseQuery: string,

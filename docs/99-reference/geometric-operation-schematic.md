@@ -19,18 +19,17 @@
 ├──────────────────────────────────────────────────────────────┤
 │  Actor: invokeCrawling (fromPromise)                         │
 │  Queue: BullMQ (concurrency 3, retry 3x)                     │
-│  Adapter: Puppeteer + stealth                                │
+│  Adapter: SerpApi (Google Search + AI Overview APIs)         │
 ├──────────────────────────────────────────────────────────────┤
 │  Operation:                                                  │
-│    1. Launch headless browser (stealth mode)                 │
-│    2. Navigate to google.it                                  │
-│    3. Search for "protein supplements"                       │
-│    4. Extract:                                               │
+│    1. Call SerpApi Google Search API                         │
+│    2. Extract AI Overview (with separate request if needed)  │
+│    3. Normalize response to structured data:                 │
 │       • AI Overview snippet                                  │
 │       • Organic results (title, URL, snippet)                │
 │       • PAA (People Also Ask) questions                      │
-│    5. For each PAA question → recurse crawl                  │
-│    6. Close browser, return structured payload                 │
+│    4. For each PAA query → parallel API call                 │
+│    5. Merge results, return structured payload               │
 ├──────────────────────────────────────────────────────────────┤
 │  Output: CRAWLING_COMPLETED                                  │
 │  {                                                           │

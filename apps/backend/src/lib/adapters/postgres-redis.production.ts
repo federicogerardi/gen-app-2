@@ -78,6 +78,7 @@ export const createPostgresRedisProductionDependencies = (
   }
 
   return {
+    pg: clients.pg,
     ownership: new PostgresProjectOwnershipRepository(clients.pg, options.persistence),
     quota: new PostgresRedisUsageRepository(clients.pg, clients.redis, options.usage),
     idempotency: new PostgresRedisIdempotencyRepository(

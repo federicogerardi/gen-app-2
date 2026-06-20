@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 3.1
-last-reviewed: 2026-06-04
-next-review-date: 2026-09-04
+version: 3.2
+last-reviewed: 2026-06-20
+next-review-date: 2026-09-20
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-06-04  
+Data: 2026-06-20  
 Stato: publication-ready  
-Versione indice: 3.1
+Versione indice: 3.2
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -62,6 +62,7 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 | --- | --- | --- | --- |
 | [Geometric Crawling Step Reference](./99-reference/geometric-crawling-step-reference.md) | `99-reference/geometric-crawling-step-reference.md` | Reference | active |
 | [Geometric Admin Debug & Monitoring Proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) | `02-design/geometric-admin-debug-monitoring-proposal.md` | Proposal | draft |
+| [SerpApi Integration Guide](./99-reference/serpapi-integration-guide.md) | `99-reference/serpapi-integration-guide.md` | Integration Guide | active |
 
 ## Critical Documents Status
 
@@ -87,8 +88,9 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 
 ### Geometric Tool References
 
-- [geometric-crawling-step-reference](./99-reference/geometric-crawling-step-reference.md) — **Backend operations reference for Geometric crawling step: XState actors, Puppeteer adapter, BullMQ queue, merge actions, and validation guards**
+- [geometric-crawling-step-reference](./99-reference/geometric-crawling-step-reference.md) — **Backend operations reference for Geometric crawling step: XState actors, SerpApi adapter, ApiService resolution, merge actions, and validation guards**
 - [geometric-operation-schematic](./99-reference/geometric-operation-schematic.md) — **Visual schematic of Geometric tool 4-step flow: crawling → scoring → strategic reporting → unified report**
+- [serpapi-integration-guide](./99-reference/serpapi-integration-guide.md) — **SerpApi Google AI Overview integration: dual-channel crawling (SerpApi-only, no Puppeteer fallback), ApiService configuration, data normalization, and environment setup**
 
 ### Design Specifications
 

@@ -7,6 +7,7 @@ import type {
 } from '../types/xstate';
 import type { ArtifactStatus } from '../types/artifact';
 import type { OrchestrateArtifactCache } from './postgres-redis.interfaces';
+import type { ResolvedApiServiceForAcquisition } from './api-service.adapter';
 
 export type { LlmUsageMetrics };
 
@@ -107,6 +108,14 @@ export interface ScreenshotArchivalAdapter {
   cleanupExpiredScreenshots(now: Date): Promise<{ deletedFiles: number; deletedRecords: number }>;
 }
 
+export interface ApiServiceAdapter {
+  resolveApiServiceForCrawling(id: string): Promise<ResolvedApiServiceForAcquisition | null>;
+}
+
+export interface ApiServiceAdapter {
+  resolveApiServiceForCrawling(id: string): Promise<ResolvedApiServiceForAcquisition | null>;
+}
+
 export interface GenerationAdapters {
   ownership: OwnershipAdapter;
   usage: UsageAdapter;
@@ -117,6 +126,7 @@ export interface GenerationAdapters {
   persistence: PersistenceAdapter;
   orchestrateCache: OrchestrateArtifactCache | null;
   screenshotArchival: ScreenshotArchivalAdapter | null;
+  apiService: ApiServiceAdapter | null;
 }
 
 type QuotaBucket = {
@@ -300,5 +310,6 @@ export const createInMemoryGenerationAdapters = (
     persistence,
     orchestrateCache: null,
     screenshotArchival: null,
+    apiService: null,
   };
 };

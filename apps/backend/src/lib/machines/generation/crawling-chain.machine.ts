@@ -1,6 +1,7 @@
 import { fromPromise, setup } from 'xstate';
 import { crawlSerp, discoverPAAQueries } from '../../runtime/integrations/crawling.adapter';
 import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../../runtime/integrations/geometric-logger';
+import type { ResolvedApiServiceForAcquisition } from '../../adapters/api-service.adapter';
 
 export type CrawlingChainInput = {
   requestId: string;
@@ -9,6 +10,7 @@ export type CrawlingChainInput = {
   language: string;
   country: string;
   sessionId: string;
+  apiService: ResolvedApiServiceForAcquisition; // Required SerpApi service — no fallback
   screenshotArchival?: {
     archiveScreenshot: (params: {
       screenshotPath: string;
@@ -61,10 +63,15 @@ export const crawlingChainMachine = setup({
         throw new Error('base_query_missing');
       }
 
+      if (!chainInput.apiService) {
+        logGeometricError('crawling.failed.api_service_missing', { requestId, operation: 'crawlingChainMachine' });
+        throw new Error('api_service_missing');
+      }
+
       const startMs = Date.now();
       try {
-        const baseResult = await crawlSerp(baseQuery, language, country);
-        const paaQueries = await discoverPAAQueries(baseQuery, language, country);
+        const baseResult = await crawlSerp(baseQuery, language, country, chainInput.apiService);
+        const paaQueries = await discoverPAAQueries(baseQuery, language, country, chainInput.apiService);
 
         if (baseResult.screenshotPath && chainInput.screenshotArchival) {
           void chainInput.screenshotArchival.archiveScreenshot({
@@ -100,7 +107,7 @@ export const crawlingChainMachine = setup({
           const paaResults = await Promise.all(
             paaQueries.slice(0, 4).map(async (paaQuery) => {
               try {
-                const result = await crawlSerp(paaQuery, language, country);
+                const result = await crawlSerp(paaQuery, language, country, chainInput.apiService);
                 if (result.screenshotPath && chainInput.screenshotArchival) {
                   void chainInput.screenshotArchival.archiveScreenshot({
                     screenshotPath: result.screenshotPath,

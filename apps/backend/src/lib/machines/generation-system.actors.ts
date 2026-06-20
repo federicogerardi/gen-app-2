@@ -15,6 +15,7 @@ import type { GenerationMachineContext } from './generation-system.types';
 import { executeApiAcquisition } from '../runtime/integrations/api-acquisition.adapter';
 import type { ResolvedApiServiceForAcquisition } from '../adapters/api-service.adapter';
 import { crawlSerp, discoverPAAQueries } from '../runtime/integrations/crawling.adapter';
+import { resolveSerpApiService } from '../runtime/integrations/serpapi-service-resolver';
 import { computeCompetitorRanking } from '../runtime/analysis/scoring-engine';
 import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../runtime/integrations/geometric-logger';
 
@@ -196,6 +197,38 @@ export const generationSystemActors = {
       : (typeof extractionPayload?.brandName === 'string' ? extractionPayload.brandName : '');
     const requestId = context.requestId ?? 'unknown';
 
+    // Resolve SerpApi service — required, no fallback
+    if (!context.adapters.apiService) {
+      logGeometricError('crawling.failed.api_service_adapter_missing', { requestId, operation: 'invokeCrawling' });
+      return {
+        type: 'CRAWLING_FAILED' as const,
+        reason: 'api_service_adapter_missing',
+      };
+    }
+
+    let serpApiService: ResolvedApiServiceForAcquisition | undefined;
+    try {
+      serpApiService = await resolveSerpApiService(context.adapters.apiService);
+    } catch (error) {
+      logGeometricError('crawling.failed.service_resolution', {
+        requestId,
+        operation: 'invokeCrawling',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        type: 'CRAWLING_FAILED' as const,
+        reason: 'serpapi_resolution_failed',
+      };
+    }
+
+    if (!serpApiService) {
+      logGeometricError('crawling.failed.service_not_found', { requestId, operation: 'invokeCrawling' });
+      return {
+        type: 'CRAWLING_FAILED' as const,
+        reason: 'serpapi_service_not_found',
+      };
+    }
+
     logGeometricInfo('crawling.start', {
       requestId,
       operation: 'invokeCrawling',
@@ -214,10 +247,9 @@ export const generationSystemActors = {
     }
 
     const startMs = Date.now();
-    console.log(`[DEBUG][screenshot] invokeCrawling start — requestId=${requestId}, sessionId=${context.sessionId ?? 'null'}, screenshotArchival=${context.adapters.screenshotArchival ? 'present' : 'NULL'}`);
     try {
-      const baseResult = await crawlSerp(baseQuery, language, country);
-      const paaQueries = await discoverPAAQueries(baseQuery, language, country);
+      const baseResult = await crawlSerp(baseQuery, language, country, serpApiService);
+      const paaQueries = await discoverPAAQueries(baseQuery, language, country, serpApiService);
       console.log(`[DEBUG][screenshot] crawlSerp completed — screenshotPath=${baseResult.screenshotPath ?? 'null'}, aiOverviewConfidence=${baseResult.aiOverviewConfidence}, selectorUsed=${baseResult.selectorUsed}`);
 
       if (baseResult.screenshotPath) {
@@ -257,7 +289,7 @@ export const generationSystemActors = {
         const paaResults = await Promise.all(
           paaQueries.slice(0, 4).map(async (paaQuery) => {
             try {
-              const result = await crawlSerp(paaQuery, language, country);
+              const result = await crawlSerp(paaQuery, language, country, serpApiService);
               console.log(`[DEBUG][screenshot] crawlSerp PAA completed — query=${paaQuery}, screenshotPath=${result.screenshotPath ?? 'null'}`);
               if (result.screenshotPath) {
                 console.log(`[DEBUG][screenshot] archiving PAA screenshot — path=${result.screenshotPath}, sessionId=${context.sessionId ?? context.requestId}`);

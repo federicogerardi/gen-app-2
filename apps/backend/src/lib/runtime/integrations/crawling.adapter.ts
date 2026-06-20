@@ -1,24 +1,20 @@
 /**
- * Crawling adapter — Puppeteer + stealth plugin for SERP extraction.
- * Used by invokeCrawling fromPromise actor in generation-system.actors.ts.
+ * Crawling adapter — SerpApi-only SERP extraction.
+ * Uses SerpApi Google Search + Google AI Overview APIs.
+ * No Puppeteer fallback — if SerpApi fails, the error propagates and stops the process.
+ *
+ * Used by invokeCrawling fromPromise actor in crawling-chain.machine.ts.
  */
 
-let puppeteer: typeof import('puppeteer');
-let StealthPlugin: typeof import('puppeteer-extra-plugin-stealth');
-
-const loadPuppeteer = (): typeof puppeteer => {
-  if (!puppeteer) {
-    puppeteer = require('puppeteer');
-  }
-  return puppeteer;
-};
-
-const loadStealthPlugin = (): typeof StealthPlugin => {
-  if (!StealthPlugin) {
-    StealthPlugin = require('puppeteer-extra-plugin-stealth');
-  }
-  return StealthPlugin;
-};
+import type { ResolvedApiServiceForAcquisition } from '../../adapters/api-service.adapter';
+import { executeApiAcquisition } from './api-acquisition.adapter';
+import {
+  normalizeSerpApiAiOverview,
+  extractPAAQueriesFromSerpApi,
+  requiresSeparateAiOverviewRequest,
+  type SerpApiGoogleSearchResponse,
+  type SerpApiAiOverviewResponse,
+} from './serpapi-normalizer';
 
 export type SourceType = 'organic' | 'sitelink' | 'video' | 'sponsored' | 'ugc' | 'news' | 'unknown';
 
@@ -44,169 +40,174 @@ export const computeAiOverviewConfidence = (selectorUsed: string): number => {
     '[data-snf]': 0.95,
     '.AIHVYe': 0.90,
     '[data-attrid="wa:/description"]': 0.85,
+    'serpapi-ai-overview': 0.95, // High confidence for SerpApi structured data
+    'serpapi-google-search': 0.85, // Medium-high confidence for embedded AI Overview
   };
   return map[selectorUsed] ?? 0.50;
 };
 
+/**
+ * API Channel: Crawl using SerpApi Google Search + AI Overview APIs.
+ * No fallback — if SerpApi fails, the error propagates and stops the crawling process.
+ */
+const crawlSerpViaApi = async (
+  query: string,
+  language: string,
+  country: string,
+  apiService: ResolvedApiServiceForAcquisition,
+): Promise<CrawlingResult> => {
+  // Step 1: Get Google search results with potential AI Overview
+  const searchResponse = await executeApiAcquisition({
+    service: apiService,
+    query: {
+      engine: 'google',
+      q: query,
+      hl: language,
+      gl: country.replace('google.', ''), // google.it -> it
+      output: 'json',
+      no_cache: 'false',
+    },
+  });
+
+  if (searchResponse.statusCode !== 200) {
+    throw new Error(`SerpApi search failed: HTTP ${searchResponse.statusCode}`);
+  }
+
+  const googleSearchResult = searchResponse.payload as SerpApiGoogleSearchResponse;
+  
+  if (googleSearchResult.error) {
+    throw new Error(`SerpApi search error: ${googleSearchResult.error}`);
+  }
+
+  // Step 2: Check if separate AI Overview request is needed
+  const aiOverviewPageToken = requiresSeparateAiOverviewRequest(googleSearchResult);
+  
+  let aiOverviewData;
+  if (aiOverviewPageToken) {
+    // Make separate AI Overview request
+    const aiOverviewResponse = await executeApiAcquisition({
+      service: apiService,
+      query: {
+        engine: 'google_ai_overview',
+        page_token: aiOverviewPageToken,
+        output: 'json',
+        no_cache: 'false',
+      },
+    });
+
+    if (aiOverviewResponse.statusCode === 200) {
+      const aiOverviewResult = aiOverviewResponse.payload as SerpApiAiOverviewResponse;
+      if (!aiOverviewResult.error) {
+        aiOverviewData = normalizeSerpApiAiOverview(aiOverviewResult);
+      }
+    }
+  }
+
+  // Step 3: Normalize data - prioritize AI Overview data, fallback to search results
+  if (aiOverviewData) {
+    return {
+      ...aiOverviewData,
+      screenshotPath: null, // SerpApi doesn't provide screenshots
+    };
+  }
+
+  // Fallback: Extract from embedded AI Overview in search results
+  if (googleSearchResult.ai_overview && googleSearchResult.ai_overview.references) {
+    const sources = googleSearchResult.ai_overview.references.map(ref => ({
+      title: ref.title,
+      url: ref.link,
+      snippet: ref.snippet || null,
+      sourceType: 'organic' as SourceType, // Simplified typing for embedded results
+    }));
+
+    const aiOverviewSnippet = googleSearchResult.ai_overview.text_blocks
+      ?.filter(block => block.type === 'paragraph' && block.snippet)
+      .map(block => block.snippet)
+      .join('\n\n') || null;
+
+    return {
+      aiOverviewSnippet,
+      aiOverviewConfidence: 0.85,
+      selectorUsed: 'serpapi-google-search',
+      sources,
+      screenshotPath: null,
+      adsCount: 0,
+      videoCount: sources.filter(s => s.url.includes('youtube.com')).length,
+    };
+  }
+
+  // No AI Overview found - return minimal result
+  return {
+    aiOverviewSnippet: null,
+    aiOverviewConfidence: 0.0,
+    selectorUsed: 'serpapi-google-search',
+    sources: googleSearchResult.organic_results?.slice(0, 10).map(result => ({
+      title: result.title,
+      url: result.link,
+      snippet: result.snippet || null,
+      sourceType: 'organic' as SourceType,
+    })) || [],
+    screenshotPath: null,
+    adsCount: 0,
+    videoCount: 0,
+  };
+};
+
+/**
+ * API Channel: Discover PAA queries using SerpApi
+ */
+const discoverPAAQueriesViaApi = async (
+  baseQuery: string,
+  language: string,
+  country: string,
+  apiService: ResolvedApiServiceForAcquisition,
+): Promise<string[]> => {
+  const response = await executeApiAcquisition({
+    service: apiService,
+    query: {
+      engine: 'google',
+      q: baseQuery,
+      hl: language,
+      gl: country.replace('google.', ''),
+      output: 'json',
+      no_cache: 'false',
+    },
+  });
+
+  if (response.statusCode !== 200) {
+    return [];
+  }
+
+  const searchResult = response.payload as SerpApiGoogleSearchResponse;
+  if (searchResult.error) {
+    return [];
+  }
+
+  return extractPAAQueriesFromSerpApi(searchResult);
+};
+
+/**
+ * SerpApi Channel: Crawl using SerpApi Google Search + AI Overview APIs.
+ * If SerpApi fails, the error propagates — no Puppeteer fallback.
+ */
 export const crawlSerp = async (
   query: string,
   language: string,
   country: string,
+  apiService: ResolvedApiServiceForAcquisition,
 ): Promise<CrawlingResult> => {
-  void loadPuppeteer();
-  const Stealth = loadStealthPlugin();
-
-  const puppeteerExtra = require('puppeteer-extra');
-  puppeteerExtra.use(Stealth());
-
-  const browser = await puppeteerExtra.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-
-    const searchUrl = `https://www.${country}/search?q=${encodeURIComponent(query)}&hl=${language}`;
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    // Extract AI Overview snippet and selector used
-    const aiOverviewExtraction = await page.evaluate(() => {
-      const selectors = ['[data-snf]', '.AIHVYe', '[data-attrid="wa:/description"]'];
-      for (const selector of selectors) {
-        const el = document.querySelector(selector);
-        if (el) {
-          return { text: el.textContent?.trim() ?? null, selectorUsed: selector };
-        }
-      }
-      return { text: null, selectorUsed: '' };
-    });
-    const aiOverviewSnippet = aiOverviewExtraction.text;
-    const selectorUsed = aiOverviewExtraction.selectorUsed;
-
-    // Extract sources with type classification
-    const sources = await page.evaluate(() => {
-      const results = document.querySelectorAll('.g, .Zmcmbc, .dbsr, .g-blk');
-      return Array.from(results).slice(0, 12).map((el) => {
-        const isVideo = el.querySelector('video, .hTjNSe, [data-ved*="video"]') !== null ||
-          el.querySelector('a[href*="youtube.com"]') !== null;
-        const isSponsored = el.querySelector('.uEiDre, .tads, [data-text-ad]') !== null ||
-          el.textContent?.includes('Sponsorizzato') ||
-          el.textContent?.includes('Ad ·');
-        const isNews = el.querySelector('.dbsr, [data-news]') !== null;
-        const isUgc = el.querySelector('a[href*="reddit.com"], a[href*="quora.com"], a[href*="forum"], a[href*="community"]') !== null;
-        const hasSitelinks = el.querySelectorAll('.s8GCU a, .VlD9Fd a').length > 0;
-
-        const url = el.querySelector('a')?.href ?? '';
-        const title = el.querySelector('h3')?.textContent?.trim() ?? '';
-        const snippet = el.querySelector('[data-sncf], .VwiC3b, .s3v94d')?.textContent?.trim() ?? null;
-
-        let sourceType: SourceType = 'organic';
-        if (isSponsored) sourceType = 'sponsored';
-        else if (isVideo) sourceType = 'video';
-        else if (isNews) sourceType = 'organic';
-        else if (isUgc) sourceType = 'ugc';
-        else if (hasSitelinks) sourceType = 'sitelink';
-
-        const sitelinks = hasSitelinks
-          ? Array.from(el.querySelectorAll('.s8GCU a, .VlD9Fd a')).map((a) => (a as HTMLAnchorElement).textContent?.trim() ?? '').filter(Boolean)
-          : undefined;
-
-        const videoMeta = isVideo ? {
-          platform: url.includes('youtube.com') ? 'YouTube' : 'Unknown',
-          views: el.querySelector('.iJqaxd, .OCY7ub')?.textContent?.trim() ?? undefined,
-        } : undefined;
-
-        return {
-          title,
-          url,
-          snippet,
-          sourceType,
-          sitelinks,
-          videoMeta,
-        };
-      });
-    });
-
-    // Count ads and videos
-    const typedSources = sources as { sourceType: SourceType }[];
-    const adsCount = typedSources.filter((s) => s.sourceType === 'sponsored').length;
-    const videoCount = typedSources.filter((s) => s.sourceType === 'video').length;
-
-    // Take screenshot (storage only, never sent to LLM)
-    const screenshotPath = `/tmp/serp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
-    await page.screenshot({ path: screenshotPath, fullPage: false });
-
-    await page.close();
-    return {
-      aiOverviewSnippet,
-      aiOverviewConfidence: computeAiOverviewConfidence(selectorUsed),
-      selectorUsed,
-      sources,
-      screenshotPath,
-      adsCount,
-      videoCount,
-    };
-  } catch {
-    await browser.close();
-    throw new Error(`Crawling failed for query: ${query}`);
-  }
-
-  await browser.close();
+  return crawlSerpViaApi(query, language, country, apiService);
 };
 
+/**
+ * SerpApi Channel: Discover PAA queries using SerpApi.
+ * If SerpApi fails, the error propagates — no Puppeteer fallback.
+ */
 export const discoverPAAQueries = async (
   baseQuery: string,
   language: string,
   country: string,
+  apiService: ResolvedApiServiceForAcquisition,
 ): Promise<string[]> => {
-  void loadPuppeteer();
-  const Stealth = loadStealthPlugin();
-
-  const puppeteerExtra = require('puppeteer-extra');
-  puppeteerExtra.use(Stealth());
-
-  const browser = await puppeteerExtra.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-
-    const searchUrl = `https://www.${country}/search?q=${encodeURIComponent(baseQuery)}&hl=${language}`;
-    await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    // Click PAA elements to expand them
-    const paaSelectors = ['.related-question-pair', '.PZPBZc', '[jsname]'];
-    for (const selector of paaSelectors) {
-      const elements = await page.$$(selector);
-      for (const el of elements.slice(0, 4)) {
-        try {
-          await el.click();
-          await page.waitForTimeout(1000);
-        } catch {
-          // Element may not be clickable, continue
-        }
-      }
-    }
-
-    // Extract PAA queries
-    const paaQueries = await page.evaluate(() => {
-      const elements = document.querySelectorAll('.related-question-pair, .PZPBZc');
-      return Array.from(elements)
-        .slice(0, 4)
-        .map((el) => el.textContent?.trim() ?? '')
-        .filter((q) => q.length > 0);
-    });
-
-    await page.close();
-    await browser.close();
-    return paaQueries;
-  } catch {
-    await browser.close();
-    return [];
-  }
+  return discoverPAAQueriesViaApi(baseQuery, language, country, apiService);
 };

@@ -26,6 +26,56 @@ test('validateApiServiceInput accepts valid public service payload', () => {
   assert.deepEqual(errors, []);
 });
 
+test('validateApiServiceInput rejects query-param mode without tokenRef', () => {
+  const errors = validateApiServiceInput({
+    key: 'serp-api',
+    label: 'SERP API',
+    baseUrl: 'https://serpapi.com',
+    resourcePath: '/search.json',
+    accessMode: 'query-param',
+  });
+
+  assert.ok(errors.includes('tokenRef is required when accessMode is query-param'));
+});
+
+test('validateToolStepBindingInput accepts crawling workflowStepType', () => {
+  const errors = validateToolStepBindingInput({
+    toolKey: 'geometric',
+    stepKey: 'serp-crawling',
+    workflowStepType: 'crawling',
+    bindingStatus: 'active',
+    requiredness: 'required-by-tool-setting',
+  });
+
+  assert.deepEqual(errors, []);
+});
+
+test('validateToolStepBindingInput rejects invalid workflowStepType', () => {
+  const errors = validateToolStepBindingInput({
+    toolKey: 'geometric',
+    stepKey: 'serp-crawling',
+    workflowStepType: 'invalid-type',
+    bindingStatus: 'active',
+    requiredness: 'required-by-tool-setting',
+  });
+
+  assert.ok(errors.includes('workflowStepType must be acquisition or crawling'));
+});
+
+test('validateApiServiceInput accepts valid query-param mode with tokenRef', () => {
+  const errors = validateApiServiceInput({
+    key: 'serp-api',
+    label: 'SERP API',
+    baseUrl: 'https://serpapi.com',
+    resourcePath: '/search.json',
+    accessMode: 'query-param',
+    tokenRef: 'vault://serp/api-key',
+    tokenParamName: 'api_key',
+  });
+
+  assert.deepEqual(errors, []);
+});
+
 test('validateApiServiceInput rejects token mode without tokenRef', () => {
   const errors = validateApiServiceInput({
     key: 'private-api',
@@ -77,6 +127,7 @@ test('toApiServiceRedactedDto never exposes secrets and marks tokenConfigured', 
     requestMappingRulesJson: [],
     requestHeadersTemplateJson: {},
     tokenHeaderName: 'X-API-Key',
+    tokenParamName: null,
     responseMappingRulesJson: [],
     errorMappingRulesJson: [],
     contractProfileVersion: 1,

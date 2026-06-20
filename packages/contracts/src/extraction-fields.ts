@@ -31,6 +31,9 @@ export const EXTRACTION_FIELD_KEYS = [
   'website_goal',
   'awareness_priority',
   'angle_candidates',
+  'base_query',
+  'language',
+  'country',
 ] as const;
 
 export type ExtractionFieldKey = (typeof EXTRACTION_FIELD_KEYS)[number];
@@ -89,6 +92,7 @@ export const InstructionRequiredExtractionFieldKeysByTool: Readonly<Record<ToolK
     'angle_candidates',
   ],
   'youtube-description': [],
+  'geometric': [],
 } as const;
 
 export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey, readonly ExtractionFieldKey[]>> = {
@@ -104,6 +108,7 @@ export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey
   'angle-generator': [],
   'meta-ads': [],
   'youtube-description': [],
+  'geometric': [],
 } as const;
 
 export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly<Record<string, ExtractionFieldKey>>>> = {
@@ -157,6 +162,7 @@ export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly
     'angle candidates': 'angle_candidates',
   },
   'youtube-description': {},
+  'geometric': {},
 } as const;
 
 const normalizeAliasCandidate = (value: string): string => value.trim().toLowerCase();

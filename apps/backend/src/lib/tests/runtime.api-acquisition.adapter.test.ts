@@ -17,6 +17,7 @@ const buildService = () => ({
   requestMappingRulesJson: [],
   requestHeadersTemplateJson: {},
   tokenHeaderName: null,
+  tokenParamName: null,
   responseMappingRulesJson: [],
   errorMappingRulesJson: [],
   contractProfileVersion: 1,
@@ -49,6 +50,80 @@ test('executeApiAcquisition builds GET call and normalizes json payload', async 
 
     assert.equal(result.statusCode, 200);
     assert.deepEqual(result.payload, { ok: true, source: 'api' });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('executeApiAcquisition injects token as query parameter for query-param mode', async () => {
+  const originalFetch = global.fetch;
+  const observed: { url: string | undefined } = { url: undefined };
+
+  global.fetch = (async (url: string | URL) => {
+    observed.url = String(url);
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ ok: true, source: 'api' }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    const service = {
+      ...buildService(),
+      accessMode: 'query-param' as const,
+      tokenCiphertext: 'test-api-key',
+      tokenParamName: 'api_key',
+    };
+
+    const result = await executeApiAcquisition({
+      service,
+      query: { q: 'test query' },
+    });
+
+    assert.equal(result.statusCode, 200);
+    assert.ok(observed.url?.includes('api_key=test-api-key'));
+    assert.ok(observed.url?.includes('q=test+query'));
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('executeApiAcquisition uses default api_key param name when tokenParamName is null for query-param mode', async () => {
+  const originalFetch = global.fetch;
+  const observed: { url: string | undefined } = { url: undefined };
+
+  global.fetch = (async (url: string | URL) => {
+    observed.url = String(url);
+    return {
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) => (name.toLowerCase() === 'content-type' ? 'application/json' : null),
+      },
+      json: async () => ({ ok: true, source: 'api' }),
+      text: async () => '',
+    } as unknown as Response;
+  }) as typeof fetch;
+
+  try {
+    const service = {
+      ...buildService(),
+      accessMode: 'query-param' as const,
+      tokenCiphertext: 'test-api-key',
+      tokenParamName: null,
+    };
+
+    const result = await executeApiAcquisition({
+      service,
+    });
+
+    assert.equal(result.statusCode, 200);
+    assert.ok(observed.url?.includes('api_key=test-api-key'));
   } finally {
     global.fetch = originalFetch;
   }
@@ -212,7 +287,7 @@ test('executeApiAcquisition assembles profile-driven request and maps response p
 
     assert.equal(result.statusCode, 200);
     assert.equal(observed.method, 'POST');
-    assert.equal(observed.url, 'https://api.github.com/repos/acme/repo/issues?lang=en&q=copilot');
+    assert.equal(observed.url, 'https://api.github.com/repos/acme/repo/issues?lang=en&search=copilot&q=copilot');
     assert.equal(observed.headers?.['x-api-profile'], 'contract-v1');
     assert.deepEqual(observed.body, {
       staticFlag: true,

@@ -32,6 +32,8 @@ const PROMPT_FILE_BY_KEY = {
   'meta-ads:context-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_context_generation.md',
   'meta-ads:ads-generation': 'src/lib/runtime/tool-prompts/meta-ads/prompt_ads_generation.md',
   'youtube-description:youtube-description-generation': YOUTUBE_DESCRIPTION_GENERATION_PROMPT_FILE,
+  'geometric:strategic-reporting': 'src/lib/runtime/tool-prompts/geometric/prompt_strategic_reporting.md',
+  'geometric:unified-report': 'src/lib/runtime/tool-prompts/geometric/prompt_unified_report.md',
 } as const;
 
 const promptCache = new Map<string, string>();

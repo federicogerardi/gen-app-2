@@ -1,6 +1,6 @@
 export type AdminNavigationItem = {
-  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity';
-  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity';
+  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity' | 'geometric-screenshots';
+  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity' | '/admin/geometric-screenshots';
   label: string;
   description: string;
   end?: boolean;
@@ -49,5 +49,11 @@ export const adminNavigationItems: readonly AdminNavigationItem[] = [
     to: '/admin/activity',
     label: 'Attivita recente',
     description: 'Vista tabellare delle checkpoint recenti del workspace.',
+  },
+  {
+    key: 'geometric-screenshots',
+    to: '/admin/geometric-screenshots',
+    label: 'Screenshot SERP',
+    description: 'Visualizza gli screenshot archiviati delle sessioni di crawling Geometric.',
   },
 ] as const;

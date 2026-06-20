@@ -1,5 +1,6 @@
 import { assign, setup } from 'xstate';
 import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
+import { logGeometricInfo, logGeometricError } from '../runtime/integrations/geometric-logger';
 
 import type {
   ToolWorkflowEvent,
@@ -170,6 +171,111 @@ export const toolWorkflowMachine = setup({
         return mergeAcquisitionIntoGenerationInput(context.assembledGenerationInput, acquisitionOutput);
       },
     }),
+    mergeCrawlingOutput: assign({
+      assembledGenerationInput: ({ context, event }) => {
+        if (event.type !== 'STEP_SUCCESS') {
+          return context.assembledGenerationInput;
+        }
+
+        const stepDescriptor = context.input.steps.find((step) => step.key === event.stepKey);
+        if (stepDescriptor?.type !== 'crawling') {
+          return context.assembledGenerationInput;
+        }
+
+        const crawlingOutput = event.output as { crawlArtifacts?: { content: string; structuredPayload: Record<string, unknown> }[] } | undefined;
+        if (!crawlingOutput?.crawlArtifacts?.length) {
+          logGeometricError('merge.crawling.empty', {
+            requestId: context.input.requestId ?? 'unknown',
+            operation: 'mergeCrawlingOutput',
+            stepKey: event.stepKey,
+          });
+          return context.assembledGenerationInput;
+        }
+
+        const mergedSnippets = crawlingOutput.crawlArtifacts.map((a) => a.content).filter(Boolean).join('\n\n');
+
+        const mergedSources: Array<Record<string, unknown>> = [];
+        const mergedPaaQueries: string[] = [];
+        const seenPaaQueries = new Set<string>();
+
+        for (const artifact of crawlingOutput.crawlArtifacts) {
+          const payload = artifact.structuredPayload;
+          if (Array.isArray(payload.sources)) {
+            mergedSources.push(...payload.sources);
+          }
+          if (Array.isArray(payload.paaQueries)) {
+            for (const q of payload.paaQueries) {
+              if (typeof q === 'string' && !seenPaaQueries.has(q)) {
+                seenPaaQueries.add(q);
+                mergedPaaQueries.push(q);
+              }
+            }
+          }
+        }
+
+        logGeometricInfo('merge.crawling.completed', {
+          requestId: context.input.requestId ?? 'unknown',
+          operation: 'mergeCrawlingOutput',
+          stepKey: event.stepKey,
+          sourceCount: mergedSources.length,
+          paaCount: mergedPaaQueries.length,
+          snippetLength: mergedSnippets.length,
+        });
+
+        const result: Record<string, unknown> = {
+          ...context.assembledGenerationInput,
+          crawling: {
+            snippets: mergedSnippets,
+            sources: mergedSources,
+            paaQueries: mergedPaaQueries,
+          },
+        };
+
+        // Preserve brandName if present in request input
+        const requestInput = context.input.requestInput as Record<string, unknown> | undefined;
+        const brandName = typeof requestInput?.brandName === 'string' ? requestInput.brandName : '';
+        if (brandName) {
+          result.brandName = brandName;
+        }
+
+        return result;
+      },
+    }),
+    mergeScoringOutput: assign({
+      assembledGenerationInput: ({ context, event }) => {
+        if (event.type !== 'STEP_SUCCESS') {
+          return context.assembledGenerationInput;
+        }
+
+        const stepDescriptor = context.input.steps.find((step) => step.key === event.stepKey);
+        if (stepDescriptor?.type !== 'scoring') {
+          return context.assembledGenerationInput;
+        }
+
+        const scoringOutput = event.output as { ranking?: Record<string, unknown> } | undefined;
+        if (!scoringOutput?.ranking) {
+          logGeometricError('merge.scoring.empty', {
+            requestId: context.input.requestId ?? 'unknown',
+            operation: 'mergeScoringOutput',
+            stepKey: event.stepKey,
+          });
+          return context.assembledGenerationInput;
+        }
+
+        const competitorCount = Object.keys(scoringOutput.ranking).length;
+        logGeometricInfo('merge.scoring.completed', {
+          requestId: context.input.requestId ?? 'unknown',
+          operation: 'mergeScoringOutput',
+          stepKey: event.stepKey,
+          competitorCount,
+        });
+
+        return {
+          ...context.assembledGenerationInput,
+          scoring: scoringOutput.ranking,
+        };
+      },
+    }),
   },
 }).createMachine({
   id: 'toolWorkflowMachine',
@@ -193,7 +299,7 @@ export const toolWorkflowMachine = setup({
           actions: ['cacheUnlockedStep', 'markStepRunning', 'syncActiveStepIndex'],
         },
         STEP_SUCCESS: {
-          actions: ['markStepDone', 'mergeAcquisitionOutput', 'syncActiveStepIndex'],
+          actions: ['markStepDone', 'mergeAcquisitionOutput', 'mergeCrawlingOutput', 'mergeScoringOutput', 'syncActiveStepIndex'],
         },
         STEP_FAILURE: {
           target: 'error',

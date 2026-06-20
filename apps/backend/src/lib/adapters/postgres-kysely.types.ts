@@ -111,6 +111,7 @@ export interface ApiServicesTable {
   request_mapping_rules_json: unknown;
   request_headers_template_json: Record<string, unknown>;
   token_header_name: string | null;
+  token_param_name: string | null;
   response_mapping_rules_json: unknown;
   error_mapping_rules_json: unknown;
   contract_profile_version: number;

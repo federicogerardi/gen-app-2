@@ -30,6 +30,43 @@ import {
   normalizeToneProfile,
 } from './tool-page-runtime-utils';
 
+export const buildGeometricDirectInputExtractionInfo = ({
+  baseQuery,
+  language,
+  country,
+  brandName,
+}: Pick<ToolFormState, 'baseQuery' | 'language' | 'country' | 'brandName'>): SelectedExtractionInfo | null => {
+  const normalizedBaseQuery = baseQuery.trim();
+  const normalizedLanguage = language.trim();
+  const normalizedCountry = country.trim();
+  const normalizedBrandName = brandName.trim();
+
+  if (!normalizedBaseQuery || !normalizedLanguage || !normalizedCountry) {
+    return null;
+  }
+
+  const payload: Record<string, string> = {
+    baseQuery: normalizedBaseQuery,
+    language: normalizedLanguage,
+    country: normalizedCountry,
+  };
+  if (normalizedBrandName) {
+    payload.brandName = normalizedBrandName;
+  }
+
+  return {
+    extractionArtifactId: 'direct-input:geometric',
+    briefingId: 'direct-input:geometric',
+    briefingText: [
+      `Base query: ${normalizedBaseQuery}`,
+      `Language: ${normalizedLanguage}`,
+      `Country: ${normalizedCountry}`,
+      ...(normalizedBrandName ? [`Brand: ${normalizedBrandName}`] : []),
+    ].join('\n'),
+    extractionPayload: payload,
+  };
+};
+
 type RuntimeIntent = 'new' | 'resume' | 'regenerate';
 
 type LastRequest = GenerationStreamWorkspaceValue['snapshot']['context']['lastRequest'];
@@ -265,6 +302,10 @@ export const selectGenerationExtractionInfo = ({
   directInputExtractionInfo?: SelectedExtractionInfo | null;
 }): SelectedExtractionInfo | null => {
   if (toolKey === 'youtube-description' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
+  if (toolKey === 'geometric' && directInputExtractionInfo) {
     return directInputExtractionInfo;
   }
 

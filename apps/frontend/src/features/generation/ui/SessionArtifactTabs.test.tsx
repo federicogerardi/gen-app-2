@@ -1,8 +1,23 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { appCopy } from '../../../app/copy/system';
 import { SessionArtifactTabs } from './SessionArtifactTabs';
 import type { SessionArtifactGroup } from '../machines/session-artifact-group';
+
+vi.mock('../../tools/runtime/tool-step-display-config', async () => {
+  const actual = await vi.importActual('../../tools/runtime/tool-step-display-config') as Record<string, unknown>;
+  return {
+    ...actual,
+    isStepVisible: vi.fn().mockImplementation(actual.isStepVisible as (...args: unknown[]) => boolean),
+    isStepIncludedInDownload: vi.fn().mockImplementation(actual.isStepIncludedInDownload as (...args: unknown[]) => boolean),
+    getVisibleSteps: vi.fn().mockImplementation(actual.getVisibleSteps as (...args: unknown[]) => string[]),
+    getIncludedSteps: vi.fn().mockImplementation(actual.getIncludedSteps as (...args: unknown[]) => string[]),
+  };
+});
+
+import { isStepVisible } from '../../tools/runtime/tool-step-display-config';
+
+const mockedIsStepVisible = vi.mocked(isStepVisible);
 
 const group: SessionArtifactGroup = {
   sessionId: 'sess_demo',
@@ -35,6 +50,10 @@ const group: SessionArtifactGroup = {
 };
 
 describe('SessionArtifactTabs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders step tabs separately from markdown/raw content controls', () => {
     render(<SessionArtifactTabs group={group} fallbackToolKey="funnel-pages" />);
 
@@ -125,5 +144,29 @@ describe('SessionArtifactTabs', () => {
     expect(screen.getByRole('tab', { name: 'context-generation' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'ads-generation' })).toBeInTheDocument();
     expect(screen.getByText('Meta context content')).toBeInTheDocument();
+  });
+
+  it('renders all steps by default (default config is all visible)', () => {
+    render(<SessionArtifactTabs group={group} fallbackToolKey="funnel-pages" />);
+
+    expect(screen.getByRole('tab', { name: 'optin' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'quiz' })).toBeInTheDocument();
+  });
+
+  it('hides step tabs when step is configured as not visible', () => {
+    mockedIsStepVisible.mockImplementation((stepKey: string) => stepKey !== 'quiz');
+
+    render(<SessionArtifactTabs group={group} fallbackToolKey="funnel-pages" />);
+
+    expect(screen.getByRole('tab', { name: 'optin' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'quiz' })).not.toBeInTheDocument();
+  });
+
+  it('shows empty state message when all steps are hidden', () => {
+    mockedIsStepVisible.mockReturnValue(false);
+
+    render(<SessionArtifactTabs group={group} fallbackToolKey="funnel-pages" />);
+
+    expect(screen.getByText('All steps are hidden by configuration.')).toBeInTheDocument();
   });
 });

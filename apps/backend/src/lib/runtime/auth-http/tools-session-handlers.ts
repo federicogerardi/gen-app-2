@@ -208,6 +208,12 @@ export const createToolsSessionHandlers = (
       return;
     }
 
+    const searchParams = parseRequestUrl(request).searchParams;
+    const excludeStepsParam = searchParams.get('excludeSteps');
+    const excludeSteps = excludeStepsParam
+      ? excludeStepsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      : undefined;
+
     const principal = await requireSessionPrincipal(request, response);
     if (!principal) {
       return;
@@ -254,7 +260,9 @@ export const createToolsSessionHandlers = (
       );
     }
 
-    const fileBuffer = await serializeSessionDownload(sessionId, group.toolKey, orderedArtifacts, format);
+    const fileBuffer = await serializeSessionDownload(sessionId, group.toolKey, orderedArtifacts, format, {
+      ...(excludeSteps && excludeSteps.length > 0 ? { excludeSteps } : {}),
+    });
     const filename = sessionDownloadFilename(sessionId, format);
 
     await repositories.sessions.touchSession(principal.session.id, now());

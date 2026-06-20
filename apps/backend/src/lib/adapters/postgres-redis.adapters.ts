@@ -1,5 +1,6 @@
 import type { GenerationAdapters } from './generation.adapters';
 import type { PostgresRedisAdapterDependencies } from './postgres-redis.interfaces';
+import { resolveApiServiceForCrawling } from './api-service.adapter';
 
 export const createPostgresRedisGenerationAdapters = (
   dependencies: PostgresRedisAdapterDependencies,
@@ -65,5 +66,10 @@ export const createPostgresRedisGenerationAdapters = (
       finalizeFailure: (input, reason) => dependencies.persistence.finalizeFailure(input, reason),
     },
     orchestrateCache: dependencies.orchestrateCache,
+    screenshotArchival: null,
+    apiService: dependencies.pg ? {
+      resolveApiServiceForCrawling: (id) => resolveApiServiceForCrawling(dependencies.pg!, id),
+    } : null,
   };
+  console.log(`[DEBUG][postgres-redis-adapters] created adapters — screenshotArchival=null (will be overridden by server.ts)`);
 };

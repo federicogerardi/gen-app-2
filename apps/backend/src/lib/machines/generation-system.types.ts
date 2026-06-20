@@ -82,6 +82,15 @@ export type AcquisitionDoneOutput =
   | { type: 'ACQUISITION_ATTEMPT_ACCEPTED'; statusCode: number; payload: Record<string, unknown> }
   | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
 
+export type CrawlingDoneOutput =
+  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[]; screenshotIds?: string[] }
+  | { type: 'CRAWLING_FAILED'; reason: string };
+
+export type CacheCrawlingResultParams = {
+  crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[];
+  paaQueries: string[];
+};
+
 export type CacheRequestMetaParams = {
   requestId: string;
   projectId: string;
@@ -125,6 +134,14 @@ export type CacheExtractionResultParams = {
 
 export type CacheAcquisitionResultParams = {
   payload: Record<string, unknown>;
+};
+
+export type ScoringDoneOutput =
+  | { type: 'SCORING_COMPLETED'; ranking: Record<string, unknown> }
+  | { type: 'SCORING_FAILED'; reason: string };
+
+export type CacheScoringResultParams = {
+  ranking: Record<string, unknown>;
 };
 
 export type CacheGenerateResultParams = {

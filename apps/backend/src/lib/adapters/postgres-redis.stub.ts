@@ -709,7 +709,7 @@ export const createPostgresRedisStubDependencies = (
   const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
   const generate: LlmGenerateAdapter = createSyntheticLlmGenerateAdapter();
 
-  return {
+  const deps: PostgresRedisAdapterDependencies = {
     ownership: new ProjectOwnershipRepositoryStub(),
     quota: new RedisQuotaRepositoryStub(defaultQuotaLimit),
     idempotency: new RedisIdempotencyRepositoryStub(),
@@ -719,6 +719,7 @@ export const createPostgresRedisStubDependencies = (
     persistence: new PostgresArtifactRepositoryStub(runtime),
     orchestrateCache: null,
   };
+  return deps;
 };
 
 export const createPostgresRedisStubGenerationAdapters = (

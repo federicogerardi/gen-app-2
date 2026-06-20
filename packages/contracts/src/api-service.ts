@@ -1,4 +1,4 @@
-export type ApiServiceAccessMode = 'public' | 'token';
+export type ApiServiceAccessMode = 'public' | 'token' | 'query-param';
 export type ApiServiceStatus = 'active' | 'inactive';
 export type ApiServiceRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type ApiServiceBindingStatus = 'active' | 'inactive';
@@ -32,6 +32,7 @@ export type ApiServiceRequestContractProfile = {
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
   tokenHeaderName?: string | null;
+  tokenParamName?: string | null;
 };
 
 export type ApiServiceResponseContractProfile = {
@@ -45,7 +46,7 @@ export type ApiServiceToolStepBindingDto = {
   apiServiceId: string;
   toolKey: string;
   stepKey: string;
-  workflowStepType: 'acquisition';
+  workflowStepType: 'acquisition' | 'crawling';
   bindingStatus: ApiServiceBindingStatus;
   requiredness: ApiServiceBindingRequiredness;
   createdAt: string;
@@ -73,6 +74,7 @@ export type ApiServiceDto = {
   status: ApiServiceStatus;
   tokenRef: string | null;
   tokenHeaderName?: string | null;
+  tokenParamName?: string | null;
   tokenConfigured: boolean;
   requestContractProfile?: ApiServiceRequestContractProfile;
   responseContractProfile?: ApiServiceResponseContractProfile;
@@ -90,6 +92,7 @@ export type CreateApiServiceCommand = {
   retryCount?: number;
   tokenRef?: string | null;
   tokenHeaderName?: string | null;
+  tokenParamName?: string | null;
 };
 
 export type UpdateApiServiceCommand = Partial<CreateApiServiceCommand> & {

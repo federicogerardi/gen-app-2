@@ -21,6 +21,9 @@ import { getDefaultDocxVisualTheme } from './docx-theme-config';
 interface DocxParagraph {
   // opaque
 }
+interface DocxTable {
+  // opaque
+}
 interface DocxDocument {
   // opaque
 }
@@ -29,9 +32,14 @@ interface DocxPacker {
 }
 type HeadingLevelMap = Record<string, unknown>;
 interface DocxModule {
-  Document: new (opts: { sections: [{ children: DocxParagraph[] }] }) => DocxDocument;
+  Document: new (opts: { sections: [{ children: (DocxParagraph | DocxTable)[] }] }) => DocxDocument;
   Paragraph: new (opts: { text?: string; children?: unknown[]; heading?: unknown }) => DocxParagraph;
   TextRun: new (opts: string | { text: string; bold?: boolean; italics?: boolean; strike?: boolean }) => unknown;
+  Table: new (opts: { rows: unknown[]; width?: { size: number; type: string }; columnWidths?: number[]; layout?: string; borders?: Record<string, unknown> }) => DocxTable;
+  TableRow: new (opts: { children: unknown[]; tableHeader?: boolean }) => unknown;
+  TableCell: new (opts: { children: DocxParagraph[]; width?: { size: number; type: string } }) => unknown;
+  WidthType: { PERCENTAGE: string; DXA: string };
+  BorderStyle: { SINGLE: string };
   HeadingLevel: HeadingLevelMap;
   Packer: DocxPacker;
 }
@@ -45,6 +53,7 @@ type MarkdownDocxBlock =
   | { kind: 'unordered-list-item'; text: string }
   | { kind: 'ordered-list-item'; index: number; text: string }
   | { kind: 'code'; text: string }
+  | { kind: 'table'; headerRow: string[]; rows: string[][] }
   | { kind: 'blank' };
 
 const normalizeLine = (line: string): string => line.replace(/\r/g, '');
@@ -119,12 +128,47 @@ export const parseMarkdownToDocxBlocks = (input: string): MarkdownDocxBlock[] =>
   const lines = input.split('\n').map(normalizeLine);
   const blocks: MarkdownDocxBlock[] = [];
   let inCodeFence = false;
+  let tableBuffer: string[] = [];
+
+  const flushTableBuffer = () => {
+    if (tableBuffer.length >= 2) {
+      const firstLine = tableBuffer[0];
+      if (!firstLine) {
+        tableBuffer = [];
+        return;
+      }
+      const headerCells = parseTableRowCells(firstLine);
+      const dataRows: string[][] = [];
+      for (let i = 2; i < tableBuffer.length; i++) {
+        const line = tableBuffer[i];
+        if (line) {
+          const cells = parseTableRowCells(line);
+          if (cells.length > 0) {
+            dataRows.push(cells);
+          }
+        }
+      }
+      if (headerCells.length > 0) {
+        blocks.push({ kind: 'table', headerRow: headerCells, rows: dataRows });
+      }
+    } else {
+      tableBuffer.forEach((line) => {
+        blocks.push({ kind: 'paragraph', text: line });
+      });
+    }
+    tableBuffer = [];
+  };
+
+  const isTableSeparator = (line: string): boolean => /^[\s|:-]+$/.test(line) && line.includes('-') && line.includes('|');
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
     const trimmed = line.trim();
 
     if (/^```/.test(trimmed)) {
+      if (tableBuffer.length > 0) {
+        flushTableBuffer();
+      }
       inCodeFence = !inCodeFence;
       continue;
     }
@@ -135,8 +179,25 @@ export const parseMarkdownToDocxBlocks = (input: string): MarkdownDocxBlock[] =>
     }
 
     if (trimmed.length === 0) {
+      if (tableBuffer.length > 0) {
+        flushTableBuffer();
+      }
       blocks.push({ kind: 'blank' });
       continue;
+    }
+
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      tableBuffer.push(trimmed);
+      continue;
+    }
+
+    if (tableBuffer.length > 0 && isTableSeparator(trimmed)) {
+      tableBuffer.push(trimmed);
+      continue;
+    }
+
+    if (tableBuffer.length > 0) {
+      flushTableBuffer();
     }
 
     const heading = trimmed.match(/^(#{1,3})\s+(.*)$/);
@@ -176,7 +237,20 @@ export const parseMarkdownToDocxBlocks = (input: string): MarkdownDocxBlock[] =>
     blocks.push({ kind: 'paragraph', text: line });
   }
 
+  if (tableBuffer.length > 0) {
+    flushTableBuffer();
+  }
+
   return blocks;
+};
+
+const parseTableRowCells = (row: string): string[] => {
+  return row
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim())
+    .filter((cell) => cell.length > 0 || true);
 };
 
 const toDocxTextRuns = (
@@ -210,11 +284,11 @@ const toDocxTextRuns = (
   }));
 };
 
-const toDocxParagraphs = (content: string, docx: DocxModule, theme: DocxVisualTheme): DocxParagraph[] => {
-  const { Paragraph, HeadingLevel } = docx;
+const toDocxParagraphs = (content: string, docx: DocxModule, theme: DocxVisualTheme): (DocxParagraph | DocxTable)[] => {
+  const { Paragraph, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle } = docx;
   const blocks = parseMarkdownToDocxBlocks(content);
 
-  return blocks.map((block) => {
+  return blocks.flatMap((block) => {
     if (block.kind === 'heading') {
       const headingLevel =
         block.level === 1
@@ -259,6 +333,66 @@ const toDocxParagraphs = (content: string, docx: DocxModule, theme: DocxVisualTh
       });
     }
 
+    if (block.kind === 'table') {
+      const borderDef = {
+        style: BorderStyle.SINGLE,
+        size: 6,
+        color: 'CCCCCC',
+      };
+
+      const columnCount = Math.max(block.headerRow.length, ...block.rows.map((r) => r.length));
+      const colWidth = Math.floor(9000 / columnCount);
+
+      const headerCell = (text: string) =>
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: toDocxTextRuns(text, docx, theme, true, 'bold'),
+              ...resolveParagraphTheme('table-header-cell', theme),
+            }),
+          ],
+          width: { size: colWidth, type: WidthType.DXA },
+        });
+
+      const bodyCell = (text: string) =>
+        new TableCell({
+          children: [
+            new Paragraph({
+              children: toDocxTextRuns(text, docx, theme),
+              ...resolveParagraphTheme('table-cell', theme),
+            }),
+          ],
+          width: { size: colWidth, type: WidthType.DXA },
+        });
+
+      const rows = [
+        new TableRow({
+          tableHeader: true,
+          children: block.headerRow.map(headerCell),
+        }),
+        ...block.rows.map((row) =>
+          new TableRow({
+            children: row.map(bodyCell),
+          }),
+        ),
+      ];
+
+      return new Table({
+        rows,
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        columnWidths: Array(columnCount).fill(colWidth),
+        layout: 'fixed',
+        borders: {
+          top: borderDef,
+          bottom: borderDef,
+          left: borderDef,
+          right: borderDef,
+          insideHorizontal: borderDef,
+          insideVertical: borderDef,
+        },
+      });
+    }
+
     if (block.kind === 'paragraph') {
       return new Paragraph({
         children: toDocxTextRuns(block.text, docx, theme),
@@ -276,18 +410,13 @@ const toMarkdownDocument = (title: string, content: string): string =>
   `# ${title}\n\n${content}\n`;
 
 const toMarkdownSessionDocument = (
-  sessionId: string,
-  toolKey: string | null,
+  _sessionId: string,
+  _toolKey: string | null,
   steps: SessionArtifactEntry[],
 ): string => {
-  const header = `# Session: ${sessionId}\n\nTool: ${toolKey ?? 'unknown'}\n\n---\n\n`;
-  const sections = steps
-    .map((step) => {
-      const stepLabel = step.stepKey ?? 'unknown-step';
-      return `## Step: ${stepLabel}\n\n${step.content}\n`;
-    })
-    .join('\n---\n\n');
-  return header + sections;
+  return steps
+    .map((step) => step.content)
+    .join('\n\n---\n\n');
 };
 
 // ── Plain text helpers ─────────────────────────────────────────────────────────
@@ -296,18 +425,13 @@ const toPlainTextDocument = (title: string, content: string): string =>
   `${title.toUpperCase()}\n${'='.repeat(title.length)}\n\n${content}\n`;
 
 const toPlainTextSessionDocument = (
-  sessionId: string,
-  toolKey: string | null,
+  _sessionId: string,
+  _toolKey: string | null,
   steps: SessionArtifactEntry[],
 ): string => {
-  const header = `SESSION: ${sessionId}\nTOOL: ${toolKey ?? 'unknown'}\n\n${'='.repeat(60)}\n\n`;
-  const sections = steps
-    .map((step) => {
-      const stepLabel = (step.stepKey ?? 'unknown-step').toUpperCase();
-      return `=== STEP: ${stepLabel} ===\n\n${step.content}\n`;
-    })
-    .join('\n' + '-'.repeat(60) + '\n\n');
-  return header + sections;
+  return steps
+    .map((step) => step.content)
+    .join('\n' + '='.repeat(60) + '\n\n');
 };
 
 // ── DOCX helpers ──────────────────────────────────────────────────────────────
@@ -320,7 +444,7 @@ const toDocxBuffer = async (
   const docx = loadDocx();
   const { Document, Paragraph, HeadingLevel, Packer } = docx;
   const resolvedTheme = mergeDocxVisualTheme(DOCX_VISUAL_THEME_NONE, visualTheme);
-  const children: DocxParagraph[] = [
+  const children: (DocxParagraph | DocxTable)[] = [
     new Paragraph({
       heading: HeadingLevel['HEADING_1'],
       children: toDocxTextRuns(title, docx, resolvedTheme, false, 'title'),
@@ -333,35 +457,18 @@ const toDocxBuffer = async (
 };
 
 const toDocxSessionBuffer = async (
-  sessionId: string,
-  toolKey: string | null,
+  _sessionId: string,
+  _toolKey: string | null,
   steps: SessionArtifactEntry[],
   visualTheme?: DocxVisualTheme,
 ): Promise<Buffer> => {
   const docx = loadDocx();
-  const { Document, Paragraph, HeadingLevel, Packer } = docx;
+  const { Document, Paragraph, Packer } = docx;
   const resolvedTheme = mergeDocxVisualTheme(DOCX_VISUAL_THEME_NONE, visualTheme);
 
-  const children: DocxParagraph[] = [
-    new Paragraph({
-      heading: HeadingLevel['HEADING_1'],
-      children: toDocxTextRuns(`Session: ${sessionId}`, docx, resolvedTheme, false, 'title'),
-      ...resolveParagraphTheme('title', resolvedTheme),
-    }),
-    new Paragraph({
-      children: toDocxTextRuns(`Tool: ${toolKey ?? 'unknown'}`, docx, resolvedTheme, false, 'meta'),
-      ...resolveParagraphTheme('meta', resolvedTheme),
-    }),
-    new Paragraph({ ...resolveParagraphTheme('blank', resolvedTheme) }),
-  ];
+  const children: (DocxParagraph | DocxTable)[] = [];
 
   for (const step of steps) {
-    const stepLabel = step.stepKey ?? 'unknown-step';
-    children.push(new Paragraph({
-      heading: HeadingLevel['HEADING_2'],
-      children: toDocxTextRuns(`Step: ${stepLabel}`, docx, resolvedTheme, false, 'heading'),
-      ...resolveParagraphTheme('heading-2', resolvedTheme),
-    }));
     children.push(...toDocxParagraphs(step.content, docx, resolvedTheme));
     children.push(new Paragraph({ ...resolveParagraphTheme('blank', resolvedTheme) }));
   }
@@ -396,18 +503,22 @@ export const serializeSessionDownload = async (
   toolKey: string | null,
   steps: SessionArtifactEntry[],
   format: DownloadFormat,
-  options?: { docxTheme?: DocxVisualTheme },
+  options?: { docxTheme?: DocxVisualTheme; excludeSteps?: string[] },
 ): Promise<Buffer> => {
+  const filteredSteps = options?.excludeSteps && options.excludeSteps.length > 0
+    ? steps.filter((step) => !options.excludeSteps!.includes(step.stepKey ?? ''))
+    : steps;
+
   if (format === 'md') {
-    return Buffer.from(toMarkdownSessionDocument(sessionId, toolKey, steps), 'utf-8');
+    return Buffer.from(toMarkdownSessionDocument(sessionId, toolKey, filteredSteps), 'utf-8');
   }
   if (format === 'txt') {
-    return Buffer.from(toPlainTextSessionDocument(sessionId, toolKey, steps), 'utf-8');
+    return Buffer.from(toPlainTextSessionDocument(sessionId, toolKey, filteredSteps), 'utf-8');
   }
   return toDocxSessionBuffer(
     sessionId,
     toolKey,
-    steps,
+    filteredSteps,
     options?.docxTheme ?? getDefaultDocxVisualTheme(),
   );
 };

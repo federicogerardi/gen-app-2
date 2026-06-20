@@ -1,4 +1,4 @@
-export type ApiServiceAccessMode = 'public' | 'token';
+export type ApiServiceAccessMode = 'public' | 'token' | 'query-param';
 export type ApiServiceStatus = 'active' | 'inactive';
 export type ApiServiceRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type ApiServiceBindingStatus = 'active' | 'inactive';
@@ -40,6 +40,7 @@ export type ApiService = {
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
   tokenHeaderName: string | null;
+  tokenParamName: string | null;
   responseMappingRulesJson: ApiServiceResponseMappingRule[];
   errorMappingRulesJson: ApiServiceErrorMappingRule[];
   contractProfileVersion: number;
@@ -54,7 +55,7 @@ export type ApiServiceToolStepBinding = {
   apiServiceId: string;
   toolKey: string;
   stepKey: string;
-  workflowStepType: 'acquisition';
+  workflowStepType: 'acquisition' | 'crawling';
   bindingStatus: ApiServiceBindingStatus;
   requiredness: ApiServiceBindingRequiredness;
   createdAt: Date;
@@ -75,6 +76,7 @@ export type ApiServiceRedactedDto = {
   requestMappingRulesJson: ApiServiceRequestMappingRule[];
   requestHeadersTemplateJson: Record<string, unknown>;
   tokenHeaderName: string | null;
+  tokenParamName: string | null;
   responseMappingRulesJson: ApiServiceResponseMappingRule[];
   errorMappingRulesJson: ApiServiceErrorMappingRule[];
   contractProfileVersion: number;
@@ -99,6 +101,7 @@ export type ApiServiceRow = {
   request_mapping_rules_json?: unknown;
   request_headers_template_json?: unknown;
   token_header_name: string | null;
+  token_param_name: string | null;
   response_mapping_rules_json?: unknown;
   error_mapping_rules_json?: unknown;
   contract_profile_version?: number;
@@ -137,7 +140,7 @@ export const rowToApiServiceBinding = (row: ApiServiceToolStepBindingRow): ApiSe
   apiServiceId: row.api_service_id,
   toolKey: row.tool_key,
   stepKey: row.step_key,
-  workflowStepType: 'acquisition',
+  workflowStepType: row.workflow_step_type as 'acquisition' | 'crawling',
   bindingStatus: row.binding_status as ApiServiceBindingStatus,
   requiredness: row.requiredness as ApiServiceBindingRequiredness,
   createdAt: row.created_at,
@@ -158,6 +161,7 @@ export const rowToApiService = (row: ApiServiceRow): ApiService => ({
   requestMappingRulesJson: asArray<ApiServiceRequestMappingRule>(row.request_mapping_rules_json),
   requestHeadersTemplateJson: asRecord(row.request_headers_template_json),
   tokenHeaderName: row.token_header_name,
+  tokenParamName: row.token_param_name,
   responseMappingRulesJson: asArray<ApiServiceResponseMappingRule>(row.response_mapping_rules_json),
   errorMappingRulesJson: asArray<ApiServiceErrorMappingRule>(row.error_mapping_rules_json),
   contractProfileVersion: row.contract_profile_version ?? 1,
@@ -184,6 +188,7 @@ export const toApiServiceRedactedDto = (
   requestMappingRulesJson: service.requestMappingRulesJson,
   requestHeadersTemplateJson: service.requestHeadersTemplateJson,
   tokenHeaderName: service.tokenHeaderName,
+  tokenParamName: service.tokenParamName,
   responseMappingRulesJson: service.responseMappingRulesJson,
   errorMappingRulesJson: service.errorMappingRulesJson,
   contractProfileVersion: service.contractProfileVersion,

@@ -26,6 +26,8 @@ import type {
   UsageDecision,
 } from './generation.adapters';
 
+import type { Pool } from 'pg';
+
 export type ProductionAdapterRuntime = {
   now?: () => Date;
   randomId?: () => string;
@@ -120,6 +122,7 @@ export interface OrchestrateArtifactCache {
 }
 
 export interface PostgresRedisAdapterDependencies {
+  pg?: Pool;
   ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;

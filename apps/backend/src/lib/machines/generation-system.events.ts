@@ -2,14 +2,18 @@ import type { GenerationFallbackOutput } from './generation-fallback.actor';
 import type {
   AcquisitionDoneOutput,
   CacheAcquisitionResultParams,
+  CacheCrawlingResultParams,
   CacheExtractionResultParams,
   CacheGenerateResultParams,
   CacheReplayPayloadParams,
+  CacheScoringResultParams,
   CacheStreamResultParams,
+  CrawlingDoneOutput,
   ExtractionDoneOutput,
   GenerateDoneOutput,
   IdempotencyDoneOutput,
   OwnershipDoneOutput,
+  ScoringDoneOutput,
   StreamDoneOutput,
   ToolDoneOutput,
   UsageDoneOutput,
@@ -97,6 +101,40 @@ export const getAcquisitionResultParams = (event: unknown): CacheAcquisitionResu
 
   return {
     payload: output.payload,
+  };
+};
+
+export const getCrawlingDoneOutput = (event: unknown): CrawlingDoneOutput | undefined =>
+  (event as { output?: CrawlingDoneOutput }).output;
+
+export const getCrawlingResultParams = (event: unknown): CacheCrawlingResultParams => {
+  const output = getCrawlingDoneOutput(event);
+  if (!output || output.type !== 'CRAWLING_COMPLETED') {
+    return {
+      crawlArtifacts: [],
+      paaQueries: [],
+    };
+  }
+
+  return {
+    crawlArtifacts: output.crawlArtifacts,
+    paaQueries: output.paaQueries,
+  };
+};
+
+export const getScoringDoneOutput = (event: unknown): ScoringDoneOutput | undefined =>
+  (event as { output?: ScoringDoneOutput }).output;
+
+export const getScoringResultParams = (event: unknown): CacheScoringResultParams => {
+  const output = getScoringDoneOutput(event);
+  if (!output || output.type !== 'SCORING_COMPLETED') {
+    return {
+      ranking: {},
+    };
+  }
+
+  return {
+    ranking: output.ranking,
   };
 };
 

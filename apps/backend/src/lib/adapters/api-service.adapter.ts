@@ -60,6 +60,7 @@ export type CreateApiServiceInput = {
   requestMappingRulesJson?: Array<Record<string, unknown>>;
   requestHeadersTemplateJson?: Record<string, unknown>;
   tokenHeaderName?: string | null;
+  tokenParamName?: string | null;
   responseMappingRulesJson?: Array<Record<string, unknown>>;
   errorMappingRulesJson?: Array<Record<string, unknown>>;
   contractProfileVersion?: number;
@@ -75,7 +76,7 @@ export type UpsertApiServiceBindingInput = {
   apiServiceId: string;
   toolKey: string;
   stepKey: string;
-  workflowStepType?: 'acquisition';
+  workflowStepType?: 'acquisition' | 'crawling';
   bindingStatus?: ApiServiceBindingStatus;
   requiredness?: ApiServiceBindingRequiredness;
 };
@@ -127,6 +128,7 @@ export const createApiService = async (
       request_mapping_rules_json: payload.requestMappingRulesJson ?? [],
       request_headers_template_json: payload.requestHeadersTemplateJson ?? {},
       token_header_name: payload.tokenHeaderName ?? null,
+      token_param_name: payload.tokenParamName ?? null,
       response_mapping_rules_json: payload.responseMappingRulesJson ?? [],
       error_mapping_rules_json: payload.errorMappingRulesJson ?? [],
       contract_profile_version: payload.contractProfileVersion ?? 1,
@@ -161,6 +163,7 @@ export const updateApiService = async (
   if (payload.requestMappingRulesJson !== undefined) setValues.request_mapping_rules_json = payload.requestMappingRulesJson;
   if (payload.requestHeadersTemplateJson !== undefined) setValues.request_headers_template_json = payload.requestHeadersTemplateJson;
   if (payload.tokenHeaderName !== undefined) setValues.token_header_name = payload.tokenHeaderName;
+  if (payload.tokenParamName !== undefined) setValues.token_param_name = payload.tokenParamName;
   if (payload.responseMappingRulesJson !== undefined) setValues.response_mapping_rules_json = payload.responseMappingRulesJson;
   if (payload.errorMappingRulesJson !== undefined) setValues.error_mapping_rules_json = payload.errorMappingRulesJson;
   if (payload.contractProfileVersion !== undefined) setValues.contract_profile_version = payload.contractProfileVersion;
@@ -193,6 +196,21 @@ export const deleteApiService = async (pool: Pool, id: string): Promise<boolean>
   return Number(result[0]?.numDeletedRows ?? 0) > 0;
 };
 
+/**
+ * Resolves an active ApiService by ID with decrypted token for runtime execution.
+ * 
+ * This function works for any workflow step type (acquisition, crawling, etc.), 
+ * not just acquisition despite the function name. The name is preserved for 
+ * backward compatibility with existing callers.
+ * 
+ * @deprecated Consider using resolveApiServiceById for semantic neutrality or 
+ * resolveApiServiceForCrawling for crawling-specific contexts. This function
+ * will remain available for backward compatibility.
+ * 
+ * @param pool Database connection pool
+ * @param id ApiService UUID to resolve
+ * @returns ResolvedApiServiceForAcquisition with tokenCiphertext, or null if not found/inactive
+ */
 export const resolveApiServiceForAcquisition = async (
   pool: Pool,
   id: string,
@@ -201,6 +219,45 @@ export const resolveApiServiceForAcquisition = async (
     .selectFrom('api_services')
     .selectAll()
     .where('id', '=', id)
+    .where('status', '=', 'active')
+    .executeTakeFirst() as unknown as ApiServiceRow | undefined;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...rowToApiService(row),
+    tokenCiphertext: row.token_ciphertext,
+  };
+};
+
+/**
+ * Semantically neutral alias for resolveApiServiceForAcquisition.
+ * Resolves an active ApiService by ID for any workflow step type.
+ * 
+ * @param pool Database connection pool
+ * @param id ApiService UUID to resolve
+ * @returns ResolvedApiServiceForAcquisition with tokenCiphertext, or null if not found/inactive
+ */
+export const resolveApiServiceById = resolveApiServiceForAcquisition;
+
+/**
+ * Semantically clear alias for crawling workflow steps.
+ * Resolves an active ApiService by key for crawling step execution.
+ * 
+ * @param pool Database connection pool  
+ * @param key ApiService key to resolve
+ * @returns ResolvedApiServiceForAcquisition with tokenCiphertext, or null if not found/inactive
+ */
+export const resolveApiServiceForCrawling = async (
+  pool: Pool,
+  key: string,
+): Promise<ResolvedApiServiceForAcquisition | null> => {
+  const row = await getDb(pool)
+    .selectFrom('api_services')
+    .selectAll()
+    .where('key', '=', key)
     .where('status', '=', 'active')
     .executeTakeFirst() as unknown as ApiServiceRow | undefined;
 

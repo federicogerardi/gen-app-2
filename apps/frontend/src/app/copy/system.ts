@@ -56,6 +56,7 @@ export const appCopy = {
       angleGenerator: 'Angle Generator',
       metaAds: 'MetaAds Generator',
       youtubeDescription: 'YT Description Generator',
+      geometric: 'Geometric',
       feedbackCenter: 'Feedback',
       sessionSummary: 'Sessions',
       artifacts: 'Artifacts',
@@ -618,6 +619,8 @@ export const appCopy = {
       apiServicesTitle: 'Admin ApiService',
       apiServicesBody: 'Catalogo amministrativo per ApiService e binding dei tool step.',
       apiServiceBindingsTitle: 'Binding ApiService',
+      geometricScreenshotsTitle: 'Screenshot SERP',
+      geometricScreenshotsBody: 'Visualizza gli screenshot archiviati delle sessioni di crawling Geometric.',
     },
     feedback: {
       userReportTitle: 'User report submission',
@@ -660,6 +663,11 @@ export const appCopy = {
         title: 'YT Description Generator Tool',
         orderRule: 'Ordine step obbligatorio: youtube-description-generation',
         defaultPrompt: 'Genera una descrizione YouTube completa con CTA, capitoli e hashtags in italiano.',
+      },
+      geometric: {
+        title: 'Geometric Tool',
+        orderRule: 'Ordine step obbligatorio: serp-crawling -> competitor-scoring -> strategic-reporting -> unified-report',
+        defaultPrompt: 'Analizza il panorama SERP, scoring competitivo e genera un report strategico e un report unificato in italiano.',
       },
     },
   },

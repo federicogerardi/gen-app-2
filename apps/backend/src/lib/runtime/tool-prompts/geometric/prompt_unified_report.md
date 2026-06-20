@@ -21,11 +21,19 @@ Generate a comprehensive strategic report and competitor GEO classification base
 - Generate all markdown tables with proper formatting.
 - The report must be comprehensive, actionable, and professionally structured.
 
+## Output Determinism — STRICT
+- The output MUST begin with the exact report title line: `# Report Strategico e Classifica Competitor GEO`
+- NO introductory text, greetings, acknowledgments, or system messages of any kind.
+- NO phrases like "Ecco il report", "Di seguito", "Ho generato", "Sure", "Here is", "Based on the data", or any equivalent in any language.
+- NO closing remarks, sign-offs, or meta-commentary after the CSV block.
+- The output MUST end immediately after the closing ``` of the CSV code block.
+- Any text outside the mandatory report structure is a violation and will cause the output to be rejected.
+
 ---
 
 ## Mandatory Output Structure
 
-# 📊 Report Strategico e Classifica Competitor GEO — {{baseQuery}}
+# Report Strategico e Classifica Competitor GEO — {{baseQuery}}
 
 **Cluster di Query Analizzate ({{queryCount}} prompt):**
 - {{baseQuery}}

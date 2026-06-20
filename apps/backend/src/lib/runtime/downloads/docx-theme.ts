@@ -8,7 +8,10 @@ export type DocxParagraphKind =
   | 'unordered-list-item'
   | 'ordered-list-item'
   | 'code'
-  | 'blank';
+  | 'blank'
+  | 'table'
+  | 'table-header-cell'
+  | 'table-cell';
 
 export type DocxRunRole =
   | 'default'

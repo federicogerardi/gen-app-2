@@ -147,9 +147,9 @@ test('serializeSessionDownload md includes all steps when excludeSteps is absent
   const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md');
   const text = buffer.toString('utf-8');
 
-  assert.match(text, /Step: optin/);
-  assert.match(text, /Step: quiz/);
-  assert.match(text, /Step: vsl/);
+  assert.match(text, /Optin content/);
+  assert.match(text, /Quiz content/);
+  assert.match(text, /VSL content/);
 });
 
 test('serializeSessionDownload md excludes specified steps when excludeSteps is provided', async () => {
@@ -159,9 +159,9 @@ test('serializeSessionDownload md excludes specified steps when excludeSteps is 
   });
   const text = buffer.toString('utf-8');
 
-  assert.match(text, /Step: optin/);
-  assert.equal(text.includes('Step: quiz'), false);
-  assert.match(text, /Step: vsl/);
+  assert.match(text, /Optin content/);
+  assert.equal(text.includes('Quiz content'), false);
+  assert.match(text, /VSL content/);
 });
 
 test('serializeSessionDownload md excludes multiple steps when excludeSteps has multiple entries', async () => {
@@ -171,9 +171,9 @@ test('serializeSessionDownload md excludes multiple steps when excludeSteps has 
   });
   const text = buffer.toString('utf-8');
 
-  assert.equal(text.includes('Step: optin'), false);
-  assert.match(text, /Step: quiz/);
-  assert.equal(text.includes('Step: vsl'), false);
+  assert.equal(text.includes('Optin content'), false);
+  assert.match(text, /Quiz content/);
+  assert.equal(text.includes('VSL content'), false);
 });
 
 test('serializeSessionDownload txt excludes specified steps', async () => {
@@ -183,9 +183,9 @@ test('serializeSessionDownload txt excludes specified steps', async () => {
   });
   const text = buffer.toString('utf-8');
 
-  assert.match(text, /STEP: OPTIN/);
-  assert.equal(text.includes('STEP: QUIZ'), false);
-  assert.match(text, /STEP: VSL/);
+  assert.match(text, /Optin content/);
+  assert.equal(text.includes('Quiz content'), false);
+  assert.match(text, /VSL content/);
 });
 
 test('serializeSessionDownload docx excludes specified steps', async () => {
@@ -195,9 +195,9 @@ test('serializeSessionDownload docx excludes specified steps', async () => {
   });
   const raw = await mammoth.extractRawText({ buffer });
 
-  assert.match(raw.value, /Step: optin/i);
-  assert.equal(raw.value.toLowerCase().includes('step: quiz'), false);
-  assert.match(raw.value, /Step: vsl/i);
+  assert.match(raw.value, /Optin content/i);
+  assert.equal(raw.value.toLowerCase().includes('quiz content'), false);
+  assert.match(raw.value, /VSL content/i);
 });
 
 test('serializeSessionDownload with empty excludeSteps includes all steps (backward compatibility)', async () => {
@@ -207,9 +207,9 @@ test('serializeSessionDownload with empty excludeSteps includes all steps (backw
   });
   const text = buffer.toString('utf-8');
 
-  assert.match(text, /Step: optin/);
-  assert.match(text, /Step: quiz/);
-  assert.match(text, /Step: vsl/);
+  assert.match(text, /Optin content/);
+  assert.match(text, /Quiz content/);
+  assert.match(text, /VSL content/);
 });
 
 test('serializeSessionDownload without excludeSteps option includes all steps (backward compatibility)', async () => {
@@ -217,7 +217,86 @@ test('serializeSessionDownload without excludeSteps option includes all steps (b
   const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'md');
   const text = buffer.toString('utf-8');
 
-  assert.match(text, /Step: optin/);
-  assert.match(text, /Step: quiz/);
-  assert.match(text, /Step: vsl/);
+  assert.match(text, /Optin content/);
+  assert.match(text, /Quiz content/);
+  assert.match(text, /VSL content/);
+});
+
+// ── Table rendering in DOCX ──────────────────────────────────────────────────
+
+test('parseMarkdownToDocxBlocks parses a markdown table into a table block', () => {
+  const markdown = [
+    '# Report',
+    '',
+    '| Metric | Value |',
+    '|--------|-------|',
+    '| Revenue | €10k |',
+    '| Cost | €3k |',
+    '',
+    'Fine report',
+  ].join('\n');
+
+  const blocks = parseMarkdownToDocxBlocks(markdown);
+
+  assert.deepEqual(blocks, [
+    { kind: 'heading', level: 1, text: 'Report' },
+    { kind: 'blank' },
+    { kind: 'table', headerRow: ['Metric', 'Value'], rows: [['Revenue', '€10k'], ['Cost', '€3k']] },
+    { kind: 'blank' },
+    { kind: 'paragraph', text: 'Fine report' },
+  ]);
+});
+
+test('parseMarkdownToDocxBlocks handles table with empty cells', () => {
+  const markdown = [
+    '| A | B | C |',
+    '|---|---|---|',
+    '| 1 |   | 3 |',
+  ].join('\n');
+
+  const blocks = parseMarkdownToDocxBlocks(markdown);
+
+  assert.equal(blocks.length, 1);
+  const tableBlock = blocks[0];
+  assert.ok(tableBlock);
+  assert.equal(tableBlock.kind, 'table');
+  if (tableBlock.kind === 'table') {
+    assert.deepEqual(tableBlock.headerRow, ['A', 'B', 'C']);
+    assert.equal(tableBlock.rows.length, 1);
+  }
+});
+
+test('serializeArtifactDownload docx renders tables with borders', async () => {
+  const content = [
+    '| Colonna 1 | Colonna 2 |',
+    '|-----------|-----------|',
+    '| Dato A    | Dato B    |',
+    '| Dato C    | Dato D    |',
+  ].join('\n');
+
+  const buffer = await serializeArtifactDownload('artifact-table', content, 'docx');
+  const html = await mammoth.convertToHtml({ buffer });
+
+  assert.match(html.value, /Colonna 1/i);
+  assert.match(html.value, /Colonna 2/i);
+  assert.match(html.value, /Dato A/i);
+  assert.match(html.value, /Dato B/i);
+  assert.match(html.value, /Dato C/i);
+  assert.match(html.value, /Dato D/i);
+  assert.match(html.value, /<table/i);
+});
+
+test('serializeSessionDownload docx renders tables within step content', async () => {
+  const steps = [
+    { artifactId: 'a-1', requestId: 'r-1', projectId: 'p-1', stepKey: 'analysis', artifactRole: 'step' as const, runMode: 'new' as const, status: 'completed' as const, content: '# Analisi\n\n| Metrica | Valore |\n|---------|--------|\n| CTR | 3.2% |\n| CPC | €0.50 |', updatedAt: '2026-05-09T10:00:00.000Z', failureReason: null, workflowType: 'funnel_pages', toolKey: 'funnel-pages' },
+  ];
+
+  const buffer = await serializeSessionDownload('sess-1', 'funnel-pages', steps, 'docx');
+  const html = await mammoth.convertToHtml({ buffer });
+
+  assert.match(html.value, /<table/i);
+  assert.match(html.value, /Metrica/i);
+  assert.match(html.value, /Valore/i);
+  assert.match(html.value, /CTR/i);
+  assert.match(html.value, /3\.2%/i);
 });

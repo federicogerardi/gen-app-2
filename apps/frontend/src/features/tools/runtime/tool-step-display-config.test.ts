@@ -50,7 +50,7 @@ describe('tool-step-display-config', () => {
       const geometricConfig = TOOL_STEP_DISPLAY_CONFIG.geometric;
       expect(geometricConfig?.['serp-crawling']).toEqual({ visible: false, includeInDownload: false });
       expect(geometricConfig?.['competitor-scoring']).toEqual({ visible: false, includeInDownload: false });
-      expect(geometricConfig?.['strategic-reporting']).toEqual({ visible: true, includeInDownload: true });
+      expect(geometricConfig?.['strategic-reporting']).toEqual({ visible: true, includeInDownload: false });
       expect(geometricConfig?.['unified-report']).toEqual({ visible: true, includeInDownload: true });
     });
   });
@@ -91,7 +91,8 @@ describe('tool-step-display-config', () => {
     it('returns false for geometric excluded steps', () => {
       expect(isStepIncludedInDownload('serp-crawling', 'geometric')).toBe(false);
       expect(isStepIncludedInDownload('competitor-scoring', 'geometric')).toBe(false);
-      expect(isStepIncludedInDownload('strategic-reporting', 'geometric')).toBe(true);
+      expect(isStepIncludedInDownload('strategic-reporting', 'geometric')).toBe(false);
+      expect(isStepIncludedInDownload('unified-report', 'geometric')).toBe(true);
     });
 
     it('returns true for unconfigured steps (backward-compatible default)', () => {
@@ -153,7 +154,6 @@ describe('tool-step-display-config', () => {
 
     it('returns only included steps for geometric', () => {
       expect(getIncludedSteps('geometric')).toEqual([
-        'strategic-reporting',
         'unified-report',
       ]);
     });

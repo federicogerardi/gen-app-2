@@ -86,7 +86,7 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
   geometric: {
     'serp-crawling': { visible: false, includeInDownload: false },
     'competitor-scoring': { visible: false, includeInDownload: false },
-    'strategic-reporting': { visible: true, includeInDownload: true },
+    'strategic-reporting': { visible: true, includeInDownload: false },
     'unified-report': { visible: true, includeInDownload: true },
   },
 };

@@ -295,6 +295,7 @@ export const appCopy = {
         panelAriaLabel: 'Contesto sessione',
         overviewAriaLabel: 'Panoramica sessione',
         detailsSummaryLabel: 'Dettagli sessione',
+        projectFallback: 'Progetto non disponibile',
         projectFallbackPrefix: 'Progetto ',
         loadFailed: 'Impossibile caricare la sessione',
       },
@@ -389,6 +390,8 @@ export const appCopy = {
       loadAdminUsers: 'Impossibile caricare gli utenti admin',
       loadAdminApiServices: 'Impossibile caricare il catalogo ApiService',
       loadAdminApiServiceBindings: 'Impossibile caricare i binding ApiService',
+      loadArtifactDetail: 'Impossibile caricare il dettaglio artefatto',
+      loadAdminGeometricScreenshots: 'Impossibile caricare gli screenshot Geometric',
       loadAdminUsersHttp: (status: number): string => `Impossibile caricare gli utenti admin (HTTP ${status})`,
     },
     feedback: {

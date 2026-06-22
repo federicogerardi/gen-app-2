@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { appCopy } from '../../../app/copy/system';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import { listAdminGeometricScreenshots } from '../runtime/admin-client';
@@ -24,6 +25,6 @@ export const useAdminGeometricScreenshotsQuery = ({
     key: [apiBaseUrl, capabilities, 'admin-geometric-screenshots'],
     fetcher: query,
     emptyData: [],
-    errorMessage: 'Unable to load geometric screenshots',
+    errorMessage: appCopy.ui.fallbackErrors.loadAdminGeometricScreenshots,
   });
 };

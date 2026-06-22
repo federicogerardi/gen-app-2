@@ -200,7 +200,7 @@ export const SessionSummaryDetailPage = () => {
   const lastUpdate = artifactTimestamps.length > 0 ? new Date(Math.max(...artifactTimestamps)) : null;
   const projectName = projectId
     ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `${appCopy.ui.sessions.detail.projectFallbackPrefix}${projectId}`
-    : 'Project non disponibile';
+    : appCopy.ui.sessions.detail.projectFallback;
   const detailTitle = `${projectName} - ${formatToolName(group.toolKey)}`;
 
   return (

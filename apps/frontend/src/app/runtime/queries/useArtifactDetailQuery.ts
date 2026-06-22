@@ -3,6 +3,7 @@ import type { BackendCapabilities } from '../backend-capabilities';
 import { getArtifactById } from '../../../features/artifacts/runtime/artifacts-client';
 import type { GenerationArtifact } from '../../../features/generation/ui/artifact-history';
 import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
+import { appCopy } from '../../copy/system';
 
 type UseArtifactDetailQueryOptions = {
   artifactId: string;
@@ -35,6 +36,6 @@ export const useArtifactDetailQuery = (
       localArtifacts: options.localArtifacts,
     }),
     emptyData: null,
-    errorMessage: 'Unable to load artifact detail',
+    errorMessage: appCopy.ui.fallbackErrors.loadArtifactDetail,
   });
 };

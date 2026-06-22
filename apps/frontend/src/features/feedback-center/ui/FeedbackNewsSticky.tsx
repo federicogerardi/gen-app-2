@@ -4,7 +4,7 @@ import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
-import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { cx, uiPrimitives, LoadingStateMessage } from '../../../app/ui/primitives';
 import type {
   ProductChangelogDto,
   UserReportCategory,
@@ -150,7 +150,7 @@ export const FeedbackNewsSticky = () => {
             )}
           </header>
 
-          {changelogQuery.loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.feedbackCenter.loadingChangelog}</p> : null}
+          {changelogQuery.loading ? <LoadingStateMessage>{appCopy.ui.feedbackCenter.loadingChangelog}</LoadingStateMessage> : null}
           {!changelogQuery.loading && changelogQuery.error ? (
             <p className={uiPrimitives.error} role="alert">{changelogQuery.error}</p>
           ) : null}

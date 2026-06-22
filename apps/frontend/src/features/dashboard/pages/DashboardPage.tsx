@@ -6,7 +6,7 @@ import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
 import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { ErrorStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import { ErrorStateMessage, LoadingStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { UI_CONFIG } from '../../../app/config/ui-config';
 
@@ -110,7 +110,7 @@ export const DashboardPage = () => {
           <CardHeader title={appCopy.editorial.dashboard.cards.recentSessions.title} />
           <CardContent>
           {sessionsQuery.loading ? (
-            <p className={uiPrimitives.metaLine}>Caricamento sessioni...</p>
+            <LoadingStateMessage>Caricamento sessioni...</LoadingStateMessage>
           ) : sessionsQuery.error ? (
             <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage>
           ) : recentSessions.length === 0 ? (

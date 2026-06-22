@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { appCopy } from '../../../app/copy/system';
-import { joinApiPath, requestJson } from '../../../app/runtime/http-client';
+import { joinApiPath, requestJson, requestVoid } from '../../../app/runtime/http-client';
 import type { AdminLlmModelRow } from '../llm/LLMTable';
 import type { AdminModelFormValues } from './admin-models-form';
 import { useAdminMutationFeedback } from './useAdminMutationFeedback';
@@ -85,15 +85,7 @@ export const useAdminModelsMutations = ({ apiBaseUrl, reloadModels }: UseAdminMo
     setBusyAction(`delete:${model.id}`);
 
     try {
-      const res = await fetch(joinApiPath(apiBaseUrl, `/api/admin/models/${model.id}`), {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
-        throw new Error(body?.error?.message ?? `HTTP ${res.status}`);
-      }
+      await requestVoid(joinApiPath(apiBaseUrl, `/api/admin/models/${model.id}`), { method: 'DELETE' });
 
       publishSuccess(appCopy.ui.feedback.adminModelsDeleted, `admin-models:delete:${model.id}:success`);
       reloadModels();

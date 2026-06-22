@@ -106,14 +106,14 @@ states: {
 ```
 
 **Sprint 1 Tasks**:
-- [ ] **S1-001**: Audit current `auth-session.machine.ts` states, context, and transitions
-- [ ] **S1-002**: Remove `error: string | null` from context type definition  
-- [ ] **S1-003**: Implement child states `unauthenticated.idle` and `unauthenticated.failed`
-- [ ] **S1-004**: Update login/bootstrap failure transitions to target `unauthenticated.failed`
-- [ ] **S1-005**: Update `AuthSessionProvider.tsx` to read `state.matches('unauthenticated.failed')` 
-- [ ] **S1-006**: Rewrite `auth-session.machine.test.ts` for explicit error states
-- [ ] **S1-007**: Add error recovery scenarios (retry login, clear error)
-- [ ] **S1-008**: Full regression testing for auth flows
+- [x] **S1-001**: Audit current `auth-session.machine.ts` states, context, and transitions
+- [x] **S1-002**: Remove `error: string | null` from context type definition
+- [x] **S1-003**: Implement child states `unauthenticated.idle` and `unauthenticated.failed`
+- [x] **S1-004**: Update login/bootstrap failure transitions to target `unauthenticated.failed`
+- [x] **S1-005**: Update `AuthSessionProvider.tsx` to read `state.matches('unauthenticated.failed')`
+- [x] **S1-006**: Rewrite `auth-session.machine.test.ts` for explicit error states
+- [x] **S1-007**: Add error recovery scenarios (retry login, clear error)
+- [x] **S1-008**: Full regression testing for auth flows
 
 **Sprint 1 QA Scenarios**:
 
@@ -163,16 +163,16 @@ states: {
 ```
 
 **Sprint 2 Tasks**:
-- [ ] **S2-001**: Analyze parent-child coupling via `hasReadyBriefingExtractionContext`
-- [ ] **S2-002**: Convert machine to `type: 'parallel'` with orthogonal regions
-- [ ] **S2-003**: Remove `error: string | null` from context
-- [ ] **S2-004**: Update operation states (idle→ready) to preserve current flow
-- [ ] **S2-005**: Implement `errorState` region with `clean`/`failed` states
-- [ ] **S2-006**: Refactor `hasReadyBriefingExtractionContext` for orthogonal regions
-- [ ] **S2-007**: Update `tool-page.machine.ts` child communication (if needed)
-- [ ] **S2-008**: Rewrite `briefing-upload.machine.test.ts` for parallel states
-- [ ] **S2-009**: Add upload/extraction failure + retry scenarios
-- [ ] **S2-010**: Integration tests with `tool-page` parent machine
+- [x] **S2-001**: Analyze parent-child coupling via `hasReadyBriefingExtractionContext`
+- [x] **S2-002**: Convert `idle` to compound state with `clean` and `failed` child states
+- [x] **S2-003**: Remove `error` string field from context
+- [x] **S2-004**: Update operation states (idle→ready) to preserve current flow
+- [x] **S2-005**: Implement error recovery via `RETRY` event (= SELECT_FILE in `idle.failed`)
+- [x] **S2-006**: Verify `hasReadyBriefingExtractionContext` still matches on `'ready'`
+- [x] **S2-007**: Update `tool-page-context.ts` and selectors to derive errors from explicit states
+- [x] **S2-008**: Rewrite `briefing-upload.machine.test.ts` (~237 lines) for explicit states
+- [x] **S2-009**: Add upload/extraction failure + retry scenarios (16 tests total)
+- [x] **S2-010**: Update `useToolPage.test.ts` mocks and consumers for `idle.failed`
 
 **Sprint 2 QA Scenarios**:
 

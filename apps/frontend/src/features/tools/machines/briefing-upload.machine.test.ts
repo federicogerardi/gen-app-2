@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createActor, waitFor } from 'xstate';
-import { appCopy } from '../../../app/copy/system';
 import { briefingUploadMachine } from './briefing-upload.machine';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
 
@@ -81,7 +80,7 @@ describe('briefingUploadMachine', () => {
     });
 
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
-    expect(actor.getSnapshot().value).toBe('idle');
+    expect(actor.getSnapshot().matches('idle')).toBe(true);
     requestExtraction(actor);
 
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
@@ -93,20 +92,19 @@ describe('briefingUploadMachine', () => {
     expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-1');
   });
 
-  it('returns to idle with error when upload fails', async () => {
+  it('returns to idle.failed when upload fails', async () => {
     mockedUploadBrief.mockRejectedValue(new Error('upload failed'));
 
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
     requestExtraction(actor);
 
-    await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'upload failed');
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
 
     expect(mockedRunExtraction).not.toHaveBeenCalled();
-    expect(actor.getSnapshot().context.error).toBe('upload failed');
   });
 
-  it('returns to idle with error when extraction fails', async () => {
+  it('returns to idle.failed when extraction fails', async () => {
     mockedUploadBrief.mockResolvedValue({
       briefingId: 'brief-2',
       projectId: 'project-1',
@@ -125,9 +123,7 @@ describe('briefingUploadMachine', () => {
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
     requestExtraction(actor);
 
-    await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'extraction failed');
-
-    expect(actor.getSnapshot().context.error).toBe('extraction failed');
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
   });
 
   it('keeps selected files in context when extraction fails so retry can continue', async () => {
@@ -150,13 +146,13 @@ describe('briefingUploadMachine', () => {
     actor.send({ type: 'FILE_SELECTED', file: briefing });
     requestExtraction(actor);
 
-    await waitFor(actor, (snapshot) => snapshot.matches('idle') && snapshot.context.error === 'HTTP 400 while opening stream');
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
 
     expect(actor.getSnapshot().context.file).toBe(briefing);
     expect(actor.getSnapshot().context.fileName).toBe('brief.md');
   });
 
-  it('returns to idle when extraction output is semantically insufficient', async () => {
+  it('returns to idle.failed when extraction output is semantically insufficient', async () => {
     mockedUploadBrief.mockResolvedValue({
       briefingId: 'brief-2',
       projectId: 'project-1',
@@ -179,10 +175,9 @@ describe('briefingUploadMachine', () => {
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
     requestExtraction(actor);
 
-    await waitFor(actor, (snapshot) => snapshot.matches('idle'));
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
 
     const context = actor.getSnapshot().context;
-    expect(context.error).toBe(appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient);
     expect(context.extractionArtifactId).toBeNull();
     expect(context.extractionPayload).toBeNull();
     expect(context.briefingId).toBeNull();
@@ -213,7 +208,7 @@ describe('briefingUploadMachine', () => {
     actor.send({
       type: 'EXTRACTION_RECOVERED',
       artifactId: 'artifact-recovered',
-      payload: { recovered: true },
+      payload: { ok: true },
       normalizedText: 'recovered brief',
       parsedFormat: 'md',
     });
@@ -221,7 +216,7 @@ describe('briefingUploadMachine', () => {
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
 
     expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-recovered');
-    expect(actor.getSnapshot().context.extractionPayload).toEqual({ recovered: true });
+    expect(actor.getSnapshot().context.extractionPayload).toEqual({ ok: true });
     expect(actor.getSnapshot().context.briefingId).toBe('brief-recovered');
     expect(actor.getSnapshot().context.fileName).toBe('brief.md');
     expect(actor.getSnapshot().context.normalizedText).toBe('recovered brief');
@@ -253,7 +248,7 @@ describe('briefingUploadMachine', () => {
         toolKey: 'funnel-pages',
         projectId: '',
         model: 'openrouter/auto',
-      campaignObjective: '',
+        campaignObjective: '',
         apiBaseUrl: '',
         capabilities: { toolsUpload: true },
         userId: 'user-1',
@@ -282,17 +277,12 @@ describe('briefingUploadMachine', () => {
     actor.stop();
   });
 
-  it('rejects unsupported extension on extraction request and stays idle', async () => {
+  it('rejects unsupported extension on extraction request and stays idle.failed', async () => {
     const actor = createMachineActor();
     actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.pdf', { type: 'application/pdf' }) });
     requestExtraction(actor);
 
-    await waitFor(
-      actor,
-      (snapshot) =>
-        snapshot.matches('idle')
-        && snapshot.context.error === 'Formato non supportato. Usa .docx, .txt o .md',
-    );
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
 
     expect(mockedUploadBrief).not.toHaveBeenCalled();
     expect(actor.getSnapshot().context.file).toBeNull();
@@ -459,145 +449,133 @@ describe('briefingUploadMachine', () => {
     await waitFor(actor, (snapshot) => snapshot.matches('ready'));
     actor.send({ type: 'RESET' });
 
-    expect(actor.getSnapshot().value).toBe('idle');
+    expect(actor.getSnapshot().matches('idle')).toBe(true);
     expect(actor.getSnapshot().context.file).toBeNull();
     expect(actor.getSnapshot().context.extractionArtifactId).toBeNull();
   });
 
-    it('rejects extraction when projectId is empty and stays idle with project error', async () => {
-      const actor = createActor(briefingUploadMachine, {
-        input: {
-          toolKey: 'funnel-pages',
-          projectId: '',
-          model: 'openrouter/auto',
-      campaignObjective: '',
-          apiBaseUrl: '',
-          capabilities: { toolsUpload: true },
-          userId: 'user-1',
-        },
-      });
-      actor.start();
-
-      actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
-      requestExtraction(actor);
-
-      await waitFor(
-        actor,
-        (snapshot) =>
-          snapshot.matches('idle')
-          && snapshot.context.error === 'Seleziona prima un progetto',
-      );
-
-      expect(mockedUploadBrief).not.toHaveBeenCalled();
-      expect(actor.getSnapshot().context.file).toBeNull();
-      actor.stop();
-    });
-
-    it('returns to idle with session error when userId is null at upload completion', async () => {
-      mockedUploadBrief.mockResolvedValue({
-        briefingId: 'brief-session',
-        projectId: 'project-1',
+  it('rejects extraction when projectId is empty and stays idle.failed', async () => {
+    const actor = createActor(briefingUploadMachine, {
+      input: {
         toolKey: 'funnel-pages',
-        fileName: 'brief.txt',
-        mimeType: 'text/plain',
-        size: 10,
-        parsedFormat: 'txt',
-        normalizedText: 'brief text',
-        charCount: 10,
-        wordCount: 2,
-      });
+        projectId: '',
+        model: 'openrouter/auto',
+        campaignObjective: '',
+        apiBaseUrl: '',
+        capabilities: { toolsUpload: true },
+        userId: 'user-1',
+      },
+    });
+    actor.start();
 
-      const actor = createActor(briefingUploadMachine, {
-        input: {
-          toolKey: 'funnel-pages',
-          projectId: 'project-1',
-          model: 'openrouter/auto',
-      campaignObjective: '',
-          apiBaseUrl: '',
-          capabilities: { toolsUpload: true },
-          userId: null,
-        },
-      });
-      actor.start();
+    actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+    requestExtraction(actor);
 
-      actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
-      requestExtraction(actor);
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
 
-      await waitFor(
-        actor,
-        (snapshot) =>
-          snapshot.matches('idle')
-          && snapshot.context.error === appCopy.ui.session.unavailable,
-      );
+    expect(mockedUploadBrief).not.toHaveBeenCalled();
+    expect(actor.getSnapshot().context.file).toBeNull();
+    actor.stop();
+  });
 
-      expect(mockedRunExtraction).not.toHaveBeenCalled();
-      actor.stop();
+  it('returns to idle.failed when userId is null at upload completion', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-session',
+      projectId: 'project-1',
+      toolKey: 'funnel-pages',
+      fileName: 'brief.txt',
+      mimeType: 'text/plain',
+      size: 10,
+      parsedFormat: 'txt',
+      normalizedText: 'brief text',
+      charCount: 10,
+      wordCount: 2,
     });
 
-    // TASK-018: EXTRACTION_RECOVERED idempotency
-    it('EXTRACTION_RECOVERED in idle: transitions to ready with briefingId and fileName from event', async () => {
-      const actor = createMachineActor();
-
-      actor.send({
-        type: 'EXTRACTION_RECOVERED',
-        artifactId: 'artifact-recovered-idle',
-        payload: { topic: 'test' },
-        briefingId: 'brief-from-event',
-        fileName: 'recovered-brief.md',
-        normalizedText: 'recovered idle brief',
-        parsedFormat: 'md',
-      });
-
-      await waitFor(actor, (snapshot) => snapshot.matches('ready'));
-
-      const ctx = actor.getSnapshot().context;
-      expect(ctx.extractionArtifactId).toBe('artifact-recovered-idle');
-      expect(ctx.extractionPayload).toEqual({ topic: 'test' });
-      expect(ctx.briefingId).toBe('brief-from-event');
-      expect(ctx.fileName).toBe('recovered-brief.md');
-      expect(ctx.normalizedText).toBe('recovered idle brief');
-      expect(ctx.parsedFormat).toBe('md');
-      expect(ctx.error).toBeNull();
-      actor.stop();
-    });
-
-    it('EXTRACTION_RECOVERED in ready: idempotent — nessun crash, stato rimane ready, context invariato', async () => {
-      mockedUploadBrief.mockResolvedValue({
-        briefingId: 'brief-ready',
-        projectId: 'project-1',
+    const actor = createActor(briefingUploadMachine, {
+      input: {
         toolKey: 'funnel-pages',
-        fileName: 'brief.md',
-        mimeType: 'text/markdown',
-        size: 10,
-        parsedFormat: 'md',
-        normalizedText: 'brief text',
-        charCount: 10,
-        wordCount: 2,
-      });
-      mockedRunExtraction.mockResolvedValue({
-        artifactId: 'artifact-ready',
-        content: '{"ok":true}',
-        payload: { ok: true },
-      });
-
-      const actor = createMachineActor();
-      actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
-      requestExtraction(actor);
-
-      await waitFor(actor, (snapshot) => snapshot.matches('ready'));
-      expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
-
-      // EXTRACTION_RECOVERED in ready: nessun handler → droppato silenziosamente (idempotenza)
-      actor.send({
-        type: 'EXTRACTION_RECOVERED',
-        artifactId: 'artifact-duplicate',
-        payload: { duplicate: true },
-      });
-
-      // Stato e context invariati
-      expect(actor.getSnapshot().value).toBe('ready');
-      expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
-      expect(actor.getSnapshot().context.error).toBeNull();
-      actor.stop();
+        projectId: 'project-1',
+        model: 'openrouter/auto',
+        campaignObjective: '',
+        apiBaseUrl: '',
+        capabilities: { toolsUpload: true },
+        userId: null,
+      },
     });
+    actor.start();
+
+    actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.txt', { type: 'text/plain' }) });
+    requestExtraction(actor);
+
+    await waitFor(actor, (snapshot) => snapshot.matches({ idle: 'failed' }));
+
+    expect(mockedRunExtraction).not.toHaveBeenCalled();
+    actor.stop();
+  });
+
+  // TASK-018: EXTRACTION_RECOVERED idempotency
+  it('EXTRACTION_RECOVERED in idle: transitions to ready with briefingId and fileName from event', async () => {
+    const actor = createMachineActor();
+
+    actor.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-recovered-idle',
+      payload: { topic: 'test' },
+      briefingId: 'brief-from-event',
+      fileName: 'recovered-brief.md',
+      normalizedText: 'recovered idle brief',
+      parsedFormat: 'md',
+    });
+
+    await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+
+    const ctx = actor.getSnapshot().context;
+    expect(ctx.extractionArtifactId).toBe('artifact-recovered-idle');
+    expect(ctx.extractionPayload).toEqual({ topic: 'test' });
+    expect(ctx.briefingId).toBe('brief-from-event');
+    expect(ctx.fileName).toBe('recovered-brief.md');
+    expect(ctx.normalizedText).toBe('recovered idle brief');
+    expect(ctx.parsedFormat).toBe('md');
+    actor.stop();
+  });
+
+  it('EXTRACTION_RECOVERED in ready: idempotent — nessun crash, stato rimane ready, context invariato', async () => {
+    mockedUploadBrief.mockResolvedValue({
+      briefingId: 'brief-ready',
+      projectId: 'project-1',
+      toolKey: 'funnel-pages',
+      fileName: 'brief.md',
+      mimeType: 'text/markdown',
+      size: 10,
+      parsedFormat: 'md',
+      normalizedText: 'brief text',
+      charCount: 10,
+      wordCount: 2,
+    });
+    mockedRunExtraction.mockResolvedValue({
+      artifactId: 'artifact-ready',
+      content: '{"ok":true}',
+      payload: { ok: true },
+    });
+
+    const actor = createMachineActor();
+    actor.send({ type: 'FILE_SELECTED', file: new File(['content'], 'brief.md', { type: 'text/markdown' }) });
+    requestExtraction(actor);
+
+    await waitFor(actor, (snapshot) => snapshot.matches('ready'));
+    expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
+
+    // EXTRACTION_RECOVERED in ready: nessun handler → droppato silenziosamente (idempotenza)
+    actor.send({
+      type: 'EXTRACTION_RECOVERED',
+      artifactId: 'artifact-duplicate',
+      payload: { duplicate: true },
+    });
+
+    // Stato e context invariati
+    expect(actor.getSnapshot().value).toBe('ready');
+    expect(actor.getSnapshot().context.extractionArtifactId).toBe('artifact-ready');
+    actor.stop();
+  });
 });

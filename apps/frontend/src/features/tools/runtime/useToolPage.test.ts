@@ -43,7 +43,6 @@ const mocks = vi.hoisted(() => {
   const briefingSnapshot = {
     matches: vi.fn((state: string) => state === 'idle'),
     context: {
-      error: null as string | null,
       fileName: null as string | null,
       angleDetectorFileName: null as string | null,
       briefingId: null as string | null,
@@ -243,8 +242,12 @@ beforeEach(() => {
   mocks.machineSnapshot.context.readiness.canStartFlow = true;
   mocks.machineSnapshot.matches.mockReturnValue(false);
 
-  mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'idle');
-  mocks.briefingSnapshot.context.error = null;
+  mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
+    if (typeof state === 'string') return state === 'idle';
+    if (typeof state === 'object' && state !== null && 'idle' in state) return (state as Record<string, string>).idle === 'clean';
+    return false;
+  });
+  
   mocks.briefingSnapshot.context.fileName = null;
 
   mocks.generation.isStreamActive = false;
@@ -312,7 +315,11 @@ describe('useToolPage', () => {
 
     expect(mocks.send).toHaveBeenCalledWith({ type: 'BRIEFING_EXTRACTION_REQUESTED' });
 
-    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
+    mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
+      if (typeof state === 'string') return state === 'ready';
+      if (typeof state === 'object' && state !== null && 'idle' in state) return false;
+      return false;
+    });
     mocks.briefingSnapshot.context.briefingId = 'brief-001';
     mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-extract-001';
     mocks.briefingSnapshot.context.extractionPayload = { schemaVersion: 'extraction.v1' };
@@ -593,8 +600,12 @@ describe('useToolPage', () => {
     mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
     mocks.machineSnapshot.context.readiness.canStartFlow = false;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
-    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
-    mocks.briefingSnapshot.context.error = 'extraction_context_insufficient';
+    mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
+      if (typeof state === 'string') return state === 'ready';
+      if (typeof state === 'object' && state !== null && 'idle' in state) return (state as Record<string, string>).idle === 'failed';
+      return false;
+    });
+    
 
     mocks.generation.isStreamActive = true;
     mocks.generation.streamStatus = 'idle';
@@ -627,8 +638,12 @@ describe('useToolPage', () => {
     mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
     mocks.machineSnapshot.context.readiness.canStartFlow = false;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
-    mocks.briefingSnapshot.matches.mockImplementation((state: string) => state === 'ready');
-    mocks.briefingSnapshot.context.error = 'extraction_context_insufficient';
+    mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
+      if (typeof state === 'string') return state === 'ready';
+      if (typeof state === 'object' && state !== null && 'idle' in state) return false;
+      return false;
+    });
+    
     mocks.briefingSnapshot.context.briefingId = 'brief-invalid';
     mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-invalid';
     mocks.briefingSnapshot.context.extractionPayload = {};
@@ -643,7 +658,7 @@ describe('useToolPage', () => {
     mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
     mocks.machineSnapshot.context.readiness.canStartFlow = true;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = true;
-    mocks.briefingSnapshot.context.error = null;
+    
     mocks.briefingSnapshot.context.briefingId = 'brief-valid';
     mocks.briefingSnapshot.context.extractionArtifactId = 'artifact-valid';
     mocks.briefingSnapshot.context.extractionPayload = { schemaVersion: 'extraction.v1' };

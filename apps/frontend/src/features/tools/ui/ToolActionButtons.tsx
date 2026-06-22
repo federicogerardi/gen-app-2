@@ -58,9 +58,9 @@ export const ToolActionButtons = ({
             type="button"
             onClick={onRetry}
             disabled={isLoading}
-            title="Riprova questo step"
+            title={appCopy.ui.toolActions.retryStepTooltip}
           >
-            Riprova
+            {appCopy.ui.toolActions.retryStepLabel}
           </SecondaryCtaButton>
         )}
 
@@ -69,9 +69,9 @@ export const ToolActionButtons = ({
             type="button"
             onClick={onSkipStep}
             disabled={isLoading}
-            title="Salta allo step successivo"
+            title={appCopy.ui.toolActions.skipToNextStepTooltip}
           >
-            Salta step
+            {appCopy.ui.toolActions.skipToNextStepLabel}
           </SecondaryCtaButton>
         )}
 
@@ -79,9 +79,9 @@ export const ToolActionButtons = ({
           <SecondaryCtaButton
             type="button"
             onClick={onCancelGeneration}
-            title="Interrompi la generazione in corso"
+            title={appCopy.ui.toolActions.cancelGenerationTooltip}
           >
-            Annulla
+            {appCopy.ui.toolActions.cancelGenerationLabel}
           </SecondaryCtaButton>
         )}
 
@@ -90,9 +90,9 @@ export const ToolActionButtons = ({
             type="button"
             onClick={onOpenPreviousArtifact}
             disabled={isLoading}
-            title="Visualizza il risultato dello step precedente"
+            title={appCopy.ui.toolActions.viewPreviousResultTooltip}
           >
-            Artefatto precedente
+            {appCopy.ui.toolActions.viewPreviousResultLabel}
           </SecondaryCtaButton>
         )}
       </div>

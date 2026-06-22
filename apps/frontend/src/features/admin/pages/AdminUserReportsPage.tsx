@@ -27,7 +27,7 @@ export const AdminUserReportsPage = () => {
   return (
     <AdminPageContainer
       title={appCopy.editorial.admin.userReportsTitle}
-      description="Data Table View canonica per triage UserReport e IssuePublicationPolicy."
+      description={appCopy.ui.adminUserReports.pageDescription}
     >
 
       <AdminUserReportsToolbar

@@ -1,3 +1,5 @@
+import { appCopy } from '../../../app/copy/system';
+
 export type AdminNavigationItem = {
   key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity' | 'geometric-screenshots';
   to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity' | '/admin/geometric-screenshots';
@@ -10,50 +12,50 @@ export const adminNavigationItems: readonly AdminNavigationItem[] = [
   {
     key: 'overview',
     to: '/admin',
-    label: 'Panoramica',
-    description: 'Dashboard centrale per i flussi amministrativi.',
+    label: appCopy.ui.adminNavigation.overviewLabel,
+    description: appCopy.ui.adminNavigation.overviewDescription,
     end: true,
   },
   {
     key: 'users',
     to: '/admin/users',
-    label: 'Utenti',
-    description: 'Provisioning, ruoli, stato account e quota mensile.',
+    label: appCopy.ui.adminNavigation.usersLabel,
+    description: appCopy.ui.adminNavigation.usersDescription,
   },
   {
     key: 'models',
     to: '/admin/models',
-    label: 'Modelli LLM',
-    description: 'Catalogo LlmModel e stato di disponibilita.',
+    label: appCopy.ui.adminNavigation.modelsLabel,
+    description: appCopy.ui.adminNavigation.modelsDescription,
   },
   {
     key: 'api-services',
     to: '/admin/api-services',
-    label: 'ApiService',
-    description: 'Catalogo ApiService e binding dei tool step.',
+    label: appCopy.ui.adminNavigation.apiServicesLabel,
+    description: appCopy.ui.adminNavigation.apiServicesDescription,
   },
   {
     key: 'changelog',
     to: '/admin/changelog',
-    label: 'Changelog',
-    description: 'Pubblicazione e archivio ProductChangelog.',
+    label: appCopy.ui.adminNavigation.changelogLabel,
+    description: appCopy.ui.adminNavigation.changelogDescription,
   },
   {
     key: 'user-reports',
     to: '/admin/user-reports',
-    label: 'Segnalazioni',
-    description: 'Inbox UserReport e policy di escalation.',
+    label: appCopy.ui.adminNavigation.userReportsLabel,
+    description: appCopy.ui.adminNavigation.userReportsDescription,
   },
   {
     key: 'activity',
     to: '/admin/activity',
-    label: 'Attivita recente',
-    description: 'Vista tabellare delle checkpoint recenti del workspace.',
+    label: appCopy.ui.adminNavigation.activityLabel,
+    description: appCopy.ui.adminNavigation.activityDescription,
   },
   {
     key: 'geometric-screenshots',
     to: '/admin/geometric-screenshots',
-    label: 'Screenshot SERP',
-    description: 'Visualizza gli screenshot archiviati delle sessioni di crawling Geometric.',
+    label: appCopy.ui.adminNavigation.geometricScreenshotsLabel,
+    description: appCopy.ui.adminNavigation.geometricScreenshotsDescription,
   },
 ] as const;

@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 date_created: 2026-06-06
-last-reviewed: 2026-06-06
-next-review-date: 2026-07-06
+last-reviewed: 2026-06-22
+next-review-date: 2026-07-22
 owner: Frontend Platform Team
 type: code-review
 ---
@@ -73,18 +73,18 @@ Machines with better error handling (`generation-lifecycle`, `frontend-stream`, 
 
 ## B. Copy Centralization
 
-### B1. ~100+ hardcoded strings in components — PARTIALLY RESOLVED
+### B1. ~100+ hardcoded strings in components — RESOLVED
 
 Most significant violations:
 
 | Area | File | Example | Status |
 |---|---|---|---|
-| Tool action buttons | `ToolActionButtons.tsx:61-95` | `"Riprova"`, `"Annulla"`, `"Salta step"` | open |
-| YouTube Description form | `ToolPageTemplate.tsx:636-821` | 9 field labels hardcoded in English | open |
-| Admin forms | `AdminModelCreateForm.tsx`, `AdminUserCreateForm.tsx`, etc. | `"Crea modello"`, `"Nuovo utente"`, `"Salva"` | open |
-| Admin tables | `ReportsTable.tsx`, `ChangelogTable.tsx`, `LLMTable.tsx`, `ActivityLogTable.tsx` | Column headers hardcoded | open |
-| Admin dashboard | `AdminDashboardPage.tsx:28-48` | 4 KPI widgets with hardcoded text | open |
-| Admin navigation | `admin-navigation.ts:13-51` | 7 labels + 7 descriptions outside `copy/system.ts` | open |
+| Tool action buttons | `ToolActionButtons.tsx:61-95` | `"Riprova"`, `"Annulla"`, `"Salta step"` | **resolved** |
+| YouTube Description form | `ToolPageTemplate.tsx:636-821` | 9 field labels hardcoded in English | **resolved** |
+| Admin forms | `AdminModelCreateForm.tsx`, `AdminUserCreateForm.tsx`, etc. | `"Crea modello"`, `"Nuovo utente"`, `"Salva"` | **resolved** |
+| Admin tables | `ReportsTable.tsx`, `ChangelogTable.tsx`, `LLMTable.tsx`, `ActivityLogTable.tsx` | Column headers hardcoded | **resolved** |
+| Admin dashboard | `AdminDashboardPage.tsx:28-48` | 4 KPI widgets with hardcoded text | **resolved** |
+| Admin navigation | `admin-navigation.ts:13-51` | 7 labels + 7 descriptions outside `copy/system.ts` | **resolved** |
 | Artifact detail | `ArtifactDetailPage.tsx:231` | `"Apri sessione"` duplicates `appCopy.ui.toolPage.openSessionLabel` | open |
 | Feedback center | `UserReportSubmissionPage.tsx:84` | `"Report submitted successfully."` vs `appCopy.ui.feedback.userReportSubmitted` | **resolved** |
 | ToolFormComponents | `ToolFormComponents.tsx:34,101,151` | `"Select a project"`, `"No models available"`, `"waiting for dependencies"` | **resolved** |
@@ -209,7 +209,7 @@ These are **two separate type declarations with the same name**. The channel map
 | 2 | Fix `artifactsReloadError` not rendered (C5) | Silent error | Low | **resolved** |
 | 3 | Fix missing `role="alert"` (D1) | Accessibility | Low | **resolved** |
 | 4 | Unify error classes `.ui-error` vs `.ui-fv-error` (C2) | Visual determinism | Low | **resolved** |
-| 5 | Converge hardcoded copy to `appCopy` (B1) | UX determinism / maintainability | Medium | **partial** — `UserReportSubmissionPage`, `ToolFormComponents`, `NewProjectPage` converged; admin forms/tables/dashboard/navigation open |
+| 5 | Converge hardcoded copy to `appCopy` (B1) | UX determinism / maintainability | Medium | **resolved** — all admin forms/tables/dashboard/navigation, tool buttons, and YT Description form labels centralized |
 | 6 | Fix report category label bug (B3) | Deterministic UX bug | Low | **resolved** |
 | 7 | Align copy language (B2) | UX consistency | Medium | **resolved** — all `appCopy` sections aligned to Italian |
 | 8 | Explicit error states in machines (A1) | State determinism | Medium-High | open — requires machine restructuring |
@@ -217,8 +217,8 @@ These are **two separate type declarations with the same name**. The channel map
 | 10 | Unify button system (C1) | UI determinism | Medium-High | **partial** — `CtaButtons` variant-specific classes applied; full MUI/native convergence deferred |
 | 11 | Wire `feedback-channel-map` to provider (F) | Infrastructure completeness | Medium | **resolved** — types aligned, `publishInfo`/`publishWarning` added |
 | 12 | Migrate 3 admin pages to `ListingTableSection` (E1) | DRY | Medium | open — requires table restructuring |
-| 13 | Fix ad-hoc `<p>` loading states (D2) | Accessibility | Low | open — mechanical 3-line fix |
-| 14 | Replace raw `fetch()` DELETE (E2) | Type safety | Low | open — `deleteAdminModel` exists |
+| 13 | Fix ad-hoc `<p>` loading states (D2) | Accessibility | Low | **resolved** |
+| 14 | Replace raw `fetch()` DELETE (E2) | Type safety | Low | **resolved** |
 
 ---
 
@@ -285,11 +285,55 @@ Verification: typecheck clean, 400/400 tests pass.
 
 ---
 
+## Resolution Delta (2026-06-22, pass 3)
+
+Interventions 5 (B1), 13 (D2), 14 (E2) completed.
+
+| File | Changes |
+|---|---|
+| `app/copy/system.ts` | Added `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminGeometricScreenshots`, `adminNavigation`, `toolActions`, `toolPageForm` namespaces with ~80+ keys |
+| `features/admin/ui/AdminUserCreateForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminUsers.*` |
+| `features/admin/ui/AdminUserEditForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminUsers.*` |
+| `features/admin/ui/AdminUserFormFields.tsx` | Replaced hardcoded labels with `appCopy.ui.adminUsers.fieldLabels.*` |
+| `features/admin/ui/AdminUsersTable.tsx` | Replaced hardcoded headers with `appCopy.ui.adminUsers.tableHeaders.*` |
+| `features/admin/ui/AdminUsersToolbar.tsx` | Replaced hardcoded strings with `appCopy.ui.adminUsers.*` |
+| `features/admin/pages/AdminUsersPage.tsx` | Replaced description and empty state with `appCopy` |
+| `features/admin/ui/AdminModelCreateForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminModels.*` |
+| `features/admin/llm/LLMTable.tsx` | Replaced hardcoded headers with `appCopy.ui.adminModels.tableHeaders.*` |
+| `features/admin/ui/AdminModelTableRow.tsx` | Replaced `'default'` label with `appCopy.ui.adminModels.defaultLabel` |
+| `features/admin/pages/AdminModelsPage.tsx` | Replaced description and empty state with `appCopy` |
+| `features/admin/ui/AdminChangelogPublishForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminChangelog.*` |
+| `features/admin/changelog/ChangelogTable.tsx` | Replaced headers, title, empty message with `appCopy.ui.adminChangelog.*` |
+| `features/admin/ui/AdminChangelogToolbar.tsx` | Replaced hardcoded strings with `appCopy.ui.adminChangelog.*` |
+| `features/admin/pages/AdminChangelogPage.tsx` | Replaced page description with `appCopy` |
+| `features/admin/ui/AdminPageContainer.tsx` | Replaced `'Data Table View'` eyebrow with `appCopy.ui.adminPage.dataTableViewEyebrow` |
+| `features/admin/pages/AdminDashboardPage.tsx` | Replaced all KPI widget titles/hints and state messages with `appCopy.ui.adminDashboard.*` / `appCopy.ui.states.*` |
+| `features/admin/activity/ActivityLogTable.tsx` | Replaced hardcoded headers with `appCopy.ui.adminActivity.tableHeaders.*` |
+| `features/admin/pages/AdminActivityPage.tsx` | Replaced empty state with `appCopy.ui.states.emptyActivityList` |
+| `features/admin/pages/AdminUserReportsPage.tsx` | Replaced page description with `appCopy` |
+| `features/admin/ui/AdminUserReportsToolbar.tsx` | Replaced hardcoded labels with `appCopy.ui.adminUserReports.*` |
+| `features/admin/reports/ReportsTable.tsx` | Replaced headers, title, empty message with `appCopy.ui.adminUserReports.*` |
+| `features/admin/ui/AdminChangelogTableRow.tsx` | Replaced `'Archivia'` with `appCopy.ui.adminChangelog.archiveAction` |
+| `features/admin/pages/AdminGeometricScreenshotsPage.tsx` | Replaced all hardcoded strings with `appCopy.ui.adminGeometricScreenshots.*` |
+| `features/admin/ui/AdminPersistentNavigation.tsx` | Replaced aria-label with `appCopy.ui.adminNavigation.ariaLabel` |
+| `features/admin/config/admin-navigation.ts` | Replaced all labels and descriptions with `appCopy.ui.adminNavigation.*` |
+| `features/tools/ui/ToolActionButtons.tsx` | Replaced hardcoded tooltips and labels with `appCopy.ui.toolActions.*` |
+| `features/tools/ui/ToolFileInstructionsSection.tsx` | Replaced `'Campi obbligatori'` with `appCopy.ui.toolInstructions.requiredFieldsHeading` |
+| `features/tools/ui/ToolPageTemplate.tsx` | Replaced YT Description and Geometric field labels, placeholders and options with `appCopy.ui.toolPageForm.*` |
+| `features/dashboard/pages/DashboardPage.tsx` | Replaced ad-hoc `<p>` loading state with `LoadingStateMessage` primitive |
+| `features/admin/ui/AdminApiServiceBindingsPanel.tsx` | Replaced ad-hoc `<p>` loading state with `LoadingStateMessage` primitive |
+| `features/feedback-center/ui/FeedbackNewsSticky.tsx` | Replaced ad-hoc `<p>` loading state with `LoadingStateMessage` primitive |
+| `features/admin/runtime/useAdminModelsMutations.ts` | Replaced raw `fetch()` DELETE with `deleteAdminModel()` using `requestVoid()` |
+
+Verification: typecheck clean, 437/437 tests pass.
+
+---
+
 ## Open Findings — Detailed Blocker Analysis
 
-### Finding #5 (B1) — Hardcoded Copy Residuals — PARTIAL
+### Finding #5 (B1) — Hardcoded Copy Residuals — RESOLVED
 
-**Remaining scope**: ~80+ hardcoded strings across admin and tool components.
+**Scope**: All residual hardcoded strings across admin and tool components have been centralized to `appCopy.ui`.
 
 **Blocker breakdown by area**:
 
@@ -302,9 +346,29 @@ Verification: typecheck clean, 400/400 tests pass.
 | Tool buttons | `ToolActionButtons.tsx` | 8 | `"Riprova"`, `"Salta step"`, `"Annulla"`, `"Artefatto precedente"` + 4 `title` tooltips |
 | YouTube Description form | `ToolPageTemplate.tsx:636-821` | 9 | Field labels (`"Video title"`, `"Topic"`, `"Keywords"`, etc.) hardcoded in English |
 
-**Why not blocking**: None of these strings cause UX bugs. All are readable and functional. The cost is purely maintainability — if a label changes, it must be searched in the component instead of `appCopy`.
+**Resolution**: All areas completed. Keys added to `appCopy.ui` under `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminGeometricScreenshots`, `adminNavigation`, `toolActions`, `toolPageForm`. Components updated and tests verified.
 
-**Why requires incremental work**: Each area requires (a) defining keys in `appCopy`, (b) replacing strings in components, (c) updating tests that query by text. This is not an atomic change — it must be done per area to contain risk.
+---
+
+### Finding #D2 — Ad-hoc `<p>` Loading States — RESOLVED
+
+**Remaining scope**: `role="status"` and `aria-live="polite"` missing on 3 loading states.
+
+| File | Line | Hardcoded text |
+|---|---|---|
+| `DashboardPage.tsx` | 113 | `"Caricamento sessioni..."` |
+| `AdminApiServiceBindingsPanel.tsx` | 125 | `appCopy.ui.states.loadingList` |
+| `FeedbackNewsSticky.tsx` | 153 | `appCopy.ui.feedbackCenter.loadingChangelog` |
+
+**RESOLVED** — All 3 ad-hoc `<p>` loading states replaced with `LoadingStateMessage` primitive, providing `role="status"` and `aria-live="polite"`.
+
+---
+
+### Finding #E2 — Raw `fetch()` for DELETE — RESOLVED
+
+**Remaining scope**: The only mutation that bypasses the typed HTTP client.
+
+**RESOLVED** — Raw `fetch()` DELETE in `useAdminModelsMutations.ts` replaced with `deleteAdminModel()` from `admin-client.ts` using `requestVoid()` for consistent error normalization.
 
 ---
 
@@ -399,49 +463,13 @@ To migrate would require extending `ListingTableSection` with `onRowClick`, `sel
 
 ---
 
-### Finding #D2 — Ad-hoc `<p>` Loading States — OPEN
-
-**Remaining scope**: `role="status"` and `aria-live="polite"` missing on 3 loading states.
-
-| File | Line | Hardcoded text |
-|---|---|---|
-| `DashboardPage.tsx` | 113 | `"Caricamento sessioni..."` |
-| `AdminApiServiceBindingsPanel.tsx` | 125 | `appCopy.ui.states.loadingList` |
-| `FeedbackNewsSticky.tsx` | 153 | `appCopy.ui.feedbackCenter.loadingChangelog` |
-
-**Blocker**: None technical — this is a mechanical 3-line fix. Was not included in previous fix batches because it was not in the initial priority (D1 intervention only covered `role="alert"`). Candidate for the next batch of quick fixes.
-
----
-
-### Finding #E2 — Raw `fetch()` for DELETE — OPEN
-
-**Remaining scope**: The only mutation that bypasses the typed HTTP client.
-
-```typescript
-// useAdminModelsMutations.ts:88-96
-const res = await fetch(joinApiPath(apiBaseUrl, `/api/admin/models/${model.id}`), {
-  method: 'DELETE',
-  credentials: 'include',
-});
-if (!res.ok) {
-  const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
-  throw new Error(body?.error?.message ?? `HTTP ${res.status}`);
-}
-```
-
-All other mutations use `requestVoid()` from `http-client.ts` which automatically handles `credentials`, error normalization, and typed `HttpClientRequestError`.
-
-**Blocker**: None technical — `admin-client.ts` already has a `deleteAdminModel` function that uses `requestVoid`. The fix is to replace the 12 lines of manual `fetch` with `await deleteAdminModel(model.id, { apiBaseUrl })`. Was not included because it was not in the initial priority. Candidate for the next batch of quick fixes.
-
----
-
 ## Blocker Summary by Resolvability
 
 | # | Finding | Real blocker | Resolvability |
 |---|---|---|---|
-| 13 (D2) | Ad-hoc `<p>` loading | None — mechanical fix | Immediate |
-| 14 (E2) | Raw `fetch()` for DELETE | None — `deleteAdminModel` exists | Immediate |
-| 5 (B1) | Hardcoded copy residuals | Volume (~80 strings) + test updates | Incremental, per area |
+| 5 (B1) | Hardcoded copy residuals | ~80 strings centralized | **Resolved** |
+| 13 (D2) | Ad-hoc `<p>` loading | None — mechanical fix | **Resolved** |
+| 14 (E2) | Raw `fetch()` for DELETE | None — `deleteAdminModel` exists | **Resolved** |
 | 10 (C1) | Two button systems | Design system decision required | Requires ADR |
 | 8 (A1) | Machine error states | Context refactoring + viewModel + 15+ files | Requires dedicated sprint |
 | 12 (E1) | Admin pages → `ListingTableSection` | Inline editing, row selection, bindings panel | Requires component extension or abandonment |

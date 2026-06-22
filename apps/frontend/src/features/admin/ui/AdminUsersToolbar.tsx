@@ -1,5 +1,6 @@
 import { Button as MuiButton } from '@mui/material';
 
+import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import type { AdminUsersBusyAction } from '../runtime/useAdminUsersMutations';
 
@@ -20,7 +21,7 @@ export const AdminUsersToolbar = ({
 }: AdminUsersToolbarProps) => {
   return (
     <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
-      <p className={uiPrimitives.metaLine}>Provisioning rapido, aggiornamento ruoli e disabilitazione account.</p>
+      <p className={uiPrimitives.metaLine}>{appCopy.ui.adminUsers.toolbarDescription}</p>
       <div className={uiPrimitives.actions}>
         <MuiButton
           type="button"
@@ -28,7 +29,7 @@ export const AdminUsersToolbar = ({
           disabled={busyAction === 'create'}
           variant="outlined"
         >
-          {showCreateForm ? 'Nascondi form' : 'Nuovo utente'}
+          {showCreateForm ? appCopy.ui.adminUsers.toggleCreateHide : appCopy.ui.adminUsers.toggleCreateShow}
         </MuiButton>
         <MuiButton
           type="button"
@@ -36,7 +37,7 @@ export const AdminUsersToolbar = ({
           disabled={isLoading || busyAction !== null}
           variant="outlined"
         >
-          Aggiorna tabella
+          {appCopy.ui.adminUsers.reloadTable}
         </MuiButton>
       </div>
     </div>

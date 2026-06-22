@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { useState, useMemo } from 'react';
 import { Camera, Eye } from 'lucide-react';
 import {
@@ -19,7 +20,7 @@ const pageSize = UI_CONFIG.pagination.geometricScreenshotsPageSize;
 
 const ConfidenceBadge = ({ confidence }: { confidence: number | null }) => {
   if (confidence === null) {
-    return <span className="ui-confidence-badge">N/A</span>;
+    return <span className="ui-confidence-badge">{appCopy.ui.adminGeometricScreenshots.confidenceNa}</span>;
   }
 
   const percentage = (confidence * 100).toFixed(0);
@@ -74,26 +75,26 @@ export const AdminGeometricScreenshotsPage = () => {
   const error = screenshotsQuery.error;
 
   const columns = useMemo<ListingTableColumn[]>(() => [
-    { key: 'query', header: 'Query' },
-    { key: 'type', header: 'Tipo' },
-    { key: 'confidence', header: 'AI Overview Confidence' },
-    { key: 'size', header: 'Dimensione' },
-    { key: 'createdAt', header: 'Data' },
-    { key: 'actions', header: 'Azioni' },
+    { key: 'query', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.query },
+    { key: 'type', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.type },
+    { key: 'confidence', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.confidence },
+    { key: 'size', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.size },
+    { key: 'createdAt', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.createdAt },
+    { key: 'actions', header: appCopy.ui.adminGeometricScreenshots.tableHeaders.actions },
   ], []);
 
   return (
     <AdminPageContainer
-      title="Screenshot SERP"
-      description="Visualizza gli screenshot archiviati delle sessioni di crawling Geometric."
+      title={appCopy.ui.adminGeometricScreenshots.pageTitle}
+      description={appCopy.ui.adminGeometricScreenshots.pageDescription}
     >
       <ListingTableSection<GeometricScreenshotMetadata>
-        title="Screenshot archiviati"
+        title={appCopy.ui.adminGeometricScreenshots.tableTitle}
         headingLevel="h3"
         loading={isLoading}
         error={error}
         isEmpty={!isLoading && allScreenshots.length === 0}
-        emptyMessage="Nessuno screenshot archiviato."
+        emptyMessage={appCopy.ui.adminGeometricScreenshots.emptyList}
         columns={columns}
         rows={paginatedItems}
         rowKey={(screenshot) => screenshot.id}
@@ -110,7 +111,7 @@ export const AdminGeometricScreenshotsPage = () => {
           }
 
           if (columnKey === 'type') {
-            return screenshot.isPaa ? 'PAA' : 'SERP';
+            return screenshot.isPaa ? appCopy.ui.adminGeometricScreenshots.screenshotTypePaa : appCopy.ui.adminGeometricScreenshots.screenshotTypeSERP;
           }
 
           if (columnKey === 'confidence') {
@@ -136,10 +137,10 @@ export const AdminGeometricScreenshotsPage = () => {
             <div className="ui-admin-screenshot-actions">
               <Button
                 onClick={() => setExpandedId(expandedId === screenshot.id ? null : screenshot.id)}
-                aria-label={expandedId === screenshot.id ? 'Nascondi screenshot' : 'Visualizza screenshot'}
+                aria-label={expandedId === screenshot.id ? appCopy.ui.adminGeometricScreenshots.hideScreenshotAria : appCopy.ui.adminGeometricScreenshots.viewScreenshotAria}
               >
                 <Eye size={14} aria-hidden="true" />
-                {expandedId === screenshot.id ? 'Nascondi' : 'Visualizza'}
+                {expandedId === screenshot.id ? appCopy.ui.adminGeometricScreenshots.hideScreenshotAction : appCopy.ui.adminGeometricScreenshots.viewScreenshotAction}
               </Button>
             </div>
           );
@@ -168,12 +169,12 @@ export const AdminGeometricScreenshotsPage = () => {
                     <Camera size={14} aria-hidden="true" /> {screenshot.query}
                   </p>
                   <Button onClick={() => setExpandedId(null)}>
-                    Chiudi
+                    {appCopy.ui.adminGeometricScreenshots.closePreviewButton}
                   </Button>
                 </div>
                 <img
                   src={`${auth.apiBaseUrl}/api/admin/geometric/screenshots/${screenshot.id}`}
-                  alt={`Screenshot SERP per query "${screenshot.query}"`}
+                  alt={`${appCopy.ui.adminGeometricScreenshots.screenshotAltPrefix}${screenshot.query}${appCopy.ui.adminGeometricScreenshots.screenshotAltSuffix}`}
                   className="ui-admin-screenshot-image"
                   loading="eager"
                 />

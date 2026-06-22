@@ -23,7 +23,7 @@ export const AdminModelTableRow = ({
       <td><code>{model.key}</code></td>
       <td>{model.label}</td>
       <td><StatusBadge status={model.status} /></td>
-      <td>{model.isDefault ? 'default' : '-'}</td>
+      <td>{model.isDefault ? appCopy.ui.adminModels.defaultLabel : appCopy.ui.adminModels.noDefaultLabel}</td>
       <td>
         <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
           <button

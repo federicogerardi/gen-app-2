@@ -10,6 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { adminNavigationItems } from '../config/admin-navigation';
+import { appCopy } from '../../../app/copy/system';
 import { Surface, cx } from '../../../app/ui/primitives';
 
 const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], LucideIcon> = {
@@ -25,7 +26,7 @@ const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], Lucide
 
 export const AdminPersistentNavigation = () => {
   return (
-    <Surface as="nav" className="ui-admin-persistent-nav" aria-label="Navigazione amministrazione">
+      <Surface as="nav" className="ui-admin-persistent-nav" aria-label={appCopy.ui.adminNavigation.ariaLabel}>
       <div className="ui-admin-persistent-nav__list">
         {adminNavigationItems.map((item) => {
           const Icon = adminNavIcons[item.key];

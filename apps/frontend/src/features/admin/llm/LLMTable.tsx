@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { AdminModelTableRow } from '../ui/AdminModelTableRow';
 
@@ -24,11 +25,11 @@ export const LLMTable = ({ models, busyAction, onSetDefault, onToggleStatus, onD
       <table className={uiPrimitives.artifactTable}>
         <thead>
           <tr>
-            <th scope="col">Key</th>
-            <th scope="col">Label</th>
-            <th scope="col">Status</th>
-            <th scope="col">Default</th>
-            <th scope="col">Azioni</th>
+            <th scope="col">{appCopy.ui.adminModels.tableHeaders.key}</th>
+            <th scope="col">{appCopy.ui.adminModels.tableHeaders.label}</th>
+            <th scope="col">{appCopy.ui.adminModels.tableHeaders.status}</th>
+            <th scope="col">{appCopy.ui.adminModels.tableHeaders.default}</th>
+            <th scope="col">{appCopy.ui.adminModels.tableHeaders.actions}</th>
           </tr>
         </thead>
         <tbody>

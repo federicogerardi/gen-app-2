@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 type AdminChangelogToolbarProps = {
@@ -21,10 +22,10 @@ export const AdminChangelogToolbar = ({
 }: AdminChangelogToolbarProps) => {
   return (
     <div className={cx(uiPrimitives.clusterRow, 'ui-admin-users-toolbar')}>
-      <p className={uiPrimitives.metaLine}>Pubblica aggiornamenti di prodotto visibili agli utenti autenticati.</p>
+      <p className={uiPrimitives.metaLine}>{appCopy.ui.adminChangelog.toolbarDescription}</p>
       <div className={uiPrimitives.actions}>
         <Link to="/admin/user-reports" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-          Inbox segnalazioni
+          {appCopy.ui.adminChangelog.inboxLink}
         </Link>
         <button
           type="button"
@@ -32,7 +33,7 @@ export const AdminChangelogToolbar = ({
           onClick={onToggleArchived}
           disabled={loading}
         >
-          {showArchived ? 'Nascondi archiviate' : 'Mostra archiviate'}
+          {showArchived ? appCopy.ui.adminChangelog.toggleArchivedHide : appCopy.ui.adminChangelog.toggleArchivedShow}
         </button>
         <button
           type="button"
@@ -40,7 +41,7 @@ export const AdminChangelogToolbar = ({
           onClick={onReload}
           disabled={loading || isPublishing || busyAction !== null}
         >
-          Aggiorna tabella
+          {appCopy.ui.adminChangelog.reloadTable}
         </button>
       </div>
     </div>

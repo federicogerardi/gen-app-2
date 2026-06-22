@@ -685,7 +685,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Video title"
+                        label={appCopy.ui.toolPageForm.videoTitleLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.videoTitle}
@@ -708,7 +708,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Topic"
+                        label={appCopy.ui.toolPageForm.topicLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.topic}
@@ -731,7 +731,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Keywords (comma-separated)"
+                        label={appCopy.ui.toolPageForm.keywordsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.keywords}
@@ -754,7 +754,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="CTA text"
+                        label={appCopy.ui.toolPageForm.ctaTextLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.ctaText}
@@ -772,7 +772,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="CTA link"
+                        label={appCopy.ui.toolPageForm.ctaLinkLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.ctaLink}
@@ -795,7 +795,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Credentials or proof"
+                        label={appCopy.ui.toolPageForm.credentialsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.credentialsOrProof}
@@ -820,7 +820,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Chapters with timestamps (one per line)"
+                        label={appCopy.ui.toolPageForm.chaptersLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.chaptersWithTimestamps}
@@ -845,7 +845,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Social links (one per line)"
+                        label={appCopy.ui.toolPageForm.socialLinksLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.socialLinks}
@@ -870,7 +870,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Hashtags (comma-separated, max 5)"
+                        label={appCopy.ui.toolPageForm.hashtagsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.hashtags}
@@ -894,8 +894,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       name="baseQuery"
                       control={control}
                       render={({ field }) => (
-                        <TextField
-                          label="Base query"
+                          <TextField
+                            label={appCopy.ui.toolPageForm.baseQueryLabel}
                           disabled={isGenerationLocked}
                           value={field.value}
                           error={!!errors.baseQuery}
@@ -915,9 +915,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       name="language"
                       control={control}
                       render={({ field }) => (
-                        <TextField
+                          <TextField
                           select
-                          label="Language"
+                          label={appCopy.ui.toolPageForm.languageLabel}
                           disabled={isGenerationLocked}
                           value={field.value}
                           error={!!errors.language}
@@ -928,12 +928,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                           }}
                           fullWidth
                         >
-                          <MenuItem value="">Select language</MenuItem>
-                          <MenuItem value="it">Italiano (it)</MenuItem>
-                          <MenuItem value="en">English (en)</MenuItem>
-                          <MenuItem value="es">Español (es)</MenuItem>
-                          <MenuItem value="fr">Français (fr)</MenuItem>
-                          <MenuItem value="de">Deutsch (de)</MenuItem>
+                          <MenuItem value="">{appCopy.ui.toolPageForm.selectLanguagePlaceholder}</MenuItem>
+                          <MenuItem value="it">{appCopy.ui.toolPageForm.languageOptionIt}</MenuItem>
+                          <MenuItem value="en">{appCopy.ui.toolPageForm.languageOptionEn}</MenuItem>
+                          <MenuItem value="es">{appCopy.ui.toolPageForm.languageOptionEs}</MenuItem>
+                          <MenuItem value="fr">{appCopy.ui.toolPageForm.languageOptionFr}</MenuItem>
+                          <MenuItem value="de">{appCopy.ui.toolPageForm.languageOptionDe}</MenuItem>
                         </TextField>
                       )}
                     />
@@ -944,9 +944,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       name="country"
                       control={control}
                       render={({ field }) => (
-                        <TextField
+                          <TextField
                           select
-                          label="Country / Google Domain"
+                          label={appCopy.ui.toolPageForm.countryDomainLabel}
                           disabled={isGenerationLocked}
                           value={field.value}
                           error={!!errors.country}
@@ -957,13 +957,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                           }}
                           fullWidth
                         >
-                          <MenuItem value="">Select domain</MenuItem>
-                          <MenuItem value="google.it">google.it (Italy)</MenuItem>
-                          <MenuItem value="google.com">google.com (Global)</MenuItem>
-                          <MenuItem value="google.es">google.es (Spain)</MenuItem>
-                          <MenuItem value="google.fr">google.fr (France)</MenuItem>
-                          <MenuItem value="google.de">google.de (Germany)</MenuItem>
-                          <MenuItem value="google.co.uk">google.co.uk (UK)</MenuItem>
+                          <MenuItem value="">{appCopy.ui.toolPageForm.selectDomainPlaceholder}</MenuItem>
+                          <MenuItem value="google.it">{appCopy.ui.toolPageForm.domainOptionGoogleIt}</MenuItem>
+                          <MenuItem value="google.com">{appCopy.ui.toolPageForm.domainOptionGoogleCom}</MenuItem>
+                          <MenuItem value="google.es">{appCopy.ui.toolPageForm.domainOptionGoogleEs}</MenuItem>
+                          <MenuItem value="google.fr">{appCopy.ui.toolPageForm.domainOptionGoogleFr}</MenuItem>
+                          <MenuItem value="google.de">{appCopy.ui.toolPageForm.domainOptionGoogleDe}</MenuItem>
+                          <MenuItem value="google.co.uk">{appCopy.ui.toolPageForm.domainOptionGoogleCoUk}</MenuItem>
                         </TextField>
                       )}
                     />
@@ -974,8 +974,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                        name="brandName"
                        control={control}
                        render={({ field }) => (
-                         <TextField
-                           label="Brand name (optional)"
+                          <TextField
+                            label={appCopy.ui.toolPageForm.brandNameLabel}
                            disabled={isGenerationLocked}
                            value={field.value}
                            error={!!errors.brandName}

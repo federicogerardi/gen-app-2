@@ -42,7 +42,7 @@ export const AdminUserEditForm = ({
       actions={(
         <>
           <MuiButton type="submit" variant="contained" disabled={busyAction === `update:${userId}`}>
-            {busyAction === `update:${userId}` ? 'Salvataggio...' : 'Salva'}
+            {busyAction === `update:${userId}` ? appCopy.ui.adminUsers.editSavingLabel : appCopy.ui.adminUsers.editSubmitLabel}
           </MuiButton>
           <MuiButton
             type="button"
@@ -60,7 +60,7 @@ export const AdminUserEditForm = ({
         errors={errors}
         roleDefaultValue={roleDefaultValue}
         statusDefaultValue={statusDefaultValue}
-        passwordLabel="Nuova password"
+        passwordLabel={appCopy.ui.adminUsers.fieldLabels.passwordNew}
       />
     </AdminUserFormShell>
   );

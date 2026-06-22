@@ -135,11 +135,11 @@ Validation path manifest (orphan-check canonical set):
 ### Open Findings — UX Determinism Review (for future implementation)
 
 > Source: [frontend-ux-determinism-code-review.md](./07-governance/frontend-ux-determinism-code-review.md) — Intervention Priority table, updated 2026-06-22.
-> Finding #13 (D2) e #14 (E2) closed 2026-06-22.
+> Finding #5 (B1), #13 (D2) e #14 (E2) closed 2026-06-22.
 
 | # | Finding | Area | Effort | Status |
-|---|---------|------|--------|--------|
-| 5 | B1 — Hardcoded copy residuals | Admin forms/tables/dashboard/navigation, Tool buttons, YT form | Incremental, per area | **partial** — ~80 strings remaining |
+|---|---|------|--------|--------|
+| 5 | B1 — Hardcoded copy residuals | Admin forms/tables/dashboard/navigation, Tool buttons, YT form | Incremental, per area | **resolved** — all strings centralized |
 | 8 | A1 — Explicit error states in machines | `tool-page`, `briefing-upload`, `auth-session` machines | Sprint dedicato | open — context refactoring + viewModel + 15+ files |
 | 10 | C1 — Two button systems | MUI vs native button convergence | Requires ADR | **partial** — CTA variant classes applied; full convergence deferred |
 | 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — inline editing, row selection, bindings panel not supported |

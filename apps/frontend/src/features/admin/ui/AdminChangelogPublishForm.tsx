@@ -1,5 +1,6 @@
 import { Button as MuiButton, TextField } from '@mui/material';
 
+import { appCopy } from '../../../app/copy/system';
 import { AdminChangelogFormShell } from './AdminChangelogFormShell';
 
 type AdminChangelogPublishFormProps = {
@@ -23,8 +24,8 @@ export const AdminChangelogPublishForm = ({
 }: AdminChangelogPublishFormProps) => {
   return (
     <AdminChangelogFormShell
-      title="Nuova voce changelog"
-      subtitle="Componi titolo e contenuto, quindi pubblica."
+      title={appCopy.ui.adminChangelog.createFormTitle}
+      subtitle={appCopy.ui.adminChangelog.createFormSubtitle}
       onSubmit={(event) => {
         event.preventDefault();
         void onPublish();
@@ -35,12 +36,12 @@ export const AdminChangelogPublishForm = ({
           variant="contained"
           disabled={!isAdmin || isPublishing}
         >
-          {isPublishing ? 'Pubblicazione...' : 'Pubblica changelog'}
+          {isPublishing ? appCopy.ui.adminChangelog.savingLabel : appCopy.ui.adminChangelog.submitLabel}
         </MuiButton>
       )}
     >
       <TextField
-        label="Titolo"
+        label={appCopy.ui.adminChangelog.fieldLabels.title}
         value={title}
         onChange={(event) => onTitleChange(event.target.value)}
         fullWidth
@@ -49,7 +50,7 @@ export const AdminChangelogPublishForm = ({
       />
 
       <TextField
-        label="Contenuto"
+        label={appCopy.ui.adminChangelog.fieldLabels.content}
         value={body}
         onChange={(event) => onBodyChange(event.target.value)}
         fullWidth

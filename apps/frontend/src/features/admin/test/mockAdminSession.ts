@@ -54,8 +54,13 @@ export const getMockAuthSession = () => {
         }
       : null,
     loading: false,
-    error: null,
+    hasError: false,
     apiBaseUrl: '',
     capabilities: state.capabilities,
+    clearError: () => {},
+    login: async () => {},
+    logout: async () => {},
+    refresh: async () => {},
+    oauthStartUrl: '',
   };
 };

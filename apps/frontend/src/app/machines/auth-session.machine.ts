@@ -10,7 +10,6 @@ import {
 
 export type AuthSessionContext = {
   session: AuthSession | null;
-  error: string | null;
   apiBaseUrl: string;
 };
 
@@ -22,7 +21,8 @@ export type AuthSessionEvent =
   | { type: 'LOGIN'; email: string; password: string }
   | { type: 'LOGOUT' }
   | { type: 'REFRESH' }
-  | { type: 'SESSION_INVALIDATED' };
+  | { type: 'SESSION_INVALIDATED' }
+  | { type: 'CLEAR_ERROR' };
 
 // ── Actor logic ───────────────────────────────────────────────────────────────
 
@@ -56,7 +56,6 @@ export const authSessionMachine = setup({
   id: 'authSession',
   context: ({ input }) => ({
     session: null,
-    error: null,
     apiBaseUrl: input.apiBaseUrl,
   }),
   initial: 'bootstrapping',
@@ -72,23 +71,16 @@ export const authSessionMachine = setup({
             target: 'authenticated',
             actions: assign(({ event }) => ({
               session: event.output,
-              error: null,
             })),
           },
           {
-            target: 'unauthenticated',
-            actions: assign(() => ({ session: null, error: null })),
+            target: 'unauthenticated.idle',
+            actions: assign(() => ({ session: null })),
           },
         ],
         onError: {
-          target: 'unauthenticated',
-          actions: assign(({ event }) => ({
-            session: null,
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : 'Session bootstrap failed',
-          })),
+          target: 'unauthenticated.failed',
+          actions: assign(() => ({ session: null })),
         },
       },
     },
@@ -99,17 +91,29 @@ export const authSessionMachine = setup({
         LOGOUT: 'loggingOut',
         REFRESH: 'refreshing',
         SESSION_INVALIDATED: {
-          target: 'unauthenticated',
-          actions: assign(() => ({ session: null, error: null })),
+          target: 'unauthenticated.idle',
+          actions: assign(() => ({ session: null })),
         },
       },
     },
 
     // ── Unauthenticated ───────────────────────────────────────────────────────
     unauthenticated: {
-      on: {
-        LOGIN: 'authenticating',
-        REFRESH: 'refreshing',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            LOGIN: '#authSession.authenticating',
+            REFRESH: '#authSession.refreshing',
+          },
+        },
+        failed: {
+          on: {
+            LOGIN: '#authSession.authenticating',
+            CLEAR_ERROR: 'idle',
+            REFRESH: '#authSession.refreshing',
+          },
+        },
       },
     },
 
@@ -133,18 +137,11 @@ export const authSessionMachine = setup({
           target: 'authenticated',
           actions: assign(({ event }) => ({
             session: event.output,
-            error: null,
           })),
         },
         onError: {
-          target: 'unauthenticated',
-          actions: assign(({ event }) => ({
-            session: null,
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : 'Login failed',
-          })),
+          target: 'unauthenticated.failed',
+          actions: assign(() => ({ session: null })),
         },
       },
     },
@@ -155,18 +152,12 @@ export const authSessionMachine = setup({
         src: 'logoutActor',
         input: ({ context }) => ({ apiBaseUrl: context.apiBaseUrl }),
         onDone: {
-          target: 'unauthenticated',
-          actions: assign(() => ({ session: null, error: null })),
+          target: 'unauthenticated.idle',
+          actions: assign(() => ({ session: null })),
         },
         onError: {
-          target: 'unauthenticated',
-          actions: assign(({ event }) => ({
-            session: null,
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : 'Logout failed',
-          })),
+          target: 'unauthenticated.failed',
+          actions: assign(() => ({ session: null })),
         },
       },
     },
@@ -182,23 +173,16 @@ export const authSessionMachine = setup({
             target: 'authenticated',
             actions: assign(({ event }) => ({
               session: event.output,
-              error: null,
             })),
           },
           {
-            target: 'unauthenticated',
-            actions: assign(() => ({ session: null, error: null })),
+            target: 'unauthenticated.idle',
+            actions: assign(() => ({ session: null })),
           },
         ],
         onError: {
-          target: 'unauthenticated',
-          actions: assign(({ event }) => ({
-            session: null,
-            error:
-              event.error instanceof Error
-                ? event.error.message
-                : 'Refresh failed',
-          })),
+          target: 'unauthenticated.failed',
+          actions: assign(() => ({ session: null })),
         },
       },
     },

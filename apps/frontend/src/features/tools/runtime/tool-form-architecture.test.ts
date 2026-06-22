@@ -45,6 +45,7 @@ describe('getAvailableSteps', () => {
       'angle-generator',
       'meta-ads',
       'youtube-description',
+      'geometric',
     ]);
     expect(getEnabledToolKeys('admin')).toEqual([
       'funnel-pages',
@@ -57,7 +58,7 @@ describe('getAvailableSteps', () => {
     ]);
     expect(isToolEnabled('nextland', 'member')).toBe(false);
     expect(isToolEnabled('nextland', 'admin')).toBe(true);
-    expect(isToolEnabled('geometric', 'member')).toBe(false);
+    expect(isToolEnabled('geometric', 'member')).toBe(true);
     expect(isToolEnabled('geometric', 'admin')).toBe(true);
   });
 });

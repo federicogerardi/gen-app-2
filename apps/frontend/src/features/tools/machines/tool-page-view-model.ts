@@ -174,6 +174,28 @@ export const buildToolPageViewModel = ({
   };
 };
 
+export type ReactiveViewModelInput = {
+  toolKey: SupportedTool;
+  readiness: ReadinessSnapshot;
+  progress: ToolPageProgressState;
+  generationError: string | null;
+  hydrationError: string | null;
+  intent: 'new' | 'resume' | 'regenerate';
+  runRequestPrefix: string | null;
+};
+
+export const buildReactiveViewModel = (
+  context: ReactiveViewModelInput,
+): ToolPageViewModel => buildToolPageViewModel({
+  toolKey: context.toolKey,
+  intent: context.intent,
+  readiness: context.readiness,
+  progress: context.progress,
+  generationError: context.generationError,
+  hydrationError: context.hydrationError,
+  runRequestPrefix: context.runRequestPrefix,
+});
+
 export const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {
   return policy === 'start-generation' || policy === 'resume-checkpoint' || policy === 'regenerate-current-step';
 };

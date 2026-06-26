@@ -136,6 +136,7 @@ vi.mock('./briefing-upload.machine', async () => {
 });
 
 import { toolPageMachine } from './tool-page.machine';
+import { buildReactiveViewModel } from './tool-page-view-model';
 
 const activeActors: Array<ReturnType<typeof createActor<typeof toolPageMachine>>> = [];
 
@@ -421,7 +422,7 @@ describe('toolPageMachine', () => {
     expect(progress.lastCheckpointStep).toBe('vsl');
     expect(progress.latestArtifactByStep.optin?.artifactId).toBe('art-optin');
 
-    const viewModel = actor.getSnapshot().context.viewModel;
+    const viewModel = buildReactiveViewModel(actor.getSnapshot().context);
     expect(viewModel.readiness.canStartFlow).toBe(true);
     expect(viewModel.canonicalState).toBe('prefilled-regenerate');
     expect(viewModel.primaryActionPolicy).toBe('regenerate-current-step');
@@ -531,8 +532,8 @@ describe('toolPageMachine', () => {
       ],
     });
 
-    expect(actor.getSnapshot().context.viewModel.readiness).toEqual(actor.getSnapshot().context.readiness);
-    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('disabled');
+    expect(buildReactiveViewModel(actor.getSnapshot().context).readiness).toEqual(actor.getSnapshot().context.readiness);
+    expect(buildReactiveViewModel(actor.getSnapshot().context).primaryActionPolicy).toBe('disabled');
   });
 
   it('requires canonical extraction fields for youtube-lf-script readiness', () => {
@@ -788,7 +789,7 @@ describe('toolPageMachine', () => {
     });
 
     expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(true);
-    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('open-last-artifact');
+    expect(buildReactiveViewModel(actor.getSnapshot().context).primaryActionPolicy).toBe('open-last-artifact');
 
     actor.send({ type: 'START_GENERATION' });
 
@@ -837,9 +838,10 @@ describe('toolPageMachine', () => {
 
     const snapshot = actor.getSnapshot().context;
     expect(snapshot.readiness.canStartFlow).toBe(true);
-    expect(snapshot.viewModel.readiness.canStartFlow).toBe(true);
-    expect(snapshot.viewModel.primaryActionPolicy).toBe('resume-checkpoint');
-    expect(snapshot.viewModel.canonicalState).toBe('paused-with-checkpoint');
+    const vm = buildReactiveViewModel(snapshot);
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.primaryActionPolicy).toBe('resume-checkpoint');
+    expect(vm.canonicalState).toBe('paused-with-checkpoint');
   });
 
   const makeAllStepsArtifacts = () =>
@@ -927,7 +929,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('draft-ready');
     expect(vm.primaryActionPolicy).toBe('start-generation');
@@ -945,7 +947,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -963,7 +965,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('prefilled-regenerate');
     expect(vm.primaryActionPolicy).toBe('regenerate-current-step');
@@ -1060,7 +1062,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: runPrefix,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -1116,7 +1118,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('paused-with-checkpoint');
     expect(vm.primaryActionPolicy).toBe('resume-checkpoint');
@@ -1199,7 +1201,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: 'run-meta-current',
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -1484,7 +1486,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     const ctx = actor.getSnapshot().context;
     expect(ctx.hydrationError).toBe('no_extraction_artifact');
     expect(ctx.hydrationResult).toBeNull();
-    expect(ctx.viewModel.messages.error).toBe('no_extraction_artifact');
+    expect(buildReactiveViewModel(ctx).messages.error).toBe('no_extraction_artifact');
   });
 
   it('hydration legacy: artifact senza briefingId usa artifactId come fallback (TASK-007)', async () => {

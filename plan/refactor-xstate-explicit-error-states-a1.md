@@ -6,7 +6,7 @@ last_updated: 2026-06-23
 last-reviewed: 2026-06-23
 next-review-date: 2026-07-23
 owner: Frontend Platform Team
-status: draft
+status: In progress
 tags: [plan, refactor, xstate, frontend, error-handling, ux-determinism]
 ---
 
@@ -216,16 +216,16 @@ const toolPageViewModelSelector = (state, context) => {
 ```
 
 **Sprint 3 Tasks**:
-- [ ] **S3-001**: Audit all `viewModel` dual-write locations in actions
-- [ ] **S3-002**: Map `tool-page-view-model.ts` context dependencies 
-- [ ] **S3-003**: Identify all 15+ consumer files reading viewModel
-- [ ] **S3-004**: Design `buildViewModelFromState(state, context)` pure selector
-- [ ] **S3-005**: Implement reactive viewModel without dual-write
-- [ ] **S3-006**: Remove viewModel updates from all actions (`updateNonStreamingProgress`, etc.)
-- [ ] **S3-007**: Update `tool-page-selectors.ts` to use reactive pattern
-- [ ] **S3-008**: Test A/B parity between old/new viewModel builders
-- [ ] **S3-009**: Update all consumer files to use reactive selectors
-- [ ] **S3-010**: Performance benchmarking for reactive derivation
+- [x] **S3-001**: Audit all `viewModel` dual-write locations in actions
+- [x] **S3-002**: Map `tool-page-view-model.ts` context dependencies 
+- [x] **S3-003**: Identify all 15+ consumer files reading viewModel
+- [x] **S3-004**: Design `buildViewModelFromState(state, context)` pure selector
+- [x] **S3-005**: Implement reactive viewModel without dual-write
+- [x] **S3-006**: Remove viewModel updates from all actions (`updateNonStreamingProgress`, etc.)
+- [x] **S3-007**: Update `tool-page-selectors.ts` to use reactive pattern
+- [x] **S3-008**: Test A/B parity between old/new viewModel builders
+- [x] **S3-009**: Update all consumer files to use reactive selectors
+- [x] **S3-010**: Performance benchmarking for reactive derivation
 
 **Sprint 3 QA Scenarios**:
 

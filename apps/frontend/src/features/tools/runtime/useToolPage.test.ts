@@ -13,27 +13,23 @@ const mocks = vi.hoisted(() => {
 
   const machineSnapshot = {
     context: {
+      toolKey: 'funnel-pages',
       briefingActorRef: {},
       hydrationResult: null as Record<string, unknown> | null,
+      hydrationError: null as string | null,
+      generationError: null as string | null,
+      intent: 'new' as 'new' | 'resume' | 'regenerate',
+      runRequestPrefix: null as string | null,
       progress: {
         completedSteps: new Set<string>(),
         latestArtifactByStep: {},
+        lastCheckpointStep: null as string | null,
       },
       readiness: {
         canStartFlow: true,
         reasons: [] as string[],
         hasExtractionContext: true,
         hasPrimaryTargetStep: true,
-      },
-      viewModel: {
-        canonicalState: 'draft-ready',
-        primaryActionPolicy: 'start-generation',
-        secondaryFlags: {
-          canRetry: false,
-          canSkipStep: false,
-          canCancelGeneration: false,
-          canOpenPreviousArtifact: false,
-        },
       },
       pendingStepStart: null as { step: string; runRequestPrefix: string } | null,
     },
@@ -238,7 +234,6 @@ beforeEach(() => {
 
   mocks.machineSnapshot.context.hydrationResult = null;
   mocks.machineSnapshot.context.pendingStepStart = null;
-  mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
   mocks.machineSnapshot.context.readiness.canStartFlow = true;
   mocks.machineSnapshot.matches.mockReturnValue(false);
 
@@ -326,7 +321,6 @@ describe('useToolPage', () => {
     mocks.briefingSnapshot.context.normalizedText = 'brief text';
     mocks.briefingSnapshot.context.parsedFormat = 'md';
     mocks.machineSnapshot.context.readiness.canStartFlow = false;
-    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
 
     rerender();
 
@@ -338,7 +332,6 @@ describe('useToolPage', () => {
     );
 
     mocks.machineSnapshot.context.readiness.canStartFlow = true;
-    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
 
     rerender();
 
@@ -597,7 +590,6 @@ describe('useToolPage', () => {
   });
 
   it('keeps primary action disabled after invalid extraction and surfaces inline dispatch error', async () => {
-    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
     mocks.machineSnapshot.context.readiness.canStartFlow = false;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
     mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
@@ -635,7 +627,6 @@ describe('useToolPage', () => {
   });
 
   it('re-upload recovery: keeps disabled on invalid context and re-enables only after valid context', async () => {
-    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'disabled';
     mocks.machineSnapshot.context.readiness.canStartFlow = false;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = false;
     mocks.briefingSnapshot.matches.mockImplementation((state: unknown) => {
@@ -655,7 +646,6 @@ describe('useToolPage', () => {
     expect(result.current.machineViewModel.primaryActionPolicy).toBe('disabled');
     expect(mocks.generation.upsertExtractionContext).not.toHaveBeenCalled();
 
-    mocks.machineSnapshot.context.viewModel.primaryActionPolicy = 'start-generation';
     mocks.machineSnapshot.context.readiness.canStartFlow = true;
     mocks.machineSnapshot.context.readiness.hasExtractionContext = true;
     

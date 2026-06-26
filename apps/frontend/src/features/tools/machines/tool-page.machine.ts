@@ -74,8 +74,8 @@ export const toolPageMachine = setup({
         };
       },
     }),
-    clearGenerationError: assign({
-      generationError: () => null,
+    clearError: assign({
+      errorMessage: () => null,
     }),
     syncProgress: assign(({ context, event }) => buildSyncProgressState(context, event)),
     queueStepStart: assign({
@@ -154,14 +154,13 @@ export const toolPageMachine = setup({
     userId: input.userId,
     briefingActorRef: null,
     stepArtifactIds: {},
-    generationError: null,
+    errorMessage: null,
     progress: buildEmptyProgressState(),
     readiness: buildReadinessSnapshot(input.projectId, false, false),
     intent: 'new' as const,
     runRequestPrefix: null,
     pendingStepStart: null,
     hydrationResult: null,
-    hydrationError: null,
     pendingHydration: null,
   }),
   on: {
@@ -176,9 +175,42 @@ export const toolPageMachine = setup({
   states: {
     configuring: {
       entry: 'spawnBriefingActor',
+      initial: 'clean',
+      states: {
+        clean: {},
+        hydrationFailed: {
+          on: {
+            HYDRATE_REQUESTED: {
+              target: '#toolPageMachine.hydrating',
+              actions: assign(({ event }) => ({
+                pendingHydration: normalizeHydrateRequest(event),
+                errorMessage: null,
+                intent: event.intent,
+              })),
+            },
+          },
+        },
+        generationFailed: {
+          on: {
+            REQUEST_STEP_START: [
+              {
+                guard: 'canStartGeneration',
+                target: '#toolPageMachine.generating',
+                actions: 'queueStepStart',
+              },
+            ],
+            START_GENERATION: [
+              {
+                guard: 'canStartGeneration',
+                target: '#toolPageMachine.generating',
+              },
+            ],
+          },
+        },
+      },
       on: {
         PROJECT_SELECTED: {
-          target: 'configuring',
+          target: '.clean',
           reenter: true,
           actions: ['setProjectId', stopChild('briefingActor')],
         },
@@ -204,23 +236,23 @@ export const toolPageMachine = setup({
           {
             guard: 'canStartGeneration',
             target: 'generating',
-            actions: ['queueStepStart', 'clearGenerationError'],
+            actions: ['queueStepStart', 'clearError'],
           },
         ],
         START_GENERATION: [
           {
             guard: 'canStartGeneration',
             target: 'generating',
-            actions: 'clearGenerationError',
+            actions: 'clearError',
           },
         ],
         CANCEL_GENERATION: {
-          target: 'configuring',
+          target: '.clean',
           reenter: true,
           actions: ['resetConfig', stopChild('briefingActor')],
         },
         RESET: {
-          target: 'configuring',
+          target: '.clean',
           reenter: true,
           actions: ['resetConfig', stopChild('briefingActor')],
         },
@@ -228,7 +260,7 @@ export const toolPageMachine = setup({
           target: 'hydrating',
           actions: assign(({ event }) => ({
             pendingHydration: normalizeHydrateRequest(event),
-            hydrationError: null,
+            errorMessage: null,
             intent: event.intent,
           })),
         },
@@ -259,7 +291,6 @@ export const toolPageMachine = setup({
                 const readiness = buildReadinessSnapshot(context.projectId, true, hasPrimaryTargetStep);
                 return {
                   hydrationResult,
-                  hydrationError: null,
                   pendingHydration: null,
                   readiness,
                   intent,
@@ -284,12 +315,12 @@ export const toolPageMachine = setup({
             ],
           },
           {
-            target: 'configuring',
+            target: 'configuring.hydrationFailed',
             actions: assign(({ event }) => {
               const output = readHydrationMachineOutput(event);
               const reason = output.status === 'error' ? output.reason : 'hydration_failed';
               return {
-                hydrationError: reason,
+                errorMessage: reason,
                 hydrationResult: null,
                 pendingHydration: null,
               };
@@ -303,7 +334,7 @@ export const toolPageMachine = setup({
           reenter: true,
           actions: assign(({ event }) => ({
             pendingHydration: normalizeHydrateRequest(event),
-            hydrationError: null,
+            errorMessage: null,
             intent: event.intent,
           })),
         },
@@ -325,7 +356,13 @@ export const toolPageMachine = setup({
         }),
         onDone: {
           target: 'completed',
-          actions: 'clearGenerationError',
+          actions: 'clearError',
+        },
+        onError: {
+          target: 'configuring.generationFailed',
+          actions: assign(({ event }) => ({
+            errorMessage: 'error' in event ? String(event.error) : 'Generation failed',
+          })),
         },
       },
       on: {
@@ -339,13 +376,13 @@ export const toolPageMachine = setup({
           actions: 'sendGenerationLifecycleRetryStep',
         },
         CANCEL_GENERATION: {
-          target: 'configuring',
+          target: 'configuring.clean',
         },
         STEP_REQUEST_DISPATCHED: {
           actions: 'clearPendingStepStart',
         },
         RESET: {
-          target: 'configuring',
+          target: 'configuring.clean',
           reenter: true,
           actions: ['cancelGenerationLifecycle', 'resetConfig', stopChild('briefingActor')],
         },
@@ -354,7 +391,7 @@ export const toolPageMachine = setup({
     completed: {
       on: {
         RESET: {
-          target: 'configuring',
+          target: 'configuring.clean',
           reenter: true,
           actions: ['resetConfig', stopChild('briefingActor')],
         },

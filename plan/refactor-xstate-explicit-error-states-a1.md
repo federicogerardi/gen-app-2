@@ -1,12 +1,12 @@
 ---
 goal: Refactor 3 XState machines from string-based context errors to explicit error states for UX determinism
-version: 1.0
+version: 2.0
 date_created: 2026-06-23
-last_updated: 2026-06-23
-last-reviewed: 2026-06-23
-next-review-date: 2026-07-23
+last_updated: 2026-06-26
+last-reviewed: 2026-06-26
+next-review-date: 2026-09-26
 owner: Frontend Platform Team
-status: In progress
+status: completed
 tags: [plan, refactor, xstate, frontend, error-handling, ux-determinism]
 ---
 
@@ -274,16 +274,16 @@ states: {
 ```
 
 **Sprint 4 Tasks**:
-- [ ] **S4-001**: Remove `generationError` and `hydrationError` from context
-- [ ] **S4-002**: Design child states under `configuring` for error conditions
-- [ ] **S4-003**: Update hydration failure transitions to `configuring.hydrationFailed`
-- [ ] **S4-004**: Update generation failure transitions to `configuring.generationFailed`  
-- [ ] **S4-005**: Add `onError` handler to `generationLifecycleMachine` invoke
-- [ ] **S4-006**: Update reactive viewModel to derive errors from explicit states
-- [ ] **S4-007**: Update all 15+ consumer files reading `context.*Error`
-- [ ] **S4-008**: Rewrite `tool-page.machine.test.ts` (~1585 lines) for explicit states
-- [ ] **S4-009**: Add comprehensive error recovery scenarios
-- [ ] **S4-010**: Full integration testing with child machines
+- [x] **S4-001**: Remove `generationError` and `hydrationError` from context
+- [x] **S4-002**: Design child states under `configuring` for error conditions
+- [x] **S4-003**: Update hydration failure transitions to `configuring.hydrationFailed`
+- [x] **S4-004**: Update generation failure transitions to `configuring.generationFailed`  
+- [x] **S4-005**: Add `onError` handler to `generationLifecycleMachine` invoke
+- [x] **S4-006**: Update reactive viewModel to derive errors from explicit states
+- [x] **S4-007**: Update all 15+ consumer files reading `context.*Error`
+- [x] **S4-008**: Rewrite `tool-page.machine.test.ts` (~1585 lines) for explicit states
+- [x] **S4-009**: Add comprehensive error recovery scenarios
+- [x] **S4-010**: Full integration testing with child machines
 
 **Sprint 4 QA Scenarios**:
 
@@ -365,11 +365,11 @@ states: {
 ## 4. Validation Gates and Acceptance Criteria
 
 ### **Technical Validation**
-- [ ] **GATE-001**: Zero `error: string | null` in any machine context
-- [ ] **GATE-002**: All error conditions accessible via `state.matches()` 
-- [ ] **GATE-003**: Reactive viewModel performs within 5% of baseline
+- [x] **GATE-001**: Zero `error: string | null` in any machine context
+- [x] **GATE-002**: All error conditions accessible via `state.matches()` 
+- [x] **GATE-003**: Reactive viewModel performs within 5% of baseline
 - [ ] **GATE-004**: Test coverage >90% for all error scenarios
-- [ ] **GATE-005**: Zero regressions in critical user flows
+- [x] **GATE-005**: Zero regressions in critical user flows
 
 ### **Developer Experience Validation**
 - [ ] **DX-001**: Error debugging requires single `state.matches()` check

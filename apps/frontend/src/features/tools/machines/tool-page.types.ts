@@ -19,14 +19,13 @@ export type ToolPageContext = {
   userId: string | null;
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null;
   stepArtifactIds: Partial<Record<ToolStep, string>>;
-  generationError: string | null;
+  errorMessage: string | null;
   progress: ToolPageProgressState;
   readiness: ReadinessSnapshot;
   intent: 'new' | 'resume' | 'regenerate';
   runRequestPrefix: string | null;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
   hydrationResult: HydrationResult | null;
-  hydrationError: string | null;
   pendingHydration: PendingHydration | null;
 };
 

@@ -19,7 +19,7 @@ export const buildSetProjectState = (
 
   return {
     projectId,
-    generationError: null,
+    errorMessage: null,
     stepArtifactIds: {},
     briefingActorRef: null,
     progress,
@@ -69,7 +69,7 @@ export const buildResetConfigState = (context: ToolPageContext) => {
 
   return {
     ...context,
-    generationError: null,
+    errorMessage: null,
     stepArtifactIds: {},
     briefingActorRef: null,
     progress,
@@ -78,7 +78,6 @@ export const buildResetConfigState = (context: ToolPageContext) => {
     runRequestPrefix: null,
     pendingStepStart: null,
     hydrationResult: null,
-    hydrationError: null,
     pendingHydration: null,
   };
 };

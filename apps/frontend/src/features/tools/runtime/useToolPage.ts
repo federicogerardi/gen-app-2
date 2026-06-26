@@ -74,7 +74,10 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
-  const machineViewModel = buildReactiveViewModel(toolPageSnapshot.context);
+  const configuringSubstate = typeof toolPageSnapshot.value === 'object' && 'configuring' in toolPageSnapshot.value
+    ? (toolPageSnapshot.value as { configuring: string }).configuring as 'clean' | 'hydrationFailed' | 'generationFailed'
+    : 'clean' as const;
+  const machineViewModel = buildReactiveViewModel(toolPageSnapshot.context, configuringSubstate);
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;

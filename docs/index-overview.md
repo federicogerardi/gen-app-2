@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 3.3
-last-reviewed: 2026-06-22
-next-review-date: 2026-09-22
+version: 3.4
+last-reviewed: 2026-06-26
+next-review-date: 2026-09-26
 owner: Documentation Archivist
 ---
 
@@ -117,6 +117,7 @@ Validation path manifest (orphan-check canonical set):
 ### Design ADR
 
 - [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md)
+- [xstate-explicit-error-states-adr](./02-design/adr/xstate-explicit-error-states-adr.md) — **ADR-003: Explicit Error States Pattern for XState machines (Sprints 1–4)**
 
 ### Active Plans And Runbooks
 
@@ -140,7 +141,7 @@ Validation path manifest (orphan-check canonical set):
 | # | Finding | Area | Effort | Status |
 |---|---|------|--------|--------|
 | 5 | B1 — Hardcoded copy residuals | Admin forms/tables/dashboard/navigation, Tool buttons, YT form | Incremental, per area | **resolved** — all strings centralized |
-| 8 | A1 — Explicit error states in machines | `tool-page`, `briefing-upload`, `auth-session` machines | Sprint dedicato | open — context refactoring + viewModel + 15+ files |
+| 8 | A1 — Explicit error states in machines | `tool-page`, `briefing-upload`, `auth-session` machines | Sprint dedicato | **resolved** — Sprints 1–4, see [ADR-003](./02-design/adr/xstate-explicit-error-states-adr.md) |
 | 10 | C1 — Two button systems | MUI vs native button convergence | Requires ADR | **partial** — CTA variant classes applied; full convergence deferred |
 | 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — inline editing, row selection, bindings panel not supported |
 

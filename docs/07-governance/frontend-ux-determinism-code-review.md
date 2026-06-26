@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 date_created: 2026-06-06
-last-reviewed: 2026-06-22
-next-review-date: 2026-07-22
+last-reviewed: 2026-06-26
+next-review-date: 2026-07-26
 owner: Frontend Platform Team
 type: code-review
 ---
@@ -19,17 +19,15 @@ type: code-review
 
 ## A. XState Machines — Determinism
 
-### A1. Error strings instead of explicit error states (3 machines) — OPEN
+### A1. Error strings instead of explicit error states (3 machines) — RESOLVED
 
 | Machine | Flag | Location |
 |---|---|---|
-| `tool-page.machine.ts` | `generationError: string \| null` | `tool-page.types.ts:23` |
-| `briefing-upload.machine.ts` | `error: string \| null` | context:30 |
-| `auth-session.machine.ts` | `error: string \| null` | context:13 |
+| `tool-page.machine.ts` | ~~`generationError: string \| null`~~ → `errorMessage` + child states | Refactor Sprint 3–4 |
+| `briefing-upload.machine.ts` | ~~`error: string \| null`~~ → `idle.clean` / `idle.failed` | Refactor Sprint 2 |
+| `auth-session.machine.ts` | ~~`error: string \| null`~~ → `unauthenticated.idle` / `unauthenticated.failed` | Refactor Sprint 1 |
 
-Machines with better error handling (`generation-lifecycle`, `frontend-stream`, `feedback-center`) use explicit error states. The others hide sub-states inside `context.error !== null`, making UX behavior non-deterministic from state alone — the same `idle` or `unauthenticated` state covers both "clean" and "error" conditions.
-
-**Recommendation**: Introduce child states (`idle.error`, `unauthenticated.error`) or orthogonal regions for error. This makes the UI transition to/from error a traceable machine event, not a flag derivation. Requires significant machine restructuring — deferred. See [Detailed Blocker Analysis](#finding-8-a1--explicit-error-states-in-machines--open) for per-machine technical blockers.
+Tutte e 3 le macchine ora usano child states espliciti per le condizioni di errore. Il comportamento UX è deterministico da `state.matches()` — nessun controllo `context.error !== null` necessario. Vedi [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md) per il pattern standardizzato.
 
 ### A2. Inline guards duplicating named guards (2 machines) — OPEN
 
@@ -38,11 +36,9 @@ Machines with better error handling (`generation-lifecycle`, `frontend-stream`, 
 
 **Recommendation**: Use `and(['isCurrentStepDone', 'hasNextStep'])` to compose existing guards. Eliminates drift risk when logic changes. Low effort, no blocker.
 
-### A3. Dual-write viewModel in `tool-page.machine.ts` actions — OPEN
+### A3. Dual-write viewModel in `tool-page.machine.ts` actions — RESOLVED
 
-`updateNonStreamingProgress` (line 124) simultaneously updates raw context fields AND rebuilds the `viewModel`. If a future code path updates one without the other, the viewModel becomes stale.
-
-**Recommendation**: Derive `viewModel` reactively (pure selector on context) instead of dual-writing in actions. Tied to finding A1 — resolving error states would naturally lead to reactive viewModel derivation.
+La `viewModel` è ora derivata reattivamente tramite `buildReactiveViewModel(context, configuringSubstate)` — una funzione pura che legge stato + contesto. Zero `assign({ viewModel: ... })` nelle actions. Vedi [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md).
 
 ### A4. Dead code in machines — RESOLVED
 
@@ -212,7 +208,7 @@ These are **two separate type declarations with the same name**. The channel map
 | 5 | Converge hardcoded copy to `appCopy` (B1) | UX determinism / maintainability | Medium | **resolved** — all admin forms/tables/dashboard/navigation, tool buttons, and YT Description form labels centralized |
 | 6 | Fix report category label bug (B3) | Deterministic UX bug | Low | **resolved** |
 | 7 | Align copy language (B2) | UX consistency | Medium | **resolved** — all `appCopy` sections aligned to Italian |
-| 8 | Explicit error states in machines (A1) | State determinism | Medium-High | open — requires machine restructuring |
+| 8 | Explicit error states in machines (A1) | State determinism | Medium-High | **resolved** — Sprints 1–4, see [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md) |
 | 9 | Remove machine dead code (A4) + unused actor (A5) | Cleanup | Low | **resolved** |
 | 10 | Unify button system (C1) | UI determinism | Medium-High | **partial** — `CtaButtons` variant-specific classes applied; full MUI/native convergence deferred |
 | 11 | Wire `feedback-channel-map` to provider (F) | Infrastructure completeness | Medium | **resolved** — types aligned, `publishInfo`/`publishWarning` added |
@@ -245,7 +241,7 @@ Verification: typecheck clean, 400/400 tests pass, build succeeds.
 
 ## Resolution Delta (2026-06-06, pass 2)
 
-Interventions 7, 9, 10, 11 completed. Findings 8 (A1) and 12 (E1) documented as open with deferral rationale.
+Interventions 7, 9, 10, 11 completed. Findings 8 (A1) and 3 (A3) resolved via Sprints 1–4. Finding 12 (E1) documented as open with deferral rationale.
 
 | File | Changes |
 |---|---|
@@ -372,35 +368,18 @@ Verification: typecheck clean, 437/437 tests pass.
 
 ---
 
-### Finding #8 (A1) — Explicit Error States in Machines — OPEN
+### Finding #8 (A1) — Explicit Error States in Machines — RESOLVED
 
-**Remaining scope**: 3 machines use `error: string | null` in context instead of explicit machine states.
+**Resolved**: 2026-06-26 via Sprints 1–4. See [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md).
 
-**Technical blockers per machine**:
-
-#### `tool-page.machine.ts` — `generationError: string | null`
-
-The context has `generationError` which is read by the `viewModel` builder (`tool-page-view-model.ts`) to derive `canonicalState = 'paused-with-checkpoint'`. The problem:
-
-1. **Dual-write viewModel**: Actions `setGenerationError` and `updateNonStreamingProgress` write both the raw field and the viewModel. If a future action updates `generationError` without rebuilding the viewModel, the two desynchronize.
-2. **Required refactoring**: To resolve, would need to (a) eliminate `generationError` from context, (b) model a child state `configuring.with-error` or `generating.with-error`, (c) derive the viewModel from a pure selector that reads machine state instead of a context field. This changes the context shape and the contract with ~15 files that read `toolPageSnapshot.context.generationError`.
-3. **High regression risk**: `tool-page.machine.ts` is the frontend aggregate root — 395 lines, 7 machine helpers connected, ~20 tests. Any context shape change requires cascading updates.
-
-#### `briefing-upload.machine.ts` — `error: string | null`
-
-The machine has 5 states (`idle`, `validating`, `uploading`, `extracting`, `ready`) and errors are set as strings in context while the machine returns to `idle`. The problem:
-
-1. **`idle` hides 3 sub-states**: (a) no file selected, (b) file selected with error, (c) file selected without error. These are distinguishable only by checking `context.error !== null` and `context.file !== null`.
-2. **Required refactoring**: Would need child states `idle.empty`, `idle.with-file`, `idle.with-error`, or an orthogonal region for error.
-3. **Pull-based coupling**: The exported function `hasReadyBriefingExtractionContext` (line 33) reads directly into the child actor's snapshot. If the context shape changes, this function breaks silently.
-
-#### `auth-session.machine.ts` — `error: string | null`
-
-The machine has states `bootstrapping`, `authenticated`, `unauthenticated`, `authenticating`, `loggingOut`, `refreshing`. Login/bootstrap errors are set as strings while the machine is in `unauthenticated`. The problem:
-
-1. **`unauthenticated` hides 2 sub-states**: (a) no attempt made, (b) failed attempt with error. The same state covers both.
-2. **Required refactoring**: Would need `unauthenticated.idle` and `unauthenticated.error`, or an orthogonal region.
-3. **Low impact**: This machine is relatively isolated (206 lines, no child actors). Would be the simplest candidate for refactoring, but not prioritized because the UX behavior is already deterministic — errors are always displayed when present.
+**What changed**:
+- **`auth-session.machine.ts`** (Sprint 1): `unauthenticated` → compound state with `idle` / `failed` child states
+- **`briefing-upload.machine.ts`** (Sprint 2): `idle` → compound state with `clean` / `failed` child states
+- **`tool-page.machine.ts`** (Sprints 3–4): 
+  - Removed `generationError` and `hydrationError` from context → single `errorMessage: string | null`
+  - `configuring` → compound state with `clean` / `hydrationFailed` / `generationFailed` child states
+  - ViewModel dual-write eliminated → `buildReactiveViewModel(context, configuringSubstate)` pure selector
+  - `canStartGeneration` guard derives policy reactively from context
 
 ---
 
@@ -471,5 +450,5 @@ To migrate would require extending `ListingTableSection` with `onRowClick`, `sel
 | 13 (D2) | Ad-hoc `<p>` loading | None — mechanical fix | **Resolved** |
 | 14 (E2) | Raw `fetch()` for DELETE | None — `deleteAdminModel` exists | **Resolved** |
 | 10 (C1) | Two button systems | Design system decision required | Requires ADR |
-| 8 (A1) | Machine error states | Context refactoring + viewModel + 15+ files | Requires dedicated sprint |
+| 8 (A1) | Machine error states | Context refactoring + viewModel + 15+ files | **Resolved** — Sprints 1–4, see [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md) |
 | 12 (E1) | Admin pages → `ListingTableSection` | Inline editing, row selection, bindings panel | Requires component extension or abandonment |

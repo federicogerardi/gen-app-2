@@ -71,14 +71,15 @@ type RuntimeIntent = 'new' | 'resume' | 'regenerate';
 
 type LastRequest = GenerationStreamWorkspaceValue['snapshot']['context']['lastRequest'];
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type BriefingSnapshot = {
   context: {
-    error: string | null;
     extractionArtifactId: string | null;
     extractionPayload: Record<string, unknown> | null;
     briefingId: string | null;
     normalizedText: string | null;
   };
+  matches: any;
 };
 
 export type SelectedExtractionInfo = {
@@ -324,7 +325,7 @@ export const selectGenerationExtractionInfo = ({
 
   if (
     workspaceExtractionContext !== null
-    && briefingSnapshot.context.error !== 'extraction_context_insufficient'
+    && !briefingSnapshot.matches({ idle: 'failed' })
     && isExtractionContextValidForTool(
       toolKey,
       workspaceExtractionContext.extractionPayload,

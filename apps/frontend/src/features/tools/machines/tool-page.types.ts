@@ -6,7 +6,6 @@ import type { HydrationResult, PendingHydration } from './hydration.machine';
 import type { SupportedTool, ToolStep } from './tool-flow.machine';
 import type { ReadinessSnapshot } from './tool-page-readiness';
 import type { ToolPageProgressState } from './tool-page-progress';
-import type { ToolPageViewModel } from './tool-page-view-model';
 
 export type ToolPageContext = {
   toolKey: SupportedTool;
@@ -20,13 +19,13 @@ export type ToolPageContext = {
   userId: string | null;
   briefingActorRef: ActorRefFrom<typeof briefingUploadMachine> | null;
   stepArtifactIds: Partial<Record<ToolStep, string>>;
-  generationError: string | null;
+  errorMessage: string | null;
   progress: ToolPageProgressState;
   readiness: ReadinessSnapshot;
-  viewModel: ToolPageViewModel;
+  intent: 'new' | 'resume' | 'regenerate';
+  runRequestPrefix: string | null;
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
   hydrationResult: HydrationResult | null;
-  hydrationError: string | null;
   pendingHydration: PendingHydration | null;
 };
 

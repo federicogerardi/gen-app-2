@@ -20,7 +20,7 @@ export const PublicShell = () => {
       <div className="ui-shell-login-toggle">
         <ThemeToggleButton />
       </div>
-      <LoginForm onSubmit={auth.login} oauthStartUrl={auth.oauthStartUrl} externalError={auth.error} />
+      <LoginForm onSubmit={auth.login} oauthStartUrl={auth.oauthStartUrl} hasExternalError={auth.hasError} />
     </Shell>
   );
 };

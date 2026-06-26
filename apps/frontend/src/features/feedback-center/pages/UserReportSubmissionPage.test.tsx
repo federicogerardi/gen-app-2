@@ -17,7 +17,7 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
     session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
     loading: false,
-    error: null,
+    hasError: false,
     apiBaseUrl: '',
     capabilities: {
       changelogList: true,
@@ -27,6 +27,11 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
       adminUserReportsUpdate: true,
       adminUserReportsPublishIssue: true,
     },
+    oauthStartUrl: '',
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
   }),
 }));
 

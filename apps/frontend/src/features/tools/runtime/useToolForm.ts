@@ -67,4 +67,4 @@ export const useAvailableSteps = (toolKey: SupportedTool, completedSteps: Set<To
 };
 
 // useToolUiState removed — test-only (not imported by any runtime component). Removed in Sprint 4 / TASK-013.
-// Canonical UI state is derived by toolPageMachine.context.viewModel.
+// Canonical UI state is derived by buildReactiveViewModel(snapshot.context) in useToolPage.ts.

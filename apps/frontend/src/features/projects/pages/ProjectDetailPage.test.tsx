@@ -39,9 +39,14 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
     session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
     loading: false,
-    error: null,
+    hasError: false,
     apiBaseUrl: '',
     capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false },
+    oauthStartUrl: '',
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
   }),
 }));
 

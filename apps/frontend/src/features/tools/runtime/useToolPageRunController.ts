@@ -28,7 +28,7 @@ type UseToolPageRunControllerArgs = {
   sourceArtifactId?: string | null;
   machineHydrationResult: HydrationResult | null;
   workspaceExtractionContext: GenerationProjectWorkspaceValue['extractionByProject'][string] | null;
-  briefingSnapshot: { context: { error: string | null; extractionArtifactId: string | null; extractionPayload: Record<string, unknown> | null; briefingId: string | null; normalizedText: string | null } };
+  briefingSnapshot: { context: { extractionArtifactId: string | null; extractionPayload: Record<string, unknown> | null; briefingId: string | null; normalizedText: string | null }; matches: any };
   effectiveBriefingFileName: string | null | undefined;
   resolvedBriefingId: string | null;
   resolvedNotes: string;

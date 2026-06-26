@@ -1,6 +1,5 @@
 import type { ToolStep } from './tool-flow.machine';
 import { buildReadinessSnapshot, deriveHasExtractionContext, deriveHasPrimaryTargetStep } from './tool-page-readiness';
-import { buildToolPageViewModel } from './tool-page-view-model';
 import { resolveFlowProgressState } from './tool-page-progress';
 import type { ToolPageContext, ToolPageEvent } from './tool-page.types';
 
@@ -20,17 +19,13 @@ export const buildSetProjectState = (
 
   return {
     projectId,
-    generationError: null,
+    errorMessage: null,
     stepArtifactIds: {},
     briefingActorRef: null,
     progress,
     readiness,
-    viewModel: buildToolPageViewModel({
-      toolKey: context.toolKey,
-      readiness,
-      progress,
-      generationError: null,
-    }),
+    intent: 'new' as const,
+    runRequestPrefix: null,
   };
 };
 
@@ -63,14 +58,8 @@ export const buildSyncProgressState = (
   return {
     progress,
     readiness,
-    viewModel: buildToolPageViewModel({
-      toolKey: context.toolKey,
-      intent: event.intent,
-      readiness,
-      progress,
-      generationError: context.generationError,
-      runRequestPrefix: event.runRequestPrefix,
-    }),
+    intent: event.intent,
+    runRequestPrefix: event.runRequestPrefix,
   };
 };
 
@@ -80,20 +69,15 @@ export const buildResetConfigState = (context: ToolPageContext) => {
 
   return {
     ...context,
-    generationError: null,
+    errorMessage: null,
     stepArtifactIds: {},
     briefingActorRef: null,
     progress,
     readiness,
-    viewModel: buildToolPageViewModel({
-      toolKey: context.toolKey,
-      readiness,
-      progress,
-      generationError: null,
-    }),
+    intent: 'new' as const,
+    runRequestPrefix: null,
     pendingStepStart: null,
     hydrationResult: null,
-    hydrationError: null,
     pendingHydration: null,
   };
 };

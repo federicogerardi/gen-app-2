@@ -78,13 +78,15 @@ export const useToolPageContext = ({
     : briefingSnapshot.matches('extracting')
       ? 'extracting'
       : briefingSnapshot.matches('ready') ? 'ready' : 'idle';
-  const briefingUploadMessage = briefingSnapshot.context.error?.trim() ?? null;
+  const briefingUploadMessage = briefingSnapshot.matches({ idle: 'failed' })
+    ? appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient
+    : null;
   const requiredInputFiles = getRequiredToolInputFiles(toolKey);
   const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
   const briefingGuidance = hasRequiredAngleDetector
     && !!briefingSnapshot.context.file
     && !briefingSnapshot.context.angleDetectorFile
-    && briefingSnapshot.context.error !== null
+    && briefingSnapshot.matches({ idle: 'failed' })
     ? appCopy.ui.toolPage.guidance.angleDetectorRequired
     : null;
   const briefingError = briefingGuidance ? null : mapInlineDispatchError(briefingUploadMessage);

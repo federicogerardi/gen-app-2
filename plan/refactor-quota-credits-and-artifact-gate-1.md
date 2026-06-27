@@ -228,12 +228,12 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-026 | Aggiornare `apps/backend/src/lib/adapters/auth.production.ts`: create/update user per `monthlyArtifactLimit`. | ☐ | |
-| TASK-027 | Aggiornare `apps/backend/src/lib/runtime/auth-http/admin-user-handlers.ts`: passare `monthlyArtifactLimit` da request body. | ☐ | |
-| TASK-028 | Aggiornare `apps/backend/src/lib/runtime/auth-http/support.ts`: esporre `monthlyArtifactLimit` e `monthlyArtifactsUsed` nelle risposte API (solo per admin). | ☐ | |
-| TASK-029 | Aggiornare `apps/frontend/src/features/admin/runtime/admin-user-form.ts`: campo `monthlyArtifactLimit` (visibile solo ad admin). | ☐ | |
-| TASK-030 | Aggiornare `apps/frontend/src/features/admin/runtime/useAdminUsersMutations.ts`: mutation per nuovi campi. | ☐ | |
-| TASK-031 | Aggiornare `apps/frontend/src/app/copy/system.ts`: etichette per nuovi campi (`monthlyQuota` → "Crediti mensili", nuovo campo "Limite artefatti"). | ☐ | |
+| TASK-026 | Aggiornare `apps/backend/src/lib/adapters/auth.production.ts`: create/update user per `monthlyArtifactLimit`. | ☑ | 2026-06-27 |
+| TASK-027 | Aggiornare `apps/backend/src/lib/runtime/auth-http/admin-user-handlers.ts`: passare `monthlyArtifactLimit` da request body. | ☑ | 2026-06-27 |
+| TASK-028 | Aggiornare `apps/backend/src/lib/runtime/auth-http/support.ts`: esporre `monthlyArtifactLimit` e `monthlyArtifactsUsed` nelle risposte API (solo per admin). | ☑ | 2026-06-27 |
+| TASK-029 | Aggiornare `apps/frontend/src/features/admin/runtime/admin-user-form.ts`: campo `monthlyArtifactLimit` (visibile solo ad admin). | ☑ | 2026-06-27 |
+| TASK-030 | Aggiornare `apps/frontend/src/features/admin/runtime/useAdminUsersMutations.ts`: mutation per nuovi campi. | ☑ | 2026-06-27 |
+| TASK-031 | Aggiornare `apps/frontend/src/app/copy/system.ts`: etichette per nuovi campi (`monthlyQuota` → "Crediti mensili", nuovo campo "Limite artefatti"). | ☑ | 2026-06-27 |
 
 ### Implementation Phase 8 — Frontend User Display
 

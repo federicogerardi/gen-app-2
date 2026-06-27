@@ -39,6 +39,7 @@ export const AdminUsersTable = ({
             <th scope="col">{appCopy.ui.adminUsers.tableHeaders.role}</th>
             <th scope="col">{appCopy.ui.adminUsers.tableHeaders.status}</th>
             <th scope="col">{appCopy.ui.adminUsers.tableHeaders.monthlyQuota}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.monthlyArtifactLimit}</th>
             <th scope="col">{appCopy.ui.adminUsers.tableHeaders.actions}</th>
           </tr>
         </thead>

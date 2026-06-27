@@ -148,7 +148,9 @@ export const createAdminUserHandlers = (
       role,
       status,
       ...(typeof body.monthlyQuota === 'number' ? { monthlyQuota: body.monthlyQuota } : {}),
-      ...(typeof body.monthlyUsed === 'number' ? { monthlyUsed: body.monthlyUsed } : {}),
+      ...(typeof body.monthlyCreditsUsed === 'number' ? { monthlyCreditsUsed: body.monthlyCreditsUsed } : {}),
+      ...(typeof body.monthlyArtifactLimit === 'number' ? { monthlyArtifactLimit: body.monthlyArtifactLimit } : {}),
+      ...(typeof body.monthlyArtifactsUsed === 'number' ? { monthlyArtifactsUsed: body.monthlyArtifactsUsed } : {}),
       ...(passwordHash
         ? {
             passwordHash,
@@ -248,8 +250,14 @@ export const createAdminUserHandlers = (
     if (typeof body.monthlyQuota === 'number') {
       updateInput.monthlyQuota = body.monthlyQuota;
     }
-    if (typeof body.monthlyUsed === 'number') {
-      updateInput.monthlyUsed = body.monthlyUsed;
+    if (typeof body.monthlyCreditsUsed === 'number') {
+      updateInput.monthlyCreditsUsed = body.monthlyCreditsUsed;
+    }
+    if (typeof body.monthlyArtifactLimit === 'number') {
+      updateInput.monthlyArtifactLimit = body.monthlyArtifactLimit;
+    }
+    if (typeof body.monthlyArtifactsUsed === 'number') {
+      updateInput.monthlyArtifactsUsed = body.monthlyArtifactsUsed;
     }
     if (parsedStatus === 'disabled') {
       updateInput.disabledAt = now();

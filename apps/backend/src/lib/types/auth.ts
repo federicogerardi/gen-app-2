@@ -18,7 +18,9 @@ export interface AuthUserRecord {
   role: AuthUserRole;
   status: AuthUserStatus;
   monthlyQuota: number;
-  monthlyUsed: number;
+  monthlyCreditsUsed: number;
+  monthlyArtifactLimit: number;
+  monthlyArtifactsUsed: number;
   passwordHash: string | null;
   passwordAlgo: string | null;
   passwordChangedAt: IsoTimestamp | null;
@@ -80,7 +82,9 @@ export interface CreateAuthUserInput {
   role: AuthUserRole;
   status: AuthUserStatus;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
   passwordHash?: string | null;
   passwordAlgo?: string | null;
   passwordChangedAt?: Date;
@@ -93,7 +97,9 @@ export interface UpdateAuthUserInput {
   role?: AuthUserRole;
   status?: AuthUserStatus;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
   disabledAt?: Date | null;
 }
 

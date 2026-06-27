@@ -43,6 +43,7 @@ export const AdminUserTableRow = ({
         <td>{formatMeta('Role', user.role)}</td>
         <td><StatusBadge status={user.status} /></td>
         <td>{typeof user.monthlyQuota === 'number' ? user.monthlyQuota : '-'}</td>
+        <td>{typeof user.monthlyArtifactLimit === 'number' ? user.monthlyArtifactLimit : '-'}</td>
         <td>
           <div className={cx(uiPrimitives.clusterRow, 'ui-admin-user-table-actions')}>
             <button
@@ -66,7 +67,7 @@ export const AdminUserTableRow = ({
 
       {isEditing ? (
         <tr>
-          <td colSpan={5}>
+          <td colSpan={6}>
             <AdminUserEditForm
               userId={user.id}
               busyAction={busyAction}

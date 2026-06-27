@@ -73,6 +73,16 @@ export const AdminUserFormFields = ({
           helperText={errors.monthlyQuota?.message}
           fullWidth
         />
+
+        <TextField
+          label={appCopy.ui.adminUsers.fieldLabels.monthlyArtifactLimit}
+          type="number"
+          slotProps={{ htmlInput: { min: 0, step: 1 } }}
+          {...register('monthlyArtifactLimit')}
+          error={!!errors.monthlyArtifactLimit}
+          helperText={errors.monthlyArtifactLimit?.message}
+          fullWidth
+        />
       </div>
 
       <TextField

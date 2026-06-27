@@ -54,7 +54,9 @@ export type AdminCreateUserRequestBody = {
   role?: unknown;
   status?: unknown;
   monthlyQuota?: unknown;
-  monthlyUsed?: unknown;
+  monthlyCreditsUsed?: unknown;
+  monthlyArtifactLimit?: unknown;
+  monthlyArtifactsUsed?: unknown;
   password?: unknown;
 };
 
@@ -63,7 +65,9 @@ export type AdminUpdateUserRequestBody = {
   role?: unknown;
   status?: unknown;
   monthlyQuota?: unknown;
-  monthlyUsed?: unknown;
+  monthlyCreditsUsed?: unknown;
+  monthlyArtifactLimit?: unknown;
+  monthlyArtifactsUsed?: unknown;
   password?: unknown;
 };
 
@@ -250,7 +254,9 @@ export const userToResponseData = (user: {
   role: AuthUserRole;
   status: AuthUserStatus;
   monthlyQuota: number;
-  monthlyUsed: number;
+  monthlyCreditsUsed: number;
+  monthlyArtifactLimit: number;
+  monthlyArtifactsUsed: number;
   disabledAt: string | null;
   createdByAdminUserId: string | null;
   createdAt: string;
@@ -264,7 +270,9 @@ export const userToResponseData = (user: {
     role: user.role,
     status: user.status,
     monthlyQuota: user.monthlyQuota,
-    monthlyUsed: user.monthlyUsed,
+    monthlyCreditsUsed: user.monthlyCreditsUsed,
+    monthlyArtifactLimit: user.monthlyArtifactLimit,
+    monthlyArtifactsUsed: user.monthlyArtifactsUsed,
     disabledAt: user.disabledAt,
     createdByAdminUserId: user.createdByAdminUserId,
     createdAt: user.createdAt,

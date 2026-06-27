@@ -33,12 +33,14 @@ export const useAdminUsersMutations = ({
 
     try {
       const monthlyQuota = parseOptionalNumber(data.monthlyQuota);
+      const monthlyArtifactLimit = parseOptionalNumber(data.monthlyArtifactLimit);
       await createAdminUser({
         email: data.email.trim(),
         role: data.role,
         status: data.status,
         ...(data.password ? { password: data.password } : {}),
         ...(monthlyQuota !== undefined ? { monthlyQuota } : {}),
+        ...(monthlyArtifactLimit !== undefined ? { monthlyArtifactLimit } : {}),
       }, {
         apiBaseUrl,
         capabilities,
@@ -59,12 +61,14 @@ export const useAdminUsersMutations = ({
 
     try {
       const monthlyQuota = parseOptionalNumber(data.monthlyQuota);
+      const monthlyArtifactLimit = parseOptionalNumber(data.monthlyArtifactLimit);
       await updateAdminUser(userId, {
         email: data.email.trim(),
         role: data.role,
         status: data.status,
         ...(data.password ? { password: data.password } : {}),
         ...(monthlyQuota !== undefined ? { monthlyQuota } : {}),
+        ...(monthlyArtifactLimit !== undefined ? { monthlyArtifactLimit } : {}),
       }, {
         apiBaseUrl,
         capabilities,

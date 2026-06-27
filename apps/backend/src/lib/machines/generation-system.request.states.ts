@@ -227,6 +227,13 @@ export const generationSystemRequestStates = {
             },
             {
               target: '#generationSystemMachine.routing',
+              actions: {
+                type: 'cacheCreditCost',
+                params: ({ event }: UnknownEventArgs) => {
+                  const output = (event as { output?: { creditCost?: number } })?.output;
+                  return { creditCost: output?.creditCost ?? 1 };
+                },
+              },
             },
           ],
           onError: {

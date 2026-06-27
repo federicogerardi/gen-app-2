@@ -1,7 +1,7 @@
 ---
 status: active
-version: 2.11
-last-reviewed: 2026-06-12
+version: 2.12
+last-reviewed: 2026-06-27
 next-review-date: 2026-09-12
 owner: Domain Architecture
 ---
@@ -155,13 +155,20 @@ owner: Domain Architecture
 
 | Term | Type | Definition | Source | Status |
 | --- | --- | --- | --- | --- |
-| MonthlyQuota | Value Object | The maximum number of generation requests allowed for a User in the current billing period. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (column `monthly_quota`) | canonical |
-| MonthlyUsed | Value Object | The counter of generation requests consumed by a User in the current billing period. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (column `monthly_used`) | canonical |
-| QuotaWindowPeriod | Value Object | The calendar-anchored time boundary for a User's quota period. Determines when `MonthlyUsed` is reset to zero before the next generation attempt. Persisted as `quota_window_started_at` (DB column). Reset is evaluated at `ClaimUsage` time by comparing the stored start date against the current date at month granularity; if the stored period is in a prior month the counter is reset and the new `quota_window_started_at` is written atomically. Not a user-facing concept. See DDD-059. | `packages/infra-db/migrations/20260518_000010_quota_window_started_at.sql`, `apps/backend/src/lib/adapters/postgres-redis.production.ts:325` | canonical |
-| QuotaHistory | Entity | An immutable audit record of a single generation attempt, capturing outcome, token counts, cost, and metadata. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (table `quota_history`) | canonical |
+| CreditQuota | Value Object | Alias canonico per `MonthlyQuota` ridefinito come "massimo numero di crediti mensili disponibili per un utente" invece di "massimo numero di richieste mensili". Il valore numerico rimane sulla colonna `monthly_quota` della tabella `users`. `CreditQuota` è il termine canonico per comunicazione e documentazione; `MonthlyQuota` rimane come backward-compat alias. See DDD-137. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (column `monthly_quota`) | canonical |
+| MonthlyQuota | Value Object | Backward-compat alias per `CreditQuota`. Ridefinito come massimo crediti mensili (non più request count). See DDD-137. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (column `monthly_quota`) | canonical (alias) |
+| MonthlyCreditsUsed | Value Object | The counter of credits consumed by a User in the current billing period. Replaces `MonthlyUsed`. Persisted as `monthly_credits_used` (DB column, renamed from `monthly_used`). See DDD-138. | `packages/infra-db/migrations/` (column `monthly_credits_used`) | canonical |
+| MonthlyUsed | Value Object | **Deprecated** — backward-compat alias per `MonthlyCreditsUsed`. See DDD-138. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (column `monthly_used`) | deprecated |
+| CreditCost | Value Object | The cost in credits of a Session Summary for a given tool. Default value: 1. Configurable per tool in `packages/contracts/src/tool-workflows.ts` as `creditCost` field on `ToolWorkflowDefinition`. See DDD-139. | `packages/contracts/src/tool-workflows.ts` | canonical |
+| ArtifactGateLimit | Value Object | The maximum number of artifacts generable per month for a User (default 1000). Invisible to the user — API responses do not expose this value. Persisted as `monthly_artifact_limit` on `users` table. See DDD-140. | `packages/infra-db/migrations/` (column `monthly_artifact_limit`) | canonical |
+| ArtifactGateUsed | Value Object | The counter of artifacts generated with SUCCESS in the current billing month. Invisible to the user. Persisted as `monthly_artifacts_used` on `users` table. See DDD-140. | `packages/infra-db/migrations/` (column `monthly_artifacts_used`) | canonical |
+| QuotaWindowPeriod | Value Object | The calendar-anchored time boundary for a User's quota period. Determines when `MonthlyCreditsUsed` is reset to zero before the next generation attempt. Persisted as `quota_window_started_at` (DB column). Reset is evaluated at `ClaimUsage` time by comparing the stored start date against the current date at month granularity; if the stored period is in a prior month the counter is reset and the new `quota_window_started_at` is written atomically. Not a user-facing concept. See DDD-059. | `packages/infra-db/migrations/20260518_000010_quota_window_started_at.sql`, `apps/backend/src/lib/adapters/postgres-redis.production.ts:325` | canonical |
+| QuotaHistory | Entity | An immutable audit record of a single generation attempt, capturing outcome, token counts, cost, and metadata. Extended with `session_id`, `cost_type` (`session_summary` | `artifact`), `credit_cost`. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (table `quota_history`) | canonical |
 | QuotaEventStatus | Value Object | Outcome classification for a QuotaHistory entry. Values: `success`, `error`, `rate_limited`. | `apps/backend/src/lib/types/artifact.ts:29-30` | canonical |
-| UsageDecision | Value Object | Result of a quota claim attempt: `{ granted: boolean, reason?: string }`. Optionally carries `resetDate?: Date` when the quota window was reset during the claim (audit tracing only, not a readiness gate). See DDD-060. | `apps/backend/src/lib/adapters/generation.adapters.ts:33-36` | canonical |
-| ClaimUsage | Command | The atomic operation that checks a User's remaining quota and, if sufficient, decrements it to permit generation. When the `QuotaWindowPeriod` has expired, resets `MonthlyUsed` to zero and updates `quota_window_started_at` before decrementing. | `apps/backend/src/lib/machines/usage.machine.ts` (`claimUsage` actor) | canonical |
+| UsageDecision | Value Object | Result of a quota claim attempt: `{ granted: boolean, reason?: string, creditCost?: number }`. The `creditCost` field carries the tool's credit cost when granted. Optionally carries `resetDate?: Date` when the quota window was reset during the claim (audit tracing only, not a readiness gate). See DDD-060, DDD-143. | `apps/backend/src/lib/adapters/generation.adapters.ts:33-36` | canonical |
+| ClaimUsage | Command | The atomic operation that verifies a User's remaining quota (credits + artifact gate) without consuming credits. Checks two conditions: (1) `ArtifactGateUsed < ArtifactGateLimit` (invisible gate), (2) `MonthlyCreditsUsed + CreditCost <= CreditQuota` (available credits). Returns `{ granted: true, creditCost }` or `{ granted: false, reason: 'quota_exhausted' }`. When the `QuotaWindowPeriod` has expired, resets `MonthlyCreditsUsed` to zero and updates `quota_window_started_at` before checking. Credits are consumed post-SUCCESS via `ConsumeCredits`, not here. See DDD-143. | `apps/backend/src/lib/machines/usage.machine.ts` (`claimUsage` actor) | canonical |
+| ConsumeCredits | Command | Scales user credits upon SUCCESS of a Session Summary. Invoked after the last artifact of the session is finalized with success. Increments `MonthlyCreditsUsed` by the tool's `CreditCost` and writes a `quota_history` row with `cost_type = 'session_summary'`. See DDD-141. | `apps/backend/src/lib/adapters/` | canonical |
+| RecordArtifactSuccess | Command | Increments `ArtifactGateUsed` by 1 upon SUCCESS of each artifact. Invoked after each artifact finalization. Writes a `quota_history` row with `cost_type = 'artifact'`. If the gate is exceeded, the command fails and the artifact is not finalized. See DDD-142. | `apps/backend/src/lib/adapters/` | canonical |
 | Project | Entity | A named workspace owned by a User that groups related Artifacts. | `packages/infra-db/migrations/20260424_000001_generation_adapters_minimal.sql` (table `projects`), `apps/backend/src/lib/types/projects.ts` | canonical |
 
 ---
@@ -233,7 +240,8 @@ Operational note for `ExtractionContext`: at artifact-driven relaunch hydration 
 | `meta_ads` (ToolWorkflow value) | `meta_ads_generator` | Deprecated legacy alias. Reactivation must use canonical `ToolWorkflow = meta_ads_generator` for `ToolKey = meta-ads` (DDD-094, superseding DDD-030). |
 | `workflow_type` (DB column) | ToolWorkflow | Snake-case DB column name; canonical code term is `ToolWorkflow`. |
 | `artifact_type` (DB column) | ArtifactType | Snake-case DB column name. |
-| `monthly_quota` / `monthly_used` (DB columns) | MonthlyQuota / MonthlyUsed | Mapped to camelCase in TypeScript types. |
+| `monthly_quota` / `monthly_used` (DB columns) | MonthlyQuota / MonthlyCreditsUsed | Mapped to camelCase in TypeScript types. `MonthlyUsed` deprecated in favor of `MonthlyCreditsUsed` (DDD-138). |
+| `MonthlyUsed` | `MonthlyCreditsUsed` | Deprecated term (DDD-138). Contatore crediti mensili consumati. Alias backward-compat mantenuto per transizione. |
 | `requestIdempotency` (DB table) | IdempotencyCoordinator / IdempotencyKey | Table represents the persistence layer for idempotency logic. |
 | `quota_history` (DB table) | QuotaHistory | DB table name; canonical term is `QuotaHistory`. |
 | `ToolExtractionContext` | ExtractionContext | Former name in `frontend-stream.machine.ts`. Deprecated DDD-012; backward-compat alias in `tool-form-architecture.ts`. |

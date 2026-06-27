@@ -35,6 +35,8 @@ export type ProductionAdapterRuntime = {
 
 export interface RedisQuotaRepository {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+  consumeCredits(input: import('./generation.adapters').ConsumeCreditsInput): Promise<void>;
+  recordArtifactSuccess(input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void>;
 }
 
 export interface ProjectOwnershipRepository {

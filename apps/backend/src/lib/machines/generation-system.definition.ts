@@ -56,6 +56,7 @@ export const generationSystemMachine = setup({
     routeType: null,
     mode: 'stream' as const,
     pendingFallback: null,
+    _creditCost: 1,
     adapters: input.adapters,
     runtimeNow: input.runtime?.now ?? (() => new Date()),
     artifactIdFactory: input.runtime?.artifactIdFactory ?? defaultArtifactIdFactory,

@@ -5,7 +5,6 @@ import { appCopy } from '../../../app/copy/system';
 import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { ErrorStateMessage, LoadingStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { UI_CONFIG } from '../../../app/config/ui-config';
@@ -15,7 +14,6 @@ const formatSessionToolName = (toolKey: string | null): string => getToolLabel(t
 export const DashboardPage = () => {
   const auth = useAuthSession();
   const [searchParams] = useSearchParams();
-  const generation = useGenerationWorkspace();
   const projectsQuery = useProjectsQuery({
     apiBaseUrl: auth.apiBaseUrl,
     capabilities: auth.capabilities,
@@ -25,7 +23,6 @@ export const DashboardPage = () => {
     capabilities: auth.capabilities,
   });
 
-  const artifactCount = generation.artifacts.length;
   const projectsCount = projectsQuery.loading ? '—' : projectsQuery.data.length;
   const sessionsCount = sessionsQuery.loading ? '—' : sessionsQuery.data.length;
 
@@ -69,14 +66,6 @@ export const DashboardPage = () => {
           </h3>
           <p className="ui-kpi-label">
             {appCopy.editorial.dashboard.stats[1]}
-          </p>
-        </div>
-        <div className="ui-dashboard-kpi-item">
-          <h3 className="ui-kpi-value">
-            {artifactCount}
-          </h3>
-          <p className="ui-kpi-label">
-            {appCopy.editorial.dashboard.stats[2]}
           </p>
         </div>
       </TopBar>

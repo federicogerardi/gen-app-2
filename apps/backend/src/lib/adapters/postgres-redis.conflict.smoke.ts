@@ -91,10 +91,10 @@ const run = async () => {
     await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
 
     await pg.query(
-      `INSERT INTO users (id, email, monthly_quota, monthly_used)
+      `INSERT INTO users (id, email, monthly_quota, monthly_credits_used)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (id)
-       DO UPDATE SET monthly_quota = EXCLUDED.monthly_quota, monthly_used = EXCLUDED.monthly_used, updated_at = NOW()`,
+       DO UPDATE SET monthly_quota = EXCLUDED.monthly_quota, monthly_credits_used = EXCLUDED.monthly_credits_used, updated_at = NOW()`,
       [concurrentUserId, concurrentEmail, 1, 0],
     );
 
@@ -124,15 +124,13 @@ const run = async () => {
     ]);
 
     const grantedCount = [decisionA, decisionB].filter((entry) => entry.granted).length;
-    const rejectedReasons = [decisionA, decisionB]
-      .filter((entry) => !entry.granted)
-      .map((entry) => entry.reason);
 
-    assert.equal(grantedCount, 1);
-    assert.deepEqual(rejectedReasons, ['quota_exhausted']);
+    // With the credit model, claimUsage only checks availability (no consumption).
+    // Both parallel claims succeed because credits are consumed post-SUCCESS.
+    assert.equal(grantedCount, 2);
 
     console.log('Smoke OK: lock present -> conflict');
-    console.log('Smoke OK: parallel usage claims -> one grant, one quota_exhausted');
+    console.log('Smoke OK: parallel usage claims -> both granted (credit model, no pre-consumption)');
   } finally {
     await cleanup.run();
     await redis.quit();

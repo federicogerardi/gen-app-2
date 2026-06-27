@@ -108,6 +108,38 @@ export const generationSystemPersistenceStates = {
     invoke: {
       src: 'markCompletedIdempotency',
       input: ({ context }: ContextArgs) => ({ context }),
+      onDone: 'routeAfterIdempotency',
+      onError: 'routeAfterIdempotency',
+    },
+  },
+  routeAfterIdempotency: {
+    always: [
+      {
+        guard: ({ context }: ContextArgs) => context.routeType === 'extraction',
+        target: 'completed',
+      },
+      {
+        target: 'recordingUsage',
+      },
+    ],
+  },
+  recordingUsage: {
+    invoke: {
+      id: 'recordArtifactActor',
+      src: 'invokeRecordArtifactSuccess',
+      input: ({ context }: ContextArgs) => ({ context }),
+      onDone: 'consumingCredits',
+      onError: 'consumingCredits',
+    },
+  },
+  consumingCredits: {
+    invoke: {
+      id: 'consumeCreditsActor',
+      src: 'invokeConsumeCredits',
+      input: ({ context }: ContextArgs) => ({
+        context,
+        creditCost: context._creditCost ?? 1,
+      }),
       onDone: 'completed',
       onError: 'completed',
     },

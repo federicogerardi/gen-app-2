@@ -36,6 +36,7 @@ export type GenerationMachineContext = GenerationSystemContext & {
     reason: string | null;
     defaultReason: string;
   } | null;
+  _creditCost: number;
 };
 
 export type IdempotencyDoneOutput =
@@ -44,7 +45,7 @@ export type IdempotencyDoneOutput =
   | { type: 'IDEMPOTENCY_CONFLICT'; reason: string };
 
 export type UsageDoneOutput =
-  | { type: 'USAGE_GRANTED' }
+  | { type: 'USAGE_GRANTED'; creditCost?: number }
   | { type: 'USAGE_REJECTED'; reason: string };
 
 export type OwnershipDoneOutput =

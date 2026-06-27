@@ -10,7 +10,7 @@ Apply all constraints and methodology from prompt_root.md.
 
 ## Objective
 
-Extract canonical Meta Ads context fields from the uploaded briefing sources, with focus on identifying cluster opportunities and angle candidates for the new cluster → angle → awareness system.
+Extract canonical Meta Ads context fields from the uploaded briefing sources.
 
 The extraction job is single-run. Do not split into multiple extraction jobs.
 
@@ -63,15 +63,8 @@ The extraction job is single-run. Do not split into multiple extraction jobs.
 ## Unique Mechanism
 - ...
 
-## Cluster Opportunities
-- Persona-based clusters that could be targeted (e.g., "Functional Dissatisfied", "Anxious Procrastinator", "Quality Seeker")
-- Psychographic segments with distinct pain points and motivations
-- Behavioral patterns that suggest different messaging approaches
-
 ## Angle Candidates
-- Specific communication strategies per cluster
-- Unique positioning approaches based on audience segments
-- Problem-solution narratives aligned with customer journey stages
+- ...
 
 ## Missing
 - ...

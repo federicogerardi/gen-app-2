@@ -185,12 +185,12 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-006 | Sostituire `prompt_extraction.md` con versione cluster-aware | Pending | Backend Team | Sprint 3 |
-| TASK-007 | Sostituire `prompt_context_generation.md` con sistema cluster identification | Pending | Backend Team | Sprint 3 |
-| TASK-008 | Implementare nuovo `prompt_ads_generation.md` con controllo dinamico lunghezza | Pending | Backend Team | Sprint 4 |
-| TASK-009 | Aggiornare extraction parsers per nuova struttura cluster output | Pending | Backend Team | Sprint 4 |
-| TASK-010 | Implementare validation automatica aderenza caratteri per formato | Pending | Backend Team | Sprint 5 |
-| TASK-011 | Aggiungere unit tests per ogni componente prompt system | Pending | Backend Team | Sprint 5 |
+| TASK-006 | Sostituire `prompt_extraction.md` con versione cluster-aware | ✅ Completed | Backend Team | Sprint 3 |
+| TASK-007 | Sostituire `prompt_context_generation.md` con sistema cluster identification | ✅ Completed | Backend Team | Sprint 3 |
+| TASK-008 | Implementare nuovo `prompt_ads_generation.md` con controllo dinamico lunghezza | ✅ Completed | Backend Team | Sprint 4 |
+| TASK-009 | Aggiornare extraction parsers per nuova struttura cluster output | ✅ Completed | Backend Team | Sprint 4 |
+| TASK-010 | Implementare validation automatica aderenza caratteri per formato | ✅ Completed | Backend Team | Sprint 5 |
+| TASK-011 | Aggiungere unit tests per ogni componente prompt system | ✅ Completed | Backend Team | Sprint 5 |
 
 **QA Scenarios per Phase 2:**
 

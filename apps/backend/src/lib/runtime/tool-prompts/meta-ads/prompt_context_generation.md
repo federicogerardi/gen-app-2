@@ -10,7 +10,7 @@ Apply all constraints and methodology from prompt_root.md.
 
 ## Objective
 
-Transform the extracted Meta Ads context into an activation-ready strategy canvas.
+Transform the extracted Meta Ads context into an activation-ready strategy canvas with cluster-based segmentation and angle development for the new format system.
 
 ## Input
 
@@ -32,10 +32,65 @@ Transform the extracted Meta Ads context into an activation-ready strategy canva
 - Campaign objective:
 - Budget context:
 
-## Messaging Pillars
-- Pillar 1:
-- Pillar 2:
-- Pillar 3:
+## Target Clusters Identified
+- Cluster 1: [Name and description]
+  - Key characteristics:
+  - Primary pain points:
+  - Desired outcomes:
+  - Messaging tone:
+
+- Cluster 2: [Name and description]  
+  - Key characteristics:
+  - Primary pain points:
+  - Desired outcomes:
+  - Messaging tone:
+
+- Cluster 3: [Name and description]
+  - Key characteristics:
+  - Primary pain points:
+  - Desired outcomes:
+  - Messaging tone:
+
+## Messaging Angles per Cluster
+### Cluster 1 Angles:
+- Angle A: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware
+  - Key differentiators:
+
+- Angle B: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware  
+  - Key differentiators:
+
+### Cluster 2 Angles:
+- Angle A: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware
+  - Key differentiators:
+
+- Angle B: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware
+  - Key differentiators:
+
+### Cluster 3 Angles:
+- Angle A: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware
+  - Key differentiators:
+
+- Angle B: [Name and positioning]
+  - Core narrative:
+  - Awareness fit: Problem Aware / Solution Aware / Product Aware
+  - Key differentiators:
+
+## Brand Facts Bank
+- Credibility markers:
+- Social proof elements:
+- Authority indicators:
+- Trust signals:
+- Unique value propositions:
 
 ## Objection Handling Matrix
 - Objection:
@@ -47,10 +102,7 @@ Transform the extracted Meta Ads context into an activation-ready strategy canva
 - Mechanism explanation:
 - Risk reversal:
 
-## Creative Angle Queue
-- Angle:
-  Why now:
-  Awareness fit:
-
 ## Compliance Notes
-- ...
+- Regulatory considerations for the industry
+- Claims that require substantiation
+- Avoiding problematic language patterns

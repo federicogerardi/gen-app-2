@@ -23,6 +23,7 @@ export const ExtractionFieldLabelByKey: Readonly<Record<ExtractionFieldKey, stri
   brand_or_company: 'Brand o azienda',
   budget_context: 'Contesto budget',
   campaign_objective: 'Obiettivo campagna',
+  cluster_opportunities: 'Opportunità cluster',
   country: 'Country',
   creative_constraints: 'Vincoli creativi',
   dominant_pain_points: 'Pain point dominanti',

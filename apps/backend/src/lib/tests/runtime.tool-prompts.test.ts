@@ -140,15 +140,17 @@ test('resolveToolPrompt enforces meta-ads ads-generation completeness contract',
   assert.ok(resolved);
   assert.match(resolved.filePath, /meta-ads\/prompt_ads_generation\.md$/);
   assert.match(resolved.prompt, /Italian only \(`it-IT`\)/i);
-  assert.match(resolved.prompt, /exactly 3 variants: A, B, C/i);
-  assert.match(resolved.prompt, /very_short \(40-60 words\)/i);
-  assert.match(resolved.prompt, /short \(60-90 words\)/i);
-  assert.match(resolved.prompt, /medium \(90-120 words\)/i);
-  assert.match(resolved.prompt, /long \(120-200 words\)/i);
-  assert.match(resolved.prompt, /cta_option_1/i);
-  assert.match(resolved.prompt, /cta_option_2/i);
-  assert.match(resolved.prompt, /visual_suggestion/i);
-  assert.match(resolved.prompt, /targeting_suggestion/i);
+  assert.match(resolved.prompt, /CLUSTER 1/i);
+  assert.match(resolved.prompt, /Angolo 1/i);
+  assert.match(resolved.prompt, /Versione Problem Aware/i);
+  assert.match(resolved.prompt, /Versione Solution Aware/i);
+  assert.match(resolved.prompt, /Versione Product Aware/i);
+  assert.match(resolved.prompt, /copy_length_format/i);
+  assert.match(resolved.prompt, /SHORT FORM/i);
+  assert.match(resolved.prompt, /MEDIUM FORM/i);
+  assert.match(resolved.prompt, /LONG FORM/i);
+  assert.match(resolved.prompt, /Headline/i);
+  assert.match(resolved.prompt, /Description/i);
 });
 
 test('buildRequestReceivedEvent resolves youtube extraction prompt from extraction target tool key', () => {

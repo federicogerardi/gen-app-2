@@ -155,6 +155,8 @@ export interface GenerationAdapters {
 type QuotaBucket = {
   limit: number;
   used: number;
+  artifactLimit: number;
+  artifactUsed: number;
 };
 
 type IdempotencyRecord = {
@@ -226,6 +228,14 @@ export const createInMemoryGenerationAdapters = (
   const idempotencyStore = new Map<string, IdempotencyRecord>();
   const artifactStore = new Map<string, ArtifactRecord>();
 
+  const getBucket = (userId: string): QuotaBucket => {
+    const existing = quotaByUser.get(userId);
+    if (existing) return existing;
+    const fresh: QuotaBucket = { limit: quotaLimit, used: 0, artifactLimit: 1000, artifactUsed: 0 };
+    quotaByUser.set(userId, fresh);
+    return fresh;
+  };
+
   const ownership: OwnershipAdapter = {
     async checkProjectOwnership(_input) {
       return { owned: true };
@@ -234,19 +244,26 @@ export const createInMemoryGenerationAdapters = (
 
   const usage: UsageAdapter = {
     async claimUsage(input) {
-      const bucket = quotaByUser.get(input.userId) ?? { limit: quotaLimit, used: 0 };
+      const bucket = getBucket(input.userId);
+      // Check artifact gate (DDD-140)
+      if (bucket.artifactUsed >= bucket.artifactLimit) {
+        return { granted: false, reason: 'quota_exhausted' };
+      }
+      // Check credit availability (DDD-137, DDD-143)
       if (bucket.used >= bucket.limit) {
         return { granted: false, reason: 'quota_exhausted' };
       }
-      bucket.used += 1;
-      quotaByUser.set(input.userId, bucket);
       return { granted: true, ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}) };
     },
-    async consumeCredits(_input) {
-      // In-memory: no-op — credits are tracked via claimUsage bucket for test determinism
+    async consumeCredits(input) {
+      const bucket = getBucket(input.userId);
+      bucket.used += input.creditCost;
+      quotaByUser.set(input.userId, bucket);
     },
-    async recordArtifactSuccess(_input) {
-      // In-memory: no-op
+    async recordArtifactSuccess(input) {
+      const bucket = getBucket(input.userId);
+      bucket.artifactUsed += 1;
+      quotaByUser.set(input.userId, bucket);
     },
   };
 

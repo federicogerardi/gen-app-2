@@ -209,9 +209,9 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-021 | Aggiornare `finalizeSuccess` in `apps/backend/src/lib/adapters/postgres.artifact.repository.ts`: chiamare `recordArtifactSuccess` per ogni artifact, chiamare `consumeCredits` solo se è l'ultimo artifact della sessione. | ☐ | |
-| TASK-022 | Aggiornare `finalizeFailure`: nessun cambiamento ai contatori (i crediti si consumano solo al SUCCESS). | ☐ | |
-| TASK-023 | Aggiornare insert su `quota_history` con nuovi campi `session_id`, `cost_type`, `credit_cost`. | ☐ | |
+| TASK-021 | Aggiornare `finalizeSuccess` in `apps/backend/src/lib/adapters/postgres.artifact.repository.ts`: chiamare `recordArtifactSuccess` per ogni artifact, chiamare `consumeCredits` solo se è l'ultimo artifact della sessione. | ☑ | 2026-06-27 |
+| TASK-022 | Aggiornare `finalizeFailure`: nessun cambiamento ai contatori (i crediti si consumano solo al SUCCESS). | ☑ | 2026-06-27 |
+| TASK-023 | Aggiornare insert su `quota_history` con nuovi campi `session_id`, `cost_type`, `credit_cost`. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 6 — In-Memory + Stub Adapters
 
@@ -219,8 +219,8 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-024 | Aggiornare `createInMemoryGenerationAdapters` in `apps/backend/src/lib/adapters/generation.adapters.ts`: bucket quota per crediti + bucket separato per artifact gate. | ☐ | |
-| TASK-025 | Aggiornare `RedisQuotaRepositoryStub` in `apps/backend/src/lib/adapters/postgres-redis.stub.ts`: supportare nuovi contatori. | ☐ | |
+| TASK-024 | Aggiornare `createInMemoryGenerationAdapters` in `apps/backend/src/lib/adapters/generation.adapters.ts`: bucket quota per crediti + bucket separato per artifact gate. | ☑ | 2026-06-27 |
+| TASK-025 | Aggiornare `RedisQuotaRepositoryStub` in `apps/backend/src/lib/adapters/postgres-redis.stub.ts`: supportare nuovi contatori. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 7 — Admin UI + Auth
 

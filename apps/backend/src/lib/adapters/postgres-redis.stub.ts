@@ -45,6 +45,8 @@ import { resolveClaimUsageDecision } from './postgres-redis.shared';
 type StubQuotaBucket = {
   limit: number;
   used: number;
+  artifactLimit: number;
+  artifactUsed: number;
 };
 
 type StubIdempotencyRecord = {
@@ -100,13 +102,34 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
 
   constructor(private readonly defaultQuotaLimit = 100) {}
 
-  async claimUsage(input: UsageActorInput): Promise<UsageDecision> {
-    const current = this.buckets.get(input.userId) ?? {
+  private getBucket(userId: string): StubQuotaBucket {
+    const existing = this.buckets.get(userId);
+    if (existing) return existing;
+    const fresh: StubQuotaBucket = {
       limit: this.defaultQuotaLimit,
       used: 0,
+      artifactLimit: 1000,
+      artifactUsed: 0,
     };
+    this.buckets.set(userId, fresh);
+    return fresh;
+  }
 
-    if (current.used >= current.limit) {
+  async claimUsage(input: UsageActorInput): Promise<UsageDecision> {
+    const bucket = this.getBucket(input.userId);
+
+    // Check artifact gate (DDD-140)
+    if (bucket.artifactUsed >= bucket.artifactLimit) {
+      return resolveClaimUsageDecision({
+        rateLimitExceeded: false,
+        quotaAvailable: false,
+        hasConflict: false,
+        ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
+      });
+    }
+
+    // Check credit availability (DDD-137, DDD-143)
+    if (bucket.used >= bucket.limit) {
       return resolveClaimUsageDecision({
         rateLimitExceeded: false,
         quotaAvailable: false,
@@ -123,12 +146,16 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
     });
   }
 
-  async consumeCredits(_input: import('./generation.adapters').ConsumeCreditsInput): Promise<void> {
-    // Stub: no-op
+  async consumeCredits(input: import('./generation.adapters').ConsumeCreditsInput): Promise<void> {
+    const bucket = this.getBucket(input.userId);
+    bucket.used += input.creditCost;
+    this.buckets.set(input.userId, bucket);
   }
 
-  async recordArtifactSuccess(_input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void> {
-    // Stub: no-op
+  async recordArtifactSuccess(input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void> {
+    const bucket = this.getBucket(input.userId);
+    bucket.artifactUsed += 1;
+    this.buckets.set(input.userId, bucket);
   }
 }
 

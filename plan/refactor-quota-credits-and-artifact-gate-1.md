@@ -186,11 +186,11 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-012 | Riscrivere `PostgresRedisUsageRepository.claimUsage` in `apps/backend/src/lib/adapters/postgres-redis.usage.repository.ts`: verificare gate artifact + crediti disponibili, NON consumare crediti. Ritornare `{ granted: true, creditCost }` o `{ granted: false, reason: 'quota_exhausted' }`. | ☐ | |
-| TASK-013 | Aggiungere metodo `consumeCredits(input: ConsumeCreditsInput)` a `PostgresRedisUsageRepository`: incrementare `monthly_credits_used` del `creditCost` del tool, scrivere su `quota_history` con `cost_type = 'session_summary'`. | ☐ | |
-| TASK-014 | Aggiungere metodo `recordArtifactSuccess(input: RecordArtifactInput)` a `PostgresRedisUsageRepository`: incrementare `monthly_artifacts_used` di 1, verificare gate, scrivere su `quota_history` con `cost_type = 'artifact'`. | ☐ | |
-| TASK-015 | Aggiornare `resolveClaimUsageDecision` in `postgres-redis.shared.ts` per gestire nuovi flag. | ☐ | |
-| TASK-016 | Aggiornare `hasMonthWindowExpired` per usare mezzanotte UTC precisa del 1° del mese. | ☐ | |
+| TASK-012 | Riscrivere `PostgresRedisUsageRepository.claimUsage` in `apps/backend/src/lib/adapters/postgres-redis.usage.repository.ts`: verificare gate artifact + crediti disponibili, NON consumare crediti. Ritornare `{ granted: true, creditCost }` o `{ granted: false, reason: 'quota_exhausted' }`. | ☑ | 2026-06-27 |
+| TASK-013 | Aggiungere metodo `consumeCredits(input: ConsumeCreditsInput)` a `PostgresRedisUsageRepository`: incrementare `monthly_credits_used` del `creditCost` del tool, scrivere su `quota_history` con `cost_type = 'session_summary'`. | ☑ | 2026-06-27 |
+| TASK-014 | Aggiungere metodo `recordArtifactSuccess(input: RecordArtifactInput)` a `PostgresRedisUsageRepository`: incrementare `monthly_artifacts_used` di 1, verificare gate, scrivere su `quota_history` con `cost_type = 'artifact'`. | ☑ | 2026-06-27 |
+| TASK-015 | Aggiornare `resolveClaimUsageDecision` in `postgres-redis.shared.ts` per gestire nuovi flag. | ☑ | 2026-06-27 |
+| TASK-016 | Aggiornare `hasMonthWindowExpired` per usare mezzanotte UTC precisa del 1° del mese. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 4 — Usage Machine + Generation System
 

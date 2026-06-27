@@ -5,7 +5,7 @@ import type { Pool } from 'pg';
 import type { UsageActorInput } from '../types/xstate';
 
 import { resolveClaimUsageDecision } from './postgres-redis.shared';
-import type { UsageDecision } from './generation.adapters';
+import type { ConsumeCreditsInput, RecordArtifactSuccessInput, UsageDecision } from './generation.adapters';
 import type { RedisQuotaRepository } from './postgres-redis.interfaces';
 import type { UsageRepositoryOptions } from './postgres-redis.shared.types';
 import { createKyselyDb } from './postgres-kysely.dialect';
@@ -144,6 +144,7 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
         rateLimitExceeded: false,
         quotaAvailable: claimResult.quotaAvailable,
         hasConflict: false,
+        ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
         ...(claimResult.resetDate ? { resetDate: claimResult.resetDate } : {}),
       });
     } catch {
@@ -152,5 +153,154 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
         reason: 'usage_failed',
       };
     }
+  }
+
+  async consumeCredits(input: ConsumeCreditsInput): Promise<void> {
+    const now = input.runtime?.now?.() ?? new Date();
+    const normalizedWindowStart = toMonthStartUtc(now);
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxDb = this.getUsersDb(trx);
+
+      // Reset window if expired
+      const lockedUser = await trxDb
+        .selectFrom('users')
+        .select(['monthly_credits_used', 'quota_window_started_at'])
+        .where('id', '=', input.userId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedUser) {
+        return;
+      }
+
+      const quotaWindowStartedAt = lockedUser.quota_window_started_at
+        ? new Date(lockedUser.quota_window_started_at)
+        : null;
+      const shouldResetWindow = hasMonthWindowExpired(quotaWindowStartedAt, now);
+
+      if (shouldResetWindow) {
+        await trxDb
+          .updateTable('users')
+          .set({
+            monthly_credits_used: 0,
+            monthly_artifacts_used: 0,
+            quota_window_started_at: normalizedWindowStart,
+            updated_at: dbNow,
+          })
+          .where('id', '=', input.userId)
+          .execute();
+      }
+
+      // Increment credits used
+      await trxDb
+        .updateTable('users')
+        .set({
+          monthly_credits_used: sql`monthly_credits_used + ${input.creditCost}`,
+          updated_at: dbNow,
+        })
+        .where('id', '=', input.userId)
+        .execute();
+
+      // Write quota history
+      const quotaDb = trxDb;
+      await quotaDb
+        .insertInto('quota_history')
+        .values({
+          user_id: input.userId,
+          project_id: input.projectId ?? null,
+          request_id: input.requestId ?? null,
+          session_id: input.sessionId ?? null,
+          status: 'success',
+          cost_type: 'session_summary',
+          credit_cost: input.creditCost,
+          request_count: 1,
+          cost_usd: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          metadata_json: {
+            workflowType: input.workflowType ?? null,
+            model: input.model ?? null,
+          },
+          created_at: dbNow,
+        })
+        .execute();
+    });
+  }
+
+  async recordArtifactSuccess(input: RecordArtifactSuccessInput): Promise<void> {
+    const now = input.runtime?.now?.() ?? new Date();
+    const normalizedWindowStart = toMonthStartUtc(now);
+
+    await this.db.transaction().execute(async (trx) => {
+      const trxDb = this.getUsersDb(trx);
+
+      // Reset window if expired
+      const lockedUser = await trxDb
+        .selectFrom('users')
+        .select(['monthly_artifacts_used', 'monthly_artifact_limit', 'quota_window_started_at'])
+        .where('id', '=', input.userId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!lockedUser) {
+        return;
+      }
+
+      const quotaWindowStartedAt = lockedUser.quota_window_started_at
+        ? new Date(lockedUser.quota_window_started_at)
+        : null;
+      const shouldResetWindow = hasMonthWindowExpired(quotaWindowStartedAt, now);
+
+      if (shouldResetWindow) {
+        await trxDb
+          .updateTable('users')
+          .set({
+            monthly_credits_used: 0,
+            monthly_artifacts_used: 0,
+            quota_window_started_at: normalizedWindowStart,
+            updated_at: dbNow,
+          })
+          .where('id', '=', input.userId)
+          .execute();
+      }
+
+      // Check artifact gate before incrementing
+      const currentUsed = shouldResetWindow ? 0 : lockedUser.monthly_artifacts_used;
+      if (currentUsed >= lockedUser.monthly_artifact_limit) {
+        throw new Error('artifact_gate_exceeded');
+      }
+
+      // Increment artifacts used
+      await trxDb
+        .updateTable('users')
+        .set({
+          monthly_artifacts_used: sql`monthly_artifacts_used + 1`,
+          updated_at: dbNow,
+        })
+        .where('id', '=', input.userId)
+        .execute();
+
+      // Write quota history
+      await trxDb
+        .insertInto('quota_history')
+        .values({
+          user_id: input.userId,
+          project_id: input.projectId ?? null,
+          request_id: input.requestId ?? null,
+          artifact_id: input.artifactId ?? null,
+          session_id: input.sessionId ?? null,
+          status: 'success',
+          cost_type: 'artifact',
+          credit_cost: 0,
+          request_count: 1,
+          cost_usd: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          metadata_json: {},
+          created_at: dbNow,
+        })
+        .execute();
+    });
   }
 }

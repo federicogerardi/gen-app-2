@@ -114,6 +114,7 @@ export type UsageActorInput = RequestRegistrySelector & {
   userId: string;
   artifactType: RegistryBackedArtifactType;
   workflowType: RegistryBackedWorkflowType;
+  creditCost?: number;
   runtime?: {
     now?: () => Date;
   };

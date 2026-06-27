@@ -111,16 +111,24 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
         rateLimitExceeded: false,
         quotaAvailable: false,
         hasConflict: false,
+        ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
       });
     }
 
-    current.used += 1;
-    this.buckets.set(input.userId, current);
     return resolveClaimUsageDecision({
       rateLimitExceeded: false,
       quotaAvailable: true,
       hasConflict: false,
+      ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
     });
+  }
+
+  async consumeCredits(_input: import('./generation.adapters').ConsumeCreditsInput): Promise<void> {
+    // Stub: no-op
+  }
+
+  async recordArtifactSuccess(_input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void> {
+    // Stub: no-op
   }
 }
 

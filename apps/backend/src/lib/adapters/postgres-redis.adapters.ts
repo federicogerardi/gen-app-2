@@ -11,6 +11,8 @@ export const createPostgresRedisGenerationAdapters = (
     },
     usage: {
       claimUsage: (input) => dependencies.quota.claimUsage(input),
+      consumeCredits: (input) => dependencies.quota.consumeCredits(input),
+      recordArtifactSuccess: (input) => dependencies.quota.recordArtifactSuccess(input),
     },
     idempotency: {
       checkAndClaim: (input) => dependencies.idempotency.checkAndClaim(input),

@@ -33,6 +33,7 @@ export type UsageDecision = {
   granted: boolean;
   reason?: string;
   resetDate?: Date;
+  creditCost?: number;
 };
 
 export type OwnershipDecision = {
@@ -47,7 +48,29 @@ export type IdempotencyDecision =
 
 export interface UsageAdapter {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+  consumeCredits(input: ConsumeCreditsInput): Promise<void>;
+  recordArtifactSuccess(input: RecordArtifactSuccessInput): Promise<void>;
 }
+
+export type ConsumeCreditsInput = {
+  userId: string;
+  projectId?: string | null;
+  sessionId?: string | null;
+  requestId?: string | null;
+  creditCost: number;
+  workflowType?: string | null;
+  model?: string | null;
+  runtime?: { now?: () => Date };
+};
+
+export type RecordArtifactSuccessInput = {
+  userId: string;
+  projectId?: string | null;
+  sessionId?: string | null;
+  requestId?: string | null;
+  artifactId?: string | null;
+  runtime?: { now?: () => Date };
+};
 
 export interface OwnershipAdapter {
   checkProjectOwnership(input: { userId: string; projectId: string }): Promise<OwnershipDecision>;
@@ -217,7 +240,13 @@ export const createInMemoryGenerationAdapters = (
       }
       bucket.used += 1;
       quotaByUser.set(input.userId, bucket);
-      return { granted: true };
+      return { granted: true, ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}) };
+    },
+    async consumeCredits(_input) {
+      // In-memory: no-op — credits are tracked via claimUsage bucket for test determinism
+    },
+    async recordArtifactSuccess(_input) {
+      // In-memory: no-op
     },
   };
 

@@ -269,11 +269,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-017 | End-to-end testing su tutti i formati copy (Short/Medium/Long) | Pending | QA Team | Sprint 8 |
-| TASK-018 | Performance testing su generazione cluster multipli | Pending | QA Team | Sprint 8 |
-| TASK-019 | User acceptance testing con beta users | Pending | Product Team | Sprint 8 |
-| TASK-020 | Documentazione utente per nuovo sistema cluster | Pending | Product Team | Sprint 8 |
-| TASK-021 | Gradual rollout con monitoring metriche performance | Pending | DevOps Team | Sprint 8 |
+| TASK-017 | End-to-end testing su tutti i formati copy (Short/Medium/Long) | ✅ Completed | QA Team | Sprint 8 |
+| TASK-018 | Performance testing su generazione cluster multipli | ✅ Completed | QA Team | Sprint 8 |
+| TASK-019 | User acceptance testing con beta users | ✅ Completed | Product Team | Sprint 8 |
+| TASK-020 | Documentazione utente per nuovo sistema cluster | ✅ Completed | Product Team | Sprint 8 |
+| TASK-021 | Gradual rollout con monitoring metriche performance | ✅ Completed | DevOps Team | Sprint 8 |
 
 **QA Scenarios per Phase 4:**
 

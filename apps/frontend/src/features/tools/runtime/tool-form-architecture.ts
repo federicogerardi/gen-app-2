@@ -87,6 +87,7 @@ export type ToolFormState = {
   model: string;
   tone: string;
   campaignObjective: string;
+  copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
   topic: string;
   baseQuery: string;

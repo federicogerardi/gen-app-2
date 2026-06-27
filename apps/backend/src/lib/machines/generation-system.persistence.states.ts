@@ -108,9 +108,20 @@ export const generationSystemPersistenceStates = {
     invoke: {
       src: 'markCompletedIdempotency',
       input: ({ context }: ContextArgs) => ({ context }),
-      onDone: 'recordingUsage',
-      onError: 'recordingUsage',
+      onDone: 'routeAfterIdempotency',
+      onError: 'routeAfterIdempotency',
     },
+  },
+  routeAfterIdempotency: {
+    always: [
+      {
+        guard: ({ context }: ContextArgs) => context.routeType === 'extraction',
+        target: 'completed',
+      },
+      {
+        target: 'recordingUsage',
+      },
+    ],
   },
   recordingUsage: {
     invoke: {

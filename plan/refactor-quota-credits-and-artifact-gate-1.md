@@ -1,8 +1,8 @@
 ---
 goal: Refactoring sistema quota da request-count a crediti per Session Summary + gate invisibile per Artifact
-version: 1.0
+version: 1.1
 date_created: 2026-06-26
-last_updated: 2026-06-27
+last_updated: 2026-06-28
 owner: Domain Architecture + Backend Runtime
 status: completed
 tags: [feature, architecture, ddd, backend, frontend, usage-quota, refactoring]
@@ -333,6 +333,20 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 4. **Phase 6** (Test adapters) — test infrastructure
 5. **Phase 7** (Admin UI) → **Phase 8** (Frontend display) — user-facing
 6. **Phase 9** (Validation) — quality gate finale
+
+## 11. Post-Implementation Exceptions
+
+### BUG-001: Extraction flow hang dopo Phase 4 — `recordingUsage`/`consumingCredits` invocati per tutti i SUCCESS
+
+**Problema**: Dopo l'implementazione di Phase 4, i nuovi stati `recordingUsage` e `consumingCredits` nel flusso di persistenza (`generation-system.persistence.states.ts`) venivano invocati per TUTTI i percorsi SUCCESS, inclusa extraction (`routeType === 'extraction'`). Extraction non è una Session Summary e non dovrebbe consumare crediti né registrare artifact success. Il flusso si bloccava silenziosamente dopo `[gen][session-start]` senza mai raggiungere `[gen][session-terminal]`, lasciando il frontend in stato `primaryActionPolicy: "disabled"`.
+
+**Causa root**: `finalizeIdempotencySuccess` → `recordingUsage` → `consumingCredits` → `completed` era un percorso lineare senza guardie. Per extraction, `consumeCredits` tentava di incrementare crediti con `workflowType = 'extraction'` (non un tool), e la risoluzione del `creditCost` falliva silenziosamente.
+
+**Fix**: Aggiunto stato intermedio `routeAfterIdempotency` con guardia su `context.routeType === 'extraction'`. Se extraction, salta direttamente a `completed` bypassando `recordingUsage` e `consumingCredits`. File modificato: `apps/backend/src/lib/machines/generation-system.persistence.states.ts`.
+
+**Lezione**: I nuovi stati di consumo crediti devono essere scope-specific — solo i flussi tool/session-summary devono passare per `recordingUsage`/`consumingCredits`. I flussi non-tool (extraction, generic) bypassano il consumo.
+
+---
 
 ## 10. Related Specifications / Further Reading
 

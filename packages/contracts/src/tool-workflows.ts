@@ -49,6 +49,8 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'context-generation', dependencies: [] },
       { key: 'ads-generation', dependencies: ['context-generation'] },
     ],
+    copyLengthOptions: ['short-form', 'medium-form', 'long-form'] as const,
+    defaultCopyLength: 'medium-form' as const,
   },
   'youtube-description': {
     toolKey: 'youtube-description',
@@ -80,11 +82,15 @@ export type ToolWorkflowStepDefinition = {
   key: ToolStep;
   dependencies: ToolStep[];
 };
+export type CopyLengthFormat = 'short-form' | 'medium-form' | 'long-form';
+
 export type ToolWorkflowDefinition = {
   toolKey: ToolKey;
   workflowType: ToolWorkflowType;
   creditCost: number;
   steps: ToolWorkflowStepDefinition[];
+  copyLengthOptions?: readonly CopyLengthFormat[];
+  defaultCopyLength?: CopyLengthFormat;
 };
 export type ToolWorkflowStepOrder = { [K in ToolKey]: ToolStep[] };
 export type ToolWorkflowStepDependencyMap = {
@@ -115,18 +121,28 @@ export const TOOL_WORKFLOW_BY_TOOL_KEY: Record<ToolKey, ToolWorkflowDefinition> 
   Object.fromEntries(
     TOOL_KEYS.map((toolKey) => {
       const definition = TOOL_WORKFLOW_DEFINITIONS[toolKey];
-      return [
+      const base = {
         toolKey,
-        {
+        workflowType: definition.workflowType,
+        creditCost: definition.creditCost,
+        steps: definition.steps.map((step) => ({
+          key: step.key,
+          dependencies: [...step.dependencies],
+        })),
+      };
+
+      if ('copyLengthOptions' in definition && 'defaultCopyLength' in definition) {
+        return [
           toolKey,
-          workflowType: definition.workflowType,
-          creditCost: definition.creditCost,
-          steps: definition.steps.map((step) => ({
-            key: step.key,
-            dependencies: [...step.dependencies],
-          })),
-        } satisfies ToolWorkflowDefinition,
-      ];
+          {
+            ...base,
+            copyLengthOptions: definition.copyLengthOptions,
+            defaultCopyLength: definition.defaultCopyLength,
+          } satisfies ToolWorkflowDefinition,
+        ];
+      }
+
+      return [toolKey, base satisfies ToolWorkflowDefinition];
     }),
   ) as Record<ToolKey, ToolWorkflowDefinition>;
 

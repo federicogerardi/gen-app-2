@@ -1,12 +1,12 @@
 ---
 goal: Implementazione evoluzione formato output tool meta-ads da sistema 4 varianti per lunghezza a sistema cluster → angolo → awareness con controllo utente lunghezza copy
-version: 1.0
+version: 1.1
 date_created: 2026-06-28
 last_updated: 2026-06-28
 last-reviewed: 2026-06-28
 next-review-date: 2026-07-28
 owner: Product Team + Backend Runtime + Frontend Platform
-status: draft
+status: in-progress
 tags: [plan, meta-ads-evolution, cluster-system, copy-length-control, tool-workspace, backend, frontend, ddd, validation]
 ---
 
@@ -146,11 +146,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-001 | Estendere `TOOL_WORKFLOW_DEFINITIONS['meta-ads']` in `packages/contracts/src/tool-workflows.ts` con nuovo campo `copyLengthFormat` nel workflow configuration | Pending | Backend Team | Sprint 1 |
-| TASK-002 | Creare directory `apps/frontend/src/features/tools/meta-ads/ui/` e implementare `CopyLengthSelector.tsx` component con 3 opzioni radio (Short/Medium/Long Form) | Pending | Frontend Team | Sprint 1 |
-| TASK-003 | Aggiungere validation schema per `copyLengthFormat: 'short-form' | 'medium-form' | 'long-form'` in `apps/backend/src/lib/runtime/request-contract.ts` | Pending | Backend Team | Sprint 1 |
-| TASK-004 | Implementare feature flag `USE_CLUSTER_SYSTEM` in backend env config con default `false` e frontend `VITE_FF_USE_CLUSTER_SYSTEM` | Pending | DevOps Team | Sprint 1 |
-| TASK-005 | Setup A/B testing infrastructure con tracking metriche CTR/CPC per formato copy attraverso analytics dashboard | Pending | QA Team | Sprint 2 |
+| TASK-001 | Estendere `TOOL_WORKFLOW_DEFINITIONS['meta-ads']` in `packages/contracts/src/tool-workflows.ts` con nuovo campo `copyLengthFormat` nel workflow configuration | ✅ Completed | Backend Team | Sprint 1 |
+| TASK-002 | Creare directory `apps/frontend/src/features/tools/meta-ads/ui/` e implementare `CopyLengthSelector.tsx` component con 3 opzioni radio (Short/Medium/Long Form) | ✅ Completed | Frontend Team | Sprint 1 |
+| TASK-003 | Aggiungere validation schema per `copyLengthFormat: 'short-form' | 'medium-form' | 'long-form'` in `apps/backend/src/lib/runtime/request-contract.ts` | ✅ Completed | Backend Team | Sprint 1 |
+| TASK-004 | Implementare feature flag `USE_CLUSTER_SYSTEM` in backend env config con default `false` e frontend `VITE_FF_USE_CLUSTER_SYSTEM` | ✅ Completed | DevOps Team | Sprint 1 |
+| TASK-005 | Setup A/B testing infrastructure con tracking metriche CTR/CPC per formato copy attraverso analytics dashboard | ✅ Completed | QA Team | Sprint 2 |
 
 **QA Scenarios per Phase 1:**
 

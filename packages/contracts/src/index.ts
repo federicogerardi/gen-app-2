@@ -53,6 +53,7 @@ export {
   TOOL_WORKFLOW_DEFINITIONS,
 } from './tool-workflows';
 export type {
+  CopyLengthFormat,
   GenerationRequestToolKey,
   GenerationRouteToolKey,
   GenerationWorkflowType,
@@ -88,6 +89,7 @@ export type {
 } from './api-service';
 
 import type {
+  CopyLengthFormat,
   GenerationRequestToolKey,
   GenerationRouteToolKey,
   GenerationWorkflowType,
@@ -158,6 +160,7 @@ export type GenerationRequestInput = {
   relaunchFromArtifactId?: string | null;
   normalizedText?: string;
   parsedFormat?: 'txt' | 'md' | 'docx';
+  copyLengthFormat?: CopyLengthFormat;
 
   // Canonical extraction envelope persisted by backend adapters.
   extraction?: {

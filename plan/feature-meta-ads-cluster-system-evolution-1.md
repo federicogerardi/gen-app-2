@@ -230,11 +230,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |  
 |------|-------------|--------|----------|----------|
-| TASK-012 | Implementare navigazione cluster → angolo in `SessionArtifactTabs` | Pending | Frontend Team | Sprint 6 |
-| TASK-013 | Aggiungere indicatori lunghezza copy nei titoli output | Pending | Frontend Team | Sprint 6 |
-| TASK-014 | Implementare export selettivo per cluster/angolo/awareness | Pending | Frontend Team | Sprint 7 |
-| TASK-015 | Aggiornare session summary per supporto nuovo formato | Pending | Frontend Team | Sprint 7 |
-| TASK-016 | Implementare backward compatibility UI con feature flag | Pending | Frontend Team | Sprint 7 |
+| TASK-012 | Implementare navigazione cluster → angolo in `SessionArtifactTabs` | ✅ Completed | Frontend Team | Sprint 6 |
+| TASK-013 | Aggiungere indicatori lunghezza copy nei titoli output | ✅ Completed | Frontend Team | Sprint 6 |
+| TASK-014 | Implementare export selettivo per cluster/angolo/awareness | ✅ Completed | Frontend Team | Sprint 7 |
+| TASK-015 | Aggiornare session summary per supporto nuovo formato | ✅ Completed | Frontend Team | Sprint 7 |
+| TASK-016 | Implementare backward compatibility UI con feature flag | ✅ Completed | Frontend Team | Sprint 7 |
 
 **QA Scenarios per Phase 3:**
 

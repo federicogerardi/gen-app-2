@@ -794,8 +794,8 @@ export const appCopy = {
       },
       stats: [
         'Strategie protette',
-        'Generazioni eseguite',
-        'Risultati prodotti',
+        'Sessioni completate',
+        'Crediti disponibili',
       ],
       cards: {
         projects: {

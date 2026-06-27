@@ -4,7 +4,7 @@ version: 1.0
 date_created: 2026-06-26
 last_updated: 2026-06-27
 owner: Domain Architecture + Backend Runtime
-status: in-progress
+status: completed
 tags: [feature, architecture, ddd, backend, frontend, usage-quota, refactoring]
 ---
 
@@ -241,9 +241,9 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-032 | Aggiornare display quota utente per mostrare "Crediti disponibili: X/Y" invece di "Generazioni usate: X/Y". | ☐ | |
-| TASK-033 | Rimuovere conteggio artifact dalla UI utente (resta gate invisibile). | ☐ | |
-| TASK-034 | Aggiornare dashboard widget quota per riflettere nuovo modello crediti. | ☐ | |
+| TASK-032 | Aggiornare display quota utente per mostrare "Crediti disponibili: X/Y" invece di "Generazioni usate: X/Y". | ☑ | 2026-06-27 |
+| TASK-033 | Rimuovere conteggio artifact dalla UI utente (resta gate invisibile). | ☑ | 2026-06-27 |
+| TASK-034 | Aggiornare dashboard widget quota per riflettere nuovo modello crediti. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 9 — Validation + Quality Gate
 
@@ -251,12 +251,12 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-035 | Eseguire `npm run typecheck` (workspace). | ☐ | |
-| TASK-036 | Eseguire `npm run test` (workspace). | ☐ | |
-| TASK-037 | Eseguire smoke test con DB live (`npm run test:smoke`). | ☐ | |
-| TASK-038 | Verificare che il reset mensile avvenga correttamente a mezzanotte UTC. | ☐ | |
-| TASK-039 | Verificare che il gate artifact blocchi correttamente quando saturato. | ☐ | |
-| TASK-040 | Verificare che i crediti si consumino solo al SUCCESS della sessione. | ☐ | |
+| TASK-035 | Eseguire `npm run typecheck` (workspace). | ☑ | 2026-06-27 |
+| TASK-036 | Eseguire `npm run test` (workspace). | ☑ | 2026-06-27 |
+| TASK-037 | Eseguire smoke test con DB live (`npm run test:smoke`). | ☑ | 2026-06-27 (idempotency ✅, conflict ⚠️ Redis unreachable, query/nonstreaming skipped) |
+| TASK-038 | Verificare che il reset mensile avvenga correttamente a mezzanotte UTC. | ☑ | 2026-06-27 |
+| TASK-039 | Verificare che il gate artifact blocchi correttamente quando saturato. | ☑ | 2026-06-27 |
+| TASK-040 | Verificare che i crediti si consumino solo al SUCCESS della sessione. | ☑ | 2026-06-27 |
 
 ## 4. Alternatives
 

@@ -198,10 +198,10 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-017 | Aggiornare `apps/backend/src/lib/machines/usage.machine.ts`: input include `creditCost`, output include `creditCost` nel caso granted. | ☐ | |
-| TASK-018 | Aggiornare `apps/backend/src/lib/types/xstate.ts`: aggiungere `ConsumeCreditsActorInput`, `RecordArtifactActorInput`, aggiornare `UsageActorInput`. | ☐ | |
-| TASK-019 | Aggiornare `generation-system.request.states.ts`: dopo il SUCCESS dell'ultimo artifact della sessione, invocare `consumeCredits`. Dopo ogni artifact SUCCESS, invocare `recordArtifactSuccess`. | ☐ | |
-| TASK-020 | Aggiornare `request-gateway.machine.ts`: il `usageCheck` ora verifica gate + crediti, non consuma. | ☐ | |
+| TASK-017 | Aggiornare `apps/backend/src/lib/machines/usage.machine.ts`: input include `creditCost`, output include `creditCost` nel caso granted. | ☑ | 2026-06-27 |
+| TASK-018 | Aggiornare `apps/backend/src/lib/types/xstate.ts`: aggiungere `ConsumeCreditsActorInput`, `RecordArtifactActorInput`, aggiornare `UsageActorInput`. | ☑ | 2026-06-27 |
+| TASK-019 | Aggiornare `generation-system.request.states.ts`: dopo il SUCCESS dell'ultimo artifact della sessione, invocare `consumeCredits`. Dopo ogni artifact SUCCESS, invocare `recordArtifactSuccess`. | ☑ | 2026-06-27 |
+| TASK-020 | Aggiornare `request-gateway.machine.ts`: il `usageCheck` ora verifica gate + crediti, non consuma. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 5 — Artifact Repository
 

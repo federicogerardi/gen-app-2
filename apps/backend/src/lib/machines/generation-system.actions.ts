@@ -38,6 +38,7 @@ type GenerationSystemActionObject =
   | { type: 'setUsageFailedFailure'; params: undefined }
   | { type: 'setOwnershipFailedFailure'; params: undefined }
   | { type: 'setStreamFailureFailure'; params: undefined }
+  | { type: 'cacheCreditCost'; params: { creditCost: number } }
   | { type: 'setGenerateFailureFailure'; params: undefined }
   | { type: 'setPersistenceFinalizeFailedFailure'; params: undefined }
   | { type: 'cacheReplayPayload'; params: CacheReplayPayloadParams }
@@ -194,6 +195,9 @@ export const generationSystemActions = {
   }),
   setStreamFailureFailure: assignGeneration<undefined>({
     failureReason: 'stream_failure',
+  }),
+  cacheCreditCost: assignGeneration<{ creditCost: number }>({
+    _creditCost: (_: GenerationActionArgs, params: { creditCost: number }) => params.creditCost,
   }),
   setGenerateFailureFailure: assignGeneration<undefined>({
     failureReason: 'generate_failure',

@@ -225,7 +225,9 @@ export interface ValidationFailEvent {
 export type UsageGrantedEvent = GenerationActorEventEnvelope<
   'USAGE_GRANTED',
   'usageMachine'
->;
+> & {
+  creditCost?: number;
+};
 
 export type UsageRejectedEvent = GenerationActorEventEnvelope<
   'USAGE_REJECTED',

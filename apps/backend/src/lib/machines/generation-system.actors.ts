@@ -179,6 +179,38 @@ export const generationSystemActors = {
       ...getRegistrySelector(context),
     });
   }),
+  invokeConsumeCredits: fromPromise(async ({ input }: { input: { context: GenerationMachineContext; creditCost: number } }) => {
+    const { context, creditCost } = input;
+    if (!context.userId) {
+      return;
+    }
+
+    await context.adapters.usage.consumeCredits({
+      userId: context.userId,
+      ...(context.projectId !== null ? { projectId: context.projectId } : {}),
+      ...(context.sessionId !== null ? { sessionId: context.sessionId } : {}),
+      requestId: context.requestId,
+      creditCost,
+      ...(context.workflowType !== null ? { workflowType: context.workflowType } : {}),
+      model: context.model,
+      runtime: { now: context.runtimeNow },
+    });
+  }),
+  invokeRecordArtifactSuccess: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
+    const { context } = input;
+    if (!context.userId) {
+      return;
+    }
+
+    await context.adapters.usage.recordArtifactSuccess({
+      userId: context.userId,
+      ...(context.projectId !== null ? { projectId: context.projectId } : {}),
+      ...(context.sessionId !== null ? { sessionId: context.sessionId } : {}),
+      requestId: context.requestId,
+      ...(context.artifactId !== null ? { artifactId: context.artifactId } : {}),
+      runtime: { now: context.runtimeNow },
+    });
+  }),
   invokeCrawling: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
     const { context } = input;
     const requestInput = context.requestInput as Record<string, unknown>;
@@ -424,5 +456,7 @@ export type GenerationSystemProvidedActor =
   | { src: 'invokeFallbackPolicy'; logic: typeof generationSystemActors.invokeFallbackPolicy; id: string | undefined }
   | { src: 'markCompletedIdempotency'; logic: typeof generationSystemActors.markCompletedIdempotency; id: string | undefined }
   | { src: 'markFailedIdempotency'; logic: typeof generationSystemActors.markFailedIdempotency; id: string | undefined }
+  | { src: 'invokeConsumeCredits'; logic: typeof generationSystemActors.invokeConsumeCredits; id: string | undefined }
+  | { src: 'invokeRecordArtifactSuccess'; logic: typeof generationSystemActors.invokeRecordArtifactSuccess; id: string | undefined }
   | { src: 'invokeGeneration'; logic: typeof generationSystemActors.invokeGeneration; id: string | undefined }
   | { src: 'invokeSimplePersistence'; logic: typeof generationSystemActors.invokeSimplePersistence; id: string | undefined };

@@ -14,7 +14,9 @@ export type AdminUser = {
   role: AuthUserRole;
   status: AuthUserStatus;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 export type CreateAdminUserInput = {
@@ -23,7 +25,9 @@ export type CreateAdminUserInput = {
   status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 export type ApiServiceAccessMode = 'public' | 'token';
@@ -321,7 +325,9 @@ export type UpdateAdminUserInput = {
   status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 type AdminClientOptions = {

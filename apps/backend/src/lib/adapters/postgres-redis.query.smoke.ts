@@ -55,7 +55,7 @@ const run = async () => {
 
   try {
     await pg.query(
-      `INSERT INTO users (id, email, monthly_quota, monthly_used)
+      `INSERT INTO users (id, email, monthly_quota, monthly_credits_used)
        VALUES ($1, $2, 100, 0)
        ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW()`,
       [otherUserId, `${otherUserId}@example.local`],

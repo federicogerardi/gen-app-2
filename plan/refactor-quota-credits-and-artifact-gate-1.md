@@ -2,9 +2,9 @@
 goal: Refactoring sistema quota da request-count a crediti per Session Summary + gate invisibile per Artifact
 version: 1.0
 date_created: 2026-06-26
-last_updated: 2026-06-26
+last_updated: 2026-06-27
 owner: Domain Architecture + Backend Runtime
-status: draft
+status: in-progress
 tags: [feature, architecture, ddd, backend, frontend, usage-quota, refactoring]
 ---
 
@@ -96,62 +96,55 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 ## 2. Decision Log Entries (da registrare prima dell'implementazione)
 
-### DDD-132: CreditQuota — Ridefinizione di MonthlyQuota come credito
+### DDD-137: CreditQuota — Ridefinizione di MonthlyQuota come credito
 
 **Termine**: `CreditQuota` (alias canonico per `MonthlyQuota` ridefinito)
 **Decisione**: `MonthlyQuota` viene ridefinito come "massimo numero di crediti mensili disponibili per un utente" invece di "massimo numero di richieste mensili". Il valore numerico rimane sulla colonna `monthly_quota` della tabella `users`. L'alias `CreditQuota` è il termine canonico per comunicazione e documentazione; `MonthlyQuota` rimane come backward-compat alias.
 **Rationale**: Il sistema passa da quota basata su request-count a quota basata su crediti. Il campo DB non cambia nome per evitare migration distruttiva, ma la semantica cambia. L'alias `CreditQuota` rende esplicito il nuovo significato.
 **Scope**: Usage/Quota, Generation, Frontend/UI
-**Status**: pending
-
-### DDD-133: MonthlyCreditsUsed — Sostituzione di MonthlyUsed
+**Status**: registered
+### DDD-138: MonthlyCreditsUsed — Sostituzione di MonthlyUsed
 
 **Termine**: `MonthlyCreditsUsed`
 **Decisione**: `MonthlyUsed` viene deprecato e sostituito da `MonthlyCreditsUsed`. La colonna DB `monthly_used` viene rinominata a `monthly_credits_used`. Un alias backward-compat `MonthlyUsed = MonthlyCreditsUsed` viene mantenuto per una transizione.
 **Rationale**: Il contatore ora traccia crediti consumati, non richieste effettuate. Il rename esplicita la nuova semantica e previene confusione con il nuovo contatore artifact.
 **Scope**: Usage/Quota, Generation
-**Status**: pending
-
-### DDD-134: CreditCost — Costo in crediti per Session Summary
+**Status**: registered
+### DDD-139: CreditCost — Costo in crediti per Session Summary
 
 **Termine**: `CreditCost`
 **Decisione**: `CreditCost` è il Value Object che rappresenta il costo in crediti di una Session Summary per un dato tool. Il valore default è 1. Il costo è configurabile per tool in `packages/contracts/src/tool-workflows.ts` come campo `creditCost` su `ToolWorkflowDefinition`. Per ora hardcoded in contracts; configurazione runtime da admin è fuori scope per questo piano.
 **Rationale**: Tool diversi possono avere costi diversi in base alla complessità. Centralizzare il costo in contracts garantisce coerenza FE/BE senza duplicazione.
 **Scope**: Usage/Quota, Generation, Frontend/UI
-**Status**: pending
-
-### DDD-135: ArtifactGateLimit / ArtifactGateUsed — Gate invisibile per artifact
+**Status**: registered
+### DDD-140: ArtifactGateLimit / ArtifactGateUsed — Gate invisibile per artifact
 
 **Termine**: `ArtifactGateLimit`, `ArtifactGateUsed`
 **Decisione**: Due nuovi Value Object nel contesto Usage/Quota. `ArtifactGateLimit` è il massimo numero di artifact generabili per mese (default 1000). `ArtifactGateUsed` è il contatore di artifact generati con SUCCESS nel mese corrente. Entrambi sono colonne sulla tabella `users` (`monthly_artifact_limit`, `monthly_artifacts_used`). Il gate è invisibile all'utente: le API non espongono questi valori nei response utente. Se il gate blocca una generazione, l'error contract mappa il motivo a `quota_exhausted` (l'utente vede "crediti esauriti").
 **Rationale**: Serve un limite di sicurezza per prevenire abusi o bug che generano artifact in loop. Essendo invisibile, l'utente non deve preoccuparsi di due contatori separati.
 **Scope**: Usage/Quota, Generation
-**Status**: pending
-
-### DDD-136: ConsumeCredits — Nuovo comando per consumo crediti post-SUCCESS
+**Status**: registered
+### DDD-141: ConsumeCredits — Nuovo comando per consumo crediti post-SUCCESS
 
 **Termine**: `ConsumeCredits`
 **Decisione**: `ConsumeCredits` è il nuovo Command che scala i crediti dell'utente al SUCCESS di una Session Summary. Viene invocato dopo che l'ultimo artifact della sessione è stato finalizzato con successo. Il comando incrementa `MonthlyCreditsUsed` del `CreditCost` del tool e scrive una riga su `quota_history` con `cost_type = 'session_summary'`. A differenza di `ClaimUsage`, questo comando avviene **dopo** la generazione, non prima.
 **Rationale**: I desiderata richiedono che i crediti si consumino "dopo aver completato sessionsummary". Questo separa la verifica di disponibilità (pre-generation) dal consumo effettivo (post-generation).
 **Scope**: Usage/Quota, Generation
-**Status**: pending
-
-### DDD-137: RecordArtifactSuccess — Nuovo comando per gate invisibile
+**Status**: registered
+### DDD-142: RecordArtifactSuccess — Nuovo comando per gate invisibile
 
 **Termine**: `RecordArtifactSuccess`
 **Decisione**: `RecordArtifactSuccess` è il Command che incrementa `ArtifactGateUsed` di 1 al SUCCESS di ogni artifact. Viene invocato dopo la finalizzazione di ogni artifact con successo. Scrive una riga su `quota_history` con `cost_type = 'artifact'`. Se il gate è superato, il comando fallisce e l'artifact non viene finalizzato.
 **Rationale**: Il gate artifact deve essere incrementato per ogni artifact creato, non per sessione. Questo permette di bloccare generazioni anche se i crediti sono disponibili ma il gate è saturato.
 **Scope**: Usage/Quota, Generation
-**Status**: pending
-
-### DDD-138: ClaimUsage revision — Estensione semantica
+**Status**: registered
+### DDD-143: ClaimUsage revision — Estensione semantica
 
 **Termine**: `ClaimUsage` (revisione di DDD-005)
 **Decisione**: `ClaimUsage` viene esteso per verificare due condizioni invece di una: (1) `ArtifactGateUsed < ArtifactGateLimit` (gate invisibile), (2) `MonthlyCreditsUsed + CreditCost <= MonthlyQuota` (crediti disponibili). **Non consuma più crediti** — il consumo avviene tramite `ConsumeCredits` post-SUCCESS. Se entrambe le condizioni sono soddisfatte, ritorna `{ granted: true, creditCost }`. Se una delle due fallisce, ritorna `{ granted: false, reason: 'quota_exhausted' }`.
 **Rationale**: Separare verifica da consumo permette di non penalizzare l'utente se la generazione fallisce per motivi tecnici (timeout, errore LLM). Il credit viene consumato solo se la generazione ha successo.
 **Scope**: Usage/Quota, Generation
-**Status**: pending
-
+**Status**: registered
 ## 3. Implementation Steps
 
 ### Implementation Phase 0 — DDD Alignment
@@ -160,10 +153,10 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-000 | Registrare DDD-132–DDD-138 nel `docs/07-governance/domain-naming-decision-log.md`. | ☐ | |
-| TASK-001 | Aggiornare `docs/01-requirements/domain-ubiquitous-language-glossary.md`: ridefinire `MonthlyQuota`, deprecare `MonthlyUsed`, aggiungere nuovi termini Usage/Quota. | ☐ | |
-| TASK-002 | Aggiornare `docs/02-design/domain-bounded-context-map.md`: sezione Usage/Quota con nuovi contatori e comandi. | ☐ | |
-| TASK-003 | Aggiornare `docs/07-governance/domain-naming-decision-log.md`: aggiungere `MonthlyUsed` alla sezione Aliases And Deprecated Terms. | ☐ | |
+| TASK-000 | Registrare DDD-137–DDD-143 nel `docs/07-governance/domain-naming-decision-log.md`. (Nota: DDD-132–DDD-136 già assegnati, utilizzati ID successivi.) | ☑ | 2026-06-27 |
+| TASK-001 | Aggiornare `docs/01-requirements/domain-ubiquitous-language-glossary.md`: ridefinire `MonthlyQuota` → `CreditQuota`, deprecare `MonthlyUsed` → `MonthlyCreditsUsed`, aggiungere `CreditCost`, `ArtifactGateLimit`, `ArtifactGateUsed`, `ConsumeCredits`, `RecordArtifactSuccess`. | ☑ | 2026-06-27 |
+| TASK-002 | Aggiornare `docs/02-design/domain-bounded-context-map.md`: sezione Usage/Quota con nuovi contatori e comandi. | ☑ | 2026-06-27 |
+| TASK-003 | Aggiornare glossary: aggiungere `MonthlyUsed` alla sezione Aliases And Deprecated Terms. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 1 — Database Schema
 
@@ -171,10 +164,10 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-004 | Creare migration `YYYYMMDD_HHMMSS_quota_credits_and_artifact_gate.sql`: rinominare `monthly_used` → `monthly_credits_used`, aggiungere `monthly_artifact_limit` (default 1000), aggiungere `monthly_artifacts_used` (default 0), aggiungere constraint non-negativi. | ☐ | |
-| TASK-005 | Estendere migration per `quota_history`: aggiungere `session_id text` (nullable), `cost_type text NOT NULL DEFAULT 'artifact'` CHECK IN ('session_summary', 'artifact'), `credit_cost integer NOT NULL DEFAULT 1`. | ☐ | |
-| TASK-006 | Backfill: per utenti esistenti, `monthly_credits_used` = valore attuale di `monthly_used`, `monthly_artifact_limit` = 1000, `monthly_artifacts_used` = 0. | ☐ | |
-| TASK-007 | Aggiornare seed data minimale per includere nuovi campi. | ☐ | |
+| TASK-004 | Creare migration `20260627_000021_quota_credits_and_artifact_gate.sql`: rinominare `monthly_used` → `monthly_credits_used`, aggiungere `monthly_artifact_limit` (default 1000), aggiungere `monthly_artifacts_used` (default 0), aggiungere constraint non-negativi. | ☑ | 2026-06-27 |
+| TASK-005 | Estendere migration per `quota_history`: aggiungere `session_id text` (nullable), `cost_type text NOT NULL DEFAULT 'artifact'` CHECK IN ('session_summary', 'artifact'), `credit_cost integer NOT NULL DEFAULT 1`. | ☑ | 2026-06-27 |
+| TASK-006 | Backfill: per utenti esistenti, `monthly_credits_used` = valore attuale di `monthly_used`, `monthly_artifact_limit` = 1000, `monthly_artifacts_used` = 0. (Handled by migration defaults + ALTER semantics.) | ☑ | 2026-06-27 |
+| TASK-007 | Aggiornare seed data minimale per includere nuovi campi. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 2 — Kysely Types + Contracts
 
@@ -182,10 +175,10 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 | Task | Description | Completed | Date |
 |------|-------------|-----------|------|
-| TASK-008 | Aggiornare `apps/backend/src/lib/adapters/postgres-kysely.types.ts`: `UsersTable` con nuovi campi, `QuotaHistoryTable` con `session_id`, `cost_type`, `credit_cost`. | ☐ | |
-| TASK-009 | Aggiungere `creditCost: number` a `ToolWorkflowDefinition` in `packages/contracts/src/tool-workflows.ts`. Default 1 per tutti i tool esistenti. | ☐ | |
-| TASK-010 | Aggiornare `apps/backend/src/lib/types/auth.ts`: `AuthUserRecord` con `monthlyArtifactLimit`, `monthlyArtifactsUsed`. | ☐ | |
-| TASK-011 | Aggiornare `apps/frontend/src/features/admin/runtime/admin-client.ts`: tipi admin per nuovi campi quota. | ☐ | |
+| TASK-008 | Aggiornare `apps/backend/src/lib/adapters/postgres-kysely.types.ts`: `UsersTable` con nuovi campi, `QuotaHistoryTable` con `session_id`, `cost_type`, `credit_cost`. | ☑ | 2026-06-27 |
+| TASK-009 | Aggiungere `creditCost: number` a `ToolWorkflowDefinition` in `packages/contracts/src/tool-workflows.ts`. Default 1 per tutti i tool esistenti. | ☑ | 2026-06-27 |
+| TASK-010 | Aggiornare `apps/backend/src/lib/types/auth.ts`: `AuthUserRecord` con `monthlyArtifactLimit`, `monthlyArtifactsUsed`. | ☑ | 2026-06-27 |
+| TASK-011 | Aggiornare `apps/frontend/src/features/admin/runtime/admin-client.ts`: tipi admin per nuovi campi quota. | ☑ | 2026-06-27 |
 
 ### Implementation Phase 3 — Core Quota Enforcement
 
@@ -282,7 +275,7 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 ## 6. Files
 
-- **FILE-001**: `docs/07-governance/domain-naming-decision-log.md` — decisioni DDD-132–DDD-138.
+- **FILE-001**: `docs/07-governance/domain-naming-decision-log.md` — decisioni DDD-137–DDD-143.
 - **FILE-002**: `docs/01-requirements/domain-ubiquitous-language-glossary.md` — aggiornamento termini Usage/Quota.
 - **FILE-003**: `docs/02-design/domain-bounded-context-map.md` — sezione Usage/Quota aggiornata.
 - **FILE-004**: `packages/infra-db/migrations/` — nuova migration per crediti + gate artifact.

@@ -2,6 +2,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
     workflowType: 'funnel_pages',
+    creditCost: 1,
     steps: [
       { key: 'optin', dependencies: [] },
       { key: 'quiz', dependencies: ['optin'] },
@@ -11,6 +12,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   nextland: {
     toolKey: 'nextland',
     workflowType: 'nextland',
+    creditCost: 1,
     steps: [
       { key: 'landing', dependencies: [] },
       { key: 'thank_you', dependencies: ['landing'] },
@@ -19,6 +21,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'youtube-lf-script': {
     toolKey: 'youtube-lf-script',
     workflowType: 'youtube_lf_script',
+    creditCost: 1,
     steps: [
       { key: 'pre-script-analysis', dependencies: [] },
       { key: 'packaging', dependencies: ['pre-script-analysis'] },
@@ -31,6 +34,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'angle-generator': {
     toolKey: 'angle-generator',
     workflowType: 'angle_generator',
+    creditCost: 1,
     steps: [
       { key: 'context-and-angle-matrix', dependencies: [] },
       { key: 'angle-prioritization', dependencies: ['context-and-angle-matrix'] },
@@ -40,6 +44,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'meta-ads': {
     toolKey: 'meta-ads',
     workflowType: 'meta_ads_generator',
+    creditCost: 1,
     steps: [
       { key: 'context-generation', dependencies: [] },
       { key: 'ads-generation', dependencies: ['context-generation'] },
@@ -48,6 +53,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'youtube-description': {
     toolKey: 'youtube-description',
     workflowType: 'youtube_description',
+    creditCost: 1,
     steps: [
       { key: 'youtube-description-generation', dependencies: [] },
     ],
@@ -55,6 +61,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'geometric': {
     toolKey: 'geometric',
     workflowType: 'geometric_analysis',
+    creditCost: 1,
     steps: [
       { key: 'serp-crawling', dependencies: [] },
       { key: 'competitor-scoring', dependencies: ['serp-crawling'] },
@@ -76,6 +83,7 @@ export type ToolWorkflowStepDefinition = {
 export type ToolWorkflowDefinition = {
   toolKey: ToolKey;
   workflowType: ToolWorkflowType;
+  creditCost: number;
   steps: ToolWorkflowStepDefinition[];
 };
 export type ToolWorkflowStepOrder = { [K in ToolKey]: ToolStep[] };
@@ -112,6 +120,7 @@ export const TOOL_WORKFLOW_BY_TOOL_KEY: Record<ToolKey, ToolWorkflowDefinition> 
         {
           toolKey,
           workflowType: definition.workflowType,
+          creditCost: definition.creditCost,
           steps: definition.steps.map((step) => ({
             key: step.key,
             dependencies: [...step.dependencies],

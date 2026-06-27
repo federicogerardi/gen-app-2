@@ -4,7 +4,9 @@ INSERT INTO users (
   id,
   email,
   monthly_quota,
-  monthly_used,
+  monthly_credits_used,
+  monthly_artifact_limit,
+  monthly_artifacts_used,
   created_at,
   updated_at
 )
@@ -13,6 +15,8 @@ VALUES (
   'seed-user-001@example.local',
   100,
   0,
+  1000,
+  0,
   NOW(),
   NOW()
 )
@@ -20,6 +24,7 @@ ON CONFLICT (id)
 DO UPDATE SET
   email = EXCLUDED.email,
   monthly_quota = EXCLUDED.monthly_quota,
+  monthly_artifact_limit = EXCLUDED.monthly_artifact_limit,
   updated_at = NOW();
 
 INSERT INTO projects (

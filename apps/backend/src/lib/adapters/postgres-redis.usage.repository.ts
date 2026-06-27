@@ -86,7 +86,7 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
 
         const lockedUser = await db
           .selectFrom('users')
-          .select(['monthly_used', 'monthly_quota', 'quota_window_started_at'])
+          .select(['monthly_credits_used', 'monthly_quota', 'monthly_artifact_limit', 'monthly_artifacts_used', 'quota_window_started_at'])
           .where('id', '=', input.userId)
           .forUpdate()
           .executeTakeFirst();
@@ -107,7 +107,8 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
           await db
             .updateTable('users')
             .set({
-              monthly_used: 0,
+              monthly_credits_used: 0,
+              monthly_artifacts_used: 0,
               quota_window_started_at: normalizedWindowStart,
               updated_at: dbNow,
             })
@@ -115,24 +116,26 @@ export class PostgresRedisUsageRepository implements RedisQuotaRepository {
             .execute();
         }
 
-        const incrementResult = await db
-          .updateTable('users')
-          .set({
-            // Escape hatch: arithmetic on a column value (monthly_used + 1) cannot be
-            // expressed via Kysely's typed .set() — it would require a concrete number.
-            monthly_used: sql`monthly_used + 1`,
-            updated_at: dbNow,
-          })
-          .where('id', '=', input.userId)
-          // Escape hatch: column-to-column comparison (monthly_used < monthly_quota) is
-          // not supported by Kysely's typed .where(col, op, value) — that form requires
-          // a concrete value on the right-hand side, not another column reference.
-          .where(sql<boolean>`monthly_used < monthly_quota`)
-          .returning(['monthly_used', 'monthly_quota'])
-          .executeTakeFirst();
+        // Check artifact gate (DDD-140)
+        const currentArtifactUsed = shouldResetWindow ? 0 : lockedUser.monthly_artifacts_used;
+        if (currentArtifactUsed >= lockedUser.monthly_artifact_limit) {
+          return {
+            quotaAvailable: false,
+            resetDate: shouldResetWindow ? normalizedWindowStart : undefined,
+          };
+        }
+
+        // Check credit availability (DDD-137, DDD-143)
+        const currentCreditsUsed = shouldResetWindow ? 0 : lockedUser.monthly_credits_used;
+        if (currentCreditsUsed >= lockedUser.monthly_quota) {
+          return {
+            quotaAvailable: false,
+            resetDate: shouldResetWindow ? normalizedWindowStart : undefined,
+          };
+        }
 
         return {
-          quotaAvailable: incrementResult !== undefined,
+          quotaAvailable: true,
           resetDate: shouldResetWindow ? normalizedWindowStart : undefined,
         };
       });

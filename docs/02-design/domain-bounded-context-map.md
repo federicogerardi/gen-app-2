@@ -1,7 +1,7 @@
 ---
 status: active
-version: 3.0
-last-reviewed: 2026-06-13
+version: 3.1
+last-reviewed: 2026-06-27
 next-review-date: 2026-09-13
 owner: Domain Architecture
 ---
@@ -79,13 +79,15 @@ owner: Domain Architecture
 
 ### Usage/Quota Context
 **Key Entities**: `QuotaHistory`, `Project`  
-**Key Value Objects**: `MonthlyQuota`, `MonthlyUsed`, `QuotaEventStatus`, `UsageDecision`  
-**Key Commands**: `ClaimUsage`
+**Key Value Objects**: `CreditQuota` (alias for `MonthlyQuota` redefined as credits, DDD-137), `MonthlyCreditsUsed` (replaces `MonthlyUsed`, DDD-138), `CreditCost` (per-tool credit cost, DDD-139), `ArtifactGateLimit` (invisible monthly artifact limit, DDD-140), `ArtifactGateUsed` (invisible artifact counter, DDD-140), `QuotaEventStatus`, `UsageDecision`  
+**Key Commands**: `ClaimUsage` (verifies gate + credits without consuming, DDD-143), `ConsumeCredits` (post-SUCCESS credit consumption, DDD-141), `RecordArtifactSuccess` (post-SUCCESS artifact gate increment, DDD-142)
 
 **Integration points**:
-- Redis is the primary store for real-time quota enforcement (atomic decrement via `RedisQuotaRepository`).
+- Redis is the primary store for real-time quota enforcement (atomic check via `RedisQuotaRepository`).
 - PostgreSQL stores `quota_history` for audit and billing. Infrastructure parameter `PG_POOL_MAX` is configurable to tune connection pool sizing per deployment environment.
 - `Project` is shared with Generation (artifact scoping) — see Shared Concepts below.
+- Credits are verified pre-generation via `ClaimUsage` but consumed post-SUCCESS via `ConsumeCredits`. Artifact gate is incremented post-SUCCESS via `RecordArtifactSuccess`.
+- `ArtifactGateLimit` and `ArtifactGateUsed` are invisible to users — API responses do not expose these values.
 
 ---
 

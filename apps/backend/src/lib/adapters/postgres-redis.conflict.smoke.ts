@@ -91,10 +91,10 @@ const run = async () => {
     await redis.del(`${usageRedisKeyPrefix}:rate:${concurrentUserId}`);
 
     await pg.query(
-      `INSERT INTO users (id, email, monthly_quota, monthly_used)
+      `INSERT INTO users (id, email, monthly_quota, monthly_credits_used)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (id)
-       DO UPDATE SET monthly_quota = EXCLUDED.monthly_quota, monthly_used = EXCLUDED.monthly_used, updated_at = NOW()`,
+       DO UPDATE SET monthly_quota = EXCLUDED.monthly_quota, monthly_credits_used = EXCLUDED.monthly_credits_used, updated_at = NOW()`,
       [concurrentUserId, concurrentEmail, 1, 0],
     );
 

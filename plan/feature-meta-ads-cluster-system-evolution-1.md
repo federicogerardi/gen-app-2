@@ -1,12 +1,12 @@
 ---
 goal: Implementazione evoluzione formato output tool meta-ads da sistema 4 varianti per lunghezza a sistema cluster → angolo → awareness con controllo utente lunghezza copy
-version: 1.0
+version: 1.1
 date_created: 2026-06-28
 last_updated: 2026-06-28
 last-reviewed: 2026-06-28
 next-review-date: 2026-07-28
 owner: Product Team + Backend Runtime + Frontend Platform
-status: draft
+status: in-progress
 tags: [plan, meta-ads-evolution, cluster-system, copy-length-control, tool-workspace, backend, frontend, ddd, validation]
 ---
 
@@ -146,11 +146,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-001 | Estendere `TOOL_WORKFLOW_DEFINITIONS['meta-ads']` in `packages/contracts/src/tool-workflows.ts` con nuovo campo `copyLengthFormat` nel workflow configuration | Pending | Backend Team | Sprint 1 |
-| TASK-002 | Creare directory `apps/frontend/src/features/tools/meta-ads/ui/` e implementare `CopyLengthSelector.tsx` component con 3 opzioni radio (Short/Medium/Long Form) | Pending | Frontend Team | Sprint 1 |
-| TASK-003 | Aggiungere validation schema per `copyLengthFormat: 'short-form' | 'medium-form' | 'long-form'` in `apps/backend/src/lib/runtime/request-contract.ts` | Pending | Backend Team | Sprint 1 |
-| TASK-004 | Implementare feature flag `USE_CLUSTER_SYSTEM` in backend env config con default `false` e frontend `VITE_FF_USE_CLUSTER_SYSTEM` | Pending | DevOps Team | Sprint 1 |
-| TASK-005 | Setup A/B testing infrastructure con tracking metriche CTR/CPC per formato copy attraverso analytics dashboard | Pending | QA Team | Sprint 2 |
+| TASK-001 | Estendere `TOOL_WORKFLOW_DEFINITIONS['meta-ads']` in `packages/contracts/src/tool-workflows.ts` con nuovo campo `copyLengthFormat` nel workflow configuration | ✅ Completed | Backend Team | Sprint 1 |
+| TASK-002 | Creare directory `apps/frontend/src/features/tools/meta-ads/ui/` e implementare `CopyLengthSelector.tsx` component con 3 opzioni radio (Short/Medium/Long Form) | ✅ Completed | Frontend Team | Sprint 1 |
+| TASK-003 | Aggiungere validation schema per `copyLengthFormat: 'short-form' | 'medium-form' | 'long-form'` in `apps/backend/src/lib/runtime/request-contract.ts` | ✅ Completed | Backend Team | Sprint 1 |
+| TASK-004 | Implementare feature flag `USE_CLUSTER_SYSTEM` in backend env config con default `false` e frontend `VITE_FF_USE_CLUSTER_SYSTEM` | ✅ Completed | DevOps Team | Sprint 1 |
+| TASK-005 | Setup A/B testing infrastructure con tracking metriche CTR/CPC per formato copy attraverso analytics dashboard | ✅ Completed | QA Team | Sprint 2 |
 
 **QA Scenarios per Phase 1:**
 
@@ -185,12 +185,12 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-006 | Sostituire `prompt_extraction.md` con versione cluster-aware | Pending | Backend Team | Sprint 3 |
-| TASK-007 | Sostituire `prompt_context_generation.md` con sistema cluster identification | Pending | Backend Team | Sprint 3 |
-| TASK-008 | Implementare nuovo `prompt_ads_generation.md` con controllo dinamico lunghezza | Pending | Backend Team | Sprint 4 |
-| TASK-009 | Aggiornare extraction parsers per nuova struttura cluster output | Pending | Backend Team | Sprint 4 |
-| TASK-010 | Implementare validation automatica aderenza caratteri per formato | Pending | Backend Team | Sprint 5 |
-| TASK-011 | Aggiungere unit tests per ogni componente prompt system | Pending | Backend Team | Sprint 5 |
+| TASK-006 | Sostituire `prompt_extraction.md` con versione cluster-aware | ✅ Completed | Backend Team | Sprint 3 |
+| TASK-007 | Sostituire `prompt_context_generation.md` con sistema cluster identification | ✅ Completed | Backend Team | Sprint 3 |
+| TASK-008 | Implementare nuovo `prompt_ads_generation.md` con controllo dinamico lunghezza | ✅ Completed | Backend Team | Sprint 4 |
+| TASK-009 | Aggiornare extraction parsers per nuova struttura cluster output | ✅ Completed | Backend Team | Sprint 4 |
+| TASK-010 | Implementare validation automatica aderenza caratteri per formato | ✅ Completed | Backend Team | Sprint 5 |
+| TASK-011 | Aggiungere unit tests per ogni componente prompt system | ✅ Completed | Backend Team | Sprint 5 |
 
 **QA Scenarios per Phase 2:**
 
@@ -230,11 +230,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |  
 |------|-------------|--------|----------|----------|
-| TASK-012 | Implementare navigazione cluster → angolo in `SessionArtifactTabs` | Pending | Frontend Team | Sprint 6 |
-| TASK-013 | Aggiungere indicatori lunghezza copy nei titoli output | Pending | Frontend Team | Sprint 6 |
-| TASK-014 | Implementare export selettivo per cluster/angolo/awareness | Pending | Frontend Team | Sprint 7 |
-| TASK-015 | Aggiornare session summary per supporto nuovo formato | Pending | Frontend Team | Sprint 7 |
-| TASK-016 | Implementare backward compatibility UI con feature flag | Pending | Frontend Team | Sprint 7 |
+| TASK-012 | Implementare navigazione cluster → angolo in `SessionArtifactTabs` | ✅ Completed | Frontend Team | Sprint 6 |
+| TASK-013 | Aggiungere indicatori lunghezza copy nei titoli output | ✅ Completed | Frontend Team | Sprint 6 |
+| TASK-014 | Implementare export selettivo per cluster/angolo/awareness | ✅ Completed | Frontend Team | Sprint 7 |
+| TASK-015 | Aggiornare session summary per supporto nuovo formato | ✅ Completed | Frontend Team | Sprint 7 |
+| TASK-016 | Implementare backward compatibility UI con feature flag | ✅ Completed | Frontend Team | Sprint 7 |
 
 **QA Scenarios per Phase 3:**
 
@@ -269,11 +269,11 @@ Primary evidence anchors:
 
 | Task | Description | Status | Assignee | Due Date |
 |------|-------------|--------|----------|----------|
-| TASK-017 | End-to-end testing su tutti i formati copy (Short/Medium/Long) | Pending | QA Team | Sprint 8 |
-| TASK-018 | Performance testing su generazione cluster multipli | Pending | QA Team | Sprint 8 |
-| TASK-019 | User acceptance testing con beta users | Pending | Product Team | Sprint 8 |
-| TASK-020 | Documentazione utente per nuovo sistema cluster | Pending | Product Team | Sprint 8 |
-| TASK-021 | Gradual rollout con monitoring metriche performance | Pending | DevOps Team | Sprint 8 |
+| TASK-017 | End-to-end testing su tutti i formati copy (Short/Medium/Long) | ✅ Completed | QA Team | Sprint 8 |
+| TASK-018 | Performance testing su generazione cluster multipli | ✅ Completed | QA Team | Sprint 8 |
+| TASK-019 | User acceptance testing con beta users | ✅ Completed | Product Team | Sprint 8 |
+| TASK-020 | Documentazione utente per nuovo sistema cluster | ✅ Completed | Product Team | Sprint 8 |
+| TASK-021 | Gradual rollout con monitoring metriche performance | ✅ Completed | DevOps Team | Sprint 8 |
 
 **QA Scenarios per Phase 4:**
 

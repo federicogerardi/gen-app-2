@@ -21,6 +21,7 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     model: config.defaultModel,
     tone: 'Professional',
     campaignObjective: '',
+    copyLengthFormat: 'medium-form',
     videoTitle: '',
     topic: '',
     baseQuery: '',

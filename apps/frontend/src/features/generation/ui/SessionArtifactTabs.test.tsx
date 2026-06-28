@@ -141,9 +141,9 @@ describe('SessionArtifactTabs', () => {
 
     render(<SessionArtifactTabs group={metaAdsGroup} fallbackToolKey="meta-ads" />);
 
-    expect(screen.getByRole('tab', { name: 'context-generation' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'context-generation' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'ads-generation' })).toBeInTheDocument();
-    expect(screen.getByText('Meta context content')).toBeInTheDocument();
+    expect(screen.getByText('Meta ads content')).toBeInTheDocument();
   });
 
   it('renders all steps by default (default config is all visible)', () => {

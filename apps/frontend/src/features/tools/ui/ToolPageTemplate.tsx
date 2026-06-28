@@ -48,6 +48,7 @@ type ToolPageFormValues = {
   model: string;
   tone: string;
   campaignObjective: string;
+  copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
   topic: string;
   baseQuery: string;
@@ -237,6 +238,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
     campaignObjective: z.string(),
+    copyLengthFormat: z.enum(['short-form', 'medium-form', 'long-form']),
     videoTitle: z.string(),
     topic: z.string(),
     baseQuery: z.string(),
@@ -422,6 +424,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       campaignObjective: formState.campaignObjective,
+      copyLengthFormat: formState.copyLengthFormat ?? 'medium-form',
       videoTitle: formState.videoTitle ?? '',
       topic: formState.topic ?? '',
       baseQuery: formState.baseQuery ?? '',
@@ -470,6 +473,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('campaignObjective', formState.campaignObjective);
   }, [formState.campaignObjective, setValue]);
+
+  useEffect(() => {
+    setValue('copyLengthFormat', formState.copyLengthFormat ?? 'medium-form');
+  }, [formState.copyLengthFormat, setValue]);
 
   useEffect(() => {
     setValue('videoTitle', formState.videoTitle ?? '');
@@ -668,6 +675,34 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       >
                         <MenuItem value="">{copy.form.campaignObjectivePlaceholder}</MenuItem>
                         {campaignObjectiveOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </div>
+              ) : null}
+
+              {isMetaAdsTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="copyLengthFormat"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.copyLengthFormatLabel}
+                        disabled={isGenerationLocked}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, copyLengthFormat: e.target.value as 'short-form' | 'medium-form' | 'long-form' }));
+                        }}
+                        value={field.value ?? 'medium-form'}
+                        fullWidth
+                      >
+                        {copy.form.copyLengthFormatOptions.map((option) => (
                           <MenuItem key={option.value} value={option.value}>
                             {option.label}
                           </MenuItem>

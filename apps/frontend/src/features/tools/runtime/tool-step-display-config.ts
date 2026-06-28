@@ -77,7 +77,7 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
     'creative-activation': { visible: true, includeInDownload: true },
   },
   'meta-ads': {
-    'context-generation': { visible: true, includeInDownload: true },
+    'context-generation': { visible: false, includeInDownload: false },
     'ads-generation': { visible: true, includeInDownload: true },
   },
   'youtube-description': {

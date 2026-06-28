@@ -44,6 +44,7 @@ const META_ADS_EXTRACTION_SECTION_BY_HEADING: Record<string, string> = {
   'unique mechanism': 'unique_mechanism',
   'meccanismo unico': 'unique_mechanism',
   'angle candidates': 'angle_candidates',
+  'cluster opportunities': 'cluster_opportunities',
 };
 
 const MISSING_EXTRACTION_VALUE_MARKERS = new Set([

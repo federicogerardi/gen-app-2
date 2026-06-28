@@ -14,7 +14,7 @@ export const AdminActivityPage = () => {
     >
 
       {feed.length === 0
-        ? <EmptyStateMessage>Nessuna attività recente.</EmptyStateMessage>
+        ? <EmptyStateMessage>{appCopy.ui.states.emptyActivityList}</EmptyStateMessage>
         : <ActivityLogTable rows={feed} />}
     </AdminPageContainer>
   );

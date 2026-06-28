@@ -1,6 +1,7 @@
 import { MenuItem, TextField } from '@mui/material';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 
+import { appCopy } from '../../../app/copy/system';
 import {
   ADMIN_USER_ROLE_OPTIONS,
   ADMIN_USER_STATUS_OPTIONS,
@@ -26,7 +27,7 @@ export const AdminUserFormFields = ({
     <>
       <div className="ui-admin-user-form-grid">
         <TextField
-          label="Email"
+          label={appCopy.ui.labels.email}
           type="email"
           {...register('email')}
           error={!!errors.email}
@@ -37,7 +38,7 @@ export const AdminUserFormFields = ({
 
         <TextField
           select
-          label="Role"
+          label={appCopy.ui.adminUsers.fieldLabels.role}
           defaultValue={roleDefaultValue}
           {...register('role')}
           error={!!errors.role}
@@ -51,7 +52,7 @@ export const AdminUserFormFields = ({
 
         <TextField
           select
-          label="Status"
+          label={appCopy.ui.adminUsers.fieldLabels.status}
           defaultValue={statusDefaultValue}
           {...register('status')}
           error={!!errors.status}
@@ -64,12 +65,22 @@ export const AdminUserFormFields = ({
         </TextField>
 
         <TextField
-          label="Monthly quota"
+          label={appCopy.ui.adminUsers.fieldLabels.monthlyQuota}
           type="number"
           slotProps={{ htmlInput: { min: 0, step: 1 } }}
           {...register('monthlyQuota')}
           error={!!errors.monthlyQuota}
           helperText={errors.monthlyQuota?.message}
+          fullWidth
+        />
+
+        <TextField
+          label={appCopy.ui.adminUsers.fieldLabels.monthlyArtifactLimit}
+          type="number"
+          slotProps={{ htmlInput: { min: 0, step: 1 } }}
+          {...register('monthlyArtifactLimit')}
+          error={!!errors.monthlyArtifactLimit}
+          helperText={errors.monthlyArtifactLimit?.message}
           fullWidth
         />
       </div>

@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import type { AdminUser } from '../runtime/admin-client';
 import type { AdminUserFormValues } from '../runtime/admin-user-form';
@@ -34,11 +35,12 @@ export const AdminUsersTable = ({
       <table className={uiPrimitives.artifactTable}>
         <thead>
           <tr>
-            <th scope="col">Email</th>
-            <th scope="col">Role</th>
-            <th scope="col">Status</th>
-            <th scope="col">Monthly quota</th>
-            <th scope="col">Azioni</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.email}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.role}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.status}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.monthlyQuota}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.monthlyArtifactLimit}</th>
+            <th scope="col">{appCopy.ui.adminUsers.tableHeaders.actions}</th>
           </tr>
         </thead>
         <tbody>

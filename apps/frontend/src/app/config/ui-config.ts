@@ -9,6 +9,8 @@ export const UI_CONFIG = {
     artifactsPageSize: 10,
     /** Number of session rows shown per page in SessionsListingSection */
     sessionsPageSize: 10,
+    /** Number of screenshot rows shown per page in GeometricScreenshotsPage */
+    geometricScreenshotsPageSize: 10,
   },
   limits: {
     /** Maximum in-memory artifacts kept in GenerationWorkspaceProvider */

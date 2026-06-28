@@ -26,14 +26,14 @@ export const AdminUserCreateForm = ({
 }: AdminUserCreateFormProps) => {
   return (
     <AdminUserFormShell
-      title="Nuovo utente"
-      subtitle="Aggiungi un account con ruolo e quota iniziale."
+      title={appCopy.ui.adminUsers.createFormTitle}
+      subtitle={appCopy.ui.adminUsers.createFormSubtitle}
       useSurface
       onSubmit={handleSubmit((data) => void onSubmit(data))}
       actions={(
         <>
           <MuiButton type="submit" variant="contained" disabled={busyAction === 'create'}>
-            {busyAction === 'create' ? 'Creazione...' : 'Crea utente'}
+            {busyAction === 'create' ? appCopy.ui.adminUsers.createSavingLabel : appCopy.ui.adminUsers.createSubmitLabel}
           </MuiButton>
           <MuiButton
             type="button"
@@ -51,7 +51,7 @@ export const AdminUserCreateForm = ({
         errors={errors}
         roleDefaultValue="member"
         statusDefaultValue="active"
-        passwordLabel="Password iniziale"
+        passwordLabel={appCopy.ui.adminUsers.fieldLabels.passwordInitial}
       />
     </AdminUserFormShell>
   );

@@ -9,7 +9,7 @@ import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 type LoginFormProps = {
   onSubmit: (email: string, password: string) => Promise<void>;
   oauthStartUrl: string;
-  externalError?: string | null;
+  hasExternalError?: boolean;
 };
 
 const loginSchema = z.object({
@@ -19,7 +19,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: LoginFormProps) => {
+export const LoginForm = ({ onSubmit, oauthStartUrl, hasExternalError = false }: LoginFormProps) => {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +73,7 @@ export const LoginForm = ({ onSubmit, oauthStartUrl, externalError = null }: Log
           fullWidth
         />
 
-        {error || externalError ? <p className={uiPrimitives.error} role="alert">{error ?? externalError}</p> : null}
+        {error || hasExternalError ? <p className={uiPrimitives.error} role="alert">{error ?? appCopy.ui.fallbackErrors.loginFailed}</p> : null}
 
         <MuiButton type="submit" variant="contained" disabled={pending}>
           {pending ? appCopy.editorial.auth.pendingAccess : appCopy.ui.actions.enterWorkspace}

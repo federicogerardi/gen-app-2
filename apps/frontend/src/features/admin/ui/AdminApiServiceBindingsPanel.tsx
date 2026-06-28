@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { appCopy } from '../../../app/copy/system';
-import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, uiPrimitives, LoadingStateMessage } from '../../../app/ui/primitives';
 import type { ApiService, ApiServiceBinding } from '../runtime/admin-client';
 import {
   ADMIN_API_SERVICE_BINDING_REQUIREDNESS_OPTIONS,
@@ -122,7 +122,7 @@ export const AdminApiServiceBindingsPanel = ({
         </form>
       ) : null}
 
-      {loading ? <p className={uiPrimitives.metaLine}>{appCopy.ui.states.loadingList}</p> : null}
+      {loading ? <LoadingStateMessage>{appCopy.ui.states.loadingList}</LoadingStateMessage> : null}
       {error ? <p className={uiPrimitives.error} role="alert">{error}</p> : null}
 
       {!loading && !error && apiService ? (

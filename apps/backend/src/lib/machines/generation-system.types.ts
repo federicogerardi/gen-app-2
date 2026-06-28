@@ -36,6 +36,7 @@ export type GenerationMachineContext = GenerationSystemContext & {
     reason: string | null;
     defaultReason: string;
   } | null;
+  _creditCost: number;
 };
 
 export type IdempotencyDoneOutput =
@@ -44,7 +45,7 @@ export type IdempotencyDoneOutput =
   | { type: 'IDEMPOTENCY_CONFLICT'; reason: string };
 
 export type UsageDoneOutput =
-  | { type: 'USAGE_GRANTED' }
+  | { type: 'USAGE_GRANTED'; creditCost?: number }
   | { type: 'USAGE_REJECTED'; reason: string };
 
 export type OwnershipDoneOutput =
@@ -81,6 +82,15 @@ export type ToolDoneOutput =
 export type AcquisitionDoneOutput =
   | { type: 'ACQUISITION_ATTEMPT_ACCEPTED'; statusCode: number; payload: Record<string, unknown> }
   | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
+
+export type CrawlingDoneOutput =
+  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[]; screenshotIds?: string[] }
+  | { type: 'CRAWLING_FAILED'; reason: string };
+
+export type CacheCrawlingResultParams = {
+  crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[];
+  paaQueries: string[];
+};
 
 export type CacheRequestMetaParams = {
   requestId: string;
@@ -125,6 +135,14 @@ export type CacheExtractionResultParams = {
 
 export type CacheAcquisitionResultParams = {
   payload: Record<string, unknown>;
+};
+
+export type ScoringDoneOutput =
+  | { type: 'SCORING_COMPLETED'; ranking: Record<string, unknown> }
+  | { type: 'SCORING_FAILED'; reason: string };
+
+export type CacheScoringResultParams = {
+  ranking: Record<string, unknown>;
 };
 
 export type CacheGenerateResultParams = {

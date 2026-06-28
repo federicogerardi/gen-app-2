@@ -1,6 +1,7 @@
 import type { BackendCapabilities } from '../backend-capabilities';
 import { listAdminUsers, type AdminUser } from '../../../features/admin/runtime/admin-client';
 import { useSWRQuery, type SWRQueryResult } from './useSWRQuery';
+import { appCopy } from '../../copy/system';
 
 type UseAdminUsersQueryOptions = {
   apiBaseUrl: string;
@@ -17,6 +18,6 @@ export const useAdminUsersQuery = (
     key: enabled ? [options.apiBaseUrl, options.capabilities, 'admin-users'] : null,
     fetcher: () => listAdminUsers({ apiBaseUrl: options.apiBaseUrl, capabilities: options.capabilities }),
     emptyData: [],
-    errorMessage: 'Unable to load admin users',
+    errorMessage: appCopy.ui.fallbackErrors.loadAdminUsers,
   });
 };

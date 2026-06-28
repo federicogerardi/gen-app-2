@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { ListingTableSection } from '../../../app/ui/ListingTableSection';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
@@ -6,11 +7,11 @@ import { AdminChangelogTableRow } from '../ui/AdminChangelogTableRow';
 import { formatAdminDateTime } from '../runtime/admin-date-format';
 
 const CHANGELOG_COLUMNS = [
-  { key: 'title', header: 'Titolo' },
-  { key: 'status', header: 'Stato' },
-  { key: 'publishedAt', header: 'Pubblicato il' },
-  { key: 'updatedAt', header: 'Aggiornato il' },
-  { key: 'actions', header: 'Azioni' },
+  { key: 'title', header: appCopy.ui.adminChangelog.tableHeaders.title },
+  { key: 'status', header: appCopy.ui.adminChangelog.tableHeaders.status },
+  { key: 'publishedAt', header: appCopy.ui.adminChangelog.tableHeaders.publishedAt },
+  { key: 'updatedAt', header: appCopy.ui.adminChangelog.tableHeaders.updatedAt },
+  { key: 'actions', header: appCopy.ui.adminChangelog.tableHeaders.actions },
 ] as const;
 
 type ChangelogTableProps = {
@@ -24,11 +25,11 @@ type ChangelogTableProps = {
 export const ChangelogTable = ({ rows, loading, error, busyAction, onArchive }: ChangelogTableProps) => {
   return (
     <ListingTableSection<ProductChangelogDto>
-      title="Voci pubblicate"
+      title={appCopy.ui.adminChangelog.tableTitle}
       loading={loading}
       error={error}
       isEmpty={!loading && rows.length === 0}
-      emptyMessage="Nessuna voce pubblicata al momento."
+      emptyMessage={appCopy.ui.adminChangelog.emptyList}
       columns={[...CHANGELOG_COLUMNS]}
       rows={rows}
       rowKey={(row) => row.id}

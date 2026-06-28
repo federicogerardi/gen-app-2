@@ -40,7 +40,9 @@ export interface UsersTable {
   id: string;
   email: string;
   monthly_quota: number;
-  monthly_used: number;
+  monthly_credits_used: number;
+  monthly_artifact_limit: number;
+  monthly_artifacts_used: number;
   role: string;
   status: string;
   password_hash: string | null;
@@ -111,6 +113,7 @@ export interface ApiServicesTable {
   request_mapping_rules_json: unknown;
   request_headers_template_json: Record<string, unknown>;
   token_header_name: string | null;
+  token_param_name: string | null;
   response_mapping_rules_json: unknown;
   error_mapping_rules_json: unknown;
   contract_profile_version: number;
@@ -139,7 +142,10 @@ export interface QuotaHistoryTable {
   project_id: string | null;
   request_id: string | null;
   artifact_id: string | null;
+  session_id: string | null;
   status: string;
+  cost_type: Generated<string>;
+  credit_cost: Generated<number>;
   request_count: number;
   cost_usd: number;
   input_tokens: number;

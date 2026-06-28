@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { ListingTableSection } from '../../../app/ui/ListingTableSection';
@@ -9,11 +10,11 @@ import { formatAdminDateTime } from '../runtime/admin-date-format';
 import { AdminUserReportsTableActions } from '../ui/AdminUserReportsTableActions';
 
 const USER_REPORT_COLUMNS = [
-  { key: 'title', header: 'Segnalazione' },
-  { key: 'category', header: 'Categoria' },
-  { key: 'status', header: 'Stato' },
-  { key: 'createdAt', header: 'Creata il' },
-  { key: 'actions', header: 'Azioni' },
+  { key: 'title', header: appCopy.ui.adminUserReports.tableHeaders.title },
+  { key: 'category', header: appCopy.ui.adminUserReports.tableHeaders.category },
+  { key: 'status', header: appCopy.ui.adminUserReports.tableHeaders.status },
+  { key: 'createdAt', header: appCopy.ui.adminUserReports.tableHeaders.createdAt },
+  { key: 'actions', header: appCopy.ui.adminUserReports.tableHeaders.actions },
 ] as const;
 
 type ReportsTableProps = {
@@ -29,11 +30,11 @@ type ReportsTableProps = {
 export const ReportsTable = ({ rows, loading, error, busyAction, publishedIssueUrls, onStatusTransition, onPublishIssue }: ReportsTableProps) => {
   return (
     <ListingTableSection<UserReportDto>
-      title="Inbox segnalazioni"
+      title={appCopy.ui.adminUserReports.tableTitle}
       loading={loading}
       error={error}
       isEmpty={!loading && rows.length === 0}
-      emptyMessage="Nessuna segnalazione trovata con i filtri selezionati."
+      emptyMessage={appCopy.ui.adminUserReports.emptyList}
       columns={[...USER_REPORT_COLUMNS]}
       rows={rows}
       rowKey={(row) => row.id}

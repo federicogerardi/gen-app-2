@@ -36,7 +36,7 @@ export const AdminChangelogPage = () => {
   return (
     <AdminPageContainer
       title={appCopy.editorial.admin.changelogTitle}
-      description="Data Table View canonica per ProductChangelog pubblicati e archivio amministrativo."
+      description={appCopy.ui.adminChangelog.pageDescription}
     >
 
       <AdminChangelogToolbar

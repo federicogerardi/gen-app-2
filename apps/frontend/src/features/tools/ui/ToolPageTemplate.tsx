@@ -48,8 +48,13 @@ type ToolPageFormValues = {
   model: string;
   tone: string;
   campaignObjective: string;
+  copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
   topic: string;
+  baseQuery: string;
+  language: string;
+  country: string;
+  brandName: string;
   keywords: string;
   ctaText: string;
   ctaLink: string;
@@ -63,6 +68,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const copy = appCopy.ui.toolPage;
   const isMetaAdsTool = props.toolKey === 'meta-ads';
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
+  const isGeometricTool = props.toolKey === 'geometric';
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const auth = useAuthSession();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
@@ -232,8 +238,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
     campaignObjective: z.string(),
+    copyLengthFormat: z.enum(['short-form', 'medium-form', 'long-form']),
     videoTitle: z.string(),
     topic: z.string(),
+    baseQuery: z.string(),
+    language: z.string(),
+    country: z.string(),
+    brandName: z.string(),
     keywords: z.string(),
     ctaText: z.string(),
     ctaLink: z.string(),
@@ -254,18 +265,36 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
       ];
 
-      for (const field of requiredDirectFields) {
-        const candidate = value[field.key];
-        if (typeof candidate !== 'string' || candidate.trim().length === 0) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: [field.key],
-            message: `${field.label} required`,
-          });
+          for (const field of requiredDirectFields) {
+            const candidate = value[field.key];
+            if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [field.key],
+                message: `${field.label} required`,
+              });
+            }
+          }
         }
-      }
 
-    }
+        if (isGeometricTool) {
+          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
+            { key: 'baseQuery', label: 'Base query' },
+            { key: 'language', label: 'Language' },
+            { key: 'country', label: 'Country' },
+          ];
+
+          for (const field of requiredDirectFields) {
+            const candidate = value[field.key];
+            if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: [field.key],
+                message: `${field.label} required`,
+              });
+            }
+          }
+        }
 
     for (const fileEntry of inputFiles) {
       if (
@@ -356,6 +385,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         : prev.chaptersWithTimestamps,
       socialLinks: isYoutubeDescriptionTool ? data.socialLinks : prev.socialLinks,
       hashtags: isYoutubeDescriptionTool ? data.hashtags : prev.hashtags,
+      baseQuery: isGeometricTool ? data.baseQuery : prev.baseQuery,
+      language: isGeometricTool ? data.language : prev.language,
+      country: isGeometricTool ? data.country : prev.country,
+      brandName: isGeometricTool ? data.brandName : prev.brandName,
     }));
 
     for (const fileEntry of inputFiles) {
@@ -391,8 +424,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       model: formState.model,
       tone: formState.tone,
       campaignObjective: formState.campaignObjective,
+      copyLengthFormat: formState.copyLengthFormat ?? 'medium-form',
       videoTitle: formState.videoTitle ?? '',
       topic: formState.topic ?? '',
+      baseQuery: formState.baseQuery ?? '',
+      language: formState.language ?? '',
+      country: formState.country ?? '',
+      brandName: formState.brandName ?? '',
       keywords: formState.keywords ?? '',
       ctaText: formState.ctaText ?? '',
       ctaLink: formState.ctaLink ?? '',
@@ -437,12 +475,20 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   }, [formState.campaignObjective, setValue]);
 
   useEffect(() => {
+    setValue('copyLengthFormat', formState.copyLengthFormat ?? 'medium-form');
+  }, [formState.copyLengthFormat, setValue]);
+
+  useEffect(() => {
     setValue('videoTitle', formState.videoTitle ?? '');
   }, [formState.videoTitle, setValue]);
 
   useEffect(() => {
     setValue('topic', formState.topic ?? '');
   }, [formState.topic, setValue]);
+
+  useEffect(() => {
+    setValue('brandName', formState.brandName ?? '');
+  }, [formState.brandName, setValue]);
 
   useEffect(() => {
     setValue('keywords', formState.keywords ?? '');
@@ -472,7 +518,19 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('hashtags', formState.hashtags ?? '');
   }, [formState.hashtags, setValue]);
 
-  const basePrimaryAction = lockedPrimaryOverride
+   useEffect(() => {
+    setValue('baseQuery', formState.baseQuery ?? '');
+  }, [formState.baseQuery, setValue]);
+
+  useEffect(() => {
+    setValue('language', formState.language ?? '');
+  }, [formState.language, setValue]);
+
+  useEffect(() => {
+    setValue('country', formState.country ?? '');
+  }, [formState.country, setValue]);
+
+ const basePrimaryAction = lockedPrimaryOverride
     ?? generationInProgressPrimaryOverride
     ?? extractionInProgressPrimaryOverride
     ?? matrixBlockingPrimaryOverride
@@ -627,6 +685,34 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 </div>
               ) : null}
 
+              {isMetaAdsTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="copyLengthFormat"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.copyLengthFormatLabel}
+                        disabled={isGenerationLocked}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, copyLengthFormat: e.target.value as 'short-form' | 'medium-form' | 'long-form' }));
+                        }}
+                        value={field.value ?? 'medium-form'}
+                        fullWidth
+                      >
+                        {copy.form.copyLengthFormatOptions.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </div>
+              ) : null}
+
               {isYoutubeDescriptionTool ? (
                 <div className={youtubeDescriptionSingleRowClassName}>
                   <Controller
@@ -634,7 +720,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Video title"
+                        label={appCopy.ui.toolPageForm.videoTitleLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.videoTitle}
@@ -657,7 +743,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Topic"
+                        label={appCopy.ui.toolPageForm.topicLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.topic}
@@ -680,7 +766,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Keywords (comma-separated)"
+                        label={appCopy.ui.toolPageForm.keywordsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.keywords}
@@ -703,7 +789,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="CTA text"
+                        label={appCopy.ui.toolPageForm.ctaTextLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.ctaText}
@@ -721,7 +807,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="CTA link"
+                        label={appCopy.ui.toolPageForm.ctaLinkLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.ctaLink}
@@ -744,7 +830,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Credentials or proof"
+                        label={appCopy.ui.toolPageForm.credentialsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.credentialsOrProof}
@@ -769,7 +855,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Chapters with timestamps (one per line)"
+                        label={appCopy.ui.toolPageForm.chaptersLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.chaptersWithTimestamps}
@@ -794,7 +880,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Social links (one per line)"
+                        label={appCopy.ui.toolPageForm.socialLinksLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.socialLinks}
@@ -819,7 +905,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Hashtags (comma-separated, max 5)"
+                        label={appCopy.ui.toolPageForm.hashtagsLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.hashtags}
@@ -835,7 +921,113 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 </div>
               ) : null}
 
-              {inputFiles.map((fileEntry) => (
+              {/* Geometric direct-input fields */}
+              {isGeometricTool ? (
+                <>
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="baseQuery"
+                      control={control}
+                      render={({ field }) => (
+                          <TextField
+                            label={appCopy.ui.toolPageForm.baseQueryLabel}
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.baseQuery}
+                          helperText={errors.baseQuery?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, baseQuery: e.target.value }));
+                          }}
+                          fullWidth
+                        />
+                      )}
+                    />
+                  </div>
+
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="language"
+                      control={control}
+                      render={({ field }) => (
+                          <TextField
+                          select
+                          label={appCopy.ui.toolPageForm.languageLabel}
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.language}
+                          helperText={errors.language?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, language: e.target.value }));
+                          }}
+                          fullWidth
+                        >
+                          <MenuItem value="">{appCopy.ui.toolPageForm.selectLanguagePlaceholder}</MenuItem>
+                          <MenuItem value="it">{appCopy.ui.toolPageForm.languageOptionIt}</MenuItem>
+                          <MenuItem value="en">{appCopy.ui.toolPageForm.languageOptionEn}</MenuItem>
+                          <MenuItem value="es">{appCopy.ui.toolPageForm.languageOptionEs}</MenuItem>
+                          <MenuItem value="fr">{appCopy.ui.toolPageForm.languageOptionFr}</MenuItem>
+                          <MenuItem value="de">{appCopy.ui.toolPageForm.languageOptionDe}</MenuItem>
+                        </TextField>
+                      )}
+                    />
+                  </div>
+
+                  <div className="ui-tool-form-row ui-tool-form-row--full">
+                    <Controller
+                      name="country"
+                      control={control}
+                      render={({ field }) => (
+                          <TextField
+                          select
+                          label={appCopy.ui.toolPageForm.countryDomainLabel}
+                          disabled={isGenerationLocked}
+                          value={field.value}
+                          error={!!errors.country}
+                          helperText={errors.country?.message as string | undefined}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setFormState((prev) => ({ ...prev, country: e.target.value }));
+                          }}
+                          fullWidth
+                        >
+                          <MenuItem value="">{appCopy.ui.toolPageForm.selectDomainPlaceholder}</MenuItem>
+                          <MenuItem value="google.it">{appCopy.ui.toolPageForm.domainOptionGoogleIt}</MenuItem>
+                          <MenuItem value="google.com">{appCopy.ui.toolPageForm.domainOptionGoogleCom}</MenuItem>
+                          <MenuItem value="google.es">{appCopy.ui.toolPageForm.domainOptionGoogleEs}</MenuItem>
+                          <MenuItem value="google.fr">{appCopy.ui.toolPageForm.domainOptionGoogleFr}</MenuItem>
+                          <MenuItem value="google.de">{appCopy.ui.toolPageForm.domainOptionGoogleDe}</MenuItem>
+                          <MenuItem value="google.co.uk">{appCopy.ui.toolPageForm.domainOptionGoogleCoUk}</MenuItem>
+                        </TextField>
+                      )}
+                    />
+                   </div>
+
+                   <div className="ui-tool-form-row ui-tool-form-row--full">
+                     <Controller
+                       name="brandName"
+                       control={control}
+                       render={({ field }) => (
+                          <TextField
+                            label={appCopy.ui.toolPageForm.brandNameLabel}
+                           disabled={isGenerationLocked}
+                           value={field.value}
+                           error={!!errors.brandName}
+                           helperText={errors.brandName?.message as string | undefined}
+                           onChange={(e) => {
+                             field.onChange(e);
+                             setFormState((prev) => ({ ...prev, brandName: e.target.value }));
+                           }}
+                           fullWidth
+                         />
+                       )}
+                     />
+                   </div>
+                 </>
+               ) : null}
+
+               {inputFiles.map((fileEntry) => (
                 <Controller
                   key={fileEntry.key}
                   name={fileEntry.key as never}

@@ -38,6 +38,7 @@ skills-lock.json
 # Temporary files
 *.tmp
 *.swp
+blackhole/
 
 # Frontend env locali
 frontend/.env.local

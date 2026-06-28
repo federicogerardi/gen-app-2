@@ -87,8 +87,13 @@ export type ToolFormState = {
   model: string;
   tone: string;
   campaignObjective: string;
+  copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
   topic: string;
+  baseQuery: string;
+  language: string;
+  country: string;
+  brandName: string;
   keywords: string;
   ctaText: string;
   ctaLink: string;
@@ -178,6 +183,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['youtube-description'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-description'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  geometric: {
+    toolKey: 'geometric',
+    availabilityPolicy: getToolAvailabilityPolicy('geometric'),
+    displayName: 'Geometric',
+    defaultPrompt: 'Analizza SERP e competitor. Genera report strategico e report unificato in italiano.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER.geometric,
+    stepDependencies: TOOL_STEP_DEPENDENCIES.geometric,
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -365,6 +382,26 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     ],
     stepConstraints: ['La sequenza canonica è youtube-description-generation.'],
   },
+  geometric: {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Inserisci query, lingua e paese per l\'analisi SERP e il report competitivo.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
+    requiredFieldKeys: [],
+    requiredFields: ['Base query', 'Language', 'Country'],
+    optionalFields: ['Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
+    examples: [
+      'Base query: supplementi proteici migliori per massa muscolare',
+      'Language: it-IT',
+      'Country: google.it',
+    ],
+    notes: [
+      'Questo tool usa solo direct-input: nessun BriefingFile richiesto.',
+      'I dati SERP vengono raccolti in tempo reale tramite crawling.',
+    ],
+    stepConstraints: ['La sequenza canonica è serp-crawling -> competitor-scoring -> strategic-reporting -> unified-report.'],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -444,6 +481,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'angle-generator': appCopy.ui.navigation.angleGenerator,
   'meta-ads': appCopy.ui.navigation.metaAds,
   'youtube-description': appCopy.ui.navigation.youtubeDescription,
+  'geometric': appCopy.ui.navigation.geometric,
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -453,6 +491,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
   'meta-ads': 'Produci asset Meta Ads coerenti con contesto, obiettivo campagna e priorita strategiche.',
   'youtube-description': 'Genera descrizioni YouTube complete con CTA iniziale, capitoli e blocchi SEO in un singolo step.',
+  'geometric': 'Analizza SERP, scoring competitivo e report strategico unificato in italiano.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -462,6 +501,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'angle-generator': '/tools/angle-generator',
   'meta-ads': '/tools/meta-ads',
   'youtube-description': '/tools/youtube-description',
+  'geometric': '/tools/geometric',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -651,6 +691,28 @@ export const stepCardConfigRegistry: Record<
       displayName: 'YouTube Description Generation',
       description: 'Genera la descrizione finale con CTA above-the-fold, capitoli e blocchi SEO.',
       expectedOutputFormat: 'Markdown con descrizione completa e quality report',
+    },
+  },
+  'geometric': {
+    'serp-crawling': {
+      displayName: 'SERP Crawling',
+      description: 'Raccolta dati dalla Search Engine Results Page per la query di base e PAA correlate.',
+      expectedOutputFormat: 'JSON con snippet AI Overview, sources e PAA queries',
+    },
+    'competitor-scoring': {
+      displayName: 'Competitor Scoring',
+      description: 'Analisi e scoring dei competitor su base domini e tipologia di fonti.',
+      expectedOutputFormat: 'JSON con ranking competitivo e tier assignment',
+    },
+    'strategic-reporting': {
+      displayName: 'Strategic Reporting',
+      description: 'Generazione report strategico qualitativo in italiano dal panorama SERP.',
+      expectedOutputFormat: 'Markdown con analisi strategica e raccomandazioni operative',
+    },
+    'unified-report': {
+      displayName: 'Unified Report',
+      description: 'Report unificato che combina analisi strategica e scoring quantitativo.',
+      expectedOutputFormat: 'Markdown con tabelle competitor, analisi e raccomandazioni',
     },
   },
 };

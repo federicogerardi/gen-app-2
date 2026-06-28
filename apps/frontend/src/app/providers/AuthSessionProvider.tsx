@@ -23,11 +23,12 @@ type AuthSessionContextValue = {
   capabilities: BackendCapabilities;
   session: AuthSession | null;
   loading: boolean;
-  error: string | null;
+  hasError: boolean;
   oauthStartUrl: string;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  clearError: () => void;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
@@ -52,6 +53,8 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
     snapshot.matches('loggingOut') ||
     snapshot.matches('refreshing');
 
+  const hasError = snapshot.matches({ unauthenticated: 'failed' });
+
   const login = useCallback(async (email: string, password: string): Promise<void> => {
     send({ type: 'LOGIN', email, password });
   }, [send]);
@@ -64,27 +67,33 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
     send({ type: 'REFRESH' });
   }, [send]);
 
+  const clearError = useCallback((): void => {
+    send({ type: 'CLEAR_ERROR' });
+  }, [send]);
+
   const value = useMemo<AuthSessionContextValue>(
     () => ({
       apiBaseUrl,
       capabilities,
       session: snapshot.context.session,
       loading,
-      error: snapshot.context.error,
+      hasError,
       oauthStartUrl: googleOAuthStartUrl(apiBaseUrl),
       login,
       logout,
       refresh,
+      clearError,
     }),
     [
       apiBaseUrl,
       capabilities,
       snapshot.context.session,
-      snapshot.context.error,
+      hasError,
       loading,
       login,
       logout,
       refresh,
+      clearError,
     ],
   );
 

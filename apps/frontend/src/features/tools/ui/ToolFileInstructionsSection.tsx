@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
 import type { ToolFileInstructionsViewModel } from '../runtime/tool-page-selectors';
 
@@ -22,7 +23,7 @@ export const ToolFileInstructionsSection = ({ instructions }: ToolFileInstructio
         <div className={uiPrimitives.stack}>
           <div className="ui-tool-instructions-groups">
             <section className="ui-tool-instructions-group">
-              <h4 className="ui-tool-instructions-group-title">Campi obbligatori</h4>
+              <h4 className="ui-tool-instructions-group-title">{appCopy.ui.toolInstructions.requiredFieldsHeading}</h4>
               <ul className={uiPrimitives.listClean}>
                 {requiredFields.map((item) => (
                   <li key={item} className="ui-tool-instructions-item">

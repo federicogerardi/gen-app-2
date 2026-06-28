@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import type { ToolCheckpoint } from '../../generation/ui/tool-checkpoints';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
@@ -13,10 +14,10 @@ export const ActivityLogTable = ({ rows }: ActivityLogTableProps) => {
       <table className={uiPrimitives.artifactTable}>
         <thead>
           <tr>
-            <th scope="col">Project</th>
-            <th scope="col">Artifact</th>
-            <th scope="col">Status</th>
-            <th scope="col">Aggiornato</th>
+            <th scope="col">{appCopy.ui.adminActivity.tableHeaders.project}</th>
+            <th scope="col">{appCopy.ui.adminActivity.tableHeaders.artifact}</th>
+            <th scope="col">{appCopy.ui.adminActivity.tableHeaders.status}</th>
+            <th scope="col">{appCopy.ui.adminActivity.tableHeaders.updated}</th>
           </tr>
         </thead>
         <tbody>

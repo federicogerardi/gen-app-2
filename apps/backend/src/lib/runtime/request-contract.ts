@@ -5,6 +5,7 @@ import type {
   ValidationOkEvent,
 } from '../types/xstate';
 import type {
+  CopyLengthFormat,
   GenerationRequest,
   OutputFormat,
   ToolKey,
@@ -89,6 +90,17 @@ const normalizeModelId = (value: string): string => {
 };
 
 const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
+const COPY_LENGTH_FORMAT_ALLOWED = ['short-form', 'medium-form', 'long-form'] as const;
+
+const toCopyLengthFormat = (value: unknown): CopyLengthFormat | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  const match = COPY_LENGTH_FORMAT_ALLOWED.find((candidate) => candidate === normalized);
+  return match ?? null;
+};
 
 const toCanonicalToneProfile = (value: unknown): string | null => {
   if (typeof value !== 'string') {
@@ -164,15 +176,18 @@ export const buildRequestReceivedEvent = (
     .concat(toDependencyArtifactIds(request.input.stepDependencyArtifactIds));
   const dedupedDependencyArtifactIds = [...new Set(stepDependencyArtifactIds)];
 
-  const { step: _rawStep, tone: _rawTone, ...inputRest } = request.input;
+  const { step: _rawStep, tone: _rawTone, copyLengthFormat: _rawCopyLengthFormat, ...inputRest } = request.input;
   const resolvedOutputFormat = normalizedToolKey === 'youtube-description'
     ? 'markdown'
     : toOutputFormat(request.outputFormat);
+
+  const canonicalCopyLengthFormat = toCopyLengthFormat(_rawCopyLengthFormat);
 
   const enrichedInput = {
     ...inputRest,
     ...(canonicalStep ? { step: canonicalStep } : {}),
     ...(canonicalTone ? { tone: canonicalTone } : {}),
+    ...(canonicalCopyLengthFormat ? { copyLengthFormat: canonicalCopyLengthFormat } : {}),
     outputFormat: resolvedOutputFormat,
     ...(briefingId ? { briefingId } : {}),
     ...(extractionArtifactId ? { extractionArtifactId } : {}),

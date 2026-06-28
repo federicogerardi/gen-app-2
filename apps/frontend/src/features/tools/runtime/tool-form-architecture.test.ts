@@ -34,6 +34,8 @@ describe('getAvailableSteps', () => {
     expect(getToolRoute('meta_ads')).toBe('/tools/meta-ads');
     expect(getToolLabel('youtube_description')).toBe('YT Description Generator');
     expect(getToolRoute('youtube_description')).toBe('/tools/youtube-description');
+    expect(getToolLabel('geometric_analysis')).toBe('Geometric');
+    expect(getToolRoute('geometric')).toBe('/tools/geometric');
   });
 
   it('filters enabled tools by role using availability policy', () => {
@@ -43,6 +45,7 @@ describe('getAvailableSteps', () => {
       'angle-generator',
       'meta-ads',
       'youtube-description',
+      'geometric',
     ]);
     expect(getEnabledToolKeys('admin')).toEqual([
       'funnel-pages',
@@ -51,8 +54,11 @@ describe('getAvailableSteps', () => {
       'angle-generator',
       'meta-ads',
       'youtube-description',
+      'geometric',
     ]);
     expect(isToolEnabled('nextland', 'member')).toBe(false);
     expect(isToolEnabled('nextland', 'admin')).toBe(true);
+    expect(isToolEnabled('geometric', 'member')).toBe(true);
+    expect(isToolEnabled('geometric', 'admin')).toBe(true);
   });
 });

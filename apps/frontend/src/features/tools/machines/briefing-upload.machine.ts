@@ -1,5 +1,4 @@
 import { assign, fromPromise, setup, type ActorRefFrom } from 'xstate';
-import { appCopy } from '../../../app/copy/system';
 import type { BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import { isAllowedBriefingExtension } from '../../../app/runtime/shared-utils';
 import { runExtraction, uploadBrief } from '../runtime/tools-client';
@@ -27,7 +26,6 @@ export type BriefingUploadContext = {
   parsedFormat: 'txt' | 'md' | 'docx' | null;
   angleDetectorNormalizedText: string | null;
   angleDetectorParsedFormat: 'txt' | 'md' | 'docx' | null;
-  error: string | null;
 };
 
 export const hasReadyBriefingExtractionContext = (
@@ -83,15 +81,8 @@ type BriefingUploadEvent =
       normalizedText?: string | null;
       parsedFormat?: 'txt' | 'md' | 'docx' | null;
     }
+  | { type: 'RETRY' }
   | { type: 'RESET' };
-
-const readErrorMessage = (error: unknown, fallback: string): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return fallback;
-};
 
 const readUploadDoneOutput = (event: unknown): UploadBriefResult | null => {
   if (!event || typeof event !== 'object' || !('output' in event)) {
@@ -317,7 +308,6 @@ export const briefingUploadMachine = setup({
           parsedFormat: null,
           angleDetectorNormalizedText: null,
           angleDetectorParsedFormat: null,
-          error: null,
         };
       }
 
@@ -332,7 +322,6 @@ export const briefingUploadMachine = setup({
         parsedFormat: null,
         angleDetectorNormalizedText: null,
         angleDetectorParsedFormat: null,
-        error: null,
       };
     }),
     resetUploadState: assign(({ context }) => ({
@@ -348,7 +337,6 @@ export const briefingUploadMachine = setup({
       parsedFormat: null,
       angleDetectorNormalizedText: null,
       angleDetectorParsedFormat: null,
-      error: null,
     })),
     syncInput: assign(({ context, event }) => {
       if (event.type !== 'INPUT_SYNCED') {
@@ -394,7 +382,6 @@ export const briefingUploadMachine = setup({
         angleDetectorFileName: context.angleDetectorFileName,
         normalizedText: normalizedText ?? null,
         parsedFormat: event.parsedFormat ?? context.parsedFormat,
-        error: null,
       };
     }),
   },
@@ -419,7 +406,6 @@ export const briefingUploadMachine = setup({
     parsedFormat: null,
     angleDetectorNormalizedText: null,
     angleDetectorParsedFormat: null,
-    error: null,
   }),
   initial: 'idle',
   on: {
@@ -429,9 +415,11 @@ export const briefingUploadMachine = setup({
   },
   states: {
     idle: {
+      initial: 'clean',
       on: {
         FILE_SELECTED: {
           actions: 'cacheSelectedFile',
+          target: '.clean',
         },
         EXTRACTION_REQUESTED: {
           target: 'validating',
@@ -442,6 +430,17 @@ export const briefingUploadMachine = setup({
         },
         RESET: {
           actions: 'resetUploadState',
+          target: '.clean',
+        },
+      },
+      states: {
+        clean: {},
+        failed: {
+          on: {
+            RETRY: {
+              target: 'clean',
+            },
+          },
         },
       },
     },
@@ -453,9 +452,8 @@ export const briefingUploadMachine = setup({
         },
         {
           guard: ({ context }) => !!context.file && context.projectId.trim().length === 0,
-          target: 'idle',
+          target: 'idle.failed',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.projectRequired,
             file: () => null,
           }),
         },
@@ -469,17 +467,15 @@ export const briefingUploadMachine = setup({
             const requiresAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
             return requiresAngleDetector && !context.angleDetectorFile;
           },
-          target: 'idle',
+          target: 'idle.failed',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.requiredFilesMissing,
             angleDetectorNormalizedText: () => null,
             angleDetectorParsedFormat: () => null,
           }),
         },
         {
-          target: 'idle',
+          target: 'idle.failed',
           actions: assign({
-            error: () => appCopy.ui.toolPage.runtimeErrors.unsupportedBriefingFormat,
             file: () => null,
             fileName: () => null,
             angleDetectorFile: () => null,
@@ -491,7 +487,7 @@ export const briefingUploadMachine = setup({
       ],
       on: {
         RESET: {
-          target: 'idle',
+          target: 'idle.clean',
           actions: 'resetUploadState',
         },
       },
@@ -517,7 +513,6 @@ export const briefingUploadMachine = setup({
               if (!output) {
                 return {
                   ...context,
-                  error: appCopy.ui.toolPage.runtimeErrors.uploadFailed,
                   file: null,
                   fileName: null,
                 };
@@ -532,15 +527,13 @@ export const briefingUploadMachine = setup({
                 parsedFormat: output.parsedFormat,
                 angleDetectorNormalizedText: output.angleDetector?.normalizedText ?? null,
                 angleDetectorParsedFormat: output.angleDetector?.parsedFormat ?? null,
-                error: null,
               };
             }),
           },
           {
-            target: 'idle',
+            target: 'idle.failed',
             actions: assign(({ context }) => ({
               ...context,
-              error: appCopy.ui.session.unavailable,
               file: null,
               fileName: null,
               angleDetectorFile: null,
@@ -551,10 +544,9 @@ export const briefingUploadMachine = setup({
           },
         ],
         onError: {
-          target: 'idle',
-          actions: assign(({ context, event }) => ({
+          target: 'idle.failed',
+          actions: assign(({ context }) => ({
             ...context,
-            error: readErrorMessage((event as { error: unknown }).error, appCopy.ui.toolPage.runtimeErrors.uploadFailed),
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),
@@ -562,7 +554,7 @@ export const briefingUploadMachine = setup({
       },
       on: {
         RESET: {
-          target: 'idle',
+          target: 'idle.clean',
           actions: 'resetUploadState',
         },
       },
@@ -574,7 +566,7 @@ export const briefingUploadMachine = setup({
           actions: 'applyRecoveredExtraction',
         },
         RESET: {
-          target: 'idle',
+          target: 'idle.clean',
           actions: 'resetUploadState',
         },
       },
@@ -621,7 +613,6 @@ export const briefingUploadMachine = setup({
               if (!output) {
                 return {
                   ...context,
-                  error: appCopy.ui.toolPage.runtimeErrors.extractionFailed,
                   file: null,
                   fileName: null,
                   angleDetectorFile: null,
@@ -639,12 +630,11 @@ export const briefingUploadMachine = setup({
                   payload: output.payload,
                   campaignObjective: context.campaignObjective,
                 }),
-                error: null,
               };
             }),
           },
           {
-            target: 'idle',
+            target: 'idle.failed',
             actions: assign(({ context }) => ({
               ...context,
               file: null,
@@ -658,15 +648,13 @@ export const briefingUploadMachine = setup({
               extractionPayload: null,
               normalizedText: null,
               parsedFormat: null,
-                  error: appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient,
             })),
           },
         ],
         onError: {
-          target: 'idle',
-          actions: assign(({ context, event }) => ({
+          target: 'idle.failed',
+          actions: assign(({ context }) => ({
             ...context,
-            error: readErrorMessage((event as { error: unknown }).error, appCopy.ui.toolPage.runtimeErrors.extractionFailed),
             angleDetectorNormalizedText: null,
             angleDetectorParsedFormat: null,
           })),
@@ -676,14 +664,14 @@ export const briefingUploadMachine = setup({
     ready: {
       on: {
         FILE_SELECTED: {
-          target: 'idle',
+          target: 'idle.clean',
           actions: 'cacheSelectedFile',
         },
         EXTRACTION_REQUESTED: {
           target: 'validating',
         },
         RESET: {
-          target: 'idle',
+          target: 'idle.clean',
           actions: 'resetUploadState',
         },
       },

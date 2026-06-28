@@ -1,4 +1,4 @@
-# PROMPT META ADS - ADS GENERATION
+# PROMPT META ADS - ADS GENERATION (CLUSTER → ANGLE → AWARENESS SYSTEM)
 
 ## Step Key
 
@@ -10,11 +10,12 @@ Apply all constraints and methodology from prompt_root.md.
 
 ## Objective
 
-Generate production-ready Meta Ads assets from the context-generation output.
+Generate production-ready Meta Ads assets using the new cluster → angle → awareness system with user-controlled copy length formatting.
 
 ## Input
 
-- Context-generation artifact.
+- Context-generation artifact
+- User-selected copy length format: {{copy_length_format}}
 
 ## Output rules
 
@@ -22,111 +23,141 @@ Generate production-ready Meta Ads assets from the context-generation output.
 - Italian only (`it-IT`).
 - No JSON.
 - No code fences.
-- Use direct-response clarity.
+- Use direct-response clarity with narrative storytelling.
+- Incorporate spazi bianchi strategici for mobile readability in longer formats.
 
-## Mandatory contract
+## Copy Length Specifications
 
-- Produce exactly 3 variants: A, B, C.
-- For each variant include exactly 3 LF8 triggers.
-- For each variant include exactly 4 versions with these bands:
-	- very_short (40-60 words)
-	- short (60-90 words)
-	- medium (90-120 words)
-	- long (120-200 words)
-- Each version must include: headline, body, cta_option_1, cta_option_2.
-- Each variant must include visual_suggestion and targeting_suggestion.
+### SHORT FORM (400-600 caratteri)
+- Primary text: 400-600 caratteri
+- Hook entro primi 80 caratteri  
+- 1 pain point principale + 1 benefit chiave
+- CTA diretto senza troppo buildup
+- Struttura: Hook → Problem → Solution → CTA
 
-## Required output structure
+### MEDIUM FORM (800-1000 caratteri)
+- Primary text: 800-1000 caratteri
+- Hook entro primi 100 caratteri
+- 2 pain points + 2 benefits con evidenza sociale  
+- Storytelling contenuto ma persuasivo
+- Struttura: Hook → Problem → Agitate → Solution → Proof → CTA
 
-### VARIANT A - AWARENESS: [state]
-- lf8_triggers_used:
-- primary_psychological_trigger:
+### LONG FORM (1200+ caratteri)
+- Primary text: 1200+ caratteri minimum
+- Hook entro primi 125 caratteri per preview mobile
+- PAS completo con agitate forte e storytelling immersivo
+- Evidenza sociale + autorità + urgenza + meccanismo unico
+- Spazio bianco strategico ogni 3-4 righe per leggibilità mobile
+- Struttura: Hook → Story Setup → Problem → Agitate → Solution → Proof → Mechanism → CTA
 
-#### very_short (40-60 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+## Mandatory Contract
 
-#### short (60-90 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+Per ogni CLUSTER identificato nel context-generation:
+- Produrre tutti gli ANGOLI definiti per quel cluster
+- Per ogni ANGOLO produrre esattamente 3 VERSIONI per awareness level:
+  - **Problem Aware**: PAS completo (Problem-Agitate-Solve)
+  - **Solution Aware**: Focus differenziazione competitiva  
+  - **Product Aware**: Offerta diretta + prova sociale, PAS attenuato
 
-#### medium (90-120 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+## Required Output Structure
 
-#### long (120-200 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+# Libreria Copy Meta Ads ({{copy_length_format}} format)
 
-- visual_suggestion:
-- targeting_suggestion:
+Schema: Cluster → Angolo → versioni declinate per livello di consapevolezza
+Ogni Primary Text rispetta: {{copy_length_format}} specifications
 
-### VARIANT B - AWARENESS: [state]
-- lf8_triggers_used:
-- primary_psychological_trigger:
+Brand facts utilizzati in modo coerente: [Inserire brand facts dal Brand Facts Bank]
 
-#### very_short (40-60 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+**Nota lunghezza {{copy_length_format}}:** [Guidance specifica per il formato selezionato]
 
-#### short (60-90 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+---
 
-#### medium (90-120 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+## CLUSTER 1 — [Nome Cluster dal context-generation]
 
-#### long (120-200 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+[Breve descrizione del cluster: chi sono, cosa desiderano]
 
-- visual_suggestion:
-- targeting_suggestion:
+### Angolo 1 — [Nome Angolo]
 
-### VARIANT C - AWARENESS: [state]
-- lf8_triggers_used:
-- primary_psychological_trigger:
+**› Versione Problem Aware (PAS pieno)**
 
-#### very_short (40-60 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+**Primary Text**  
+[Copy che rispetta le specifiche di lunghezza selezionate - includere spazi bianchi se Long Form]
 
-#### short (60-90 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+**Headline:** [~40 caratteri]  
+**Description:** [~30 caratteri]
 
-#### medium (90-120 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+**› Versione Solution Aware (peso sulla differenziazione)**
 
-#### long (120-200 words)
-- headline:
-- body:
-- cta_option_1:
-- cta_option_2:
+**Primary Text**  
+[Copy che rispetta le specifiche di lunghezza selezionate]
 
-- visual_suggestion:
-- targeting_suggestion:
+**Headline:** [~40 caratteri]  
+**Description:** [~30 caratteri]
+
+**› Versione Product Aware (offerta + prova, PAS spento)**
+
+**Primary Text**  
+[Copy che rispetta le specifiche di lunghezza selezionate]
+
+**Headline:** [~40 caratteri]  
+**Description:** [~30 caratteri]
+
+### Angolo 2 — [Nome Angolo]
+
+[Ripetere struttura per ogni angolo del cluster]
+
+---
+
+## CLUSTER 2 — [Nome Cluster dal context-generation]
+
+[Ripetere struttura per ogni cluster identificato]
+
+---
+
+## Targeting Suggestions per Cluster
+
+**Cluster 1:**
+- Interessi:
+- Comportamenti:
+- Demografia:
+- Lookalike sources:
+
+**Cluster 2:**
+- Interessi:
+- Comportamenti:
+- Demografia:
+- Lookalike sources:
+
+## Visual Suggestions per Angolo
+
+**Cluster 1 - Angolo 1:**
+- Concept visivo:
+- Elementi da includere:
+- Tone emotivo:
+
+**Cluster 1 - Angolo 2:**
+- Concept visivo:
+- Elementi da includere:
+- Tone emotivo:
+
+[Continue per tutti gli angoli]
+
+## Psychological Triggers Matrix
+
+**Cluster 1:**
+- Primary triggers: [3 LF8 triggers più rilevanti]
+- Secondary triggers: [Ulteriori trigger psicologici]
+
+**Cluster 2:**
+- Primary triggers: [3 LF8 triggers più rilevanti]
+- Secondary triggers: [Ulteriori trigger psicologici]
+
+## Quality Assurance Checklist
+
+- [ ] Tutti i copy rispettano la lunghezza {{copy_length_format}} selezionata
+- [ ] Hook posizionati entro i limiti caratteri per preview mobile  
+- [ ] Brand facts utilizzati coerentemente across all copy
+- [ ] Spazi bianchi inseriti strategicamente (Long Form only)
+- [ ] Headlines e Descriptions entro limiti Meta Ads
+- [ ] Compliance verificata per settore/industria
+- [ ] CTA variano appropriatamente per awareness level

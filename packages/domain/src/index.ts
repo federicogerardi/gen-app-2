@@ -22,7 +22,7 @@
 // =====================================================================
 
 /** Artifact category — determines output handling, agent selection, and audit classification. */
-export const ARTIFACT_TYPES = ['content', 'seo', 'code', 'extraction'] as const;
+export const ARTIFACT_TYPES = ['content', 'seo', 'code', 'extraction', 'crawl', 'analysis'] as const;
 export type ArtifactType = (typeof ARTIFACT_TYPES)[number];
 
 // =====================================================================

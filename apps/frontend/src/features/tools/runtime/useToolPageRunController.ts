@@ -12,7 +12,7 @@ import type { FrontendGenerationStatus } from '../../generation/machines/fronten
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 
 type UseToolPageRunControllerArgs = {
@@ -28,7 +28,7 @@ type UseToolPageRunControllerArgs = {
   sourceArtifactId?: string | null;
   machineHydrationResult: HydrationResult | null;
   workspaceExtractionContext: GenerationProjectWorkspaceValue['extractionByProject'][string] | null;
-  briefingSnapshot: { context: { error: string | null; extractionArtifactId: string | null; extractionPayload: Record<string, unknown> | null; briefingId: string | null; normalizedText: string | null } };
+  briefingSnapshot: { context: { extractionArtifactId: string | null; extractionPayload: Record<string, unknown> | null; briefingId: string | null; normalizedText: string | null }; matches: any };
   effectiveBriefingFileName: string | null | undefined;
   resolvedBriefingId: string | null;
   resolvedNotes: string;
@@ -90,19 +90,30 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       briefingSnapshot,
       toolKey,
       hasSourceArtifact: sourceArtifact !== null,
-      directInputExtractionInfo: toolKey === 'youtube-description'
-        ? buildYoutubeDescriptionDirectInputExtractionInfo({
-          videoTitle: formState.videoTitle,
-          topic: formState.topic,
-          keywords: formState.keywords,
-          ctaText: formState.ctaText,
-          ctaLink: formState.ctaLink,
-          credentialsOrProof: formState.credentialsOrProof,
-          chaptersWithTimestamps: formState.chaptersWithTimestamps,
-          socialLinks: formState.socialLinks,
-          hashtags: formState.hashtags,
-        })
-        : null,
+      directInputExtractionInfo: (() => {
+        if (toolKey === 'youtube-description') {
+          return buildYoutubeDescriptionDirectInputExtractionInfo({
+            videoTitle: formState.videoTitle,
+            topic: formState.topic,
+            keywords: formState.keywords,
+            ctaText: formState.ctaText,
+            ctaLink: formState.ctaLink,
+            credentialsOrProof: formState.credentialsOrProof,
+            chaptersWithTimestamps: formState.chaptersWithTimestamps,
+            socialLinks: formState.socialLinks,
+            hashtags: formState.hashtags,
+          });
+        }
+        if (toolKey === 'geometric') {
+          return buildGeometricDirectInputExtractionInfo({
+            baseQuery: (formState as unknown as Record<string, string>).baseQuery ?? '',
+            language: (formState as unknown as Record<string, string>).language ?? '',
+            country: (formState as unknown as Record<string, string>).country ?? '',
+            brandName: (formState as unknown as Record<string, string>).brandName ?? '',
+          });
+        }
+        return null;
+      })(),
     });
     if (!extractionInfo) return false;
 

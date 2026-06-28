@@ -35,7 +35,7 @@ export const AdminModelsPage = () => {
   return (
     <AdminPageContainer
       title={appCopy.editorial.admin.modelsTitle}
-      description="Gestisci il catalogo dei modelli LLM disponibili e lo stato di esposizione nel selector frontend."
+      description={appCopy.ui.adminModels.toolbarDescription}
     >
 
       <AdminModelCreateForm
@@ -50,7 +50,7 @@ export const AdminModelsPage = () => {
       {loading ? <LoadingStateMessage>{appCopy.ui.states.loadingModels}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
       {!loading && !error && models.length === 0
-        ? <EmptyStateMessage>Nessun modello nel catalogo.</EmptyStateMessage>
+        ? <EmptyStateMessage>{appCopy.ui.states.emptyModelsList}</EmptyStateMessage>
         : null}
       {models.length > 0 ? (
           <LLMTable

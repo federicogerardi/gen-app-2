@@ -27,6 +27,14 @@ export const adminUserFormSchema = z.object({
       const parsed = Number(value);
       return Number.isFinite(parsed) && parsed >= 0;
     }, 'La quota mensile deve essere un numero >= 0'),
+  monthlyArtifactLimit: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value || !value.trim()) return true;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed >= 0;
+    }, 'Il limite artefatti deve essere un numero >= 0'),
 });
 
 export type AdminUserFormValues = {
@@ -35,6 +43,7 @@ export type AdminUserFormValues = {
   status: AuthUserStatus;
   password: string;
   monthlyQuota: string;
+  monthlyArtifactLimit: string;
 };
 
 export const createEmptyUserForm = (): AdminUserFormValues => ({
@@ -43,6 +52,7 @@ export const createEmptyUserForm = (): AdminUserFormValues => ({
   status: 'active',
   password: '',
   monthlyQuota: '',
+  monthlyArtifactLimit: '',
 });
 
 export const createEditUserForm = (user: AdminUser): AdminUserFormValues => ({
@@ -51,6 +61,7 @@ export const createEditUserForm = (user: AdminUser): AdminUserFormValues => ({
   status: user.status,
   password: '',
   monthlyQuota: typeof user.monthlyQuota === 'number' ? String(user.monthlyQuota) : '',
+  monthlyArtifactLimit: typeof user.monthlyArtifactLimit === 'number' ? String(user.monthlyArtifactLimit) : '',
 });
 
 export const parseOptionalNumber = (value: string): number | undefined => {

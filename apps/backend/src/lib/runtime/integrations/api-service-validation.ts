@@ -10,11 +10,12 @@ export type ApiServiceValidationInput = {
   label: string;
   baseUrl: string;
   resourcePath: string;
-  accessMode: 'public' | 'token';
+  accessMode: 'public' | 'token' | 'query-param';
   timeoutMs?: number;
   retryCount?: number;
   tokenRef?: string | null;
   tokenHeaderName?: string | null;
+  tokenParamName?: string | null;
 };
 
 export type ToolStepBindingValidationInput = {
@@ -159,8 +160,8 @@ export const validateToolStepBindingInput = (
     errors.push('stepKey must be 2-128 chars matching [a-zA-Z0-9:_-]');
   }
 
-  if (payload.workflowStepType !== undefined && payload.workflowStepType !== 'acquisition') {
-    errors.push('workflowStepType must be acquisition');
+  if (payload.workflowStepType !== undefined && payload.workflowStepType !== 'acquisition' && payload.workflowStepType !== 'crawling') {
+    errors.push('workflowStepType must be acquisition or crawling');
   }
 
   if (
@@ -229,8 +230,8 @@ export const validateApiServiceInput = (payload: ApiServiceValidationInput): str
     errors.push('resourcePath must start with /');
   }
 
-  if (payload.accessMode !== 'public' && payload.accessMode !== 'token') {
-    errors.push('accessMode must be public or token');
+  if (payload.accessMode !== 'public' && payload.accessMode !== 'token' && payload.accessMode !== 'query-param') {
+    errors.push('accessMode must be public, token, or query-param');
   }
 
   if (payload.timeoutMs !== undefined && (payload.timeoutMs < 100 || payload.timeoutMs > 120000)) {
@@ -243,6 +244,10 @@ export const validateApiServiceInput = (payload: ApiServiceValidationInput): str
 
   if (payload.accessMode === 'token' && (!payload.tokenRef || payload.tokenRef.trim().length === 0)) {
     errors.push('tokenRef is required when accessMode is token');
+  }
+
+  if (payload.accessMode === 'query-param' && (!payload.tokenRef || payload.tokenRef.trim().length === 0)) {
+    errors.push('tokenRef is required when accessMode is query-param');
   }
 
   errors.push(...validateTokenHeaderName(payload.tokenHeaderName));

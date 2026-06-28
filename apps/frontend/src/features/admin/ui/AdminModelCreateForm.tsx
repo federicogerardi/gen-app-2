@@ -25,13 +25,13 @@ export const AdminModelCreateForm = ({
 }: AdminModelCreateFormProps) => {
   return (
     <AdminModelFormShell
-      title="Nuovo modello"
-      subtitle="Aggiungi un modello al catalogo."
+      title={appCopy.ui.adminModels.createFormTitle}
+      subtitle={appCopy.ui.adminModels.createFormSubtitle}
       onSubmit={handleSubmit((data) => void onSubmit(data, () => reset({ key: '', label: '', status: 'enabled' })))}
       actions={(
         <>
           <MuiButton type="submit" variant="contained" disabled={busyAction === 'create'}>
-            {busyAction === 'create' ? 'Creazione...' : 'Crea modello'}
+            {busyAction === 'create' ? appCopy.ui.adminModels.createSavingLabel : appCopy.ui.adminModels.createSubmitLabel}
           </MuiButton>
           <MuiButton
             type="button"
@@ -47,9 +47,9 @@ export const AdminModelCreateForm = ({
 
       <div className="ui-admin-user-form-grid">
         <TextField
-          label="Key"
+          label={appCopy.ui.adminModels.fieldLabels.key}
           {...register('key')}
-          placeholder="es. openrouter/auto"
+          placeholder={appCopy.ui.adminModels.fieldLabels.placeholderKey}
           error={!!errors.key}
           helperText={errors.key?.message}
           fullWidth
@@ -57,9 +57,9 @@ export const AdminModelCreateForm = ({
         />
 
         <TextField
-          label="Label"
+          label={appCopy.ui.adminModels.fieldLabels.label}
           {...register('label')}
-          placeholder="Nome visualizzato"
+          placeholder={appCopy.ui.adminModels.fieldLabels.placeholderLabel}
           error={!!errors.label}
           helperText={errors.label?.message}
           fullWidth
@@ -68,13 +68,13 @@ export const AdminModelCreateForm = ({
 
         <TextField
           select
-          label="Status"
+          label={appCopy.ui.adminModels.fieldLabels.status}
           defaultValue="enabled"
           {...register('status')}
           fullWidth
         >
-          <MenuItem value="enabled">Enabled</MenuItem>
-          <MenuItem value="disabled">Disabled</MenuItem>
+          <MenuItem value="enabled">{appCopy.ui.statusLabels.enabled}</MenuItem>
+          <MenuItem value="disabled">{appCopy.ui.statusLabels.disabled}</MenuItem>
         </TextField>
       </div>
 

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 2.6
-last-reviewed: 2026-06-04
-next-review-date: 2026-09-03
+version: 3.1
+last-reviewed: 2026-06-27
+next-review-date: 2026-09-13
 owner: Domain Architecture
 ---
 
@@ -10,7 +10,7 @@ owner: Domain Architecture
 
 ## Context Overview
 - This document defines the canonical bounded contexts for the `gen-app-2` workspace.
-- Four bounded contexts identified: **Generation**, **Auth**, **Usage/Quota**, **Frontend/UI**.
+- Six bounded contexts identified: **Generation**, **Auth**, **Usage/Quota**, **Frontend/UI**, **Crawling & Extraction**, **Competitor Analysis**.
 - Relationships follow an **upstream → downstream** dependency model aligned with the XState actor tree.
 
 ---
@@ -23,6 +23,8 @@ owner: Domain Architecture
 | **Auth** | Manages identity: user registration, session lifecycle, role assignment, OAuth linking, and password credentials. | Upstream of: Generation (provides `userId`, `role`), Usage/Quota (provides `userId` for quota lookup), Frontend/UI (drives auth state in machines). |
 | **Usage/Quota** | Tracks and enforces per-user generation limits. Records immutable audit history per generation attempt. | Upstream of: Generation (grants/rejects via `UsageDecision`). Downstream of: Auth (scoped by `userId`). |
 | **Frontend/UI** | Manages the tool generation page session, step flow, briefing upload, readiness computation, and artifact history hydration. | Downstream of: Generation (consumes `BackendStreamEvent`), Auth (drives session-aware routing), Usage/Quota (displays quota state). |
+| **Crawling & Extraction** | Orchestrates asynchronous web crawling, SERP scraping, anti-bot bypass, screenshot capture, and structured data extraction from search engine results. | Upstream of: Generation (provides raw extraction data via `WorkflowStepType = 'crawling'`), Competitor Analysis (provides `QueryExtraction` data). Downstream of: Auth (requires authenticated principal), Usage/Quota (gated by quota). |
+| **Competitor Analysis** | Groups raw extraction data, identifies unique competitor domains, classifies source types, computes weighted `GeoScore` values, and assigns `CompetitorTier` classifications. | Upstream of: Generation (provides scoring data for LLM reporting via `WorkflowStepType = 'scoring'`). Downstream of: Crawling & Extraction (consumes `QueryExtraction` data). |
 
 ---
 
@@ -41,9 +43,9 @@ owner: Domain Architecture
 - `extractionChainMachine` — structured extraction fallback
 - `acquisitionChainMachine` — backend acquisition-step actor baseline for API-backed context retrieval
 
-**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `ToolKey`, `ToolInputSource` (provisional), `WorkflowStepType` (canonical, DDD-101), `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`, `LlmModel`, `LlmModelStatus`, `LlmModelCatalog`, `LlmModelId`, `ApiService` (canonical, DDD-102), `ApiServiceAccessMode` (canonical, DDD-103), `tokenHeaderName` (canonical, DDD-104), `ApiServiceCatalog` (provisional), `OwnershipAdapter` (provisional — target type for TASK-002, not yet in `generation.adapters.ts`), `ArtifactCoherenceDiagnostic` (provisional), `ArtifactCoherenceScore` (provisional), `ArtifactCoherenceMismatch` (provisional), `CTAProgressionTarget` (provisional), `CoherenceSeverityLevel` (provisional), `ReadinessQualityGate` (provisional), `ReadinessQualityThresholdByTool` (provisional), `CoherenceDiagnosticReasonCode` (provisional), `ReadinessQualityReasonCode` (provisional), `CoherenceReasonCodePolicyByTool` (provisional), `ReadinessQualityReasonCodePolicyByTool` (provisional), `ArtifactOutcomeStatus` (provisional), `ArtifactOutcomeRecord` (provisional), `ArtifactComparisonSet` (provisional), `ArtifactLearningFeedbackLoop` (provisional)
+**Key Entities/Value Objects**: `Artifact`, `ArtifactType`, `ArtifactStatus`, `ArtifactFailureReason`, `GenerationRequest`, `RequestId`, `ToolWorkflow`, `ToolKey`, `ToolInputSource` (provisional), `WorkflowStepType` (canonical, DDD-101; extended with `crawling` and `scoring` per DDD-116), `OutputFormat`, `ContentBuffer`, `WorkflowRunMode`, `WorkflowStep`, `WorkflowStepStatus`, `RegistryVersion`, `RegistrySnapshotRef`, `LlmUsageMetrics`, `IdempotencyKey`, `IdempotencyDecision`, `LlmModel`, `LlmModelStatus`, `LlmModelCatalog`, `LlmModelId`, `ApiService` (canonical, DDD-102), `ApiServiceAccessMode` (canonical, DDD-103), `tokenHeaderName` (canonical, DDD-104), `ApiServiceCatalog` (provisional), `OwnershipAdapter` (provisional — target type for TASK-002, not yet in `generation.adapters.ts`), `ArtifactCoherenceDiagnostic` (provisional), `ArtifactCoherenceScore` (provisional), `ArtifactCoherenceMismatch` (provisional), `CTAProgressionTarget` (provisional), `CoherenceSeverityLevel` (provisional), `ReadinessQualityGate` (provisional), `ReadinessQualityThresholdByTool` (provisional), `CoherenceDiagnosticReasonCode` (provisional), `ReadinessQualityReasonCode` (provisional), `CoherenceReasonCodePolicyByTool` (provisional), `ReadinessQualityReasonCodePolicyByTool` (provisional), `ArtifactOutcomeStatus` (provisional), `ArtifactOutcomeRecord` (provisional), `ArtifactComparisonSet` (provisional), `ArtifactLearningFeedbackLoop` (provisional), `AnalysisSession` (provisional, DDD-113), `QueryCluster` (provisional, DDD-118), `BaseQuery` (provisional, DDD-118), `PAAQuery` (provisional, DDD-118), `CrawlArtifact` (provisional, DDD-122), `ScoringArtifact` (provisional, DDD-121/DDD-124), `StrategicReport` (provisional, DDD-120), `UnifiedReport` (provisional, DDD-120)
 
-**Organizing concept**: `Tool` (DDD-026) is the top-level domain concept. Each Tool is a named capability that chains `WorkflowStep`s of typed execution strategies (`WorkflowStepType`: `extraction`, `generation`, `acquisition`) over structured user input to produce `Artifact`s. Generation context is the runtime owner of Tool execution; Frontend context is the interaction owner.
+**Organizing concept**: `Tool` (DDD-026) is the top-level domain concept. Each Tool is a named capability that chains `WorkflowStep`s of typed execution strategies (`WorkflowStepType`: `extraction`, `generation`, `acquisition`, `crawling`, `scoring`) over structured user input to produce `Artifact`s. Generation context is the runtime owner of Tool execution; Frontend context is the interaction owner. The GEOMETRIC tool (DDD-117) introduces two new step types (`crawling`, `scoring`) that delegate execution to the Crawling & Extraction and Competitor Analysis contexts respectively, while the reporting step uses the existing `generation` step type.
 
 **Runtime evidence (ApiService rollout baseline)**:
 - Persistence: `packages/infra-db/migrations/20260524_000011_api_service_catalog.sql`
@@ -77,13 +79,15 @@ owner: Domain Architecture
 
 ### Usage/Quota Context
 **Key Entities**: `QuotaHistory`, `Project`  
-**Key Value Objects**: `MonthlyQuota`, `MonthlyUsed`, `QuotaEventStatus`, `UsageDecision`  
-**Key Commands**: `ClaimUsage`
+**Key Value Objects**: `CreditQuota` (alias for `MonthlyQuota` redefined as credits, DDD-137), `MonthlyCreditsUsed` (replaces `MonthlyUsed`, DDD-138), `CreditCost` (per-tool credit cost, DDD-139), `ArtifactGateLimit` (invisible monthly artifact limit, DDD-140), `ArtifactGateUsed` (invisible artifact counter, DDD-140), `QuotaEventStatus`, `UsageDecision`  
+**Key Commands**: `ClaimUsage` (verifies gate + credits without consuming, DDD-143), `ConsumeCredits` (post-SUCCESS credit consumption, DDD-141), `RecordArtifactSuccess` (post-SUCCESS artifact gate increment, DDD-142)
 
 **Integration points**:
-- Redis is the primary store for real-time quota enforcement (atomic decrement via `RedisQuotaRepository`).
+- Redis is the primary store for real-time quota enforcement (atomic check via `RedisQuotaRepository`).
 - PostgreSQL stores `quota_history` for audit and billing. Infrastructure parameter `PG_POOL_MAX` is configurable to tune connection pool sizing per deployment environment.
 - `Project` is shared with Generation (artifact scoping) — see Shared Concepts below.
+- Credits are verified pre-generation via `ClaimUsage` but consumed post-SUCCESS via `ConsumeCredits`. Artifact gate is incremented post-SUCCESS via `RecordArtifactSuccess`.
+- `ArtifactGateLimit` and `ArtifactGateUsed` are invisible to users — API responses do not expose these values.
 
 ---
 
@@ -96,7 +100,7 @@ owner: Domain Architecture
 - `frontendStreamMachine` — SSE stream consumer
 
 **Key Entities**: `ProductChangelog`, `UserReport`  
-**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `ToolAvailabilityStatus`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`, `LlmModelSelector`, `FeedbackChannel`, `PageStateMessage`, `GlobalFeedbackMessage`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `GitHubIssueLink`, `ArtifactCoherenceDiagnostic` (provisional projection), `ArtifactCoherenceScore` (provisional projection), `ArtifactCoherenceMismatch` (provisional projection), `CTAProgressionTarget` (provisional projection), `CoherenceSeverityLevel` (provisional projection), `ReadinessQualityGate` (provisional projection), `ReadinessQualityThresholdByTool` (provisional projection), `CoherenceDiagnosticReasonCode` (provisional projection), `ReadinessQualityReasonCode` (provisional projection), `CoherenceReasonCodePolicyByTool` (provisional projection), `ReadinessQualityReasonCodePolicyByTool` (provisional projection), `ArtifactOutcomeStatus` (provisional projection), `ArtifactOutcomeRecord` (provisional projection), `ArtifactComparisonSet` (provisional projection)  
+**Key Value Objects**: `ToolPageViewModel`, `ReadinessSnapshot`, `ReadinessReasonCode`, `CanonicalToolUiState`, `PrimaryActionPolicy`, `SecondaryActionFlags`, `ToolAvailabilityStatus`, `SupportedTool`, `ToolStep`, `ToolStepStatus`, `BriefingFile`, `ExtractionContext`, `HydrationResult`, `GenerationArtifact`, `LlmModelSelector`, `FeedbackChannel`, `PageStateMessage`, `GlobalFeedbackMessage`, `ProductChangelogStatus`, `UserReportCategory`, `UserReportStatus`, `GitHubIssueLink`, `ArtifactCoherenceDiagnostic` (provisional projection), `ArtifactCoherenceScore` (provisional projection), `ArtifactCoherenceMismatch` (provisional projection), `CTAProgressionTarget` (provisional projection), `CoherenceSeverityLevel` (provisional projection), `ReadinessQualityGate` (provisional projection), `ReadinessQualityThresholdByTool` (provisional projection), `CoherenceDiagnosticReasonCode` (provisional projection), `ReadinessQualityReasonCode` (provisional projection), `CoherenceReasonCodePolicyByTool` (provisional projection), `ReadinessQualityReasonCodePolicyByTool` (provisional projection), `ArtifactOutcomeStatus` (provisional projection), `ArtifactOutcomeRecord` (provisional projection), `ArtifactComparisonSet` (provisional projection), `GeometricExport` (provisional, DDD-123 — FE-only download operation for GEOMETRIC `UnifiedReport`)  
 **Key Policies**: `IssuePublicationPolicy`  
 **Key Domain Services**: `BriefingUpload`  
 **Client-Side Projections**: `StepHydration` (projects BE-owned `WorkflowStep` state into FE context; does not own domain logic — see DDD-028)
@@ -108,6 +112,60 @@ owner: Domain Architecture
 **UI state flags**: `isFormLocked` — boolean flag on `ToolPage` aggregate that gates form mutability during active generation or pending dispatch; prevents concurrent input while step execution is in progress.
 
 **Organizing concept**: `SupportedTool` is the Frontend-layer projection of `ToolKey` (DDD-029, cross-context canonical). Frontend owns the interaction layer of a Tool: input intake, step selection, readiness check, and artifact display. `ToolAvailabilityStatus` governs whether a `SupportedTool` is exposed in navigation, dashboard shortcuts, and generated tool routes without changing identity. `ToolFormKey` (`keyof typeof toolFormRegistry`) is the FE form registry implementation type — not a domain term.
+
+---
+
+### Crawling & Extraction Context
+**Aggregate Root**: `CrawlingJob` (renamed from `ExtractionJob` — DDD-C-015)
+**Key Entities**: `QueryExtraction`  
+**Key Value Objects**: `SerpScreenshot`, `CrawlingResult`, `SerpSource`, `SerpSourceType`, `SerpAIOverview`, `SerpAIOverviewSnippet`
+
+**Responsibility**: Orchestrates asynchronous web crawling, SERP scraping, anti-bot bypass (stealth drivers), screenshot capture, and structured data extraction from search engine results. This context is responsible for the technical concerns of web automation (geolocation, language parameters, anti-bot countermeasures) that are distinct from the LLM-driven extraction handled by `ExtractionChain` in the Generation context.
+
+**Crawling channels** (DDD-129): The crawling step (`WorkflowStepType = 'crawling'`) obtains data via the SerpApi API channel:
+1. **API channel** (SerpApi via `ApiService`): `executeApiAcquisition()` calls the configured SerpApi provider through the existing `ApiService` system (DDD-102). Returns structured JSON data with AI Overview, sources, and PAA queries. Does **not** produce screenshots.
+
+The SerpApi channel is configured via `SERP_API_SERVICE_ID` and `SERP_API_KEY` environment variables. If unset, the crawling step fails with `CRAWLING_FAILED`. The `ApiService` binding uses `workflowStepType = 'crawling'`.
+
+**Integration points**:
+- Upstream of Generation: provides raw extraction data through `WorkflowStepType = 'crawling'` (DDD-116), which is a reusable step type within the Generation context's step orchestration.
+- Upstream of Competitor Analysis: provides `QueryExtraction` entities containing parsed sources, AI Overview text, and screenshots.
+- Downstream of Auth: requires authenticated principal (`userId`) to scope extraction jobs to a user's projects.
+- Downstream of Usage/Quota: extraction jobs are gated by quota availability (each analysis session consumes quota).
+- Downstream of ApiServiceCatalog: API channel resolution uses persisted `ApiService` definitions (DDD-102, DDD-129).
+
+**Key Events**: `ExtractionJobCompleted` (emitted when all queries in a `QueryCluster` have been extracted), `ExtractionJobFailed` (emitted when crawling/extraction fails).
+
+**Runtime actors**: `crawlingChainMachine` handles the asynchronous crawling workflow via SerpApi API channel. See DDD-114.
+
+**Status**: **Provisional** — context defined; runtime implementation pending. See DDD-114.
+
+---
+
+### Competitor Analysis Context
+**Aggregate Root**: `CompetitorRanking`  
+**Key Entities**: `Competitor`  
+**Key Value Objects**: `GeoScore`, `CompetitorTier` (internal to this context — not shared via contracts)
+
+**Responsibility**: Groups raw extraction data from a `QueryCluster`, identifies unique competitor domains, classifies sources by type (`ORGANIC_WEBSITE`, `SPONSORED_ADS`, `YOUTUBE_VIDEO`, `SOCIAL_MEDIA`, `UGC_COMMUNITY`), computes weighted `GeoScore` values using a deterministic point system (organic: +3.0, sitelink: +2.0, video: +2.0, sponsored: +1.5), normalizes scores to 1-10 scale, and assigns `CompetitorTier` classifications (`TIER_1`, `TIER_2`, `TIER_3`).
+
+**Scoring rules**:
+- Organic presence: +3.0 points per query
+- Presence with Sitelink: +2.0 points per query
+- Presence in Video block (YouTube): +2.0 points per query
+- Presence in Sponsored box (Ads): +1.5 points per query
+- Final normalization to 1-10 scale
+
+**Integration points**:
+- Downstream of Crawling & Extraction: consumes `QueryExtraction` data (sources, AI Overview text) to compute competitor rankings.
+- Upstream of Generation: provides `CompetitorRanking` data through `WorkflowStepType = 'scoring'` (DDD-116), which feeds the LLM reporting step with quantitative competitor analysis.
+- `GeoScore` and `CompetitorTier` are **internal to this context** — they are not exposed via `packages/contracts` and must not be referenced by Frontend/UI or other contexts by name. Frontend may display score/tier values through read-model projections without importing the domain types.
+
+**Key Events**: `CompetitorRankingComputed` (emitted when scoring is complete for an `AnalysisSession`).
+
+**Runtime actors**: Pending implementation. Target architecture includes a `scoringChainMachine` that handles competitor grouping, source classification, score computation, and tier assignment.
+
+**Status**: **Provisional** — context defined; runtime implementation pending. See DDD-115, DDD-119.
 
 ---
 
@@ -139,7 +197,7 @@ owner: Domain Architecture
 | `GenerationRequestAssembly` | Frontend/UI → Generation | Generation (output) | **Provisional** — Application-Layer process that translates accumulated FE session state (`HydrationResult` + `ExtractionContext` + selected `ToolStep`) into a well-formed `GenerationRequest`. Content step dispatch implemented in `apps/frontend/src/features/tools/runtime/useToolPage.ts:431-453`; extraction request assembly in `apps/frontend/src/features/tools/runtime/tools-client.ts:155-180`. Frontend executes the process; Generation owns the output command. See DDD-032. |
 | `ToolWorkflowPersistenceMetadata` | Generation | Frontend/UI | Written by BE at artifact creation time (`buildToolWorkflowPersistenceMetadata` in `generation-system.machine.ts`); stored in the artifact input JSON under the `toolWorkflow` key. Consumed by FE `StepHydration` to reconstruct step context for resume/regenerate flows. Carries `ArtifactRole`, `WorkflowRunMode`, `stepKey`, `WorkflowStepBootstrap` (resume point), dependency artifact IDs. Frontend is read-only consumer — must not write to this object. See DDD-034, DDD-037. |
 | `WorkflowStepBootstrap` | Generation | Frontend/UI, Generation (internal) | Shape: `{ stepKey, output, artifactId }`. Injected into `ToolWorkflowMachine` at resume/regenerate dispatch time to specify the resume starting point and prior step completion state. Generated by `ToolWorkflowPersistenceMetadata` hydration (`StepHydration` FE) and injected by BE when constructing `ToolWorkflowInput`. See DDD-037. |
-| `Tool` | all | all | Cross-context organizing concept (DDD-026). Frontend expresses Tool identity as `SupportedTool`; Generation routes via `ToolWorkflow`; `ToolKey` is the cross-context canonical identifier expressed in both layers — `SupportedTool` (Frontend) and `toolKey` field in `GenerationRequest` (Generation). No value translation at the boundary — `SupportedTool` and `ToolKey` values are identical (kebab-case). `WorkflowStepType` classifies step execution strategies within a Tool's chain (`extraction`, `generation`, `acquisition`), with backend baseline implemented and progressive FE rollout by tool configuration. |
+| `Tool` | all | all | Cross-context organizing concept (DDD-026). Frontend expresses Tool identity as `SupportedTool`; Generation routes via `ToolWorkflow`; `ToolKey` is the cross-context canonical identifier expressed in both layers — `SupportedTool` (Frontend) and `toolKey` field in `GenerationRequest` (Generation). No value translation at the boundary — `SupportedTool` and `ToolKey` values are identical (kebab-case). `WorkflowStepType` classifies step execution strategies within a Tool's chain (`extraction`, `generation`, `acquisition`, `crawling`, `scoring`), with backend baseline implemented and progressive FE rollout by tool configuration. The GEOMETRIC tool (DDD-117) uses `crawling` and `scoring` step types that delegate to the Crawling & Extraction and Competitor Analysis contexts. |
 | `FeedbackChannel` (`inline-action`, `page-state`, `global`) | Frontend/UI | Frontend/UI | Frontend feedback ownership is deterministic by channel: `inline-action` for action-scoped messages (`DispatchError`, field/form failures), `page-state` for query/list lifecycle (`LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`), `global` for cross-page mutation outcomes (`GlobalFeedbackMessage`, provisional). Channel mapping prevents overlap where one concern is rendered by multiple message systems. See DDD-063. |
 | `UserReport` -> `GitHubIssueLink` | Frontend/UI | Frontend/UI | `UserReport` remains the local source of truth even when escalation publishes an external GitHub issue. `GitHubIssueLink` is an attached integration projection (`repository`, `issueNumber`, `issueUrl`) and does not replace local report identity. See DDD-065. |
 | `IssuePublicationPolicy` | Frontend/UI | Frontend/UI | `UserReportCategory = issue` and `feature-request` are eligible for GitHub publication. Category `other` remains a local backlog item. See DDD-065. |
@@ -152,6 +210,16 @@ owner: Domain Architecture
 | `ReadinessQualityGate` / `ReadinessQualityThresholdByTool` | Generation | Frontend/UI | Quality-gated readiness is evaluated against Generation-owned threshold semantics. Frontend/UI projects pass/fail and typed reason codes in `ReadinessSnapshot`; thresholds remain map-driven and centrally governed. See DDD-097. |
 | `CoherenceDiagnosticReasonCode` / `ReadinessQualityReasonCode` / `CoherenceReasonCodePolicyByTool` / `ReadinessQualityReasonCodePolicyByTool` | Generation | Frontend/UI | Generation owns canonical reason-code sets and per-tool reason mapping policies. Frontend/UI consumes these policies and projects reason codes without redefining or forking literals locally. Contract-first rule applies: reason-code maps are defined before runtime branching. See DDD-099. |
 | `ArtifactOutcomeStatus` / `ArtifactOutcomeRecord` / `ArtifactComparisonSet` / `ArtifactLearningFeedbackLoop` | Generation | Frontend/UI | Scope is domain-wide across all Artifact-producing workflows. Generation owns persistence semantics, status value set, and advisory consumption; Frontend/UI owns entry UX, filtering, and comparative visualization. See DDD-098. |
+| `AnalysisSession` → `SessionSummary` | Generation | Frontend/UI | `AnalysisSession` groups artifacts from a multi-query analysis cycle (GEOMETRIC tool). Frontend consumes the same `SessionSummary` projection used for `GenerationSession` — the aggregate-listing contract (`GET /api/tools/sessions`) returns both session types uniformly. See DDD-113. |
+| `QueryCluster` / `BaseQuery` / `PAAQuery` | Generation | Crawling & Extraction | `QueryCluster` is generated by Generation at `AnalysisSession` creation and passed to Crawling & Extraction as the input for the crawling step. Crawling & Extraction returns `QueryExtraction` entities per query in the cluster, each producing a `CrawlArtifact`. See DDD-118. |
+| `CrawlArtifact` → `CompetitorRanking` | Crawling & Extraction | Competitor Analysis | Crawling & Extraction produces `CrawlArtifact` entities (content: `SerpAIOverviewSnippet` texts, `SerpSource` list, `SerpScreenshot` paths). Competitor Analysis consumes this data to compute `CompetitorRanking` with `GeoScore` and `CompetitorTier`, producing a `ScoringArtifact`. See DDD-114, DDD-115, DDD-122. |
+| `AnalysisSessionIdentifier` | Generation | Crawling & Extraction | `AnalysisSessionIdentifier` is generated by Frontend before the first `serp-crawling` dispatch and passed to all subsequent steps in the same analysis cycle. Distinct from `WorkflowSessionIdentifier` (DDD-047) — scoped to `(userId, projectId, toolKey, baseQuery, language, country, createdAt)` and stable through the dynamic `QueryCluster` expansion phase. See DDD-127. |
+| `AnalysisSessionSummary` | Generation | Frontend/UI | `AnalysisSession` listing projection for GEOMETRIC tool. Shape includes `baseQuery`, `language`, `country` in addition to the base `SessionSummary` fields. Endpoint: `GET /api/tools/sessions?toolKey=geometric` returns `AnalysisSessionSummary[]`. Not interchangeable with `SessionSummary` (standard tools). See DDD-128. |
+| `ScoringArtifact` → `StrategicReport` / `UnifiedReport` | Competitor Analysis | Generation | The `competitor-scoring` step persists `CompetitorRanking` data as a `ScoringArtifact` (`ArtifactType = 'analysis'`). Generation's `strategic-reporting` and `unified-report` steps consume this artifact content via `stepDependencyArtifactIds` — they read the serialized JSON payload, not the internal `GeoScore`/`CompetitorTier` TypeScript types. **Type-system boundary**: `GeoScore` and `CompetitorTier` types stay inside `CompetitorAnalysisContext`; **runtime data boundary**: the computed values cross the boundary as artifact content JSON. This is the canonical resolution of audit finding C-001 (DDD-124). See DDD-115, DDD-120, DDD-124. |
+| `WorkflowStepType = 'crawling'` | Generation | Crawling & Extraction | Generation orchestrates the crawling step via `WorkflowStepType = 'crawling'` (DDD-116). The actual crawling execution is delegated to the Crawling & Extraction context through a crawling chain actor. The crawling step obtains data through the SerpApi API channel via `ApiService` (DDD-129). See DDD-114, DDD-116, DDD-129. |
+| `SERP API Response` → `CrawlArtifact` | ApiService (Generation) | Crawling & Extraction | SerpApi providers return structured JSON (`organic_results[]`, `answer_box`, `related_questions[]`). The Crawling & Extraction context normalizes this to domain concepts: `organic_results[].title` → `SerpSource.title`, `organic_results[].link` → `SerpSource.url`, `organic_results[].snippet` → `SerpSource.snippet`, `answer_box.snippet` → `SerpAIOverviewSnippet`, `related_questions[].question` → `PAAQuery`. Screenshot is not produced by SerpApi. See DDD-129.
+| `WorkflowStepType = 'scoring'` | Generation | Competitor Analysis | Generation orchestrates the scoring step via `WorkflowStepType = 'scoring'` (DDD-116). The actual scoring computation is delegated to the Competitor Analysis context through a scoring chain actor. See DDD-115, DDD-116. |
+| `ArtifactType = 'analysis'` | Generation | Frontend/UI | GEOMETRIC produces artifacts with `ArtifactType = 'analysis'` (DDD-121). Frontend consumes these through the same artifact history and session detail contracts as other artifact types. The `UnifiedReport` is the terminal artifact with `artifactRole = 'final'`. See DDD-120, DDD-121. |
 
 ---
 
@@ -179,7 +247,7 @@ owner: Domain Architecture
 | `WorkflowStepUnlocked` / `WorkflowStepCompleted` (internal progression) | Generation | Generation (internal) | Internal domain events in `toolWorkflowMachine` that represent step state progression: unlock signals dependency satisfaction; completion signals step output ready and unblocks dependents. Do not cross process boundary. Fundamental to multi-step deterministic execution. See DDD-035, DDD-036. | DDD-035, DDD-036 |
 | Frontend route namespace separation (`artifacts` vs `sessionsummary`) | Frontend/UI ↔ Generation | Route ownership must be deterministic: non-aggregated artifact history and single generation detail stay under `/artifacts` and `/artifacts/{artifactId}`; session aggregate navigation stays under `/sessionsummary` and `/sessionsummary/{sessionId}`. Backend endpoint contracts remain `/api/artifacts` for artifact history/detail and `/api/tools/sessions` (+ detail endpoints) for session aggregates. Transitional overload `/artifacts/{sessionId}` is deprecated and must not be promoted. | DDD-052 |
 | `LlmModelCatalog` admin CRUD role gate | Frontend/UI → Generation | Write operations on `LlmModelCatalog` (`POST/PUT/DELETE /api/admin/models`) require `AuthUserRole = 'admin'`. Read operations (`GET /api/models`) return `enabled` entries only for all authenticated users. Frontend `LlmModelSelector` must fall back to default `LlmModelId` (`openrouter/auto`) when the catalog endpoint is unavailable. | DDD-053, DDD-055, DDD-057 |
-| `ApiServiceCatalog` admin CRUD role gate | Frontend/UI → Generation | Write operations on `ApiServiceCatalog` must require `AuthUserRole = 'admin'`. Tool execution reads may consume enabled service definitions read-only, but `ApiServiceAccessMode = token` must be resolved at the backend boundary so raw token credentials are never owned by Frontend/UI runtime. | DDD-087 |
+| `ApiServiceCatalog` admin CRUD role gate | Frontend/UI → Generation | Write operations on `ApiServiceCatalog` must require `AuthUserRole = 'admin'`. Tool execution reads may consume enabled service definitions read-only, but `ApiServiceAccessMode` authentication (including `'query-param'` mode with `tokenParamName`) must be resolved at the backend boundary so raw token credentials are never owned by Frontend/UI runtime. See DDD-087, DDD-130. | DDD-087, DDD-130 |
 | `ToolAvailabilityStatus` role gate | Frontend/UI → Generation | FE discovery and BE execution must both evaluate tri-state `ToolAvailabilityStatus` with role-aware semantics. `enabled-for-admin-only` is admin-only in both layers; direct member calls to tool endpoints are rejected with canonical `403 forbidden` error envelope. | DDD-093 |
 | `tokenHeaderName` token injection precedence | Frontend/UI → Generation | `tokenHeaderName` may be configured in admin payloads but runtime token placement is backend-owned. If unset, outbound calls use `Authorization: Bearer <token>`; if set/valid, token is injected in `headers[tokenHeaderName]` exactly once and overrides same-name key from `requestHeadersTemplateJson`; non-colliding template headers are preserved. | DDD-092 |
 | `FeedbackChannel` routing and ownership | Frontend/UI | Frontend must map user feedback deterministically by channel. `DispatchError` remains `inline-action` in Tool Workspace Page setup area; Data Table and page query states remain `page-state` via `PageStateMessage`; `global` channel is reserved for cross-page mutation outcomes (`GlobalFeedbackMessage`, provisional) and must not replace `inline-action` or `page-state` rendering. | DDD-063 |
@@ -190,3 +258,13 @@ owner: Domain Architecture
 | Quality-gated readiness contract | Frontend/UI ↔ Generation | `ReadinessQualityGate` evaluation is deterministic and map-driven by `ReadinessQualityThresholdByTool`. FE renders gate state/reason codes; BE remains authority for threshold interpretation and gate outcome semantics. | DDD-097 |
 | Reason-code map contract-first gate | Frontend/UI ↔ Generation | `CoherenceDiagnosticReasonCode` / `ReadinessQualityReasonCode` and their per-tool maps (`CoherenceReasonCodePolicyByTool`, `ReadinessQualityReasonCodePolicyByTool`) must be registered in contracts/docs before FE/BE runtime control-flow branches are added or changed. Runtime must consume existing map policies, not invent local literals first. | DDD-099 |
 | Artifact outcome loop (domain-wide) | Frontend/UI ↔ Generation | `ArtifactOutcomeStatus` and `ArtifactOutcomeRecord` apply to all Artifact-producing workflows, not only `meta-ads`. `ArtifactLearningFeedbackLoop` may provide orchestration advisories but must not silently mutate historical outcomes. | DDD-098 |
+| GEOMETRIC `AnalysisSession` grouping | Generation | `AnalysisSession` groups artifacts from a multi-query analysis cycle (one `BaseQuery` + up to four `PAAQuery` entries). It is a parallel aggregate root to `GenerationSession` with different grouping semantics — `GenerationSession` groups by Tool step chain, `AnalysisSession` groups by query cluster. Both are queryable through the same session listing contract. | DDD-113 |
+| GEOMETRIC step sequence | Frontend/UI → Generation | Canonical 4-step BE sequence for `ToolKey = geometric` (DDD-123): `serp-crawling` (`WorkflowStepType = 'crawling'`, `ArtifactType = 'crawl'`, `ArtifactRole = 'step'`) → `competitor-scoring` (`WorkflowStepType = 'scoring'`, `ArtifactType = 'analysis'`, `ArtifactRole = 'step'`) → `strategic-reporting` (`WorkflowStepType = 'generation'`, `ArtifactType = 'analysis'`, `ArtifactRole = 'step'`, depends on `serp-crawling` + `competitor-scoring`) → `unified-report` (`WorkflowStepType = 'generation'`, `ArtifactType = 'analysis'`, `ArtifactRole = 'final'`, depends on `strategic-reporting` + `competitor-scoring`). Export (`GeometricExport`) is a **Frontend-only download operation** — not a `WorkflowStep`, produces no backend `Artifact`. | DDD-116, DDD-117, DDD-123 |
+| `GeoScore` / `CompetitorTier` context boundary | Competitor Analysis | `GeoScore` and `CompetitorTier` are internal to the CompetitorAnalysis bounded context. They must not be exposed via `packages/contracts` and must not be referenced by Frontend/UI or other contexts by name. Frontend may display score/tier values through read-model projections (e.g., numeric display, tier badge) without importing the domain types. | DDD-119 |
+| GEOMETRIC direct-input policy | Frontend/UI → Generation | `ToolKey = geometric` uses `ToolInputSourceFamily = 'direct-input'` exclusively — no `BriefingFile`, no `ApiService` acquisition. Required fields: `base_query`, `language`, `country` (`always-required`). `ReadinessSnapshot.hasExtractionContext` is satisfied when all three fields carry non-empty values. `GenerationRequest.input` for the crawling step forwards these fields directly (no `briefingText`/`extractionPayload` wrapper). Pattern identical to `youtube-description`. See DDD-125. | DDD-125 |
+| GEOMETRIC hydration — form field recovery | Frontend/UI | For `AnalysisSession` resume/regenerate, `StepHydration` recovers `baseQuery`, `language`, `country` from the session record and populates the Setup Panel form. No `/api/tools/hydrate` call needed. `ReadinessSnapshot.hasExtractionContext` is set to `true` when all three fields are populated from the session. See DDD-126. | DDD-126 |
+| GEOMETRIC crawling job queue | Crawling & Extraction | `CrawlingJob` must execute asynchronously via a job queue to avoid blocking the server. Each `QueryExtraction` must respect `country` and `language` parameters from the originating `AnalysisSession`. Anti-bot bypass (stealth drivers) is a technical concern owned exclusively by this context. | DDD-114 |
+| GEOMETRIC scoring normalization | Competitor Analysis | Competitor scoring uses a deterministic weighted point system (organic: +3.0, sitelink: +2.0, video: +2.0, sponsored: +1.5) with final normalization to 1-10 scale. Scoring rules are owned by Competitor Analysis and must not be duplicated in Generation or Frontend/UI. | DDD-115 |
+| GEOMETRIC LLM reporting token efficiency | Generation | The `strategic-reporting` and `unified-report` LLM steps must not receive screenshot data — only `SerpAIOverviewSnippet` texts (from `CrawlArtifact`) and `CompetitorRanking` JSON (from `ScoringArtifact`) are sent to the LLM as dependency payload. `SerpScreenshot` URLs are persisted in `CrawlArtifact` for storage only. | DDD-120, DDD-123 |
+| `CompetitorRanking` data boundary (C-001) | Competitor Analysis → Generation | `GeoScore` and `CompetitorTier` TypeScript types are internal to `CompetitorAnalysisContext` (not in `packages/contracts`). The computed values cross the boundary as serialized JSON inside `ScoringArtifact` content, consumed via the standard `stepDependencyArtifactIds` mechanism — no direct type import. This mirrors the existing pattern: `ExtractionChain` produces `ExtractionContext` JSON consumed by downstream steps without sharing the chain's internal types. See DDD-124. | DDD-119, DDD-124 |
+| `CrawlArtifact` as step dependency input | Crawling & Extraction → Generation | The `serp-crawling` step produces a `CrawlArtifact` (`ArtifactType = 'crawl'`). `ArtifactType = 'crawl'` is distinct from `ArtifactType = 'extraction'` specifically to prevent `StepHydration` from treating SERP crawl artifacts as briefing extraction artifacts and misrouting hydration paths (DDD-122). Downstream steps (`competitor-scoring`, `strategic-reporting`) consume the `CrawlArtifact` content via `stepDependencyArtifactIds`. | DDD-122, DDD-123 |

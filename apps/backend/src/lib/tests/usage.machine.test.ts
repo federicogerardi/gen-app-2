@@ -165,11 +165,10 @@ test('usageMachine parallel claims with shared quota are deterministic', async (
 
   const results = [resultA, resultB];
   const grantedCount = results.filter((entry) => entry.type === 'USAGE_GRANTED').length;
-  const rejected = results.filter((entry): entry is UsageRejectedEvent => entry.type === 'USAGE_REJECTED');
 
-  assert.equal(grantedCount, 1);
-  assert.equal(rejected.length, 1);
-  assert.equal(rejected[0]?.reason, 'quota_exhausted');
+  // With the credit model, claimUsage only checks availability (no consumption).
+  // Both parallel claims succeed because credits are consumed post-SUCCESS.
+  assert.equal(grantedCount, 2);
 
   actorA.stop();
   actorB.stop();

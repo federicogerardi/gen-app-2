@@ -2,6 +2,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'funnel-pages': {
     toolKey: 'funnel-pages',
     workflowType: 'funnel_pages',
+    creditCost: 1,
     steps: [
       { key: 'optin', dependencies: [] },
       { key: 'quiz', dependencies: ['optin'] },
@@ -11,6 +12,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   nextland: {
     toolKey: 'nextland',
     workflowType: 'nextland',
+    creditCost: 1,
     steps: [
       { key: 'landing', dependencies: [] },
       { key: 'thank_you', dependencies: ['landing'] },
@@ -19,6 +21,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'youtube-lf-script': {
     toolKey: 'youtube-lf-script',
     workflowType: 'youtube_lf_script',
+    creditCost: 1,
     steps: [
       { key: 'pre-script-analysis', dependencies: [] },
       { key: 'packaging', dependencies: ['pre-script-analysis'] },
@@ -31,6 +34,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'angle-generator': {
     toolKey: 'angle-generator',
     workflowType: 'angle_generator',
+    creditCost: 1,
     steps: [
       { key: 'context-and-angle-matrix', dependencies: [] },
       { key: 'angle-prioritization', dependencies: ['context-and-angle-matrix'] },
@@ -40,16 +44,31 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
   'meta-ads': {
     toolKey: 'meta-ads',
     workflowType: 'meta_ads_generator',
+    creditCost: 1,
     steps: [
       { key: 'context-generation', dependencies: [] },
       { key: 'ads-generation', dependencies: ['context-generation'] },
     ],
+    copyLengthOptions: ['short-form', 'medium-form', 'long-form'] as const,
+    defaultCopyLength: 'medium-form' as const,
   },
   'youtube-description': {
     toolKey: 'youtube-description',
     workflowType: 'youtube_description',
+    creditCost: 1,
     steps: [
       { key: 'youtube-description-generation', dependencies: [] },
+    ],
+  },
+  'geometric': {
+    toolKey: 'geometric',
+    workflowType: 'geometric_analysis',
+    creditCost: 1,
+    steps: [
+      { key: 'serp-crawling', dependencies: [] },
+      { key: 'competitor-scoring', dependencies: ['serp-crawling'] },
+      { key: 'strategic-reporting', dependencies: ['serp-crawling', 'competitor-scoring'] },
+      { key: 'unified-report', dependencies: ['strategic-reporting', 'competitor-scoring'] },
     ],
   },
 } as const;
@@ -63,10 +82,15 @@ export type ToolWorkflowStepDefinition = {
   key: ToolStep;
   dependencies: ToolStep[];
 };
+export type CopyLengthFormat = 'short-form' | 'medium-form' | 'long-form';
+
 export type ToolWorkflowDefinition = {
   toolKey: ToolKey;
   workflowType: ToolWorkflowType;
+  creditCost: number;
   steps: ToolWorkflowStepDefinition[];
+  copyLengthOptions?: readonly CopyLengthFormat[];
+  defaultCopyLength?: CopyLengthFormat;
 };
 export type ToolWorkflowStepOrder = { [K in ToolKey]: ToolStep[] };
 export type ToolWorkflowStepDependencyMap = {
@@ -81,11 +105,12 @@ export type ToolAccessRole = 'admin' | 'member';
 export const TOOL_KEYS = Object.keys(TOOL_WORKFLOW_DEFINITIONS) as ToolKey[];
 export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabilityPolicy> = {
   'funnel-pages': 'enabled-for-all',
-  nextland: 'enabled-for-admin-only',
+  'nextland': 'enabled-for-admin-only',
   'youtube-lf-script': 'enabled-for-all',
   'angle-generator': 'enabled-for-all',
   'meta-ads': 'enabled-for-all',
   'youtube-description': 'enabled-for-all',
+  'geometric': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -96,17 +121,28 @@ export const TOOL_WORKFLOW_BY_TOOL_KEY: Record<ToolKey, ToolWorkflowDefinition> 
   Object.fromEntries(
     TOOL_KEYS.map((toolKey) => {
       const definition = TOOL_WORKFLOW_DEFINITIONS[toolKey];
-      return [
+      const base = {
         toolKey,
-        {
+        workflowType: definition.workflowType,
+        creditCost: definition.creditCost,
+        steps: definition.steps.map((step) => ({
+          key: step.key,
+          dependencies: [...step.dependencies],
+        })),
+      };
+
+      if ('copyLengthOptions' in definition && 'defaultCopyLength' in definition) {
+        return [
           toolKey,
-          workflowType: definition.workflowType,
-          steps: definition.steps.map((step) => ({
-            key: step.key,
-            dependencies: [...step.dependencies],
-          })),
-        } satisfies ToolWorkflowDefinition,
-      ];
+          {
+            ...base,
+            copyLengthOptions: definition.copyLengthOptions,
+            defaultCopyLength: definition.defaultCopyLength,
+          } satisfies ToolWorkflowDefinition,
+        ];
+      }
+
+      return [toolKey, base satisfies ToolWorkflowDefinition];
     }),
   ) as Record<ToolKey, ToolWorkflowDefinition>;
 
@@ -213,6 +249,14 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'meta-adsgenerator'
   ) {
     return 'meta-ads';
+  }
+
+  if (
+    normalized === 'geometric_analysis'
+    || normalized === 'geometric-analysis'
+    || normalized === 'geometricanalysis'
+  ) {
+    return 'geometric';
   }
 
   return isToolKey(normalized) ? normalized : null;

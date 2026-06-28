@@ -3,6 +3,7 @@ import { Button, IconButton } from '@mui/material';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
+import { isStepVisible } from '../../tools/runtime/tool-step-display-config';
 import {
   sortByCanonicalStepOrder,
   type SessionArtifactEntry,
@@ -18,7 +19,10 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
   return value === 'funnel-pages'
     || value === 'nextland'
     || value === 'youtube-lf-script'
-    || value === 'angle-generator';
+    || value === 'angle-generator'
+    || value === 'meta-ads'
+    || value === 'youtube-description'
+    || value === 'geometric';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {
@@ -51,8 +55,18 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
     return sortByCanonicalStepOrder(group.artifacts, effectiveToolKey);
   }, [group.artifacts, effectiveToolKey]);
 
+  const visibleArtifacts = useMemo(() => {
+    if (!effectiveToolKey) {
+      return sortedArtifacts;
+    }
+
+    return sortedArtifacts.filter(
+      (artifact) => artifact.stepKey != null && isStepVisible(artifact.stepKey, effectiveToolKey),
+    );
+  }, [sortedArtifacts, effectiveToolKey]);
+
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(
-    sortedArtifacts[0]?.artifactId ?? null,
+    visibleArtifacts[0]?.artifactId ?? null,
   );
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -70,15 +84,15 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
   }, []);
 
   const selected = useMemo(
-    () => sortedArtifacts.find((artifact) => artifact.artifactId === selectedArtifactId)
-      ?? sortedArtifacts[0]
+    () => visibleArtifacts.find((artifact) => artifact.artifactId === selectedArtifactId)
+      ?? visibleArtifacts[0]
       ?? null,
-    [selectedArtifactId, sortedArtifacts],
+    [selectedArtifactId, visibleArtifacts],
   );
 
   useEffect(() => {
     updateScrollControls();
-  }, [sortedArtifacts.length, updateScrollControls]);
+  }, [visibleArtifacts.length, updateScrollControls]);
 
   useEffect(() => {
     const scroller = tabsScrollerRef.current;
@@ -99,11 +113,15 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
     };
   }, [updateScrollControls]);
 
-  if (sortedArtifacts.length === 0) {
+  if (visibleArtifacts.length === 0) {
     return (
       <section className="ui-session-artifact-panel">
         <p className={uiPrimitives.metaLine}>Session: {group.sessionId}</p>
-        <p className={uiPrimitives.metaLine}>No step artifacts found for this session.</p>
+        <p className={uiPrimitives.metaLine}>
+          {sortedArtifacts.length > 0
+            ? 'All steps are hidden by configuration.'
+            : 'No step artifacts found for this session.'}
+        </p>
       </section>
     );
   }
@@ -128,7 +146,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
         </IconButton>
 
         <div ref={tabsScrollerRef} className="ui-session-step-tabs" role="tablist" aria-label="Session steps">
-          {sortedArtifacts.map((artifact) => {
+          {visibleArtifacts.map((artifact) => {
             const isActive = artifact.artifactId === selected.artifactId;
             return (
               <Button

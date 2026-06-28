@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   authSession: {
     session: null,
     loading: false,
-    error: null,
+    hasError: false,
     apiBaseUrl: '',
     capabilities: {
       projects: false,
@@ -17,6 +17,11 @@ const mocks = vi.hoisted(() => ({
       sessionsDetail: false,
       toolsUpload: false,
     },
+    oauthStartUrl: '',
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
   },
   sessions: [
     {

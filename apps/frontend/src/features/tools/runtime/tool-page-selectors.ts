@@ -30,18 +30,56 @@ import {
   normalizeToneProfile,
 } from './tool-page-runtime-utils';
 
+export const buildGeometricDirectInputExtractionInfo = ({
+  baseQuery,
+  language,
+  country,
+  brandName,
+}: Pick<ToolFormState, 'baseQuery' | 'language' | 'country' | 'brandName'>): SelectedExtractionInfo | null => {
+  const normalizedBaseQuery = baseQuery.trim();
+  const normalizedLanguage = language.trim();
+  const normalizedCountry = country.trim();
+  const normalizedBrandName = brandName.trim();
+
+  if (!normalizedBaseQuery || !normalizedLanguage || !normalizedCountry) {
+    return null;
+  }
+
+  const payload: Record<string, string> = {
+    baseQuery: normalizedBaseQuery,
+    language: normalizedLanguage,
+    country: normalizedCountry,
+  };
+  if (normalizedBrandName) {
+    payload.brandName = normalizedBrandName;
+  }
+
+  return {
+    extractionArtifactId: 'direct-input:geometric',
+    briefingId: 'direct-input:geometric',
+    briefingText: [
+      `Base query: ${normalizedBaseQuery}`,
+      `Language: ${normalizedLanguage}`,
+      `Country: ${normalizedCountry}`,
+      ...(normalizedBrandName ? [`Brand: ${normalizedBrandName}`] : []),
+    ].join('\n'),
+    extractionPayload: payload,
+  };
+};
+
 type RuntimeIntent = 'new' | 'resume' | 'regenerate';
 
 type LastRequest = GenerationStreamWorkspaceValue['snapshot']['context']['lastRequest'];
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type BriefingSnapshot = {
   context: {
-    error: string | null;
     extractionArtifactId: string | null;
     extractionPayload: Record<string, unknown> | null;
     briefingId: string | null;
     normalizedText: string | null;
   };
+  matches: any;
 };
 
 export type SelectedExtractionInfo = {
@@ -268,6 +306,10 @@ export const selectGenerationExtractionInfo = ({
     return directInputExtractionInfo;
   }
 
+  if (toolKey === 'geometric' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
   const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
   if (machineHydrationResult !== null) {
     return {
@@ -283,7 +325,7 @@ export const selectGenerationExtractionInfo = ({
 
   if (
     workspaceExtractionContext !== null
-    && briefingSnapshot.context.error !== 'extraction_context_insufficient'
+    && !briefingSnapshot.matches({ idle: 'failed' })
     && isExtractionContextValidForTool(
       toolKey,
       workspaceExtractionContext.extractionPayload,

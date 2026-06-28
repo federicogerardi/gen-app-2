@@ -57,7 +57,7 @@ const run = async () => {
   try {
     // Seed user and project
     await pg.query(
-      `INSERT INTO users (id, email, monthly_quota, monthly_used, role, status, password_hash, password_algo, quota_window_started_at)
+      `INSERT INTO users (id, email, monthly_quota, monthly_credits_used, role, status, password_hash, password_algo, quota_window_started_at)
        VALUES ($1, $2, 100, 0, 'member', 'active', NULL, NULL, NOW())
        ON CONFLICT (id) DO NOTHING`,
       [userId, `${userId}@test.local`],

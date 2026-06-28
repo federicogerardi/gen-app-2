@@ -59,9 +59,8 @@ type BuildToolPageViewModelInput = {
   intent?: 'new' | 'resume' | 'regenerate';
   readiness: ReadinessSnapshot;
   progress: ToolPageProgressState;
-  generationError: string | null;
-  hydrationError?: string | null;
-  // Non-null when a run has been started in the current session (set by REQUEST_STEP_START / startGenerationStep).
+  errorMessage: string | null;
+  configuringSubstate?: 'clean' | 'hydrationFailed' | 'generationFailed';
   runRequestPrefix?: string | null;
 };
 
@@ -70,8 +69,8 @@ export const buildToolPageViewModel = ({
   intent = 'new',
   readiness,
   progress,
-  generationError,
-  hydrationError,
+  errorMessage,
+  configuringSubstate = 'clean',
   runRequestPrefix = null,
 }: BuildToolPageViewModelInput): ToolPageViewModel => {
   const defaultModel = buildDefaultViewModel(toolKey, readiness);
@@ -81,15 +80,14 @@ export const buildToolPageViewModel = ({
   const hasCompletedAllSteps = completedCount === totalSteps && totalSteps > 0;
   const hasCheckpoint = progress.lastCheckpointStep !== null;
   const stepStatuses = buildDefaultStepStatuses(toolKey);
-  // True when the current session run has completed all steps (runRequestPrefix!=null means a run
-  // was started this session; completedSteps are then filtered to that run by resolveFlowProgressState).
   const isCurrentRunComplete = runRequestPrefix !== null && hasCompletedAllSteps;
+  const hasError = configuringSubstate !== 'clean';
 
   for (const step of progress.completedSteps) {
     stepStatuses[step] = 'done';
   }
 
-  if (generationError) {
+  if (hasError && errorMessage) {
     return {
       ...defaultModel,
       canonicalState: 'paused-with-checkpoint',
@@ -101,8 +99,10 @@ export const buildToolPageViewModel = ({
       },
       stepStatuses,
       messages: {
-        status: 'Generazione in pausa per un errore',
-        error: generationError,
+        status: configuringSubstate === 'generationFailed'
+          ? 'Generazione in pausa per un errore'
+          : 'Idratazione fallita',
+        error: errorMessage,
       },
     };
   }
@@ -169,10 +169,32 @@ export const buildToolPageViewModel = ({
     stepStatuses,
     messages: {
       ...defaultModel.messages,
-      error: hydrationError ?? null,
+      error: null,
     },
   };
 };
+
+export type ReactiveViewModelInput = {
+  toolKey: SupportedTool;
+  readiness: ReadinessSnapshot;
+  progress: ToolPageProgressState;
+  errorMessage: string | null;
+  intent: 'new' | 'resume' | 'regenerate';
+  runRequestPrefix: string | null;
+};
+
+export const buildReactiveViewModel = (
+  context: ReactiveViewModelInput,
+  configuringSubstate: 'clean' | 'hydrationFailed' | 'generationFailed' = 'clean',
+): ToolPageViewModel => buildToolPageViewModel({
+  toolKey: context.toolKey,
+  intent: context.intent,
+  readiness: context.readiness,
+  progress: context.progress,
+  errorMessage: context.errorMessage,
+  configuringSubstate,
+  runRequestPrefix: context.runRequestPrefix,
+});
 
 export const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {
   return policy === 'start-generation' || policy === 'resume-checkpoint' || policy === 'regenerate-current-step';

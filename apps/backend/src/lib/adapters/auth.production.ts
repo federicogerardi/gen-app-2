@@ -52,7 +52,9 @@ type AuthUserRow = {
   role: AuthUserRecord['role'];
   status: AuthUserRecord['status'];
   monthly_quota: number;
-  monthly_used: number;
+  monthly_credits_used: number;
+  monthly_artifact_limit: number;
+  monthly_artifacts_used: number;
   password_hash: string | null;
   password_algo: string | null;
   password_changed_at: Date | string | null;
@@ -108,7 +110,9 @@ const mapAuthUserRow = (row: AuthUserRow): AuthUserRecord => {
     role: row.role,
     status: row.status,
     monthlyQuota: row.monthly_quota,
-    monthlyUsed: row.monthly_used,
+    monthlyCreditsUsed: row.monthly_credits_used,
+    monthlyArtifactLimit: row.monthly_artifact_limit,
+    monthlyArtifactsUsed: row.monthly_artifacts_used,
     passwordHash: row.password_hash,
     passwordAlgo: row.password_algo,
     passwordChangedAt: toIsoTimestamp(row.password_changed_at),
@@ -260,7 +264,9 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
         role: input.role,
         status: input.status,
         monthly_quota: input.monthlyQuota ?? 100,
-        monthly_used: input.monthlyUsed ?? 0,
+        monthly_credits_used: input.monthlyCreditsUsed ?? 0,
+        monthly_artifact_limit: input.monthlyArtifactLimit ?? 1000,
+        monthly_artifacts_used: input.monthlyArtifactsUsed ?? 0,
         password_hash: input.passwordHash ?? null,
         password_algo: input.passwordAlgo ?? null,
         password_changed_at: input.passwordChangedAt ?? null,
@@ -292,8 +298,14 @@ export class PostgresAuthUserRepository implements AuthUserRepository {
     if (input.monthlyQuota !== undefined) {
       setValues.monthly_quota = input.monthlyQuota;
     }
-    if (input.monthlyUsed !== undefined) {
-      setValues.monthly_used = input.monthlyUsed;
+    if (input.monthlyCreditsUsed !== undefined) {
+      setValues.monthly_credits_used = input.monthlyCreditsUsed;
+    }
+    if (input.monthlyArtifactLimit !== undefined) {
+      setValues.monthly_artifact_limit = input.monthlyArtifactLimit;
+    }
+    if (input.monthlyArtifactsUsed !== undefined) {
+      setValues.monthly_artifacts_used = input.monthlyArtifactsUsed;
     }
     if (input.disabledAt !== undefined) {
       setValues.disabled_at = input.disabledAt;

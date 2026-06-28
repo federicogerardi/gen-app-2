@@ -665,7 +665,7 @@ test('/api/tools/orchestrate rejects foreign project ownership without quota sid
   assert.equal(res.statusCode, 403);
   const after = await repositories.users.findUserById('user-orch-001');
   assert.ok(after);
-  assert.equal(after?.monthlyUsed, before?.monthlyUsed);
+  assert.equal(after?.monthlyCreditsUsed, before?.monthlyCreditsUsed);
   assert.equal(listCalls.length, 0);
 });
 
@@ -695,7 +695,7 @@ test('/api/tools/orchestrate rejects missing project without quota side effects'
   assert.equal(res.statusCode, 403);
   const after = await repositories.users.findUserById('user-orch-001');
   assert.ok(after);
-  assert.equal(after?.monthlyUsed, before?.monthlyUsed);
+  assert.equal(after?.monthlyCreditsUsed, before?.monthlyCreditsUsed);
   assert.equal(listCalls.length, 0);
 });
 

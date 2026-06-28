@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { Link } from 'react-router-dom';
 import { MenuItem, TextField } from '@mui/material';
 
@@ -33,7 +34,7 @@ export const AdminUserReportsToolbar = ({
       <div className={uiPrimitives.actions}>
         <TextField
           select
-          label="Filtro stato"
+          label={appCopy.ui.adminUserReports.toolbarFilterStatusLabel}
           size="small"
           value={statusFilter}
           onChange={(event) => onStatusFilterChange(event.target.value as UserReportStatus | 'all')}
@@ -46,7 +47,7 @@ export const AdminUserReportsToolbar = ({
 
         <TextField
           select
-          label="Filtro categoria"
+          label={appCopy.ui.adminUserReports.toolbarFilterCategoryLabel}
           size="small"
           value={categoryFilter}
           onChange={(event) => onCategoryFilterChange(event.target.value as UserReportCategory | 'all')}
@@ -63,11 +64,11 @@ export const AdminUserReportsToolbar = ({
           onClick={onReload}
           disabled={loading || busyAction !== null}
         >
-          Aggiorna tabella
+          {appCopy.ui.adminUserReports.reloadTable}
         </button>
 
         <Link to="/admin/changelog" className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}>
-          Changelog admin
+          {appCopy.ui.adminUserReports.changelogLink}
         </Link>
       </div>
     </div>

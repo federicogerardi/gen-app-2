@@ -45,6 +45,8 @@ import { resolveClaimUsageDecision } from './postgres-redis.shared';
 type StubQuotaBucket = {
   limit: number;
   used: number;
+  artifactLimit: number;
+  artifactUsed: number;
 };
 
 type StubIdempotencyRecord = {
@@ -100,27 +102,60 @@ export class RedisQuotaRepositoryStub implements RedisQuotaRepository {
 
   constructor(private readonly defaultQuotaLimit = 100) {}
 
-  async claimUsage(input: UsageActorInput): Promise<UsageDecision> {
-    const current = this.buckets.get(input.userId) ?? {
+  private getBucket(userId: string): StubQuotaBucket {
+    const existing = this.buckets.get(userId);
+    if (existing) return existing;
+    const fresh: StubQuotaBucket = {
       limit: this.defaultQuotaLimit,
       used: 0,
+      artifactLimit: 1000,
+      artifactUsed: 0,
     };
+    this.buckets.set(userId, fresh);
+    return fresh;
+  }
 
-    if (current.used >= current.limit) {
+  async claimUsage(input: UsageActorInput): Promise<UsageDecision> {
+    const bucket = this.getBucket(input.userId);
+
+    // Check artifact gate (DDD-140)
+    if (bucket.artifactUsed >= bucket.artifactLimit) {
       return resolveClaimUsageDecision({
         rateLimitExceeded: false,
         quotaAvailable: false,
         hasConflict: false,
+        ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
       });
     }
 
-    current.used += 1;
-    this.buckets.set(input.userId, current);
+    // Check credit availability (DDD-137, DDD-143)
+    if (bucket.used >= bucket.limit) {
+      return resolveClaimUsageDecision({
+        rateLimitExceeded: false,
+        quotaAvailable: false,
+        hasConflict: false,
+        ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
+      });
+    }
+
     return resolveClaimUsageDecision({
       rateLimitExceeded: false,
       quotaAvailable: true,
       hasConflict: false,
+      ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}),
     });
+  }
+
+  async consumeCredits(input: import('./generation.adapters').ConsumeCreditsInput): Promise<void> {
+    const bucket = this.getBucket(input.userId);
+    bucket.used += input.creditCost;
+    this.buckets.set(input.userId, bucket);
+  }
+
+  async recordArtifactSuccess(input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void> {
+    const bucket = this.getBucket(input.userId);
+    bucket.artifactUsed += 1;
+    this.buckets.set(input.userId, bucket);
   }
 }
 
@@ -709,7 +744,7 @@ export const createPostgresRedisStubDependencies = (
   const llm: LlmStreamAdapter = createSyntheticLlmStreamAdapter();
   const generate: LlmGenerateAdapter = createSyntheticLlmGenerateAdapter();
 
-  return {
+  const deps: PostgresRedisAdapterDependencies = {
     ownership: new ProjectOwnershipRepositoryStub(),
     quota: new RedisQuotaRepositoryStub(defaultQuotaLimit),
     idempotency: new RedisIdempotencyRepositoryStub(),
@@ -719,6 +754,7 @@ export const createPostgresRedisStubDependencies = (
     persistence: new PostgresArtifactRepositoryStub(runtime),
     orchestrateCache: null,
   };
+  return deps;
 };
 
 export const createPostgresRedisStubGenerationAdapters = (

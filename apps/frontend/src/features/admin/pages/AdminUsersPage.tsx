@@ -76,7 +76,7 @@ export const AdminUsersPage = () => {
   return (
     <AdminPageContainer
       title={appCopy.editorial.admin.usersTitle}
-      description="Provisioning rapido, aggiornamento ruoli e disabilitazione account in una vista tabellare coerente."
+      description={appCopy.ui.adminUsers.toolbarDescription}
     >
 
       <AdminUsersToolbar
@@ -103,7 +103,7 @@ export const AdminUsersPage = () => {
       {usersQuery.loading ? <LoadingStateMessage>{appCopy.ui.states.loadingUsers}</LoadingStateMessage> : null}
       {error ? <ErrorStateMessage>{error}</ErrorStateMessage> : null}
 
-      {!error && !usersQuery.loading && users.length === 0 ? <EmptyStateMessage>Nessun utente disponibile.</EmptyStateMessage> : null}
+      {!error && !usersQuery.loading && users.length === 0 ? <EmptyStateMessage>{appCopy.ui.states.emptyUsersList}</EmptyStateMessage> : null}
 
       {!error && users.length > 0 ? (
         <AdminUsersTable

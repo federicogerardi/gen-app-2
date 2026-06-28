@@ -136,6 +136,7 @@ vi.mock('./briefing-upload.machine', async () => {
 });
 
 import { toolPageMachine } from './tool-page.machine';
+import { buildReactiveViewModel } from './tool-page-view-model';
 
 const activeActors: Array<ReturnType<typeof createActor<typeof toolPageMachine>>> = [];
 
@@ -238,7 +239,7 @@ describe('toolPageMachine', () => {
 
     actor.send({ type: 'START_GENERATION' });
 
-    expect(actor.getSnapshot().value).toBe('configuring');
+    expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
   });
 
   it('transitions configuring -> generating -> completed when briefing is ready and steps finish', () => {
@@ -301,7 +302,7 @@ describe('toolPageMachine', () => {
 
     actor.send({ type: 'RESET' });
 
-    expect(actor.getSnapshot().value).toBe('configuring');
+    expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     expect(actor.getSnapshot().context.briefingActorRef).not.toBeNull();
   });
 
@@ -319,7 +320,7 @@ describe('toolPageMachine', () => {
 
     actor.send({ type: 'CANCEL_GENERATION' });
 
-    expect(actor.getSnapshot().value).toBe('configuring');
+    expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
   });
 
   it('syncs unified progress in context via PROGRESS_SYNCED', () => {
@@ -421,7 +422,7 @@ describe('toolPageMachine', () => {
     expect(progress.lastCheckpointStep).toBe('vsl');
     expect(progress.latestArtifactByStep.optin?.artifactId).toBe('art-optin');
 
-    const viewModel = actor.getSnapshot().context.viewModel;
+    const viewModel = buildReactiveViewModel(actor.getSnapshot().context);
     expect(viewModel.readiness.canStartFlow).toBe(true);
     expect(viewModel.canonicalState).toBe('prefilled-regenerate');
     expect(viewModel.primaryActionPolicy).toBe('regenerate-current-step');
@@ -531,8 +532,8 @@ describe('toolPageMachine', () => {
       ],
     });
 
-    expect(actor.getSnapshot().context.viewModel.readiness).toEqual(actor.getSnapshot().context.readiness);
-    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('disabled');
+    expect(buildReactiveViewModel(actor.getSnapshot().context).readiness).toEqual(actor.getSnapshot().context.readiness);
+    expect(buildReactiveViewModel(actor.getSnapshot().context).primaryActionPolicy).toBe('disabled');
   });
 
   it('requires canonical extraction fields for youtube-lf-script readiness', () => {
@@ -788,11 +789,11 @@ describe('toolPageMachine', () => {
     });
 
     expect(actor.getSnapshot().context.readiness.canStartFlow).toBe(true);
-    expect(actor.getSnapshot().context.viewModel.primaryActionPolicy).toBe('open-last-artifact');
+    expect(buildReactiveViewModel(actor.getSnapshot().context).primaryActionPolicy).toBe('open-last-artifact');
 
     actor.send({ type: 'START_GENERATION' });
 
-    expect(actor.getSnapshot().value).toBe('configuring');
+    expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
   });
 
   it('keeps readiness and policy coherent for resume checkpoint flow', () => {
@@ -837,9 +838,10 @@ describe('toolPageMachine', () => {
 
     const snapshot = actor.getSnapshot().context;
     expect(snapshot.readiness.canStartFlow).toBe(true);
-    expect(snapshot.viewModel.readiness.canStartFlow).toBe(true);
-    expect(snapshot.viewModel.primaryActionPolicy).toBe('resume-checkpoint');
-    expect(snapshot.viewModel.canonicalState).toBe('paused-with-checkpoint');
+    const vm = buildReactiveViewModel(snapshot);
+    expect(vm.readiness.canStartFlow).toBe(true);
+    expect(vm.primaryActionPolicy).toBe('resume-checkpoint');
+    expect(vm.canonicalState).toBe('paused-with-checkpoint');
   });
 
   const makeAllStepsArtifacts = () =>
@@ -927,7 +929,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('draft-ready');
     expect(vm.primaryActionPolicy).toBe('start-generation');
@@ -945,7 +947,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -963,7 +965,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('prefilled-regenerate');
     expect(vm.primaryActionPolicy).toBe('regenerate-current-step');
@@ -1060,7 +1062,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: runPrefix,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -1116,7 +1118,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: null,
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('paused-with-checkpoint');
     expect(vm.primaryActionPolicy).toBe('resume-checkpoint');
@@ -1199,7 +1201,7 @@ describe('toolPageMachine', () => {
       runRequestPrefix: 'run-meta-current',
     });
 
-    const vm = actor.getSnapshot().context.viewModel;
+    const vm = buildReactiveViewModel(actor.getSnapshot().context);
     expect(vm.readiness.canStartFlow).toBe(true);
     expect(vm.canonicalState).toBe('completed');
     expect(vm.primaryActionPolicy).toBe('open-last-artifact');
@@ -1258,7 +1260,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
 
     expect(actor.getSnapshot().value).toBe('hydrating');
     expect(actor.getSnapshot().context.pendingHydration).not.toBeNull();
-    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+    expect(actor.getSnapshot().context.errorMessage).toBeNull();
   });
 
   it('hydration success: transitions back to configuring with hydrationResult set and briefingActor receives EXTRACTION_RECOVERED', async () => {
@@ -1268,7 +1270,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
@@ -1276,7 +1278,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('ext-1');
     expect(ctx.hydrationResult?.briefingId).toBe('brief-1');
     expect(ctx.hydrationResult?.normalizedText).toBe('brief text');
-    expect(ctx.hydrationError).toBeNull();
+    expect(ctx.errorMessage).toBeNull();
     // briefingActor should have transitioned to ready via EXTRACTION_RECOVERED
     expect(ctx.briefingActorRef?.getSnapshot().matches('ready')).toBe(true);
     expect(ctx.briefingActorRef?.getSnapshot().context.normalizedText).toBe('brief text');
@@ -1293,7 +1295,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
@@ -1345,7 +1347,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
@@ -1392,7 +1394,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
@@ -1414,7 +1416,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
@@ -1440,12 +1442,13 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'hydrationFailed' });
     });
 
     const ctx = actor.getSnapshot().context;
     expect(ctx.hydrationResult).toBeNull();
-    expect(ctx.hydrationError).toBe('missing_extraction_reference');
+    expect(actor.getSnapshot().matches({ configuring: 'hydrationFailed' })).toBe(true);
+    expect(ctx.errorMessage).toBe('missing_extraction_reference');
     expect(ctx.readiness.hasExtractionContext).toBe(false);
     expect(ctx.readiness.canStartFlow).toBe(false);
   });
@@ -1461,30 +1464,32 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'hydrationFailed' });
     });
 
     const ctx = actor.getSnapshot().context;
     expect(ctx.hydrationResult).toBeNull();
-    expect(ctx.hydrationError).toBe('incomplete_extraction_context');
+    expect(actor.getSnapshot().matches({ configuring: 'hydrationFailed' })).toBe(true);
+    expect(ctx.errorMessage).toBe('incomplete_extraction_context');
     expect(ctx.readiness.hasExtractionContext).toBe(false);
     expect(ctx.readiness.canStartFlow).toBe(false);
   });
 
-  it('hydration failure: transitions back to configuring with hydrationError set and viewModel.messages.error populated', async () => {
+  it('hydration failure: transitions to configuring.hydrationFailed with errorMessage set and viewModel.messages.error populated', async () => {
     mockFetch.mockReturnValue(makeFetchError('no_extraction_artifact', 'not_found'));
 
     const actor = createToolPageActor();
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'hydrationFailed' });
     });
 
     const ctx = actor.getSnapshot().context;
-    expect(ctx.hydrationError).toBe('no_extraction_artifact');
+    expect(actor.getSnapshot().matches({ configuring: 'hydrationFailed' })).toBe(true);
+    expect(ctx.errorMessage).toBe('no_extraction_artifact');
     expect(ctx.hydrationResult).toBeNull();
-    expect(ctx.viewModel.messages.error).toBe('no_extraction_artifact');
+    expect(buildReactiveViewModel(ctx, 'hydrationFailed').messages.error).toBe('no_extraction_artifact');
   });
 
   it('hydration legacy: artifact senza briefingId usa artifactId come fallback (TASK-007)', async () => {
@@ -1494,13 +1499,13 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'resume' });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     const ctx = actor.getSnapshot().context;
     expect(ctx.hydrationResult?.briefingId).toBe('legacy-ext');
     expect(ctx.hydrationResult?.extractionArtifactId).toBe('legacy-ext');
-    expect(ctx.hydrationError).toBeNull();
+    expect(ctx.errorMessage).toBeNull();
   });
 
   it('ranking TASK-006: sourceExtractionArtifactId ha precedenza su recency', async () => {
@@ -1514,7 +1519,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
@@ -1527,7 +1532,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
   });
 
   // TASK-017: retry after failure
-  it('retry: hydration failure seguita da HYDRATE_REQUESTED valido azzera hydrationError e produce hydrationResult', async () => {
+  it('retry: hydration failure followed by valid HYDRATE_REQUESTED clears errorMessage and produces hydrationResult', async () => {
     // Prima tentativo: fallisce
     mockFetch.mockReturnValueOnce(makeFetchError('no_extraction_artifact', 'not_found'));
 
@@ -1535,10 +1540,10 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     actor.send({ type: 'HYDRATE_REQUESTED', intent: 'new' });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().matches({ configuring: 'hydrationFailed' })).toBe(true);
     });
 
-    expect(actor.getSnapshot().context.hydrationError).toBe('no_extraction_artifact');
+    expect(actor.getSnapshot().context.errorMessage).toBe('no_extraction_artifact');
     expect(actor.getSnapshot().context.hydrationResult).toBeNull();
 
     // Retry: successo
@@ -1548,14 +1553,14 @@ describe('toolPageMachine – Phase 2 hydration', () => {
 
     // Appena inviato HYDRATE_REQUESTED, macchina torna in hydrating e cancella l'errore
     expect(actor.getSnapshot().value).toBe('hydrating');
-    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+    expect(actor.getSnapshot().context.errorMessage).toBeNull();
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().matches({ configuring: 'clean' })).toBe(true);
     });
 
     expect(actor.getSnapshot().context.hydrationResult?.extractionArtifactId).toBe('ext-1');
-    expect(actor.getSnapshot().context.hydrationError).toBeNull();
+    expect(actor.getSnapshot().context.errorMessage).toBeNull();
   });
 
   // TASK-017: ranking by resolvedBriefingId
@@ -1570,7 +1575,7 @@ describe('toolPageMachine – Phase 2 hydration', () => {
     });
 
     await vi.waitFor(() => {
-      expect(actor.getSnapshot().value).toBe('configuring');
+      expect(actor.getSnapshot().value).toEqual({ configuring: 'clean' });
     });
 
     expect(mockFetch).toHaveBeenCalledWith(

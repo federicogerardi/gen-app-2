@@ -23,6 +23,7 @@ const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-
 const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-generator/pages/AngleGeneratorToolPage').then(m => ({ default: m.AngleGeneratorToolPage })));
 const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/MetaAdsToolPage').then(m => ({ default: m.MetaAdsToolPage })));
 const YoutubeDescriptionToolPage = lazy(() => import('../../features/tools/youtube-description/pages/YoutubeDescriptionToolPage').then(m => ({ default: m.YoutubeDescriptionToolPage })));
+const GeometricToolPage = lazy(() => import('../../features/tools/geometric/pages/GeometricToolPage').then(m => ({ default: m.GeometricToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -34,6 +35,7 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
+const AdminGeometricScreenshotsPage = lazy(() => import('../../features/admin/pages/AdminGeometricScreenshotsPage').then(m => ({ default: m.AdminGeometricScreenshotsPage })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -42,6 +44,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'angle-generator': AngleGeneratorToolPage,
   'meta-ads': MetaAdsToolPage,
   'youtube-description': YoutubeDescriptionToolPage,
+  'geometric': GeometricToolPage,
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
@@ -60,6 +63,7 @@ const lighthouseAdminRouteTargets: Record<string, string> = {
   changelog: '/admin/changelog',
   'user-reports': '/admin/user-reports',
   activity: '/admin/activity',
+  'geometric-screenshots': '/admin/geometric-screenshots',
 };
 
 const AdminLayout = () => {
@@ -187,6 +191,10 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: 'user-reports',
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
+          },
+          {
+            path: 'geometric-screenshots',
+            element: <Suspense fallback={<PageLoader />}><AdminGeometricScreenshotsPage /></Suspense>,
           },
         ],
       },

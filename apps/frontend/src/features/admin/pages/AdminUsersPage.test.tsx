@@ -22,9 +22,10 @@ type TestAdminUser = {
   role: string;
   status: string;
   monthlyQuota?: number;
+  monthlyArtifactLimit?: number;
 };
 
-let usersDb: TestAdminUser[] = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
+let usersDb: TestAdminUser[] = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120, monthlyArtifactLimit: 500 }];
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => getMockAuthSession(),
@@ -50,7 +51,7 @@ beforeEach(() => {
     capabilities: { projects: false, models: false, artifacts: false, toolsUpload: false },
   });
 
-  usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120 }];
+  usersDb = [{ id: 'u1', email: 'alice@test.com', role: 'member', status: 'active', monthlyQuota: 120, monthlyArtifactLimit: 500 }];
   useMswHandler(http.get('/admin/users', () => HttpResponse.json(usersDb)));
   useMswHandler(http.post('/admin/users', async ({ request }) => {
     const body = await request.json() as {
@@ -58,6 +59,7 @@ beforeEach(() => {
       role?: string;
       status?: string;
       monthlyQuota?: number;
+      monthlyArtifactLimit?: number;
     };
 
     const created = {
@@ -66,6 +68,7 @@ beforeEach(() => {
       role: body.role ?? 'member',
       status: body.status ?? 'active',
       ...(typeof body.monthlyQuota === 'number' ? { monthlyQuota: body.monthlyQuota } : {}),
+      ...(typeof body.monthlyArtifactLimit === 'number' ? { monthlyArtifactLimit: body.monthlyArtifactLimit } : {}),
     };
 
     usersDb = [...usersDb, created];
@@ -77,6 +80,7 @@ beforeEach(() => {
       role?: string;
       status?: string;
       monthlyQuota?: number;
+      monthlyArtifactLimit?: number;
     };
     const id = String(params.id);
     const current = usersDb.find((user) => user.id === id);
@@ -91,6 +95,7 @@ beforeEach(() => {
       ...(body.role !== undefined ? { role: body.role } : {}),
       ...(body.status !== undefined ? { status: body.status } : {}),
       ...(typeof body.monthlyQuota === 'number' ? { monthlyQuota: body.monthlyQuota } : {}),
+      ...(typeof body.monthlyArtifactLimit === 'number' ? { monthlyArtifactLimit: body.monthlyArtifactLimit } : {}),
     };
 
     usersDb = usersDb.map((user) => (user.id === id ? updated : user));

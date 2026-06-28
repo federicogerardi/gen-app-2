@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -25,26 +26,26 @@ type AdminKpiWidgetPreview = {
 const adminKpiWidgetPreviews: readonly AdminKpiWidgetPreview[] = [
   {
     key: 'daily-quota-usage',
-    title: 'Uso quota oggi',
-    hint: 'Trend consume quota + utenti a rischio saturazione',
+    title: appCopy.ui.adminDashboard.kpi.dailyQuotaUsageTitle,
+    hint: appCopy.ui.adminDashboard.kpi.dailyQuotaUsageHint,
     state: 'loading',
   },
   {
     key: 'recent-admin-activity',
-    title: 'Attivita admin recenti',
-    hint: 'Mutazioni critiche eseguite nelle ultime 24h',
+    title: appCopy.ui.adminDashboard.kpi.recentAdminActivityTitle,
+    hint: appCopy.ui.adminDashboard.kpi.recentAdminActivityHint,
     state: 'loading',
   },
   {
     key: 'operational-error-rate',
-    title: 'Error rate operativo',
-    hint: 'Failure stream, retry dispatch e anomalie endpoint',
+    title: appCopy.ui.adminDashboard.kpi.operationalErrorRateTitle,
+    hint: appCopy.ui.adminDashboard.kpi.operationalErrorRateHint,
     state: 'loading',
   },
   {
     key: 'mean-resolution-time',
-    title: 'Tempo medio risoluzione',
-    hint: 'Tempo da apertura UserReport a chiusura/escalation',
+    title: appCopy.ui.adminDashboard.kpi.meanResolutionTimeTitle,
+    hint: appCopy.ui.adminDashboard.kpi.meanResolutionTimeHint,
     state: 'loading',
   },
 ] as const;
@@ -53,7 +54,7 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
   if (widget.state === 'loading') {
     return (
       <div className="ui-admin-kpi-widget-state" aria-busy="true" aria-live="polite">
-        <LoadingStateMessage>Caricamento KPI...</LoadingStateMessage>
+        <LoadingStateMessage>{appCopy.ui.states.loadingKpi}</LoadingStateMessage>
         <div className="ui-admin-kpi-skeleton" aria-hidden="true">
           <span className="ui-admin-kpi-skeleton__line ui-admin-kpi-skeleton__line--value" />
           <span className="ui-admin-kpi-skeleton__line" />
@@ -66,7 +67,7 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
   if (widget.state === 'empty') {
     return (
       <div className="ui-admin-kpi-widget-state">
-        <EmptyStateMessage>Nessun dato disponibile.</EmptyStateMessage>
+        <EmptyStateMessage>{appCopy.ui.states.noDataAvailable}</EmptyStateMessage>
       </div>
     );
   }
@@ -74,7 +75,7 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
   if (widget.state === 'error') {
     return (
       <div className="ui-admin-kpi-widget-state">
-        <ErrorStateMessage>Errore caricamento widget.</ErrorStateMessage>
+        <ErrorStateMessage>{appCopy.ui.states.widgetLoadError}</ErrorStateMessage>
       </div>
     );
   }
@@ -82,7 +83,7 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
   return (
     <div className="ui-admin-kpi-widget-state">
       <p className="ui-kpi-value">{widget.valuePreview ?? '--'}</p>
-      <p className="ui-kpi-meta">{widget.valueMeta ?? 'Pronto per dato reale'}</p>
+      <p className="ui-kpi-meta">{widget.valueMeta ?? appCopy.ui.states.readyForRealData}</p>
     </div>
   );
 };
@@ -101,8 +102,8 @@ export const AdminDashboardPage = () => {
 
   const openUserReportsWidget: AdminKpiWidgetPreview = {
     key: 'open-user-reports',
-    title: 'UserReport aperti',
-    hint: 'Coda issue/feature-request in attesa di triage',
+    title: appCopy.ui.adminDashboard.kpi.openUserReportsTitle,
+    hint: appCopy.ui.adminDashboard.kpi.openUserReportsHint,
     state: userReportsQuery.loading
       ? 'loading'
       : userReportsQuery.error
@@ -118,8 +119,8 @@ export const AdminDashboardPage = () => {
 
   const llmModelCatalogWidget: AdminKpiWidgetPreview = {
     key: 'llm-model-catalog-status',
-    title: 'Stato catalogo LlmModel',
-    hint: 'Modelli enabled/disabled e default attuale',
+    title: appCopy.ui.adminDashboard.kpi.llmCatalogStatusTitle,
+    hint: appCopy.ui.adminDashboard.kpi.llmCatalogStatusHint,
     state: modelsQuery.loading
       ? 'loading'
       : modelsQuery.error
@@ -128,7 +129,7 @@ export const AdminDashboardPage = () => {
           ? 'empty'
           : 'ready',
     valuePreview: `${enabledModelsCount}/${modelsQuery.data.length}`,
-    valueMeta: defaultModel ? `Default: ${defaultModel.key}` : 'Nessun default impostato',
+    valueMeta: defaultModel ? `Default: ${defaultModel.key}` : appCopy.ui.states.noDefaultSet,
   };
 
   const dashboardWidgets: readonly AdminKpiWidgetPreview[] = [
@@ -140,19 +141,19 @@ export const AdminDashboardPage = () => {
 
   return (
     <AdminPageContainer
-      title="Dashboard admin"
+      title={appCopy.ui.adminDashboard.title}
       description=""
       showEyebrow={false}
       actions={(
         <Link to="/admin/user-reports" className={uiPrimitives.inlineLink}>
-          Apri coda UserReport
+          {appCopy.ui.adminDashboard.openUserReportQueue}
         </Link>
       )}
     >
       <section className="ui-admin-kpi-placeholder-grid" aria-label="Widget KPI di sistema in preview">
         {dashboardWidgets.map((widget) => (
           <Surface key={widget.key} className="ui-admin-kpi-placeholder-card ui-admin-kpi-widget-card">
-            <p className="ui-admin-kpi-placeholder-label">Widget preview</p>
+            <p className="ui-admin-kpi-placeholder-label">{appCopy.ui.adminDashboard.widgetPreviewLabel}</p>
             <h3>{widget.title}</h3>
             <p>{widget.hint}</p>
             <AdminKpiWidgetStatePreview widget={widget} />

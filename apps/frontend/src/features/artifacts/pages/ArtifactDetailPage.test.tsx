@@ -9,9 +9,14 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => ({
     session: null,
     loading: false,
-    error: null,
+    hasError: false,
     apiBaseUrl: '',
     capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
+    oauthStartUrl: '',
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
   }),
 }));
 

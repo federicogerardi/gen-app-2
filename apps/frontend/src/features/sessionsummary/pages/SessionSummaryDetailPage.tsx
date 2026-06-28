@@ -21,6 +21,7 @@ import {
   type SessionArtifactGroup,
 } from '../../tools/runtime/session-client';
 import { SessionArtifactTabs } from '../../generation/ui/SessionArtifactTabs';
+import { getIncludedSteps } from '../../tools/runtime/tool-step-display-config';
 import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
@@ -97,10 +98,17 @@ export const SessionSummaryDetailPage = () => {
   const handleSessionDownload = useCallback(
     (format: DownloadFormat) => {
       if (pageState.phase !== 'session') return;
+      const toolKey = pageState.group.toolKey;
+      const allSteps = pageState.group.artifacts.map((a) => a.stepKey).filter((s): s is string => s != null);
+      const includedSteps = getIncludedSteps(toolKey);
+      const excludedSteps = allSteps.filter(
+        (step) => !(includedSteps as readonly string[]).includes(step),
+      );
+
       void downloadSessionFile(pageState.group.sessionId, format, {
         apiBaseUrl: auth.apiBaseUrl,
         capabilities: auth.capabilities,
-      }).catch((err: unknown) => {
+      }, excludedSteps.length > 0 ? { excludeSteps: excludedSteps } : undefined).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error('[session-download] failed', err);
         }
@@ -192,7 +200,7 @@ export const SessionSummaryDetailPage = () => {
   const lastUpdate = artifactTimestamps.length > 0 ? new Date(Math.max(...artifactTimestamps)) : null;
   const projectName = projectId
     ? projectsQuery.data.find((project) => project.id === projectId)?.name ?? `${appCopy.ui.sessions.detail.projectFallbackPrefix}${projectId}`
-    : 'Project non disponibile';
+    : appCopy.ui.sessions.detail.projectFallback;
   const detailTitle = `${projectName} - ${formatToolName(group.toolKey)}`;
 
   return (

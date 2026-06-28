@@ -14,7 +14,9 @@ export type AdminUser = {
   role: AuthUserRole;
   status: AuthUserStatus;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 export type CreateAdminUserInput = {
@@ -23,7 +25,9 @@ export type CreateAdminUserInput = {
   status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 export type ApiServiceAccessMode = 'public' | 'token';
@@ -321,7 +325,9 @@ export type UpdateAdminUserInput = {
   status?: AuthUserStatus;
   password?: string;
   monthlyQuota?: number;
-  monthlyUsed?: number;
+  monthlyCreditsUsed?: number;
+  monthlyArtifactLimit?: number;
+  monthlyArtifactsUsed?: number;
 };
 
 type AdminClientOptions = {
@@ -678,6 +684,102 @@ export const deleteAdminApiServiceBinding = async (
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to delete admin ApiService binding (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
+  }
+};
+
+export type GeometricScreenshotMetadata = {
+  id: string;
+  sessionId: string;
+  requestId: string;
+  query: string;
+  isPaa: boolean;
+  storedPath: string;
+  fileSizeBytes: number;
+  aiOverviewConfidence: number | null;
+  selectorUsed: string | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
+type GeometricScreenshotsListResponse = {
+  ok: boolean;
+  data?: {
+    screenshots: GeometricScreenshotMetadata[];
+  };
+  error?: { message: string };
+};
+
+const readGeometricScreenshot = (value: unknown): GeometricScreenshotMetadata | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const screenshot = value as Record<string, unknown>;
+  const id = readString(screenshot.id);
+  const sessionId = readString(screenshot.sessionId) ?? readString(screenshot.session_id);
+  const requestId = readString(screenshot.requestId) ?? readString(screenshot.request_id);
+  const query = readString(screenshot.query);
+  const storedPath = readString(screenshot.storedPath) ?? readString(screenshot.stored_path);
+  const createdAt = readString(screenshot.createdAt) ?? readString(screenshot.created_at);
+  const expiresAt = readString(screenshot.expiresAt) ?? readString(screenshot.expires_at);
+
+  if (!id || !sessionId || !requestId || !query || !storedPath || !createdAt || !expiresAt) {
+    return null;
+  }
+
+  return {
+    id,
+    sessionId,
+    requestId,
+    query,
+    isPaa: readBoolean(screenshot.isPaa) || readBoolean(screenshot.is_paa),
+    storedPath,
+    fileSizeBytes: readNumber(screenshot.fileSizeBytes) ?? readNumber(screenshot.file_size_bytes) ?? 0,
+    aiOverviewConfidence: readNumber(screenshot.aiOverviewConfidence) ?? readNumber(screenshot.ai_overview_confidence),
+    selectorUsed: readString(screenshot.selectorUsed) ?? readString(screenshot.selector_used),
+    createdAt,
+    expiresAt,
+  };
+};
+
+export const listAdminGeometricScreenshots = async (
+  sessionId: string | null,
+  options: AdminClientOptions = {},
+): Promise<GeometricScreenshotMetadata[]> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const pathFn = buildApiPaths(capabilities).admin.geometricScreenshots;
+  const resolvedPath = pathFn(sessionId);
+
+  if (!resolvedPath) {
+    throw new Error('Admin geometric screenshot viewing is disabled in this environment.');
+  }
+
+  try {
+    const payload = await requestJson<GeometricScreenshotsListResponse>(
+      joinApiPath(options.apiBaseUrl ?? '', resolvedPath),
+      {
+        method: 'GET',
+        credentials: 'include',
+      },
+    );
+
+    console.log('[DEBUG][frontend-admin] payload:', JSON.stringify(payload, null, 2));
+    console.log('[DEBUG][frontend-admin] payload.ok:', payload.ok, 'payload.data?.screenshots length:', payload.data?.screenshots?.length);
+
+    if (!payload.ok || !payload.data?.screenshots) {
+      console.log('[DEBUG][frontend-admin] returning empty array — payload.ok or screenshots missing');
+      return [];
+    }
+
+    const parsed = payload.data.screenshots.map(readGeometricScreenshot).filter((s): s is GeometricScreenshotMetadata => s !== null);
+    console.log('[DEBUG][frontend-admin] parsed screenshots:', parsed.length);
+    return parsed;
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to load geometric screenshots (HTTP ${error.status ?? 'unknown'})`);
     }
 
     throw error;

@@ -1,17 +1,19 @@
 import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
-import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
+import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput, selectGeometricAssembly } from './generation/context-generation-assembly';
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
   CacheAcquisitionResultParams,
+  CacheCrawlingResultParams,
   CacheExtractionResultParams,
   CacheGenerateResultParams,
   CacheReplayPayloadParams,
   CacheRequestMetaParams,
+  CacheScoringResultParams,
   CacheStreamResultParams,
   QueueFallbackDecisionParams,
   SetValidationDataParams,
@@ -36,6 +38,7 @@ type GenerationSystemActionObject =
   | { type: 'setUsageFailedFailure'; params: undefined }
   | { type: 'setOwnershipFailedFailure'; params: undefined }
   | { type: 'setStreamFailureFailure'; params: undefined }
+  | { type: 'cacheCreditCost'; params: { creditCost: number } }
   | { type: 'setGenerateFailureFailure'; params: undefined }
   | { type: 'setPersistenceFinalizeFailedFailure'; params: undefined }
   | { type: 'cacheReplayPayload'; params: CacheReplayPayloadParams }
@@ -45,6 +48,8 @@ type GenerationSystemActionObject =
   | { type: 'cacheStreamResult'; params: CacheStreamResultParams }
   | { type: 'cacheGenerateResult'; params: CacheGenerateResultParams }
   | { type: 'cacheAcquisitionResult'; params: CacheAcquisitionResultParams }
+  | { type: 'cacheCrawlingResult'; params: CacheCrawlingResultParams }
+  | { type: 'cacheScoringResult'; params: CacheScoringResultParams }
   | { type: 'cacheExtractionResult'; params: CacheExtractionResultParams }
   | { type: 'drivePersistenceFinalizeSuccess'; params: undefined }
   | { type: 'drivePersistenceFinalizeFailure'; params: undefined }
@@ -54,6 +59,7 @@ type GenerationSystemActionObject =
   | { type: 'setFallbackPolicyFailure'; params: undefined }
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
+  | { type: 'assembleGeometricPrompt'; params: undefined }
   | { type: 'resetVolatileContext'; params: undefined };
 
 type GenerationSystemGuardObject =
@@ -62,6 +68,7 @@ type GenerationSystemGuardObject =
   | { type: 'routeIsExtraction'; params: unknown }
   | { type: 'routeIsTool'; params: unknown }
   | { type: 'routeIsGeneric'; params: unknown }
+  | { type: 'routeIsGeometric'; params: unknown }
   | { type: 'hasApiAcquisition'; params: unknown }
   | { type: 'idempotencyOutputIsReplay'; params: unknown }
   | { type: 'idempotencyOutputIsConflict'; params: unknown }
@@ -72,6 +79,8 @@ type GenerationSystemGuardObject =
   | { type: 'generateOutputIsFailure'; params: unknown }
   | { type: 'extractionOutputIsAccepted'; params: unknown }
   | { type: 'acquisitionOutputIsAccepted'; params: unknown }
+  | { type: 'crawlingOutputIsAccepted'; params: unknown }
+  | { type: 'scoringOutputIsAccepted'; params: unknown }
   | { type: 'toolOutputIsCompleted'; params: unknown };
 
 type GenerationAssignment<TParams extends ParameterizedObject['params'] | undefined> =
@@ -187,6 +196,9 @@ export const generationSystemActions = {
   setStreamFailureFailure: assignGeneration<undefined>({
     failureReason: 'stream_failure',
   }),
+  cacheCreditCost: assignGeneration<{ creditCost: number }>({
+    _creditCost: (_: GenerationActionArgs, params: { creditCost: number }) => params.creditCost,
+  }),
   setGenerateFailureFailure: assignGeneration<undefined>({
     failureReason: 'generate_failure',
   }),
@@ -234,6 +246,19 @@ export const generationSystemActions = {
   cacheAcquisitionResult: assignGeneration<CacheAcquisitionResultParams>({
     requestInput: ({ context }: GenerationActionArgs, params: CacheAcquisitionResultParams) =>
       mergeAcquisitionIntoGenerationInput(context.requestInput, params.payload),
+  }),
+  cacheCrawlingResult: assignGeneration<CacheCrawlingResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheCrawlingResultParams) =>
+      mergeCrawlingIntoGenerationInput(context.requestInput, {
+        crawlArtifacts: params.crawlArtifacts,
+        paaQueries: params.paaQueries,
+      }),
+  }),
+  cacheScoringResult: assignGeneration<CacheScoringResultParams>({
+    requestInput: ({ context }: GenerationActionArgs, params: CacheScoringResultParams) => ({
+      ...context.requestInput,
+      scoring: params.ranking,
+    }),
   }),
   cacheExtractionResult: assignGeneration<CacheExtractionResultParams>({
     contentBuffer: (_: GenerationActionArgs, params: CacheExtractionResultParams) => params.content,
@@ -295,6 +320,59 @@ export const generationSystemActions = {
   appendStreamChunk: assignGeneration<{ chunk: string }>({
     contentBuffer: ({ context }: GenerationActionArgs, params: { chunk: string }) =>
       `${context.contentBuffer}${params.chunk}`,
+  }),
+  assembleGeometricPrompt: assignGeneration<undefined>({
+    requestInput: ({ context }: GenerationActionArgs) => {
+      const toolKey = context.toolKey ?? '';
+      const workflowType = context.workflowType ?? '';
+      if (toolKey !== 'geometric' && workflowType !== 'geometric') {
+        return context.requestInput;
+      }
+
+      const step = typeof context.requestInput.step === 'string'
+        ? context.requestInput.step
+        : 'strategic-reporting';
+      const assembly = selectGeometricAssembly(step, context.requestInput, context.requestId);
+      if (!assembly) {
+        return context.requestInput;
+      }
+
+      const promptTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
+        ? context.requestInput.resolvedPromptTemplate
+        : (typeof context.requestInput.prompt === 'string' ? context.requestInput.prompt : '');
+
+      if (!promptTemplate) {
+        return context.requestInput;
+      }
+
+      let filledPrompt = promptTemplate;
+      if (Array.isArray(assembly.serpSnippets)) {
+        filledPrompt = filledPrompt.replace(/{{serpSnippets}}/g, (assembly.serpSnippets as string[]).join('\n\n'));
+      }
+      if (Array.isArray(assembly.paaQueries)) {
+        filledPrompt = filledPrompt.replace(/{{paaQueries}}/g, (assembly.paaQueries as string[]).join(', '));
+      }
+      if (assembly.competitorRanking && typeof assembly.competitorRanking === 'object') {
+        filledPrompt = filledPrompt.replace(/{{competitorRanking}}/g, JSON.stringify(assembly.competitorRanking, null, 2));
+      }
+      if (typeof assembly.currentDate === 'string') {
+        filledPrompt = filledPrompt.replace(/{{currentDate}}/g, assembly.currentDate);
+      }
+      if (typeof assembly.brandName === 'string') {
+        filledPrompt = filledPrompt.replace(/{{brandName}}/g, assembly.brandName);
+      }
+      if (typeof assembly.baseQuery === 'string') {
+        filledPrompt = filledPrompt.replace(/{{baseQuery}}/g, assembly.baseQuery);
+      }
+      if (typeof assembly.queryCount === 'number') {
+        filledPrompt = filledPrompt.replace(/{{queryCount}}/g, String(assembly.queryCount));
+      }
+
+      return {
+        ...context.requestInput,
+        prompt: filledPrompt,
+      };
+    },
   }),
   resetVolatileContext: assignGeneration<undefined>({
     requestId: '',

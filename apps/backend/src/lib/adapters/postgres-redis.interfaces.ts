@@ -26,6 +26,8 @@ import type {
   UsageDecision,
 } from './generation.adapters';
 
+import type { Pool } from 'pg';
+
 export type ProductionAdapterRuntime = {
   now?: () => Date;
   randomId?: () => string;
@@ -33,6 +35,8 @@ export type ProductionAdapterRuntime = {
 
 export interface RedisQuotaRepository {
   claimUsage(input: UsageActorInput): Promise<UsageDecision>;
+  consumeCredits(input: import('./generation.adapters').ConsumeCreditsInput): Promise<void>;
+  recordArtifactSuccess(input: import('./generation.adapters').RecordArtifactSuccessInput): Promise<void>;
 }
 
 export interface ProjectOwnershipRepository {
@@ -120,6 +124,7 @@ export interface OrchestrateArtifactCache {
 }
 
 export interface PostgresRedisAdapterDependencies {
+  pg?: Pool;
   ownership: ProjectOwnershipRepository;
   quota: RedisQuotaRepository;
   idempotency: RedisIdempotencyRepository;

@@ -1,3 +1,4 @@
+import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import type { ProductChangelogDto } from '../../feedback-center/contracts/feedback-center-contract';
 
@@ -16,7 +17,7 @@ export const AdminChangelogTableRow = ({ row, busyAction, onArchive }: AdminChan
         onClick={() => onArchive(row.id)}
         disabled={busyAction !== null || row.status !== 'published'}
       >
-        Archivia
+        {appCopy.ui.adminChangelog.archiveAction}
       </button>
     </div>
   );

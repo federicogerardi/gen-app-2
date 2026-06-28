@@ -15,11 +15,12 @@ type ResolveClaimUsageDecisionInput = {
   quotaAvailable: boolean;
   hasConflict: boolean;
   resetDate?: Date;
+  creditCost?: number;
 };
 
 export const resolveClaimUsageDecision = (
   input: ResolveClaimUsageDecisionInput,
-): { granted: boolean; reason?: string; resetDate?: Date } => {
+): { granted: boolean; reason?: string; resetDate?: Date; creditCost?: number } => {
   if (input.rateLimitExceeded) {
     return { granted: false, reason: 'rate_limited' };
   }
@@ -34,7 +35,8 @@ export const resolveClaimUsageDecision = (
       : { granted: false, reason: 'quota_exhausted' };
   }
 
+  const base = { granted: true as const, ...(input.creditCost !== undefined ? { creditCost: input.creditCost } : {}) };
   return input.resetDate
-    ? { granted: true, resetDate: input.resetDate }
-    : { granted: true };
+    ? { ...base, resetDate: input.resetDate }
+    : base;
 };

@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 2.3
-last-reviewed: 2026-06-13
-next-review-date: 2026-09-13
+version: 2.4
+last-reviewed: 2026-06-28
+next-review-date: 2026-09-28
 owner: Platform/DevOps
 ---
 
@@ -433,49 +433,15 @@ Non aggiunto ora per evitare falsi positivi su SSE di generazione lunga.
 
 ---
 
-## Screenshot Storage — Geometric Tool (Geometric Screenshot Archival)
+## Screenshot Storage — Geometric Tool (DEPRECATA — da rimuovere)
 
-Il backend supporta il salvataggio persistente degli screenshot SERP generati dal tool Geometric. I file vengono archiviati su filesystem e i metadati su PostgreSQL. La retention è gestita automaticamente.
-
-### Prerequisiti produzione
-
-- **Railway Persistent Disk** (o equivalente) montato su un path configurabile. Il path default in produzione è `/data/screenshots`.
-- Nessun cambiamento al contratto FE/BE — l'archival è backend-only.
-
-### Variabili d'ambiente
-
-| Variabile | Default | Descrizione |
-|---|---|---|
-| `SCREENSHOT_STORAGE_PATH` | `/data/screenshots` | Path del mount persistente dove salvare gli screenshot |
-| `SCREENSHOT_RETENTION_DAYS` | `30` | Giorni di retention prima della cancellazione automatica |
-
-### Configurazione backend Railway
-
-```bash
-SCREENSHOT_STORAGE_PATH=/data/screenshots
-SCREENSHOT_RETENTION_DAYS=30
-```
-
-### Configurazione dev locale
-
-```bash
-SCREENSHOT_STORAGE_PATH=/tmp/screenshots
-SCREENSHOT_RETENTION_DAYS=7
-```
-
-### Cleanup automatico
-
-Un job schedulato ogni 24 ore (`setInterval` nel `server.ts`) esegue `cleanupExpiredScreenshots` su `LocalScreenshotArchival`. Log:
-
-```
-[screenshot-cleanup] deletedFiles=42, deletedRecords=42
-```
-
-### Note operative
-
-- Gli screenshot **non** vengono mai inclusi nel context LLM (invariante REQ-011).
-- Gli endpoint di consultazione sono admin-only (`/api/admin/geometric/sessions/:sessionId/screenshots`, `/api/admin/geometric/screenshots/:screenshotId`).
-- La dimensione media degli screenshot è ~200 KB; con 100 sessioni/giorno × 5 crawl/sessione × 30 giorni retention ≈ 3 GB max.
+> **Decisione 2026-06-28**: Il tool Geometric utilizza esclusivamente SerpApi per dati strutturati. Il percorso Puppeteer con screenshot è stato rimosso. `aiOverviewConfidence` e `selectorUsed` erano concetti legati al CSS-selector scraping — anch'essi rimossi, poiché SerpApi non produce selettori e il confidence è implicito nella struttura dati.
+>
+> Questa sezione è mantenuta solo come riferimento storico fino al completamento della rimozione del codice (vedi `plan/remove-geometric-screenshot-archival.md`).
+>
+> **Variabili d'ambiente da rimuovere**: `SCREENSHOT_STORAGE_PATH`, `SCREENSHOT_RETENTION_DAYS`.
+> **Tabella Postgres da droppare**: `geometric_screenshot_metadata`.
+> **Railway Persistent Disk**: non più necessaria per screenshot.
 
 ---
 

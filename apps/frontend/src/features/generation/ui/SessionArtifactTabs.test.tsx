@@ -132,7 +132,7 @@ describe('SessionArtifactTabs', () => {
           stepKey: 'ads-generation',
           artifactRole: 'final',
           status: 'completed',
-          content: '# Libreria Copy Meta Ads (medium-form format)\n\n## CLUSTER 1 — Test Cluster\n\n### Angolo 1 — Test Angle\n\n**› Versione Problem Aware (PAS pieno)**\n\n**Primary Text**\nTest content\n\n**Headline:** Test Headline\n**Description:** Test Description\n',
+          content: 'Meta ads content',
           updatedAt: '2026-05-09T10:01:00.000Z',
           failureReason: null,
         },
@@ -142,8 +142,8 @@ describe('SessionArtifactTabs', () => {
     render(<SessionArtifactTabs group={metaAdsGroup} fallbackToolKey="meta-ads" />);
 
     expect(screen.queryByRole('tab', { name: 'context-generation' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'ads-generation' })).not.toBeInTheDocument();
-    expect(screen.getByText('Cluster:')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'ads-generation' })).toBeInTheDocument();
+    expect(screen.getByText('Meta ads content')).toBeInTheDocument();
   });
 
   it('renders all steps by default (default config is all visible)', () => {

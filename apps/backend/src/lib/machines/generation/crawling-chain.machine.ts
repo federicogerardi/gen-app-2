@@ -11,17 +11,6 @@ export type CrawlingChainInput = {
   country: string;
   sessionId: string;
   apiService: ResolvedApiServiceForAcquisition; // Required SerpApi service — no fallback
-  screenshotArchival?: {
-    archiveScreenshot: (params: {
-      screenshotPath: string;
-      sessionId: string;
-      requestId: string;
-      query: string;
-      isPaa: boolean;
-      aiOverviewConfidence: number;
-      selectorUsed: string;
-    }) => Promise<string | null>;
-  } | null;
 };
 
 export type CrawlingChainOutput = {
@@ -73,18 +62,6 @@ export const crawlingChainMachine = setup({
         const baseResult = await crawlSerp(baseQuery, language, country, chainInput.apiService);
         const paaQueries = await discoverPAAQueries(baseQuery, language, country, chainInput.apiService);
 
-        if (baseResult.screenshotPath && chainInput.screenshotArchival) {
-          void chainInput.screenshotArchival.archiveScreenshot({
-            screenshotPath: baseResult.screenshotPath,
-            sessionId: chainInput.sessionId ?? requestId,
-            requestId,
-            query: baseQuery,
-            isPaa: false,
-            aiOverviewConfidence: baseResult.aiOverviewConfidence,
-            selectorUsed: baseResult.selectorUsed,
-          });
-        }
-
         const crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[] = [
           {
             query: baseQuery,
@@ -108,17 +85,6 @@ export const crawlingChainMachine = setup({
             paaQueries.slice(0, 4).map(async (paaQuery) => {
               try {
                 const result = await crawlSerp(paaQuery, language, country, chainInput.apiService);
-                if (result.screenshotPath && chainInput.screenshotArchival) {
-                  void chainInput.screenshotArchival.archiveScreenshot({
-                    screenshotPath: result.screenshotPath,
-                    sessionId: chainInput.sessionId ?? requestId,
-                    requestId,
-                    query: paaQuery,
-                    isPaa: true,
-                    aiOverviewConfidence: result.aiOverviewConfidence,
-                    selectorUsed: result.selectorUsed,
-                  });
-                }
                 return {
                   query: paaQuery,
                   isPaa: true,

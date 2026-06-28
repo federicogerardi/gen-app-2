@@ -6,7 +6,7 @@ import {
   selectGeometricAssembly,
 } from '../machines/generation/context-generation-assembly';
 
-test('assembleStrategicReportingInput never includes screenshot data', () => {
+test('assembleStrategicReportingInput strips non-canonical fields from input', () => {
   const input = {
     crawling: {
       snippets: 'AI Overview snippet text',
@@ -14,31 +14,29 @@ test('assembleStrategicReportingInput never includes screenshot data', () => {
         { title: 'Healthline', url: 'https://healthline.com', snippet: '...' },
       ],
       paaQueries: ['What is best?'],
-      screenshotPath: '/tmp/serp-123.png',
-      screenshots: ['/tmp/1.png', '/tmp/2.png'],
+      extraField: 'should-not-pass-through',
     },
     scoring: {
       'healthline.com': { geoScore: 9.5, tier: 'TIER_1' },
     },
-    screenshotData: 'base64image',
+    unrelatedField: 'also-stripped',
   };
 
   const result = assembleStrategicReportingInput(input);
 
-  assert.equal('screenshotPath' in result, false, 'screenshotPath must be stripped');
-  assert.equal('screenshots' in result, false, 'screenshots must be stripped');
-  assert.equal('screenshotData' in result, false, 'screenshotData must be stripped');
+  assert.equal('extraField' in result, false, 'extra fields must be stripped');
+  assert.equal('unrelatedField' in result, false, 'unrelated fields must be stripped');
   assert.deepEqual(result.serpSnippets, ['AI Overview snippet text']);
   assert.deepEqual(result.paaQueries, ['What is best?']);
   const competitor = (result.competitorRanking as Record<string, Record<string, unknown>>)['healthline.com'];
   assert.equal(competitor?.geoScore, 9.5);
 });
 
-test('assembleUnifiedReportInput never includes screenshot data', () => {
+test('assembleUnifiedReportInput strips non-canonical fields from input', () => {
   const input = {
     crawling: {
       snippets: 'Snippet text',
-      screenshotPath: '/tmp/serp-456.png',
+      extraField: 'should-not-pass',
     },
     scoring: {
       'example.com': { geoScore: 5.5, tier: 'TIER_2' },
@@ -47,9 +45,8 @@ test('assembleUnifiedReportInput never includes screenshot data', () => {
 
   const result = assembleUnifiedReportInput(input);
 
-  assert.equal('screenshotPath' in result, false, 'screenshotPath must be stripped');
+  assert.equal('extraField' in result, false, 'extra fields must be stripped');
   assert.equal('crawling' in result, false, 'crawling key must be stripped');
-  assert.equal('screenshotData' in result, false, 'screenshotData must be stripped');
   const competitor = (result.competitorRanking as Record<string, Record<string, unknown>>)['example.com'];
   assert.equal(competitor?.geoScore, 5.5);
 });

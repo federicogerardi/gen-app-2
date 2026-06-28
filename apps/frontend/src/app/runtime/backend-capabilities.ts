@@ -15,7 +15,6 @@ export type BackendCapabilities = {
   adminUserReportsUpdate: boolean;
   adminUserReportsPublishIssue: boolean;
   adminApiServicesCrud: boolean;
-  adminGeometricScreenshots: boolean;
   toolsApiServicesResolve: boolean;
 };
 
@@ -48,7 +47,6 @@ export const readBackendCapabilities = (): BackendCapabilities => {
     adminUserReportsUpdate: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_UPDATE as string | undefined, true),
     adminUserReportsPublishIssue: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_PUBLISH_ISSUE as string | undefined, true),
     adminApiServicesCrud: readFlag(import.meta.env.VITE_CAP_ADMIN_API_SERVICES_CRUD as string | undefined, true),
-    adminGeometricScreenshots: readFlag(import.meta.env.VITE_CAP_ADMIN_GEOMETRIC_SCREENSHOTS as string | undefined, true),
     toolsApiServicesResolve: readFlag(import.meta.env.VITE_CAP_TOOLS_API_SERVICES_RESOLVE as string | undefined, true),
   };
 };
@@ -70,7 +68,6 @@ export const defaultBackendCapabilities: BackendCapabilities = {
   adminUserReportsUpdate: false,
   adminUserReportsPublishIssue: false,
     adminApiServicesCrud: false,
-    adminGeometricScreenshots: false,
     toolsApiServicesResolve: false,
 };
 

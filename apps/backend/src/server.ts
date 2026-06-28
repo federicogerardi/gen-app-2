@@ -13,8 +13,6 @@ import {
   createDefaultSessionCookieRuntime,
   createNodeRuntimeServer,
 } from './lib/runtime';
-import { LocalScreenshotStorage } from './lib/runtime/integrations/screenshot-storage';
-import { LocalScreenshotArchival } from './lib/runtime/integrations/screenshot-archival';
 
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
@@ -88,27 +86,6 @@ const run = async (): Promise<void> => {
     redis,
   });
 
-  // ── Screenshot archival configuration (Geometric tool) ──────────────────
-  const screenshotStoragePath = process.env.SCREENSHOT_STORAGE_PATH ?? '/data/screenshots';
-  const screenshotRetentionDaysRaw = Number.parseInt(
-    process.env.SCREENSHOT_RETENTION_DAYS ?? '30',
-    10,
-  );
-  const screenshotRetentionDays =
-    Number.isFinite(screenshotRetentionDaysRaw) && screenshotRetentionDaysRaw > 0
-      ? screenshotRetentionDaysRaw
-      : 30;
-
-  const screenshotStorage = new LocalScreenshotStorage(screenshotStoragePath);
-  const screenshotArchival = new LocalScreenshotArchival(screenshotStorage, pg, screenshotRetentionDays);
-  console.log(`[DEBUG][screenshot] server init — screenshotStoragePath=${screenshotStoragePath}, retentionDays=${screenshotRetentionDays}, screenshotArchival=${screenshotArchival ? 'created' : 'NULL'}`);
-
-  const generationAdaptersWithScreenshot = {
-    ...generationAdapters,
-    screenshotArchival,
-  };
-  console.log(`[DEBUG][screenshot] generationAdaptersWithScreenshot — screenshotArchival=${generationAdaptersWithScreenshot.screenshotArchival ? 'present' : 'NULL'}`);
-
   // Short-lived in-memory cache for enabled model keys (TTL 60s). Mitigates RISK-002.
   let modelKeyCacheTimestamp = 0;
   let modelKeyCache: Set<string> = new Set();
@@ -147,16 +124,15 @@ const run = async (): Promise<void> => {
       projects: new PostgresProjectQueryRepository(pg),
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
-    idempotency: generationAdaptersWithScreenshot.idempotency,
-    orchestrateCache: generationAdaptersWithScreenshot.orchestrateCache,
+    idempotency: generationAdapters.idempotency,
+    orchestrateCache: generationAdapters.orchestrateCache,
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
-    screenshotStorage,
   });
 
   const server = createNodeRuntimeServer({
-    generationAdapters: generationAdaptersWithScreenshot,
+    generationAdapters,
     authRuntime,
     checkModelAvailability,
     debugGenerationLogs: parseBooleanEnv(process.env.GENERATION_DEBUG_LOGS, false),
@@ -212,22 +188,6 @@ const run = async (): Promise<void> => {
     : '(none configured)';
   console.log(`Runtime server listening on http://${host}:${port}`);
   console.log(`CORS allowed origins: ${corsInfo}`);
-  console.log(`Screenshot storage path: ${screenshotStoragePath}, retention: ${screenshotRetentionDays} days`);
-
-  // ── Scheduled cleanup for expired screenshots (every 24h) ─────────────
-  const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-  setInterval(() => {
-    void screenshotArchival
-      .cleanupExpiredScreenshots(new Date())
-      .then((result) => {
-        console.log(
-          `[screenshot-cleanup] deletedFiles=${result.deletedFiles}, deletedRecords=${result.deletedRecords}`,
-        );
-      })
-      .catch((err) => {
-        console.error('[screenshot-cleanup] error:', err);
-      });
-  }, CLEANUP_INTERVAL_MS);
 };
 
 void run().catch((error) => {

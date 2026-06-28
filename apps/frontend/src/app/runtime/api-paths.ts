@@ -38,8 +38,6 @@ export type ApiPaths = {
     apiServiceById: (id: string) => string | null;
     apiServiceBindings: (apiServiceId: string) => string | null;
     apiServiceBindingById: (apiServiceId: string, bindingId: string) => string | null;
-    geometricScreenshots: (sessionId?: string | null) => string | null;
-    geometricScreenshotById: (id: string) => string | null;
   };
   feedback: {
     changelogList: string | null;
@@ -105,18 +103,6 @@ export const buildApiPaths = (capabilities: BackendCapabilities): ApiPaths => ({
     apiServiceBindingById: (apiServiceId: string, bindingId: string) => (
       capabilities.adminApiServicesCrud
         ? `/api/admin/api-services/${apiServiceId}/bindings/${bindingId}`
-        : null
-    ),
-    geometricScreenshots: (sessionId?: string | null) => (
-      capabilities.adminGeometricScreenshots
-        ? sessionId === null || sessionId === undefined
-          ? '/api/admin/geometric/screenshots'
-          : `/api/admin/geometric/sessions/${sessionId}/screenshots`
-        : null
-    ),
-    geometricScreenshotById: (id: string) => (
-      capabilities.adminGeometricScreenshots
-        ? `/api/admin/geometric/screenshots/${id}`
         : null
     ),
   },

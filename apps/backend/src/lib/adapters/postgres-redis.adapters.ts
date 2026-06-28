@@ -68,10 +68,8 @@ export const createPostgresRedisGenerationAdapters = (
       finalizeFailure: (input, reason) => dependencies.persistence.finalizeFailure(input, reason),
     },
     orchestrateCache: dependencies.orchestrateCache,
-    screenshotArchival: null,
     apiService: dependencies.pg ? {
       resolveApiServiceForCrawling: (id) => resolveApiServiceForCrawling(dependencies.pg!, id),
     } : null,
   };
-  console.log(`[DEBUG][postgres-redis-adapters] created adapters — screenshotArchival=null (will be overridden by server.ts)`);
 };

@@ -66,7 +66,7 @@ export const mergeCrawlingIntoGenerationInput = (
 /**
  * Assemble input for strategic-reporting step.
  * Receives assembledGenerationInput (crawling + scoring) and produces LLM prompt context.
- * **Token efficiency rule**: NEVER includes screenshot data — only text snippets and structured JSON.
+ * **Token efficiency rule**: SerpApi-only structured data — text snippets and JSON only.
  */
 export const assembleStrategicReportingInput = (
   assembledInput: Record<string, unknown>,
@@ -83,7 +83,6 @@ export const assembleStrategicReportingInput = (
     paaQueries: Array.isArray(crawling?.paaQueries) ? crawling.paaQueries : [],
     competitorRanking: scoring ?? {},
     currentDate: new Date().toLocaleDateString('it-IT'),
-    // No screenshot data (DDD-120, REQ-011)
   };
 
   if (brandName) {
@@ -105,7 +104,7 @@ export const assembleStrategicReportingInput = (
 /**
  * Assemble input for unified-report step.
  * Receives assembledGenerationInput (crawling + scoring) and produces LLM prompt context.
- * **Token efficiency rule**: NEVER includes screenshot data — only text and structured JSON.
+ * **Token efficiency rule**: SerpApi-only structured data — text and JSON only.
  */
 export const assembleUnifiedReportInput = (
   assembledInput: Record<string, unknown>,
@@ -128,7 +127,6 @@ export const assembleUnifiedReportInput = (
     queryCount: 1 + paaQueries.length,
     competitorRanking: scoring ?? {},
     currentDate: new Date().toLocaleDateString('it-IT'),
-    // No screenshot data (DDD-120, REQ-011)
   };
 
   if (brandName) {

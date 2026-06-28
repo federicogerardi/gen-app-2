@@ -51,7 +51,6 @@ import {
 } from './tools-orchestrate-config';
 import { createAdminHandlers } from './admin-handlers';
 import { assertGitHubApiConfig, readGitHubApiConfigFromEnv } from '../integrations/github-config';
-import type { ScreenshotStorageAdapter } from '../integrations/screenshot-storage';
 
 export type { HandleAuthHttpRequestResult } from './route-table';
 
@@ -72,7 +71,6 @@ export type AuthHttpRuntimeOptions = {
   idGenerator?: AuthIdGenerator;
   now?: () => Date;
   sessionTtlMs?: number;
-  screenshotStorage?: ScreenshotStorageAdapter | null;
 };
 
 export const createAuthHttpRuntime = (
@@ -102,7 +100,6 @@ export const createAuthHttpRuntime = (
   const githubApiConfig = readGitHubApiConfigFromEnv();
   assertGitHubApiConfig(githubApiConfig);
   const idGenerator = options.idGenerator ?? createDefaultAuthIdGenerator();
-  const screenshotStorage = options.screenshotStorage ?? null;
 
   const readPrincipalFromCookie = async (
     request: IncomingMessage,
@@ -236,7 +233,6 @@ export const createAuthHttpRuntime = (
     passwordHashing,
     now,
     githubApiConfig,
-    screenshotStorage,
     requireAdminPrincipal,
     requireDb,
     parseJsonBody,

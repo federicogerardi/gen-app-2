@@ -35,7 +35,6 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
-const AdminGeometricScreenshotsPage = lazy(() => import('../../features/admin/pages/AdminGeometricScreenshotsPage').then(m => ({ default: m.AdminGeometricScreenshotsPage })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -63,7 +62,6 @@ const lighthouseAdminRouteTargets: Record<string, string> = {
   changelog: '/admin/changelog',
   'user-reports': '/admin/user-reports',
   activity: '/admin/activity',
-  'geometric-screenshots': '/admin/geometric-screenshots',
 };
 
 const AdminLayout = () => {
@@ -191,10 +189,6 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: 'user-reports',
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
-          },
-          {
-            path: 'geometric-screenshots',
-            element: <Suspense fallback={<PageLoader />}><AdminGeometricScreenshotsPage /></Suspense>,
           },
         ],
       },

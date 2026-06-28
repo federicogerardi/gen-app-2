@@ -136,7 +136,7 @@ const classifySourceType = (url: string, title: string, source: string): SourceT
   return 'organic';
 };
 
-export const normalizeSerpApiAiOverview = (response: SerpApiAiOverviewResponse): Omit<CrawlingResult, 'screenshotPath'> => {
+export const normalizeSerpApiAiOverview = (response: SerpApiAiOverviewResponse): CrawlingResult => {
   if (response.error || response.search_metadata.status === 'Error') {
     throw new Error(`SerpApi error: ${response.error ?? 'Unknown error'}`);
   }
@@ -144,8 +144,6 @@ export const normalizeSerpApiAiOverview = (response: SerpApiAiOverviewResponse):
   if (!response.ai_overview) {
     return {
       aiOverviewSnippet: null,
-      aiOverviewConfidence: 0.0,
-      selectorUsed: 'serpapi-ai-overview',
       sources: [],
       adsCount: 0,
       videoCount: 0,
@@ -165,8 +163,6 @@ export const normalizeSerpApiAiOverview = (response: SerpApiAiOverviewResponse):
   
   return {
     aiOverviewSnippet: aiOverviewSnippet || null,
-    aiOverviewConfidence: 0.95, // High confidence for SerpApi structured data
-    selectorUsed: 'serpapi-ai-overview',
     sources,
     adsCount,
     videoCount,

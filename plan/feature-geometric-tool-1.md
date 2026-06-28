@@ -30,7 +30,7 @@ The tool explicitly does not support file upload. Context generation is derived 
 - **REQ-008**: Add deterministic label and route resolution so `/sessionsummary` list/detail never exposes raw workflow identifiers.
 - **REQ-009**: `AnalysisSession` groups artifacts from a multi-query analysis cycle (one `BaseQuery` + up to four `PAAQuery` entries). It is a parallel aggregate root to `GenerationSession` with different grouping semantics (DDD-113).
 - **REQ-010**: `GeoScore` and `CompetitorTier` TypeScript types are internal to `CompetitorAnalysisContext` — not exposed via `packages/contracts`. Computed values cross the boundary as serialized JSON inside `ScoringArtifact` content (DDD-119, DDD-124).
-- **REQ-011**: LLM reporting steps (`strategic-reporting`, `unified-report`) must NOT receive screenshot data — only `SerpAIOverviewSnippet` texts and `CompetitorRanking` JSON (token efficiency rule, DDD-120).
+- **REQ-011**: LLM reporting steps (`strategic-reporting`, `unified-report`) receive only `SerpAIOverviewSnippet` texts and `CompetitorRanking` JSON (token efficiency rule, DDD-120).
 - **REQ-012**: Crawling must execute asynchronously via BullMQ job queue to avoid blocking the server. Each query crawl must respect `country` and `language` parameters.
 - **REQ-013**: PAA queries are discovered dynamically during the base query crawl. Discovered PAA queries trigger additional crawl jobs within the same `AnalysisSession` (DDD-127).
 - **REQ-014**: `AnalysisSessionIdentifier` is the canonical session identity for Geometric, distinct from `WorkflowSessionIdentifier`. Generated at session creation, stable through dynamic `QueryCluster` expansion (DDD-127).
@@ -169,7 +169,6 @@ This section is normative for prompt implementation.
 
 - **PROMPT-A-001 (Objective)**: Generate a qualitative strategic analysis from SERP extraction data and competitor ranking.
 - **PROMPT-A-002 (Input Source)**: `SerpAIOverviewSnippet` texts from crawling artifacts + `CompetitorRanking` JSON from scoring artifact.
-- **PROMPT-A-003 (No-Screenshot Rule)**: Screenshot data must NEVER be included in the prompt context. Only text and structured data.
 - **PROMPT-A-004 (Language)**: Output in Italian (`it-IT`).
 
 Prompt A mandatory output structure:
@@ -185,7 +184,6 @@ Prompt A mandatory output structure:
 
 - **PROMPT-B-001 (Objective)**: Combine the strategic analysis with quantitative competitor ranking into a single unified document.
 - **PROMPT-B-002 (Input Source)**: StrategicReport content (Prompt A output) + CompetitorRanking JSON (scoring artifact).
-- **PROMPT-B-003 (No-Screenshot Rule)**: Screenshot data must NEVER be included.
 - **PROMPT-B-004 (Language)**: Output in Italian (`it-IT`).
 
 Prompt B mandatory output structure:
@@ -273,7 +271,7 @@ The XState machine (`toolWorkflowMachine`) does NOT know about BullMQ. It only s
 ## 2d. PAA Discovery Flow (Deterministic)
 
 ```
-1. crawlSerp(baseQuery) → returns SerpAIOverviewSnippet + SerpSource[] + SerpScreenshot + discoveredPAAQueries[]
+1. crawlSerp(baseQuery) → returns SerpAIOverviewSnippet + SerpSource[] + discoveredPAAQueries[]
 2. If discoveredPAAQueries.length > 0:
    a. For each PAA query (max 4):
       - Add crawling job to BullMQ queue with { query: paaQuery, isPaa: true, ... }
@@ -343,12 +341,12 @@ The `analysisSessionIdentifier` (DDD-127) ensures all dynamically discovered PAA
 - **TEST-003**: Backend orchestrate test for 4-step dependency resolution (correct dependency graph for Geometric steps).
 - **TEST-004**: Backend crawling chain machine test: input/output type formatting (pass-through pattern, immediate final state).
 - **TEST-005**: Backend `invokeCrawling` actor test: BullMQ job addition, worker processing, retry with backoff, concurrency control, PAA discovery flow.
-- **TEST-006**: Backend crawling adapter test: mock browser, SERP parsing, screenshot capture, PAA click sequence, anti-bot stealth verification.
+- **TEST-006**: Backend crawling adapter test: mock browser, SERP parsing, PAA click sequence, anti-bot stealth verification.
 - **TEST-007**: Backend scoring chain machine test: input/output type formatting (pass-through pattern, immediate final state).
 - **TEST-008**: Backend `invokeScoring` actor test: scoring engine invocation with crawling data, output formatting.
 - **TEST-009**: Backend scoring engine test: domain grouping, source classification, weighted scoring, normalization, tier assignment.
 - **TEST-010**: Backend context assembly test: proper dependency artifact extraction for strategic-reporting and unified-report steps.
-- **TEST-011**: Backend token efficiency test: verify SerpScreenshot is NEVER included in LLM prompt context.
+- **TEST-011**: Backend token efficiency test: verify only text and structured data are included in LLM prompt context.
 - **TEST-012**: Backend integration test: full Geometric flow (crawling → scoring → strategic-reporting → unified-report) with mock LLM and mock browser.
 - **TEST-013**: Frontend tool registry test: route `/tools/geometric`, label `Geometric`, direct-input config.
 - **TEST-014**: Frontend Tool Workspace test: no file upload required, 3 direct-input fields rendered, Zod validation.

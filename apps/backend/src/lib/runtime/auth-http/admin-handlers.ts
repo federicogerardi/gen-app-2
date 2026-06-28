@@ -29,18 +29,12 @@ import {
   createAdminUserHandlers,
   type AdminUserHandlers,
 } from './admin-user-handlers';
-import {
-  createAdminGeometricHandlers,
-  type AdminGeometricHandlers,
-} from './admin-geometric-handlers';
-import type { ScreenshotStorageAdapter } from '../integrations/screenshot-storage';
 
 export type CreateAdminHandlersDependencies = {
   repositories: AuthRepositoryBundle;
   passwordHashing: PasswordHashRuntime;
   now: () => Date;
   githubApiConfig: GitHubApiConfig | null;
-  screenshotStorage: ScreenshotStorageAdapter | null;
   requireAdminPrincipal: (
     request: IncomingMessage,
     response: ServerResponse,
@@ -61,8 +55,7 @@ export type AdminHandlers =
   & AdminApiServiceHandlers
   & AdminApiServiceBindingHandlers
   & AdminFeedbackCenterHandlers
-  & AdminUserHandlers
-  & AdminGeometricHandlers;
+  & AdminUserHandlers;
 
 export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): AdminHandlers => {
   const {
@@ -70,7 +63,6 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
     passwordHashing,
     now,
     githubApiConfig,
-    screenshotStorage,
     requireAdminPrincipal,
     requireDb,
     parseJsonBody,
@@ -139,20 +131,11 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
     writeSuccess,
   });
 
-  const geometricHandlers = createAdminGeometricHandlers({
-    requireAdminPrincipal,
-    requireDb,
-    writeError,
-    writeSuccess,
-    screenshotStorage,
-  });
-
   return {
     ...llmModelHandlers,
     ...apiServiceHandlers,
     ...apiServiceBindingHandlers,
     ...feedbackCenterHandlers,
     ...userHandlers,
-    ...geometricHandlers,
   };
 };

@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
   Activity,
-  Camera,
   LayoutDashboard,
   Megaphone,
   MessageSquareWarning,
@@ -21,7 +20,6 @@ const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], Lucide
   changelog: Megaphone,
   'user-reports': MessageSquareWarning,
   activity: Activity,
-  'geometric-screenshots': Camera,
 };
 
 export const AdminPersistentNavigation = () => {

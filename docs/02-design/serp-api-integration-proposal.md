@@ -81,15 +81,11 @@ Non serve nuovo codice infrastructure. Serve solo:
 │     ↓                                                            │
 │  4. normalizeSerpApiResponse(payload)                            │
 │     → SerpSource[], SerpAIOverviewSnippet, PAAQuery[]            │
-│     → SerpScreenshot = null (SERP API non restituisce immagini)  │
 │     → queryHints[] (related_searches, non PAAQuery per DDD-118) │
 │     ↓                                                            │
 │  5. return CRAWLING_COMPLETED                                    │
-│     (nessun screenshot: SERP API non restituisce immagini)       │
 └──────────────────────────────────────────────────────────────────┘
 ```
-
-**Nota screenshot**: SERP API non restituisce screenshot. Lo screenshot archival (`screenshot-archival.ts`) rimane nel sistema ma non viene invocato per Geometric. Rimarrà utile per futuri tool che usano Puppeteer.
 
 ### Futuri tool — Puppeteer rimane disponibile
 
@@ -100,9 +96,7 @@ Non serve nuovo codice infrastructure. Serve solo:
 │  1. crawlSerp(url, language, country)  ← Puppeteer               │
 │     → SerpSource[], SerpAIOverviewSnippet, screenshotPath        │
 │     ↓                                                            │
-│  2. archiveScreenshot(screenshotPath)  ← già implementato        │
-│     ↓                                                            │
-│  3. return CRAWLING_COMPLETED                                    │
+│  2. return CRAWLING_COMPLETED                                    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -200,7 +194,6 @@ L'actor attuale chiama Puppeteer direttamente. **Il nuovo flusso Geometric non u
 PRIMA (da rimuovere per Geometric):
 1. crawlSerp() (Puppeteer)
 2. discoverPAAQueries() (Puppeteer)
-3. archiveScreenshot()
 
 DOPO (Geometric — solo API):
 1. resolveApiService(SERP_API_SERVICE_ID)
@@ -343,17 +336,12 @@ const queryHints: string[] = Array.isArray(payload.relatedSearches)
       .slice(0, 4)
   : [];
 
-// SerpScreenshot è sempre null per SERP API (nessuna immagine restituita)
-// ma deve essere presente nel CrawlingResult per conformità al glossario (DDD-114)
-const serpScreenshot: null = null;
-
 // CrawlingResult output — conforme a CrawlingResult (DDD-114)
 return {
   sources,           // SerpSource[] da organic_results
   aiOverviewSnippet, // SerpAIOverviewSnippet | null da answer_box
   paaQueries,        // PAAQuery[] da related_questions (DDD-118)
   queryHints,        // string[] da related_searches (non PAAQuery — held separate)
-  screenshotPath: serpScreenshot, // SerpScreenshot = null — SERP API non restituisce immagini
 };
 
 // Token PAA per espansione opzionale futura (conservati, non usati in MVP)
@@ -504,6 +492,5 @@ Il binding usa `workflowStepType: 'crawling'` come valore semanticamente corrett
 ## Related
 
 - [Geometric Tool Plan](./feature-geometric-tool-1.md)
-- [Geometric Screenshot Archival Plan](./feature-geometric-screenshot-archival-1.md) — screenshot rimane per futuri tool Puppeteer
 - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) — DDD-129
 - [Domain Bounded Context Map](./domain-bounded-context-map.md) — Crawling & Extraction Context

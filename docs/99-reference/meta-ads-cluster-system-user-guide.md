@@ -213,14 +213,11 @@ Formati supportati:
 
 ## 7. FAQ
 
-### D: Posso utilizzare il sistema cluster senza feature flag?
-R: No, il sistema cluster è attualmente disponibile solo con la feature flag `VITE_FF_USE_CLUSTER_SYSTEM` abilitata. Contatta l'amministratore per abilitarla.
-
-### D: Posso tornare al sistema legacy?
-R: Sì, quando la feature flag è disabilitata, il sistema mostra il formato legacy con le 4 varianti di lunghezza.
+### D: Come funziona il sistema cluster?
+R: Il sistema organizza i copy in una struttura gerarchica: Cluster → Angolo → Awareness Level. Ogni cluster rappresenta un segmento di pubblico, ogni angolo è una strategia di comunicazione, e ogni awareness level adatta il copy al livello di consapevolezza del problema.
 
 ### D: I formati di copy sono intercambiabili?
-R: Sì, puoi generare lo stesso briefing in tutti e 3 i formati e confrontare i risultati.
+R: Sì, puoi generare lo stesso briefing in tutti e 3 i formati (Short, Medium, Long) e confrontare i risultati.
 
 ### D: Posso esportare solo parte dell'output?
 R: Sì, puoi esportare un singolo cluster, un singolo angolo, o un singolo awareness level.

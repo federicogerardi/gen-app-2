@@ -4,7 +4,6 @@ import { uiPrimitives } from '../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { isStepVisible } from '../../tools/runtime/tool-step-display-config';
-import { isClusterSystemEnabled } from '../../tools/meta-ads/runtime/cluster-system-feature-flag';
 import { ClusterSystemTabs } from '../../tools/meta-ads/ui/ClusterSystemTabs';
 import {
   sortByCanonicalStepOrder,
@@ -132,12 +131,8 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
     return null;
   }
 
-  // Check if we should use the cluster system for meta-ads
-  const useClusterSystem = effectiveToolKey === 'meta-ads'
-    && selected.stepKey === 'ads-generation'
-    && isClusterSystemEnabled();
-
-  if (useClusterSystem) {
+  // Use cluster system for meta-ads ads-generation step
+  if (effectiveToolKey === 'meta-ads' && selected.stepKey === 'ads-generation') {
     return (
       <ClusterSystemTabs content={selected.content} />
     );

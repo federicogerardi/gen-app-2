@@ -28,24 +28,11 @@ Il rollout segue un approccio a 4 fasi per minimizzare i rischi e massimizzare i
 - **Settimana 5-6**: Fase 3 (70%)
 - **Settimana 7-8**: Fase 4 (100%)
 
-## 2. Configurazione Feature Flag
+## 2. Stato del Sistema
 
-### 2.1 Variabile Ambiente
-```bash
-# Frontend
-VITE_FF_USE_CLUSTER_SYSTEM=false  # Default: disabilitato
-```
+Il sistema cluster (cluster → angolo → awareness) è l'unico sistema disponibile per il tool Meta Ads. Il sistema legacy con 4 varianti per lunghezza è stato rimosso dopo un A/B test positivo.
 
-### 2.2 Modalità di Abilitazione
-- **Manuale**: Modifica diretta del file `.env`
-- **Automatica**: Tramite sistema di feature flagging (futuro)
-- **Per-utente**: Tramite configurazione utente (futuro)
-
-### 2.3 Rollback
-In caso di problemi, il rollback è immediato:
-```bash
-VITE_FF_USE_CLUSTER_SYSTEM=false
-```
+Non sono necessarie feature flag o configurazioni aggiuntive.
 
 ## 3. Metriche di Monitoraggio
 

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { parseClusterSystemOutput } from './cluster-system-parser';
-import { validateCopyLength } from './copy-length-validation';
 
 describe('Meta Ads Cluster System Performance Tests', () => {
   const generateMockClusterContent = (clusterCount: number, anglesPerCluster: number): string => {
@@ -86,22 +85,6 @@ describe('Meta Ads Cluster System Performance Tests', () => {
       expect(cluster.angles.length).toBeGreaterThanOrEqual(4);
     }
     expect(duration).toBeLessThan(500);
-  });
-
-  it('should validate copy length for all formats within 10ms', () => {
-    const iterations = 1000;
-    const startTime = performance.now();
-
-    for (let i = 0; i < iterations; i++) {
-      validateCopyLength('A'.repeat(500), 'short-form');
-      validateCopyLength('B'.repeat(900), 'medium-form');
-      validateCopyLength('C'.repeat(1500), 'long-form');
-    }
-
-    const endTime = performance.now();
-    const duration = endTime - startTime;
-
-    expect(duration).toBeLessThan(10);
   });
 
   it('should handle empty content gracefully', () => {

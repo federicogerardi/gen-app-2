@@ -274,6 +274,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       return;
     }
     if (generationStream.isStreamActive || generationRun.isGenerationActive) return;
+    if (pendingStepStart) return; // Prevent duplicate dispatch when request is already in flight
 
     const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
     const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
@@ -296,6 +297,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     completedStepsForFlow, currentRunningStep, generationStream.isStreamActive,
     generationStream.streamStatus, generationRun.isGenerationActive, generationStatus,
     isAutoChainEnabled, nextAvailableStep, startGenerationStep, toolKey, toolConfig.steps,
+    pendingStepStart,
   ]);
 
   const handlePrimaryAction = useCallback(() => {

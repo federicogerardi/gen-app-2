@@ -1064,7 +1064,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
-                {dispatchError ? <p className={uiPrimitives.error} role="alert">{dispatchError}</p> : null}
+                {dispatchError ? (
+                  <div className={uiPrimitives.error} role="alert">
+                    <p>{dispatchError}</p>
+                    {(dispatchError.includes('tempo') || dispatchError.includes('Timeout') || dispatchError.includes('Connessione persa')) && (
+                      <button
+                        type="button"
+                        className={uiPrimitives.button}
+                        onClick={handlePrimaryAction}
+                        disabled={isFormLocked || isFormBusy}
+                      >
+                        Riprova
+                      </button>
+                    )}
+                  </div>
+                ) : null}
 
               <div className="ui-tool-action-buttons">
                 {isFormLocked || isFormBusy ? (

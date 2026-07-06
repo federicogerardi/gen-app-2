@@ -14,6 +14,7 @@ import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
 import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
+import { mapInlineDispatchError } from './tool-page-runtime-utils';
 
 type UseToolPageRunControllerArgs = {
   auth: ReturnType<typeof useAuthSession>;
@@ -230,7 +231,8 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       if (resolvedStep) {
         toolPageSend({ type: 'STEP_FAILED', step: resolvedStep, message: errorMessage });
       }
-      setDispatchError(errorMessage);
+      const mappedError = mapInlineDispatchError(errorMessage) ?? appCopy.ui.toolPage.runtimeErrors.dispatchFailed;
+      setDispatchError(mappedError);
       stopAutoChain();
       toolPageSend({ type: 'CANCEL_GENERATION' });
       return;

@@ -43,8 +43,7 @@ export type DispatchErrorReasonCode =
   | 'stream_empty_output'
   | 'terminal_failed'
   | 'timeout'
-  | 'connection_lost'
-  | 'unknown';
+  | 'connection_lost';
 
 export const mapInlineDispatchError = (reason: string | null | undefined): string | null => {
   if (!reason) {
@@ -57,10 +56,13 @@ export const mapInlineDispatchError = (reason: string | null | undefined): strin
   }
 
   const reasonCode = normalizeToDispatchErrorReasonCode(normalized);
+  if (reasonCode === null) {
+    return normalized;
+  }
   return mapReasonCodeToMessage(reasonCode);
 };
 
-const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReasonCode => {
+const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReasonCode | null => {
   if (reason === 'extraction_context_insufficient' || reason === 'stream_empty_output') {
     return reason;
   }
@@ -81,7 +83,7 @@ const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReason
     return 'connection_lost';
   }
 
-  return 'unknown';
+  return null;
 };
 
 const mapReasonCodeToMessage = (code: DispatchErrorReasonCode): string => {
@@ -97,8 +99,6 @@ const mapReasonCodeToMessage = (code: DispatchErrorReasonCode): string => {
       return 'La generazione ha impiegato troppo tempo. Riprova o contatta il supporto.';
     case 'connection_lost':
       return 'Connessione persa. Controlla la tua connessione e riprova.';
-    case 'unknown':
-      return appCopy.ui.toolPage.runtimeErrors.dispatchFailed;
   }
 };
 

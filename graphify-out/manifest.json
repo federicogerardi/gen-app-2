@@ -20,9 +20,9 @@
     "semantic_hash": "3ea725724bc8ebe483c9f13d6aa1124f"
   },
   "apps/backend/package.json": {
-    "mtime": 1783376134.4508202,
+    "mtime": 1783377775.4215167,
     "ast_hash": "d9f832e6ac5a7acae7aa30588ac69f5a",
-    "semantic_hash": ""
+    "semantic_hash": "d9f832e6ac5a7acae7aa30588ac69f5a"
   },
   "apps/backend/src/lib/adapters/api-service.adapter.ts": {
     "mtime": 1783254452.423629,
@@ -305,9 +305,9 @@
     "semantic_hash": "30bb1b21ab78be63dbc5b36dc245f06e"
   },
   "apps/backend/src/lib/machines/idempotency-coordinator.machine.ts": {
-    "mtime": 1783376265.3737605,
+    "mtime": 1783377775.4217699,
     "ast_hash": "efdf515a0629298e3e7b7230200fa01b",
-    "semantic_hash": ""
+    "semantic_hash": "efdf515a0629298e3e7b7230200fa01b"
   },
   "apps/backend/src/lib/machines/index.ts": {
     "mtime": 1780095815.4271069,
@@ -640,9 +640,9 @@
     "semantic_hash": "f1291d4b3c5e29723378c9a415fff775"
   },
   "apps/backend/src/lib/runtime/integrations/geometric-logger.ts": {
-    "mtime": 1783376338.4906454,
-    "ast_hash": "2259be0d1a9bf58a33277ac3c8a45bf3",
-    "semantic_hash": ""
+    "mtime": 1783379237.1577635,
+    "ast_hash": "12caad5c5efe2c60135ff136732d120b",
+    "semantic_hash": "12caad5c5efe2c60135ff136732d120b"
   },
   "apps/backend/src/lib/runtime/integrations/github-config.ts": {
     "mtime": 1780093254.3707483,
@@ -975,9 +975,9 @@
     "semantic_hash": "7d731d47d5b656617e14f87f10472a60"
   },
   "apps/frontend/package.json": {
-    "mtime": 1783376144.0356107,
+    "mtime": 1783377775.4222002,
     "ast_hash": "1c32f9cd47f681bd8307b579f58b4c84",
-    "semantic_hash": ""
+    "semantic_hash": "1c32f9cd47f681bd8307b579f58b4c84"
   },
   "apps/frontend/scripts/admin-a11y-smoke.mjs": {
     "mtime": 1780093254.3825223,
@@ -990,9 +990,9 @@
     "semantic_hash": "e13f0f085e2a5f169e82b85d1ca07758"
   },
   "apps/frontend/server.mjs": {
-    "mtime": 1783376408.032585,
+    "mtime": 1783377775.4223409,
     "ast_hash": "98fcf5d65f985742256a875c693e730e",
-    "semantic_hash": ""
+    "semantic_hash": "98fcf5d65f985742256a875c693e730e"
   },
   "apps/frontend/src/App.tsx": {
     "mtime": 1780093254.3832383,
@@ -2055,9 +2055,9 @@
     "semantic_hash": "a800e1bd3b372906c81f213cec156187"
   },
   "apps/frontend/src/features/tools/runtime/tool-page-runtime-utils.ts": {
-    "mtime": 1783376597.0967019,
-    "ast_hash": "636b3416c76c69a5494aeb32d73a65be",
-    "semantic_hash": ""
+    "mtime": 1783379121.2235477,
+    "ast_hash": "92b37546db598d8a56ab7d84ed1c2df6",
+    "semantic_hash": "92b37546db598d8a56ab7d84ed1c2df6"
   },
   "apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts": {
     "mtime": 1783254452.4425342,
@@ -2085,9 +2085,9 @@
     "semantic_hash": "41b4bd67b7a962a732e7a8b45c2a2747"
   },
   "apps/frontend/src/features/tools/runtime/tools-client.ts": {
-    "mtime": 1783376528.35975,
+    "mtime": 1783377775.4227283,
     "ast_hash": "22eca7559e06ee23f5602f1851946eaa",
-    "semantic_hash": ""
+    "semantic_hash": "22eca7559e06ee23f5602f1851946eaa"
   },
   "apps/frontend/src/features/tools/runtime/useToolForm.ts": {
     "mtime": 1783254452.443,
@@ -2105,9 +2105,9 @@
     "semantic_hash": "011c31db22b57a0a4f09d955830af594"
   },
   "apps/frontend/src/features/tools/runtime/useToolPageRunController.ts": {
-    "mtime": 1783376661.2427244,
-    "ast_hash": "79aef4b3e57c6580ad2d652054bf6d89",
-    "semantic_hash": ""
+    "mtime": 1783379099.0628107,
+    "ast_hash": "1b0d26e1862ade447768d8f0795c569b",
+    "semantic_hash": "1b0d26e1862ade447768d8f0795c569b"
   },
   "apps/frontend/src/features/tools/ui/ToolActionButtons.tsx": {
     "mtime": 1783254452.443549,
@@ -2185,9 +2185,9 @@
     "semantic_hash": "ce1c403b7a642d0f52307b18ec10d022"
   },
   "apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx": {
-    "mtime": 1783376774.5450158,
+    "mtime": 1783377775.423199,
     "ast_hash": "c7339997c9ad2721f70f4575842c7b22",
-    "semantic_hash": ""
+    "semantic_hash": "c7339997c9ad2721f70f4575842c7b22"
   },
   "apps/frontend/src/features/tools/ui/ToolPageTemplate.youtube-description-direct-input.test.tsx": {
     "mtime": 1780095815.4361067,
@@ -2695,9 +2695,9 @@
     "semantic_hash": "a4ac7c2de7c44c025bed583c173acbb9"
   },
   "docs/01-requirements/domain-ubiquitous-language-glossary.md": {
-    "mtime": 1783375955.7783256,
+    "mtime": 1783377775.4238446,
     "ast_hash": "cc7d930beede7e08a36c75070366a472",
-    "semantic_hash": ""
+    "semantic_hash": "cc7d930beede7e08a36c75070366a472"
   },
   "docs/02-design/adr/csrf-fail-closed-startup-invariant-adr.md": {
     "mtime": 1780095815.438558,
@@ -2715,9 +2715,9 @@
     "semantic_hash": "af36eae7efa652712402fb3b43f15a10"
   },
   "docs/02-design/domain-bounded-context-map.md": {
-    "mtime": 1783375997.835719,
+    "mtime": 1783377775.4242537,
     "ast_hash": "7e0389e19c887fba5e5f4799e09536d0",
-    "semantic_hash": ""
+    "semantic_hash": "7e0389e19c887fba5e5f4799e09536d0"
   },
   "docs/02-design/geometric-admin-debug-monitoring-proposal.md": {
     "mtime": 1783254452.445331,
@@ -2800,9 +2800,9 @@
     "semantic_hash": "1e70a3b6e50b20c864a78f1204174c3b"
   },
   "docs/04-testing/streaming-generator-debug-runbook.md": {
-    "mtime": 1783376924.7217512,
+    "mtime": 1783377775.4245293,
     "ast_hash": "05699f7b84e795195827b44f659ea897",
-    "semantic_hash": ""
+    "semantic_hash": "05699f7b84e795195827b44f659ea897"
   },
   "docs/07-governance/architecture-weaknesses-code-review.md": {
     "mtime": 1780525487.1326585,
@@ -2815,9 +2815,9 @@
     "semantic_hash": "63c50343e809aa68e769c484916c2f27"
   },
   "docs/07-governance/domain-naming-decision-log.md": {
-    "mtime": 1783375948.3784323,
+    "mtime": 1783377775.425349,
     "ast_hash": "e09911b6c43505e4fcff6a3e861b5416",
-    "semantic_hash": ""
+    "semantic_hash": "e09911b6c43505e4fcff6a3e861b5416"
   },
   "docs/07-governance/frontend-ux-determinism-code-review.md": {
     "mtime": 1783254452.447345,
@@ -2860,9 +2860,9 @@
     "semantic_hash": "c113e300053c5b6ca72fc991692f42d7"
   },
   "docs/index-overview.md": {
-    "mtime": 1783376944.4734535,
+    "mtime": 1783377775.425527,
     "ast_hash": "399ebc2ae855cdc6075894e349e4bc23",
-    "semantic_hash": ""
+    "semantic_hash": "399ebc2ae855cdc6075894e349e4bc23"
   },
   "packages/contracts/README.md": {
     "mtime": 1780095815.4437933,
@@ -3020,23 +3020,23 @@
     "semantic_hash": "98dfb6320fafa931fb6ebe35a8c62cba"
   },
   "apps/backend/src/lib/runtime/logger.ts": {
-    "mtime": 1783376171.816187,
+    "mtime": 1783377775.4220872,
     "ast_hash": "724bcae318111bf0c03666c786facec1",
-    "semantic_hash": ""
+    "semantic_hash": "724bcae318111bf0c03666c786facec1"
   },
   "apps/frontend/src/app/runtime/logger.ts": {
-    "mtime": 1783376182.8630185,
+    "mtime": 1783377775.4224448,
     "ast_hash": "836351d720a572d8eef29afd8b095851",
-    "semantic_hash": ""
+    "semantic_hash": "836351d720a572d8eef29afd8b095851"
   },
   "docs/04-testing/production-observability-runbook.md": {
-    "mtime": 1783376899.9171252,
+    "mtime": 1783377775.424387,
     "ast_hash": "b22dbe2f16403404231376ee06d2c6ba",
-    "semantic_hash": ""
+    "semantic_hash": "b22dbe2f16403404231376ee06d2c6ba"
   },
   "plan/feature-error-logging-ux-feedback-improvements-1.md": {
-    "mtime": 1783375601.385432,
+    "mtime": 1783377775.4676287,
     "ast_hash": "bcdb612cf1ceb079924e8d48b72ad204",
-    "semantic_hash": ""
+    "semantic_hash": "bcdb612cf1ceb079924e8d48b72ad204"
   }
 }

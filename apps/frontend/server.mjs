@@ -4,6 +4,7 @@ import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { extname, dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { v4 as uuidv4 } from 'uuid';
 
 // ---------------------------------------------------------------------------
 // TASK-009: BACKEND_INTERNAL_URL — env server-side, non esposta nel bundle Vite.
@@ -86,9 +87,28 @@ function logReq(type, method, path) {
   console.log(`[req] ${type} ${method} ${path}`);
 }
 
+// Structured logging with correlation ID support
+function logStructured(level, message, context = {}) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    component: 'frontend-proxy',
+    ...context,
+  };
+  console[level](JSON.stringify(entry));
+}
+
 // TASK-006/007/008: proxy request verso backend interno Railway.
 function handleProxy(request, response, backendUrl) {
   const t0 = Date.now();
+  request._proxyStartTime = t0;
+  
+  // Ensure correlation ID exists for request tracing
+  if (!request.headers['x-correlation-id']) {
+    request.headers['x-correlation-id'] = uuidv4();
+  }
+  
   const logPath = (request.url ?? '/').split('?')[0];
   logReq('proxy', request.method ?? 'GET', logPath);
 
@@ -125,7 +145,20 @@ function handleProxy(request, response, backendUrl) {
 
       response.statusCode = upstreamRes.statusCode ?? 502;
       const elapsed = Date.now() - t0;
-      console.log(`[proxy] ${request.method ?? 'GET'} ${logPath} → ${response.statusCode} (${elapsed}ms)`);
+      const correlationId = request.headers['x-correlation-id'] || 'unknown';
+      
+      // Log 5xx responses as errors, others as info
+      if (response.statusCode >= 500) {
+        logStructured('error', 'proxy.response', {
+          method: request.method,
+          url: request.url,
+          statusCode: response.statusCode,
+          durationMs: elapsed,
+          correlationId,
+        });
+      } else {
+        console.log(`[proxy] ${request.method ?? 'GET'} ${logPath} → ${response.statusCode} (${elapsed}ms)`);
+      }
 
       if (isSSE) {
         // TASK-007: SSE — flush immediato, no Nagle, pipe senza buffering
@@ -154,7 +187,19 @@ function handleProxy(request, response, backendUrl) {
   // TASK-008: backend non raggiungibile → 502 con diagnostica minimale
   upstreamReq.on('error', (err) => {
     const elapsed = Date.now() - t0;
-    console.error(`[proxy] error (${elapsed}ms): ${err.code} ${err.message} → ${backendUrl}${request.url}`);
+    const correlationId = request.headers['x-correlation-id'] || 'unknown';
+    
+    // Structured error logging with correlation ID
+    logStructured('error', 'proxy.error', {
+      method: request.method,
+      url: request.url,
+      statusCode: response.statusCode,
+      durationMs: elapsed,
+      errorCode: err.code,
+      errorMessage: err.message,
+      correlationId,
+    });
+    
     if (!response.headersSent) {
       response.statusCode = 502;
       response.setHeader('Content-Type', 'application/json; charset=utf-8');

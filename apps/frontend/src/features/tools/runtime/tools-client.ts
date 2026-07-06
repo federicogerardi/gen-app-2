@@ -23,6 +23,7 @@ import {
 } from '../../../app/runtime/http-client';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
 import { appCopy } from '../../../app/copy/system';
+import { v4 as uuidv4 } from 'uuid';
 
 const normalizeExtractionModel = (model: string): GenerationRequest['model'] => {
   const normalized = model.trim();
@@ -249,11 +250,13 @@ export const uploadBrief = async (
     };
 
   try {
+    const correlationId = uuidv4();
     const payload = await requestJson<unknown>(joinApiPath(options.apiBaseUrl ?? '', path), {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'x-correlation-id': correlationId,
       },
       body: JSON.stringify(bodyPayload),
     });

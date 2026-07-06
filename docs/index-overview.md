@@ -42,7 +42,8 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 5. [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 6. [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
 7. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
-8. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
+8. [production-observability-runbook](./04-testing/production-observability-runbook.md)
+9. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
 
 ## Section Map
 

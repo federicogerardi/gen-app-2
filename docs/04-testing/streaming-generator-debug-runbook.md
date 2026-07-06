@@ -1,18 +1,24 @@
 ---
-status: approved
-version: 1.1
-last-reviewed: 2026-06-04
-next-review-date: 2026-09-04
+status: active
+version: 1.2
+date_created: 2026-06-04
+last-reviewed: 2026-07-06
+next-review-date: 2026-10-06
 owner: Frontend Platform Team
+type: debug-runbook
+tags: [debug, streaming, generation, xstate, observability, pino]
 ---
 
 # Streaming Generator Debug Runbook
 
 > **Nota architetturale (v1.1)**: Questo runbook documenta il percorso **streaming** (SSE), che e stato reso dormiente a giugno 2026. Il percorso di default per i tool e ora il modello **non-streaming** (`POST /generation/run`, risposta JSON). Per la diagnostica del percorso non-streaming, consultare i log strutturati del server (prefisso `[gen][json-session-*]`) e i test di smoke in `postgres-redis.nonstreaming.smoke.ts`. Per i dettagli della migrazione, vedere [Non-Streaming Generation Migration Plan](../../plan/migrate-to-nonstreaming-generation.md).
 
+> **Structured Logging (v1.2)**: Il sistema ora utilizza **pino** per structured logging con correlation IDs. Per dettagli completi su log patterns, query Railway, e debugging workflows, vedere [Production Observability Runbook](./production-observability-runbook.md).
+
 > DDD reference:
 > - [Domain Ubiquitous Language Glossary](../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) for canonical terms such as `BackendStreamEvent`, `ToolPage`, and `ReadinessSnapshot`.
 > - [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md#frontend--ui-context) for Frontend/UI context ownership and boundaries.
+> - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) for DDD-147 (DispatchError), DDD-148 (DispatchErrorReasonCode), DDD-149 (Error Translation Rules).
 
 Complete debugging infrastructure for multi-step LLM generation streaming with XState v5.
 

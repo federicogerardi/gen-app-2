@@ -4,8 +4,8 @@ import type { GenerationAdapters } from '../adapters';
 import {
   handleGenerationRequestAsNodeSse,
   handleGenerationRequestAsJson,
-  type BackendGenerationRequest,
-} from './index';
+} from './generation-handler';
+import type { BackendGenerationRequest } from './request-contract';
 import {
   getHeaderValue,
   normalizePath,

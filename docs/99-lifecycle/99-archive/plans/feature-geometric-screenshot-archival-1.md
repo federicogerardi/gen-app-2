@@ -1,15 +1,16 @@
 > **Archived — feature removed in `remove-geometric-screenshot-archival.md`**
 
 ---
-goal: Implement persistent per-session screenshot archival for Geometric SERP crawling, enabling admin verification of crawling authenticity and AI Overview extraction confidence
-version: 1.5
-date_created: 2026-06-13
-last_updated: 2026-06-13
-last-reviewed: 2026-06-28
-next-review-date: 2026-09-13
-owner: Backend Runtime
 status: archived
-tags: [feature, geometric, screenshot, archival, admin, monitoring, crawling, puppeteer, postgres, railway]
+version: 1.6
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
+owner: Backend Runtime
+date_created: 2026-06-13
+title: Geometric SERP Screenshot Archival Implementation Plan
+type: feature-plan
+tags: [feature, geometric, screenshot, archival, admin, monitoring, crawling, puppeteer, postgres, railway, archived]
+goal: Implement persistent per-session screenshot archival for Geometric SERP crawling, enabling admin verification of crawling authenticity and AI Overview extraction confidence
 ---
 
 # Introduction

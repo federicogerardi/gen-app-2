@@ -1,13 +1,14 @@
 ---
-goal: Implementazione strutturata di error logging e miglioramenti UX feedback per generation/run failures
-version: 1.1
-date_created: 2026-07-06
-last_updated: 2026-07-06
-last-reviewed: 2026-07-06
-next-review-date: 2026-08-06
+status: archived
+version: 1.2
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
 owner: Backend Runtime + Frontend Platform
-status: draft
-tags: [plan, error-logging, ux-feedback, observability, proxy, idempotency, generation-system, pino, correlation-id]
+date_created: 2026-07-06
+title: Error Logging and UX Feedback Improvements Implementation Plan
+type: feature-plan
+tags: [plan, error-logging, ux-feedback, observability, proxy, idempotency, generation-system, pino, correlation-id, archived]
+goal: Implementazione strutturata di error logging e miglioramenti UX feedback per generation/run failures
 source_proposal: docs/02-design/proposal-error-logging-and-ux-feedback.md
 dependencies: [pino, correlation-id, uuid, pino-pretty, tap-spec]
 ---

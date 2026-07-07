@@ -1,3 +1,16 @@
+---
+status: archived
+version: 1.0
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
+owner: Backend Runtime
+date_created: 2026-06-04
+title: Add Non-Streaming Generation Mode (Coexistence)
+type: migration-plan
+tags: [migration, generation, streaming, non-streaming, coexistence, archived]
+goal: Add non-streaming generation as default for tools; streaming stays dormant for future chat
+---
+
 # Plan: Add Non-Streaming Generation Mode (Coexistence)
 
 **Date**: 2026-06-04

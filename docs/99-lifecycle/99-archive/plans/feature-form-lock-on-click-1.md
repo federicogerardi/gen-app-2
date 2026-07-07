@@ -1,3 +1,16 @@
+---
+status: archived
+version: 1.0
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
+owner: Frontend Platform
+date_created: 2026-06-28
+title: Form Lock on Click Implementation
+type: feature-plan
+tags: [frontend, form-lock, ux, tool-page, archived]
+goal: Implement immediate form locking on primary CTA click to prevent UI delay during extraction phase
+---
+
 # Form Lock on Click — isFormLocked
 
 ## Problem

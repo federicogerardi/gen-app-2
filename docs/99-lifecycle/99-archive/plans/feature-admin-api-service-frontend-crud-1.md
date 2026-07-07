@@ -1,11 +1,14 @@
 ---
-goal: Frontend admin CRUD implementation plan for ApiServiceCatalog and ApiService bindings
-version: 1.1
-date_created: 2026-05-24
-last_updated: 2026-05-24
+status: archived
+version: 1.2
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
 owner: Frontend Platform
-status: Completed
-tags: [feature, frontend, admin, crud, ddd, api-service]
+date_created: 2026-05-24
+title: Frontend admin CRUD implementation plan for ApiServiceCatalog and ApiService bindings
+type: feature-plan
+tags: [feature, frontend, admin, crud, ddd, api-service, archived]
+goal: Frontend admin CRUD implementation plan for ApiServiceCatalog and ApiService bindings
 ---
 
 # Introduction

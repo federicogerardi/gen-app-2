@@ -1,13 +1,14 @@
 ---
-goal: Rimuovere completamente la funzionalità di screenshot archival dal tool Geometric, inclusi i campi derivati `aiOverviewConfidence` e `selectorUsed`, ormai privi di significato con il percorso SerpApi-only
-version: 1.2
-date_created: 2026-06-28
-last_updated: 2026-06-28
-last-reviewed: 2026-06-28
-next-review-date: 2026-07-28
+status: archived
+version: 1.3
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
 owner: Backend Runtime
-status: draft
-tags: [removal, geometric, screenshot, archival, cleanup, serpapi, ddd-governance]
+date_created: 2026-06-28
+title: Remove Geometric Screenshot Archival Implementation Plan
+type: removal-plan
+tags: [removal, geometric, screenshot, archival, cleanup, serpapi, ddd-governance, archived]
+goal: Rimuovere completamente la funzionalità di screenshot archival dal tool Geometric, inclusi i campi derivati `aiOverviewConfidence` e `selectorUsed`, ormai privi di significato con il percorso SerpApi-only
 ---
 
 # Introduction

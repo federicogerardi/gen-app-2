@@ -1,13 +1,14 @@
 ---
-goal: Implementazione evoluzione formato output tool meta-ads da sistema 4 varianti per lunghezza a sistema cluster → angolo → awareness con controllo utente lunghezza copy
-version: 1.1
-date_created: 2026-06-28
-last_updated: 2026-06-28
-last-reviewed: 2026-06-28
-next-review-date: 2026-07-28
+status: archived
+version: 1.2
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
 owner: Product Team + Backend Runtime + Frontend Platform
-status: in-progress
-tags: [plan, meta-ads-evolution, cluster-system, copy-length-control, tool-workspace, backend, frontend, ddd, validation]
+date_created: 2026-06-28
+title: Meta Ads Cluster System Evolution Implementation Plan
+type: feature-plan
+tags: [plan, meta-ads-evolution, cluster-system, copy-length-control, tool-workspace, backend, frontend, ddd, validation, archived]
+goal: Implementazione evoluzione formato output tool meta-ads da sistema 4 varianti per lunghezza a sistema cluster → angolo → awareness con controllo utente lunghezza copy
 ---
 
 # Introduction

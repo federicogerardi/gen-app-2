@@ -1,3 +1,16 @@
+---
+status: archived
+version: 1.0
+last-reviewed: 2026-07-08
+next-review-date: 2027-01-08
+owner: Backend Runtime
+date_created: 2026-06-28
+title: Fix Orchestrate 503 with Redis Cache Implementation
+type: fix-plan
+tags: [fix, orchestrate, redis-cache, connection-pool, timeout, archived]
+goal: Fix orchestrate 503 deadline_exceeded errors with connection pool optimization and Redis cache implementation
+---
+
 # Fix: Orchestrate 503 — Hotfix + Redis Cache Strutturale
 
 ## Problema

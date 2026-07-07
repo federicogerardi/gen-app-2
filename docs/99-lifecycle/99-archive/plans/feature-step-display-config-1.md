@@ -139,7 +139,7 @@ function getIncludedSteps(toolKey: ToolKey | null): ToolStep[];
 
 ## 4. Files
 
-- **FILE-001**: `plan/feature-step-display-config-1.md` — this implementation plan.
+- **FILE-001**: `docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md` — this implementation plan.
 - **FILE-002**: `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts` — **NEW** — centralized step display configuration.
 - **FILE-003**: `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx` — visibility filtering for step tabs.
 - **FILE-004**: `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx` — download handler enhancement.

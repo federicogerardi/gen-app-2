@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.6.0
+version: 1.6.1
 last-reviewed: 2026-07-08
 next-review-date: 2026-08-08
 owner: Domain Architecture
@@ -66,7 +66,7 @@ Implicit bounded contexts (communities detected by the graph) show extremely low
 - **Symptoms:** Communities such as `Adapters Auth Interfaces`, `Admin Handlers`, and `Adapters Generation Adapters`.
 - **Impact:** Files within these modules communicate far more frequently with external modules than with their own siblings. This indicates weak domain boundaries and high external coupling.
 - **Action Taken (2026-07-07):** Refactored `Admin Handlers` community via subdirectory decomposition. `auth-http/` split into `admin/`, `auth/`, `projects/`, `tools/`. Cohesion improved from 0.05 to 0.09. See [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md).
-- **Remaining:** `Adapters Auth Interfaces` (0.06) and `Adapters Generation Adapters` (0.06) remain unaddressed.
+- **Remaining:** `Adapters Auth Interfaces` (0.06) and `Adapters Generation Adapters` (0.06) remain unaddressed. Marked as **optional/not planned** — see Section 2 rationale.
 
 ### 3. Overloaded Domain "God Nodes" — ADDRESSED
 While generic UI utilities (`appCopy`, `cx()`) are expected to be highly connected, several architectural abstractions have accumulated an unsustainable number of dependencies:
@@ -108,4 +108,4 @@ The graph previously detected active import cycles, explicitly highlighting barr
 3. ~~**Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.~~ (Completed — see [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md). Cohesion: 0.05 → 0.09)
 4. ~~**Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.~~ (Completed — Evidence anchors added to 5 key documentation files. Graphify AST extractor does not follow markdown file path references; cross-type edges remain 0. See [plan/analysis-documentation-linking-1.md](../../plan/analysis-documentation-linking-1.md))
 5. ~~**God Nodes Decomposition:** Decompose `useAuthSession()` and `resolveBackendCapabilities()` into specialized hooks and domain-specific resolvers.~~ (Completed — see [plan/refactor-god-nodes-decomposition-1.md](../../plan/refactor-god-nodes-decomposition-1.md). 74% edge reduction: 96 → 25 edges)
-6. **Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.
+6. ~~**Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.~~ **Optional/Not Planned** — Low ROI: no functional impact, infrastructure modules are stable, Admin Handlers refactoring showed modest improvement (0.05 → 0.09). Only revisit if touching this code for other reasons (boy scout rule).

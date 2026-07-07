@@ -1,6 +1,6 @@
 ---
-status: draft
-version: 1.3.0
+status: active
+version: 1.4.0
 last-reviewed: 2026-07-07
 next-review-date: 2026-08-07
 owner: Domain Architecture
@@ -61,11 +61,12 @@ The graph is significantly partitioned. Out of 5528 total nodes, the largest con
 
 The fragmentation represents a **documentation architecture issue**, not a code architecture issue. The documentation forms its own disconnected knowledge graph, which reduces the value of graphify for cross-referencing code ↔ docs. No urgent refactoring is required for the code layer.
 
-### 2. Low Modular Cohesion ("Feature Envy")
+### 2. Low Modular Cohesion ("Feature Envy") — PARTIALLY ADDRESSED
 Implicit bounded contexts (communities detected by the graph) show extremely low cohesion scores (ranging from `0.04` to `0.07`). 
 - **Symptoms:** Communities such as `Adapters Auth Interfaces`, `Admin Handlers`, and `Adapters Generation Adapters`.
 - **Impact:** Files within these modules communicate far more frequently with external modules than with their own siblings. This indicates weak domain boundaries and high external coupling.
-- **Action Item:** Revisit the [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md). Refactor these specific directories to encapsulate logic, potentially moving leaked responsibilities closer to where they are actually consumed.
+- **Action Taken (2026-07-07):** Refactored `Admin Handlers` community via subdirectory decomposition. `auth-http/` split into `admin/`, `auth/`, `projects/`, `tools/`. Cohesion improved from 0.05 to 0.09. See [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md).
+- **Remaining:** `Adapters Auth Interfaces` (0.06) and `Adapters Generation Adapters` (0.06) remain unaddressed.
 
 ### 3. Overloaded Domain "God Nodes"
 While generic UI utilities (`appCopy`, `cx()`) are expected to be highly connected, several architectural abstractions have accumulated an unsustainable number of dependencies:
@@ -86,3 +87,4 @@ The graph previously detected active import cycles, explicitly highlighting barr
 2. ~~**Investigation:** Run an isolated graph query on the second largest component to identify the 1116 isolated nodes.~~ (Completed — see Section 1 findings)
 3. ~~**Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.~~ (Completed — see [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md). Cohesion: 0.05 → 0.09)
 4. **Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.
+5. **Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.

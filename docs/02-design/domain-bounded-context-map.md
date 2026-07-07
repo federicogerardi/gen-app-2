@@ -270,3 +270,35 @@ The SerpApi channel is configured via `SERP_API_SERVICE_ID` and `SERP_API_KEY` e
 | GEOMETRIC LLM reporting token efficiency | Generation | The `strategic-reporting` and `unified-report` LLM steps must not receive screenshot data — only `SerpAIOverviewSnippet` texts (from `CrawlArtifact`) and `CompetitorRanking` JSON (from `ScoringArtifact`) are sent to the LLM as dependency payload. `SerpScreenshot` URLs are persisted in `CrawlArtifact` for storage only. | DDD-120, DDD-123 |
 | `CompetitorRanking` data boundary (C-001) | Competitor Analysis → Generation | `GeoScore` and `CompetitorTier` TypeScript types are internal to `CompetitorAnalysisContext` (not in `packages/contracts`). The computed values cross the boundary as serialized JSON inside `ScoringArtifact` content, consumed via the standard `stepDependencyArtifactIds` mechanism — no direct type import. This mirrors the existing pattern: `ExtractionChain` produces `ExtractionContext` JSON consumed by downstream steps without sharing the chain's internal types. See DDD-124. | DDD-119, DDD-124 |
 | `CrawlArtifact` as step dependency input | Crawling & Extraction → Generation | The `serp-crawling` step produces a `CrawlArtifact` (`ArtifactType = 'crawl'`). `ArtifactType = 'crawl'` is distinct from `ArtifactType = 'extraction'` specifically to prevent `StepHydration` from treating SERP crawl artifacts as briefing extraction artifacts and misrouting hydration paths (DDD-122). Downstream steps (`competitor-scoring`, `strategic-reporting`) consume the `CrawlArtifact` content via `stepDependencyArtifactIds`. | DDD-122, DDD-123 |
+
+---
+
+## Evidence Anchors
+
+Key source files referenced by this bounded context map:
+
+- `apps/backend/src/lib/machines/generation-system.machine.ts`
+- `apps/backend/src/lib/machines/tool-workflow.machine.ts`
+- `apps/backend/src/lib/machines/extraction-chain.machine.ts`
+- `apps/backend/src/lib/machines/generation/acquisition-chain.machine.ts`
+- `apps/backend/src/lib/machines/generation/crawling-chain.machine.ts`
+- `apps/backend/src/lib/machines/generation/scoring-chain.machine.ts`
+- `apps/backend/src/lib/machines/generation/context-generation-assembly.ts`
+- `apps/backend/src/lib/runtime/tool-workflow-registry.ts`
+- `apps/backend/src/lib/runtime/auth-http/route-table.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-session-handlers.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts`
+- `apps/backend/src/lib/types/xstate.ts`
+- `apps/backend/src/lib/types/artifact.ts`
+- `apps/backend/src/lib/types/api-service.ts`
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`
+- `apps/frontend/src/features/tools/runtime/useToolPage.ts`
+- `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
+- `apps/frontend/src/features/tools/machines/tool-flow.machine.ts`
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/generation/contracts/backend-stream.ts`
+- `apps/frontend/src/features/generation/runtime/step-hydration.ts`
+- `packages/contracts/src/tool-workflows.ts`
+- `packages/contracts/src/index.ts`

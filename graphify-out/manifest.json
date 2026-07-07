@@ -2585,8 +2585,8 @@
     "semantic_hash": "a4ac7c2de7c44c025bed583c173acbb9"
   },
   "docs/01-requirements/domain-ubiquitous-language-glossary.md": {
-    "mtime": 1783436131.5737834,
-    "ast_hash": "c98c490a0a1543916b4c3ea05e066a70",
+    "mtime": 1783461252.154,
+    "ast_hash": "b6a2c45881f3b861d316c7336c74758a",
     "semantic_hash": ""
   },
   "docs/02-design/adr/csrf-fail-closed-startup-invariant-adr.md": {
@@ -2605,9 +2605,9 @@
     "semantic_hash": "af36eae7efa652712402fb3b43f15a10"
   },
   "docs/02-design/domain-bounded-context-map.md": {
-    "mtime": 1783424759.8029926,
-    "ast_hash": "7e0389e19c887fba5e5f4799e09536d0",
-    "semantic_hash": "7e0389e19c887fba5e5f4799e09536d0"
+    "mtime": 1783461272.3629644,
+    "ast_hash": "280d08951fe781feee17aabed0b21828",
+    "semantic_hash": ""
   },
   "docs/02-design/geometric-admin-debug-monitoring-proposal.md": {
     "mtime": 1782677325.6069012,
@@ -2670,9 +2670,9 @@
     "semantic_hash": "b07db659611d84046149746d08c0c725"
   },
   "docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md": {
-    "mtime": 1780353004.8866785,
-    "ast_hash": "5a15b2d61b1a7a2f937c5561172304fd",
-    "semantic_hash": "5a15b2d61b1a7a2f937c5561172304fd"
+    "mtime": 1783461337.9196222,
+    "ast_hash": "0403d1f8712d2184d70ddb1e2692ff79",
+    "semantic_hash": ""
   },
   "docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md": {
     "mtime": 1781996992.9118073,
@@ -2680,9 +2680,9 @@
     "semantic_hash": "e7bc94dbf3c12a4b5e9bbc822410dfca"
   },
   "docs/02-design/specifications/tool-page-frontend-runtime-spec.md": {
-    "mtime": 1780353004.878454,
-    "ast_hash": "f3c3df0a3cc0693d14372a552156e961",
-    "semantic_hash": "f3c3df0a3cc0693d14372a552156e961"
+    "mtime": 1783461311.1619377,
+    "ast_hash": "29287b6de8543d719e38292d0f5e8107",
+    "semantic_hash": ""
   },
   "docs/02-design/specifications/tool-step-display-config-spec.md": {
     "mtime": 1781996992.911963,
@@ -2705,8 +2705,8 @@
     "semantic_hash": "63c50343e809aa68e769c484916c2f27"
   },
   "docs/07-governance/domain-naming-decision-log.md": {
-    "mtime": 1783436115.9110177,
-    "ast_hash": "dcd890d0ec1a20f96cf0dd7c40a02844",
+    "mtime": 1783461296.2227848,
+    "ast_hash": "0a6d7449d481c4de02e80d34dee06239",
     "semantic_hash": ""
   },
   "docs/07-governance/frontend-ux-determinism-code-review.md": {
@@ -3075,8 +3075,8 @@
     "semantic_hash": ""
   },
   "docs/07-governance/graph-structural-analysis-review.md": {
-    "mtime": 1783459990.7239175,
-    "ast_hash": "cbd7173688939046317e7c0c9a7923bf",
+    "mtime": 1783461005.6053114,
+    "ast_hash": "6de17673d65bae5b35fd6155b03d6b01",
     "semantic_hash": ""
   },
   "docs/development/llm-model-override-configuration-guide.md": {
@@ -3100,8 +3100,13 @@
     "semantic_hash": ""
   },
   "plan/refactor-admin-handlers-cohesion-1.md": {
-    "mtime": 1783460282.7195268,
-    "ast_hash": "f38a682480eaa0b36ae5b85b7c9a2c57",
+    "mtime": 1783460813.7204535,
+    "ast_hash": "b862bf20e2443316312b21ffff5e84d3",
+    "semantic_hash": ""
+  },
+  "plan/analysis-documentation-linking-1.md": {
+    "mtime": 1783461218.530382,
+    "ast_hash": "12522775c64ed12cfae7ceb4d138889b",
     "semantic_hash": ""
   }
 }

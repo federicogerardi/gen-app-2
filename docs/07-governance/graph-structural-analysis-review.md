@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.4.0
+version: 1.5.0
 last-reviewed: 2026-07-07
 next-review-date: 2026-08-07
 owner: Domain Architecture
@@ -86,5 +86,5 @@ The graph previously detected active import cycles, explicitly highlighting barr
 1. ~~**Immediate fix (Low effort, high value):** Resolve the `index.ts` circular dependency in `apps/backend/src/lib/runtime/`.~~ (Completed)
 2. ~~**Investigation:** Run an isolated graph query on the second largest component to identify the 1116 isolated nodes.~~ (Completed — see Section 1 findings)
 3. ~~**Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.~~ (Completed — see [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md). Cohesion: 0.05 → 0.09)
-4. **Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.
+4. ~~**Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.~~ (Completed — Evidence anchors added to 5 key documentation files. Graphify AST extractor does not follow markdown file path references; cross-type edges remain 0. See [plan/analysis-documentation-linking-1.md](../../plan/analysis-documentation-linking-1.md))
 5. **Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.

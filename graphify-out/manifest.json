@@ -2600,9 +2600,9 @@
     "semantic_hash": "76e49d66bb446a0aea490e46cc26bfbc"
   },
   "docs/02-design/adr/xstate-explicit-error-states-adr.md": {
-    "mtime": 1782491838.698434,
-    "ast_hash": "af36eae7efa652712402fb3b43f15a10",
-    "semantic_hash": "af36eae7efa652712402fb3b43f15a10"
+    "mtime": 1783465914.2116838,
+    "ast_hash": "1adf8358d79b775ce3cf33c428cd6c5c",
+    "semantic_hash": ""
   },
   "docs/02-design/domain-bounded-context-map.md": {
     "mtime": 1783465398.9006703,
@@ -2779,130 +2779,10 @@
     "ast_hash": "e560821512cdd1cf9ad61aa4e9ddf923",
     "semantic_hash": "e560821512cdd1cf9ad61aa4e9ddf923"
   },
-  "plan/feature-admin-api-service-frontend-crud-1.md": {
-    "mtime": 1780094659.1694424,
-    "ast_hash": "063bafefdafe79bcd9d78d43cf14e30b",
-    "semantic_hash": "063bafefdafe79bcd9d78d43cf14e30b"
-  },
-  "plan/feature-api-service-backend-contract-1.md": {
-    "mtime": 1780094659.1696596,
-    "ast_hash": "2a660139054243343ab28f924d43d373",
-    "semantic_hash": "2a660139054243343ab28f924d43d373"
-  },
-  "plan/feature-api-service-custom-token-header-1.md": {
-    "mtime": 1780094659.1697428,
-    "ast_hash": "bbfaa20e81fb6b734d649b101a60e939",
-    "semantic_hash": "bbfaa20e81fb6b734d649b101a60e939"
-  },
-  "plan/feature-context-generation-backend-first-1-readiness-checklist-1.md": {
-    "mtime": 1780094659.169802,
-    "ast_hash": "41f006e89457860c946bebbb988d38dd",
-    "semantic_hash": "41f006e89457860c946bebbb988d38dd"
-  },
-  "plan/feature-context-generation-backend-first-1.md": {
-    "mtime": 1780094659.1698887,
-    "ast_hash": "492d1ccfd95572a0c0e77eb497aa432f",
-    "semantic_hash": "492d1ccfd95572a0c0e77eb497aa432f"
-  },
-  "plan/feature-context-generation-frontend-copy-state-alignment-1.md": {
-    "mtime": 1780094659.1700015,
-    "ast_hash": "abaa844130abba15702ce676ee34f7e5",
-    "semantic_hash": "abaa844130abba15702ce676ee34f7e5"
-  },
-  "plan/feature-form-lock-on-click-1.md": {
-    "mtime": 1781996992.9169447,
-    "ast_hash": "665b51f11545bab51386810d1b0cc5ae",
-    "semantic_hash": "665b51f11545bab51386810d1b0cc5ae"
-  },
-  "plan/feature-geometric-screenshot-archival-1.md": {
-    "mtime": 1782677325.6082964,
-    "ast_hash": "4213219a7534c78bcdae376abf35f479",
-    "semantic_hash": "4213219a7534c78bcdae376abf35f479"
-  },
-  "plan/feature-geometric-tool-1.md": {
-    "mtime": 1782677325.6085002,
-    "ast_hash": "87b43977f1e5d53ffc29412939114288",
-    "semantic_hash": "87b43977f1e5d53ffc29412939114288"
-  },
-  "plan/feature-meta-ads-cluster-system-evolution-1.md": {
-    "mtime": 1782659076.734018,
-    "ast_hash": "01a49e2a95fa5d91e2a75522e470745a",
-    "semantic_hash": "01a49e2a95fa5d91e2a75522e470745a"
-  },
-  "plan/feature-step-display-config-1.md": {
-    "mtime": 1781996992.9174142,
-    "ast_hash": "99154b1189eebaaa1cabfa4fec07e253",
-    "semantic_hash": "99154b1189eebaaa1cabfa4fec07e253"
-  },
-  "plan/feature-tool-availability-policy-1.md": {
-    "mtime": 1780094659.1701171,
-    "ast_hash": "c0b8229897edba9e447bfc4b0f695071",
-    "semantic_hash": "c0b8229897edba9e447bfc4b0f695071"
-  },
-  "plan/feature-tool-meta-ads-1.md": {
-    "mtime": 1780094659.170202,
-    "ast_hash": "bb839d2a65c2fdf4e5791c0518f12f18",
-    "semantic_hash": "bb839d2a65c2fdf4e5791c0518f12f18"
-  },
-  "plan/feature-youtube-description-tool-1.md": {
-    "mtime": 1782160040.5432372,
-    "ast_hash": "1de56abc52161cf20df65c7e359988b8",
-    "semantic_hash": "1de56abc52161cf20df65c7e359988b8"
-  },
-  "plan/feature-zod-backend-unification-1.md": {
-    "mtime": 1782158832.7004008,
-    "ast_hash": "83620971d0b89203c8d215bea3e51362",
-    "semantic_hash": "83620971d0b89203c8d215bea3e51362"
-  },
-  "plan/fix-orchestrate-503-redis-cache-1.md": {
-    "mtime": 1781996992.9176702,
-    "ast_hash": "6ec78685243e5317684a12c660660a13",
-    "semantic_hash": "6ec78685243e5317684a12c660660a13"
-  },
-  "plan/migrate-to-nonstreaming-generation.md": {
-    "mtime": 1781996992.9178536,
-    "ast_hash": "830541db063e7f11492c42c2ed522c08",
-    "semantic_hash": "830541db063e7f11492c42c2ed522c08"
-  },
-  "plan/refactor-api-service-ddd-blocker-removal-1.md": {
-    "mtime": 1781996992.918011,
-    "ast_hash": "63893b1fc12e5fc933fe4178ea162280",
-    "semantic_hash": "63893b1fc12e5fc933fe4178ea162280"
-  },
-  "plan/refactor-ddd-081-tool-input-policy-1.md": {
-    "mtime": 1779582806.9536903,
-    "ast_hash": "4f9b8494efadd4b23ec74d9e3f0bc486",
-    "semantic_hash": "4f9b8494efadd4b23ec74d9e3f0bc486"
-  },
-  "plan/refactor-frontend-copy-unification-1.md": {
-    "mtime": 1782159445.2050037,
-    "ast_hash": "de17e354bdeb7d8d3d34413cd3ec15d2",
-    "semantic_hash": "de17e354bdeb7d8d3d34413cd3ec15d2"
-  },
-  "plan/refactor-quota-credits-and-artifact-gate-1.md": {
-    "mtime": 1782597464.2607896,
-    "ast_hash": "780d209d9dd91dd956a0a49f09e3ee20",
-    "semantic_hash": "780d209d9dd91dd956a0a49f09e3ee20"
-  },
-  "plan/refactor-tool-generation-flow-monitoring-dashboard-1.md": {
-    "mtime": 1779583014.3187377,
-    "ast_hash": "75cc0f91ffdb87622784a52a8f681687",
-    "semantic_hash": "75cc0f91ffdb87622784a52a8f681687"
-  },
   "plan/refactor-tool-workspace-workflow-panel-unified-1.md": {
     "mtime": 1779582915.1712487,
     "ast_hash": "93ff02ce3154ca2feae126b95379845a",
     "semantic_hash": "93ff02ce3154ca2feae126b95379845a"
-  },
-  "plan/refactor-xstate-explicit-error-states-a1.md": {
-    "mtime": 1782491838.7000377,
-    "ast_hash": "da0cb52c86392245aa1ba48f790e6c05",
-    "semantic_hash": "da0cb52c86392245aa1ba48f790e6c05"
-  },
-  "plan/remove-geometric-screenshot-archival.md": {
-    "mtime": 1782661007.2860038,
-    "ast_hash": "7b90191e19bbd313c0cf536f875326fe",
-    "semantic_hash": "7b90191e19bbd313c0cf536f875326fe"
   },
   "docs/02-design/specifications/assets/tool-workspace-page-runtime-flow.svg": {
     "mtime": 1779583098.5535502,
@@ -2923,11 +2803,6 @@
     "mtime": 1783424759.8033817,
     "ast_hash": "b22dbe2f16403404231376ee06d2c6ba",
     "semantic_hash": "b22dbe2f16403404231376ee06d2c6ba"
-  },
-  "plan/feature-error-logging-ux-feedback-improvements-1.md": {
-    "mtime": 1783424759.847744,
-    "ast_hash": "bcdb612cf1ceb079924e8d48b72ad204",
-    "semantic_hash": "bcdb612cf1ceb079924e8d48b72ad204"
   },
   "apps/backend/src/lib/runtime/auth-http/admin/admin-api-service-binding-handlers.ts": {
     "mtime": 1783465398.8860745,
@@ -3075,8 +2950,8 @@
     "semantic_hash": ""
   },
   "docs/07-governance/graph-structural-analysis-review.md": {
-    "mtime": 1783465398.9016442,
-    "ast_hash": "2bf07da14f659dca6a2aa499ceb4b9f9",
+    "mtime": 1783465909.4743419,
+    "ast_hash": "05accaa51a55b3bfeb6d20db403dea99",
     "semantic_hash": ""
   },
   "docs/development/llm-model-override-configuration-guide.md": {
@@ -3089,29 +2964,154 @@
     "ast_hash": "bb5198ff5417da74867f92c1247f11c9",
     "semantic_hash": ""
   },
-  "plan/analysis-isolated-nodes-investigation-1.md": {
-    "mtime": 1783459718.5929105,
-    "ast_hash": "cd727ea7312fc8541e279814307536db",
-    "semantic_hash": ""
-  },
-  "plan/feature-llm-model-step-override-system-1.md": {
-    "mtime": 1783458527.297255,
-    "ast_hash": "d4c8787d789a038bce432b0b512c9076",
-    "semantic_hash": ""
-  },
-  "plan/refactor-admin-handlers-cohesion-1.md": {
-    "mtime": 1783465398.9236124,
-    "ast_hash": "b862bf20e2443316312b21ffff5e84d3",
-    "semantic_hash": ""
-  },
-  "plan/analysis-documentation-linking-1.md": {
+  "docs/99-lifecycle/99-archive/plans/analysis-documentation-linking-1.md": {
     "mtime": 1783465398.9233387,
     "ast_hash": "5f59e51f3bf5a13033e7c302b4bd4708",
     "semantic_hash": ""
   },
-  "plan/refactor-god-nodes-decomposition-1.md": {
+  "docs/99-lifecycle/99-archive/plans/analysis-isolated-nodes-investigation-1.md": {
+    "mtime": 1783459718.5929105,
+    "ast_hash": "cd727ea7312fc8541e279814307536db",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-admin-api-service-frontend-crud-1.md": {
+    "mtime": 1783466186.7694883,
+    "ast_hash": "b61bf71a8f8865036a2563cd9381f531",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-api-service-backend-contract-1.md": {
+    "mtime": 1780094659.1696596,
+    "ast_hash": "2a660139054243343ab28f924d43d373",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-api-service-custom-token-header-1.md": {
+    "mtime": 1780094659.1697428,
+    "ast_hash": "bbfaa20e81fb6b734d649b101a60e939",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1-readiness-checklist-1.md": {
+    "mtime": 1780094659.169802,
+    "ast_hash": "41f006e89457860c946bebbb988d38dd",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1.md": {
+    "mtime": 1780094659.1698887,
+    "ast_hash": "492d1ccfd95572a0c0e77eb497aa432f",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-context-generation-frontend-copy-state-alignment-1.md": {
+    "mtime": 1780094659.1700015,
+    "ast_hash": "abaa844130abba15702ce676ee34f7e5",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-error-logging-ux-feedback-improvements-1.md": {
+    "mtime": 1783466484.7005732,
+    "ast_hash": "3792c32f294cbf13a03e2a8fd7b625fe",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-form-lock-on-click-1.md": {
+    "mtime": 1783466502.8026707,
+    "ast_hash": "92eafe910cee29916989a804f8476a17",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md": {
+    "mtime": 1783466202.9121017,
+    "ast_hash": "929f03ca9f388df0c5b4c71e7bd6bc0e",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md": {
+    "mtime": 1782677325.6085002,
+    "ast_hash": "87b43977f1e5d53ffc29412939114288",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md": {
+    "mtime": 1783458527.297255,
+    "ast_hash": "d4c8787d789a038bce432b0b512c9076",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-meta-ads-cluster-system-evolution-1.md": {
+    "mtime": 1783466490.737341,
+    "ast_hash": "a6f62bbd9018e6530a5ed50aa5f4c644",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md": {
+    "mtime": 1783465926.5901072,
+    "ast_hash": "a539984ab96a374b489ecb52c67e0319",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-tool-availability-policy-1.md": {
+    "mtime": 1780094659.1701171,
+    "ast_hash": "c0b8229897edba9e447bfc4b0f695071",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-tool-meta-ads-1.md": {
+    "mtime": 1780094659.170202,
+    "ast_hash": "bb839d2a65c2fdf4e5791c0518f12f18",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-youtube-description-tool-1.md": {
+    "mtime": 1782160040.5432372,
+    "ast_hash": "1de56abc52161cf20df65c7e359988b8",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/feature-zod-backend-unification-1.md": {
+    "mtime": 1782158832.7004008,
+    "ast_hash": "83620971d0b89203c8d215bea3e51362",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/fix-orchestrate-503-redis-cache-1.md": {
+    "mtime": 1783466507.7471938,
+    "ast_hash": "73ca8b6897b12c11acd34f45e896416f",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md": {
+    "mtime": 1783466194.9484837,
+    "ast_hash": "69b269c5af35d704f0b2d340ebed8b54",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-admin-handlers-cohesion-1.md": {
+    "mtime": 1783465398.9236124,
+    "ast_hash": "b862bf20e2443316312b21ffff5e84d3",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-api-service-ddd-blocker-removal-1.md": {
+    "mtime": 1781996992.918011,
+    "ast_hash": "63893b1fc12e5fc933fe4178ea162280",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-ddd-081-tool-input-policy-1.md": {
+    "mtime": 1779582806.9536903,
+    "ast_hash": "4f9b8494efadd4b23ec74d9e3f0bc486",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-frontend-copy-unification-1.md": {
+    "mtime": 1782159445.2050037,
+    "ast_hash": "de17e354bdeb7d8d3d34413cd3ec15d2",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-god-nodes-decomposition-1.md": {
     "mtime": 1783465398.9237354,
     "ast_hash": "5ab4866972fe00242e8317aae55daece",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md": {
+    "mtime": 1782597464.2607896,
+    "ast_hash": "780d209d9dd91dd956a0a49f09e3ee20",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-tool-generation-flow-monitoring-dashboard-1.md": {
+    "mtime": 1779583014.3187377,
+    "ast_hash": "75cc0f91ffdb87622784a52a8f681687",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md": {
+    "mtime": 1782491838.7000377,
+    "ast_hash": "da0cb52c86392245aa1ba48f790e6c05",
+    "semantic_hash": ""
+  },
+  "docs/99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md": {
+    "mtime": 1783466497.0160754,
+    "ast_hash": "32ecfece5b239d27ea76b4e4f131137d",
     "semantic_hash": ""
   }
 }

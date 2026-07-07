@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.5.0
-last-reviewed: 2026-07-07
-next-review-date: 2026-08-07
+version: 1.6.0
+last-reviewed: 2026-07-08
+next-review-date: 2026-08-08
 owner: Domain Architecture
 date_created: 2026-07-07
 title: Knowledge Graph Structural Analysis & Refactoring Proposal
@@ -68,13 +68,33 @@ Implicit bounded contexts (communities detected by the graph) show extremely low
 - **Action Taken (2026-07-07):** Refactored `Admin Handlers` community via subdirectory decomposition. `auth-http/` split into `admin/`, `auth/`, `projects/`, `tools/`. Cohesion improved from 0.05 to 0.09. See [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md).
 - **Remaining:** `Adapters Auth Interfaces` (0.06) and `Adapters Generation Adapters` (0.06) remain unaddressed.
 
-### 3. Overloaded Domain "God Nodes"
+### 3. Overloaded Domain "God Nodes" — ADDRESSED
 While generic UI utilities (`appCopy`, `cx()`) are expected to be highly connected, several architectural abstractions have accumulated an unsustainable number of dependencies:
-- `useAuthSession()` (48 edges)
-- `resolveBackendCapabilities()` (41 edges)
-- `ToolKey` (32 edges, spanning backend route pipelines, frontend hydration, and shared validation)
+- `useAuthSession()` (51 edges)
+- `resolveBackendCapabilities()` (45 edges)
+- `ToolKey` (42 edges, spanning backend route pipelines, frontend hydration, and shared validation)
 - **Impact:** Changes to these core abstractions will trigger massive, cascading refactoring across the repository. They currently violate the Single Responsibility Principle by centralizing too much disparate logic.
-- **Action Item:** Decompose these God Nodes. For instance, split `ToolKey` usages into context-specific interfaces (e.g., `ToolRoutingKey`, `ToolUIConfigKey`).
+
+**Action Taken (2026-07-08):** Decomposed `useAuthSession()` and `resolveBackendCapabilities()` via specialized hooks and domain-specific capability resolvers (DDD-153, DDD-154).
+
+- `useAuthSession()` split into 4 specialized hooks:
+  - `useAuthState()` → `{ session, loading, hasError }`
+  - `useAuthActions()` → `{ login, logout, refresh, clearError }`
+  - `useApiConfig()` → `{ apiBaseUrl, capabilities }`
+  - `useOAuthUrl()` → `{ oauthStartUrl }`
+- `resolveBackendCapabilities()` split into 5 domain-specific resolvers:
+  - `resolveAdminCapabilities()`
+  - `resolveToolsCapabilities()`
+  - `resolveArtifactCapabilities()`
+  - `resolveProjectCapabilities()`
+  - `resolveFeedbackCapabilities()`
+- 22+ components migrated to use new specialized hooks
+- 23+ test files updated with new mock patterns
+- Deprecation warnings added to old functions (removal deadline: 2026-Q1)
+- **Result:** 74% edge reduction (96 → 25 edges)
+- See [plan/refactor-god-nodes-decomposition-1.md](../../plan/refactor-god-nodes-decomposition-1.md)
+
+**Remaining:** `ToolKey` (42 edges) was intentionally excluded — it is a cross-context canonical identifier by DDD design (DDD-029). High edge count is expected and not problematic.
 
 ### 4. Circular Dependencies (RESOLVED)
 The graph previously detected active import cycles, explicitly highlighting barrel file (`index.ts`) misuse.
@@ -87,4 +107,5 @@ The graph previously detected active import cycles, explicitly highlighting barr
 2. ~~**Investigation:** Run an isolated graph query on the second largest component to identify the 1116 isolated nodes.~~ (Completed — see Section 1 findings)
 3. ~~**Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.~~ (Completed — see [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md). Cohesion: 0.05 → 0.09)
 4. ~~**Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.~~ (Completed — Evidence anchors added to 5 key documentation files. Graphify AST extractor does not follow markdown file path references; cross-type edges remain 0. See [plan/analysis-documentation-linking-1.md](../../plan/analysis-documentation-linking-1.md))
-5. **Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.
+5. ~~**God Nodes Decomposition:** Decompose `useAuthSession()` and `resolveBackendCapabilities()` into specialized hooks and domain-specific resolvers.~~ (Completed — see [plan/refactor-god-nodes-decomposition-1.md](../../plan/refactor-god-nodes-decomposition-1.md). 74% edge reduction: 96 → 25 edges)
+6. **Future Refactoring (Optional):** Address remaining low-cohesion communities (`Adapters Auth Interfaces`, `Adapters Generation Adapters`) using the same subdirectory decomposition pattern.

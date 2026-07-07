@@ -1,15 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../adapters';
-import { SessionQueryAdapter, type SessionListEntry } from '../../adapters/session-query.adapter';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import { contentTypeForFormat, parseDownloadFormat } from '../downloads/download-format';
-import { contentDispositionAttachment, sessionDownloadFilename } from '../downloads/download-filename';
-import { serializeSessionDownload } from '../downloads/download-serializers';
-import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow } from '../tool-workflow-registry';
-import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
-import { parseArtifactReadProjection } from './projects-handlers';
-import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
+import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
+import { SessionQueryAdapter, type SessionListEntry } from '../../../adapters/session-query.adapter';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import { contentTypeForFormat, parseDownloadFormat } from '../../downloads/download-format';
+import { contentDispositionAttachment, sessionDownloadFilename } from '../../downloads/download-filename';
+import { serializeSessionDownload } from '../../downloads/download-serializers';
+import { TOOL_WORKFLOW_REGISTRY, isSupportedToolWorkflow } from '../../tool-workflow-registry';
+import { canPrincipalRoleAccessToolKey } from '../tool-availability-policy';
+import { parseArtifactReadProjection } from '../projects/projects-handlers';
+import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from '../support';
 
 export type CreateToolsSessionHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;

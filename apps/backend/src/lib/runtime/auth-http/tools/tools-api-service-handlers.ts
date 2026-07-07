@@ -2,14 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
 
-import { resolveApiServiceForAcquisition } from '../../adapters/api-service.adapter';
-import { listApiServiceBindings } from '../../adapters/api-service.adapter';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import { toApiServiceRedactedDto } from '../integrations/api-service-validation';
+import { resolveApiServiceForAcquisition } from '../../../adapters/api-service.adapter';
+import { listApiServiceBindings } from '../../../adapters/api-service.adapter';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import { toApiServiceRedactedDto } from '../../integrations/api-service-validation';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
+} from '../support';
 
 export type CreateToolsApiServiceHandlersDependencies = {
   parseRequestUrl: (request: IncomingMessage) => URL;

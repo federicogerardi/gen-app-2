@@ -1,5 +1,5 @@
 import type { ProjectsHandlers } from './projects-handlers';
-import type { RouteEntry } from './route-table';
+import type { RouteEntry } from '../route-table';
 
 export const buildProjectsRoutes = (
   projectsHandlers: ProjectsHandlers,

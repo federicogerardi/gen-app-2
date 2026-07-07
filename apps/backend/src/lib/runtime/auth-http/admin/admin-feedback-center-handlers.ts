@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
-import { type AuthRepositoryBundle } from '../../adapters';
+import { type AuthRepositoryBundle } from '../../../adapters';
 import {
   archiveProductChangelog,
   createProductChangelog,
@@ -13,21 +13,21 @@ import {
   publishProductChangelog,
   publishUserReportIssueTransaction,
   updateUserReportStatus,
-} from '../../adapters';
-import type { AuthSessionPrincipal } from '../../types/auth';
+} from '../../../adapters';
+import type { AuthSessionPrincipal } from '../../../types/auth';
 import {
   canPublishUserReportIssue,
   normalizeProductChangelogStatus,
   normalizeUserReportCategory,
   normalizeUserReportStatus,
-} from '../feedback-center-policy';
-import type { GitHubApiConfig } from '../integrations/github-config';
-import { PublishGitHubIssueError, publishGitHubIssue } from '../integrations/github-issues';
+} from '../../feedback-center-policy';
+import type { GitHubApiConfig } from '../../integrations/github-config';
+import { PublishGitHubIssueError, publishGitHubIssue } from '../../integrations/github-issues';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
-import { formatZodIssuesForBadRequest, optionalTrimmedString } from './zod-support';
+} from '../support';
+import { formatZodIssuesForBadRequest, optionalTrimmedString } from '../zod-support';
 
 export type CreateAdminFeedbackCenterHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;

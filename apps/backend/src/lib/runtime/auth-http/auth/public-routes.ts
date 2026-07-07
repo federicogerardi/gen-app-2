@@ -1,5 +1,5 @@
 import type { PublicHandlers } from './public-handlers';
-import type { RouteEntry } from './route-table';
+import type { RouteEntry } from '../route-table';
 
 export const buildPublicRoutes = (publicHandlers: PublicHandlers): RouteEntry[] => {
   return [

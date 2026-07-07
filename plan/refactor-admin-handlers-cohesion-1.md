@@ -1,12 +1,12 @@
 ---
 goal: Increase cohesion score of Admin Handlers community from 0.05 by consolidating leaked responsibilities and clarifying domain boundaries
-version: 1.0
+version: 1.1
 date_created: 2026-07-07
 last_updated: 2026-07-07
 last-reviewed: 2026-07-07
 next-review-date: 2026-07-14
 owner: Domain Architecture
-status: draft
+status: completed
 tags: [refactoring, ddd, cohesion, auth-http, backend]
 ---
 
@@ -133,6 +133,19 @@ A simpler approach with less file churn: add **explicit barrel files** per domai
 | Import path changes break external consumers | Use barrel re-exports from `auth-http/index.ts` to maintain backward compatibility |
 | Graph community detection may still group domains together | Subdirectories improve code organization regardless of graph metrics |
 | Test file imports need updating | Mechanical change — update paths in test files |
+
+## DDD Validation (2026-07-07)
+
+Il piano è stato validato contro i tre documenti canonici DDD:
+
+| Check | Stato | Dettaglio |
+|-------|-------|-----------|
+| Glossary | ✅ | Nessun termine canonico modificato, rinominato o sostituito |
+| Bounded Context Map | ✅ | La decomposizione subdirectory rispecchia i BC: `admin/`→Generation, `auth/`→Auth, `projects/`→Generation, `tools/`→Generation |
+| Decision Log | ✅ | Nessuna decisione esistente violata (DDD-029, DDD-026, DDD-102 verificate) |
+| Governance Rules | ✅ | Nessun nuovo termine, nessun sinonimo locale, no semantic drift |
+
+**Nota**: Se si sceglie l'alternativa barrel files, devono essere solo re-export (DDD-018) — nessuna logica o nuovi tipi.
 
 ## Expected Outcome
 

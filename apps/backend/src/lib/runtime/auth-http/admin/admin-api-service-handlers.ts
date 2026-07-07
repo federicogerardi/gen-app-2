@@ -9,19 +9,19 @@ import {
   getApiServiceById,
   listApiServices,
   updateApiService,
-} from '../../adapters/api-service.adapter';
-import type { AuthRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import type { ApiServiceAccessMode, ApiServiceStatus } from '../../types/api-service';
+} from '../../../adapters/api-service.adapter';
+import type { AuthRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import type { ApiServiceAccessMode, ApiServiceStatus } from '../../../types/api-service';
 import {
   normalizeTokenHeaderName,
   toApiServiceRedactedDto,
   validateApiServiceInput,
-} from '../integrations/api-service-validation';
+} from '../../integrations/api-service-validation';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
+} from '../support';
 import {
   arrayPayload,
   boundedInteger,
@@ -29,7 +29,7 @@ import {
   formatZodIssuesForBadRequest,
   nonEmptyTrimmedString,
   objectPayload,
-} from './zod-support';
+} from '../zod-support';
 
 export type CreateAdminApiServiceHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;

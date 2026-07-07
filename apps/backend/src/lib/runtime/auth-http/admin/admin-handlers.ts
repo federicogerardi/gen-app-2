@@ -1,14 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus } from '../../types/auth';
-import type { PasswordHashRuntime } from '../auth-contract';
-import type { GitHubApiConfig } from '../integrations/github-config';
+import type { AuthRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus } from '../../../types/auth';
+import type { PasswordHashRuntime } from '../../auth-contract';
+import type { GitHubApiConfig } from '../../integrations/github-config';
 import type { Pool } from 'pg';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
+} from '../support';
 import {
   createAdminApiServiceHandlers,
   type AdminApiServiceHandlers,

@@ -3,20 +3,20 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
-import { type AuthRepositoryBundle } from '../../adapters';
+import { type AuthRepositoryBundle } from '../../../adapters';
 import {
   createModel,
   deleteModel,
   listAllModels,
   updateModel,
-} from '../../adapters/llm-model.adapter';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import type { LlmModelStatus } from '../../types/llm-model';
+} from '../../../adapters/llm-model.adapter';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import type { LlmModelStatus } from '../../../types/llm-model';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
-import { formatZodIssuesForBadRequest } from './zod-support';
+} from '../support';
+import { formatZodIssuesForBadRequest } from '../zod-support';
 
 export type CreateAdminLlmModelHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;

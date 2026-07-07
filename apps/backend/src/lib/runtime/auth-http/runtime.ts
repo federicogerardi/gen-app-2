@@ -35,21 +35,21 @@ import {
   type PasswordHashRuntime,
   type SessionCookieRuntime,
 } from '../auth-contract';
-import { createAuthHandlers } from './auth-handlers';
-import { createProjectsHandlers } from './projects-handlers';
-import { createPublicHandlers } from './public-handlers';
+import { createAuthHandlers } from './auth/auth-handlers';
+import { createProjectsHandlers } from './projects/projects-handlers';
+import { createPublicHandlers } from './auth/public-handlers';
 import {
   buildRouteTable,
   dispatchRequest,
   type HandleAuthHttpRequestResult,
 } from './route-table';
-import { createToolsHandlers } from './tools-handlers';
+import { createToolsHandlers } from './tools/tools-handlers';
 import {
   resolveToolsHydrateArtifactScanLimit,
   resolveToolsOrchestrateArtifactScanLimit,
   resolveToolsOrchestrateTimeoutMs,
-} from './tools-orchestrate-config';
-import { createAdminHandlers } from './admin-handlers';
+} from './tools/tools-orchestrate-config';
+import { createAdminHandlers } from './admin/admin-handlers';
 import { assertGitHubApiConfig, readGitHubApiConfigFromEnv } from '../integrations/github-config';
 
 export type { HandleAuthHttpRequestResult } from './route-table';

@@ -1,15 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import { type AuthRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus, UpdateAuthUserInput } from '../../types/auth';
-import type { PasswordHashRuntime } from '../auth-contract';
+import { type AuthRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus, UpdateAuthUserInput } from '../../../types/auth';
+import type { PasswordHashRuntime } from '../../auth-contract';
 import type {
   AdminCreateUserRequestBody,
   AdminUpdateUserRequestBody,
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
+} from '../support';
 
 export type CreateAdminUserHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'users' | 'sessions'>;

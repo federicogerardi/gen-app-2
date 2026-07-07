@@ -1,14 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import type { AuthRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal } from '../../types/auth';
+import type { AuthRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal } from '../../../types/auth';
 import type {
   AuthIdGenerator,
   GoogleOAuthRuntime,
   PasswordHashRuntime,
   SessionCookieRuntime,
-} from '../auth-contract';
+} from '../../auth-contract';
 
 type LoginRequestBody = {
   email?: unknown;

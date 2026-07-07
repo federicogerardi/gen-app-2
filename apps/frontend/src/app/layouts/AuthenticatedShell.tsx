@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { appCopy } from '../copy/system';
-import { useAuthSession } from '../providers/AuthSessionProvider';
+import { useAuthState, useAuthActions } from '../providers/AuthSessionProvider';
 import { MainNavigation } from './MainNavigation';
 import './MainNavigation.css';
 import { ThemeToggleButton } from '../ui/ThemeToggleButton';
@@ -12,15 +12,16 @@ import { FeedbackNewsSticky } from '../../features/feedback-center/ui/FeedbackNe
 import { isUserAdmin } from '../runtime/user-roles';
 
 export const AuthenticatedShell = () => {
-  const auth = useAuthSession();
+  const { session, loading } = useAuthState();
+  const { logout } = useAuthActions();
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
-  if (auth.loading) {
+  if (loading) {
     return <Shell as="main"><p>{appCopy.ui.session.verifying}</p></Shell>;
   }
 
-  if (!auth.session) {
+  if (!session) {
     return <Navigate to="/" replace />;
   }
 
@@ -29,7 +30,7 @@ export const AuthenticatedShell = () => {
       <Surface as="header" className={uiPrimitives.authHeader}>
         <div>
           <h1>{appCopy.editorial.header.headline}</h1>
-          <p>{auth.session.user.email} ({auth.session.user.role})</p>
+          <p>{session.user.email} ({session.user.role})</p>
         </div>
 
         <div className={uiPrimitives.authActions}>
@@ -60,10 +61,10 @@ export const AuthenticatedShell = () => {
         <MainNavigation
           isCollapsed={isNavCollapsed}
           isMobileOpen={isMobileNavOpen}
-          isAdmin={isUserAdmin(auth.session.user.role)}
+          isAdmin={isUserAdmin(session.user.role)}
           onToggleCollapsed={() => setIsNavCollapsed((prev) => !prev)}
           onCloseMobile={() => setIsMobileNavOpen(false)}
-          onLogout={() => void auth.logout()}
+          onLogout={() => void logout()}
         />
 
         <section className={uiPrimitives.mainCanvas}>

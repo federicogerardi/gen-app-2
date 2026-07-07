@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   cx,
   uiPrimitives,
@@ -47,7 +47,7 @@ export const ArtifactsListingSection = ({
   enabled,
   headingLevel = 'h3',
 }: ArtifactsListingSectionProps) => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const generation = useGenerationWorkspace();
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
   const [filters, setFilters] = useState<ArtifactQuery>(() => buildDefaultFilters(normalizedFixedProjectId));
@@ -72,8 +72,8 @@ export const ArtifactsListingSection = ({
       limit: queryPageSize,
       offset: (page - 1) * pageSize,
     },
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     localArtifacts: generation.artifacts,
     ...(enabled !== undefined ? { enabled } : {}),
   });

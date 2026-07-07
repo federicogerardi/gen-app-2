@@ -3,7 +3,7 @@ import { useMachine, useSelector } from '@xstate/react';
 import type { ActorRefFrom } from 'xstate';
 import { appCopy } from '../../../app/copy/system';
 import { generateSessionId, readInputField } from '../../../app/runtime/shared-utils';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import type { AuthStateValue, ApiConfigValue } from '../../../app/providers/AuthSessionProvider';
 import type {
   GenerationArtifactsWorkspaceValue,
   GenerationProjectWorkspaceValue,
@@ -18,7 +18,7 @@ import { getRequiredToolInputFiles, type ToolFormConfig, type ToolFormState } fr
 import { mapInlineDispatchError, normalizeToneProfile } from './tool-page-runtime-utils';
 
 type UseToolPageContextArgs = {
-  auth: ReturnType<typeof useAuthSession>;
+  auth: AuthStateValue & ApiConfigValue;
   toolKey: SupportedTool;
   toolConfig: ToolFormConfig;
   formState: ToolFormState;

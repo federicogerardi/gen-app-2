@@ -71,9 +71,106 @@ export const defaultBackendCapabilities: BackendCapabilities = {
     toolsApiServicesResolve: false,
 };
 
+/**
+ * @deprecated Use domain-specific capability resolvers instead:
+ * - `resolveAdminCapabilities()` for admin-related flags
+ * - `resolveToolsCapabilities()` for tools-related flags
+ * - `resolveArtifactCapabilities()` for artifact-related flags
+ * - `resolveProjectCapabilities()` for project-related flags
+ * - `resolveFeedbackCapabilities()` for feedback-related flags
+ *
+ * This function will be removed in a future version. Migration deadline: 2026-Q1.
+ * See DDD-154 for rationale.
+ */
 export const resolveBackendCapabilities = (
   overrides: Partial<BackendCapabilities> = {},
 ): BackendCapabilities => ({
   ...defaultBackendCapabilities,
   ...overrides,
 });
+
+// DDD-154: Domain-specific capability projections
+export type AdminCapabilities = Pick<BackendCapabilities,
+  | 'adminChangelogCreate'
+  | 'adminChangelogArchive'
+  | 'adminUserReportsList'
+  | 'adminUserReportsUpdate'
+  | 'adminUserReportsPublishIssue'
+  | 'adminApiServicesCrud'
+>;
+
+export type ToolsCapabilities = Pick<BackendCapabilities,
+  | 'toolsUpload'
+  | 'toolsApiServicesResolve'
+>;
+
+export type ArtifactCapabilities = Pick<BackendCapabilities,
+  | 'artifacts'
+  | 'artifactDownload'
+  | 'sessionDownload'
+  | 'sessionsList'
+  | 'sessionsDetail'
+>;
+
+export type ProjectCapabilities = Pick<BackendCapabilities, 'projects'>;
+
+export type FeedbackCapabilities = Pick<BackendCapabilities,
+  | 'changelogList'
+  | 'userReportsCreate'
+>;
+
+export const resolveAdminCapabilities = (
+  overrides: Partial<AdminCapabilities> = {},
+): AdminCapabilities => {
+  const full = resolveBackendCapabilities(overrides);
+  return {
+    adminChangelogCreate: full.adminChangelogCreate,
+    adminChangelogArchive: full.adminChangelogArchive,
+    adminUserReportsList: full.adminUserReportsList,
+    adminUserReportsUpdate: full.adminUserReportsUpdate,
+    adminUserReportsPublishIssue: full.adminUserReportsPublishIssue,
+    adminApiServicesCrud: full.adminApiServicesCrud,
+  };
+};
+
+export const resolveToolsCapabilities = (
+  overrides: Partial<ToolsCapabilities> = {},
+): ToolsCapabilities => {
+  const full = resolveBackendCapabilities(overrides);
+  return {
+    toolsUpload: full.toolsUpload,
+    toolsApiServicesResolve: full.toolsApiServicesResolve,
+  };
+};
+
+export const resolveArtifactCapabilities = (
+  overrides: Partial<ArtifactCapabilities> = {},
+): ArtifactCapabilities => {
+  const full = resolveBackendCapabilities(overrides);
+  return {
+    artifacts: full.artifacts,
+    artifactDownload: full.artifactDownload,
+    sessionDownload: full.sessionDownload,
+    sessionsList: full.sessionsList,
+    sessionsDetail: full.sessionsDetail,
+  };
+};
+
+export const resolveProjectCapabilities = (
+  overrides: Partial<ProjectCapabilities> = {},
+): ProjectCapabilities => {
+  const full = resolveBackendCapabilities(overrides);
+  return {
+    projects: full.projects,
+  };
+};
+
+export const resolveFeedbackCapabilities = (
+  overrides: Partial<FeedbackCapabilities> = {},
+): FeedbackCapabilities => {
+  const full = resolveBackendCapabilities(overrides);
+  return {
+    changelogList: full.changelogList,
+    userReportsCreate: full.userReportsCreate,
+  };
+};

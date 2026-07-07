@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { MenuItem, TextField } from '@mui/material';
 import { useMachine } from '@xstate/react';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import {
   Surface,
@@ -21,10 +21,11 @@ import {
 } from '../runtime/feedback-center-client';
 
 export const UserReportSubmissionPage = () => {
-  const auth = useAuthSession();
+  const { session } = useAuthState();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const { publishSuccess } = useFeedbackMessage();
 
-  const role = auth.session?.user.role ?? 'member';
+  const role = session?.user.role ?? 'member';
   const [category, setCategory] = useState<UserReportCategory>('issue');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -34,29 +35,29 @@ export const UserReportSubmissionPage = () => {
   const actors = useMemo(() => ({
     submitUserReport: (command: { category: UserReportCategory; title: string; description: string }) => {
       return submitUserReport(command, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       });
     },
     publishProductChangelog: (command: { title: string; body: string; status?: 'draft' | 'published' }) => {
       return createProductChangelog(command, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       });
     },
     updateUserReportStatus: (reportId: string, command: { status: 'triaged' | 'closed' }) => {
       return updateUserReportStatus(reportId, command, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       });
     },
     publishUserReportIssue: (reportId: string, command: { owner: string; repo: string; title?: string; body?: string }) => {
       return publishUserReportIssue(reportId, command, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       });
     },
-  }), [auth.apiBaseUrl, auth.capabilities]);
+  }), [apiBaseUrl, capabilities]);
 
   const [snapshot, send] = useMachine(feedbackCenterMachine, {
     input: {

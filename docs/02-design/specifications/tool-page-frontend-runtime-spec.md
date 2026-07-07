@@ -627,3 +627,42 @@ Deterministic outcomes:
 | 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |
+
+---
+
+## Evidence Anchors
+
+Key source files referenced by this specification:
+
+- `apps/frontend/src/features/tools/runtime/useToolPage.ts`
+- `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
+- `apps/frontend/src/features/tools/runtime/tools-client.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-runtime-utils.ts`
+- `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts`
+- `apps/frontend/src/features/tools/runtime/tool-api-binding-status-adapter.ts`
+- `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
+- `apps/frontend/src/features/tools/machines/tool-flow.machine.ts`
+- `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`
+- `apps/frontend/src/features/tools/machines/extraction-context-validity.ts`
+- `apps/frontend/src/features/tools/machines/tool-page-readiness.ts`
+- `apps/frontend/src/features/tools/machines/tool-page-view-model.ts`
+- `apps/frontend/src/features/tools/machines/tool-page.types.ts`
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`
+- `apps/frontend/src/features/tools/ui/ToolFormComponents.tsx`
+- `apps/frontend/src/features/tools/ui/ToolStepCard.tsx`
+- `apps/frontend/src/features/generation/contracts/backend-stream.ts`
+- `apps/frontend/src/features/generation/runtime/step-hydration.ts`
+- `apps/frontend/src/features/generation/runtime/GenerationWorkspaceProvider.tsx`
+- `apps/frontend/src/features/generation/ui/tool-ux-state.ts`
+- `apps/frontend/src/features/generation/ui/artifact-history.ts`
+- `apps/frontend/src/app/copy/system.ts`
+- `apps/frontend/src/app/runtime/queries/useSessionsQuery.ts`
+- `apps/backend/src/lib/runtime/tool-workflow-registry.ts`
+- `apps/backend/src/lib/runtime/request-contract.ts`
+- `apps/backend/src/lib/machines/generation-system.machine.ts`
+- `apps/backend/src/lib/machines/tool-workflow.machine.ts`
+- `packages/contracts/src/tool-workflows.ts`
+- `packages/contracts/src/index.ts`

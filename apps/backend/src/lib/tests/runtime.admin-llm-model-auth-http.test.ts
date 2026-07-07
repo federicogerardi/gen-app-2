@@ -4,7 +4,7 @@ import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 
-import { createAdminLlmModelHandlers } from '../runtime/auth-http/admin-llm-model-handlers';
+import { createAdminLlmModelHandlers } from '../runtime/auth-http/admin/admin-llm-model-handlers';
 import { parseJsonBody, writeError, writeSuccess } from '../runtime/auth-http/support';
 import type { AuthSessionPrincipal } from '../types/auth';
 import type { LlmModelRow } from '../types/llm-model';

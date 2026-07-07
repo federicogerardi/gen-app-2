@@ -11,6 +11,28 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
       },
     },
   }),
+  useAuthState: () => ({
+    session: {
+      user: {
+        role: 'member',
+      },
+    },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: {},
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../runtime/tool-form-architecture', () => ({

@@ -7,7 +7,7 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { Link } from 'react-router-dom';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 import { useAdminModelsQuery } from '../../../app/runtime/queries/useAdminModelsQuery';
 import { useAdminUserReportsQuery } from '../runtime/useAdminUserReportsQuery';
@@ -89,11 +89,11 @@ const AdminKpiWidgetStatePreview = ({ widget }: { widget: AdminKpiWidgetPreview 
 };
 
 export const AdminDashboardPage = () => {
-  const auth = useAuthSession();
-  const modelsQuery = useAdminModelsQuery({ apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
+  const { apiBaseUrl, capabilities } = useApiConfig();
+  const modelsQuery = useAdminModelsQuery({ apiBaseUrl, capabilities });
   const userReportsQuery = useAdminUserReportsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     statusFilter: 'all',
     categoryFilter: 'all',
   });

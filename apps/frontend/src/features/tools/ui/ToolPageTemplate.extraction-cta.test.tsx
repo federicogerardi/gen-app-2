@@ -20,6 +20,24 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     apiBaseUrl: '',
     capabilities: {},
   }),
+  useAuthState: () => ({
+    session: { user: { id: 'user-1' } },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: {},
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../../app/runtime/queries/useModelsQuery', () => ({

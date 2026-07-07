@@ -273,3 +273,40 @@ Operational note for `ExtractionContext`: at artifact-driven relaunch hydration 
 | `adminModels` (BackendCapabilities) | — (removed) | Frontend capability flag for `GET /api/admin/models`. Removed in Sprint 3 / DDD-024; endpoint not implemented in backend runtime. |
 | `listAdminModels` / `listAdminActivity` | — (removed) | Dead admin client functions. Removed in Sprint 3 / DDD-024; no runtime consumers. |
 | `feedbackMessage` (local page state) | GlobalFeedbackMessage | Transitional local variable name used in `AdminUsersPage`; canonical UL term for cross-page mutation feedback is `GlobalFeedbackMessage` (provisional, DDD-063). |
+
+---
+
+## Evidence Anchors
+
+Key source files referenced by this glossary:
+
+- `apps/backend/src/lib/types/xstate.ts`
+- `apps/backend/src/lib/types/artifact.ts`
+- `apps/backend/src/lib/types/auth.ts`
+- `apps/backend/src/lib/types/api-service.ts`
+- `apps/backend/src/lib/adapters/generation.adapters.ts`
+- `apps/backend/src/lib/adapters/api-service.adapter.ts`
+- `apps/backend/src/lib/machines/generation-system.machine.ts`
+- `apps/backend/src/lib/machines/tool-workflow.machine.ts`
+- `apps/backend/src/lib/machines/extraction-chain.machine.ts`
+- `apps/backend/src/lib/machines/idempotency-coordinator.machine.ts`
+- `apps/backend/src/lib/machines/stream-transport.machine.ts`
+- `apps/backend/src/lib/machines/persistence-batch.machine.ts`
+- `apps/backend/src/lib/machines/request-gateway.machine.ts`
+- `apps/backend/src/lib/machines/usage.machine.ts`
+- `apps/backend/src/lib/runtime/tool-workflow-registry.ts`
+- `apps/backend/src/lib/runtime/auth-http/route-table.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`
+- `apps/backend/src/lib/runtime/auth-contract.ts`
+- `apps/backend/src/lib/runtime/request-contract.ts`
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
+- `apps/frontend/src/features/tools/runtime/useToolPage.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`
+- `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
+- `apps/frontend/src/features/tools/machines/tool-flow.machine.ts`
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/generation/contracts/backend-stream.ts`
+- `apps/frontend/src/features/generation/runtime/step-hydration.ts`
+- `apps/frontend/src/features/generation/ui/tool-ux-state.ts`
+- `packages/contracts/src/tool-workflows.ts`
+- `packages/contracts/src/index.ts`

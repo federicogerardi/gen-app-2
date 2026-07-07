@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -23,10 +23,10 @@ import { AdminUsersToolbar } from '../ui/AdminUsersToolbar';
 import { AdminUsersTable } from '../ui/AdminUsersTable';
 
 export const AdminUsersPage = () => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const usersQuery = useAdminUsersQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
   });
 
   const users = usersQuery.data;
@@ -60,8 +60,8 @@ export const AdminUsersPage = () => {
   };
 
   const { busyAction, createUser, updateUser, disableUser } = useAdminUsersMutations({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     editingUserId,
     reloadUsers: usersQuery.reload,
     onCreateReset: () => resetCreateForm(createEmptyUserForm()),

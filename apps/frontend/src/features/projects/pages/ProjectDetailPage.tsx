@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { appCopy, formatMeta } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -14,11 +14,11 @@ import { SessionsListingSection } from '../../artifacts/ui/SessionsListingSectio
 
 export const ProjectDetailPage = () => {
   const { id = '' } = useParams();
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const projectQuery = useProjectDetailQuery({
     projectId: id,
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     enabled: id.length > 0,
   });
 

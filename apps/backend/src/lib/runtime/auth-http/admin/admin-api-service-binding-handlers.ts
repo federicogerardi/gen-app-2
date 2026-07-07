@@ -8,19 +8,19 @@ import {
   deleteApiServiceBinding,
   listApiServiceBindings,
   upsertApiServiceBinding,
-} from '../../adapters/api-service.adapter';
-import type { AuthRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import { validateToolStepBindingInput } from '../integrations/api-service-validation';
+} from '../../../adapters/api-service.adapter';
+import type { AuthRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import { validateToolStepBindingInput } from '../../integrations/api-service-validation';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
-} from './support';
+} from '../support';
 import {
   enumValue,
   formatZodIssuesForBadRequest,
   nonEmptyTrimmedString,
-} from './zod-support';
+} from '../zod-support';
 
 export type CreateAdminApiServiceBindingHandlersDependencies = {
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;

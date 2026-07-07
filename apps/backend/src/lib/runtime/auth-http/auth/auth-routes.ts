@@ -1,5 +1,5 @@
 import type { AuthHandlers } from './auth-handlers';
-import type { RouteEntry } from './route-table';
+import type { RouteEntry } from '../route-table';
 
 export const buildAuthRoutes = (authHandlers: AuthHandlers): RouteEntry[] => {
   return [

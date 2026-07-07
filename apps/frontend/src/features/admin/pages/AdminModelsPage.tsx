@@ -6,7 +6,7 @@ import {
   ErrorStateMessage,
   LoadingStateMessage,
 } from '../../../app/ui/primitives';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { LLMTable } from '../llm/LLMTable';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 import { AdminModelCreateForm } from '../ui/AdminModelCreateForm';
@@ -15,8 +15,8 @@ import { useAdminModelsQuery } from '../../../app/runtime/queries/useAdminModels
 import { useAdminModelsMutations } from '../runtime/useAdminModelsMutations';
 
 export const AdminModelsPage = () => {
-  const auth = useAuthSession();
-  const { data: models, loading, error, reload } = useAdminModelsQuery({ apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
+  const { apiBaseUrl, capabilities } = useApiConfig();
+  const { data: models, loading, error, reload } = useAdminModelsQuery({ apiBaseUrl, capabilities });
 
   const {
     register,
@@ -28,7 +28,7 @@ export const AdminModelsPage = () => {
     defaultValues: { key: '', label: '', status: 'enabled' },
   });
   const { busyAction, createModel, setDefaultModel, toggleStatus, deleteModel } = useAdminModelsMutations({
-    apiBaseUrl: auth.apiBaseUrl,
+    apiBaseUrl,
     reloadModels: reload,
   });
 

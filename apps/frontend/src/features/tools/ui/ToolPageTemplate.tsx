@@ -12,7 +12,7 @@ import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { useToolPage } from '../runtime/useToolPage';
@@ -70,10 +70,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
   const isGeometricTool = props.toolKey === 'geometric';
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
   });
 
   const {
@@ -110,8 +110,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
   const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
   const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     toolKey: props.toolKey,
     apiAcquisitionInputs,
   });

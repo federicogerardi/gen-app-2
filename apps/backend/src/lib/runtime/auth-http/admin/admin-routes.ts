@@ -1,5 +1,5 @@
 import type { AdminHandlers } from './admin-handlers';
-import type { RouteEntry } from './route-table';
+import type { RouteEntry } from '../route-table';
 
 export const buildAdminRoutes = (
   adminHandlers: AdminHandlers,

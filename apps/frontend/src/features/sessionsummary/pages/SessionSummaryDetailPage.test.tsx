@@ -80,6 +80,24 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => mocks.authSession,
+  useAuthState: () => ({
+    session: mocks.authSession.session,
+    loading: mocks.authSession.loading,
+    hasError: mocks.authSession.error,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: mocks.authSession.apiBaseUrl,
+    capabilities: mocks.authSession.capabilities,
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({

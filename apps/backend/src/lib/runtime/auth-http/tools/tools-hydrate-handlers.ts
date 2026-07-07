@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../adapters';
-import { parseExtractionContent as parseCanonicalExtractionContent } from '../../machines/generation/extraction-parsers';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
-import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
+import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
+import { parseExtractionContent as parseCanonicalExtractionContent } from '../../../machines/generation/extraction-parsers';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from '../support';
+import { canPrincipalRoleAccessToolKey } from '../tool-availability-policy';
 import {
   parsedFormatFromInput,
 } from './tools-hydration-parser';

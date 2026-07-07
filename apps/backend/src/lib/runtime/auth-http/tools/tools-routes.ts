@@ -1,5 +1,5 @@
 import type { ToolsHandlers } from './tools-handlers';
-import type { RouteEntry } from './route-table';
+import type { RouteEntry } from '../route-table';
 
 export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => {
   return [

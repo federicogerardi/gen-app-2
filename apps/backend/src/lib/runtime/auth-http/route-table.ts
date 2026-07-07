@@ -1,15 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthHandlers } from './auth-handlers';
-import type { AdminHandlers } from './admin-handlers';
-import type { ProjectsHandlers } from './projects-handlers';
-import type { PublicHandlers } from './public-handlers';
-import type { ToolsHandlers } from './tools-handlers';
-import { buildAuthRoutes } from './auth-http-auth-routes';
-import { buildPublicRoutes } from './auth-http-public-routes';
-import { buildAdminRoutes } from './auth-http-admin-routes';
-import { buildProjectsRoutes } from './auth-http-projects-routes';
-import { buildToolsRoutes } from './auth-http-tools-routes';
+import type { AuthHandlers } from './auth/auth-handlers';
+import type { AdminHandlers } from './admin/admin-handlers';
+import type { ProjectsHandlers } from './projects/projects-handlers';
+import type { PublicHandlers } from './auth/public-handlers';
+import type { ToolsHandlers } from './tools/tools-handlers';
+import { buildAuthRoutes } from './auth/auth-routes';
+import { buildPublicRoutes } from './auth/public-routes';
+import { buildAdminRoutes } from './admin/admin-routes';
+import { buildProjectsRoutes } from './projects/projects-routes';
+import { buildToolsRoutes } from './tools/tools-routes';
 import { dispatchRequest } from './route-dispatch';
 
 export type HandleAuthHttpRequestResult = {

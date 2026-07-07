@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import type { FC, LazyExoticComponent, ReactElement } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
-import { useAuthSession } from '../providers/AuthSessionProvider';
+import { useAuthState } from '../providers/AuthSessionProvider';
 import { isUserAdmin } from '../runtime/user-roles';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
 import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
@@ -47,8 +47,8 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
-  const auth = useAuthSession();
-  const role = auth.session && isUserAdmin(auth.session.user.role) ? 'admin' : 'member';
+  const { session } = useAuthState();
+  const role = session && isUserAdmin(session.user.role) ? 'admin' : 'member';
 
   if (!isToolEnabled(toolKey, role)) {
     return <Navigate to="/tools" replace />;

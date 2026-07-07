@@ -1,13 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../adapters';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import { BriefParseError, parseBriefInput } from '../brief-parser';
-import { isSupportedToolWorkflow } from '../tool-workflow-registry';
-import { normalizeToolWorkflowKey } from '../workflow-normalizers';
-import { canPrincipalRoleAccessToolKey } from './tool-availability-policy';
-import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from './support';
+import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import { BriefParseError, parseBriefInput } from '../../brief-parser';
+import { isSupportedToolWorkflow } from '../../tool-workflow-registry';
+import { normalizeToolWorkflowKey } from '../../workflow-normalizers';
+import { canPrincipalRoleAccessToolKey } from '../tool-availability-policy';
+import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from '../support';
 
 const MAX_BRIEF_UPLOAD_BYTES = 2 * 1024 * 1024;
 

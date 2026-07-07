@@ -4,18 +4,18 @@ import {
   createUserReport,
   listPublishedProductChangelogs,
   type AuthRepositoryBundle,
-} from '../../adapters';
-import { listEnabledModels } from '../../adapters/llm-model.adapter';
-import type { AuthSessionPrincipal } from '../../types/auth';
-import { normalizeUserReportCategory } from '../feedback-center-policy';
+} from '../../../adapters';
+import { listEnabledModels } from '../../../adapters/llm-model.adapter';
+import type { AuthSessionPrincipal } from '../../../types/auth';
+import { normalizeUserReportCategory } from '../../feedback-center-policy';
 import type { Pool } from 'pg';
 import {
   parseJsonBody,
   parseOptionalNonEmptyString,
   writeError,
   writeSuccess,
-} from './support';
-import { formatZodIssuesForBadRequest, optionalTrimmedString } from './zod-support';
+} from '../support';
+import { formatZodIssuesForBadRequest, optionalTrimmedString } from '../zod-support';
 import { z } from 'zod';
 
 export type CreatePublicHandlersDependencies = {

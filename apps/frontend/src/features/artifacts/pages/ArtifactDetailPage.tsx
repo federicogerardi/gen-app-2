@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
@@ -73,7 +73,7 @@ const toHumanReadableDate = (isoLike: string): string => {
 export const ArtifactDetailPage = () => {
   const { artifactId = '' } = useParams();
   const navigate = useNavigate();
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const generation = useGenerationWorkspace();
 
   useEffect(() => {
@@ -84,16 +84,16 @@ export const ArtifactDetailPage = () => {
 
   const artifactQuery = useArtifactDetailQuery({
     artifactId,
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     localArtifacts: generation.artifacts,
     enabled: artifactId.length > 0,
   });
 
   const artifact = artifactQuery.data;
   const projectsQuery = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     enabled: artifactId.length > 0,
   });
   const projectName = useMemo(
@@ -131,18 +131,17 @@ export const ArtifactDetailPage = () => {
     );
   }
 
-  return <LegacyArtifactView artifact={artifact} projectName={projectName} auth={auth} />;
+  return <LegacyArtifactView artifact={artifact} projectName={projectName} />;
 };
 
 const LegacyArtifactView = ({
   artifact,
   projectName,
-  auth,
 }: {
   artifact: NonNullable<ReturnType<typeof useArtifactDetailQuery>['data']>;
   projectName: string | null;
-  auth: ReturnType<typeof useAuthSession>;
 }) => {
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const generation = useGenerationWorkspace();
   const restartPath = useMemo(
     () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
@@ -189,15 +188,15 @@ const LegacyArtifactView = ({
   const handleDownload = useCallback(
     (format: DownloadFormat) => {
       void downloadArtifactFile(artifact.artifactId, format, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       }).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error('[artifact-download] failed', err);
         }
       });
     },
-    [artifact.artifactId, auth.apiBaseUrl, auth.capabilities],
+    [artifact.artifactId, apiBaseUrl, capabilities],
   );
 
   return (
@@ -242,7 +241,7 @@ const LegacyArtifactView = ({
               >
                 {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
-              {auth.capabilities.artifactDownload ? (
+              {capabilities.artifactDownload ? (
                 <DownloadFormatDropdown onDownload={handleDownload} />
               ) : null}
               <SoftCtaButton type="button" disabled={!isDeleteEnabled}>

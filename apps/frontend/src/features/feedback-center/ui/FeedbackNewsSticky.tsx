@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { Bell, X, Send } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
 import { useSWRQuery } from '../../../app/runtime/queries/useSWRQuery';
 import { cx, uiPrimitives, LoadingStateMessage } from '../../../app/ui/primitives';
@@ -34,7 +34,8 @@ const formatDate = (isoDate: string | null): string => {
 };
 
 export const FeedbackNewsSticky = () => {
-  const auth = useAuthSession();
+  const { session } = useAuthState();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const { publishSuccess, publishError } = useFeedbackMessage();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -46,8 +47,8 @@ export const FeedbackNewsSticky = () => {
 
   const listPublishedChangelogQuery = useCallback(async (): Promise<ProductChangelogDto[]> => {
     const result = await listPublishedProductChangelog({
-      apiBaseUrl: auth.apiBaseUrl,
-      capabilities: auth.capabilities,
+      apiBaseUrl,
+      capabilities,
     });
 
     if (!result.ok) {
@@ -55,10 +56,10 @@ export const FeedbackNewsSticky = () => {
     }
 
     return result.data;
-  }, [auth.apiBaseUrl, auth.capabilities]);
+  }, [apiBaseUrl, capabilities]);
 
   const changelogQuery = useSWRQuery<ProductChangelogDto[]>({
-    key: auth.session ? [auth.apiBaseUrl, auth.capabilities, 'feedback-news'] : null,
+    key: session ? [apiBaseUrl, capabilities, 'feedback-news'] : null,
     fetcher: listPublishedChangelogQuery,
     emptyData: [],
     errorMessage: 'Impossibile caricare il changelog pubblicato.',
@@ -94,8 +95,8 @@ export const FeedbackNewsSticky = () => {
         description: description.trim(),
       },
       {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       },
     );
 

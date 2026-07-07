@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   cx,
   EmptyStateMessage,
@@ -13,10 +13,10 @@ import {
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 
 export const ProjectsListPage = () => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const projectsQuery = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
   });
 
   const projects = projectsQuery.data;

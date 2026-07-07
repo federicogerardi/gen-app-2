@@ -1,5 +1,5 @@
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { ReportsTable } from '../reports/ReportsTable';
 import { useAdminUserReportsQuery } from '../runtime/useAdminUserReportsQuery';
 import { useAdminUserReportsMutations } from '../runtime/useAdminUserReportsMutations';
@@ -8,19 +8,19 @@ import { AdminUserReportsToolbar } from '../ui/AdminUserReportsToolbar';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 export const AdminUserReportsPage = () => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
 
   const { statusFilter, categoryFilter, setStatusFilter, setCategoryFilter } = useAdminUserReportsFilters();
   const reportsQuery = useAdminUserReportsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     statusFilter,
     categoryFilter,
   });
 
   const { busyAction, publishedIssueUrls, handleStatusTransition, handlePublishIssue } = useAdminUserReportsMutations({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     reloadReports: reportsQuery.reload,
   });
 

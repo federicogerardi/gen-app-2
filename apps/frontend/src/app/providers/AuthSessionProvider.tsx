@@ -31,6 +31,12 @@ type AuthSessionContextValue = {
   clearError: () => void;
 };
 
+// DDD-153: Specialized hook types for focused concerns
+export type AuthStateValue = Pick<AuthSessionContextValue, 'session' | 'loading' | 'hasError'>;
+export type AuthActionsValue = Pick<AuthSessionContextValue, 'login' | 'logout' | 'refresh' | 'clearError'>;
+export type ApiConfigValue = Pick<AuthSessionContextValue, 'apiBaseUrl' | 'capabilities'>;
+export type OAuthUrlValue = Pick<AuthSessionContextValue, 'oauthStartUrl'>;
+
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 type AuthSessionProviderProps = {
@@ -104,6 +110,16 @@ export const AuthSessionProvider = ({ children }: AuthSessionProviderProps) => {
   );
 };
 
+/**
+ * @deprecated Use specialized hooks instead:
+ * - `useAuthState()` for session, loading, hasError
+ * - `useAuthActions()` for login, logout, refresh, clearError
+ * - `useApiConfig()` for apiBaseUrl, capabilities
+ * - `useOAuthUrl()` for oauthStartUrl
+ *
+ * This hook will be removed in a future version. Migration deadline: 2026-Q1.
+ * See DDD-153 for rationale.
+ */
 export const useAuthSession = (): AuthSessionContextValue => {
   const value = useContext(AuthSessionContext);
   if (!value) {
@@ -111,4 +127,25 @@ export const useAuthSession = (): AuthSessionContextValue => {
   }
 
   return value;
+};
+
+// DDD-153: Specialized hooks for focused concerns
+export const useAuthState = (): AuthStateValue => {
+  const { session, loading, hasError } = useAuthSession();
+  return { session, loading, hasError };
+};
+
+export const useAuthActions = (): AuthActionsValue => {
+  const { login, logout, refresh, clearError } = useAuthSession();
+  return { login, logout, refresh, clearError };
+};
+
+export const useApiConfig = (): ApiConfigValue => {
+  const { apiBaseUrl, capabilities } = useAuthSession();
+  return { apiBaseUrl, capabilities };
+};
+
+export const useOAuthUrl = (): OAuthUrlValue => {
+  const { oauthStartUrl } = useAuthSession();
+  return { oauthStartUrl };
 };

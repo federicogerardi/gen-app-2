@@ -48,6 +48,24 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     refresh: vi.fn(),
     clearError: () => {},
   }),
+  useAuthState: () => ({
+    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false },
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({

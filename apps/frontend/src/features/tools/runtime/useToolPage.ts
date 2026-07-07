@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { readInputField } from '../../../app/runtime/shared-utils';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationArtifactsWorkspace, useGenerationGenerationWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
@@ -28,7 +28,9 @@ export interface UseToolPageProps {
 
 export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
   const autoStartGenerationAfterExtractionRef = useRef(false);
-  const auth = useAuthSession();
+  const authState = useAuthState();
+  const apiConfig = useApiConfig();
+  const auth = { ...authState, ...apiConfig };
   const generationStream = useGenerationStreamWorkspace();
   const generationRun = useGenerationGenerationWorkspace();
   const generationArtifacts = useGenerationArtifactsWorkspace();
@@ -37,9 +39,9 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const toolConfig = getToolFormConfig(toolKey);
   const { formState, setFormState } = useToolFormInit(toolKey, generationProject.focusedProjectId ?? initialProjectId ?? undefined);
   const { data: projects, loading: projectsLoading } = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
-    enabled: auth.session !== null && auth.capabilities.projects,
+    apiBaseUrl: apiConfig.apiBaseUrl,
+    capabilities: apiConfig.capabilities,
+    enabled: authState.session !== null && apiConfig.capabilities.projects,
   });
   const {
     sessionId,

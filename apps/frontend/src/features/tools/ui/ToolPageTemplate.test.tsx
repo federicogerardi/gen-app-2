@@ -259,6 +259,24 @@ const availableStepsState = {
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => authState,
+  useAuthState: () => ({
+    session: authState.session,
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: authState.apiBaseUrl,
+    capabilities: authState.capabilities,
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({

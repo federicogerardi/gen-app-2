@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import type { AuthStateValue, ApiConfigValue } from '../../../app/providers/AuthSessionProvider';
 import type { GenerationArtifactsWorkspaceValue, GenerationProjectWorkspaceValue, GenerationStreamWorkspaceValue, GenerationGenerationWorkspaceValue } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { getArtifactById } from '../../artifacts/runtime/artifacts-client';
@@ -17,7 +17,7 @@ import { orchestrateToolStep } from './tools-client';
 import { mapInlineDispatchError } from './tool-page-runtime-utils';
 
 type UseToolPageRunControllerArgs = {
-  auth: ReturnType<typeof useAuthSession>;
+  auth: AuthStateValue & ApiConfigValue;
   toolKey: SupportedTool;
   toolConfig: ToolFormConfig;
   formState: ToolFormState;

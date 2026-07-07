@@ -18,6 +18,24 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     refresh: vi.fn(),
     clearError: () => {},
   }),
+  useAuthState: () => ({
+    session: null,
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({

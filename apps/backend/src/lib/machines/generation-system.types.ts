@@ -5,6 +5,7 @@ import type {
   RegistryBackedWorkflowType,
   RequestReceivedEvent,
 } from '../types/xstate';
+import type { EffectiveModelResolution } from '../types/step-llm-model-override';
 import type { RouteType } from './generation-routing';
 
 export type GenerationSystemInput = {
@@ -37,6 +38,7 @@ export type GenerationMachineContext = GenerationSystemContext & {
     defaultReason: string;
   } | null;
   _creditCost: number;
+  effectiveModelResolution: EffectiveModelResolution | null;
 };
 
 export type IdempotencyDoneOutput =
@@ -107,6 +109,7 @@ export type CacheRequestMetaParams = {
   registrySnapshotRef: string | null;
   routeType: RouteType;
   syntheticResponse: string;
+  effectiveModelResolution: EffectiveModelResolution | null;
 };
 
 export type SetValidationDataParams = {

@@ -17,6 +17,7 @@ import {
   createSseReplayStream,
 } from './generation-stream-replay';
 import type { BackendGenerationRequest } from './request-contract';
+import type { StepLlmModelResolver } from './step-llm-model-resolver';
 import { serializeSseEvent } from './stream-contract';
 
 export type HandleGenerationRequestResult = BackendSessionResult & {
@@ -25,6 +26,7 @@ export type HandleGenerationRequestResult = BackendSessionResult & {
 
 export type HandleGenerationRequestOptions = {
   onSseEvent?: (payload: string, event: BackendSessionResult['streamEvents'][number]) => void;
+  modelResolver?: StepLlmModelResolver | undefined;
 };
 
 export const handleGenerationRequest = async (
@@ -40,6 +42,7 @@ export const handleGenerationRequest = async (
         sseFrames.push(payload);
         options.onSseEvent?.(payload, event);
       },
+      modelResolver: options.modelResolver,
     }),
     {
       maxAttempts: 1,
@@ -61,6 +64,7 @@ export const handleGenerationRequest = async (
 export const handleGenerationRequestAsSseStream = (
   request: BackendGenerationRequest,
   adapters: GenerationAdapters,
+  options: HandleGenerationRequestOptions = {},
 ): AsyncIterable<string> => {
   return createSseReplayStream(async (pushFrame) => {
     await runWithGenerationRetryPolicy(
@@ -68,6 +72,7 @@ export const handleGenerationRequestAsSseStream = (
         onStreamEvent: (event) => {
           pushFrame(serializeSseEvent(event));
         },
+        modelResolver: options.modelResolver,
       }),
       {
         maxAttempts: 1,
@@ -86,17 +91,22 @@ export const handleGenerationRequestAsNodeSse = async (
   response: ServerResponse,
   request: BackendGenerationRequest,
   adapters: GenerationAdapters,
-  options: NodeSsePipeOptions = {},
+  options: NodeSsePipeOptions & { modelResolver?: StepLlmModelResolver | undefined } = {},
 ): Promise<void> => {
-  const sseStream = handleGenerationRequestAsSseStream(request, adapters);
+  const sseStream = handleGenerationRequestAsSseStream(request, adapters, {
+    modelResolver: options.modelResolver,
+  });
   await pipeSseStreamToNodeResponse(response, sseStream, options);
 };
 
 export const handleGenerationRequestAsJson = async (
   request: BackendGenerationRequest,
   adapters: GenerationAdapters,
+  options: HandleGenerationRequestOptions = {},
 ): Promise<{ ok: true; data: import('@gen-app-2/contracts').GenerationRunResponse } | { ok: false; error: import('./error-contract').BackendError }> => {
-  const result = await runBackendGenerationSessionAsJson(request, adapters);
+  const result = await runBackendGenerationSessionAsJson(request, adapters, {
+    modelResolver: options.modelResolver,
+  });
 
   if (result.status === 'completed') {
     return {

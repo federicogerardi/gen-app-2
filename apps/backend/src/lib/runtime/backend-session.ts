@@ -20,6 +20,7 @@ import {
   buildValidationOkEvent,
   type BackendGenerationRequest,
 } from './request-contract';
+import type { StepLlmModelResolver } from './step-llm-model-resolver';
 import type { BackendStreamEvent } from './stream-contract';
 
 export type BackendSessionResult = {
@@ -32,6 +33,7 @@ export type BackendSessionResult = {
 
 export type RunBackendGenerationSessionOptions = {
   onStreamEvent?: (event: BackendStreamEvent) => void;
+  modelResolver?: StepLlmModelResolver | undefined;
 };
 
 export const runBackendGenerationSession = async (
@@ -200,7 +202,7 @@ export const runBackendGenerationSession = async (
   });
 
   actor.start();
-  actor.send(buildRequestReceivedEvent(request));
+  actor.send(buildRequestReceivedEvent(request, options.modelResolver));
   actor.send(buildAuthOkEvent(request));
   actor.send(buildValidationOkEvent(request));
 
@@ -267,6 +269,7 @@ export type BackendJsonSessionResult = {
 export const runBackendGenerationSessionAsJson = async (
   request: BackendGenerationRequest,
   adapters: GenerationAdapters,
+  options: RunBackendGenerationSessionOptions = {},
 ): Promise<BackendJsonSessionResult> => {
   const correlationId = `run-json:${request.requestId}`;
 
@@ -288,7 +291,7 @@ export const runBackendGenerationSessionAsJson = async (
   });
 
   actor.start();
-  actor.send(buildRequestReceivedEvent(request));
+  actor.send(buildRequestReceivedEvent(request, options.modelResolver));
   actor.send(buildAuthOkEvent(request));
   actor.send(buildValidationOkEvent(request));
 

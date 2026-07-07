@@ -102,6 +102,18 @@ export type ToneProfile = 'Professional' | 'Casual' | 'Formal' | 'Technical';
 export type LlmModelId = `${string}/${string}`;
 export type RequestTone = ToneProfile | 'analitico';
 
+/**
+ * SessionArtifactModelInfo — DDD-152 projection
+ * Model information displayed in session detail pages.
+ * Includes effective model, source, and override metadata.
+ */
+export type SessionArtifactModelInfo = {
+  effectiveModel: string;
+  modelSource: 'user-selection' | 'step-override';
+  overrideReason?: string;
+  originalUserModel?: string;
+};
+
 // =====================================================================
 // Value Objects — re-exported from @gen-app-2/domain (DDD-074)
 // =====================================================================

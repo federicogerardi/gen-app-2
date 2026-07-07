@@ -26,6 +26,7 @@ import {
   logGenerationStreamError,
   logModelCheckDebug,
 } from './generation-stream-observability';
+import type { StepLlmModelResolver } from './step-llm-model-resolver';
 import type {
   HandleAuthHttpRequestResult,
 } from './auth-http';
@@ -57,6 +58,11 @@ export type NodeRuntimeServerOptions = {
    * DDD-055: LlmModelCatalog validation gate; DDD-056: LlmModelId.
    */
     checkModelAvailability: (modelKey: string, correlationId?: string) => Promise<boolean>;
+  /**
+   * StepLlmModelResolver for per-step model override resolution.
+   * DDD-151: StepLlmModelResolver (Domain Service, Generation context).
+   */
+  modelResolver?: StepLlmModelResolver;
   cors?: {
     allowedOrigins: string[];
     allowCredentials?: boolean;
@@ -323,14 +329,18 @@ export const createNodeRuntimeRequestHandler = (
 
     try {
       if (path === generationRunRoutePath) {
-        const result = await handleGenerationRequestAsJson(generationRequest, options.generationAdapters);
+        const result = await handleGenerationRequestAsJson(generationRequest, options.generationAdapters, {
+          modelResolver: options.modelResolver,
+        });
         if (result.ok) {
           writeJson(response, 200, result);
         } else {
           writeJson(response, 500, result);
         }
       } else {
-        await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters);
+        await handleGenerationRequestAsNodeSse(response, generationRequest, options.generationAdapters, {
+          modelResolver: options.modelResolver,
+        });
       }
     } catch (error) {
       logGenerationStreamError(correlationId, generationRequest, debugInfo, error);

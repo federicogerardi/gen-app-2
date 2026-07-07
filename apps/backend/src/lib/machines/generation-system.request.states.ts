@@ -67,6 +67,7 @@ export const generationSystemRequestStates = {
                 String(event.artifactType),
               ),
               syntheticResponse: context.responseBuilder(event),
+              effectiveModelResolution: event.effectiveModelResolution ?? null,
             }),
           },
         },

@@ -24,6 +24,9 @@ export type SessionArtifact = {
   updatedAt: string;
   workflowType: string | null;
   toolKey: string | null;
+  model?: string | null;
+  modelSource?: 'user-selection' | 'step-override' | null;
+  overrideReason?: string | null;
 };
 
 export type SessionArtifactGroup = {

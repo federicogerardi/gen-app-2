@@ -159,6 +159,7 @@ export const generationSystemActions = {
     contentBuffer: '',
     artifactId: null,
     pendingFallback: null,
+    effectiveModelResolution: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.effectiveModelResolution,
   }),
   setUserId: assignGeneration<{ userId: string }>({
     userId: (_: GenerationActionArgs, params: { userId: string }) => params.userId,
@@ -397,5 +398,6 @@ export const generationSystemActions = {
     routeType: null,
     pendingFallback: null,
     mode: 'stream' as const,
+    effectiveModelResolution: null,
   }),
 };

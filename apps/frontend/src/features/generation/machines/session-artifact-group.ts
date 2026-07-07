@@ -11,6 +11,9 @@ export type SessionArtifactEntry = {
   updatedAt: string;
   failureReason: string | null;
   extractionContext?: Record<string, unknown> | null;
+  model?: string | null;
+  modelSource?: 'user-selection' | 'step-override' | null;
+  overrideReason?: string | null;
 };
 
 export type SessionArtifactGroup = {

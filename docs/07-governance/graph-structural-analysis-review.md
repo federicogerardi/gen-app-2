@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.0.0
+version: 1.2.0
 last-reviewed: 2026-07-07
 next-review-date: 2026-08-07
 owner: Domain Architecture
@@ -27,10 +27,39 @@ However, the architecture suffers from **low modular cohesion** ("Distributed Mo
 
 ## Key Areas for Intervention
 
-### 1. Module Fragmentation & Contract Boundary Leakage
-The graph is significantly partitioned. Out of 5528 total nodes, the largest connected component contains only 3011 nodes (~54%). A second massive isolated component of 1116 nodes exists, alongside 215 completely isolated single nodes.
-- **Hypothesis:** The `packages/contracts` layer may not be serving effectively as the universal structural bridge between `apps/frontend` and `apps/backend`. Alternatively, large subsystems (e.g., specific tooling, documentation, CI/CD scripts) are entirely orphaned from the execution flow.
-- **Action Item:** Audit the second largest component (1116 nodes) to determine if it contains core business logic that is failing to use shared contracts, or if it is legitimately isolated (e.g., standalone tooling/scripts).
+### 1. Module Fragmentation & Documentation Graph Disconnection (INVESTIGATED)
+The graph is significantly partitioned. Out of 5528 total nodes, the largest connected component contains only 3011 nodes (~54%). A second massive isolated component of 1116 nodes exists, alongside 215 completely isolated single nodes and 84 smaller components (3–47 nodes each).
+
+**Investigation Result (2026-07-07):** The fragmentation is **not** caused by business logic failing to use shared contracts. The root cause is a **complete disconnection between the code graph and the documentation graph**.
+
+#### Component Topology
+
+| Component | Nodes | Content |
+|-----------|-------|---------|
+| Main | 3011 | Source code + docs referenced by code |
+| 2nd component | 1116 | 100% documentation (docs/ + plan/) |
+| Small components | 84 (3–47 each) | Fragmented prompt .md + docs |
+| Isolated (degree 0) | 215 | Concept nodes, prompt files, config |
+
+#### Categorization of 2517 Non-Main Nodes
+
+| Category | Nodes | Content |
+|----------|-------|---------|
+| A: App code orphaned | 112 | tsconfig, server.mjs, test utils, logger, crawling-queue, feedback-center-contract |
+| B: Infrastructure | 87 | .github/ instructions, package.json fields |
+| C: Documentation | 2292 | docs/ + plan/ + prompt .md files |
+| D: Other | 26 | Root files (AGENTS.md, README.md, tsconfig.json) |
+
+#### Key Findings
+
+- **0 docs/plan nodes** are connected to the main code component — the documentation graph is entirely self-referential.
+- **493 prompt .md nodes** (in `apps/backend/src/lib/runtime/tool-prompts/`) are legitimately isolated — they are LLM prompt files read at runtime via `readPromptFile()`, not imported code.
+- **112 app code isolated nodes** are config files (tsconfig.json), test guard scripts, server.mjs, and secondary modules (`crawling-queue.ts`, `feedback-center-contract.ts`, `logger.ts`) — **not core business logic**.
+- The original hypothesis that `packages/contracts` is failing as a structural bridge is **not confirmed**. The code-to-code connectivity is sound; the gap is code-to-documentation.
+
+#### Revised Assessment
+
+The fragmentation represents a **documentation architecture issue**, not a code architecture issue. The documentation forms its own disconnected knowledge graph, which reduces the value of graphify for cross-referencing code ↔ docs. No urgent refactoring is required for the code layer.
 
 ### 2. Low Modular Cohesion ("Feature Envy")
 Implicit bounded contexts (communities detected by the graph) show extremely low cohesion scores (ranging from `0.04` to `0.07`). 
@@ -54,5 +83,6 @@ The graph previously detected active import cycles, explicitly highlighting barr
 ## Proposed Next Steps
 
 1. ~~**Immediate fix (Low effort, high value):** Resolve the `index.ts` circular dependency in `apps/backend/src/lib/runtime/`.~~ (Completed)
-2. **Investigation:** Run an isolated graph query on the second largest component to identify the 1116 isolated nodes.
-3. **Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.
+2. ~~**Investigation:** Run an isolated graph query on the second largest component to identify the 1116 isolated nodes.~~ (Completed — see Section 1 findings)
+3. ~~**Refactoring Design:** Select one low-cohesion community (e.g., `Admin Handlers` or `Adapters Generation Adapters`) and draft a DDD-aligned refactoring plan to increase its internal cohesion score.~~ (Drafted — see [plan/refactor-admin-handlers-cohesion-1.md](../../plan/refactor-admin-handlers-cohesion-1.md))
+4. **Documentation Linking (Optional, Low Priority):** Add explicit cross-references from documentation files to source code (e.g., via `graphify` annotations or structured frontmatter `code-anchors`) to re-connect the documentation graph to the code graph. This would improve graphify's utility for code ↔ docs navigation but has no functional impact.

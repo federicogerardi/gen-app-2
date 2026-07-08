@@ -1,493 +1,485 @@
 ---
-goal: [Short statement of the tool plan objective]
-version: 1.2
-date_created: [YYYY-MM-DD]
-last_updated: [YYYY-MM-DD]
+goal: Deterministic plan for creating a new Tool in the repository, from DDD analysis through publication
+version: 2.0
+date_created: 2025-10-15
+last_updated: 2026-07-08
 last-reviewed: 2026-07-08
 next-review-date: 2026-10-08
-owner: [Team or role]
-status: draft
-tags: [plan, tool-workspace, backend, frontend, ddd, validation]
+owner: Platform
+status: active
+tags: [plan, tool-workspace, backend, frontend, ddd, validation, template]
 ---
 
-# Introduction
+# Tool Development Plan Template
 
-This template defines a deterministic plan structure for developing or evolving a Tool in the repository.
+This template defines the deterministic structure for creating a new Tool. Following it produces a Tool consistent with all existing Tools in naming, architecture, runtime behavior, and session/summary parity.
 
-Target verification criteria for every new Tool plan:
+## How to Use This Template
 
-- Scalability: the new Tool can be added without broad architectural changes.
-- Unification: BE and FE follow one canonical flow and one canonical language.
-- Modularity: behavior changes remain localized to the smallest possible surface.
-- Traceability: every new tool characteristic is anchored to a canonical DDD decision or an explicit drift note.
+1. Copy this file to `docs/99-reference/plans/tool-<tool-key>-development-plan.md`.
+2. Replace all `<placeholder>` values with your Tool's canonical identifiers.
+3. Execute Tracks A-E in order. Each track has a file-by-file checklist.
+4. Run the validation gates after each track.
+5. Mark checkboxes as you complete items.
 
-## 0. Phase 0 - Initial DDD Analysis for New Tool Characteristics
+## Tool Archetype Classification
 
-Objective:
+Before starting, classify your Tool. The archetype determines which patterns and files apply.
 
-- Identify the new Tool characteristics before any implementation work.
-- Decide whether the new behavior is a canonical extension, a variation of an existing Tool, or a new DDD concept requiring governance.
+| Archetype | Characteristics | Reference Implementation |
+|-----------|----------------|-------------------------|
+| **Direct-input, single-step** | User fills form fields, one generation step | `youtube-description` |
+| **Direct-input, multi-step** | Multiple sequential generation steps, each depends on prior output | `blog-article-generator`, `geometric` |
+| **File-upload, multi-step** | User uploads a file, extraction step, then generation steps | `meta-ads`, `funnel-pages` |
+| **File-upload, single-step** | User uploads a file, one generation step | `nextland` (thank_you) |
+| **API-acquisition** | Backend fetches external data before generation | `geometric` (serp-crawling) |
 
-Checklist:
+If your Tool spans multiple archetypes (e.g., file-upload + API-acquisition), apply the union of all relevant patterns.
 
-- Identify the bounded context that owns the change.
-- Identify the canonical `ToolKey`, `ToolWorkflow`, and `ToolStep` sequence if the Tool already exists or if the new Tool is being introduced.
-- Determine whether the new characteristics affect input shape, output shape, step sequence, runtime prompts, readiness rules, or UI composition.
-- Identify the touched XState machines/actors and ownership boundary (Generation runtime actors vs Frontend Tool Workspace actors).
-- Define runtime gate failure conditions that require explicit machine events and blocked/error transition branches.
-- Draft a minimal transition matrix for touched machine paths (input, expected transition, expected terminal state) before implementation tasks are written.
-- Check whether the new concept already exists in the glossary, bounded-context map, or naming decision log.
-- If a new term is required, create or update the DDD decision before using the term in implementation files.
-- Flag drift candidates: synonyms, local abbreviations, duplicate terms, or mixed naming across FE/BE/docs.
-- Define the minimum canonical contract that must remain stable for this Tool.
+---
 
-Required DDD outputs:
+## 0. Phase 0 - Initial DDD Analysis
 
-- Canonical terms used by the plan.
-- Terms that must not be introduced.
-- Any new DDD decision needed before code changes.
-- The narrowest implementation boundary that can contain the change.
-- XState impact boundary list (machines, actors, guards, transition paths touched).
-- Runtime gate event map (gate condition -> canonical event -> blocked/error or completed terminal branch).
+### Objective
 
-Primary evidence anchors:
+Identify canonical terms, confirm the Tool belongs to an existing bounded context (or requires a new one), and obtain DDD governance approval before any code is written.
+
+### Checklist
+
+- [ ] Identify the bounded context that owns the new Tool.
+- [ ] Define canonical `ToolKey` (kebab-case, e.g. `my-new-tool`).
+- [ ] Define canonical `ToolWorkflow` (snake_case, e.g. `my_new_tool`).
+- [ ] Define canonical `ToolStep` sequence with explicit dependencies.
+- [ ] Classify the Tool archetype (see table above).
+- [ ] Identify form fields needed: which are required, which are optional.
+- [ ] Decide which `ToolInputSource` families apply: `direct-input`, `tool-input-file`, `api-acquisition`.
+- [ ] Check the glossary, bounded-context map, and decision log for existing terms.
+- [ ] If a new domain term is needed, create a `DDD-NNN` decision entry before coding.
+- [ ] Flag any synonym or drift risk (terms that appear elsewhere with different meaning).
+
+### Required DDD Artifacts
+
+- Canonical terms used by this Tool.
+- Terms explicitly forbidden (avoid reusing with different meaning).
+- Any new or updated DDD decision entries.
+- The XState boundary list: which machines, actors, and transitions are touched.
+
+### Primary Evidence Anchors
 
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 - `docs/02-design/domain-bounded-context-map.md`
 - `docs/07-governance/domain-naming-decision-log.md`
-- `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md` if the change touches UI
-- `docs/02-design/specifications/tool-page-frontend-runtime-spec.md` if the change touches Tool Workspace runtime
+- `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 
-## 1. Scope
+---
 
-In scope:
+## 1. Deterministic Inputs
 
-- Define and propagate one canonical Tool identity set: `ToolKey` (kebab-case), `ToolWorkflow` (snake_case), `DisplayLabel`, and canonical `ToolStep` sequence.
-- Implement deterministic FE/BE coverage for the new Tool across Tool Workspace runtime, backend orchestration, session listing/detail projections, and relaunch route resolution.
-- Execute the mandatory validation gates in Section 4 with explicit pass/fail evidence in Section 5 outputs.
-
-Out of scope:
-
-- New domain term creation without DDD approval.
-- Unrelated refactors outside the smallest affected tool surface.
-- Features unrelated to Tool runtime or required parity surfaces. Exception: session archive/detail and relaunch parity are always in scope for a new Tool.
-
-## 2. Session Entry Gate
-
-Before implementation work:
-
-1. Re-read canonical DDD sources:
-   - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
-   - `docs/02-design/domain-bounded-context-map.md`
-   - `docs/07-governance/domain-naming-decision-log.md`
-2. Re-read canonical UI governance source if UI is involved:
-   - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-3. Re-read canonical runtime spec if Tool Workspace runtime is involved:
-   - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
-4. Confirm the current baseline or benchmark document for the specific flow exists.
-
-Pass criteria:
-
-- No ambiguity on the canonical terms for this change.
-- No unresolved terminology conflict.
-- No unresolved architecture constraint that would invalidate the plan.
-
-## 2b. Deterministic Inputs (Mandatory)
-
-Before starting Phase A, define these variables once and reuse them in docs, code, tests, and run logs.
+Define once, reuse everywhere.
 
 ```bash
-export TOOL_KEY='<kebab-case-tool-key>'
-export TOOL_WORKFLOW='<snake_case_tool_workflow>'
-export TOOL_DISPLAY_LABEL='<Tool Display Label>'
+export TOOL_KEY='<kebab-case-tool-key>'          # e.g. blog-article-generator
+export TOOL_WORKFLOW='<snake_case_workflow>'     # e.g. blog_article_generator
+export TOOL_DISPLAY_LABEL='<Display Label>'       # e.g. Blog Article Generator
 ```
 
 Input rules:
+- `TOOL_KEY` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`.
+- `TOOL_WORKFLOW` matches `^[a-z0-9]+(?:_[a-z0-9]+)*$`.
+- `TOOL_DISPLAY_LABEL` is approved in DDD glossary.
 
-- `TOOL_KEY` must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`.
-- `TOOL_WORKFLOW` must match `^[a-z0-9]+(?:_[a-z0-9]+)*$`.
-- `TOOL_DISPLAY_LABEL` must match approved DDD display naming.
-- All three inputs must appear in glossary/decision-log evidence before implementation commits.
+---
 
-## 3. End-to-End Flow Under Plan
+## 2. Track A - Contracts and Canonical Identity
 
-### Phase A - Requirements to Tool Definition
+### File-by-File Implementation
 
-Objective:
+| # | File | What to Add | Pattern Reference |
+|---|------|-------------|-------------------|
+| A-001 | `packages/contracts/src/tool-workflows.ts` | Add `TOOL_WORKFLOW_DEFINITIONS` entry with `toolKey`, `workflowType`, `creditCost`, `steps[]` with explicit `dependencies`. Add `TOOL_AVAILABILITY_POLICY` entry. Add normalization aliases in `normalizeToolKeyCandidate`. | Lines 74-83, 124, 273-278 |
+| A-002 | `packages/contracts/src/extraction-fields.ts` | Add empty arrays/lookups for extraction fields, readiness fields, legacy aliases. Even if empty, the entries are required. | Lines 98, 115, 171 |
 
-- Convert the new requirement into a canonical Tool definition.
+### Auto-Derived (No Manual Changes Needed)
 
-Checklist:
+These derive from A-001 automatically via TypeScript:
+- `ToolKey` type union (includes your key)
+- `TOOL_STEP_ORDER` (ordered step array)
+- `TOOL_STEP_DEPENDENCIES` (step dependency graph)
+- `TOOL_KEY_BY_WORKFLOW_TYPE` (reverse lookup)
+- `resolveToolWorkflowType()` return type
+- `SupportedTool` type (re-exported for frontend)
 
-- Confirm `ToolKey` and display label.
-- Confirm `ToolWorkflow` and `ToolStep` sequence.
-- Confirm input/output contracts and any extraction or generation payloads.
-- Confirm `ToolInputSource` families in scope (`direct-input`, `tool-input-file`, `api-acquisition`) and whether each family contributes to start gating.
-- Confirm readiness rules and failure modes.
-- Confirm whether the Tool requires new prompts, new UI controls, or new backend validation.
+### Acceptance
 
-Primary evidence anchors:
+- [ ] A-AC-001: `resolveToolWorkflowType(TOOL_KEY)` returns `TOOL_WORKFLOW` and the reverse mapping is stable.
+- [ ] A-AC-002: `getToolLabel(TOOL_KEY)` and `getToolRoute(TOOL_KEY)` resolve canonical values.
 
-- `packages/contracts/src/tool-workflows.ts`
-- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
-- `apps/backend/src/lib/runtime/request-contract.ts`
-- Relevant DDD decisions and glossary entries
+---
 
-### Phase B - Backend Runtime Path
+## 3. Track B - Backend Runtime
 
-Objective:
+### File-by-File Implementation
 
-- Validate backend orchestration, request validation, and runtime invariants.
+| # | File | What to Add | Pattern Reference |
+|---|------|-------------|-------------------|
+| B-001 | `apps/backend/src/lib/runtime/tool-workflow-registry.ts` | **Auto-derived** from contracts A-001. No changes needed unless the Tool has non-generation step types (like geometric's `crawling`/`scoring`). | Lines 56-61, 70-90 |
+| B-002 | `apps/backend/src/lib/runtime/workflow-normalizers.ts` | Add `TOOL_KEY` to `FINAL_STEP_BY_TOOL` map with its final step key. Add `TOOL_KEY` to `isStepMappedToolKey` guard. **This is required for artifact role classification** (`step` vs `final`). | Lines 16-24, 28-36 |
+| B-003 | `apps/backend/src/lib/runtime/tool-prompts/index.ts` | Add `toolKey:stepKey` entries in `PROMPT_FILE_BY_KEY` for each step that needs a prompt. | Lines 37-39 |
+| B-004 | `apps/backend/src/lib/runtime/tool-prompts/<tool-key>/` | Create one `.md` prompt file per step. **Use `{{variable}}` placeholders for dynamic content.** See pattern below. | `prompt_blog_article.md` |
+| B-005 | `apps/backend/src/lib/machines/generation-system.actions.ts` | **If the Tool uses `{{placeholders}}` in prompts:** create `assemble<ToolName>Prompt` action (XState action level, NOT adapter level). See Section 11. | `assembleBlogArticlePrompt` (lines 379-431), `assembleGeometricPrompt` (lines 326-378) |
+| B-006 | `apps/backend/src/lib/machines/generation-system.actions.ts` | Add action type to `GenerationSystemActionObject` union. | Line 63 |
+| B-007 | `apps/backend/src/lib/machines/generation-system.execution.states.ts` | Wire `assemble<ToolName>Prompt` into `generating.entry` AND `streaming.entry`. Both states need it. | Lines 256, 297 |
+| B-008 | `apps/backend/src/lib/runtime/step-llm-model-overrides.config.ts` | **(Optional)** Add per-step LLM model overrides if the Tool benefits from different models per step. | Lines 35-53 |
+| B-009 | `apps/backend/src/lib/tests/` | Create test files for prompt resolution and workflow registry validation. | `runtime.blog-article-tool-prompts.test.ts`, `runtime.blog-article-workflow-registry.test.ts` |
 
-Checklist:
+### Prompt Template Variable Rules
 
-- Confirm backend route or handler authority.
-- Confirm payload validation and normalization rules.
-- Confirm timeout, idempotency, and error handling behavior.
-- Confirm that any new backend path is registered in the canonical runtime registry.
-- Confirm backend session projections map canonical tool identity (`/api/tools/sessions` and `/api/tools/sessions/{sessionId}`) for the new Tool.
-- Confirm artifact-role classification and step ordering support include the new Tool final step semantics.
+Prompts support these placeholder patterns:
 
-Primary evidence anchors:
+| Placeholder | Source | Example |
+|-------------|--------|---------|
+| `{{output_step_<stepKey>}}` | Content from a previous step's artifact | `{{output_step_blog_seo_structure}}` |
+| `{{titolo}}` | `requestInput.titolo` or `extractionPayload.titolo` | `{{titolo}}` |
+| `{{tone}}` | `requestInput.tone` | `{{tone}}` |
+| Custom fields | Any field on `requestInput` | Add to the action's replacement logic |
 
-- `apps/backend/src/lib/runtime/auth-http/`
-- `apps/backend/src/lib/runtime/tool-workflow-registry.ts`
-- `apps/backend/src/lib/runtime/tool-prompts/`
-- `apps/backend/src/lib/tests/`
+**Critical rule:** Template variable replacement MUST be at the XState action level (`generation-system.actions.ts`), NOT at the adapter level (`openrouter.adapter.ts`). The adapter's `buildContextBlock` provides supplementary context; it does not replace prompt template variables.
 
-### Phase C - Frontend Tool Workspace Path
+### Acceptance
 
-Objective:
+- [ ] B-AC-001: Backend orchestrate endpoint returns correct `dependencyArtifactIdsByStep` for the Tool.
+- [ ] B-AC-002: Backend rejects unsupported tool identifiers with explicit validation error.
+- [ ] B-AC-003: Existing tools pass the focused backend regression suite (`npm --workspace apps/backend run test`).
+- [ ] B-AC-004: `assemble<ToolName>Prompt` replaces all `{{placeholders}}` (verify with 0 remaining placeholders at step 3).
 
-- Validate the Tool Workspace changes needed for the new capability.
+---
 
-Checklist:
+## 4. Track C - Frontend Tool Workspace
 
-- Confirm the page archetype remains canonical.
-- Confirm the runtime hook and machine changes are minimal and deterministic.
-- Confirm readiness, dispatch, and error behavior.
-- Confirm any new upload or input controls are aligned with the runtime spec.
-- Confirm `ContextGenerationPhase` is modeled with one `Start Context Generation Action` (single trigger for extraction/fetch/merge as configured).
-- Confirm requiredness is derived through one `ToolInputRequirementMatrix` across source families and that optional entries remain advisory only.
-- Confirm API acquisition behavior is explicit: adapter path, backend source endpoint, and feature-flag policy (`VITE_FF_TOOLS_API_BINDING_STATUS`) with default-off non-regression semantics.
-- Confirm the UI uses canonical UI vocabulary and no new local synonyms.
-- Confirm each runtime gate failure path maps to explicit machine events (no implicit fallback success).
-- Confirm retry/regenerate recovery is event-driven with deterministic transitions.
-- Confirm single-step tools still preserve explicit `running` -> `completed` or blocked/error transitions.
-- Confirm Session Summary list parity for the new Tool: `/sessionsummary` must render the Tool display label (not raw `ToolKey` or fallback technical value) in the Tool column.
-- Confirm Session Summary detail parity for the new Tool: `/sessionsummary/{sessionId}` must resolve the same Tool display label in title and metadata without falling back to generic unavailability copy.
-- Confirm relaunch parity for the new Tool from session detail: `Relaunch` CTA must resolve a valid Tool route and remain enabled when stream is idle and artifact detail is available.
-- Confirm resume-checkpoint parity for the new Tool in Tool Workspace: when a paused checkpoint exists, the primary action must resolve to `resume-checkpoint` and target the paused `ToolStep` deterministically.
+### File-by-File Implementation
 
-Primary evidence anchors:
+| # | File | What to Add | Pattern Reference |
+|---|------|-------------|-------------------|
+| C-001 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFormRegistry` entry with `toolKey`, `availabilityPolicy`, `displayName`, `defaultPrompt`, `defaultModel`, `steps`, `stepDependencies`, `defaults`. | Lines 203-214 |
+| C-002 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFileInstructionsRegistry` entry describing input files, required/optional fields, examples, notes. | Lines 418-432 |
+| C-003 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add navigation label, description, and route in `navLabels`, `navDescriptions`, `navRoutes`. | Lines 513, 524, 535 |
+| C-004 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `stepCardConfigRegistry` entry with `displayName`, `description`, `expectedOutputFormat` per step. | Lines 749-765 |
+| C-005 | `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts` | Add `TOOL_STEP_DISPLAY_CONFIG` entry with `visible` and `includeInDownload` per step. Even if all steps have defaults, the entry is required for test parity. | Lines 92-96 |
+| C-006 | `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` | **If direct-input-only:** create `build<ToolName>DirectInputExtractionInfo` function. Register in `selectGenerationExtractionInfo` guard. Inject form fields into `buildBaseGenerationRequest` if needed for template variables (e.g. `titolo`). | Lines 187-204, 332-334, 488-491 |
+| C-007 | `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` | **If direct-input-only:** add `build<ToolName>DirectInputExtractionInfo` call in the `directInputExtractionInfo` block. | Lines 116-119 |
+| C-008 | `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx` | Add `TOOL_KEY` to `isSupportedTool()` function. **This is a hardcoded union — the type alone is not enough.** | Line 26 |
+| C-009 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | **(If tool adds new form fields)** Add field to `ToolFormState` type and update `toolFormRegistry` defaults. Document which fields are required/hidden and whether model selector is visible. | `titolo` field pattern |
 
-- `apps/frontend/src/features/tools/runtime/useToolPage.ts`
-- `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts`
-- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
-- `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
-- `apps/frontend/src/features/tools/machines/briefing-upload.machine.ts`
-- `apps/frontend/src/features/tools/machines/`
-- `apps/backend/src/lib/machines/generation-system.machine.ts`
-- `apps/backend/src/lib/machines/tool-workflow.machine.ts`
-- `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`
-- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryListPage.tsx`
-- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
-- `apps/frontend/src/features/sessionsummary/runtime/session-summary-domain.ts`
-- `apps/frontend/src/features/generation/ui/artifact-history.ts`
-- `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx`
+### Frontend Dependency Content Fetching (Multi-Step Tools)
 
-### Phase D - Validation and Publication Readiness
+For multi-step tools where step N depends on output from step N-1, the frontend must pre-fetch dependency artifact content before dispatching the generation request. This is handled automatically by `startGenerationStep` in `useToolPageRunController.ts`:
 
-Objective:
+1. `orchestrateToolStep()` returns `dependencyArtifactIdsByStep` (stepKey → artifactId).
+2. For each dependency, content is resolved from `liveArtifacts` (current session, has content) or fetched via `getArtifactById` with `?includeContent=1` (previous sessions, content not in list endpoint).
+3. The resolved content map is passed to `createStepRequest` as `stepDependencyArtifactContentsByStep`.
 
-- Prove the change is safe to publish.
+**No additional code is needed per tool.** This mechanism works for all multi-step tools automatically.
 
-Checklist:
+### Acceptance
 
-- Typecheck passes.
-- Focused tests pass.
-- Focused XState transition tests pass for all touched machines/actors.
-- Build passes.
-- Benchmark or runtime gate passes if the change affects orchestration or load-sensitive behavior.
-- DDD conformity is confirmed for all touched names and payloads.
-- Session archive/detail parity passes for the new Tool (`/sessionsummary` list label, `/sessionsummary/{sessionId}` title + metadata label, relaunch CTA enabled-state and route resolution).
+- [ ] C-AC-001: Tool route resolves to `/tools/$TOOL_KEY` from canonical sources.
+- [ ] C-AC-002: Primary generation action dispatches with correct `step`, `toolKey`, `workflowType`, and `stepDependencyArtifactContentsByStep` (for multi-step).
+- [ ] C-AC-003: Session summary list shows `TOOL_DISPLAY_LABEL`, not raw `TOOL_KEY`.
+- [ ] C-AC-004: Session detail shows `TOOL_DISPLAY_LABEL` in title and metadata.
+- [ ] C-AC-005: Relaunch CTA from session detail is enabled and resolves to correct route.
+- [ ] C-AC-006: `TOOL_STEP_DISPLAY_CONFIG` test passes (step visibility and download config).
+- [ ] C-AC-007: `tool-form-architecture.test.ts` filters enabled tools correctly.
 
-DDD conformity checklist:
+---
 
-- No non-canonical synonyms in code, tests, or docs.
-- No new term appears without glossary or decision-log coverage.
-- No payload or flow drift against the canonical runtime spec.
+## 5. Track D - Test Cases
 
-XState conformity checklist:
+### Required Tests
 
-- Every runtime gate has an explicit event and deterministic transition branch.
-- No implicit success transitions for blocked/error gate outcomes.
-- Recovery path is explicit (`retry`/`regenerate`) and test-covered.
-- At least one non-regression pair verifies unchanged transition behavior for an existing Tool.
+| # | Test File | What to Cover |
+|---|-----------|---------------|
+| D-001 | `apps/backend/src/lib/tests/runtime.<tool>-tool-prompts.test.ts` | Prompt resolution for each step, null for unknown steps, file path matches. |
+| D-002 | `apps/backend/src/lib/tests/runtime.<tool>-workflow-registry.test.ts` | Tool availability, step dependency graph, orchestration endpoint. |
+| D-003 | Update `tool-step-display-config.test.ts` | Add `TOOL_KEY` to the canonical tools list expectation. |
+| D-004 | Update `tool-form-architecture.test.ts` | Add `TOOL_KEY` to the enabled tools filter expectation. |
+| D-005 | Update session summary tests | Cover the new Tool in list label and detail title/metadata assertions. |
 
-## 4. Execution Checklist
-
-Run from repository root.
-
-Mandatory precondition:
-
-- Export deterministic inputs from Section 2b in the current shell session.
-
-| Step | Command | Purpose | Pass Criteria |
-|------|---------|---------|---------------|
-| EXEC-000 | `test -n "$TOOL_KEY" && test -n "$TOOL_WORKFLOW" && test -n "$TOOL_DISPLAY_LABEL" && test -f docs/01-requirements/domain-ubiquitous-language-glossary.md && test -f docs/02-design/domain-bounded-context-map.md && test -f docs/07-governance/domain-naming-decision-log.md && test -f docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md && test -f docs/02-design/specifications/tool-page-frontend-runtime-spec.md && rg -n "$TOOL_KEY|$TOOL_WORKFLOW|$TOOL_DISPLAY_LABEL" docs/01-requirements/domain-ubiquitous-language-glossary.md docs/07-governance/domain-naming-decision-log.md` | DDD baseline integrity gate | Exit code 0 and at least one match in each DDD doc set |
-| EXEC-001 | `npm run typecheck --workspaces --if-present` | Global static baseline | Exit code 0 |
-| EXEC-002 | `npm --workspace apps/backend run test -- src/lib/tests/runtime.workflow-normalizers.test.ts src/lib/tests/runtime.tools-orchestrate.test.ts src/lib/tests/runtime.auth-http.test.ts` | Backend regression net | Exit code 0 and no failing tests |
-| EXEC-003 | `npm --workspace apps/backend run bench:orchestrate` | Runtime scalability baseline | Exit code 0 and benchmark summary logged in OUT-001 |
-| EXEC-003A | `npm --workspace apps/backend run test -- <backend-machine-transition-tests> && npm --workspace apps/frontend run test -- <frontend-machine-transition-tests>` | XState transition determinism gate | Exit code 0 and no failing machine transition tests |
-| EXEC-004 | `npm --workspace apps/frontend run test -- src/features/tools/runtime/tool-form-architecture.test.ts src/features/tools/runtime/tool-page-selectors.test.ts src/features/tools/runtime/tool-api-binding-status-adapter.test.ts src/features/tools/ui/ToolPageTemplate.test.tsx src/features/tools/ui/ToolGenerationFlowVertical.test.tsx src/features/sessionsummary/pages/SessionSummaryListPage.test.tsx src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx src/features/artifacts/ui/SessionsListingSection.test.tsx src/features/generation/ui/SessionArtifactTabs.test.tsx src/features/generation/ui/artifact-history.test.ts` | Frontend parity regression net (Tool Workspace + Session Summary/Relaunch + API binding gate) | Exit code 0 and no failing tests |
-| EXEC-005 | `npm --workspace apps/frontend run build` | Frontend publication gate | Exit code 0 |
-| EXEC-006 | `npm run build` | End-to-end repo build gate | Exit code 0 |
-
-Stop condition:
-
-- If any step fails, stop the sequence, log the failure context, and open a closure task before continuing.
-
-## 5. Session Outputs
-
-Required outputs for every Tool plan:
-
-- OUT-001: Run log summary (commands, pass/fail, key metrics).
-- OUT-002: DDD analysis summary for the new Tool characteristics.
-- OUT-003: FE unification/modularity notes.
-- OUT-004: BE orchestration and validation notes.
-- OUT-005: Go/No-Go recommendation.
-
-## 5b. Implementation Checklist
-
-Source of truth:
-
-- `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
-- `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
-- `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-- `docs/01-requirements/domain-ubiquitous-language-glossary.md`
-- `docs/07-governance/domain-naming-decision-log.md`
-
-Execution policy:
-
-- Keep the change inside the smallest coherent scope.
-- Do not start coding tasks outside the approved plan boundary.
-- Preserve canonical DDD terms and payload invariants.
-
-### Track A - Contracts and Canonical Identity
-
-- [ ] A-001: Add `TOOL_KEY` and `TOOL_WORKFLOW` to contracts registry (`packages/contracts/src/tool-workflows.ts`) with canonical `ToolStep` order and dependencies.
-- [ ] A-002: Add canonical extraction field maps (instruction/readiness) for the new Tool where required by DDD policy.
-- [ ] A-003: Add deterministic FE label/route resolution support for `TOOL_KEY` and aliases only where approved in decision log.
-
-Acceptance for Track A:
-
-- [ ] A-AC-001: `resolveToolWorkflowType(TOOL_KEY)` and reverse mapping are stable and type-safe.
-- [ ] A-AC-002: `getToolLabel` and `getToolRoute` resolve canonical values for both `TOOL_KEY` and approved aliases.
-
-### Track B - Backend Runtime and Session Projections
-
-- [ ] B-001: Register backend runtime support for `TOOL_KEY` in orchestration/normalization paths (`tool-workflow-registry`, `workflow-normalizers`, handlers).
-- [ ] B-002: Add deterministic final-step artifact role mapping for the new Tool.
-- [ ] B-003: Validate session list/detail projections return canonical tool identity usable by FE label/route resolvers.
-- [ ] B-004: **If tool uses prompt template variables** (`{{output_step_*}}`, `{{titolo}}`, `{{tone}}`, etc.): implement `assemble<ToolName>Prompt` action in `generation-system.actions.ts` (XState action level, NOT adapter level). Wire into `generating` state entry. See Section 7 "Template Variable Replacement Pattern".
-- [ ] B-005: **If tool is direct-input-only**: verify `selectGenerationExtractionInfo` in `tool-page-selectors.ts` handles the tool via a dedicated `build<ToolName>DirectInputExtractionInfo` function. See Section 7 "Direct-Input Extraction Info Pattern".
-
-Acceptance for Track B:
-
-- [ ] B-AC-001: `/api/tools/sessions` and `/api/tools/sessions/{sessionId}` carry tool identity that resolves to `TOOL_KEY` deterministically.
-- [ ] B-AC-002: Backend rejects unsupported tool identifiers with explicit validation error (no silent fallback).
-- [ ] B-AC-003: Existing tools remain behaviorally unchanged under focused backend regression suite.
-
-### Track C - Frontend Tool Workspace and Session Surfaces
-
-- [ ] C-001: Add Tool Workspace registration/configuration for `TOOL_KEY` (page route, form config, steps, guidance).
-- [ ] C-002: Ensure generation dispatch and relaunch route assembly resolve to `/tools/$TOOL_KEY` from canonical identity sources.
-- [ ] C-003: Ensure FE step ordering/rendering supports the new Tool in session detail tabs and history projections.
-- [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
-- [ ] C-005: Define `ToolInputRequirementMatrix` for the target Tool across `direct-input`, `tool-input-file`, and `api-acquisition`, with explicit requiredness (`always-required`, `required-by-tool-setting`, `optional-by-tool-setting`).
-- [ ] C-006: If `api-acquisition` is used, define adapter and rollout policy for binding status resolution, including default-off behavior under `VITE_FF_TOOLS_API_BINDING_STATUS` and enabled-path gating semantics.
-- [ ] C-007: **If tool has custom step display requirements**: configure `TOOL_STEP_DISPLAY_CONFIG` in `tool-step-display-config.ts` with explicit `visible` and `includeInDownload` per step. See Section 7 "Step Display Configuration Pattern".
-- [ ] C-008: **If tool is direct-input-only**: add tool to `selectGenerationExtractionInfo` guard in `tool-page-selectors.ts` and create `build<ToolName>DirectInputExtractionInfo` builder.
-- [ ] C-009: **Add tool to `isSupportedTool()`** in `SessionArtifactTabs.tsx` — required for step visibility filter to apply in session detail.
-- [ ] C-010: **Document form field visibility**: which fields are required/hidden per tool, whether model selector is visible, and any tool-specific form behavior.
-
-Acceptance for Track C:
-
-- [ ] C-AC-001: Tool route assembly uses one canonical resolver path (no local divergent mappers).
-- [ ] C-AC-002: Session detail relaunch source selection is deterministic (final-step preferred, then valid-step fallback).
-- [ ] C-AC-003: Existing supported tools still pass the same list/detail/relaunch UI assertions.
-- [ ] C-AC-004: Session summary surfaces never expose raw workflow identifiers as final UI labels for the target Tool.
-- [ ] C-AC-005: Relaunch CTA is enabled whenever tool-route resolution succeeds and stream is not active.
-- [ ] C-AC-006: Missing optional setup files generate advisory UI only and never block primary generation action.
-- [ ] C-AC-007: `api-acquisition` entries block start only when required and only when adapter/feature gate is enabled for that rollout stage.
-
-### Track D - Test Cases
-
-- [ ] D-001: Add/update unit tests for tool label/route normalization and canonical mappings.
-- [ ] D-002: Add/update frontend session detail tests covering title/details parity and relaunch CTA behavior for the new Tool.
-- [ ] D-003: Add/update backend normalization/orchestration tests for final-step role and tool identity mapping.
-- [ ] D-004: Add/update session summary tests for the target Tool on both list and detail pages.
-- [ ] D-005: Add/update relaunch route-resolution test coverage for the target Tool.
-- [ ] D-006: Add/update Tool Workspace tests for matrix-gated requiredness and feature-flagged API binding adapter behavior (default-off and enabled mapping).
-
-Acceptance for Track D:
+### Acceptance
 
 - [ ] D-AC-001: All new tests pass.
-- [ ] D-AC-002: No regressions in existing suites.
-- [ ] D-AC-003: Session summary and relaunch coverage includes the target Tool and at least one previously supported Tool (non-regression pair).
+- [ ] D-AC-002: No regressions in existing suites (`npm run test` in all workspaces).
+- [ ] D-AC-003: At least one non-regression pair verifies an existing Tool is unchanged.
 
-### Track E - XState Runtime Determinism
+---
 
-- [ ] E-001: Define a compact XState acceptance matrix for touched machine paths (`input`, `expected transition`, `expected terminal state`).
-- [ ] E-002: Implement explicit runtime gate event handling in touched machines (blocked/error branches + completion branch).
-- [ ] E-003: Add focused backend/frontend transition tests covering gate-failure events and recovery events.
-- [ ] E-004: Add non-regression transition tests for at least one existing Tool flow.
+## 6. Track E - XState Runtime Determinism
 
-Acceptance for Track E:
+### Checklist
 
-- [ ] E-AC-001: Every runtime gate condition maps to one explicit event and one deterministic branch.
-- [ ] E-AC-002: Recovery transitions are explicit and test-covered.
-- [ ] E-AC-003: Existing Tool transition behavior remains unchanged under non-regression pair tests.
+- [ ] E-001: Define the XState transition matrix for touched machine paths.
+- [ ] E-002: Every runtime gate has an explicit event + deterministic branch.
+- [ ] E-003: Recovery transitions (`retry`, `regenerate`) are explicit and test-covered.
+- [ ] E-004: Non-regression transition tests pass for at least one existing Tool.
 
-## 5d. DDD Impact Gate
+---
 
-This gate applies to every plan that introduces or modifies tool characteristics.
+## 7. DDD Impact Gate
 
-- [ ] X-001: New tool characteristics are mapped to canonical DDD terms before implementation.
-- [ ] X-002: Any new term has an approved DDD decision or glossary entry.
-- [ ] X-003: No synonym or local naming variant is introduced in code or docs.
-- [ ] X-004: The canonical tool flow remains deterministic and bounded.
-- [ ] X-005: Any FE/BE cross-context translation is explicit and documented.
+- [ ] X-001: New Tool characteristics mapped to canonical DDD terms.
+- [ ] X-002: Any new term has an approved DDD decision entry.
+- [ ] X-003: No synonym or local naming variant introduced.
+- [ ] X-004: FE/BE cross-context translations are explicit and documented.
 
-Acceptance for DDD Impact Gate:
+---
 
-- [ ] X-AC-001: DDD review complete.
-- [ ] X-AC-002: Terms and payloads are consistent across FE/BE/docs.
-- [ ] X-AC-003: No unresolved drift remains in the touched area.
+## 8. Risks and Controls
 
-## 6. Risks and Controls
+| Risk | Control |
+|------|---------|
+| **Cross-surface drift** (Workspace works, Summary broken) | Track C parity tasks + session summary test coverage. |
+| **Naming drift** (`TOOL_KEY` vs `TOOL_WORKFLOW` mismatch) | EXEC-000 DDD grep gate. |
+| **Regression on existing tools** | D-AC-003 non-regression pair. |
+| **API binding gate blocks new Tool** | Track C feature-flag configuration. |
+| **Template variables not replaced** | B-005: replacement at XState action level, not adapter level. Wire in BOTH `generating` and `streaming` entry. Verify 0 remaining placeholders. |
+| **Direct-input Tool fails dispatch** | C-006: dedicated `build<ToolName>DirectInputExtractionInfo` + `selectGenerationExtractionInfo` guard. |
+| **`isSupportedTool()` not updated** | C-008: add to hardcoded union in `SessionArtifactTabs.tsx`. |
+| **Step display config missing** | C-005: add to `TOOL_STEP_DISPLAY_CONFIG`. Test will catch if missing. |
+| **`FINAL_STEP_BY_TOOL` not updated** | B-002: add Tool to both the map and the `isStepMappedToolKey` guard. |
+| **Dependency content missing in multi-step tools** | Frontend pre-fetches content automatically via `getArtifactById` when not in workspace. No per-tool code needed. |
 
-- RISK-001: Cross-surface drift where Tool Workspace works but Session Summary/Relaunch remains inconsistent.
-  - Control: Mandatory Track C parity tasks + EXEC-004 targeted session suites.
-- RISK-002: Canonical naming drift (`TOOL_KEY`/`TOOL_WORKFLOW` mismatch across FE/BE/docs).
-  - Control: EXEC-000 grep gate + X-001..X-005 DDD impact gate before implementation sign-off.
-- RISK-003: Regression on existing tools after adding new tool paths.
-  - Control: D-AC-003 non-regression pair requirement and workspace-wide typecheck/build gates.
-- RISK-004: New Tool unintentionally blocked by API binding rollout gates or feature-flag mismatch.
-  - Control: Track C (`C-006`, `C-AC-007`) + EXEC-004 adapter/matrix-focused test set.
-- RISK-005: Template variables (`{{output_step_*}}`, `{{titolo}}`, `{{tone}}`) not replaced in prompt because mechanism is implemented at wrong architectural layer.
-  - Control: Template variable replacement MUST be implemented as XState action in `generation-system.actions.ts` (consistent with `assembleGeometricPrompt` pattern), NOT in adapter layer (`openrouter.adapter.ts`). See Track B checklist item B-004.
-- RISK-006: Direct-input-only tools fail to dispatch because `selectGenerationExtractionInfo` returns `null` without a dedicated `build<ToolKey>DirectInputExtractionInfo` function.
-  - Control: Track B checklist item B-005 + Track C checklist item C-008. Every direct-input-only tool MUST have a dedicated extraction info builder and MUST be registered in `selectGenerationExtractionInfo` guard.
-- RISK-007: New tool not recognized by `isSupportedTool()` in `SessionArtifactTabs.tsx`, causing step visibility filter to not apply.
-  - Control: Track C checklist item C-009. New tools MUST be added to `isSupportedTool()` union check in addition to `SupportedTool` type.
-- RISK-008: Form fields or model selector visibility not configured per tool requirements.
-  - Control: Track C checklist item C-010. Document which form fields are required/hidden per tool and whether model selector should be visible.
+---
 
-## 7. Architectural Patterns Reference
+## 9. Validation Gates
 
-### Template Variable Replacement Pattern (XState Action Level)
+Run from repository root after each track.
 
-When a tool requires prompt template variables to be replaced with data from previous steps or form input:
+| Step | Command | Purpose |
+|------|---------|---------|
+| GATE-001 | `npm run typecheck` | Global type safety |
+| GATE-002 | `npm --workspace apps/backend run test` | Backend regression |
+| GATE-003 | `npm --workspace apps/frontend run test` | Frontend regression |
+| GATE-004 | `npm run build` | Publication readiness |
 
-1. **Create a dedicated action** in `apps/backend/src/lib/machines/generation-system.actions.ts`:
+Stop condition: if any gate fails, fix before continuing.
+
+---
+
+## 10. Implementation Order Summary
+
+Execute tracks in this order for minimum rework:
+
+```
+A-001 (contracts)
+  └─> All types auto-derive
+A-002 (extraction fields)
+
+B-001..B-002 (backend registry, role mapping)
+B-003..B-004 (prompt files)
+B-005..B-007 (template action + wire)
+B-008 (LLM overrides, optional)
+B-009 (backend tests)
+
+C-001..C-004 (form config, nav, step cards)
+C-005 (step display config)
+C-006..C-007 (direct-input builder, if applicable)
+C-008 (isSupportedTool)
+C-009 (new form fields, if applicable)
+
+D-001..D-005 (tests)
+
+GATE-001..GATE-004 (validation)
+```
+
+---
+
+## 11. Architectural Patterns Reference
+
+### Pattern 1: Template Variable Replacement (XState Action)
+
+**When:** Any prompt `.md` file contains `{{placeholders}}` that need replacement before the LLM call.
+
+**Location:** `apps/backend/src/lib/machines/generation-system.actions.ts`
+
+```typescript
+assemble<ToolName>Prompt: assignGeneration<undefined>({
+  requestInput: ({ context }: GenerationActionArgs) => {
+    // Guard: only apply to this Tool. Check BOTH toolKey AND workflowType.
+    if (context.toolKey !== TOOL_KEY && context.workflowType !== TOOL_WORKFLOW) {
+      return context.requestInput;
+    }
+
+    // Read template from resolvedPromptTemplate (set by request-contract.ts)
+    const promptTemplate = context.requestInput.resolvedPromptTemplate
+      ?? context.requestInput.prompt;
+    if (!promptTemplate) return context.requestInput;
+
+    let filledPrompt = promptTemplate;
+
+    // Replace {{output_step_<stepKey>}} from prior step artifacts
+    const deps = context.requestInput.stepDependencyArtifactContentsByStep;
+    if (deps && typeof deps === 'object') {
+      for (const [stepKey, content] of Object.entries(deps)) {
+        if (typeof content === 'string' && content.trim()) {
+          filledPrompt = filledPrompt.replace(
+            new RegExp(`\\{\\{output_step_${stepKey}\\}\\}`, 'g'),
+            content,
+          );
+        }
+      }
+    }
+
+    // Replace form field placeholders ({{titolo}}, {{tone}}, etc.)
+    // Read from requestInput (set by buildBaseGenerationRequest in frontend)
+    // or extractionPayload (set by extraction step)
+
+    return { ...context.requestInput, prompt: filledPrompt };
+  },
+}),
+```
+
+**Wire in BOTH states** (`generation-system.execution.states.ts`):
+```typescript
+generating: { entry: ['ensureArtifactId', 'assemble<ToolName>Prompt'], ... },
+streaming:  { entry: ['ensureArtifactId', 'assemble<ToolName>Prompt'], ... },
+```
+
+**Add type** in the `GenerationSystemActionObject` union.
+
+**Reference:** `assembleGeometricPrompt` (lines 326-378), `assembleBlogArticlePrompt` (lines 379-431).
+
+---
+
+### Pattern 2: Direct-Input Extraction Info
+
+**When:** Tool uses only form fields (no file upload, no API acquisition).
+
+**Location:** `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`
+
+```typescript
+// 1. Builder function
+export const build<ToolName>DirectInputExtractionInfo = ({
+  field1,
+}: Pick<ToolFormState, 'field1'>): SelectedExtractionInfo | null => {
+  const v = field1.trim();
+  if (!v) return null;
+  return {
+    extractionArtifactId: `direct-input:${TOOL_KEY}`,
+    briefingId: `direct-input:${TOOL_KEY}`,
+    briefingText: `Field1: ${v}`,
+    extractionPayload: { field1: v },
+  };
+};
+
+// 2. Register in selectGenerationExtractionInfo guard
+if (toolKey === TOOL_KEY && directInputExtractionInfo) {
+  return directInputExtractionInfo;
+}
+
+// 3. If form fields need to reach backend for template variables,
+//    add them in buildBaseGenerationRequest:
+...(toolKey === TOOL_KEY && typeof formState.field1 === 'string' && formState.field1.trim()
+  ? { field1: formState.field1.trim() }
+  : {}),
+```
+
+**Location:** `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts`
+
+```typescript
+// 4. Call builder in the directInputExtractionInfo block
+if (toolKey === TOOL_KEY) {
+  return build<ToolName>DirectInputExtractionInfo({
+    field1: formState.field1,
+  });
+}
+```
+
+**Reference:** `buildBlogArticleGeneratorDirectInputExtractionInfo` (lines 187-204), `buildGeometricDirectInputExtractionInfo` (lines 33-68).
+
+---
+
+### Pattern 3: Step Display Configuration
+
+**When:** Any Tool (even if all steps use defaults).
+
+**Location:** `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts`
+
+```typescript
+TOOL_KEY: {
+  'step1': { visible: true, includeInDownload: false },  // intermediate step
+  'step2': { visible: true, includeInDownload: true },   // final output
+},
+```
+
+**Default** (if no entry): `{ visible: true, includeInDownload: true }`.
+
+**Also required:** Add `TOOL_KEY` to `isSupportedTool()` in `SessionArtifactTabs.tsx` (C-008).
+
+---
+
+### Pattern 4: Prompt File Creation
+
+**When:** Any generation step that needs an LLM prompt.
+
+**Location:** `apps/backend/src/lib/runtime/tool-prompts/<tool-key>/prompt_<step_key>.md`
+
+1. Create the `.md` file with the prompt template.
+2. Register in `apps/backend/src/lib/runtime/tool-prompts/index.ts`:
    ```typescript
-   assemble<ToolName>Prompt: assignGeneration<undefined>({
-     requestInput: ({ context }) => {
-       // Guard: only apply to this tool
-       if (context.toolKey !== '<tool-key>') return context.requestInput;
-       
-       // Get prompt template
-       const promptTemplate = context.requestInput.resolvedPromptTemplate ?? context.requestInput.prompt;
-       if (!promptTemplate) return context.requestInput;
-       
-       // Replace placeholders
-       let filledPrompt = promptTemplate;
-       // Replace {{output_step_<stepKey>}} from stepDependencyArtifactContentsByStep
-       // Replace {{field}} from requestInput or extractionPayload
-       
-       return { ...context.requestInput, prompt: filledPrompt };
-     },
-   }),
+   '<tool-key>:<step_key>': 'src/lib/runtime/tool-prompts/<tool-key>/prompt_<step_key>.md',
    ```
 
-2. **Wire the action** in `generation-system.execution.states.ts`:
-   ```typescript
-   generating: {
-     entry: ['ensureArtifactId', 'assemble<ToolName>Prompt'],
-     // ...
-   },
-   ```
+**Placeholder naming convention:**
+- Step dependency content: `{{output_step_<stepKey>}}` (e.g. `{{output_step_blog_seo_structure}}`)
+- Form fields: `{{fieldName}}` (e.g. `{{titolo}}`)
+- Runtime context: `{{tone}}`
 
-3. **Add type definition** in `GenerationSystemActionObject` union:
-   ```typescript
-   | { type: 'assemble<ToolName>Prompt'; params: undefined }
-   ```
+---
 
-**WRONG approach**: Modifying `openrouter.adapter.ts` `buildMessages()` — this is adapter level, not machine level.
+### Pattern 5: LLM Model Overrides (Optional)
 
-### Direct-Input Extraction Info Pattern
+**When:** Different steps benefit from different models.
 
-For tools that use only `direct-input` (no file upload, no API acquisition):
+**Location:** `apps/backend/src/lib/runtime/step-llm-model-overrides.config.ts`
 
-1. **Create builder** in `tool-page-selectors.ts`:
-   ```typescript
-   export const build<ToolName>DirectInputExtractionInfo = ({
-     field1,
-     field2,
-   }: Pick<ToolFormState, 'field1' | 'field2'>): SelectedExtractionInfo | null => {
-     // Validate required fields
-     if (!field1.trim()) return null;
-     
-     return {
-       extractionArtifactId: 'direct-input:<tool-key>',
-       briefingId: 'direct-input:<tool-key>',
-       briefingText: `Field1: ${field1}\nField2: ${field2}`,
-       extractionPayload: { field1, field2 },
-     };
-   };
-   ```
+```typescript
+[createOverrideKey(TOOL_KEY, '<step_key>')]: {
+  toolKey: TOOL_KEY,
+  stepKey: '<step_key>',
+  overrideModelId: '<model_id>',
+  reason: '<reason>',
+},
+```
 
-2. **Register in `selectGenerationExtractionInfo`**:
-   ```typescript
-   if (toolKey === '<tool-key>' && directInputExtractionInfo) {
-     return directInputExtractionInfo;
-   }
-   ```
+---
 
-3. **Call builder in `useToolPageRunController.ts`**:
-   ```typescript
-   if (toolKey === '<tool-key>') {
-     return build<ToolName>DirectInputExtractionInfo({
-       field1: formState.field1,
-       field2: formState.field2,
-     });
-   }
-   ```
+### Pattern 6: Artifact Role Mapping
 
-### Step Display Configuration Pattern
+**When:** Any Tool (required for session projections to classify final vs intermediate steps).
 
-For tools where some steps should be visible in UI but excluded from download:
+**Location:** `apps/backend/src/lib/runtime/workflow-normalizers.ts`
 
-1. **Add to `tool-step-display-config.ts`**:
-   ```typescript
-   '<tool-key>': {
-     'step1': { visible: true, includeInDownload: false },  // Visible, no download
-     'step2': { visible: true, includeInDownload: false },  // Visible, no download
-     'step3': { visible: true, includeInDownload: true },   // Visible + download
-   },
-   ```
+Add TOOL_KEY to BOTH:
+1. `FINAL_STEP_BY_TOOL` map with the final step key.
+2. `isStepMappedToolKey` guard.
 
-2. **Add tool to `isSupportedTool()`** in `SessionArtifactTabs.tsx`:
-   ```typescript
-   const isSupportedTool = (value: string | null | undefined): value is SupportedTool => {
-     return value === 'existing-tool'
-       || value === '<new-tool>';  // MUST add here
-   };
-   ```
+**Reference:** Lines 16-24, 28-36.
 
-## 8. References
+---
+
+### Pattern 7: Form Field Registration for Template Variables
+
+**When:** A form field value needs to reach the backend for prompt template replacement.
+
+**Flow:**
+1. Frontend `ToolFormState` includes the field (e.g. `titolo`).
+2. `buildBaseGenerationRequest` injects it into `requestInput` (tool-specific spread, C-006 step 3).
+3. Backend `assemble<ToolName>Prompt` action reads it from `requestInput` and replaces `{{field}}`.
+
+**Do NOT** add form fields to `extractionPayload` unless the field is genuinely extracted data. Direct-input fields go directly on `requestInput`.
+
+---
+
+## 12. References
 
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 - `docs/02-design/domain-bounded-context-map.md`
@@ -495,5 +487,7 @@ For tools where some steps should be visible in UI but excluded from download:
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
 - `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
-- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx`
-- `apps/frontend/src/features/artifacts/ui/SessionsListingSection.test.tsx`
+- `packages/contracts/src/tool-workflows.ts`
+- `apps/backend/src/lib/machines/generation-system.actions.ts`
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`

@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1-ddd-corrected
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -29,7 +29,7 @@ goal: Systematic structural decoupling via actor communication consolidation and
 
 Resolve structural coupling through:
 1. **Systematic Actor Communication Decoupling** — Extract anonymous inline `sendTo`, introduce typed contracts, consolidate 9 actions to ≤ 5
-2. **Domain-Based Adapter Organization** — Replace barrel export with tree-shakable domain modules (Generation, Auth, Platform)
+2. **Domain-Based Adapter Organization** — Replace barrel export with tree-shakable domain modules (Generation, Auth) + Admin organizational grouping
 
 **Sequential rationale**: Frontend changes (Phase 1) complete and validated before backend restructuring (Phase 2) begins. Risk isolation between independent systems.
 
@@ -42,12 +42,12 @@ Resolve structural coupling through:
 ```markdown
 | DDD-163 | 2026-07-08 | ActorCommunicationContract | Typed contracts at XState actor boundaries (BriefingActorContract, GenerationLifecycleActorContract) | Eliminates anonymous inline sendTo, enables independent actor testability, respects Frontend/UI downstream consumer role (BCM Line 25) | Frontend/UI |
 
-| DDD-164 | 2026-07-08 | DomainBasedAdapterModules | Infrastructure adapter organization by domain concern — Generation, Auth, Platform | Enables targeted imports and tree-shaking consistent with bounded context separation; replaces monolithic barrel with domain-specific entry points | Infrastructure |
+| DDD-164 | 2026-07-08 | DomainBasedAdapterModules | Infrastructure adapter organization in two bounded-context modules (generation/, auth/) plus one organizational grouping (admin/). ApiService exports belong to generation/ (Generation Context per BCM L53, Glossary L74). ProductChangelog, UserReport, GitHubIssueLink backend adapters are grouped in admin/ — NOT a bounded context; they implement persistence for Frontend/UI context Key Entities (BCM L102, DDD-065, DDD-067). | Enables targeted imports and tree-shaking aligned with bounded context boundaries; admin/ is an explicit organizational grouping, not a domain claim. Replaces monolithic barrel. | Generation, Auth, Frontend/UI (admin persistence) |
 ```
 
 **Key Constraints**:
 - Actor contracts must keep `toolPageMachine` as **orchestrator only** — no domain logic at the communication boundary
-- Adapter domain names (`generation`, `auth`, `platform`) align with bounded context vocabulary, not technical layers
+- Adapter module names: `generation` and `auth` align with BCM bounded contexts; `admin` is an **organizational grouping only** (not a bounded context) for admin-feature backend persistence (ProductChangelog, UserReport, GitHubIssueLink — Frontend/UI context Key Entities per BCM L102)
 - Barrel `index.ts` becomes a **deprecation shim** — no new exports added
 
 ---
@@ -292,7 +292,7 @@ RETRY_STEP: { actions: 'controlGenerationLifecycle' },
 
 **File**: `apps/backend/src/lib/adapters/index.ts` (161 lines, currently a monolithic barrel)  
 **Risk**: Low — additive restructuring; barrel preserved as shim during migration  
-**DDD**: Domain names align with bounded context vocabulary (DDD-164)
+**DDD**: `generation/` and `auth/` align with BCM bounded contexts; `admin/` is an organizational grouping (NOT a context) — see DDD-164
 
 ### Current State (verified)
 
@@ -303,22 +303,23 @@ RETRY_STEP: { actions: 'controlGenerationLifecycle' },
 
 **Imports by domain** (from barrel analysis):
 
-| Domain | Most-imported symbols | Consumer count |
-|--------|----------------------|----------------|
-| **Generation** | `GenerationAdapters`, `createInMemoryGenerationAdapters`, `OrchestrateArtifactCache`, `ArtifactQueryRepositoryStub`, postgres-redis repositories | 20+ files |
-| **Auth** | `AuthRepositoryBundle`, `createAuthStubRepositories`, `createAuthProductionRepositories`, auth repo types | 5+ files |
-| **Platform** | `createApiService`, `listApiServices`, `createProductChangelog`, `createUserReport` | 3+ files |
+| Module | Most-imported symbols | Consumer count | BCM Ownership |
+|--------|----------------------|----------------|---------------|
+| **generation/** | `GenerationAdapters`, `createInMemoryGenerationAdapters`, `OrchestrateArtifactCache`, `ArtifactQueryRepositoryStub`, postgres-redis repositories, `createApiService` (BCM L53) | 20+ files | Generation Context |
+| **auth/** | `AuthRepositoryBundle`, `createAuthStubRepositories`, `createAuthProductionRepositories`, auth repo types | 5+ files | Auth Context |
+| **admin/** *(org. grouping)* | `createProductChangelog`, `createUserReport`, `createUserReportGithubLink` | 3+ files | Frontend/UI Key Entities (BCM L102) — backend persistence only |
 
 ### Target Directory Structure
 
 ```
 apps/backend/src/lib/adapters/
 ├── generation/
-│   └── index.ts          ← new domain entry point
+│   └── index.ts          ← Generation Context entry point (includes ApiService)
 ├── auth/
-│   └── index.ts          ← new domain entry point
-├── platform/
-│   └── index.ts          ← new domain entry point
+│   └── index.ts          ← Auth Context entry point
+├── admin/
+│   └── index.ts          ← organizational grouping (NOT a bounded context)
+│                            ProductChangelog, UserReport, GitHubIssueLink persistence
 ├── [existing .ts files]  ← unchanged (implementation files stay flat)
 └── index.ts              ← becomes deprecation shim (re-exports from domain modules)
 ```
@@ -357,6 +358,18 @@ export {
   createOpenRouterLlmGenerateAdapter,
   createOpenRouterLlmGenerateAdapterFromEnv,
 } from '../openrouter.adapter';
+
+// ApiService belongs to Generation Context (BCM L53, Glossary L74)
+export {
+  createApiService,
+  deleteApiService,
+  getApiServiceById,
+  listApiServices,
+  resolveApiServiceForAcquisition,
+  updateApiService,
+  type CreateApiServiceInput,
+  type UpdateApiServiceInput,
+} from '../api-service.adapter';
 
 export { createPostgresRedisGenerationAdapters } from '../postgres-redis.adapters';
 
@@ -469,22 +482,23 @@ export type {
 } from '../../types/auth';
 ```
 
-### Step 3: Create `adapters/platform/index.ts`
+### Step 3: Create `adapters/admin/index.ts`
+
+> ⚠️ **`admin/` is an organizational grouping, NOT a bounded context.**  
+> `ProductChangelog`, `UserReport`, and `GitHubIssueLink` are Frontend/UI context Key Entities (BCM L102, DDD-065, DDD-067). This module provides their **backend persistence implementations** only.  
+> `ApiService` is **NOT here** — it belongs to `adapters/generation/` (Generation Context, BCM L53, Glossary L74).
 
 ```typescript
-// Platform Context adapter entry point (DDD-164)
-// Operational support adapters: API services, changelogs, user reports
-
-export {
-  createApiService,
-  deleteApiService,
-  getApiServiceById,
-  listApiServices,
-  resolveApiServiceForAcquisition,
-  updateApiService,
-  type CreateApiServiceInput,
-  type UpdateApiServiceInput,
-} from '../api-service.adapter';
+// Organizational grouping for admin-feature backend adapters (DDD-164)
+// NOT a bounded context — see BCM v3.3 for the 6 canonical contexts.
+//
+// Domain ownership of entities:
+//   ProductChangelog → Frontend/UI context Key Entity (BCM L102, DDD-065)
+//   UserReport       → Frontend/UI context Key Entity (BCM L102, DDD-065)
+//   GitHubIssueLink  → Frontend/UI context Value Object (Glossary L230, DDD-065)
+//
+// This module exposes their backend persistence implementations
+// (AdminDashboard feature group per DDD-067, FeedbackCenter per DDD-072).
 
 export {
   createProductChangelog,
@@ -513,14 +527,14 @@ Replace `adapters/index.ts` content with re-exports from domain modules:
 
 ```typescript
 // ⚠️ DEPRECATED BARREL — use domain-specific imports instead:
-//   import { ... } from '../adapters/generation'
-//   import { ... } from '../adapters/auth'
-//   import { ... } from '../adapters/platform'
+//   import { ... } from '../adapters/generation'  ← Generation Context (incl. ApiService)
+//   import { ... } from '../adapters/auth'         ← Auth Context
+//   import { ... } from '../adapters/admin'        ← organizational grouping (changelog, reports)
 // This barrel will be removed after all consumers are migrated.
 
 export * from './generation';
 export * from './auth';
-export * from './platform';
+export * from './admin';
 ```
 
 > ⚠️ `export *` may cause name conflicts if any symbol appears in two domain modules. Verify with `npm --workspace apps/backend run typecheck` immediately after this change. Resolve any conflicts by exporting explicitly.
@@ -554,11 +568,21 @@ import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import { createAuthStubRepositories }        from '../adapters/auth';
 ```
 
+**ApiService import migration** (Generation Context):
+```typescript
+// Before
+import { createApiService, listApiServices } from '../adapters';
+// After
+import { createApiService, listApiServices } from '../adapters/generation';
+```
+
 **Priority order** (highest migration value first):
 1. All test files importing only `createInMemoryGenerationAdapters` (10+ files, trivial change)
 2. All files importing only `GenerationAdapters` type (5+ files, trivial change)
 3. Auth runtime and test files (5 files)
-4. Mixed-import files (remaining files, one-by-one)
+4. Files importing `createApiService` / ApiService types → `../adapters/generation`
+5. Files importing ProductChangelog / UserReport adapters → `../adapters/admin`
+6. Mixed-import files (remaining files, one-by-one)
 
 ### Step 6: Final Barrel Removal (optional, post-validation)
 
@@ -575,7 +599,7 @@ Once all 26 consumers are migrated and `npm --workspace apps/backend run go` pas
 - [ ] All 9 `sendTo` actions systematically replaced by 5 named actions: `forwardBriefingCommand`, `syncBriefingContext`, `recoverBriefingFromHydration`, `forwardStepOutcomeToLifecycle`, `controlGenerationLifecycle`
 - [ ] `hydrating.onDone` actions array uses `'recoverBriefingFromHydration'` (no anonymous `sendTo`)
 - [ ] Frontend tests pass: `npm --workspace apps/frontend run test`
-- [ ] Domain modules `adapters/generation/index.ts`, `adapters/auth/index.ts`, `adapters/platform/index.ts` created
+- [ ] Domain modules `adapters/generation/index.ts` (incl. ApiService), `adapters/auth/index.ts`, `adapters/admin/index.ts` (organizational grouping) created
 - [ ] All 26 barrel consumers migrated to domain-specific import paths
 - [ ] `npm --workspace apps/backend run go` passes (full validation: migrate + seed + typecheck + test)
 
@@ -583,7 +607,7 @@ Once all 26 consumers are migrated and `npm --workspace apps/backend run go` pas
 - [ ] `DDD-163` entry created in decision log before Phase 1 implementation
 - [ ] `DDD-164` entry created in decision log before Phase 2 implementation
 - [ ] Actor contracts respect Frontend/UI downstream consumer role (BCM Line 25)
-- [ ] Adapter domain names (`generation`, `auth`, `platform`) match bounded context vocabulary
+- [ ] `generation/` and `auth/` modules align with BCM bounded contexts; `admin/` module documented as organizational grouping (NOT a bounded context), with explicit comment referencing BCM L102 and DDD-067
 
 ### **QA Scenarios**
 

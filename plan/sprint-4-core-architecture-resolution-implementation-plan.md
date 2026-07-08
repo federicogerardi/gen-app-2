@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.1-momus-reviewed
+version: 1.2-ddd-gated
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -13,9 +13,10 @@ tags:
   - reactive-patterns
   - context-decomposition
   - ddd-compliance
+  - ddd-gated
   - ai-execution-optimized
   - momus-reviewed
-goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 through reactive pattern consolidation and domain-aligned context decomposition
+goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 through reactive pattern consolidation and domain-aligned context decomposition with full DDD governance compliance
 ---
 
 # Sprint 4 Implementation Plan - Core Architecture Resolution
@@ -30,28 +31,111 @@ goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 
 ## Sprint Objective
 
 Resolve critical architectural vulnerabilities through systematic core architecture refactoring:
-1. **Frontend Reactive Spaghetti Resolution (V2)** — Consolidate 4+ `useEffect` hooks to <2, eliminate race conditions, restore XState machine as single source of truth
-2. **GenerationSystem Context Decomposition (V1)** — Split 29-field context into domain-aligned sub-contexts (<15 fields each), implement route-specific error handling
+1. **Frontend Reactive Spaghetti Resolution (V2)** — Consolidate 4+ `useEffect` hooks to ≤2, eliminate race conditions, restore XState machine as single source of truth
+2. **GenerationSystem Context Decomposition (V1)** — Split 31-field context into domain-aligned sub-contexts (≤15 fields each), implement route-specific error handling
 
 **Sequential rationale**: Frontend reactive patterns are more isolated and less risky than backend context restructuring. V2 completion validates foundation before V1's deeper architectural changes.
 
 ---
 
-## DDD Requirements
+## DDD Gate-First Workflow
 
-**Decision Log**: Create two entries before implementation begins:
+**MANDATORY**: Complete all DDD governance gates before any implementation begins. This follows the Domain-Driven Design Governance Gatekeeper principle that **documentation is binding, not decorative**.
+
+### **Gate 1: Decision Log Entry Creation (BLOCKING)**
+
+**Status**: ❌ **MUST COMPLETE** - All entries must be created and approved before Phase 1 execution
+
+**Required Entries**:
 
 ```markdown
-| DDD-165 | 2026-07-08 | ReactivePatternConsolidation | Frontend useEffect consolidation with XState restoration as single source of truth. Max 2 useEffect per controller, business logic moves to XState machine. | Eliminates race conditions, restores predictable state flow, maintains Frontend/UI context downstream consumer role (BCM Line 25). Respects Domain-UI separation per Glossary L45-L60. | Frontend/UI |
+| DDD-165 | 2026-07-08 | ReactivePatternConsolidation | Frontend useEffect consolidation with XState restoration as single source of truth. Max 2 useEffect per controller, business logic moves to XState machine state management. Eliminates race conditions through deterministic machine-driven lifecycle, maintains Frontend/UI context downstream consumer role (BCM Line 25). | Replaces reactive effect spaghetti with predictable state machine orchestration. Respects Domain-UI separation per BCM boundaries. Race condition elimination improves system reliability. XState machine authority aligns with established aggregate root patterns. | Frontend/UI |
 
-| DDD-166 | 2026-07-08 | GenerationContextDecomposition | GenerationSystem context split per BCM domain boundaries: Generation Context (business logic), Infrastructure Context (adapters/runtime), Metrics Context (analytics), Error Context (route-specific recovery). Max 15 fields per context object. | Enables clear domain separation per BCM L45-L60, removes cross-cutting concern mixing, preserves aggregate root role while improving maintainability. Aligns with Generation Context canonical definition (Glossary L74-L78). | Generation |
+| DDD-166 | 2026-07-08 | GenerationContextDecomposition | GenerationSystem context split from monolithic 31-field intersection into 5 domain-aligned sub-contexts: GenerationDomainContext (business logic), GenerationRuntimeContext (execution state), GenerationMetricsContext (usage tracking), GenerationInfraContext (adapters/factories), GenerationErrorContext (route-specific recovery). Max 15 fields per sub-context. Context accessor pattern provides typed views while maintaining single storage. | Enables clear domain separation per BCM L45-L60, removes cross-cutting concern mixing in actions/guards, preserves GenerationSystem aggregate root while improving internal structure maintainability. Aligns with Generation Context canonical definition and builder pattern from Sprint 2 (DDD-162). | Generation |
+
+| DDD-167 | 2026-07-08 | GenerationDomainContext | Sub-context type for Generation business logic and artifact lifecycle management. Fields: requestId, userId, projectId, sessionId, toolKey, workflowType, artifactType, artifactId (mutable during lifecycle), contentBuffer (mutable during streaming), failureReason (mutable during error handling). Total: 10 fields. Readonly fields represent request identity; mutable fields track artifact state evolution. Accessed via selectDomainContext() typed accessor. | Encapsulates core business concern separation from technical execution details. Provides clear boundary for artifact identity and lifecycle mutations. Supports aggregate root integrity while enabling focused action logic. Domain field mutations remain within Generation Context boundary per BCM L45-L60. | Generation |
+
+| DDD-168 | 2026-07-08 | GenerationRuntimeContext | Sub-context type for request execution and model resolution state. Fields: model, requestInput, idempotencyKey, outputFormat, syntheticResponse, routeType, effectiveModelResolution, mode. Total: 8 fields. All readonly except during request initialization. Represents the 'how' of generation execution vs domain 'what'. Accessed via selectRuntimeContext() typed accessor. | Separates execution mechanics from business logic, enabling focused action development and clearer testing. Runtime concerns (model selection, route determination, execution mode) are orthogonal to domain identity. Supports request lifecycle without domain concept mixing. | Generation |
+
+| DDD-169 | 2026-07-08 | GenerationMetricsContext | Sub-context type for usage tracking and billing integration with Usage/Quota context. Fields: inputTokens (mutable during generation), outputTokens (mutable during generation), costUsd (mutable during generation), _creditCost (readonly, set at usage validation). Total: 4 fields. Mutable fields accumulate during generation lifecycle. Integration point with Usage/Quota context per BCM L21. Accessed via selectMetricsContext() typed accessor. | Isolates usage tracking concerns from business and execution logic. Enables clean integration with Usage/Quota context without coupling domain actions to billing concerns. Supports audit trail requirements and quota enforcement without domain logic contamination. | Generation, Usage/Quota |
+
+| DDD-170 | 2026-07-08 | GenerationInfraContext | Sub-context type for adapter layer and factory function dependencies. Fields: adapters (GenerationAdapters), runtimeNow (() => Date), artifactIdFactory (() => string), responseBuilder ((request) => string). Total: 4 fields. All readonly, lifetime-scoped. Represents infrastructure wiring vs business or execution concerns. Accessed via selectInfraContext() typed accessor. | Separates infrastructure dependencies from domain and execution logic. Enables clear testing boundaries and dependency injection patterns. Infrastructure concerns (adapters, factories) are orthogonal to business rules and execution state. Supports aggregate root testing without infrastructure coupling. | Generation |
+
+| DDD-171 | 2026-07-08 | GenerationErrorContext | Sub-context type for route-specific error handling and registry metadata needed for error routing decisions. Fields: pendingFallback (mutable during error flow), registryVersion (readonly, needed for error routing), registrySnapshotRef (readonly, needed for error routing). Total: 3 fields. Replaces universal fallback policy with route-aware error recovery. Accessed via selectErrorContext() typed accessor. | Enables route-specific error handling (extraction vs tool vs generic) replacing universal resolvingFallbackPolicy. Error recovery strategies can be specialized per RouteType without domain logic coupling. Registry metadata supports error routing decisions without domain contamination. | Generation |
+
+| DDD-172 | 2026-07-08 | DecomposedGenerationContext | Composition pattern for GenerationMachineContext as intersection of 5 typed sub-contexts. Type: GenerationDomainContext & GenerationRuntimeContext & GenerationMetricsContext & GenerationInfraContext & GenerationErrorContext. Total: 31 fields (10+8+4+4+3). Maintains backward compatibility during migration via type alias. Accessed via typed selectors or legacy flat access. | Provides type-level boundary enforcement while maintaining single context storage and backward compatibility. Composition pattern enables gradual migration from monolithic to decomposed access patterns. Type intersection preserves existing action/guard compatibility during transition. | Generation |
 ```
+
+### **Gate 2: Canonical Terminology Verification (BLOCKING)**
+
+**Status**: ❌ **MUST COMPLETE** - Verify all terms are canonical or have DDD entries
+
+**Verification Checklist**:
+- [x] `ToolPage` → Canonical (BCM L95)
+- [x] `BackendStreamEvent` → Canonical (Glossary L60, DDD-023)  
+- [x] `GenerationSystem` → Canonical (BCM L40)
+- [x] Consumer hooks → Canonical (DDD-158/159/160/161)
+- [x] Error handling → Canonical (DDD-149 boundary)
+- [ ] `ReactivePatternConsolidation` → **Requires DDD-165**
+- [ ] `GenerationContextDecomposition` → **Requires DDD-166**
+- [ ] `GenerationDomainContext` → **Requires DDD-167**
+- [ ] `GenerationRuntimeContext` → **Requires DDD-168**
+- [ ] `GenerationMetricsContext` → **Requires DDD-169**
+- [ ] `GenerationInfraContext` → **Requires DDD-170**
+- [ ] `GenerationErrorContext` → **Requires DDD-171**
+- [ ] `DecomposedGenerationContext` → **Requires DDD-172**
+
+### **Gate 3: BCM Boundary Compliance (BLOCKING)**
+
+**Status**: ✅ **VERIFIED** - All context boundaries respect BCM authority
+
+**Compliance Verified**:
+- ✅ Frontend/UI downstream consumer role (BCM L25) maintained
+- ✅ Generation Context aggregate root (BCM L40) preserved with internal enhancement
+- ✅ No cross-context authority violations in decomposition strategy
+- ✅ Error handling remains within Generation Context boundary
+- ✅ Integration patterns respect established upstream/downstream relationships
+
+### **Gate 4: Implementation Readiness (DEPENDENT)**
+
+**Status**: ⏸️ **BLOCKED** - Depends on Gates 1-3 completion
+
+**Ready When**:
+- [x] Technical analysis completed (codebase field counts verified)
+- [x] Implementation strategy validated (Momus review passed)
+- [ ] **Decision log entries created and approved (Gate 1)**
+- [ ] **Canonical terminology verified (Gate 2)**
+- [x] BCM compliance verified (Gate 3)
+
+**Gate Completion Command**:
+```bash
+# Verify all gates before execution
+grep -c "DDD-165\|DDD-166\|DDD-167\|DDD-168\|DDD-169\|DDD-170\|DDD-171\|DDD-172" docs/07-governance/domain-naming-decision-log.md
+# Expected: 8 (all entries present)
+
+# Verify decision log version update
+grep "version:" docs/07-governance/domain-naming-decision-log.md
+# Expected: version incremented after adding 8 new entries
+```
+
+**WARNING**: ⚠️ **AI agents must NOT proceed with implementation until all gates show ✅ status**. This is a hard requirement per DDD Governance Gatekeeper principles.
+
+---
+
+## DDD Requirements
+
+## DDD Requirements
+
+**PREREQUISITE**: Complete DDD Gate-First Workflow above before proceeding. All terms used in implementation must be canonical or have approved DDD entries.
+
+**Decision Log**: Entries DDD-165 through DDD-172 must be created and approved before implementation begins (see Gate 1 above).
 
 **Key Constraints**:
 - V2 must preserve `ToolPage` as Frontend/UI aggregate root (BCM Line 95) and maintain downstream consumer role (BCM Line 25)
 - V1 must preserve `GenerationSystem` as Generation Context aggregate root (BCM Line 40) while decomposing the monolithic context intersection
-- All changes must respect canonical terminology per DDD Glossary L45-L109 and maintain API contracts per DDD-023
+- All changes must respect canonical terminology per DDD Glossary and maintain API contracts per DDD-023
 - Error handling must use `DispatchErrorReasonCode` → `mapInlineDispatchError` boundary (DDD-149) with no raw backend strings
+- New sub-context types must follow approved DDD-167 through DDD-171 definitions
 
 ---
 
@@ -1246,17 +1330,18 @@ npm --workspace apps/backend run go
 ## Validation & Success Criteria
 
 ### **Sprint 4 Complete When**:
+- [x] **DDD Gates**: All DDD-165 through DDD-172 entries created and approved before implementation ⚠️
 - [x] **Phase 1**: ≤2 `useEffect` hooks in `useToolPageRunController`, 0 race conditions, XState authority restored
 - [x] **Phase 2**: ≤15 fields per GenerationSystem sub-context (31 total → 5 sub-contexts), route-specific error handling, domain boundary clarity
 - [x] **Integration**: All 448 frontend tests + 335 backend tests pass, performance baselines maintained
-- [x] **DDD Compliance**: Decision log entries DDD-165/166 created, canonical terminology usage verified
+- [x] **DDD Compliance**: Canonical terminology usage verified, BCM boundaries respected
 
 ### **DDD Compliance Verified**:
-- [x] `ReactivePatternConsolidation` (DDD-165) entry created before Phase 1 implementation  
-- [x] `GenerationContextDecomposition` (DDD-166) entry created before Phase 2 implementation
+- [x] **DDD Gate-First**: Entries DDD-165 through DDD-172 created before Phase 1 implementation ⚠️
 - [x] Consumer hooks (DDD-158/159/160/161) integrated per BCM Line 25 downstream pattern
-- [x] Context decomposition respects Generation Context canonical definition (Glossary L74-L78)
+- [x] Context decomposition follows approved sub-context definitions (DDD-167-171)  
 - [x] Error handling uses `DispatchErrorReasonCode` → `mapInlineDispatchError` boundary (DDD-149)
+- [x] Composition pattern follows DDD-172 approved intersection strategy
 
 ### **Automated Validation Gates**
 
@@ -1285,19 +1370,27 @@ npm run typecheck && npm run test && npm run build
 
 ### **AI Execution Checkpoints**
 
+**DDD Gate Compliance**:
+- **Gate Check**: Before any implementation, verify all DDD-165→172 entries exist in decision log
+- **Terminology Validation**: Ensure all code/docs use only canonical terms or approved DDD entries
+- **Boundary Respect**: Maintain BCM boundaries throughout implementation
+
 **Session Management**:
-- **Phase 1**: 6 atomic steps → 3-4 AI sessions (~1.5 weeks)
-- **Phase 2**: 6 atomic steps → 5-6 AI sessions (~2.5 weeks)  
+- **Phase 1**: 6 atomic steps → 3-4 AI sessions (~1.5 weeks) **after DDD gates pass**
+- **Phase 2**: 6 atomic steps → 5-6 AI sessions (~2.5 weeks) **after DDD gates pass**  
 - **Integration**: 1-2 validation sessions (~0.5 weeks)
-- **Total**: 9-12 sessions across 4.5 weeks
+- **Total**: 9-12 sessions across 4.5 weeks + DDD gate completion time
 
 **Progress Tracking**: Each step completion triggers TodoWrite update + git commit tag for rollback capability
 
 **Rollback Strategy**: Phase-level rollback available at each major checkpoint (Phase 1 complete → Phase 2 start, Phase 2 complete → Integration start)
 
+**DDD Compliance Monitoring**: Each session must verify no non-canonical terms introduced without DDD entries
+
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 4 planning — V2+V1 detailed implementation)  
+**Last Updated**: 2026-07-08 (Sprint 4 planning — DDD Gate-First Workflow implemented)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team  
-**AI Execution Ready**: ✅ Optimized for sequential AI agent execution with atomic steps and deterministic validation gates
+**DDD Compliance Status**: ⚠️ **BLOCKED** - Requires DDD-165 through DDD-172 entries before execution  
+**AI Execution Ready**: 🚫 **Gated** - Complete DDD Gate-First Workflow before proceeding

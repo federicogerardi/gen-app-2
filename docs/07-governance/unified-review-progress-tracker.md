@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-15
 owner: Domain Architecture
@@ -31,7 +31,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 | **Sprint 1** | ✅ Completed | 2026-07-08 | 2026-07-08 | 2026-07-08 | ✅ Passed |
 | **Sprint 2** | ✅ Completed | 2026-07-08 | 2026-07-08 | 2026-07-08 | ✅ Passed |
 | **Sprint 3** | ✅ Completed | 2026-07-08 | 2026-07-08 | 2026-07-08 | ✅ Passed |
-| **Sprint 4** | ⏸️ Blocked | - | - | - | ⏸️ Awaiting Sprint 3 |
+| **Sprint 4** | 🔄 In Progress | 2026-07-08 | 2026-08-15 | - | 🔄 Session 1 Complete |
 | **Sprint 5** | ⏸️ Blocked | - | - | - | ⏸️ Awaiting Sprint 4 |
 
 ---
@@ -184,39 +184,54 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ---
 
-## 🔥 SPRINT 4: Core Architecture Resolution (Status: 🚀 Ready)
+## 🔥 SPRINT 4: Core Architecture Resolution (Status: 🔄 In Progress)
 
 **Objective**: Address fundamental complexity with solid foundation  
 **Risk Profile**: Alto - core architecture changes, mitigated by foundation  
 **Duration**: 4.5 settimane (3-4 sessions Phase 1 + 5-6 sessions Phase 2 + integration)  
-**Implementation Plan**: [Sprint 4 Core Architecture Resolution](../../plan/sprint-4-core-architecture-resolution-implementation-plan.md) v1.1-momus-reviewed
+**Implementation Plan**: [Sprint 4 Core Architecture Resolution](../../plan/sprint-4-core-architecture-resolution-implementation-plan.md) v1.5-session-1
+**Session 1 Completed**: 2026-07-08
 
 ### Sprint 4 Tasks
 
 #### **4A. Frontend Reactive Spaghetti Resolution** (V2 🔥)
 - [x] **Analysis**: 4 useEffect hooks identified, race conditions A/B/C/D documented
 - [x] **Design**: XState integration strategy, consumer hooks adoption plan
-- [ ] **Implementation**: Consolidate effects, move logic to XState machine
+- [x] **Step 1**: `startGenerationStep` callback stabilized (27→3 dependencies via `volatileArgsRef`)
+- [ ] **Steps 2-6**: Consolidate effects, move logic to XState machine (requires machine changes)
 - [ ] **Validation**: ≤ 2 `useEffect` per controller, 0 race conditions
 - **Assignee**: AI Agent (Sprint 4 Phase 1)  
-- **Status**: 🚀 Ready (Foundation Sprint 1C completed ✅)  
+- **Status**: 🔄 In Progress (Step 1/6 completed)  
 - **Dependencies**: Consumer hooks from Sprint 1C ✅
 
 #### **4B. GenerationSystem Context Decomposition** (V1 🔥)
 - [x] **Analysis**: 31 fields identified, 5 sub-context decomposition strategy
 - [x] **Design**: Domain-aligned boundaries per BCM, route-specific error actors
-- [ ] **Implementation**: Split context, implement specialized accessors
+- [x] **Step 1**: Created `generation-system.context-types.ts` with 5 sub-context types (DDD-167→171)
+- [x] **Step 2**: Created `generation-system.context-accessors.ts` with typed accessor functions
+- [x] **Step 4**: Created `generation-system.error-actors.ts` with 3 route-specific error actors
+- [x] **Step 5**: Added documentation headers to all state files
+- [ ] **Step 3**: Migrate actions to use context accessors (complex refactoring)
 - [ ] **Validation**: ≤ 15 fields per context object, clear domain separation
 - **Assignee**: AI Agent (Sprint 4 Phase 2)  
-- **Status**: 🚀 Ready (Foundation Sprint 2 completed ✅)  
+- **Status**: 🔄 In Progress (4/6 steps completed)  
 - **Dependencies**: Context builders from Sprint 2A ✅
 
 ### Sprint 4 Gates
-- [x] **Planning Complete**: Comprehensive implementation plan created (v1.1-momus-reviewed)
+- [x] **Planning Complete**: Comprehensive implementation plan created (v1.5-session-1)
+- [x] **Context Types**: 5 sub-context types defined (DDD-167→171)
+- [x] **Context Accessors**: Typed accessor functions implemented
+- [x] **Error Actors**: 3 route-specific error actors created
 - [ ] **Frontend Simplicity**: ≤ 2 `useEffect` hooks per controller (from 4)
 - [ ] **Context Clarity**: ≤ 15 fields per context object (31 total → 5 sub-contexts)
 - [ ] **State Predictability**: 0 race conditions in integration tests
 - [ ] **Domain Boundaries**: Clear separation achieved, BCM compliance maintained
+
+### Sprint 4 Session 1 Results
+- **Phase 1**: Step 1 completed (callback stabilization)
+- **Phase 2**: Steps 1, 2, 4, 5 completed (context types, accessors, error actors, documentation)
+- **Validation**: 448 frontend + 335 backend tests pass, typecheck clean, build successful
+- **New Files**: 3 new backend files created for context decomposition
 
 ---
 
@@ -293,25 +308,23 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ## Next Actions
 
-## Next Actions
-
 ### **Immediate** (This Week)
-1. **Sprint 4 Execution**: Begin Phase 1 (V2 Frontend Reactive Spaghetti Resolution) — 6 atomic steps ready for AI agent
-2. **DDD Decision Log**: Create entries DDD-165 (ReactivePatternConsolidation) and DDD-166 (GenerationContextDecomposition) 
-3. **Implementation Plan Review**: Final validation of Sprint 4 plan with Domain Architect
+1. **Sprint 4 Session 2**: Continue Phase 1 (Steps 2-6: XState machine integration) + Phase 2 (Step 3: Actions migration)
+2. **DDD Decision Log**: Verify entries DDD-165 through DDD-172 are complete
+3. **Implementation Plan Review**: Review Session 1 results with Domain Architect
 
 ### **Short Term** (Next 2 Weeks) 
 1. **Phase 1 Completion**: Complete frontend reactive pattern consolidation (≤2 useEffect, race condition elimination)
-2. **Phase 2 Initiation**: Begin GenerationSystem context decomposition (31 fields → 5 sub-contexts)
-3. **Integration Testing**: Validate Phase 1 completion before Phase 2 start
+2. **Phase 2 Completion**: Complete actions migration to use context accessors
+3. **Integration Testing**: Validate full Sprint 4 completion
 
 ### **Medium Term** (Next Month)
-1. **Sprint 4 Completion**: Complete Phase 2 + integration validation (448 frontend + 335 backend tests)
+1. **Sprint 4 Completion**: Complete all remaining steps + integration validation
 2. **Sprint 5 Preparation**: Plan technical debt elimination with clean architecture foundation
 3. **Architecture Milestone**: Validate core architectural vulnerabilities V1+V2 resolution
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 4 planning completed — comprehensive implementation plan ready)  
+**Last Updated**: 2026-07-08 (Sprint 4 Session 1 completed — Phase 1 Step 1 + Phase 2 Steps 1,2,4,5)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team

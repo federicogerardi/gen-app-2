@@ -1,8 +1,8 @@
 ---
-status: ready
-version: 1.4-optimized
+status: in-progress
+version: 1.5-session-1
 last-reviewed: 2026-07-08
-next-review-date: 2026-07-22
+next-review-date: 2026-07-15
 owner: Domain Architecture Team
 date_created: 2026-07-08
 title: Sprint 4 Implementation Plan - Core Architecture Resolution
@@ -16,6 +16,7 @@ tags:
   - ddd-passed
   - ai-execution-ready
   - optimized
+  - in-progress
 goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 through reactive pattern consolidation and domain-aligned context decomposition with full DDD governance compliance
 ---
 
@@ -894,9 +895,39 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 | Phase | Success Criteria | Status | Validation Command |
 |-------|------------------|--------|-------------------|
 | **DDD Gates** | DDD-165→172 entries created | ✅ Complete | `grep -c "DDD-16[5-9]\|DDD-17[0-2]" docs/07-governance/domain-naming-decision-log.md` |
-| **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | ⏳ Pending | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
-| **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | ⏳ Pending | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
-| **Integration** | 448 frontend + 335 backend tests pass, performance maintained | ⏳ Pending | `npm run typecheck && npm run test && npm run build` |
+| **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | 🟡 Partial (Step 1 done) | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
+| **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | 🟡 Partial (Steps 1,2,4,5 done) | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
+| **Integration** | 448 frontend + 335 backend tests pass, performance maintained | ✅ Complete | `npm run typecheck && npm run test && npm run build` |
+
+### **Session 1 Completion Summary (2026-07-08)**
+
+**Phase 1 Progress**:
+- ✅ **Step 1**: `startGenerationStep` callback stabilized — 27→3 dependencies via `volatileArgsRef` pattern
+- ⏭️ Steps 2-6: Skipped — require deeper XState machine changes (tool-page.machine.ts modifications)
+
+**Phase 2 Progress**:
+- ✅ **Step 1**: Created `generation-system.context-types.ts` with 5 sub-context types (DDD-167→171)
+- ✅ **Step 2**: Created `generation-system.context-accessors.ts` with typed accessor functions
+- ✅ **Step 4**: Created `generation-system.error-actors.ts` with 3 route-specific error actors
+- ✅ **Step 5**: Added documentation headers to all state files
+- ⏭️ Step 3: Skipped — complex actions migration (requires individual action refactoring)
+
+**New Files Created**:
+- `apps/backend/src/lib/machines/generation-system.context-types.ts`
+- `apps/backend/src/lib/machines/generation-system.context-accessors.ts`
+- `apps/backend/src/lib/machines/generation-system.error-actors.ts`
+
+**Modified Files**:
+- `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` (Step 1 stabilization)
+- `apps/backend/src/lib/machines/generation-system.persistence.states.ts` (documentation header)
+- `apps/backend/src/lib/machines/generation-system.request.states.ts` (documentation header)
+- `apps/backend/src/lib/machines/generation-system.execution.states.ts` (documentation header)
+
+**Validation Results**:
+- ✅ Backend: 335 tests pass
+- ✅ Frontend: 448 tests pass
+- ✅ Typecheck: All workspaces clean
+- ✅ Build: Successful (276ms)
 
 ### **DDD Compliance Requirements**
 - Consumer hooks (DDD-158/159/160/161) integration per BCM Line 25
@@ -914,8 +945,8 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 4 planning — Level 2 Balanced optimization completed)  
+**Last Updated**: 2026-07-08 (Sprint 4 Session 1 completed — Phase 1 Step 1 + Phase 2 Steps 1,2,4,5)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team  
 **DDD Compliance Status**: ✅ **PASSED** - All DDD-165 through DDD-172 entries created and approved  
-**AI Execution Ready**: ✅ **OPTIMIZED** - Plan ready for immediate execution (920 lines, -33% optimized)
+**AI Execution Ready**: ✅ **IN PROGRESS** - Session 1 completed, Session 2 pending (Phase 1 Steps 2-6 + Phase 2 Step 3)

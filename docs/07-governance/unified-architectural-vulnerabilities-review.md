@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 last-reviewed: 2026-07-08
 next-review-date: 2026-10-08
 owner: Domain Architecture
@@ -162,9 +162,10 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Validation**: 335/335 backend tests pass, typecheck clean, 0 remaining barrel imports
 - **Status**: ✅ Completed 2026-07-08
 
-### 🔥 **SPRINT 4: Core Architecture Resolution** (4-6 settimane)
+### 🔥 **SPRINT 4: Core Architecture Resolution** (🔄 In Progress)
 **Objective**: Address fundamental complexity with solid foundation
 **Risk Profile**: Alto - core architecture changes, mitigated by foundation
+**Session 1 Completed**: 2026-07-08
 
 #### **4A. Frontend Reactive Spaghetti Resolution** (V2 🔥)
 - **Location**: `useToolPageRunController.ts:228-335` (4+ `useEffect` hooks)
@@ -174,6 +175,8 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Effort**: 3-4 settimane
 - **Dependencies**: **CRITICAL** - Frontend Domain Logic (Sprint 1C) completed
 - **Validation**: < 2 `useEffect` per controller, 0 race conditions
+- **Session 1 Progress**: Step 1 completed — `startGenerationStep` callback stabilized (27→3 dependencies)
+- **Status**: 🔄 In Progress (Step 1/6)
 
 #### **4B. GenerationSystem Context Decomposition** (V1 🔥)
 - **Location**: `generation-system.definition.ts` + related files (25+ context fields)
@@ -183,6 +186,12 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Effort**: 3-4 settimane
 - **Dependencies**: **CRITICAL** - Route Capabilities (Sprint 2A) completed ✅
 - **Validation**: < 15 fields per context object, clear domain separation
+- **Session 1 Progress**: 
+  - ✅ Created `generation-system.context-types.ts` with 5 sub-context types (DDD-167→171)
+  - ✅ Created `generation-system.context-accessors.ts` with typed accessor functions
+  - ✅ Created `generation-system.error-actors.ts` with 3 route-specific error actors
+  - ✅ Added documentation headers to all state files
+- **Status**: 🔄 In Progress (4/6 steps completed)
 
 ### 🧹 **SPRINT 5: Technical Debt Elimination** (3-4 settimane)
 **Objective**: Remove workarounds with architecture solidified
@@ -229,6 +238,10 @@ This unified review consolidates **architectural vulnerability identification** 
 - [x] **Export Efficiency**: Tree-shakable domain modules implemented
 
 ### **Sprint 4 Gates** (Core Architecture)
+- [x] **Context Types Defined**: 5 sub-context types created (DDD-167→171)
+- [x] **Context Accessors**: Typed accessor functions implemented
+- [x] **Error Actors**: 3 route-specific error actors created
+- [x] **Documentation**: State file organization improved
 - [ ] **Frontend Simplicity**: < 2 `useEffect` hooks per controller
 - [ ] **Context Clarity**: < 15 fields per context object
 - [ ] **State Predictability**: 0 race conditions in integration tests
@@ -327,11 +340,11 @@ All implementation work MUST maintain compliance with:
 - **System Reliability**: Eliminated race conditions and workarounds
 
 ### **Review Closure Criteria**
-1. **⬜ All 13 Issues Resolved**: 7 vulnerabilities + 6 improvements completed (Sprint 1-3 done, V3/V4/V5 resolved)
-2. **⬜ All Sprint Gates Passed**: Sprint 1-3 gates passed, Sprint 4-5 pending
+1. **⬜ All 13 Issues Resolved**: 7 vulnerabilities + 6 improvements completed (Sprint 1-3 done, V3/V4/V5 resolved, V1/V2 in progress)
+2. **⬜ All Sprint Gates Passed**: Sprint 1-3 gates passed, Sprint 4 in progress, Sprint 5 pending
 3. **✅ DDD Compliance Achieved**: 100% canonical term alignment maintained
 4. **⬜ Performance Targets Met**: Partial — generation latency + build performance + actor coupling achieved
-5. **⬜ Architecture Integrity**: In progress — Sprint 4 core architecture resolution next
+5. **⬜ Architecture Integrity**: In progress — Sprint 4 core architecture resolution Session 1 completed
 
 ---
 
@@ -343,3 +356,9 @@ All implementation work MUST maintain compliance with:
 - **[Domain Naming Decision Log](./domain-naming-decision-log.md)** - **Approved architectural decisions**
 
 **Note**: This unified review supersedes the separate Critical Vulnerabilities and Monolithic Elements reviews, providing a single source of truth for architectural remediation planning.
+
+---
+
+**Last Updated**: 2026-07-08 (Sprint 4 Session 1 completed — Phase 1 Step 1 + Phase 2 Steps 1,2,4,5)  
+**Next Review**: 2026-07-15  
+**Review Owner**: Domain Architecture Team

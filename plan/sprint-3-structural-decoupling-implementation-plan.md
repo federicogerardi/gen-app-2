@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.1-ddd-corrected
+version: 1.2-ddd-balanced
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -120,160 +120,96 @@ export type GenerationLifecycleInputEvent = Extract<
 
 > ⚠️ If `BriefingUploadEvent` / `GenerationLifecycleEvent` are not currently exported, export them from their respective machine files as part of this step.
 
-### Step 2: Consolidate Briefing File Commands (#1 + #2 + #3 → `forwardBriefingCommand`)
+### Step 2: Consolidate Actions (systematic replacement)
 
-**Before** (3 separate actions in `tool-page.machine.ts`):
-```typescript
-sendBriefingSelected: sendTo(
-  'briefingActor',
-  ({ event }) => (event.type === 'BRIEFING_FILE_SELECTED'
-    ? { type: 'FILE_SELECTED', file: event.file, sourceKey: event.sourceKey }
-    : { type: 'RESET' }),
-),
-sendBriefingExtractionRequested: sendTo('briefingActor', { type: 'EXTRACTION_REQUESTED' }),
-sendBriefingReset:               sendTo('briefingActor', { type: 'RESET' }),
-```
+All 9 `sendTo` actions are replaced by 5 named actions. The table below shows each replacement and its state wiring:
 
-**After** (1 action):
+| # | New Action | Replaces | Target Actor | State Wiring (unchanged behavior) |
+|---|-----------|----------|--------------|-------------------------------------|
+| A | `forwardBriefingCommand` | #1 + #2 + #3 | `briefingActor` | `BRIEFING_FILE_SELECTED`, `BRIEFING_EXTRACTION_REQUESTED`, `BRIEFING_RESET` → `'forwardBriefingCommand'` |
+| B | `syncBriefingContext` | #4 | `briefingActor` | `MODEL_CHANGED`, `CAMPAIGN_OBJECTIVE_CHANGED` → `'syncBriefingContext'` |
+| C | `recoverBriefingFromHydration` | #9 | `briefingActor` | `hydrating.onDone.actions[]` → `'recoverBriefingFromHydration'` (see Step 3 below for detail) |
+| D | `forwardStepOutcomeToLifecycle` | #5 + #6 | `generationLifecycleActor` | `STEP_DONE`, `STEP_FAILED` → `'forwardStepOutcomeToLifecycle'` |
+| E | `controlGenerationLifecycle` | #7 + #8 | `generationLifecycleActor` | `RETRY_STEP` → `'controlGenerationLifecycle'`; `RESET` handler replaces `cancelGenerationLifecycle` |
+
+**Implementation pattern** (actions A, D, E — event-type consolidation):
+
 ```typescript
+// Action A: consolidate briefing file/upload/reset commands
 forwardBriefingCommand: sendTo('briefingActor', ({ event }): BriefingActorInputEvent => {
   if (event.type === 'BRIEFING_FILE_SELECTED') {
     return { type: 'FILE_SELECTED', file: event.file, sourceKey: event.sourceKey };
   }
-  if (event.type === 'BRIEFING_EXTRACTION_REQUESTED') {
-    return { type: 'EXTRACTION_REQUESTED' };
-  }
-  // BRIEFING_RESET and all other callers → RESET
-  return { type: 'RESET' };
+  if (event.type === 'BRIEFING_EXTRACTION_REQUESTED') return { type: 'EXTRACTION_REQUESTED' };
+  return { type: 'RESET' }; // BRIEFING_RESET fallthrough
 }),
+
+// Action D: consolidate step done/failed forwarding
+forwardStepOutcomeToLifecycle: sendTo('generationLifecycleActor',
+  ({ event }): GenerationLifecycleInputEvent => {
+    if (event.type === 'STEP_DONE')   return event;
+    if (event.type === 'STEP_FAILED') return event;
+    return { type: 'CANCEL' };
+  }),
+
+// Action E: consolidate retry/cancel control signals
+controlGenerationLifecycle: sendTo('generationLifecycleActor',
+  ({ event }): GenerationLifecycleInputEvent => {
+    if (event.type === 'RETRY_STEP') return { type: 'RETRY_STEP' };
+    return { type: 'CANCEL' };
+  }),
 ```
 
-**State wiring update** (same behavior, new action name):
+**Action B** (rename only — no logic change). Replaces `sendBriefingInputSynced` with the clearer name `syncBriefingContext`; payload mapping unchanged.
+
+### Step 3: Extract Anonymous Hydration sendTo (#9 → `recoverBriefingFromHydration`)
+
+This is the **primary defect** the sprint fixes: the anonymous inline `sendTo` at `hydrating.onDone` (lines 299–314) cannot be referenced by name in tests.
+
+**Before** (anonymous inline in `hydrating.onDone.actions[]`):
 ```typescript
-BRIEFING_FILE_SELECTED:        { actions: 'forwardBriefingCommand' },
-BRIEFING_EXTRACTION_REQUESTED: { actions: 'forwardBriefingCommand' },
-BRIEFING_RESET:                { actions: 'forwardBriefingCommand' },
-```
-
-### Step 3: Rename Input Sync (#4 → `syncBriefingContext`)
-
-Rename only — no logic change. Improves clarity that this action carries rich context payload:
-
-```typescript
-syncBriefingContext: sendTo('briefingActor', ({ context, event }): BriefingActorInputEvent => ({
-  type: 'INPUT_SYNCED',
-  projectId:          context.projectId,
-  model:              event.type === 'MODEL_CHANGED' ? event.model : context.model,
-  campaignObjective:  event.type === 'CAMPAIGN_OBJECTIVE_CHANGED'
-                        ? event.campaignObjective
-                        : context.campaignObjective,
-  apiBaseUrl:         context.apiBaseUrl,
-  capabilities:       context.capabilities,
-  userId:             context.userId,
-})),
-```
-
-### Step 4: Extract Anonymous Hydration sendTo (#9 → `recoverBriefingFromHydration`)
-
-**Before** (anonymous inline in `hydrating.onDone.actions[]`, lines 299–314):
-```typescript
+// Untestable — no name, embedded in hydrating.onDone
 sendTo('briefingActor', ({ event }) => {
   const output = readHydrationMachineOutput(event);
   const result = output.status === 'success' ? output.hydration : null;
-  if (result === null) {
-    return { type: 'RESET' as const };
-  }
+  if (result === null) return { type: 'RESET' as const };
   return {
     type: 'EXTRACTION_RECOVERED' as const,
-    artifactId:     result.extractionArtifactId,
-    payload:        result.extractionPayload,
-    briefingId:     result.briefingId,
+    artifactId: result.extractionArtifactId,
+    payload: result.extractionPayload,
+    briefingId: result.briefingId,
     normalizedText: result.normalizedText,
-    parsedFormat:   result.parsedFormat,
+    parsedFormat: result.parsedFormat,
     ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
   };
 }),
 ```
 
-**After** (named action in `setup({ actions: { ... } })`):
+**After** (named action extracted to `setup({ actions })`, then referenced by string):
 ```typescript
+// Inside setup({ actions: { ... } })
 recoverBriefingFromHydration: sendTo('briefingActor', ({ event }): BriefingActorInputEvent => {
   const output = readHydrationMachineOutput(event);
   const result = output.status === 'success' ? output.hydration : null;
-  if (result === null) {
-    return { type: 'RESET' };
-  }
+  if (result === null) return { type: 'RESET' };
   return {
     type: 'EXTRACTION_RECOVERED',
-    artifactId:     result.extractionArtifactId,
-    payload:        result.extractionPayload,
-    briefingId:     result.briefingId,
+    artifactId: result.extractionArtifactId,
+    payload: result.extractionPayload,
+    briefingId: result.briefingId,
     normalizedText: result.normalizedText,
-    parsedFormat:   result.parsedFormat,
+    parsedFormat: result.parsedFormat,
     ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
   };
 }),
 ```
 
-**State wiring update** (`hydrating.onDone.actions[]`):
+**State wiring update** — replace anonymous inline in `hydrating.onDone.actions[]`:
 ```typescript
 actions: [
   assign(({ context, event }) => { /* existing assign unchanged */ }),
   'recoverBriefingFromHydration',   // ← replaces anonymous sendTo
 ],
-```
-
-### Step 5: Consolidate Generation Lifecycle Actions (#5 + #6 → `forwardStepOutcomeToLifecycle`)
-
-**Before**:
-```typescript
-sendGenerationLifecycleStepDone:   sendTo('generationLifecycleActor',
-  ({ event }) => (event.type === 'STEP_DONE'   ? event : { type: 'CANCEL' })),
-sendGenerationLifecycleStepFailed: sendTo('generationLifecycleActor',
-  ({ event }) => (event.type === 'STEP_FAILED' ? event : { type: 'CANCEL' })),
-```
-
-**After**:
-```typescript
-forwardStepOutcomeToLifecycle: sendTo(
-  'generationLifecycleActor',
-  ({ event }): GenerationLifecycleInputEvent => {
-    if (event.type === 'STEP_DONE')   return event;
-    if (event.type === 'STEP_FAILED') return event;
-    return { type: 'CANCEL' };
-  },
-),
-```
-
-**State wiring update**:
-```typescript
-STEP_DONE:   { actions: 'forwardStepOutcomeToLifecycle' },
-STEP_FAILED: { actions: 'forwardStepOutcomeToLifecycle' },
-```
-
-### Step 6: Consolidate Lifecycle Control Signals (#7 + #8 → `controlGenerationLifecycle`)
-
-**Before**:
-```typescript
-sendGenerationLifecycleRetryStep: sendTo('generationLifecycleActor', { type: 'RETRY_STEP' }),
-cancelGenerationLifecycle:        sendTo('generationLifecycleActor', { type: 'CANCEL' }),
-```
-
-**After**:
-```typescript
-controlGenerationLifecycle: sendTo(
-  'generationLifecycleActor',
-  ({ event }): GenerationLifecycleInputEvent => {
-    if (event.type === 'RETRY_STEP') return { type: 'RETRY_STEP' };
-    return { type: 'CANCEL' };
-  },
-),
-```
-
-**State wiring update**:
-```typescript
-RETRY_STEP: { actions: 'controlGenerationLifecycle' },
-// RESET state already calls 'controlGenerationLifecycle' where cancelGenerationLifecycle was used
 ```
 
 ### Phase 1 Result
@@ -433,92 +369,43 @@ export type {
 
 ### Step 2: Create `adapters/auth/index.ts`
 
+Same pattern as Step 1: thin re-export aggregator from the existing flat auth files.
+
 ```typescript
 // Auth Context adapter entry point (DDD-164)
-
-export {
-  createAuthProductionRepositories,
-  PostgresAuthSessionRepository,
-  PostgresAuthUserRepository,
-  PostgresOAuthStateRepository,
-  type AuthProductionClients,
-} from '../auth.production';
-
-export {
-  createAuthStubRepositories,
-  AuthSessionRepositoryStub,
-  AuthUserRepositoryStub,
-  OAuthStateRepositoryStub,
-  type AuthStubOptions,
-} from '../auth.stub';
-
-export type {
-  AuthProductionOptions,
-  AuthRepositoryBundle,
-  AuthSessionRepository,
-  AuthUserRepository,
-  OAuthStateRepository,
-  UserQueryRepositoryBundle,
-} from '../auth.interfaces';
-
-export type {
-  AuthMethod,
-  AuthSessionPrincipal,
-  AuthSessionRecord,
-  AuthUserListFilters,
-  AuthUserRecord,
-  AuthUserRole,
-  AuthUserStatus,
-  CreateAuthSessionInput,
-  CreateAuthUserInput,
-  CreateOAuthStateTokenInput,
-  LinkOAuthAccountInput,
-  OAuthAccountRecord,
-  OAuthProvider,
-  OAuthStateTokenRecord,
-  RevokeAuthSessionsInput,
-  SetAuthUserPasswordInput,
-  UpdateAuthUserInput,
-} from '../../types/auth';
+export { createAuthProductionRepositories, PostgresAuthSessionRepository,
+         PostgresAuthUserRepository, PostgresOAuthStateRepository,
+         type AuthProductionClients } from '../auth.production';
+export { createAuthStubRepositories, AuthSessionRepositoryStub,
+         AuthUserRepositoryStub, OAuthStateRepositoryStub,
+         type AuthStubOptions } from '../auth.stub';
+export type { AuthRepositoryBundle, AuthSessionRepository,
+              AuthUserRepository, OAuthStateRepository,
+              UserQueryRepositoryBundle, AuthProductionOptions } from '../auth.interfaces';
+export type { AuthMethod, AuthSessionPrincipal, AuthSessionRecord,
+              AuthUserRole, AuthUserStatus, AuthUserRecord,
+              CreateAuthUserInput, UpdateAuthUserInput,
+              CreateAuthSessionInput, RevokeAuthSessionsInput,
+              CreateOAuthStateTokenInput, LinkOAuthAccountInput,
+              OAuthAccountRecord, OAuthProvider, OAuthStateTokenRecord,
+              AuthUserListFilters, SetAuthUserPasswordInput } from '../../types/auth';
 ```
 
 ### Step 3: Create `adapters/admin/index.ts`
 
 > ⚠️ **`admin/` is an organizational grouping, NOT a bounded context.**  
-> `ProductChangelog`, `UserReport`, and `GitHubIssueLink` are Frontend/UI context Key Entities (BCM L102, DDD-065, DDD-067). This module provides their **backend persistence implementations** only.  
-> `ApiService` is **NOT here** — it belongs to `adapters/generation/` (Generation Context, BCM L53, Glossary L74).
+> `ProductChangelog`, `UserReport`, `GitHubIssueLink` are Frontend/UI context Key Entities (BCM L102, DDD-065/067).  
+> `ApiService` is **NOT here** — it belongs to `adapters/generation/` (Generation Context, BCM L53).
 
 ```typescript
-// Organizational grouping for admin-feature backend adapters (DDD-164)
-// NOT a bounded context — see BCM v3.3 for the 6 canonical contexts.
-//
-// Domain ownership of entities:
-//   ProductChangelog → Frontend/UI context Key Entity (BCM L102, DDD-065)
-//   UserReport       → Frontend/UI context Key Entity (BCM L102, DDD-065)
-//   GitHubIssueLink  → Frontend/UI context Value Object (Glossary L230, DDD-065)
-//
-// This module exposes their backend persistence implementations
-// (AdminDashboard feature group per DDD-067, FeedbackCenter per DDD-072).
-
-export {
-  createProductChangelog,
-  publishProductChangelog,
-  archiveProductChangelog,
-  listPublishedProductChangelogs,
-  listProductChangelogs,
-} from '../product-changelog.adapter';
-
-export {
-  createUserReport,
-  getUserReportById,
-  listUserReports,
-  updateUserReportStatus,
-} from '../user-report.adapter';
-
-export {
-  createUserReportGithubLink,
-  publishUserReportIssueTransaction,
-} from '../user-report-github-link.adapter';
+// Organizational grouping for admin-feature backend persistence (DDD-164)
+// NOT a bounded context — see BCM v3.3. Entities per DDD-065/067.
+export { createProductChangelog, publishProductChangelog, archiveProductChangelog,
+         listPublishedProductChangelogs, listProductChangelogs } from '../product-changelog.adapter';
+export { createUserReport, getUserReportById, listUserReports,
+         updateUserReportStatus } from '../user-report.adapter';
+export { createUserReportGithubLink,
+         publishUserReportIssueTransaction } from '../user-report-github-link.adapter';
 ```
 
 ### Step 4: Convert Barrel to Deprecation Shim
@@ -541,48 +428,29 @@ export * from './admin';
 
 ### Step 5: Migrate Consumer Imports
 
-Migrate all 26 barrel consumers to domain-specific imports. Examples:
+Migrate all 26 barrel consumers to domain-specific import paths. Representative examples:
 
-**Tests (generation)**:
 ```typescript
-// Before
-import { createInMemoryGenerationAdapters } from '../adapters';
-// After
-import { createInMemoryGenerationAdapters } from '../adapters/generation';
+// Generation-only import
+//   Before: import { createInMemoryGenerationAdapters } from '../adapters';
+//   After:  import { createInMemoryGenerationAdapters } from '../adapters/generation';
+
+// Auth-only import
+//   Before: import { createAuthStubRepositories } from '../adapters';
+//   After:  import { createAuthStubRepositories } from '../adapters/auth';
+
+// Mixed import — split by domain
+//   Before: import { createAuthStubRepositories, createInMemoryGenerationAdapters } from '../adapters';
+//   After:
+//     import { createInMemoryGenerationAdapters } from '../adapters/generation';
+//     import { createAuthStubRepositories }        from '../adapters/auth';
 ```
 
-**Auth runtime**:
-```typescript
-// Before
-import { createAuthStubRepositories } from '../adapters';
-// After
-import { createAuthStubRepositories } from '../adapters/auth';
-```
-
-**Mixed imports** (split by domain):
-```typescript
-// Before
-import { createAuthStubRepositories, createInMemoryGenerationAdapters } from '../adapters';
-// After
-import { createInMemoryGenerationAdapters } from '../adapters/generation';
-import { createAuthStubRepositories }        from '../adapters/auth';
-```
-
-**ApiService import migration** (Generation Context):
-```typescript
-// Before
-import { createApiService, listApiServices } from '../adapters';
-// After
-import { createApiService, listApiServices } from '../adapters/generation';
-```
-
-**Priority order** (highest migration value first):
-1. All test files importing only `createInMemoryGenerationAdapters` (10+ files, trivial change)
-2. All files importing only `GenerationAdapters` type (5+ files, trivial change)
-3. Auth runtime and test files (5 files)
-4. Files importing `createApiService` / ApiService types → `../adapters/generation`
-5. Files importing ProductChangelog / UserReport adapters → `../adapters/admin`
-6. Mixed-import files (remaining files, one-by-one)
+**Migration priority** (by volume, easiest first):
+1. Files importing only `createInMemoryGenerationAdapters` (10+ files)
+2. Files importing only `GenerationAdapters` type (5+ files)
+3. Auth test/runtime files (5 files)
+4. Mixed-import files (remaining, one-by-one)
 
 ### Step 6: Final Barrel Removal (optional, post-validation)
 
@@ -609,40 +477,11 @@ Once all 26 consumers are migrated and `npm --workspace apps/backend run go` pas
 - [ ] Actor contracts respect Frontend/UI downstream consumer role (BCM Line 25)
 - [ ] `generation/` and `auth/` modules align with BCM bounded contexts; `admin/` module documented as organizational grouping (NOT a bounded context), with explicit comment referencing BCM L102 and DDD-067
 
-### **QA Scenarios**
+### **Validation Commands**
 
-**Phase 1 — Actor Contracts**:
-```
-Tool: npm --workspace apps/frontend run test
-Steps:
-  1. Run frontend test suite
-  2. Manually verify BRIEFING_FILE_SELECTED → FILE_SELECTED event reaches briefingActor
-  3. Manually verify BRIEFING_RESET → RESET event reaches briefingActor
-  4. Manually verify hydration success path sends EXTRACTION_RECOVERED to briefingActor
-Expected: All tests pass, no behavioral change vs pre-Sprint 3
-```
-
-**Phase 1 — sendTo Count**:
-```
-Tool: grep
-Steps:
-  1. grep -c "sendTo" apps/frontend/src/features/tools/machines/tool-page.machine.ts
-Expected: ≤ 5 occurrences
-```
-
-**Phase 2 — Domain Modules**:
-```
-Tool: npm --workspace apps/backend run go
-Steps:
-  1. Run full backend validation (migrate + seed + typecheck + test)
-  2. Verify no import from bare '../adapters' in non-shim files
-Expected: 335/335 tests pass, typecheck clean
-```
-
-**Phase 2 — No Barrel Consumers Remain**:
-```
-Tool: grep / rg
-Steps:
-  1. rg "from '(\.\.\/|\.\.\/\.\.\/)adapters'" apps/backend/src -g "*.ts" -l
-Expected: 0 files importing from bare adapters path (only shim itself excluded)
-```
+| Gate | Command | Expected |
+|------|---------|----------|
+| Phase 1 — frontend tests | `npm --workspace apps/frontend run test` | All tests pass, no behavioral change |
+| Phase 1 — sendTo count | `grep -c 'sendTo' apps/frontend/src/features/tools/machines/tool-page.machine.ts` | ≤ 5 |
+| Phase 2 — backend full | `npm --workspace apps/backend run go` | typecheck clean, 335/335 tests pass |
+| Phase 2 — barrel free | `rg "from '(\.\.\/|\.\.\/\.\.\/)adapters'" apps/backend/src -g '*.ts' -l` | 0 files (shim excluded) |

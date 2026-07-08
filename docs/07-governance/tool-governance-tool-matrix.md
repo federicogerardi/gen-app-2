@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.1
+version: 1.2
 date_created: 2026-05-24
-last-reviewed: 2026-05-26
-next-review-date: 2026-08-24
+last-reviewed: 2026-07-08
+next-review-date: 2026-10-08
 owner: Documentation Archivist
 title: Tool Governance Matrix
 tags: [governance, tools, matrix, routing, ddd]
@@ -25,6 +25,7 @@ This document consolidates the current tool-by-tool governance view for the impl
 | `youtube-description` \| workflow: `youtube_description` \| label: `YT Description Generator` | `enabled-for-all` | `/tools/youtube-description` | `youtube-description-generation` | Direct-input-only policy: no file upload required for start eligibility. Required direct fields are presence-gated; `socialLinks` and `hashtags` are optional-by-tool-setting and non-blocking when omitted. | `POST /generation/stream`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 | `angle-generator` \| workflow: `angle_generator` \| label: `Angle Generator` | `enabled` | `/tools/angle-generator` | `context-and-angle-matrix` -> `angle-prioritization` -> `creative-activation` | Multi-file policy: `BriefingFile` always-required; `AngleDetectorFile` optional-by-tool-setting | `POST /api/tools/briefs` (dual-source envelope for `briefing` + `angleDetector`), `POST /api/tools/hydrate`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 | `meta-ads` \| workflow: `meta_ads_generator` \| label: `MetaAds Generator` | `enabled` | `/tools/meta-ads` | `context-generation` -> `ads-generation` | Multi-file policy: `BriefingFile` always-required; `AngleDetectorFile` optional-by-tool-setting; API acquisition: `campaignObjective` direct-input | `POST /api/tools/briefs` (dual-source envelope for `briefing` + `angleDetector`), `GET /api/tools/api-services` (api-acquisition resolve), `POST /api/tools/hydrate`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
+| `blog-article-generator` \| workflow: `blog_article_generator` \| label: `Blog Article Generator` | `enabled-for-all` | `/tools/blog-article-generator` | `blog_seo_structure` -> `blog_research` -> `blog_article` | Direct-input-only policy: `titolo` (title) required; no file upload; LLM model selector hidden (hardcoded overrides per step) | `POST /generation/stream`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 
 ## Governance Notes
 
@@ -34,6 +35,7 @@ This document consolidates the current tool-by-tool governance view for the impl
 - Tool input-file requiredness follows `ToolInputFileRequirementPolicy`: one file means always-required; for multi-file tools, only the first file is always required and each subsequent file is explicitly classified.
 - `youtube-description` currently uses a direct-input-only baseline guard: required direct-field presence + markdown-only output contract; strict semantic validations are deferred for initial tool testing.
 - `angle-generator` is the only implemented dual-source upload path and must continue using one extraction job over merged `BriefingFile` + `AngleDetectorFile` context.
+- `blog-article-generator` uses direct-input-only with `titolo` (title) as required field. LLM model selection is hidden from users — models are hardcoded per step via `StepLlmModelOverrideConfig` (DDD-157): `gpt-4o-mini-search-preview` (SEO structure), `gpt-4o-search-preview` (research), `gpt-5.2` (article). Session summary shows all 3 steps in preview; download includes only final step (`blog_article`).
 
 ## Source Evidence
 

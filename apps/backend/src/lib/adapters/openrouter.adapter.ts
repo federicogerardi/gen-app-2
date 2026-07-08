@@ -149,18 +149,45 @@ const buildMessages = (requestInput: Record<string, unknown>) => {
     return messages;
   }
 
-  const prompt = requestInput.prompt;
+  let prompt = requestInput.prompt;
   const normalizedPrompt = typeof prompt === 'string' && prompt.trim().length > 0
     ? prompt.trim()
     : 'Generate a response for the current request.';
+
+  // Replace template variables with step dependency outputs
+  const dependencyOutputsByStepRaw = requestInput.stepDependencyArtifactContentsByStep;
+  const dependencyOutputsByStep =
+    dependencyOutputsByStepRaw && typeof dependencyOutputsByStepRaw === 'object' && !Array.isArray(dependencyOutputsByStepRaw)
+      ? dependencyOutputsByStepRaw as Record<string, string>
+      : {};
+
+  let filledPrompt = normalizedPrompt;
+  // Replace {{output_step_<stepKey>}} placeholders with actual content
+  for (const [stepKey, content] of Object.entries(dependencyOutputsByStep)) {
+    if (typeof content === 'string' && content.trim().length > 0) {
+      const placeholder = `{{output_step_${stepKey}}}`;
+      filledPrompt = filledPrompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), content);
+    }
+  }
+
+  // Also replace {{titolo}} and {{tone}} if present
+  const titolo = requestInput.titolo;
+  if (typeof titolo === 'string' && titolo.trim().length > 0) {
+    filledPrompt = filledPrompt.replace(/\{\{titolo\}\}/g, titolo);
+  }
+
+  const tone = requestInput.tone;
+  if (typeof tone === 'string' && tone.trim().length > 0) {
+    filledPrompt = filledPrompt.replace(/\{\{tone\}\}/g, tone);
+  }
 
   const contextBlock = buildContextBlock(requestInput);
   const finalMessages = contextBlock
     ? [{
       role: 'user',
-      content: `${normalizedPrompt}\n\n---\n\nUse only the context below as source of truth.\n\n${contextBlock}`,
+      content: `${filledPrompt}\n\n---\n\nUse only the context below as source of truth.\n\n${contextBlock}`,
     }]
-    : [{ role: 'user', content: normalizedPrompt }];
+    : [{ role: 'user', content: filledPrompt }];
 
   // Diagnostic logs are opt-in and sanitized to avoid exposing message body snippets.
   if (shouldEmitOpenRouterDiagnostics()) {

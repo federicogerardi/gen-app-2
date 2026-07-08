@@ -223,6 +223,7 @@ describe('buildBaseGenerationRequest', () => {
         tone: 'Professional',
         campaignObjective: 'Leads',
         registrySnapshotRef: 'snapshot:default',
+        titolo: '',
       },
       toolConfig: {
         defaultModel: 'openrouter/auto',
@@ -261,6 +262,7 @@ describe('buildBaseGenerationRequest', () => {
         tone: 'Professional',
         campaignObjective: 'Traffic',
         registrySnapshotRef: 'snapshot:default',
+        titolo: '',
       },
       toolConfig: {
         defaultModel: 'openrouter/auto',

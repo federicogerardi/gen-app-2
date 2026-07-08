@@ -441,7 +441,7 @@ export const buildBaseGenerationRequest = ({
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef'>;
+  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -485,6 +485,10 @@ export const buildBaseGenerationRequest = ({
         campaign_objective: formState.campaignObjective.trim(),
       }
       : extractionInfo.extractionPayload,
+    // Include titolo directly in input for blog-article-generator template variable replacement
+    ...(toolKey === 'blog-article-generator' && typeof formState.titolo === 'string' && formState.titolo.trim().length > 0
+      ? { titolo: formState.titolo.trim() }
+      : {}),
   },
 });
 

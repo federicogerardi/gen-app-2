@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { PostgresArtifactQueryRepository } from '../adapters';
+import { PostgresArtifactQueryRepository } from '../adapters/generation';
 
 function createMockPool() {
   let capturedSql = '';

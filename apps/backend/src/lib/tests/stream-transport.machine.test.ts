@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createActor, toPromise } from 'xstate';
 
-import { createInMemoryGenerationAdapters } from '../adapters';
+import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import { streamTransportMachine } from '../machines';
 import type { StreamTerminatedFailureEvent, StreamTerminatedSuccessEvent } from '../types/xstate';
 

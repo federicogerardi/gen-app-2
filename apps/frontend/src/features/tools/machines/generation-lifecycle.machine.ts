@@ -8,7 +8,7 @@ type GenerationLifecycleInput = {
   initialStep?: ToolStep | null;
 };
 
-type GenerationLifecycleEvent =
+export type GenerationLifecycleEvent =
   | { type: 'STEP_DONE'; step: ToolStep }
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }

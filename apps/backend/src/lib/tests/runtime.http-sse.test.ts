@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 
-import { createInMemoryGenerationAdapters } from '../adapters';
+import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import {
   applySseHeaders,
   handleGenerationRequestAsNodeSse,

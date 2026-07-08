@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 
-import type { GenerationAdapters } from '../adapters';
+import type { GenerationAdapters } from '../adapters/generation';
 import {
   handleGenerationRequestAsNodeSse,
   handleGenerationRequestAsJson,

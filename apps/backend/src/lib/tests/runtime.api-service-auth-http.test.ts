@@ -8,7 +8,7 @@ import {
   createDefaultPasswordHashRuntime,
   createDefaultSessionCookieRuntime,
 } from '../runtime';
-import { createAuthStubRepositories } from '../adapters';
+import { createAuthStubRepositories } from '../adapters/auth';
 
 const primaryApiServiceId = '11111111-1111-1111-1111-111111111111';
 const missingApiServiceId = '99999999-9999-9999-9999-999999999999';

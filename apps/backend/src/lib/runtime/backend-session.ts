@@ -1,6 +1,6 @@
 import { createActor, waitFor } from 'xstate';
 
-import type { GenerationAdapters } from '../adapters';
+import type { GenerationAdapters } from '../adapters/generation';
 import { generationSystemMachine } from '../machines';
 import {
   mapFailureReasonToBackendError,

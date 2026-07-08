@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createInMemoryGenerationAdapters } from '../adapters';
+import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import {
   handleGenerationRequest,
   handleGenerationRequestAsSseStream,

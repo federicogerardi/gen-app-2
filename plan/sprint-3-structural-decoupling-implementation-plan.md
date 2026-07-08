@@ -1,6 +1,6 @@
 ---
-status: active
-version: 1.2-ddd-balanced
+status: completed
+version: 1.3-executed
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -463,19 +463,19 @@ Once all 26 consumers are migrated and `npm --workspace apps/backend run go` pas
 ## Validation & Success Criteria
 
 ### **Sprint 3 Complete When**:
-- [ ] `tool-page-actor-contracts.ts` created with `BriefingActorInputEvent` and `GenerationLifecycleInputEvent`
-- [ ] All 9 `sendTo` actions systematically replaced by 5 named actions: `forwardBriefingCommand`, `syncBriefingContext`, `recoverBriefingFromHydration`, `forwardStepOutcomeToLifecycle`, `controlGenerationLifecycle`
-- [ ] `hydrating.onDone` actions array uses `'recoverBriefingFromHydration'` (no anonymous `sendTo`)
-- [ ] Frontend tests pass: `npm --workspace apps/frontend run test`
-- [ ] Domain modules `adapters/generation/index.ts` (incl. ApiService), `adapters/auth/index.ts`, `adapters/admin/index.ts` (organizational grouping) created
-- [ ] All 26 barrel consumers migrated to domain-specific import paths
-- [ ] `npm --workspace apps/backend run go` passes (full validation: migrate + seed + typecheck + test)
+- [x] `tool-page-actor-contracts.ts` created with `BriefingActorInputEvent` and `GenerationLifecycleInputEvent`
+- [x] All 9 `sendTo` actions systematically replaced by 5 named actions: `forwardBriefingCommand`, `syncBriefingContext`, `recoverBriefingFromHydration`, `forwardStepOutcomeToLifecycle`, `controlGenerationLifecycle`
+- [x] `hydrating.onDone` actions array uses `'recoverBriefingFromHydration'` (no anonymous `sendTo`)
+- [x] Frontend tests pass: `npm --workspace apps/frontend run test`
+- [x] Domain modules `adapters/generation/index.ts` (incl. ApiService), `adapters/auth/index.ts`, `adapters/admin/index.ts` (organizational grouping) created
+- [x] All 26 barrel consumers migrated to domain-specific import paths
+- [x] `npm --workspace apps/backend run go` passes (full validation: migrate + seed + typecheck + test)
 
 ### **DDD Compliance Verified**:
-- [ ] `DDD-163` entry created in decision log before Phase 1 implementation
-- [ ] `DDD-164` entry created in decision log before Phase 2 implementation
-- [ ] Actor contracts respect Frontend/UI downstream consumer role (BCM Line 25)
-- [ ] `generation/` and `auth/` modules align with BCM bounded contexts; `admin/` module documented as organizational grouping (NOT a bounded context), with explicit comment referencing BCM L102 and DDD-067
+- [x] `DDD-163` entry created in decision log before Phase 1 implementation
+- [x] `DDD-164` entry created in decision log before Phase 2 implementation
+- [x] Actor contracts respect Frontend/UI downstream consumer role (BCM Line 25)
+- [x] `generation/` and `auth/` modules align with BCM bounded contexts; `admin/` module documented as organizational grouping (NOT a bounded context), with explicit comment referencing BCM L102 and DDD-067
 
 ### **Validation Commands**
 

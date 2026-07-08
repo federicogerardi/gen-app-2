@@ -8,6 +8,7 @@ import { buildReactiveViewModel, canStartFromPolicy } from './tool-page-view-mod
 import { normalizeHydrateRequest, normalizePendingHydration, readHydrationMachineOutput } from './tool-page-hydration';
 import { buildEmptyProgressState, buildResetConfigState, buildSetProjectState, buildSyncProgressState } from './tool-page-machine-assignments';
 import type { ToolPageContext, ToolPageEvent, ToolPageInput } from './tool-page.types';
+import type { BriefingActorInputEvent, GenerationLifecycleInputEvent } from './tool-page-actor-contracts';
 import { STREAM_CONFIG } from '../../../app/config/stream-config';
 
 export type { HydrationResult } from './hydration.machine';
@@ -93,15 +94,23 @@ export const toolPageMachine = setup({
       pendingStepStart: () => null,
     }),
     resetConfig: assign(({ context }) => buildResetConfigState(context)),
-    sendBriefingSelected: sendTo(
+    // DDD-163: Action A — consolidate briefing file/upload/reset commands
+    forwardBriefingCommand: sendTo(
       'briefingActor',
-      ({ event }) => (event.type === 'BRIEFING_FILE_SELECTED'
-        ? { type: 'FILE_SELECTED', file: event.file, sourceKey: event.sourceKey }
-        : { type: 'RESET' }),
+      ({ event }): BriefingActorInputEvent => {
+        if (event.type === 'BRIEFING_FILE_SELECTED') {
+          return {
+            type: 'FILE_SELECTED',
+            file: event.file,
+            ...(event.sourceKey != null && { sourceKey: event.sourceKey }),
+          };
+        }
+        if (event.type === 'BRIEFING_EXTRACTION_REQUESTED') return { type: 'EXTRACTION_REQUESTED' };
+        return { type: 'RESET' };
+      },
     ),
-    sendBriefingExtractionRequested: sendTo('briefingActor', { type: 'EXTRACTION_REQUESTED' }),
-    sendBriefingReset: sendTo('briefingActor', { type: 'RESET' }),
-    sendBriefingInputSynced: sendTo('briefingActor', ({ context, event }) => ({
+    // DDD-163: Action B — sync context to briefing actor (rename of sendBriefingInputSynced)
+    syncBriefingContext: sendTo('briefingActor', ({ context, event }): BriefingActorInputEvent => ({
       type: 'INPUT_SYNCED',
       projectId: context.projectId,
       model: event.type === 'MODEL_CHANGED' ? event.model : context.model,
@@ -112,16 +121,40 @@ export const toolPageMachine = setup({
       capabilities: context.capabilities,
       userId: context.userId,
     })),
-    sendGenerationLifecycleStepDone: sendTo(
+    // DDD-163: Action C — extract anonymous hydration sendTo (#9 → named)
+    recoverBriefingFromHydration: sendTo('briefingActor', ({ event }): BriefingActorInputEvent => {
+      const output = readHydrationMachineOutput(event);
+      const result = output.status === 'success' ? output.hydration : null;
+      if (result === null) {
+        return { type: 'RESET' };
+      }
+      return {
+        type: 'EXTRACTION_RECOVERED',
+        artifactId: result.extractionArtifactId,
+        payload: result.extractionPayload,
+        briefingId: result.briefingId,
+        normalizedText: result.normalizedText,
+        parsedFormat: result.parsedFormat,
+        ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
+      };
+    }),
+    // DDD-163: Action D — consolidate step done/failed forwarding
+    forwardStepOutcomeToLifecycle: sendTo(
       'generationLifecycleActor',
-      ({ event }) => (event.type === 'STEP_DONE' ? event : { type: 'CANCEL' }),
+      ({ event }): GenerationLifecycleInputEvent => {
+        if (event.type === 'STEP_DONE') return event;
+        if (event.type === 'STEP_FAILED') return event;
+        return { type: 'CANCEL' };
+      },
     ),
-    sendGenerationLifecycleStepFailed: sendTo(
+    // DDD-163: Action E — consolidate retry/cancel control signals
+    controlGenerationLifecycle: sendTo(
       'generationLifecycleActor',
-      ({ event }) => (event.type === 'STEP_FAILED' ? event : { type: 'CANCEL' }),
+      ({ event }): GenerationLifecycleInputEvent => {
+        if (event.type === 'RETRY_STEP') return { type: 'RETRY_STEP' };
+        return { type: 'CANCEL' };
+      },
     ),
-    sendGenerationLifecycleRetryStep: sendTo('generationLifecycleActor', { type: 'RETRY_STEP' }),
-    cancelGenerationLifecycle: sendTo('generationLifecycleActor', { type: 'CANCEL' }),
     updateNonStreamingProgress: assign({
       progress: ({ context, event }) => {
         if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
@@ -215,22 +248,22 @@ export const toolPageMachine = setup({
           actions: ['setProjectId', stopChild('briefingActor')],
         },
         MODEL_CHANGED: {
-          actions: ['setModel', 'sendBriefingInputSynced'],
+          actions: ['setModel', 'syncBriefingContext'],
         },
         CAMPAIGN_OBJECTIVE_CHANGED: {
-          actions: ['setCampaignObjective', 'sendBriefingInputSynced'],
+          actions: ['setCampaignObjective', 'syncBriefingContext'],
         },
         STEP_ARTIFACT_UPDATED: {
           actions: 'setStepArtifactId',
         },
         BRIEFING_FILE_SELECTED: {
-          actions: 'sendBriefingSelected',
+          actions: 'forwardBriefingCommand',
         },
         BRIEFING_EXTRACTION_REQUESTED: {
-          actions: 'sendBriefingExtractionRequested',
+          actions: 'forwardBriefingCommand',
         },
         BRIEFING_RESET: {
-          actions: 'sendBriefingReset',
+          actions: 'forwardBriefingCommand',
         },
         REQUEST_STEP_START: [
           {
@@ -296,22 +329,7 @@ export const toolPageMachine = setup({
                   intent,
                 };
               }),
-              sendTo('briefingActor', ({ event }) => {
-                const output = readHydrationMachineOutput(event);
-                const result = output.status === 'success' ? output.hydration : null;
-                if (result === null) {
-                  return { type: 'RESET' as const };
-                }
-                return {
-                  type: 'EXTRACTION_RECOVERED' as const,
-                  artifactId: result.extractionArtifactId,
-                  payload: result.extractionPayload,
-                  briefingId: result.briefingId,
-                  normalizedText: result.normalizedText,
-                  parsedFormat: result.parsedFormat,
-                  ...(result.briefingFileName != null && { fileName: result.briefingFileName }),
-                };
-              }),
+              'recoverBriefingFromHydration',
             ],
           },
           {
@@ -367,13 +385,13 @@ export const toolPageMachine = setup({
       },
       on: {
         STEP_DONE: {
-          actions: 'sendGenerationLifecycleStepDone',
+          actions: 'forwardStepOutcomeToLifecycle',
         },
         STEP_FAILED: {
-          actions: 'sendGenerationLifecycleStepFailed',
+          actions: 'forwardStepOutcomeToLifecycle',
         },
         RETRY_STEP: {
-          actions: 'sendGenerationLifecycleRetryStep',
+          actions: 'controlGenerationLifecycle',
         },
         CANCEL_GENERATION: {
           target: 'configuring.clean',
@@ -384,7 +402,7 @@ export const toolPageMachine = setup({
         RESET: {
           target: 'configuring.clean',
           reenter: true,
-          actions: ['cancelGenerationLifecycle', 'resetConfig', stopChild('briefingActor')],
+          actions: ['controlGenerationLifecycle', 'resetConfig', stopChild('briefingActor')],
         },
       },
     },

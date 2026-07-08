@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.2-ddd-balanced
+version: 1.3-executable
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -93,65 +93,92 @@ export type AuthHttpRouteCapability =
 
 **Context Categorization** (all fields are Generation Context owned):
 
+> ⚠️ `GenerationSystemInput` is `{ adapters, initialContext?, runtime? }` — it does **not** carry context fields directly.
+> Context fields start as hardcoded defaults and are populated by actions on `REQUEST_RECEIVED`.
+> Builders encapsulate **default value groups** and **infra wiring**, not input parsing.
+
 | Builder | Fields | Organizational Concern |
 |---------|--------|----------------------|
-| `buildGenerationCoreContext` | `toolKey`, `workflowType`, `artifactType`, `mode`, `routeType` | Core domain logic |
-| `buildGenerationRuntimeContext` | `requestId`, `userId`, `projectId`, `sessionId`, `model`, `requestInput`, `outputFormat`, `contentBuffer` | Runtime + Auth integration points |
-| `buildGenerationInfraContext` | `adapters`, `runtimeNow`, `artifactIdFactory`, `responseBuilder`, `registryVersion`, `registrySnapshotRef`, `inputTokens`, `outputTokens`, `costUsd`, `_creditCost` | Infrastructure + metrics |
+| `buildGenerationCoreDefaults` | `requestId`, `userId`, `projectId`, `sessionId`, `toolKey`, `registryVersion`, `registrySnapshotRef`, `workflowType`, `artifactType`, `mode`, `artifactId`, `contentBuffer`, `failureReason` | Core domain defaults |
+| `buildGenerationRuntimeDefaults` | `model`, `requestInput`, `idempotencyKey`, `outputFormat`, `syntheticResponse`, `routeType`, `pendingFallback`, `effectiveModelResolution` | Runtime state defaults |
+| `buildGenerationMetricsDefaults` | `inputTokens`, `outputTokens`, `costUsd`, `_creditCost` | Metrics defaults |
+| `buildGenerationInfraContext` | `adapters`, `runtimeNow`, `artifactIdFactory`, `responseBuilder` | Infrastructure wiring from `input` |
 
-**Implementation**:
+**Implementation** (in `generation-system.runtime.ts`):
 ```typescript
-// ✅ Generation Context internal builders — aggregate root authority maintained
-export function buildGenerationCoreContext(input: GenerationSystemInput) {
+// ✅ Builders encapsulate default groups — no input parsing of context fields
+export function buildGenerationCoreDefaults() {
   return {
-    toolKey:      input.toolKey,
-    workflowType: input.workflowType,
-    artifactType: input.artifactType,
-    mode:         resolveWorkflowRunMode(input.intent),
-    routeType:    input.routeType,
+    requestId:          '',
+    userId:             null,
+    projectId:          null,
+    sessionId:          null,
+    toolKey:            null,
+    registryVersion:    null,
+    registrySnapshotRef: null,
+    workflowType:       null,
+    artifactType:       'content' as const,
+    mode:               'stream' as const,
+    artifactId:         null,
+    contentBuffer:      '',
+    failureReason:      null,
   };
 }
 
-export function buildGenerationRuntimeContext(input: GenerationSystemInput) {
+export function buildGenerationRuntimeDefaults() {
   return {
-    requestId:     input.requestId,
-    userId:        input.userId,
-    projectId:     input.projectId,
-    sessionId:     input.sessionId,
-    model:         input.model,
-    requestInput:  input.input,
-    outputFormat:  input.outputFormat ?? 'markdown',
-    contentBuffer: '',
+    model:                   'unknown',
+    requestInput:            {} as Record<string, unknown>,
+    idempotencyKey:          null,
+    outputFormat:            'plain' as const,
+    syntheticResponse:       '',
+    routeType:               null,
+    pendingFallback:         null,
+    effectiveModelResolution: null,
+  };
+}
+
+export function buildGenerationMetricsDefaults() {
+  return {
+    inputTokens:  0,
+    outputTokens: 0,
+    costUsd:      0,
+    _creditCost:  1,
   };
 }
 
 export function buildGenerationInfraContext(
-  input: GenerationSystemInput,
   adapters: GenerationAdapters,
+  runtime?: GenerationSystemInput['runtime'],
 ) {
   return {
     adapters,
-    runtimeNow:         () => new Date(),
-    artifactIdFactory:  defaultArtifactIdFactory,
-    responseBuilder:    defaultResponseBuilder,
-    registryVersion:    input.registryVersion,
-    registrySnapshotRef: input.registrySnapshotRef,
-    inputTokens:  0,
-    outputTokens: 0,
-    costUsd:      0,
-    _creditCost:  0,
+    runtimeNow:        runtime?.now             ?? (() => new Date()),
+    artifactIdFactory: runtime?.artifactIdFactory ?? defaultArtifactIdFactory,
+    responseBuilder:   runtime?.responseBuilder   ?? defaultResponseBuilder,
   };
 }
 ```
 
+**Updated context creation** in `generation-system.definition.ts`:
+```typescript
+context: ({ input }) => ({
+  ...buildGenerationCoreDefaults(),
+  ...buildGenerationRuntimeDefaults(),
+  ...buildGenerationMetricsDefaults(),
+  ...buildGenerationInfraContext(input.adapters, input.runtime),
+  ...input.initialContext,
+}),
+```
+
 **Steps**:
-1. Add builders to `generation-system.runtime.ts`
-2. Update context creation in `generation-system.definition.ts`
-3. Update consumer files systematically (`actions`, `actors`, `guards`, `*.states.ts`)
-4. Update test mocks to use builders
+1. Add 4 builders to `generation-system.runtime.ts`
+2. Replace inline defaults block in `generation-system.definition.ts` with builder spread calls
+3. Consumer files (`actions`, `actors`, `guards`, `*.states.ts`) need **no changes** — they read context fields as before, builders only affect initialization
+4. Update test mocks: replace inline context objects with `{ ...buildGenerationCoreDefaults(), ...buildGenerationRuntimeDefaults(), ...buildGenerationMetricsDefaults(), ...buildGenerationInfraContext(mockAdapters) }`
 5. Run `npm --workspace apps/backend run go` — full validation
 
-**Gate**: All generation system tests pass, 3 builders operational, cognitive complexity reduced
+**Gate**: All generation system tests pass, 4 builders operational, context initialization organized by concern, consumer files unchanged
 
 ---
 
@@ -159,7 +186,7 @@ export function buildGenerationInfraContext(
 
 ### **Sprint 2 Complete When**:
 - [ ] `HttpRouteCapabilities` namespace operational, all 13 capabilities preserved
-- [ ] 3 Generation Context builders implemented and used in context creation
+- [ ] 4 Generation Context builders implemented and used in context initialization (`generation-system.runtime.ts`)
 - [ ] All consumer files updated, `npm --workspace apps/backend run go` passes
 - [ ] Build typecheck < 30s maintained
 - [ ] Sprint 4B critical dependency satisfied

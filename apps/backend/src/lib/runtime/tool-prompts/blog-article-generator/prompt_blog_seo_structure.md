@@ -13,7 +13,7 @@ Based on the data and sub-topics emerging from your online research, develop the
 
 [Strict Format Constraint]:
 Return output in Markdown format. Do not include introductions, explanations, or generic greetings. Generate exclusively:
-- 1 Main Title (# H1)
+- 1 Main Title (# H1) — **MANDATORY: The H1 must be EXACTLY the topic provided in [Research Topic]. Do NOT rephrase, rewrite, or create evocative alternatives. Use the original title as-is.**
 - Subheadings (## H2) logically ordered — **maximum 4 H2 sections**
 - Use sentence case capitalization
 - At the end, a synthetic list of real sources consulted (e.g., URLs or Site Names)

@@ -12,7 +12,7 @@ import type { FrontendGenerationStatus } from '../../generation/machines/fronten
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildBlogArticleGeneratorDirectInputExtractionInfo, buildDependencyArtifactContentsByStep, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildBlogArticleGeneratorDirectInputExtractionInfo, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 import { mapInlineDispatchError } from './tool-page-runtime-utils';
 
@@ -159,19 +159,36 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
 
     try {
       const orchestrationResult = await orchestrateToolStep(normalizedProjectId, toolKey, step, { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
-      const dependencyContentsByStep = buildDependencyArtifactContentsByStep(orchestrationResult.dependencyArtifactIdsByStep, generationArtifacts.artifacts);
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] dependency artifacts debug', {
+      // Fetch dependency artifact content not present in workspace state.
+      // Workspace artifacts from the persisted list endpoint lack the content field.
+      const depEntries = Object.entries(orchestrationResult.dependencyArtifactIdsByStep).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      );
+      const dependencyContentMap: Record<string, string> = {};
+      for (const [stepKey, artifactId] of depEntries) {
+        const local = generationArtifacts.artifacts.find(a => a.artifactId === artifactId);
+        if (local && typeof local.content === 'string' && local.content.trim().length > 0) {
+          dependencyContentMap[stepKey] = local.content;
+          continue;
+        }
+        const detail = await getArtifactById(artifactId, {
+          apiBaseUrl: auth.apiBaseUrl,
+          capabilities: auth.capabilities,
+          localArtifacts: generationArtifacts.artifacts,
+        });
+        if (detail && typeof detail.content === 'string' && detail.content.trim().length > 0) {
+          dependencyContentMap[stepKey] = detail.content;
+        }
+      }
+      if (import.meta.env.DEV && depEntries.length > 0) {
+        console.info('[useToolPage] dependency content debug', {
           step,
-          dependencyArtifactIdsByStep: orchestrationResult.dependencyArtifactIdsByStep,
-          workspaceArtifactCount: generationArtifacts.artifacts.length,
-          workspaceArtifactIds: generationArtifacts.artifacts.map(a => ({ id: a.artifactId, hasContent: typeof a.content === 'string' && a.content.length > 0, contentLen: typeof a.content === 'string' ? a.content.length : 0 })),
-          dependencyContentsByStep: Object.fromEntries(Object.entries(dependencyContentsByStep).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 100) + '...' : '']) ),
-          dependencyContentKeys: Object.keys(dependencyContentsByStep),
-          dependencyContentKeyCount: Object.keys(dependencyContentsByStep).length,
+          dependencyIds: orchestrationResult.dependencyArtifactIdsByStep,
+          resolvedKeys: Object.keys(dependencyContentMap),
+          contentLengths: Object.entries(dependencyContentMap).map(([k, v]) => ({ step: k, len: v.length })),
         });
       }
-      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentsByStep);
+      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentMap);
       if (import.meta.env.DEV) {
         console.info('[useToolPage] generation request dispatched', {
           step,

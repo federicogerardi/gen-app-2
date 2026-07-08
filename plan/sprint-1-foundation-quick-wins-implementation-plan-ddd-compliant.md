@@ -1,11 +1,11 @@
 ---
 status: active  
-version: 1.1-ddd-compliant
+version: 1.2-ddd-balanced
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-15
 owner: Domain Architecture Team
 date_created: 2026-07-08
-title: Sprint 1 Implementation Plan - Foundation & Quick Wins (DDD-Compliant Revision)
+title: Sprint 1 Implementation Plan - Foundation & Quick Wins (DDD-Balanced)
 type: implementation-plan
 tags:
   - sprint-planning
@@ -13,35 +13,137 @@ tags:
   - foundation-work
   - ddd-compliance
   - performance-optimization
-  - bounded-context-map
-goal: DDD-compliant implementation plan for Sprint 1 of Unified Architectural Vulnerabilities Review resolution
+goal: Balanced implementation plan maintaining DDD compliance with practical execution focus
 ---
 
-# Sprint 1 Implementation Plan - Foundation & Quick Wins (DDD-Compliant)
+# Sprint 1 Implementation Plan - Foundation & Quick Wins (DDD-Balanced)
 
 **Source**: [Unified Architectural Vulnerabilities Review](../docs/07-governance/unified-architectural-vulnerabilities-review.md)  
 **Branch**: `feature/unified-architectural-vulnerabilities-resolution`  
-**Sprint Duration**: 10-12 giorni lavorativi (2-2.5 settimane)  
-**Team**: Senior Frontend Developer + Backend Tech Lead + **Domain Architect** (for DDD compliance)
+**Sprint Duration**: 8-10 giorni lavorativi (1.5-2 settimane)  
+**Team**: Senior Frontend Developer + Backend Tech Lead
 
-**⚠️ CRITICAL**: This revision addresses **DDD violations** identified in the original plan and ensures 100% compliance with:
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md) - **BCM Line 25 compliance**
-- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md) - **Canonical terminology only**
-- [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md) - **Required new DDD entries**
+**🎯 Balance**: Maintains essential DDD compliance while eliminating governance overhead for foundation work.
 
 ---
 
-## 🎯 **DDD-Compliant Sprint Objective**
+## Sprint Objective
 
-**Primary Objective**: Establish Frontend/UI as **pure downstream consumer** per BCM + deliver performance improvements using **canonical DDD terminology**.
+**Goal**: Establish Frontend/UI as **downstream consumer** per BCM + deliver 3x performance improvement using canonical terminology.
 
-**Critical DDD Requirement**: Frontend/UI must operate as "Downstream of: Generation (consumes `BackendStreamEvent`), Auth (drives session-aware routing), Usage/Quota (displays quota state)" per **BCM Line 25**.
-
-**No Domain Logic Coordination**: Frontend cannot coordinate Tools/Generation boundaries per **Integration Constraint 248**.
+**DDD Essentials**: 
+- Frontend consumes domain events only (BCM Line 25)
+- Backend owns orchestration authority (Integration Constraint 248)  
+- Use canonical `Artifact` terminology (not "dependency")
 
 ---
 
-## 📊 **DDD-Compliant Task Analysis**
+## Tasks
+
+### **TASK 1A: Artifact Resolution Performance** (V3 ⚡)
+**What**: Convert sequential to parallel artifact fetching  
+**DDD**: Use canonical `Artifact`, `artifactId` terminology  
+**Timeline**: 2-3 giorni | **Risk**: Basso  
+
+**Implementation**:
+```typescript
+// ✅ Canonical terminology + parallel execution
+const artifactResolutionPromises = depEntries.map(async ([stepKey, artifactId]) => {
+  const artifactDetail = await getArtifactById(artifactId, {...});
+  return { stepKey, artifactId, artifactDetail };
+});
+const resolvedArtifacts = await Promise.allSettled(artifactResolutionPromises);
+```
+
+**Success**: < 300ms artifact resolution (from ~1s), all tests pass
+
+### **TASK 1B: Infrastructure Organization** (A1 ⚠️)  
+**What**: Organize adapters by operational scope (business/technical/integration)  
+**DDD**: Infrastructure Layer sharing per DDD principles - fully compliant  
+**Timeline**: 2-3 giorni | **Risk**: Basso | **Parallel with 1A**
+
+**Success**: Operational scope organization, < 45s typecheck, backward compatibility
+
+### **TASK 1C: Frontend Domain Realignment** (A4 🔥 CRITICAL)
+**What**: Transform useToolPage from coordinator to downstream consumer  
+**DDD**: Frontend consumes events only, no domain coordination  
+**Timeline**: 3-4 giorni | **Risk**: Medio | **BLOCKS Sprint 4A**
+
+**Simplified Architecture**:
+```typescript
+// ✅ DDD-compliant: 4 focused consumer hooks
+const useToolPageConsumers = (toolKey: ToolKey) => {
+  const streamState = useBackendStreamEvents();  // Generation domain
+  const authState = useAuthSession();           // Auth domain  
+  const quotaState = useQuotaDisplay();         // Usage domain
+  const pageState = useToolPageUI();            // UI domain
+  
+  return { streamState, authState, quotaState, pageState };
+};
+```
+
+**Success**: Frontend as pure downstream consumer, hook decomposition complete
+
+---
+
+## Sprint Sequence
+
+**Days 1-2**: Analysis phase (all tasks)  
+**Days 3-5**: Implementation (1A + 1B parallel, 1C start)  
+**Days 6-8**: Integration & testing (1C completion, cross-task validation)  
+**Days 9-10**: Sprint completion & Sprint 2 preparation  
+
+---
+
+## DDD Compliance
+
+### **Required Decision Log Entry**
+**Single entry for architectural change**:
+```markdown
+| DDD-XXX | 2026-07-08 | useToolPageDomainRealignment | Frontend hook decomposition per BCM Line 25 compliance | Transforms monolithic useToolPage into domain-specific consumers respecting bounded context boundaries | Frontend/UI |
+```
+
+### **Essential Compliance Points**
+- ✅ **BCM Line 25**: Frontend as downstream consumer only  
+- ✅ **Integration Constraint 248**: Backend orchestration authority preserved
+- ✅ **Canonical Terminology**: `Artifact` entities, not "dependencies"  
+- ✅ **Infrastructure Sharing**: Adapters shared across contexts per DDD principles
+
+### **Governance Process**
+- **Domain Architect spot-check**: Mid-sprint review for Task 1C  
+- **DDD entry approval**: Single entry before Task 1C implementation
+- **BCM validation**: Sprint-end compliance verification
+
+---
+
+## Success Gates
+
+**Sprint 1 Complete When**:
+- [ ] **Performance**: Artifact resolution < 300ms (3x improvement)
+- [ ] **Infrastructure**: Operational organization + build performance < 45s  
+- [ ] **DDD Compliance**: Frontend downstream consumer only, canonical terminology used
+- [ ] **Sprint 4A Ready**: Clean domain boundaries enable reactive spaghetti resolution
+- [ ] **Stability**: All existing functionality preserved, full test suite passes
+
+---
+
+## Risk Management
+
+**Task 1A**: Low risk - isolated performance change, comprehensive testing  
+**Task 1B**: Low risk - organizational change with backward compatibility  
+**Task 1C**: Medium risk - architectural change with DDD oversight and incremental approach
+
+**Rollback**: Individual task rollback capability, Sprint 4A dependency protection
+
+---
+
+## Implementation Notes
+
+**Team Focus**: Foundation work with proportionate DDD governance  
+**Quality Assurance**: Essential compliance checking without bureaucratic overhead  
+**Success Criteria**: Measurable improvements + architectural foundation for Sprint 4A
+
+**This balanced plan maintains complete DDD compliance while enabling practical execution of Sprint 1 foundation objectives.**
 
 ### **TASK 1A: Artifact Dependency Resolution Optimization** (V3 ⚡)
 **DDD Status**: ✅ **COMPLIANT** (with terminology corrections)  

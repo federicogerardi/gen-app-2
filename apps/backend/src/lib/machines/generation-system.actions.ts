@@ -60,6 +60,7 @@ type GenerationSystemActionObject =
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
   | { type: 'assembleGeometricPrompt'; params: undefined }
+  | { type: 'assembleBlogArticlePrompt'; params: undefined }
   | { type: 'resetVolatileContext'; params: undefined };
 
 type GenerationSystemGuardObject =
@@ -367,6 +368,60 @@ export const generationSystemActions = {
       }
       if (typeof assembly.queryCount === 'number') {
         filledPrompt = filledPrompt.replace(/{{queryCount}}/g, String(assembly.queryCount));
+      }
+
+      return {
+        ...context.requestInput,
+        prompt: filledPrompt,
+      };
+    },
+  }),
+  assembleBlogArticlePrompt: assignGeneration<undefined>({
+    requestInput: ({ context }: GenerationActionArgs) => {
+      const toolKey = context.toolKey ?? '';
+      const workflowType = context.workflowType ?? '';
+      if (toolKey !== 'blog-article-generator' && workflowType !== 'blog_article_generator') {
+        return context.requestInput;
+      }
+
+      const promptTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
+        ? context.requestInput.resolvedPromptTemplate
+        : (typeof context.requestInput.prompt === 'string' ? context.requestInput.prompt : '');
+
+      if (!promptTemplate) {
+        return context.requestInput;
+      }
+
+      let filledPrompt = promptTemplate;
+
+      // Replace {{output_step_<stepKey>}} placeholders with actual content from step dependencies
+      const dependencyOutputsByStepRaw = context.requestInput.stepDependencyArtifactContentsByStep;
+      const dependencyOutputsByStep =
+        dependencyOutputsByStepRaw && typeof dependencyOutputsByStepRaw === 'object' && !Array.isArray(dependencyOutputsByStepRaw)
+          ? dependencyOutputsByStepRaw as Record<string, string>
+          : {};
+
+      for (const [stepKey, content] of Object.entries(dependencyOutputsByStep)) {
+        if (typeof content === 'string' && content.trim().length > 0) {
+          const placeholder = `{{output_step_${stepKey}}}`;
+          filledPrompt = filledPrompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), content);
+        }
+      }
+
+      // Replace {{titolo}} from request input or extraction payload
+      const titolo = typeof context.requestInput.titolo === 'string'
+        ? context.requestInput.titolo
+        : (typeof context.requestInput.extractionPayload === 'object' && context.requestInput.extractionPayload !== null
+          ? (context.requestInput.extractionPayload as Record<string, unknown>).titolo
+          : undefined);
+      if (typeof titolo === 'string' && titolo.trim().length > 0) {
+        filledPrompt = filledPrompt.replace(/\{\{titolo\}\}/g, titolo);
+      }
+
+      // Replace {{tone}} from request input
+      const tone = context.requestInput.tone;
+      if (typeof tone === 'string' && tone.trim().length > 0) {
+        filledPrompt = filledPrompt.replace(/\{\{tone\}\}/g, tone);
       }
 
       return {

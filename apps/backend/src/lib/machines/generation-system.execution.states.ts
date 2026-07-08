@@ -253,7 +253,7 @@ export const generationSystemExecutionStates = {
     ],
   },
   generating: {
-    entry: ['ensureArtifactId'],
+    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
     invoke: {
       id: 'generationActor',
       src: 'invokeGeneration',

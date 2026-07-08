@@ -1,6 +1,6 @@
 ---
-status: active
-version: 1.3-executable
+status: completed
+version: 1.4-completed
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -36,9 +36,9 @@ Enable Sprint 4B GenerationSystem Context Decomposition through:
 
 ## DDD Requirements
 
-**Decision Log**: Create single `DDD-XXX` entry before implementation:
+**Decision Log**: Create single `DDD-162` entry before implementation:
 ```markdown
-| DDD-XXX | 2026-07-08 | GenerationSystemContextBuilders | Generation Context internal organization through domain-specific builders | Reduces cognitive complexity while maintaining GenerationSystem aggregate root role | Generation Context |
+| DDD-162 | 2026-07-08 | GenerationSystemContextBuilders | Generation Context internal organization through domain-specific builders | Reduces cognitive complexity while maintaining GenerationSystem aggregate root role | Generation Context |
 ```
 
 **Key Constraints**:
@@ -185,14 +185,14 @@ context: ({ input }) => ({
 ## Validation & Success Criteria
 
 ### **Sprint 2 Complete When**:
-- [ ] `HttpRouteCapabilities` namespace operational, all 13 capabilities preserved
-- [ ] 4 Generation Context builders implemented and used in context initialization (`generation-system.runtime.ts`)
-- [ ] All consumer files updated, `npm --workspace apps/backend run go` passes
-- [ ] Build typecheck < 30s maintained
-- [ ] Sprint 4B critical dependency satisfied
+- [x] `HttpRouteCapabilities` namespace operational, all 17 capabilities preserved
+- [x] 4 Generation Context builders implemented and used in context initialization (`generation-system.runtime.ts`)
+- [x] All consumer files updated, `npm --workspace apps/backend run go` passes (335/335 tests)
+- [x] Build typecheck < 30s maintained
+- [x] Sprint 4B critical dependency satisfied
 
 ### **DDD Compliance Verified**:
-- [ ] `DDD-XXX` entry created in decision log
-- [ ] Route capabilities classified as Infrastructure Layer (not domain boundaries)
-- [ ] All context field ownership attributed to Generation Context
-- [ ] `GenerationSystem` aggregate root authority preserved
+- [x] `DDD-162` entry created in decision log
+- [x] Route capabilities classified as Infrastructure Layer (not domain boundaries)
+- [x] All context field ownership attributed to Generation Context
+- [x] `GenerationSystem` aggregate root authority preserved

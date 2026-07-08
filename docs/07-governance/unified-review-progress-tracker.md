@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-15
 owner: Domain Architecture
@@ -29,8 +29,8 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 | Sprint | Status | Start Date | Target End | Actual End | Sprint Gate Status |
 |--------|--------|------------|------------|------------|-------------------|
 | **Sprint 1** | ✅ Completed | 2026-07-08 | 2026-07-08 | 2026-07-08 | ✅ Passed |
-| **Sprint 2** | 🚀 Ready | - | - | - | ⏳ Pending |
-| **Sprint 3** | ⏸️ Blocked | - | - | - | ⏸️ Awaiting Sprint 2 |
+| **Sprint 2** | ✅ Completed | 2026-07-08 | 2026-07-08 | 2026-07-08 | ✅ Passed |
+| **Sprint 3** | 🚀 Ready | - | - | - | ⏳ Pending |
 | **Sprint 4** | ⏸️ Blocked | - | - | - | ⏸️ Awaiting Sprint 3 |
 | **Sprint 5** | ⏸️ Blocked | - | - | - | ⏸️ Awaiting Sprint 4 |
 
@@ -92,47 +92,54 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ---
 
-## 🏗️ SPRINT 2: Evolutionary Infrastructure (Status: 🚀 Ready)
+## ✅ SPRINT 2: Evolutionary Infrastructure (Status: ✅ Completed)
 
 **Objective**: Prepare infrastructure for core architectural work  
 **Risk Profile**: Basso - DDD-compliant enhancements  
-**Duration**: 2-3 settimane  
+**Duration**: 1 session  
 **Blocker**: Sprint 1 completed ✅
 
 ### Sprint 2 Tasks
 
 #### **2A. Route Capabilities Evolution** (A3 📋)
-- [ ] **Analysis**: Review current route capabilities structure
-- [ ] **Design**: Plan domain-specific capability namespacing
-- [ ] **Implementation**: Implement namespaced capabilities
-- [ ] **Validation**: Capability namespacing operational
-- **Assignee**: TBD  
-- **Status**: 🚀 Ready  
+- [x] **Analysis**: Review current route capabilities structure (17 capabilities)
+- [x] **Design**: Infrastructure Layer operational namespacing via `HttpRouteCapabilities` namespace
+- [x] **Implementation**: `HttpRouteCapabilities` namespace + template literal `AuthHttpRouteCapability` type
+- [x] **Validation**: Typecheck clean, all 17 capabilities preserved, zero runtime changes
+- **Assignee**: AI Agent (Sprint 2 session)  
+- **Status**: ✅ Completed 2026-07-08  
 - **Dependencies**: None (CRITICAL for Sprint 4B)
+- **Changes**: `apps/backend/src/lib/runtime/auth-http/route-table.ts` (lines 25-43)
 
 #### **2B. Generation System Internal Enhancement** (A2 📋)
-- [ ] **Analysis**: Review generation system context structure
-- [ ] **Design**: Plan domain-specific context builders
-- [ ] **Implementation**: Extract context builders by domain
-- [ ] **Validation**: Context builders organized by domain concern
-- **Assignee**: TBD  
-- **Status**: 🚀 Ready  
+- [x] **Analysis**: Review generation system context structure (30+ inline defaults)
+- [x] **Design**: 4 builders by concern: `buildGenerationCoreDefaults`, `buildGenerationRuntimeDefaults`, `buildGenerationMetricsDefaults`, `buildGenerationInfraContext`
+- [x] **Implementation**: Builders in `generation-system.runtime.ts`, context factory uses spread calls
+- [x] **Validation**: 335/335 tests pass, typecheck clean, consumer files unchanged
+- **Assignee**: AI Agent (Sprint 2 session)  
+- **Status**: ✅ Completed 2026-07-08  
 - **Dependencies**: None (parallel with 2A)
+- **Changes**: 
+  - `apps/backend/src/lib/machines/generation-system.runtime.ts` (4 builders added)
+  - `apps/backend/src/lib/machines/generation-system.definition.ts` (context factory refactored)
+- **DDD Governance**: DDD-162 entry added to `domain-naming-decision-log.md`
 
 ### Sprint 2 Gates
-- [ ] **Capability Infrastructure**: Domain-specific namespacing operational
-- [ ] **Context Preparation**: Domain-specific context builders organized
-- [ ] **Architecture Readiness**: Infrastructure prepared for core decomposition work
-- [ ] **Build Performance**: Typecheck baseline < 30s established
+- [x] **Capability Infrastructure**: `HttpRouteCapabilities` namespace operational, Sprint 4B routing ready
+- [x] **Context Preparation**: 4 context builders organized by concern, aggregate root preserved
+- [x] **Architecture Readiness**: Infrastructure prepared for Sprint 4B decomposition work
+- [x] **Build Performance**: Typecheck < 30s maintained
+
+**Sprint 2 Completion**: ✅ Completed 2026-07-08
 
 ---
 
-## ⚡ SPRINT 3: Structural Decoupling (Status: ⏸️ Blocked)
+## ⚡ SPRINT 3: Structural Decoupling (Status: 🚀 Ready)
 
 **Objective**: Resolve coupling issues with foundation established  
 **Risk Profile**: Medio - significant architectural changes on solid base  
 **Duration**: 3-4 settimane  
-**Blocker**: Sprint 2 completion required
+**Blocker**: Sprint 2 completed ✅
 
 ### Sprint 3 Tasks
 
@@ -152,7 +159,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 - [ ] **Validation**: Tree-shakable exports, build performance < 30s
 - **Assignee**: TBD  
 - **Status**: ⏸️ Blocked by Sprint 2  
-- **Dependencies**: Infrastructure evolution (Sprint 2) — Sprint 1B cancelled (not needed)
+- **Dependencies**: Infrastructure evolution (Sprint 2) completed ✅
 
 ### Sprint 3 Gates
 - [ ] **Actor Isolation**: < 5 direct `sendTo` actions per machine
@@ -186,8 +193,8 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 - [ ] **Implementation**: Split context, implement specialized builders
 - [ ] **Validation**: < 15 fields per context object, clear domain separation
 - **Assignee**: TBD  
-- **Status**: ⏸️ Blocked by Sprint 2A completion  
-- **Dependencies**: **CRITICAL** - Route Capabilities (Sprint 2A) completed
+- **Status**: 🚀 Ready  
+- **Dependencies**: **CRITICAL** - Route Capabilities (Sprint 2A) completed ✅
 
 ### Sprint 4 Gates
 - [ ] **Frontend Simplicity**: < 2 `useEffect` hooks per controller
@@ -253,12 +260,12 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ## Risk Management & Rollback Plan
 
-### **Current Risk Status**: 🟢 Low (Foundation Phase Complete)
+### **Current Risk Status**: 🟢 Low (Infrastructure Phase Complete)
 
 ### **Rollback Contingencies**
-- **Sprint 1**: ✅ Completed — individual commit reversion available
-- **Sprint 2-3**: Individual commit reversion available
-- **Sprint 4-5**: Feature flags and tagged stable versions prepared
+- **Sprint 1-2**: ✅ Completed — individual commit reversion available
+- **Sprint 3-4**: Feature flags and tagged stable versions prepared
+- **Sprint 5**: Tagged stable version rollback available
 - **Emergency**: Complete rollback capability to pre-implementation state
 
 ### **Escalation Path**
@@ -271,22 +278,22 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 ## Next Actions
 
 ### **Immediate** (This Week)
-1. **Sprint 1 Review**: Review completed changes with Domain Architect
-2. **Sprint 2 Kickoff**: Begin Sprint 2 planning (Route Capabilities + Generation System Enhancement)
-3. **DDD Governance**: Review DDD-158 through DDD-161 entries with Domain Architect
+1. **Sprint 3 Planning**: Begin Structural Decoupling (3A Actor Decoupling + 3B Adapter Index)
+2. **Sprint 2 Review**: Review completed infrastructure changes with Domain Architect
+3. **DDD Governance**: Review DDD-162 entry with Domain Architect
 
 ### **Short Term** (Next 2 Weeks) 
-1. **Sprint 2 Execution**: Begin infrastructure evolution tasks (2A + 2B parallel)
-2. **Sprint 3 Preparation**: Plan structural decoupling approach
-3. **Risk Assessment**: Validate Sprint 1 foundation enables Sprint 4A readiness
+1. **Sprint 3 Execution**: Begin structural decoupling (3A Actor Decoupling + 3B Adapter Index)
+2. **Sprint 4 Preparation**: Plan reactive spaghetti resolution and context decomposition
+3. **Risk Assessment**: Validate Sprint 2 infrastructure enables Sprint 4B readiness
 
 ### **Medium Term** (Next Month)
-1. **Sprint 2-3 Completion**: Complete infrastructure and structural work
-2. **Sprint 4 Readiness**: Validate clean domain boundaries before reactive spaghetti resolution
-3. **Architecture Review**: Validate foundation before core changes
+1. **Sprint 3-4 Completion**: Complete structural and core architecture work
+2. **Sprint 5 Readiness**: Validate clean domain boundaries before technical debt elimination
+3. **Architecture Review**: Validate foundation before Sprint 4 core changes
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 1 session — 1A+1C completed)  
+**Last Updated**: 2026-07-08 (Sprint 2 session — 2A+2B completed)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team

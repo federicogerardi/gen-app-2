@@ -384,37 +384,21 @@ export const generationSystemActions = {
         return context.requestInput;
       }
 
-      console.info('[blog-article] assembleBlogArticlePrompt invoked', {
-        toolKey,
-        workflowType,
-        hasResolvedPromptTemplate: typeof context.requestInput.resolvedPromptTemplate === 'string',
-        hasPrompt: typeof context.requestInput.prompt === 'string',
-        stepDependencyArtifactContentsByStep: context.requestInput.stepDependencyArtifactContentsByStep,
-        requestInputKeys: Object.keys(context.requestInput),
-      });
-
       const promptTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
         ? context.requestInput.resolvedPromptTemplate
         : (typeof context.requestInput.prompt === 'string' ? context.requestInput.prompt : '');
 
       if (!promptTemplate) {
-        console.warn('[blog-article] no prompt template found');
         return context.requestInput;
       }
 
       let filledPrompt = promptTemplate;
 
-      // Replace {{output_step_<stepKey>}} placeholders with actual content from step dependencies
       const dependencyOutputsByStepRaw = context.requestInput.stepDependencyArtifactContentsByStep;
       const dependencyOutputsByStep =
         dependencyOutputsByStepRaw && typeof dependencyOutputsByStepRaw === 'object' && !Array.isArray(dependencyOutputsByStepRaw)
           ? dependencyOutputsByStepRaw as Record<string, string>
           : {};
-
-      console.info('[blog-article] dependency outputs', {
-        keys: Object.keys(dependencyOutputsByStep),
-        valuesLength: Object.values(dependencyOutputsByStep).map(v => v.length),
-      });
 
       for (const [stepKey, content] of Object.entries(dependencyOutputsByStep)) {
         if (typeof content === 'string' && content.trim().length > 0) {
@@ -438,13 +422,6 @@ export const generationSystemActions = {
       if (typeof tone === 'string' && tone.trim().length > 0) {
         filledPrompt = filledPrompt.replace(/\{\{tone\}\}/g, tone);
       }
-
-      const remainingPlaceholders = filledPrompt.match(/\{\{[^}]+\}\}/g);
-      console.info('[blog-article] filled prompt length', filledPrompt.length, {
-        remainingPlaceholderCount: remainingPlaceholders ? remainingPlaceholders.length : 0,
-        remainingPlaceholders: remainingPlaceholders ?? [],
-        templateLength: promptTemplate.length,
-      });
 
       return {
         ...context.requestInput,

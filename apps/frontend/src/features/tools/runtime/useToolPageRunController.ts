@@ -181,11 +181,9 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
         }
       }
       if (import.meta.env.DEV && depEntries.length > 0) {
-        console.info('[useToolPage] dependency content debug', {
+        console.debug('[useToolPage] dependency content resolved', {
           step,
-          dependencyIds: orchestrationResult.dependencyArtifactIdsByStep,
-          resolvedKeys: Object.keys(dependencyContentMap),
-          contentLengths: Object.entries(dependencyContentMap).map(([k, v]) => ({ step: k, len: v.length })),
+          resolvedSteps: Object.keys(dependencyContentMap),
         });
       }
       const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentMap);

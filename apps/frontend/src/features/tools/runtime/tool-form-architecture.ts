@@ -417,19 +417,18 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   },
   'blog-article-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Upload content brief with target keywords, audience, and article requirements.',
+    summary: 'Inserisci il titolo dell\'articolo da generare.',
     inputFiles: [],
     allowNoFiles: true,
     requiredFiles: [],
     requiredFieldKeys: [],
-    requiredFields: ['Titolo', 'Target audience', 'Tone'],
-    optionalFields: ['Keywords', 'References', 'Style preferences'],
+    requiredFields: ['Titolo'],
+    optionalFields: [],
     examples: [
       'Titolo: Advanced React patterns for performance optimization',
-      'Target Audience: Frontend developers with 2+ years experience',
     ],
-    notes: ['Include target word count and SEO requirements in the brief.'],
-    stepConstraints: ['All steps maintain consistent SEO keyword usage throughout the workflow.'],
+    notes: ['Il titolo è l\'unico campo obbligatorio per avviare la generazione.'],
+    stepConstraints: ['La sequenza canonica è blog_seo_structure -> blog_research -> blog_article.'],
   },
 };
 

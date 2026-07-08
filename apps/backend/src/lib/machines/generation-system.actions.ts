@@ -439,7 +439,12 @@ export const generationSystemActions = {
         filledPrompt = filledPrompt.replace(/\{\{tone\}\}/g, tone);
       }
 
-      console.info('[blog-article] filled prompt length', filledPrompt.length);
+      const remainingPlaceholders = filledPrompt.match(/\{\{[^}]+\}\}/g);
+      console.info('[blog-article] filled prompt length', filledPrompt.length, {
+        remainingPlaceholderCount: remainingPlaceholders ? remainingPlaceholders.length : 0,
+        remainingPlaceholders: remainingPlaceholders ?? [],
+        templateLength: promptTemplate.length,
+      });
 
       return {
         ...context.requestInput,

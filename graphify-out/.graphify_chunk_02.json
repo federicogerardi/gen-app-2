@@ -1,0 +1,756 @@
+{
+  "nodes": [
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_form_lock_on_click_1_isformlocked",
+      "label": "Form Lock on Click isFormLocked",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-form-lock-on-click-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_screenshotarchival",
+      "label": "Geometric Screenshot Archival",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_geometric_screenshot_metadata",
+      "label": "geometric_screenshot_metadata Table",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_geometric",
+      "label": "Geometric Tool Workflow",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_analysissession",
+      "label": "AnalysisSession Aggregate Root",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_crawling",
+      "label": "Crawling Phase (Geometric)",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_scoring",
+      "label": "Competitor Scoring Phase (Geometric)",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodeloverrideconfig",
+      "label": "StepLlmModelOverrideConfig Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodelresolver",
+      "label": "StepLlmModelResolver Domain Service",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_effectivemodelresolution",
+      "label": "EffectiveModelResolution Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_meta_ads_cluster_system_evolution_1_clustersystem",
+      "label": "ClusterSystem Evolution",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-meta-ads-cluster-system-evolution-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_meta_ads_cluster_system_evolution_1_copylengthformat",
+      "label": "CopyLengthFormat Parameter",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-meta-ads-cluster-system-evolution-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_stepdisplayconfig",
+      "label": "StepDisplayConfig Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_toolstepdisplayconfig",
+      "label": "ToolStepDisplayConfig",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_toolstepdisplayconfigmap",
+      "label": "ToolStepDisplayConfigMap",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_excludesteps",
+      "label": "excludeSteps Parameter",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_tool_availability_policy_1_toolavailabilitystatus",
+      "label": "ToolAvailabilityStatus Policy",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-tool-availability-policy-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_tool_meta_ads_1_metaadsgenerator",
+      "label": "MetaAds Generator",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-tool-meta-ads-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_youtube_description_tool_1_youtubedescriptiongenerator",
+      "label": "YT Description Generator",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-youtube-description-tool-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_feature_zod_backend_unification_1_zodbackendunification",
+      "label": "Zod Backend Unification",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-zod-backend-unification-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_fix_orchestrate_503_redis_cache_1_redisartifactcache",
+      "label": "Redis Artifact Cache for Orchestration",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/fix-orchestrate-503-redis-cache-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_generationmode",
+      "label": "GenerationMode Discriminator",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_generationrunresponse",
+      "label": "GenerationRunResponse Contract",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_nonstreamingcoexistence",
+      "label": "Non-Streaming Generation Coexistence",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_admin_handlers_cohesion_1_adminhandlersdecomposition",
+      "label": "Admin Handlers Subdirectory Decomposition",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-admin-handlers-cohesion-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_api_service_ddd_blocker_removal_1_apiservicedddblockerremoval",
+      "label": "ApiService DDD Blocker Removal",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-api-service-ddd-blocker-removal-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_ddd_081_tool_input_policy_1_toolinputfilepolicy",
+      "label": "Tool Input File Requirement Policy",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-ddd-081-tool-input-policy-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_frontend_copy_unification_1_frontendcopyunification",
+      "label": "Frontend Copy Unification",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-frontend-copy-unification-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_god_nodes_decomposition_1_authhookspecialization",
+      "label": "Auth Hook Specialization",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-god-nodes-decomposition-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_god_nodes_decomposition_1_backendcapabilitiesdomainprojection",
+      "label": "Backend Capabilities Domain Projection",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-god-nodes-decomposition-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditquota",
+      "label": "CreditQuota Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_monthlycreditsused",
+      "label": "MonthlyCreditsUsed Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditcost",
+      "label": "CreditCost Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_artifactgatelimit",
+      "label": "ArtifactGateLimit Value Object",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_consumecredits",
+      "label": "ConsumeCredits Command",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_recordartifactsuccess",
+      "label": "RecordArtifactSuccess Command",
+      "file_type": "concept",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "label": "ClaimUsage Revision",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_tool_generation_flow_monitoring_dashboard_1_workflowpanelmonitoringdashboard",
+      "label": "Workflow Panel Monitoring Dashboard",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-tool-generation-flow-monitoring-dashboard-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_tool_workspace_workflow_panel_unified_1_workflowpanelunification",
+      "label": "Simplified Workflow Panel Unification",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-tool-workspace-workflow-panel-unified-1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_refactor_xstate_explicit_error_states_a1_expliciterrorstatesrefactoring",
+      "label": "Explicit Error States Refactoring (A1)",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_lifecycle_99_archive_plans_remove_geometric_screenshot_archival_screenshotarchivalremoval",
+      "label": "Screenshot Archival Retirement",
+      "file_type": "rationale",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_99_reference_templates_tool_development_plan_template_tooldevelopmenttemplate",
+      "label": "Tool Development Plan Template",
+      "file_type": "document",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-reference/templates/tool-development-plan-template.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_development_llm_model_override_configuration_guide_llmmodeloverrideguide",
+      "label": "LLM Model Override Configuration Guide",
+      "file_type": "document",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/development/llm-model-override-configuration-guide.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "graphify_out_memory_query_20260706_232736_why_does_toolkey_connect_session_artifact_group_to_toolkeyqueryanalysis",
+      "label": "ToolKey Connection Query Analysis",
+      "file_type": "document",
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/graphify-out/memory/query_20260706_232736_why_does_toolkey_connect_session_artifact_group_to.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": "graphify"
+    }
+  ],
+  "edges": [
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_screenshotarchival",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_geometric_screenshot_metadata",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_geometric",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_analysissession",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_geometric",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_crawling",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_geometric",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_scoring",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-geometric-tool-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodelresolver",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodeloverrideconfig",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodelresolver",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_effectivemodelresolution",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-llm-model-step-override-system-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_meta_ads_cluster_system_evolution_1_clustersystem",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_meta_ads_cluster_system_evolution_1_copylengthformat",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-meta-ads-cluster-system-evolution-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_toolstepdisplayconfig",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_stepdisplayconfig",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_toolstepdisplayconfigmap",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_toolstepdisplayconfig",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_excludesteps",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_step_display_config_1_stepdisplayconfig",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/feature-step-display-config-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_nonstreamingcoexistence",
+      "target": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_generationmode",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_nonstreamingcoexistence",
+      "target": "docs_99_lifecycle_99_archive_plans_migrate_to_nonstreaming_generation_generationrunresponse",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_god_nodes_decomposition_1_authhookspecialization",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_god_nodes_decomposition_1_backendcapabilitiesdomainprojection",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-god-nodes-decomposition-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditquota",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_monthlycreditsused",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditcost",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_artifactgatelimit",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_consumecredits",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_claimusagerevision",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_recordartifactsuccess",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_remove_geometric_screenshot_archival_screenshotarchivalremoval",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_screenshotarchival",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_development_llm_model_override_configuration_guide_llmmodeloverrideguide",
+      "target": "docs_99_lifecycle_99_archive_plans_feature_llm_model_step_override_system_1_stepllmmodeloverrideconfig",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/development/llm-model-override-configuration-guide.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "docs_99_lifecycle_99_archive_plans_refactor_tool_workspace_workflow_panel_unified_1_workflowpanelunification",
+      "target": "docs_99_lifecycle_99_archive_plans_refactor_tool_generation_flow_monitoring_dashboard_1_workflowpanelmonitoringdashboard",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-tool-workspace-workflow-panel-unified-1.md",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "xstate_explicit_error_and_copy_unification_group",
+      "label": "XState Explicit Error and Copy Unification Flows",
+      "nodes": [
+        "docs_99_lifecycle_99_archive_plans_refactor_xstate_explicit_error_states_a1_expliciterrorstatesrefactoring",
+        "docs_99_lifecycle_99_archive_plans_refactor_ddd_081_tool_input_policy_1_toolinputfilepolicy",
+        "docs_99_lifecycle_99_archive_plans_refactor_frontend_copy_unification_1_frontendcopyunification"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md"
+    },
+    {
+      "id": "quota_credits_and_artifact_gate_system_concepts",
+      "label": "Quota Credits & Artifact Gate System Elements",
+      "nodes": [
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditquota",
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_monthlycreditsused",
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_creditcost",
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_artifactgatelimit",
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_consumecredits",
+        "docs_99_lifecycle_99_archive_plans_refactor_quota_credits_and_artifact_gate_1_recordartifactsuccess"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/refactor-quota-credits-and-artifact-gate-1.md"
+    },
+    {
+      "id": "geometric_scraping_vs_serpapi_architecture_cycle",
+      "label": "Geometric SERP Scraping vs SerpApi Architecture Cycle",
+      "nodes": [
+        "docs_99_lifecycle_99_archive_plans_feature_geometric_tool_1_geometric",
+        "docs_99_lifecycle_99_archive_plans_feature_geometric_screenshot_archival_1_screenshotarchival",
+        "docs_99_lifecycle_99_archive_plans_remove_geometric_screenshot_archival_screenshotarchivalremoval"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "/home/killeader/Dev/Progetti/gen-app-2/docs/99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

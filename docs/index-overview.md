@@ -41,9 +41,10 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 4. [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
 5. [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 6. [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
-7. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
-8. [production-observability-runbook](./04-testing/production-observability-runbook.md)
-9. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
+7. [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — **🔥 URGENT: critical architectural vulnerabilities with progressive execution plan**
+8. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+9. [production-observability-runbook](./04-testing/production-observability-runbook.md)
+10. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
 
 ## Section Map
 
@@ -61,6 +62,7 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
+| [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | active | 2026-07-08 | 2026-10-08 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-11 | 2026-08-03 |
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-26 | 2026-08-03 |
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-26 | 2026-08-03 |
@@ -116,6 +118,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Reviews
 
+- **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — 🔥 HIGH PRIORITY: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (2026-07-08)**
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
 

@@ -1,6 +1,6 @@
 ---
 status: ready
-version: 1.3-ddd-passed
+version: 1.4-optimized
 last-reviewed: 2026-07-08
 next-review-date: 2026-07-22
 owner: Domain Architecture Team
@@ -15,7 +15,7 @@ tags:
   - ddd-compliance
   - ddd-passed
   - ai-execution-ready
-  - momus-reviewed
+  - optimized
 goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 through reactive pattern consolidation and domain-aligned context decomposition with full DDD governance compliance
 ---
 
@@ -38,77 +38,31 @@ Resolve critical architectural vulnerabilities through systematic core architect
 
 ---
 
-## DDD Gate-First Workflow
+## DDD Gate-First Workflow ✅ COMPLETED
 
-**MANDATORY**: Complete all DDD governance gates before any implementation begins. This follows the Domain-Driven Design Governance Gatekeeper principle that **documentation is binding, not decorative**.
+**Status**: All DDD governance gates passed. Implementation ready to proceed immediately.
 
-### **Gate 1: Decision Log Entry Creation (BLOCKING)**
+| Gate | Requirement | Status |
+|------|-------------|---------|
+| **Gate 1** | DDD-165→172 entries created | ✅ Complete (8/8 entries) |
+| **Gate 2** | All terminology canonical | ✅ Complete (verified) |
+| **Gate 3** | BCM boundaries respected | ✅ Complete (verified) |
+| **Gate 4** | Implementation ready | ✅ Complete (all deps met) |
 
-**Status**: ✅ **COMPLETED** - All entries DDD-165 through DDD-172 created and approved
+**Created DDD Entries**: DDD-165 (`ReactivePatternConsolidation`), DDD-166 (`GenerationContextDecomposition`), DDD-167→171 (5 sub-context types), DDD-172 (`DecomposedGenerationContext` composition pattern).
 
-**Completed Entries**:
-- ✅ DDD-165: `ReactivePatternConsolidation` - Frontend useEffect consolidation  
-- ✅ DDD-166: `GenerationContextDecomposition` - 31-field context decomposition
-- ✅ DDD-167: `GenerationDomainContext` - Business logic sub-context (10 fields)
-- ✅ DDD-168: `GenerationRuntimeContext` - Execution state sub-context (8 fields)
-- ✅ DDD-169: `GenerationMetricsContext` - Usage tracking sub-context (4 fields) 
-- ✅ DDD-170: `GenerationInfraContext` - Infrastructure sub-context (4 fields)
-- ✅ DDD-171: `GenerationErrorContext` - Error handling sub-context (3 fields)
-- ✅ DDD-172: `DecomposedGenerationContext` - Composition pattern governance
-
-### **Gate 2: Canonical Terminology Verification (BLOCKING)**
-
-**Status**: ✅ **COMPLETED** - All terms are now canonical or have approved DDD entries
-
-**Verification Checklist**:
-- [x] `ToolPage` → Canonical (BCM L95)
-- [x] `BackendStreamEvent` → Canonical (Glossary L60, DDD-023)  
-- [x] `GenerationSystem` → Canonical (BCM L40)
-- [x] Consumer hooks → Canonical (DDD-158/159/160/161)
-- [x] Error handling → Canonical (DDD-149 boundary)
-- [x] `ReactivePatternConsolidation` → **Canonical via DDD-165** ✅
-- [x] `GenerationContextDecomposition` → **Canonical via DDD-166** ✅
-- [x] `GenerationDomainContext` → **Canonical via DDD-167** ✅
-- [x] `GenerationRuntimeContext` → **Canonical via DDD-168** ✅
-- [x] `GenerationMetricsContext` → **Canonical via DDD-169** ✅
-- [x] `GenerationInfraContext` → **Canonical via DDD-170** ✅
-- [x] `GenerationErrorContext` → **Canonical via DDD-171** ✅
-- [x] `DecomposedGenerationContext` → **Canonical via DDD-172** ✅
-
-### **Gate 3: BCM Boundary Compliance (BLOCKING)**
-
-**Status**: ✅ **VERIFIED** - All context boundaries respect BCM authority
-
-**Compliance Verified**:
-- ✅ Frontend/UI downstream consumer role (BCM L25) maintained
-- ✅ Generation Context aggregate root (BCM L40) preserved with internal enhancement
-- ✅ No cross-context authority violations in decomposition strategy
-- ✅ Error handling remains within Generation Context boundary
-- ✅ Integration patterns respect established upstream/downstream relationships
-
-### **Gate 4: Implementation Readiness (DEPENDENT)**
-
-**Status**: ✅ **READY** - All dependencies completed, implementation can proceed
-
-**Ready Status**:
-- [x] Technical analysis completed (codebase field counts verified)
-- [x] Implementation strategy validated (Momus review passed)
-- [x] **Decision log entries created and approved (Gate 1)** ✅
-- [x] **Canonical terminology verified (Gate 2)** ✅
-- [x] BCM compliance verified (Gate 3) ✅
-
-**Gate Completion Command**:
+**Gate Verification**:
 ```bash
-# Verify all gates completed
+# Verify all DDD entries created
 grep -c "DDD-165\|DDD-166\|DDD-167\|DDD-168\|DDD-169\|DDD-170\|DDD-171\|DDD-172" docs/07-governance/domain-naming-decision-log.md
-# Expected: 8 (all entries present) ✅ VERIFIED
+# Expected: 8 ✅ VERIFIED
 
-# Verify decision log version update
-grep "version:" docs/07-governance/domain-naming-decision-log.md
-# Expected: version 4.5 ✅ VERIFIED
+# Verify decision log updated
+grep "version: 4.5" docs/07-governance/domain-naming-decision-log.md
+# ✅ VERIFIED
 ```
 
-**GATE STATUS**: ✅ **ALL GATES PASSED** - Implementation ready to proceed
+**AI Execution**: ✅ **Proceed immediately** - all governance requirements satisfied.
 
 ---
 
@@ -166,394 +120,99 @@ grep "version:" docs/07-governance/domain-naming-decision-log.md
 
 **Objective**: Eliminate unstable callback dependencies that cause spurious effect re-fires
 
-**Current Issue**: `startGenerationStep` callback (lines 74-221) has 21 dependencies including `generationArtifacts.artifacts` (new array ref every reload), causing Effects 2+4 to re-evaluate after every completion.
+**Issue**: `startGenerationStep` callback (lines 74-221) has 21 dependencies including `generationArtifacts.artifacts` (new array ref every reload), causing Effects 2+4 to re-evaluate after every completion.
 
-**Implementation**:
-
-**Before** (lines 215-221):
+**Solution**: Separate stable callback from volatile dependencies via call-time capture:
 ```typescript
-[
-  auth, briefingSnapshot, effectiveBriefingFileName, formState,
-  generationArtifacts.artifacts, generationStream, generationRun,
-  intent, machineHydrationResult, nextAvailableStep, pausedCheckpointStep,
-  primaryActionPolicy, primaryTargetStep, readinessSnapshot,
-  resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
-  runtimeIntent, sessionId, sourceArtifact, sourceArtifactId,
-  sourceStep, toolConfig, toolKey, toolPageSend, workspaceExtractionContext,
-]
+// Before: 21 unstable dependencies in useCallback
+[auth, briefingSnapshot, /* ...18 more dependencies */]
+
+// After: 3 stable dependencies only  
+const stableStartGeneration = useCallback((step: ToolStep) => {
+  // Extract volatile values at call time, not memoization time
+  const currentAuth = auth;
+  const currentArtifacts = generationArtifacts.artifacts;
+  // ... implementation with call-time capture
+}, [toolKey, toolConfig.steps, toolPageSend]); // Only stable deps
 ```
 
-**After**:
-```typescript
-// Separate stable callback from volatile dependencies
-const stableStartGeneration = useCallback(
-  (step: ToolStep) => {
-    // Extract only essential stable values at call time
-    const currentAuth = auth;
-    const currentArtifacts = generationArtifacts.artifacts;
-    // ... rest of implementation with call-time capture
-  },
-  [toolKey, toolConfig.steps, toolPageSend] // Only truly stable deps
-);
-
-// Volatile values captured at effect fire time, not callback memoization time
-```
-
-**Validation**:
-```bash
-# Before: count callback deps
-grep -A 10 "useCallback" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts | grep -c ","
-
-# After: expect ≤ 5 stable dependencies
-```
+**Validation**: `grep -A 10 "useCallback" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts | grep -c "," ≤ 5`
 
 ### Step 2: Consolidate Stream-Related Effects (Effects 3 → XState Integration)
 
 **Objective**: Move stream terminal resolution logic from Effect 3 into XState machine
 
-**Current Issue**: Effect 3 (lines 235-307, 13 dependencies) acts as external orchestrator, sending events TO the machine instead of the machine driving its own lifecycle.
+**Issue**: Effect 3 (lines 235-307, 13 dependencies) acts as external orchestrator, sending events TO the machine instead of the machine driving its own lifecycle.
 
-**Implementation**:
-
-**Before** (Effect 3 excerpt, lines 235-260):
+**Solution**: Replace reactive effect with XState invoke actor:
 ```typescript
-useEffect(() => {
-  if (generationStream.isStreamActive) {
-    wasStreamActiveRef.current = true;
-    return;
-  }
-  // ... complex terminal resolution logic
-  if (generationStatus === 'completed') {
-    const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
-    const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
-    if (resolved && nonStreamingCompletedStepsRef.current.has(resolved)) return;
-    if (resolved) {
-      nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
-      toolPageSend({ type: 'STEP_DONE', step: resolved });
-      toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
-    }
-    generationArtifacts.reloadArtifacts();
-    return;
-  }
-  // ... similar logic for failed state
-}, [/* 13 dependencies */]);
-```
+// Before: Complex 73-line effect with 13 dependencies reacting to stream changes
+useEffect(() => { /* complex terminal resolution logic */ }, [/* 13 dependencies */]);
 
-**After** (XState machine integration):
-```typescript
-// In tool-page.machine.ts - new state
+// After: XState machine drives its own lifecycle  
+// In tool-page.machine.ts:
 streamResolution: {
   invoke: {
-    id: 'streamResolutionActor',
     src: 'resolveStreamTerminalStatus',
-    input: ({ context }) => ({
-      streamStatus: context.streamStatus,
-      generationStatus: context.generationStatus,
-      toolConfig: context.toolConfig,
-    }),
     onDone: [
-      {
-        guard: 'stepCompleted',
-        target: 'configuring.clean',
-        actions: ['recordStepCompletion', 'reloadArtifacts'],
-      },
-      {
-        guard: 'stepFailed', 
-        target: 'configuring.generationFailed',
-        actions: ['recordStepFailure', 'setErrorFromFailure'],
-      },
-    ],
-  },
-},
+      { guard: 'stepCompleted', target: 'configuring.clean', actions: ['recordStepCompletion'] },
+      { guard: 'stepFailed', target: 'configuring.generationFailed', actions: ['recordStepFailure'] }
+    ]
+  }
+}
 
-// In useToolPageRunController.ts - simplified effect
+// In useToolPageRunController.ts: Simple 3-dependency effect  
 useEffect(() => {
-  // Only notify machine of state changes, don't orchestrate
-  toolPageSend({ 
-    type: 'STREAM_STATUS_CHANGED', 
-    streamStatus: generationStream.streamStatus,
-    generationStatus: generationStatus,
-  });
-}, [generationStream.streamStatus, generationStatus, toolPageSend]); // 3 deps only
+  toolPageSend({ type: 'STREAM_STATUS_CHANGED', streamStatus, generationStatus });
+}, [streamStatus, generationStatus, toolPageSend]);
 ```
 
-**Validation**:
-```bash
-# Verify effect dependency reduction
-grep -A 20 "useEffect.*generationStream\|generationStatus" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts | grep -c "]:"
-# Expected: 1 effect with ≤ 3 dependencies
-```
+**Validation**: `grep -A 20 "useEffect.*generationStream" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts | grep -c "]:" ≤ 1`
 
 ### Step 3: Extract Pending Step Dispatch Logic (Effect 2 → XState Action)
 
 **Objective**: Move async `startGenerationStep` call from Effect 2 into XState machine action
 
-**Current Issue**: Effect 2 (lines 223-233) reacts to machine context `pendingStepStart` by calling async function, then sends events back to machine — circular reactive coupling.
+**Issue**: Effect 2 (lines 223-233) reacts to machine context `pendingStepStart` by calling async function, then sends events back to machine — circular reactive coupling.
 
-**Implementation**:
+**Solution**: Replace reactive effect with XState invoke actor that handles async dispatch internally.
 
-**Before** (Effect 2, lines 223-233):
-```typescript
-useEffect(() => {
-  if (!pendingStepStart) return;
-  currentRunPrefixRef.current = pendingStepStart.runRequestPrefix;
-  toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
-  void startGenerationStep(pendingStepStart.step).then((success) => {
-    if (!success) {
-      setDispatchError(appCopy.ui.toolPage.runtimeErrors.dispatchFailed);
-      toolPageSend({ type: 'CANCEL_GENERATION' });
-    }
-  });
-}, [pendingStepStart, startGenerationStep, toolPageSend]);
-```
-
-**After** (XState action integration):
-```typescript
-// In tool-page.machine.ts - new action
-executeStepDispatch: enqueueActions(({ enqueue, context }) => {
-  if (!context.pendingStepStart) return;
-  
-  enqueue.assign({
-    currentRunPrefix: context.pendingStepStart.runRequestPrefix,
-  });
-  
-  enqueue('dispatchStepGeneration'); // invoke async actor
-}),
-
-// In useToolPageRunController.ts - no reactive effect needed
-// Machine drives its own lifecycle via actions and invoke actors
-```
-
-**New Invoke Actor** (`dispatchStepGeneration`):
-```typescript
-dispatchStepGeneration: fromPromise(async ({ input }) => {
-  const success = await startGenerationStep(input.step);
-  if (!success) {
-    throw new Error('dispatch_failed');
-  }
-  return { type: 'STEP_DISPATCHED_SUCCESS' };
-}),
-```
-
-**Validation**:
-```bash
-# Verify pendingStepStart effect removal
-grep -A 10 "pendingStepStart" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: no useEffect containing pendingStepStart
-```
+**Validation**: `grep -A 10 "pendingStepStart" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` shows no useEffect containing pendingStepStart.
 
 ### Step 4: Auto-Chain Logic Migration (Effect 4 → XState Machine)
 
 **Objective**: Move auto-chain driver logic from Effect 4 into XState machine to prevent machine queue bypass
 
-**Current Issue**: Effect 4 (lines 309-342) calls `startGenerationStep` directly, bypassing the `REQUEST_STEP_START` → `pendingStepStart` → Effect 2 flow, creating inconsistent machine state.
+**Issue**: Effect 4 (lines 309-342) calls `startGenerationStep` directly, bypassing the `REQUEST_STEP_START` → `pendingStepStart` → Effect 2 flow, creating inconsistent machine state.
 
-**Implementation**:
+**Solution**: Replace direct function calls with XState state transitions that use the same queue as manual requests.
 
-**Before** (Effect 4 excerpt, lines 320-340):
-```typescript
-useEffect(() => {
-  if (!isAutoChainEnabled) return;
-  // ... failure checks
-  if (generationStream.isStreamActive || generationRun.isGenerationActive) return;
-  if (pendingStepStart) return; // Already prevent duplicate dispatch
-
-  const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
-  const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
-  if (!effectiveNextStep) {
-    stopAutoChain();
-    return;
-  }
-
-  // ... logic to decide whether to proceed
-  if (lastRequestedStep && locallyCompleted.has(lastRequestedStep) && lastRequestedStep !== effectiveNextStep) {
-    void startGenerationStep(effectiveNextStep); // BYPASSES MACHINE QUEUE!
-  }
-}, [/* 12 dependencies */]);
-```
-
-**After** (XState state integration):
-```typescript
-// In tool-page.machine.ts - new state in generating
-autoChainEvaluation: {
-  entry: 'evaluateAutoChainProgress',
-  always: [
-    {
-      guard: 'autoChainDisabled',
-      target: 'configuring.clean',
-    },
-    {
-      guard: 'hasNextStepAvailable', 
-      target: 'queueingNextStep',
-      actions: 'queueNextStepStart', // Uses same queue as manual REQUEST_STEP_START
-    },
-    {
-      target: 'configuring.clean',
-      actions: 'stopAutoChain',
-    },
-  ],
-},
-
-// In useToolPageRunController.ts - no auto-chain effect needed
-// Machine evaluates auto-chain conditions during its own lifecycle
-```
-
-**Validation**:
-```bash
-# Verify auto-chain effect removal
-grep -A 10 "isAutoChainEnabled\|effectiveNextStep" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: no useEffect containing auto-chain logic
-```
+**Validation**: `grep -A 10 "isAutoChainEnabled\|effectiveNextStep" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` shows no useEffect containing auto-chain logic.
 
 ### Step 5: Create and Integrate Consumer Hooks (DDD-158/159/160/161)
 
 **Objective**: Create missing `useToolPageStateConsumer` hook and integrate all consumer hooks to replace raw workspace bindings
 
-**Current Issue**: Run controller still receives raw `generationStream`, `generationRun`, `generationArtifacts`, `auth` props. Consumer hooks exist but are unused. `useToolPageStateConsumer` (DDD-158) is missing entirely.
+**Solution**: 
+1. **Create `useToolPageStateConsumer`** (DDD-158): UI-only state hook returning `{ pageState, formState, navigationState }`
+2. **Replace raw workspace props** with consumer hook calls inside `useToolPageRunController`
+3. **Reduce props interface** - only pass machine-specific values
 
-**Implementation**:
-
-**Before** (useToolPage.ts props passed to run controller):
-```typescript
-const runController = useToolPageRunController({
-  // Raw workspace bindings
-  generationStream,
-  generationRun, 
-  generationArtifacts,
-  auth,
-  // ... other props
-});
-```
-
-**After** (consumer hook integration):
-```typescript
-// In useToolPageRunController.ts - import consumer hooks
-import { useAuthSessionStateConsumer } from './useAuthSessionStateConsumer';
-import { useBackendStreamEventConsumer } from './useBackendStreamEventConsumer';
-import { useQuotaDisplayConsumer } from './useQuotaDisplayConsumer';
-
-// Inside useToolPageRunController - use consumer hooks internally
-const { sessionPrincipal, authCapabilities } = useAuthSessionStateConsumer();
-const { streamEvents, streamState, artifacts } = useBackendStreamEventConsumer();
-const { quotaState, usageMetrics } = useQuotaDisplayConsumer();
-
-// Reduce props interface - only pass machine-specific values
-const runController = useToolPageRunController({
-  toolPageSend,
-  machineViewModel,
-  readinessSnapshot,
-  // Remove: generationStream, generationRun, generationArtifacts, auth
-});
-```
-
-**Create `useToolPageStateConsumer`** (DDD-158):
-```typescript
-// New file: useToolPageStateConsumer.ts
-export function useToolPageStateConsumer() {
-  const { formState } = useToolFormInit();
-  const navigate = useNavigate();
-  
-  return {
-    pageState: {
-      formLocked: formState.isProcessing,
-      navigationEnabled: !formState.isProcessing,
-    },
-    formState: {
-      projectId: formState.projectId,
-      modelSelection: formState.model,
-      // ... other form concerns
-    },
-    navigationState: {
-      navigate,
-      canNavigateAway: !formState.isProcessing,
-    },
-  };
-}
-```
-
-**Validation**:
-```bash
-# Verify consumer hook integration
-grep -c "useAuthSessionStateConsumer\|useBackendStreamEventConsumer\|useQuotaDisplayConsumer\|useToolPageStateConsumer" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: 4 consumer hook imports and usages
-```
+**Validation**: `grep -c "useAuthSessionStateConsumer\|useBackendStreamEventConsumer\|useQuotaDisplayConsumer\|useToolPageStateConsumer" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts ≥ 4`
 
 ### Step 6: Race Condition Prevention & Final Cleanup
 
 **Objective**: Implement deduplication mechanisms and clean up remaining reactive patterns
 
-**Implementation**:
+**Solution**: Add idempotent guards in XState actions and verify final effect count ≤2.
 
-**Race Condition A Prevention** (double `PROGRESS_SYNCED`):
-```typescript
-// In tool-page.machine.ts - idempotent action
-syncProgress: assign(({ event, context }) => {
-  // Deduplicate by runRequestPrefix + artifacts hash
-  const incomingHash = event.artifacts ? hashArtifacts(event.artifacts) : null;
-  if (context.lastProgressHash === incomingHash) {
-    return {}; // No-op if duplicate
-  }
-  return {
-    progress: {
-      ...context.progress,
-      artifacts: event.artifacts,
-      lastSyncTimestamp: Date.now(),
-    },
-    lastProgressHash: incomingHash,
-  };
-}),
-```
+**Race Condition Prevention**:
+- **Race A** (double `PROGRESS_SYNCED`): Deduplicate by artifacts hash in `syncProgress` action
+- **Race D** (double `CANCEL_GENERATION`): Guard with `canCancelGeneration` condition  
 
-**Race Condition D Prevention** (double `CANCEL_GENERATION`):
-```typescript
-// In tool-page.machine.ts - guard
-canCancelGeneration: ({ context }) => {
-  return context.status !== 'cancelling' && context.status !== 'cancelled';
-},
+**Final Validation**: `grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts ≤ 2`
 
-// All CANCEL_GENERATION transitions guarded
-on: {
-  CANCEL_GENERATION: {
-    guard: 'canCancelGeneration',
-    target: 'configuring.clean',
-    actions: ['setCancelling', 'cleanupGeneration'],
-  },
-},
-```
-
-**Final Effect Count Verification**:
-```typescript
-// Expected final state: ≤ 2 useEffect hooks in useToolPageRunController.ts
-// 1. Machine event dispatcher (consolidated from Effects 2,3,4)
-// 2. Cleanup effect (from Effect 1, if still needed)
-```
-
-**Validation Commands**:
-```bash
-# Effect count verification
-grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: ≤ 2
-
-# Race condition checks - run frontend tests
-npm --workspace apps/frontend run test
-# Expected: all tests pass, no race condition failures
-
-# Consumer hook integration verification
-grep -c "useAuthSessionStateConsumer\|useBackendStreamEventConsumer\|useQuotaDisplayConsumer\|useToolPageStateConsumer" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: 4 consumer hook imports and usages
-
-# XState machine authority check - no direct workspace access
-grep -c "workspace.*\." apps/frontend/src/features/tools/runtime/useToolPageRunController.ts
-# Expected: 0 (no direct workspace property access)
-```
-
-### Phase 1 Success Criteria
-
-- [x] **Frontend Simplicity**: ≤ 2 `useEffect` hooks per controller (from 4)
-- [x] **State Predictability**: 0 race conditions in effect dependency chains  
-- [x] **XState Authority**: Machine drives its own lifecycle, no external orchestration
-- [x] **Consumer Integration**: All 4 consumer hooks (DDD-158/159/160/161) integrated
-- [x] **Canon Compliance**: `ToolPage` aggregate root preserved, BCM Line 25 maintained
+### **Phase 1 Complete When**: ≤2 `useEffect` hooks, 0 race conditions, XState authority restored, consumer hooks integrated
 
 ---
 
@@ -610,79 +269,15 @@ Following BCM L45-L60 Generation Context boundaries and DDD Glossary L74-L78:
 
 **Objective**: Create type-level boundaries for the 5 sub-contexts based on BCM domain separation
 
-**Implementation**:
+**Implementation**: Create `generation-system.context-types.ts` with 5 typed sub-contexts per approved DDD-167→171:
+- `GenerationDomainContext`: Business logic fields (10 fields: requestId, userId, projectId, sessionId, toolKey, workflowType, artifactType, artifactId, contentBuffer, failureReason)
+- `GenerationRuntimeContext`: Execution state fields (8 fields: model, requestInput, idempotencyKey, outputFormat, syntheticResponse, routeType, effectiveModelResolution, mode)  
+- `GenerationMetricsContext`: Usage tracking fields (4 fields: inputTokens, outputTokens, costUsd, _creditCost)
+- `GenerationInfraContext`: Infrastructure fields (4 fields: adapters, runtimeNow, artifactIdFactory, responseBuilder)
+- `GenerationErrorContext`: Error handling fields (3 fields: pendingFallback, registryVersion, registrySnapshotRef)
+- `DecomposedGenerationContext`: Intersection composition of all 5 sub-contexts (31 total fields)
 
-**New file**: `generation-system.context-types.ts`
-```typescript
-// Domain Context - Business logic per BCM L45-L60
-export type GenerationDomainContext = {
-  readonly requestId: string;
-  readonly userId: string | null;
-  readonly projectId: string | null; 
-  readonly sessionId: string | null;
-  readonly toolKey: RegistryBackedToolKey | null;
-  readonly workflowType: RegistryBackedWorkflowType;
-  readonly artifactType: RegistryBackedArtifactType;
-  artifactId: string | null; // Mutable during lifecycle
-  contentBuffer: string; // Mutable during streaming
-  failureReason: string | null; // Mutable during error handling
-};
-
-// Runtime Context - Execution state per request lifecycle
-export type GenerationRuntimeContext = {
-  readonly model: string;
-  readonly requestInput: Record<string, unknown>;
-  readonly idempotencyKey: string | null;
-  readonly outputFormat: OutputFormat;
-  readonly syntheticResponse: string;
-  readonly routeType: RouteType | null;
-  readonly effectiveModelResolution: EffectiveModelResolution | null;
-};
-
-// Metrics Context - Usage tracking per Glossary L74-L78
-export type GenerationMetricsContext = {
-  inputTokens: number; // Mutable during generation
-  outputTokens: number; // Mutable during generation  
-  costUsd: number; // Mutable during generation
-  readonly _creditCost: number; // Set at usage validation
-};
-
-// Infrastructure Context - Adapters and factory functions (lifetime scope)
-export type GenerationInfraContext = {
-  readonly adapters: GenerationAdapters;
-  readonly runtimeNow: () => Date;
-  readonly artifactIdFactory: () => string;
-  readonly responseBuilder: (request: RequestReceivedEvent) => string;
-};
-
-// Error Context - Route-specific error handling  
-export type GenerationErrorContext = {
-  pendingFallback: {
-    reason: string | null;
-    defaultReason: string;
-  } | null;
-  readonly registryVersion: RegistryVersion | null; // Needed for error routing
-  readonly registrySnapshotRef: RegistrySnapshotRef | null; // Needed for error routing
-};
-
-// Composed Context - Intersection of all sub-contexts (31 fields total)
-export type DecomposedGenerationContext = 
-  & GenerationDomainContext    // 10 fields
-  & GenerationRuntimeContext   // 8 fields (includes mode)
-  & GenerationMetricsContext   // 4 fields
-  & GenerationInfraContext     // 4 fields
-  & GenerationErrorContext;    // 3 fields + 2 registry fields
-
-// Type guard for backward compatibility during migration
-export type GenerationMachineContext = DecomposedGenerationContext;
-```
-
-**Validation**:
-```bash
-# Verify field count per sub-context
-grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-types.ts
-# Expected: Domain=10, Runtime=7, Metrics=4, Infra=4, Error=4 (29 total)
-```
+**Validation**: `grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-types.ts ≥ 31` (field count verification)
 
 ### Step 2: Create Context Accessor Pattern
 
@@ -1288,99 +883,39 @@ echo "=== Phase 2 Validation Complete ==="
 ```bash
 # Context field count per sub-context verification
 grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-types.ts
-# Expected: Domain≤10, Runtime≤8, Metrics=4, Infra=4, Error≤3 (31 total)
-
-# Route-specific error actor verification
-grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts
-# Expected: 3 new error actors registered
-
-# Universal fallback removal verification
-grep -c "resolvingFallbackPolicy" apps/backend/src/lib/machines/generation-system.persistence.states.ts  
-# Expected: 0 (completely replaced)
-
-# Domain separation verification via accessor usage
-grep -c "selectDomainContext\|selectRuntimeContext\|selectMetricsContext" apps/backend/src/lib/machines/generation-system.actions.ts
-# Expected: >5 (accessor usage implemented)
-
-# Full backend validation with new context structure
-npm --workspace apps/backend run go
-# Expected: 335/335 tests pass, typecheck clean
-```
-
-### Phase 2 Success Criteria
-
-- [x] **Context Complexity**: ≤15 fields per sub-context object (Domain=10, Runtime=8, Metrics=4, Infra=4, Error=3)
-- [x] **Domain Separation**: Clear BCM-aligned boundaries with typed accessors (31 total fields properly organized)
-- [x] **Error Handling**: Route-specific recovery actors (extraction, tool, generic) replace universal fallback
-- [x] **Aggregate Preservation**: `GenerationSystem` remains single aggregate root with enhanced internal structure
-- [x] **Migration Safety**: Backward compatibility maintained during transition
+### **Phase 2 Complete When**: ≤15 fields per sub-context, route-specific error actors, domain separation clear, aggregate root preserved
 
 ---
 
 ## Validation & Success Criteria
 
-### **Sprint 4 Complete When**:
-- [x] **DDD Gates**: All DDD-165 through DDD-172 entries created and approved before implementation ⚠️
-- [x] **Phase 1**: ≤2 `useEffect` hooks in `useToolPageRunController`, 0 race conditions, XState authority restored
-- [x] **Phase 2**: ≤15 fields per GenerationSystem sub-context (31 total → 5 sub-contexts), route-specific error handling, domain boundary clarity
-- [x] **Integration**: All 448 frontend tests + 335 backend tests pass, performance baselines maintained
-- [x] **DDD Compliance**: Canonical terminology usage verified, BCM boundaries respected
+### **Sprint 4 Success Matrix**
 
-### **DDD Compliance Verified**:
-- [x] **DDD Gate-First**: Entries DDD-165 through DDD-172 created before Phase 1 implementation ⚠️
-- [x] Consumer hooks (DDD-158/159/160/161) integrated per BCM Line 25 downstream pattern
-- [x] Context decomposition follows approved sub-context definitions (DDD-167-171)  
-- [x] Error handling uses `DispatchErrorReasonCode` → `mapInlineDispatchError` boundary (DDD-149)
-- [x] Composition pattern follows DDD-172 approved intersection strategy
+| Phase | Success Criteria | Status | Validation Command |
+|-------|------------------|--------|-------------------|
+| **DDD Gates** | DDD-165→172 entries created | ✅ Complete | `grep -c "DDD-16[5-9]\|DDD-17[0-2]" docs/07-governance/domain-naming-decision-log.md` |
+| **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | ⏳ Pending | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
+| **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | ⏳ Pending | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
+| **Integration** | 448 frontend + 335 backend tests pass, performance maintained | ⏳ Pending | `npm run typecheck && npm run test && npm run build` |
 
-### **Automated Validation Gates**
+### **DDD Compliance Requirements**
+- Consumer hooks (DDD-158/159/160/161) integration per BCM Line 25
+- Context decomposition follows approved sub-context definitions (DDD-167-171)  
+- Error handling uses `DispatchErrorReasonCode` → `mapInlineDispatchError` boundary (DDD-149)
+- All terminology canonical or governed by DDD entries
 
-**Phase 1 — Frontend Reactive Consolidation**:
-```bash
-# Effect count and race condition validation
-npm --workspace apps/frontend run test && \
-grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts | [ $(cat) -le 2 ]
-# Expected: ≤2 useEffect, all frontend tests pass, consumer hook integration verified
-```
+### **AI Execution Strategy**
 
-**Phase 2 — Backend Context Decomposition**:
-```bash  
-# Context complexity and domain separation validation
-npm --workspace apps/backend run go && \
-grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts | [ $(cat) -eq 3 ]
-# Expected: <15 fields per context, route-specific errors, domain separation, 335/335 tests pass
-```
+**Session Management**: Phase 1 (3-4 sessions, ~1.5 weeks) → Phase 2 (5-6 sessions, ~2.5 weeks) → Integration (1-2 sessions). Total: 9-12 sessions across 4.5 weeks.
 
-**Integration — Full System Validation**:
-```bash
-# Complete system validation
-npm run typecheck && npm run test && npm run build
-# Expected: all workspaces pass typecheck, all tests pass, build successful, no regressions
-```
+**Progress Tracking**: TodoWrite update + git commit tag per step completion. Phase-level rollback available at each checkpoint.
 
-### **AI Execution Checkpoints**
-
-**DDD Gate Compliance**:
-- **Gate Check**: Before any implementation, verify all DDD-165→172 entries exist in decision log
-- **Terminology Validation**: Ensure all code/docs use only canonical terms or approved DDD entries
-- **Boundary Respect**: Maintain BCM boundaries throughout implementation
-
-**Session Management**:
-- **Phase 1**: 6 atomic steps → 3-4 AI sessions (~1.5 weeks) **after DDD gates pass**
-- **Phase 2**: 6 atomic steps → 5-6 AI sessions (~2.5 weeks) **after DDD gates pass**  
-- **Integration**: 1-2 validation sessions (~0.5 weeks)
-- **Total**: 9-12 sessions across 4.5 weeks + DDD gate completion time
-
-**Progress Tracking**: Each step completion triggers TodoWrite update + git commit tag for rollback capability
-
-**Rollback Strategy**: Phase-level rollback available at each major checkpoint (Phase 1 complete → Phase 2 start, Phase 2 complete → Integration start)
-
-**DDD Compliance Monitoring**: Each session must verify no non-canonical terms introduced without DDD entries
+**DDD Compliance**: All terminology canonical via DDD-165→172 entries. No non-canonical terms permitted.
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 4 planning — DDD Gate-First Workflow completed, all gates passed)  
+**Last Updated**: 2026-07-08 (Sprint 4 planning — Level 2 Balanced optimization completed)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team  
 **DDD Compliance Status**: ✅ **PASSED** - All DDD-165 through DDD-172 entries created and approved  
-**AI Execution Ready**: ✅ **READY** - All gates passed, implementation can proceed immediately
+**AI Execution Ready**: ✅ **OPTIMIZED** - Plan ready for immediate execution (920 lines, -33% optimized)

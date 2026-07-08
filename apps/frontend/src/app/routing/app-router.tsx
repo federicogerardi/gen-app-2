@@ -24,6 +24,7 @@ const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-gen
 const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/MetaAdsToolPage').then(m => ({ default: m.MetaAdsToolPage })));
 const YoutubeDescriptionToolPage = lazy(() => import('../../features/tools/youtube-description/pages/YoutubeDescriptionToolPage').then(m => ({ default: m.YoutubeDescriptionToolPage })));
 const GeometricToolPage = lazy(() => import('../../features/tools/geometric/pages/GeometricToolPage').then(m => ({ default: m.GeometricToolPage })));
+const BlogArticleGeneratorToolPage = lazy(() => import('../../features/tools/blog-article-generator/pages/BlogArticleGeneratorToolPage').then(m => ({ default: m.BlogArticleGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -44,6 +45,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'meta-ads': MetaAdsToolPage,
   'youtube-description': YoutubeDescriptionToolPage,
   'geometric': GeometricToolPage,
+  'blog-article-generator': BlogArticleGeneratorToolPage,
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {

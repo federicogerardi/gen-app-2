@@ -22,7 +22,8 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
     || value === 'angle-generator'
     || value === 'meta-ads'
     || value === 'youtube-description'
-    || value === 'geometric';
+    || value === 'geometric'
+    || value === 'blog-article-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {

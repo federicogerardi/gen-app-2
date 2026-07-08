@@ -71,6 +71,16 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'unified-report', dependencies: ['strategic-reporting', 'competitor-scoring'] },
     ],
   },
+  'blog-article-generator': {
+    toolKey: 'blog-article-generator',
+    workflowType: 'blog_article_generator',
+    creditCost: 3,
+    steps: [
+      { key: 'blog_seo_structure', dependencies: [] },
+      { key: 'blog_research', dependencies: ['blog_seo_structure'] },
+      { key: 'blog_article', dependencies: ['blog_research'] },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -111,6 +121,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'meta-ads': 'enabled-for-all',
   'youtube-description': 'enabled-for-all',
   'geometric': 'enabled-for-all',
+  'blog-article-generator': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -257,6 +268,13 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'geometricanalysis'
   ) {
     return 'geometric';
+  }
+
+  if (
+    normalized === 'blog_article_generator'
+    || normalized === 'blogarticlegenerator'
+  ) {
+    return 'blog-article-generator';
   }
 
   return isToolKey(normalized) ? normalized : null;

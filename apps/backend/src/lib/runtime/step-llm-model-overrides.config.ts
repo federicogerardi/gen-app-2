@@ -31,6 +31,26 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
   //   overrideModelId: 'openrouter/anthropic/claude-3.5-sonnet',
   //   reason: 'Optimized for structured data extraction'
   // }
+
+  // Blog Article Generator - DDD-157: Hardcoded LLM model overrides per step
+  [createOverrideKey('blog-article-generator', 'blog_seo_structure')]: {
+    toolKey: 'blog-article-generator',
+    stepKey: 'blog_seo_structure',
+    overrideModelId: 'openai/gpt-4o-mini-search-preview',
+    reason: 'Search-enabled, cost-optimized for SEO structure generation'
+  },
+  [createOverrideKey('blog-article-generator', 'blog_research')]: {
+    toolKey: 'blog-article-generator',
+    stepKey: 'blog_research',
+    overrideModelId: 'openai/gpt-4o-search-preview',
+    reason: 'Advanced search capabilities for comprehensive research'
+  },
+  [createOverrideKey('blog-article-generator', 'blog_article')]: {
+    toolKey: 'blog-article-generator',
+    stepKey: 'blog_article',
+    overrideModelId: 'openai/gpt-5.2',
+    reason: 'Large context, advanced reasoning for article composition'
+  },
 } as const;
 
 /**

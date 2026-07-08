@@ -12,7 +12,7 @@ import type { FrontendGenerationStatus } from '../../generation/machines/fronten
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import { getAvailableSteps } from './tool-form-architecture';
 import { createStepRequest } from './tool-generation-engine';
-import { buildBaseGenerationRequest, buildDependencyArtifactContentsByStep, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
+import { buildBaseGenerationRequest, buildBlogArticleGeneratorDirectInputExtractionInfo, buildDependencyArtifactContentsByStep, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo, mergeResolvedExtractionArtifact, needsResolvedExtractionArtifact, readRequestedStep, resolveToolPageRuntimeIntent, selectGenerationExtractionInfo, selectInterruptedStep, selectPrimaryTargetStep, selectStreamingStep, selectStreamTerminalResolution } from './tool-page-selectors';
 import { orchestrateToolStep } from './tools-client';
 import { mapInlineDispatchError } from './tool-page-runtime-utils';
 
@@ -111,6 +111,11 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
             language: (formState as unknown as Record<string, string>).language ?? '',
             country: (formState as unknown as Record<string, string>).country ?? '',
             brandName: (formState as unknown as Record<string, string>).brandName ?? '',
+          });
+        }
+        if (toolKey === 'blog-article-generator') {
+          return buildBlogArticleGeneratorDirectInputExtractionInfo({
+            titolo: formState.titolo,
           });
         }
         return null;

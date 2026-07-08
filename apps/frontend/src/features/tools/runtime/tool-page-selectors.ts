@@ -184,6 +184,25 @@ export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
   };
 };
 
+export const buildBlogArticleGeneratorDirectInputExtractionInfo = ({
+  titolo,
+}: Pick<ToolFormState, 'titolo'>): SelectedExtractionInfo | null => {
+  const normalizedTitolo = titolo.trim();
+
+  if (!normalizedTitolo) {
+    return null;
+  }
+
+  return {
+    extractionArtifactId: 'direct-input:blog-article-generator',
+    briefingId: 'direct-input:blog-article-generator',
+    briefingText: `Titolo: ${normalizedTitolo}`,
+    extractionPayload: {
+      titolo: normalizedTitolo,
+    },
+  };
+};
+
 type TerminalResolution =
   | { status: 'done'; step: ToolStep }
   | { status: 'failed'; step: ToolStep | null; message: string }
@@ -307,6 +326,10 @@ export const selectGenerationExtractionInfo = ({
   }
 
   if (toolKey === 'geometric' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
+  if (toolKey === 'blog-article-generator' && directInputExtractionInfo) {
     return directInputExtractionInfo;
   }
 

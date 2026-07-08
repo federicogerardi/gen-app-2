@@ -1,10 +1,10 @@
 ---
 goal: [Short statement of the tool plan objective]
-version: 1.1
+version: 1.2
 date_created: [YYYY-MM-DD]
 last_updated: [YYYY-MM-DD]
-last-reviewed: [YYYY-MM-DD]
-next-review-date: [YYYY-MM-DD]
+last-reviewed: 2026-07-08
+next-review-date: 2026-10-08
 owner: [Team or role]
 status: draft
 tags: [plan, tool-workspace, backend, frontend, ddd, validation]
@@ -290,6 +290,8 @@ Acceptance for Track A:
 - [ ] B-001: Register backend runtime support for `TOOL_KEY` in orchestration/normalization paths (`tool-workflow-registry`, `workflow-normalizers`, handlers).
 - [ ] B-002: Add deterministic final-step artifact role mapping for the new Tool.
 - [ ] B-003: Validate session list/detail projections return canonical tool identity usable by FE label/route resolvers.
+- [ ] B-004: **If tool uses prompt template variables** (`{{output_step_*}}`, `{{titolo}}`, `{{tone}}`, etc.): implement `assemble<ToolName>Prompt` action in `generation-system.actions.ts` (XState action level, NOT adapter level). Wire into `generating` state entry. See Section 7 "Template Variable Replacement Pattern".
+- [ ] B-005: **If tool is direct-input-only**: verify `selectGenerationExtractionInfo` in `tool-page-selectors.ts` handles the tool via a dedicated `build<ToolName>DirectInputExtractionInfo` function. See Section 7 "Direct-Input Extraction Info Pattern".
 
 Acceptance for Track B:
 
@@ -305,6 +307,10 @@ Acceptance for Track B:
 - [ ] C-004: Validate Session Summary parity for the target Tool (`/sessionsummary` Tool label, `/sessionsummary/{sessionId}` title + details label, relaunch CTA path resolution).
 - [ ] C-005: Define `ToolInputRequirementMatrix` for the target Tool across `direct-input`, `tool-input-file`, and `api-acquisition`, with explicit requiredness (`always-required`, `required-by-tool-setting`, `optional-by-tool-setting`).
 - [ ] C-006: If `api-acquisition` is used, define adapter and rollout policy for binding status resolution, including default-off behavior under `VITE_FF_TOOLS_API_BINDING_STATUS` and enabled-path gating semantics.
+- [ ] C-007: **If tool has custom step display requirements**: configure `TOOL_STEP_DISPLAY_CONFIG` in `tool-step-display-config.ts` with explicit `visible` and `includeInDownload` per step. See Section 7 "Step Display Configuration Pattern".
+- [ ] C-008: **If tool is direct-input-only**: add tool to `selectGenerationExtractionInfo` guard in `tool-page-selectors.ts` and create `build<ToolName>DirectInputExtractionInfo` builder.
+- [ ] C-009: **Add tool to `isSupportedTool()`** in `SessionArtifactTabs.tsx` — required for step visibility filter to apply in session detail.
+- [ ] C-010: **Document form field visibility**: which fields are required/hidden per tool, whether model selector is visible, and any tool-specific form behavior.
 
 Acceptance for Track C:
 
@@ -370,8 +376,118 @@ Acceptance for DDD Impact Gate:
   - Control: D-AC-003 non-regression pair requirement and workspace-wide typecheck/build gates.
 - RISK-004: New Tool unintentionally blocked by API binding rollout gates or feature-flag mismatch.
   - Control: Track C (`C-006`, `C-AC-007`) + EXEC-004 adapter/matrix-focused test set.
+- RISK-005: Template variables (`{{output_step_*}}`, `{{titolo}}`, `{{tone}}`) not replaced in prompt because mechanism is implemented at wrong architectural layer.
+  - Control: Template variable replacement MUST be implemented as XState action in `generation-system.actions.ts` (consistent with `assembleGeometricPrompt` pattern), NOT in adapter layer (`openrouter.adapter.ts`). See Track B checklist item B-004.
+- RISK-006: Direct-input-only tools fail to dispatch because `selectGenerationExtractionInfo` returns `null` without a dedicated `build<ToolKey>DirectInputExtractionInfo` function.
+  - Control: Track B checklist item B-005 + Track C checklist item C-008. Every direct-input-only tool MUST have a dedicated extraction info builder and MUST be registered in `selectGenerationExtractionInfo` guard.
+- RISK-007: New tool not recognized by `isSupportedTool()` in `SessionArtifactTabs.tsx`, causing step visibility filter to not apply.
+  - Control: Track C checklist item C-009. New tools MUST be added to `isSupportedTool()` union check in addition to `SupportedTool` type.
+- RISK-008: Form fields or model selector visibility not configured per tool requirements.
+  - Control: Track C checklist item C-010. Document which form fields are required/hidden per tool and whether model selector should be visible.
 
-## 7. References
+## 7. Architectural Patterns Reference
+
+### Template Variable Replacement Pattern (XState Action Level)
+
+When a tool requires prompt template variables to be replaced with data from previous steps or form input:
+
+1. **Create a dedicated action** in `apps/backend/src/lib/machines/generation-system.actions.ts`:
+   ```typescript
+   assemble<ToolName>Prompt: assignGeneration<undefined>({
+     requestInput: ({ context }) => {
+       // Guard: only apply to this tool
+       if (context.toolKey !== '<tool-key>') return context.requestInput;
+       
+       // Get prompt template
+       const promptTemplate = context.requestInput.resolvedPromptTemplate ?? context.requestInput.prompt;
+       if (!promptTemplate) return context.requestInput;
+       
+       // Replace placeholders
+       let filledPrompt = promptTemplate;
+       // Replace {{output_step_<stepKey>}} from stepDependencyArtifactContentsByStep
+       // Replace {{field}} from requestInput or extractionPayload
+       
+       return { ...context.requestInput, prompt: filledPrompt };
+     },
+   }),
+   ```
+
+2. **Wire the action** in `generation-system.execution.states.ts`:
+   ```typescript
+   generating: {
+     entry: ['ensureArtifactId', 'assemble<ToolName>Prompt'],
+     // ...
+   },
+   ```
+
+3. **Add type definition** in `GenerationSystemActionObject` union:
+   ```typescript
+   | { type: 'assemble<ToolName>Prompt'; params: undefined }
+   ```
+
+**WRONG approach**: Modifying `openrouter.adapter.ts` `buildMessages()` — this is adapter level, not machine level.
+
+### Direct-Input Extraction Info Pattern
+
+For tools that use only `direct-input` (no file upload, no API acquisition):
+
+1. **Create builder** in `tool-page-selectors.ts`:
+   ```typescript
+   export const build<ToolName>DirectInputExtractionInfo = ({
+     field1,
+     field2,
+   }: Pick<ToolFormState, 'field1' | 'field2'>): SelectedExtractionInfo | null => {
+     // Validate required fields
+     if (!field1.trim()) return null;
+     
+     return {
+       extractionArtifactId: 'direct-input:<tool-key>',
+       briefingId: 'direct-input:<tool-key>',
+       briefingText: `Field1: ${field1}\nField2: ${field2}`,
+       extractionPayload: { field1, field2 },
+     };
+   };
+   ```
+
+2. **Register in `selectGenerationExtractionInfo`**:
+   ```typescript
+   if (toolKey === '<tool-key>' && directInputExtractionInfo) {
+     return directInputExtractionInfo;
+   }
+   ```
+
+3. **Call builder in `useToolPageRunController.ts`**:
+   ```typescript
+   if (toolKey === '<tool-key>') {
+     return build<ToolName>DirectInputExtractionInfo({
+       field1: formState.field1,
+       field2: formState.field2,
+     });
+   }
+   ```
+
+### Step Display Configuration Pattern
+
+For tools where some steps should be visible in UI but excluded from download:
+
+1. **Add to `tool-step-display-config.ts`**:
+   ```typescript
+   '<tool-key>': {
+     'step1': { visible: true, includeInDownload: false },  // Visible, no download
+     'step2': { visible: true, includeInDownload: false },  // Visible, no download
+     'step3': { visible: true, includeInDownload: true },   // Visible + download
+   },
+   ```
+
+2. **Add tool to `isSupportedTool()`** in `SessionArtifactTabs.tsx`:
+   ```typescript
+   const isSupportedTool = (value: string | null | undefined): value is SupportedTool => {
+     return value === 'existing-tool'
+       || value === '<new-tool>';  // MUST add here
+   };
+   ```
+
+## 8. References
 
 - `docs/01-requirements/domain-ubiquitous-language-glossary.md`
 - `docs/02-design/domain-bounded-context-map.md`

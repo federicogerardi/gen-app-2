@@ -159,7 +159,19 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
 
     try {
       const orchestrationResult = await orchestrateToolStep(normalizedProjectId, toolKey, step, { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
-      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, buildDependencyArtifactContentsByStep(orchestrationResult.dependencyArtifactIdsByStep, generationArtifacts.artifacts));
+      const dependencyContentsByStep = buildDependencyArtifactContentsByStep(orchestrationResult.dependencyArtifactIdsByStep, generationArtifacts.artifacts);
+      if (import.meta.env.DEV) {
+        console.info('[useToolPage] dependency artifacts debug', {
+          step,
+          dependencyArtifactIdsByStep: orchestrationResult.dependencyArtifactIdsByStep,
+          workspaceArtifactCount: generationArtifacts.artifacts.length,
+          workspaceArtifactIds: generationArtifacts.artifacts.map(a => ({ id: a.artifactId, hasContent: typeof a.content === 'string' && a.content.length > 0, contentLen: typeof a.content === 'string' ? a.content.length : 0 })),
+          dependencyContentsByStep: Object.fromEntries(Object.entries(dependencyContentsByStep).map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 100) + '...' : '']) ),
+          dependencyContentKeys: Object.keys(dependencyContentsByStep),
+          dependencyContentKeyCount: Object.keys(dependencyContentsByStep).length,
+        });
+      }
+      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentsByStep);
       if (import.meta.env.DEV) {
         console.info('[useToolPage] generation request dispatched', {
           step,

@@ -184,36 +184,37 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ---
 
-## 🔥 SPRINT 4: Core Architecture Resolution (Status: ⏸️ Blocked)
+## 🔥 SPRINT 4: Core Architecture Resolution (Status: 🚀 Ready)
 
 **Objective**: Address fundamental complexity with solid foundation  
 **Risk Profile**: Alto - core architecture changes, mitigated by foundation  
-**Duration**: 4-6 settimane  
-**Blocker**: Sprint 3 completion required
+**Duration**: 4.5 settimane (3-4 sessions Phase 1 + 5-6 sessions Phase 2 + integration)  
+**Implementation Plan**: [Sprint 4 Core Architecture Resolution](../../plan/sprint-4-core-architecture-resolution-implementation-plan.md) v1.1-momus-reviewed
 
 ### Sprint 4 Tasks
 
 #### **4A. Frontend Reactive Spaghetti Resolution** (V2 🔥)
-- [ ] **Analysis**: Review current reactive patterns and race conditions
-- [ ] **Design**: Plan effect consolidation and XState integration
+- [x] **Analysis**: 4 useEffect hooks identified, race conditions A/B/C/D documented
+- [x] **Design**: XState integration strategy, consumer hooks adoption plan
 - [ ] **Implementation**: Consolidate effects, move logic to XState machine
-- [ ] **Validation**: < 2 `useEffect` per controller, 0 race conditions
-- **Assignee**: TBD  
-- **Status**: ⏸️ Blocked by Sprint 1C completion  
-- **Dependencies**: **CRITICAL** - Frontend Domain Logic (Sprint 1C) completed
+- [ ] **Validation**: ≤ 2 `useEffect` per controller, 0 race conditions
+- **Assignee**: AI Agent (Sprint 4 Phase 1)  
+- **Status**: 🚀 Ready (Foundation Sprint 1C completed ✅)  
+- **Dependencies**: Consumer hooks from Sprint 1C ✅
 
 #### **4B. GenerationSystem Context Decomposition** (V1 🔥)
-- [ ] **Analysis**: Review current context structure and complexity
-- [ ] **Design**: Plan context splitting strategy by concern
-- [ ] **Implementation**: Split context, implement specialized builders
-- [ ] **Validation**: < 15 fields per context object, clear domain separation
-- **Assignee**: TBD  
-- **Status**: 🚀 Ready  
-- **Dependencies**: **CRITICAL** - Route Capabilities (Sprint 2A) completed ✅
+- [x] **Analysis**: 31 fields identified, 5 sub-context decomposition strategy
+- [x] **Design**: Domain-aligned boundaries per BCM, route-specific error actors
+- [ ] **Implementation**: Split context, implement specialized accessors
+- [ ] **Validation**: ≤ 15 fields per context object, clear domain separation
+- **Assignee**: AI Agent (Sprint 4 Phase 2)  
+- **Status**: 🚀 Ready (Foundation Sprint 2 completed ✅)  
+- **Dependencies**: Context builders from Sprint 2A ✅
 
 ### Sprint 4 Gates
-- [ ] **Frontend Simplicity**: < 2 `useEffect` hooks per controller
-- [ ] **Context Clarity**: < 15 fields per context object
+- [x] **Planning Complete**: Comprehensive implementation plan created (v1.1-momus-reviewed)
+- [ ] **Frontend Simplicity**: ≤ 2 `useEffect` hooks per controller (from 4)
+- [ ] **Context Clarity**: ≤ 15 fields per context object (31 total → 5 sub-contexts)
 - [ ] **State Predictability**: 0 race conditions in integration tests
 - [ ] **Domain Boundaries**: Clear separation achieved, BCM compliance maintained
 
@@ -292,23 +293,25 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 
 ## Next Actions
 
+## Next Actions
+
 ### **Immediate** (This Week)
-1. **Sprint 4 Planning**: Begin Core Architecture Resolution (4A Reactive Spaghetti + 4B Context Decomposition)
-2. **Sprint 3 Review**: Review completed structural decoupling with Domain Architect
-3. **DDD Governance**: Review DDD-163/164 entries with Domain Architect
+1. **Sprint 4 Execution**: Begin Phase 1 (V2 Frontend Reactive Spaghetti Resolution) — 6 atomic steps ready for AI agent
+2. **DDD Decision Log**: Create entries DDD-165 (ReactivePatternConsolidation) and DDD-166 (GenerationContextDecomposition) 
+3. **Implementation Plan Review**: Final validation of Sprint 4 plan with Domain Architect
 
 ### **Short Term** (Next 2 Weeks) 
-1. **Sprint 4 Execution**: Begin core architecture resolution (4A + 4B)
-2. **Sprint 5 Preparation**: Plan technical debt elimination
-3. **Risk Assessment**: Validate Sprint 3 structural changes enable Sprint 4 readiness
+1. **Phase 1 Completion**: Complete frontend reactive pattern consolidation (≤2 useEffect, race condition elimination)
+2. **Phase 2 Initiation**: Begin GenerationSystem context decomposition (31 fields → 5 sub-contexts)
+3. **Integration Testing**: Validate Phase 1 completion before Phase 2 start
 
 ### **Medium Term** (Next Month)
-1. **Sprint 3-4 Completion**: Complete structural and core architecture work
-2. **Sprint 5 Readiness**: Validate clean domain boundaries before technical debt elimination
-3. **Architecture Review**: Validate foundation before Sprint 4 core changes
+1. **Sprint 4 Completion**: Complete Phase 2 + integration validation (448 frontend + 335 backend tests)
+2. **Sprint 5 Preparation**: Plan technical debt elimination with clean architecture foundation
+3. **Architecture Milestone**: Validate core architectural vulnerabilities V1+V2 resolution
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 3 session — 3A+3B completed)  
+**Last Updated**: 2026-07-08 (Sprint 4 planning completed — comprehensive implementation plan ready)  
 **Next Review**: 2026-07-15  
 **Review Owner**: Domain Architecture Team

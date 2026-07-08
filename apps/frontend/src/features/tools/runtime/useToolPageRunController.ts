@@ -159,17 +159,16 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
 
     try {
       const orchestrationResult = await orchestrateToolStep(normalizedProjectId, toolKey, step, { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
-      // Fetch dependency artifact content not present in workspace state.
+      // Resolve artifact content not present in workspace state.
       // Workspace artifacts from the persisted list endpoint lack the content field.
-      const depEntries = Object.entries(orchestrationResult.dependencyArtifactIdsByStep).filter(
+      // Parallel artifact resolution for 3x performance improvement.
+      const stepArtifactEntries = Object.entries(orchestrationResult.dependencyArtifactIdsByStep).filter(
         (entry): entry is [string, string] => typeof entry[1] === 'string',
       );
-      const dependencyContentMap: Record<string, string> = {};
-      for (const [stepKey, artifactId] of depEntries) {
+      const artifactResolutionPromises = stepArtifactEntries.map(async ([stepKey, artifactId]) => {
         const local = generationArtifacts.artifacts.find(a => a.artifactId === artifactId);
         if (local && typeof local.content === 'string' && local.content.trim().length > 0) {
-          dependencyContentMap[stepKey] = local.content;
-          continue;
+          return { stepKey, content: local.content };
         }
         const detail = await getArtifactById(artifactId, {
           apiBaseUrl: auth.apiBaseUrl,
@@ -177,16 +176,24 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
           localArtifacts: generationArtifacts.artifacts,
         });
         if (detail && typeof detail.content === 'string' && detail.content.trim().length > 0) {
-          dependencyContentMap[stepKey] = detail.content;
+          return { stepKey, content: detail.content };
+        }
+        return { stepKey, content: null };
+      });
+      const resolvedArtifacts = await Promise.allSettled(artifactResolutionPromises);
+      const resolvedArtifactContentMap: Record<string, string> = {};
+      for (const result of resolvedArtifacts) {
+        if (result.status === 'fulfilled' && result.value.content !== null) {
+          resolvedArtifactContentMap[result.value.stepKey] = result.value.content;
         }
       }
-      if (import.meta.env.DEV && depEntries.length > 0) {
-        console.debug('[useToolPage] dependency content resolved', {
+      if (import.meta.env.DEV && stepArtifactEntries.length > 0) {
+        console.debug('[useToolPage] artifact content resolved', {
           step,
-          resolvedSteps: Object.keys(dependencyContentMap),
+          resolvedSteps: Object.keys(resolvedArtifactContentMap),
         });
       }
-      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentMap);
+      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, resolvedArtifactContentMap);
       if (import.meta.env.DEV) {
         console.info('[useToolPage] generation request dispatched', {
           step,

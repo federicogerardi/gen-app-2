@@ -294,7 +294,7 @@ export const generationSystemExecutionStates = {
     },
   },
   streaming: {
-    entry: ['ensureArtifactId'],
+    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
     invoke: {
       id: 'streamActor',
       src: 'invokeStream',

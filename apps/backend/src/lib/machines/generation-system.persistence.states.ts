@@ -1,3 +1,20 @@
+/**
+ * Persistence States - Infrastructure Context Primary
+ *
+ * States: resolvingFallbackPolicy, persistingSuccess, persistingFailure,
+ *         persistingSuccessSync, persistingFailureSync,
+ *         finalizeIdempotencySuccess, finalizeIdempotencyFailure,
+ *         routeAfterIdempotency, recordingUsage, consumingCredits,
+ *         completed, failed
+ * Context Access: Primarily GenerationInfraContext + GenerationErrorContext
+ * Primary Concerns: Artifact persistence, error recovery, finalization
+ *
+ * Context Usage Patterns:
+ * - Infrastructure Context: Adapter method calls, artifact storage
+ * - Error Context: Route-specific recovery, fallback policies
+ * - Domain Context: Final artifact ID assignment, failure reason recording
+ */
+
 import { getFallbackDoneOutput } from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
 import { buildPersistenceBatchInput } from './generation-persistence';

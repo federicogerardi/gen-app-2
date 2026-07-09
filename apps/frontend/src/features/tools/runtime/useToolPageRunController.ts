@@ -53,10 +53,26 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const nonStreamingCompletedStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
   const primaryActionPolicy = machineViewModel.primaryActionPolicy;
+
+  const volatileArgsRef = useRef({
+    auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts, generationStream, generationRun,
+    intent, machineHydrationResult, nextAvailableStep, primaryActionPolicy,
+    primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
+    readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
+    runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext,
+  });
+  volatileArgsRef.current = {
+    auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts, generationStream, generationRun,
+    intent, machineHydrationResult, nextAvailableStep, primaryActionPolicy,
+    primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
+    readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
+    runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext,
+  };
   const streamingStep = selectStreamingStep({ isStreamActive: generationStream.isStreamActive, lastRequest: generationStream.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
   const currentRunningStep = streamingStep;
-  const runtimeIntent = resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult });
-  const primaryTargetStep = selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep });
+  const primaryTargetStep = volatileArgsRef.current.primaryTargetStep;
   const generationStatus: FrontendGenerationStatus = (() => {
     if (generationRun.snapshot.matches('idle')) return 'idle';
     if (generationRun.snapshot.matches('running')) return 'running';
@@ -72,50 +88,51 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   }, [completedStepsForFlow, pausedCheckpointStep]);
 
   const startGenerationStep = useCallback(async (step: ToolStep) => {
-    const normalizedProjectId = formState.projectId.trim();
-    if (!auth.session || !normalizedProjectId) return false;
+    const v = volatileArgsRef.current;
+    const normalizedProjectId = v.formState.projectId.trim();
+    if (!v.auth.session || !normalizedProjectId) return false;
 
     if (import.meta.env.DEV) {
       console.info('[useToolPage] generation start', {
-        step, toolKey, routeIntent: intent, runtimeIntent, primaryActionPolicy, readiness: readinessSnapshot,
-        sourceArtifactId, resolvedBriefingId, hydrationResult: machineHydrationResult, pausedCheckpointStep,
-        nextAvailableStep, sourceStep, primaryTargetStep, hasSession: true, normalizedProjectId,
-        briefingTextLength: (briefingSnapshot.context.normalizedText ?? '').length,
-        extractionPayloadKeys: Object.keys(briefingSnapshot.context.extractionPayload ?? {}).length,
+        step, toolKey, routeIntent: v.intent, runtimeIntent: v.runtimeIntent, primaryActionPolicy: v.primaryActionPolicy, readiness: v.readinessSnapshot,
+        sourceArtifactId: v.sourceArtifactId, resolvedBriefingId: v.resolvedBriefingId, hydrationResult: v.machineHydrationResult,
+        nextAvailableStep: v.nextAvailableStep, sourceStep: v.sourceStep, primaryTargetStep: v.primaryTargetStep, hasSession: true, normalizedProjectId,
+        briefingTextLength: (v.briefingSnapshot.context.normalizedText ?? '').length,
+        extractionPayloadKeys: Object.keys(v.briefingSnapshot.context.extractionPayload ?? {}).length,
       });
     }
 
     const extractionInfo = selectGenerationExtractionInfo({
-      machineHydrationResult,
-      workspaceExtractionContext,
-      briefingSnapshot,
+      machineHydrationResult: v.machineHydrationResult,
+      workspaceExtractionContext: v.workspaceExtractionContext,
+      briefingSnapshot: v.briefingSnapshot,
       toolKey,
-      hasSourceArtifact: sourceArtifact !== null,
+      hasSourceArtifact: v.sourceArtifact !== null,
       directInputExtractionInfo: (() => {
         if (toolKey === 'youtube-description') {
           return buildYoutubeDescriptionDirectInputExtractionInfo({
-            videoTitle: formState.videoTitle,
-            topic: formState.topic,
-            keywords: formState.keywords,
-            ctaText: formState.ctaText,
-            ctaLink: formState.ctaLink,
-            credentialsOrProof: formState.credentialsOrProof,
-            chaptersWithTimestamps: formState.chaptersWithTimestamps,
-            socialLinks: formState.socialLinks,
-            hashtags: formState.hashtags,
+            videoTitle: v.formState.videoTitle,
+            topic: v.formState.topic,
+            keywords: v.formState.keywords,
+            ctaText: v.formState.ctaText,
+            ctaLink: v.formState.ctaLink,
+            credentialsOrProof: v.formState.credentialsOrProof,
+            chaptersWithTimestamps: v.formState.chaptersWithTimestamps,
+            socialLinks: v.formState.socialLinks,
+            hashtags: v.formState.hashtags,
           });
         }
         if (toolKey === 'geometric') {
           return buildGeometricDirectInputExtractionInfo({
-            baseQuery: (formState as unknown as Record<string, string>).baseQuery ?? '',
-            language: (formState as unknown as Record<string, string>).language ?? '',
-            country: (formState as unknown as Record<string, string>).country ?? '',
-            brandName: (formState as unknown as Record<string, string>).brandName ?? '',
+            baseQuery: (v.formState as unknown as Record<string, string>).baseQuery ?? '',
+            language: (v.formState as unknown as Record<string, string>).language ?? '',
+            country: (v.formState as unknown as Record<string, string>).country ?? '',
+            brandName: (v.formState as unknown as Record<string, string>).brandName ?? '',
           });
         }
         if (toolKey === 'blog-article-generator') {
           return buildBlogArticleGeneratorDirectInputExtractionInfo({
-            titolo: formState.titolo,
+            titolo: v.formState.titolo,
           });
         }
         return null;
@@ -126,9 +143,9 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     let effectiveExtractionInfo = extractionInfo;
     if (needsResolvedExtractionArtifact(effectiveExtractionInfo)) {
       const extractionArtifact = await getArtifactById(effectiveExtractionInfo.extractionArtifactId, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
-        localArtifacts: generationArtifacts.artifacts,
+        apiBaseUrl: v.auth.apiBaseUrl,
+        capabilities: v.auth.capabilities,
+        localArtifacts: v.generationArtifacts.artifacts,
       }).catch(() => null);
       if (extractionArtifact) {
         effectiveExtractionInfo = mergeResolvedExtractionArtifact({ extractionInfo: effectiveExtractionInfo, extractionArtifact });
@@ -138,55 +155,59 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
     currentRunPrefixRef.current = runPrefix;
     lastRequestedStepRef.current = step;
-    toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: runPrefix });
+    toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: v.generationArtifacts.artifacts, intent: v.intent, sourceArtifact: v.sourceArtifact, runRequestPrefix: runPrefix });
 
     const baseRequest = buildBaseGenerationRequest({
-      userId: auth.session.user.id,
+      userId: v.auth.session.user.id,
       projectId: normalizedProjectId,
-      sessionId,
+      sessionId: v.sessionId,
       toolKey,
-      runtimeIntent,
-      formState,
+      runtimeIntent: v.runtimeIntent,
+      formState: v.formState,
       toolConfig,
-      resolvedNotes,
-      resolvedRelaunchSource,
-      sourceArtifactId,
-      resolvedBriefingId,
-      effectiveBriefingFileName,
+      resolvedNotes: v.resolvedNotes,
+      resolvedRelaunchSource: v.resolvedRelaunchSource,
+      sourceArtifactId: v.sourceArtifactId,
+      resolvedBriefingId: v.resolvedBriefingId,
+      effectiveBriefingFileName: v.effectiveBriefingFileName,
       extractionInfo: effectiveExtractionInfo,
       runPrefix,
     });
 
     try {
-      const orchestrationResult = await orchestrateToolStep(normalizedProjectId, toolKey, step, { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities });
-      // Fetch dependency artifact content not present in workspace state.
-      // Workspace artifacts from the persisted list endpoint lack the content field.
-      const depEntries = Object.entries(orchestrationResult.dependencyArtifactIdsByStep).filter(
+      const orchestrationResult = await orchestrateToolStep(normalizedProjectId, toolKey, step, { apiBaseUrl: v.auth.apiBaseUrl, capabilities: v.auth.capabilities });
+      const stepArtifactEntries = Object.entries(orchestrationResult.dependencyArtifactIdsByStep).filter(
         (entry): entry is [string, string] => typeof entry[1] === 'string',
       );
-      const dependencyContentMap: Record<string, string> = {};
-      for (const [stepKey, artifactId] of depEntries) {
-        const local = generationArtifacts.artifacts.find(a => a.artifactId === artifactId);
+      const artifactResolutionPromises = stepArtifactEntries.map(async ([stepKey, artifactId]) => {
+        const local = v.generationArtifacts.artifacts.find(a => a.artifactId === artifactId);
         if (local && typeof local.content === 'string' && local.content.trim().length > 0) {
-          dependencyContentMap[stepKey] = local.content;
-          continue;
+          return { stepKey, content: local.content };
         }
         const detail = await getArtifactById(artifactId, {
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
-          localArtifacts: generationArtifacts.artifacts,
+          apiBaseUrl: v.auth.apiBaseUrl,
+          capabilities: v.auth.capabilities,
+          localArtifacts: v.generationArtifacts.artifacts,
         });
         if (detail && typeof detail.content === 'string' && detail.content.trim().length > 0) {
-          dependencyContentMap[stepKey] = detail.content;
+          return { stepKey, content: detail.content };
+        }
+        return { stepKey, content: null };
+      });
+      const resolvedArtifacts = await Promise.allSettled(artifactResolutionPromises);
+      const resolvedArtifactContentMap: Record<string, string> = {};
+      for (const result of resolvedArtifacts) {
+        if (result.status === 'fulfilled' && result.value.content !== null) {
+          resolvedArtifactContentMap[result.value.stepKey] = result.value.content;
         }
       }
-      if (import.meta.env.DEV && depEntries.length > 0) {
-        console.debug('[useToolPage] dependency content resolved', {
+      if (import.meta.env.DEV && stepArtifactEntries.length > 0) {
+        console.debug('[useToolPage] artifact content resolved', {
           step,
-          resolvedSteps: Object.keys(dependencyContentMap),
+          resolvedSteps: Object.keys(resolvedArtifactContentMap),
         });
       }
-      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, dependencyContentMap);
+      const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, resolvedArtifactContentMap);
       if (import.meta.env.DEV) {
         console.info('[useToolPage] generation request dispatched', {
           step,
@@ -199,19 +220,13 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
             : 0,
         });
       }
-      generationRun.startRun(request);
+      v.generationRun.startRun(request);
       return true;
     } catch (err) {
       console.error('[useToolPage] orchestrateToolStep failed', { toolKey, step, err });
       return false;
     }
-  }, [
-    auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts.artifacts, generationStream, generationRun,
-    intent, machineHydrationResult, nextAvailableStep, pausedCheckpointStep, primaryActionPolicy,
-    primaryTargetStep, readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
-    runtimeIntent, sessionId, sourceArtifact, sourceArtifactId, sourceStep, toolConfig, toolKey,
-    toolPageSend, workspaceExtractionContext,
-  ]);
+  }, [toolKey, toolConfig.steps, toolPageSend]);
 
   useEffect(() => {
     if (!pendingStepStart) return;

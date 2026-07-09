@@ -4,7 +4,7 @@ import {
   createPostgresRedisProductionGenerationAdapters,
   type PostgresRedisProductionClients,
   type PostgresRedisProductionOptions,
-} from '../adapters';
+} from '../adapters/generation';
 import { generationSystemMachine } from './generation-system.machine';
 
 export type GenerationRuntimeOptions = {

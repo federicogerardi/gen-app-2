@@ -22,24 +22,22 @@ export type RouteEntry = {
   handler: (request: IncomingMessage, response: ServerResponse, ...matches: string[]) => Promise<void>;
 };
 
+export namespace HttpRouteCapabilities {
+  export type AuthOperations    = 'login' | 'logout' | 'session' | 'google.start';
+  export type AdminOperations   = 'users' | 'models' | 'api-services' | 'api-service-bindings';
+  export type ToolsOperations   = 'briefs' | 'hydrate' | 'orchestrate' | 'api-services' | 'sessions';
+  export type ProjectOperations = 'projects';
+  export type ArtifactOperations = 'artifacts';
+  export type FeedbackOperations = 'public' | 'admin';
+}
+
 export type AuthHttpRouteCapability =
-  | 'auth.login'
-  | 'auth.logout'
-  | 'auth.session'
-  | 'auth.google.start'
-  | 'admin.users'
-  | 'admin.models'
-  | 'admin.api-services'
-  | 'admin.api-service-bindings'
-  | 'projects'
-  | 'artifacts'
-  | 'tools.briefs'
-  | 'tools.hydrate'
-  | 'tools.orchestrate'
-  | 'tools.api-services'
-  | 'tools.sessions'
-  | 'feedback.public'
-  | 'feedback.admin';
+  | `auth.${HttpRouteCapabilities.AuthOperations}`
+  | `admin.${HttpRouteCapabilities.AdminOperations}`
+  | `tools.${HttpRouteCapabilities.ToolsOperations}`
+  | HttpRouteCapabilities.ProjectOperations
+  | HttpRouteCapabilities.ArtifactOperations
+  | `feedback.${HttpRouteCapabilities.FeedbackOperations}`;
 
 export const AUTH_HTTP_ROUTE_CAPABILITIES: Readonly<Record<AuthHttpRouteCapability, true>> = {
   'auth.login': true,

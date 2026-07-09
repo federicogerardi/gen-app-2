@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import {
   buildIdempotencyRedisLockKey,
   createPostgresRedisProductionGenerationAdapters,
-} from '../adapters';
+} from './generation';
 import { createSmokeCleanup } from './smoke-cleanup';
 import { runBackendGenerationSessionAsJson } from '../runtime/backend-session';
 

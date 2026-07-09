@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'node:http';
-import type { GenerationAdapters } from '../adapters';
+import type { GenerationAdapters } from '../adapters/generation';
 
 import {
   runBackendGenerationSession,

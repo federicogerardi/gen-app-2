@@ -6,10 +6,12 @@ import assert from 'node:assert/strict';
 import {
   ArtifactQueryRepositoryStub,
   ProjectQueryRepositoryStub,
-  createAuthStubRepositories,
   createInMemoryGenerationAdapters,
   type StubArtifactQueryRecord,
-} from '../adapters';
+} from '../adapters/generation';
+import {
+  createAuthStubRepositories,
+} from '../adapters/auth';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,

@@ -3,10 +3,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 import type {
   AuthRepositoryBundle,
+  UserQueryRepositoryBundle,
+} from '../../adapters/auth';
+import type {
   IdempotencyAdapter,
   OrchestrateArtifactCache,
-  UserQueryRepositoryBundle,
-} from '../../adapters';
+} from '../../adapters/generation';
 import type {
   AuthSessionPrincipal,
 } from '../../types/auth';

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ArtifactQueryRepositoryStub } from '../adapters';
+import { ArtifactQueryRepositoryStub } from '../adapters/generation';
 import { SessionQueryAdapter } from '../adapters/session-query.adapter';
 
 test('SessionQueryAdapter aggregates artifacts by session in chronological order', async () => {

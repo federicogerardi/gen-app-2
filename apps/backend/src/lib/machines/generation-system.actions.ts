@@ -5,6 +5,7 @@ import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput, 
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
+import type { ErrorActorOutput } from './generation-system.error-actors';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
   CacheAcquisitionResultParams,
@@ -62,6 +63,7 @@ type GenerationSystemActionObject =
   | { type: 'setFailureFromInvokeOutput'; params: { reason: string } }
   | { type: 'queueFallbackDecision'; params: QueueFallbackDecisionParams }
   | { type: 'applyFallbackDecision'; params: { reason: string } }
+  | { type: 'applyRouteErrorOutput'; params: { output: ErrorActorOutput } }
   | { type: 'setFallbackPolicyFailure'; params: undefined }
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
@@ -332,6 +334,22 @@ export const generationSystemActions = {
   }),
   applyFallbackDecision: assignGeneration<{ reason: string }>({
     failureReason: (_: GenerationActionArgs, params: { reason: string }) => params.reason,
+    pendingFallback: null,
+  }),
+  applyRouteErrorOutput: assignGeneration<{ output: ErrorActorOutput }>({
+    failureReason: (_: GenerationActionArgs, params: { output: ErrorActorOutput }) => {
+      const out = params.output;
+      switch (out.type) {
+        case 'EXTRACTION_PARTIAL_RECOVERY': return out.recoveryReason;
+        case 'EXTRACTION_FALLBACK_TO_RAW': return out.fallbackReason;
+        case 'EXTRACTION_COMPLETE_FAILURE': return out.finalReason;
+        case 'TOOL_PARTIAL_RECOVERY': return out.recoveryAction;
+        case 'TOOL_DEPENDENCY_RECOVERY': return out.recoveryAction;
+        case 'TOOL_COMPLETE_FAILURE': return out.finalReason;
+        case 'GENERIC_PARTIAL_RECOVERY': return out.recoveryReason;
+        case 'GENERIC_COMPLETE_FAILURE': return out.finalReason;
+      }
+    },
     pendingFallback: null,
   }),
   setFallbackPolicyFailure: assignGeneration<undefined>({

@@ -1,8 +1,8 @@
 ---
 status: in-progress
-version: 1.5-session-1
-last-reviewed: 2026-07-08
-next-review-date: 2026-07-15
+version: 1.8-session-2-phase-1-complete
+last-reviewed: 2026-07-12
+next-review-date: 2026-07-19
 owner: Domain Architecture Team
 date_created: 2026-07-08
 title: Sprint 4 Implementation Plan - Core Architecture Resolution
@@ -23,9 +23,10 @@ goal: Systematic resolution of critical architectural vulnerabilities V2 and V1 
 # Sprint 4 Implementation Plan - Core Architecture Resolution
 
 **Source**: [Unified Architectural Vulnerabilities Review](../docs/07-governance/unified-architectural-vulnerabilities-review.md)  
-**Branch**: `feature/unified-architectural-vulnerabilities-resolution`  
+**Branch**: `feature/sprint-4-session-2-reducer-bridge` (Session 2+; Session 1 work merged to `dev` via PR #43, obsolete branch `feature/unified-architectural-vulnerabilities-resolution` retired)  
 **Prerequisites**: Sprint 3 completed ✅ (Structural Decoupling + Actor Communication Consolidation)  
-**Execution**: Sequential phases — Phase 1 (V2 Frontend Reactive Spaghetti) → Phase 2 (V1 GenerationSystem Context Decomposition)
+**Execution**: Sequential phases — Phase 1 (V2 Frontend Reactive Spaghetti) → Phase 2 (V1 GenerationSystem Context Decomposition)  
+**Session 2 Scope**: Frontend-only (Phase 1 Steps 2-6, reducer-bridge pivot). Phase 2 deferred to a later session.
 
 ---
 
@@ -895,9 +896,35 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 | Phase | Success Criteria | Status | Validation Command |
 |-------|------------------|--------|-------------------|
 | **DDD Gates** | DDD-165→172 entries created | ✅ Complete | `grep -c "DDD-16[5-9]\|DDD-17[0-2]" docs/07-governance/domain-naming-decision-log.md` |
-| **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | 🟡 Partial (Step 1 done) | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
+| **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | ✅ Complete (Steps 1-6 done; Session 2 local browser validated) | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
 | **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | 🟡 Partial (Steps 1,2,4,5 done) | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
 | **Integration** | 448 frontend + 335 backend tests pass, performance maintained | ✅ Complete | `npm run typecheck && npm run test && npm run build` |
+
+### 💡 Session 2 Learned Lessons & Strategic Pivot (2026-07-12)
+
+**Critical Finding**: Attempting to completely remove `useEffect` dispatch logic by embedding it as an XState `invoke` actor in `tool-page.machine.ts` (Phase 1, Steps 2-4) proved **too destructive for React 19 concurrent rendering integration**.
+
+*   **The Issue**: XState v5 actor spawning and lifecycle integration via `@xstate/react` `useMachine` clashed heavily with dynamic React closures (especially callback refs and `workspace` context bindings). Passing down closures via `fromPromise` inside the machine context created insurmountable type mismatches and test suite breaks (e.g. `Missing dispatcher or pending step` during hydration flows).
+*   **The Resolution**: We must **abort** the radical "pure XState" migration for the frontend dispatcher. `useEffect` is actually the correct boundary to bridge the XState `snapshot` state with React `useCallback` async operations when depending on external React Contexts (Workspaces).
+*   **The Pivot**: Instead of moving the logic *into* XState, we will rewrite `useToolPageRunController` to be a deterministic reducer-like hook. We will consolidate the 4+ `useEffect` hooks into a single, highly-controlled `useLayoutEffect` that reads the XState snapshot and dispatches promises, acting as a clean bridge rather than forcing XState to handle React closures natively.
+
+### **Session 2 Progress (2026-07-12)**
+
+**Phase 1 Steps 2-4 — DONE** (reducer-bridge consolidation on `feature/sprint-4-session-2-reducer-bridge` from `dev` HEAD `27df1cc`):
+
+- ✅ **Steps 2,3,4 (consolidated)**: Replaced the trio of `useEffect` hooks (Effect 2 pending dispatch, Effect 3 stream/generation terminal resolver, Effect 4 auto-chain driver) with a single deterministic `useLayoutEffect` reducer-bridge. Total effect count in `useToolPageRunController.ts` is now **2** (1 `useEffect` for `pausedCheckpointStep` cleanup + 1 `useLayoutEffect` bridge) — target ≤2 reached.
+- ✅ **Machine mini-extension**: Added a `REQUEST_STEP_START` event handler inside the `generating` state of `tool-page.machine.ts` (action: `queueStepStart`, no state transition) so the auto-chain path enqueues the next step through the same machine queue instead of bypassing it via direct `startGenerationStep`. This restores XState authority over dispatch without forcing the radical actor-spawn pivot that Session 2 aborted.
+- ✅ **Idempotency guards**: Added `dispatchedRunPrefixRef` to dedupe branch (a) (pending dispatch) — prevents double-dispatch when unrelated bridge deps re-run while the run promise is in flight. Existing `nonStreamingCompletedStepsRef`, `wasStreamActiveRef`, `lastRequestedStepRef` reused.
+- ✅ **Branch ordering**: Branch (c) auto-chain runs BEFORE branch (b) terminal resolver — preserves the legacy independence of Effect 4 (which was a separate effect that triggered regardless of Effect 3's `wasStreamActiveRef.current`/`generationStatus` early-return). On failure, branch (c) tears down auto-chain but does NOT `return`, so branch (b) still owns `STEP_FAILED` + `CANCEL_GENERATION` + `dispatchError` reporting.
+- ✅ **Run-prefix continuity**: Branch (c) reuses `currentRunPrefixRef.current` (instead of generating a fresh `generateRequestId()` per chained step) so that PROGRESS_SYNCED's `runRequestPrefix` filtering matches all chained step artifacts in the same run. Mirrors the legacy auto-chain path which called `startGenerationStep` directly (which read `currentRunPrefixRef.current`).
+- ✅ **Step 5**: Created `useToolPageStateConsumer` (DDD-158) + `tool-page-snapshot-types.ts`. Wired into `useToolPage` with façade-flat public API preserved (no caller/test breakage). Fourth consumer hook alongside DDD-159/160/161, returning memoized `{ pageState, formState, navigationState }`.
+- ✅ **Step 6 (Race A + Race D)**: Added structural-equality dedup in `buildSyncProgressState` via `progressStatesEqual` + `readinessSnapshotsEqual` (Race A: double `PROGRESS_SYNCED`). Added `canCancelGeneration` guard on the `configuring.CANCEL_GENERATION` handler (Race D: double `CANCEL_GENERATION`); the `generating.CANCEL_GENERATION` handler stays unguarded so the first cancel always proceeds, and the redundant second one is dropped once `resetConfig` has cleared `pendingStepStart`/`runRequestPrefix`/progress.
+
+**Validation**: `npm --workspace apps/frontend run typecheck` ✅ · `npm --workspace apps/frontend run test` ✅ 448/448 (66 files) · effect count ≤2 ✅ · local browser smoke test ✅ (confirmed by user). Backend untouched (FE-only scope — no regression risk to Phase 2).
+
+### **Phase 1 Complete When**: ≤2 `useEffect` hooks ✅, 0 race conditions (Race A/D guards) ✅, XState authority restored ✅, consumer hooks integrated ✅.
+
+---
 
 ### **Session 1 Completion Summary (2026-07-08)**
 
@@ -945,8 +972,8 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 
 ---
 
-**Last Updated**: 2026-07-08 (Sprint 4 Session 1 completed — Phase 1 Step 1 + Phase 2 Steps 1,2,4,5)  
-**Next Review**: 2026-07-15  
+**Last Updated**: 2026-07-12 (Sprint 4 Session 2 — Phase 1 COMPLETE via reducer-bridge consolidation + DDD-158 consumer + Race A/D guards; Phase 2 deferred)  
+**Next Review**: 2026-07-19  
 **Review Owner**: Domain Architecture Team  
 **DDD Compliance Status**: ✅ **PASSED** - All DDD-165 through DDD-172 entries created and approved  
-**AI Execution Ready**: ✅ **IN PROGRESS** - Session 1 completed, Session 2 pending (Phase 1 Steps 2-6 + Phase 2 Step 3)
+**AI Execution Ready**: ✅ **PHASE 1 COMPLETE** - Session 1 merged to `dev` via PR #43; Session 2 on `feature/sprint-4-session-2-reducer-bridge` completed Phase 1 Steps 1-6 (FE-only). Phase 2 (V1 backend context decomposition) deferred to next session.

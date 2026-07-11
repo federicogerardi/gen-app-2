@@ -1,13 +1,14 @@
 ---
 goal: Piano di User Acceptance Testing per il nuovo sistema cluster Meta Ads
-version: 1.0
+version: 1.1
 date_created: 2026-06-28
-last_updated: 2026-06-28
-last-reviewed: 2026-06-28
-next-review-date: 2026-07-28
+last_updated: 2026-07-11
+last-reviewed: 2026-07-11
+next-review-date: 2027-01-11
 owner: Product Team
-status: draft
-tags: [uat, meta-ads, cluster-system, user-testing]
+status: archived
+tags: [uat, meta-ads, cluster-system, user-testing, archived]
+archived_reason: Superseded by completed rollout. User acceptance testing was executed as part of the feature-meta-ads-cluster-system-evolution-1.md implementation (TASK-019 ✅ Completed, Sprint 8), rendering this standalone UAT plan document obsolete.
 ---
 
 # User Acceptance Testing - Meta Ads Cluster System

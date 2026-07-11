@@ -1,13 +1,14 @@
 ---
 goal: Piano di rollout graduale per il sistema cluster Meta Ads
-version: 1.0
+version: 1.1
 date_created: 2026-06-28
-last_updated: 2026-06-28
-last-reviewed: 2026-06-28
-next-review-date: 2026-07-28
+last_updated: 2026-07-11
+last-reviewed: 2026-07-11
+next-review-date: 2027-01-11
 owner: DevOps Team + Product Team
-status: draft
-tags: [rollout, meta-ads, cluster-system, monitoring, feature-flag]
+status: archived
+tags: [rollout, meta-ads, cluster-system, monitoring, feature-flag, archived]
+archived_reason: Superseded by events. The cluster system is already live (legacy removed after positive A/B test per TASK-004/TASK-005 in feature-meta-ads-cluster-system-evolution-1.md). This formal rollout plan was never executed because the incremental rollout happened organically through the feature plan implementation.
 ---
 
 # Piano di Rollout Graduale - Sistema Cluster Meta Ads

@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 3.5
-last-reviewed: 2026-07-05
-next-review-date: 2026-10-05
+version: 3.6
+last-reviewed: 2026-07-11
+next-review-date: 2026-10-11
 owner: Documentation Archivist
 ---
 
@@ -125,6 +125,7 @@ Validation path manifest (orphan-check canonical set):
 ### Active Proposals
 
 - [proposal-error-logging-and-ux-feedback](./02-design/proposal-error-logging-and-ux-feedback.md) — **Proposal: structured logging for idempotency/proxy errors, proxy request correlation via x-request-id, and UX feedback for timeout/conflict scenarios (based on 30/06 production log analysis)**
+- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
 
 ### Open Findings — UX Determinism Review (for future implementation)
 

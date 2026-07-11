@@ -1,13 +1,14 @@
 ---
 goal: Evoluzione del formato output del tool meta-ads da sistema di 4 varianti per lunghezza a sistema cluster → angolo → awareness levels con controllo utente della lunghezza copy
-version: 1.0
+version: 1.1
 date_created: 2026-06-28
-last_updated: 2026-06-28
-last-reviewed: 2026-06-28
-next-review-date: 2026-07-28
+last_updated: 2026-07-11
+last-reviewed: 2026-07-11
+next-review-date: 2027-01-11
 owner: Product Team
-status: draft
-tags: [proposal, meta-ads, tool-evolution, copy-generation, user-experience]
+status: archived
+tags: [proposal, meta-ads, tool-evolution, copy-generation, user-experience, archived]
+archived_reason: Implementation completed and shipped via feature-meta-ads-cluster-system-evolution-1.md (all 21 tasks ✅ Completed). This proposal served as the approval basis; the cluster system is now live with legacy removed.
 ---
 
 # PROPOSAL: Evoluzione Formato Output Tool Meta-Ads

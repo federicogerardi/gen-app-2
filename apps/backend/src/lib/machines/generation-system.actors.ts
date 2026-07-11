@@ -8,6 +8,7 @@ import { usageMachine } from './usage.machine';
 import { generationFallbackActor } from './generation-fallback.actor';
 import { generationActor } from './generation-actor';
 import { simpleFinalizationActor } from './persistence-actor';
+import { extractionErrorActor, toolWorkflowErrorActor, genericErrorActor } from './generation-system.error-actors';
 import { buildExtractionStructuredPayload } from './generation/extraction-parsers';
 import { getRegistrySelector } from './generation-routing';
 import { isExtractionPayloadSemanticallyValid } from './generation-system.events';
@@ -143,6 +144,9 @@ export const generationSystemActors = {
   }),
   invokeToolWorkflow: toolWorkflowMachine,
   invokeFallbackPolicy: generationFallbackActor,
+  extractionErrorActor,
+  toolWorkflowErrorActor,
+  genericErrorActor,
   markCompletedIdempotency: fromPromise(
     async ({ input }: { input: { context: GenerationMachineContext } }) => {
       const { context } = input;

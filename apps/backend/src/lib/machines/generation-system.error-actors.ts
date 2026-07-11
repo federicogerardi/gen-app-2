@@ -58,7 +58,7 @@ export const toolWorkflowErrorActor = fromPromise<ErrorActorOutput, ErrorActorIn
 
   return {
     type: 'TOOL_COMPLETE_FAILURE',
-    finalReason: pendingFallback?.defaultReason || 'workflow_failed',
+    finalReason: reason || pendingFallback?.defaultReason || 'workflow_failed',
   };
 });
 

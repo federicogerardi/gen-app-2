@@ -15,7 +15,7 @@
  * - Domain Context: Final artifact ID assignment, failure reason recording
  */
 
-import { getFallbackDoneOutput } from './generation-system.events';
+import type { ErrorActorOutput } from './generation-system.error-actors';
 import type { GenerationMachineContext } from './generation-system.types';
 import { buildPersistenceBatchInput } from './generation-persistence';
 
@@ -29,52 +29,129 @@ type UnknownEventArgs = {
 
 export const generationSystemPersistenceStates = {
   resolvingFallbackPolicy: {
-    invoke: {
-      id: 'fallbackActor',
-      src: 'invokeFallbackPolicy',
-      input: ({ context }: ContextArgs) => ({
-        reason: context.pendingFallback?.reason ?? context.failureReason ?? null,
-        defaultReason:
-          context.pendingFallback?.defaultReason
-          ?? context.failureReason
-          ?? 'generation_failed',
-        routeType: context.routeType,
-        hasContent: context.contentBuffer.trim().length > 0,
-        retryCount: 0,
-        maxRetries: 0,
-      }),
-      onDone: [
-        {
-          guard: ({ context }: ContextArgs) => context.mode === 'generate',
-          target: 'persistingFailureSync',
-          actions: {
-            type: 'applyFallbackDecision',
-            params: ({ event }: UnknownEventArgs) => ({
-              reason: getFallbackDoneOutput(event)?.reason ?? 'generation_failed',
-            }),
-          },
+    initial: 'route',
+    states: {
+      route: {
+        always: [
+          { guard: 'routeIsExtraction', target: 'extractionRecovery' },
+          { guard: 'routeIsTool', target: 'toolWorkflowRecovery' },
+          { target: 'genericRecovery' },
+        ],
+      },
+      extractionRecovery: {
+        invoke: {
+          id: 'extractionErrorActor',
+          src: 'extractionErrorActor',
+          input: ({ context }: ContextArgs) => ({
+            pendingFallback: context.pendingFallback,
+            registryVersion: context.registryVersion,
+            registrySnapshotRef: context.registrySnapshotRef,
+            reason: context.pendingFallback?.reason ?? context.failureReason ?? 'extraction_failed',
+            hasContent: context.contentBuffer.trim().length > 0,
+          }),
+          onDone: [
+            {
+              guard: 'modeIsGenerate',
+              target: '#generationSystemMachine.persistingFailureSync',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+            {
+              target: '#generationSystemMachine.persistingFailure',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+          ],
+          onError: [
+            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
+            { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
+          ],
         },
-        {
-          target: 'persistingFailure',
-          actions: {
-            type: 'applyFallbackDecision',
-            params: ({ event }: UnknownEventArgs) => ({
-              reason: getFallbackDoneOutput(event)?.reason ?? 'generation_failed',
-            }),
-          },
+      },
+      toolWorkflowRecovery: {
+        invoke: {
+          id: 'toolWorkflowErrorActor',
+          src: 'toolWorkflowErrorActor',
+          input: ({ context }: ContextArgs) => ({
+            pendingFallback: context.pendingFallback,
+            registryVersion: context.registryVersion,
+            registrySnapshotRef: context.registrySnapshotRef,
+            reason: context.pendingFallback?.reason ?? context.failureReason ?? 'workflow_failed',
+            hasContent: context.contentBuffer.trim().length > 0,
+          }),
+          onDone: [
+            {
+              guard: 'modeIsGenerate',
+              target: '#generationSystemMachine.persistingFailureSync',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+            {
+              target: '#generationSystemMachine.persistingFailure',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+          ],
+          onError: [
+            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
+            { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
+          ],
         },
-      ],
-      onError: [
-        {
-          guard: ({ context }: ContextArgs) => context.mode === 'generate',
-          target: 'persistingFailureSync',
-          actions: 'setFallbackPolicyFailure',
+      },
+      genericRecovery: {
+        invoke: {
+          id: 'genericErrorActor',
+          src: 'genericErrorActor',
+          input: ({ context }: ContextArgs) => ({
+            pendingFallback: context.pendingFallback,
+            registryVersion: context.registryVersion,
+            registrySnapshotRef: context.registrySnapshotRef,
+            reason: context.pendingFallback?.reason ?? context.failureReason ?? 'generation_failed',
+            hasContent: context.contentBuffer.trim().length > 0,
+          }),
+          onDone: [
+            {
+              guard: 'modeIsGenerate',
+              target: '#generationSystemMachine.persistingFailureSync',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+            {
+              target: '#generationSystemMachine.persistingFailure',
+              actions: {
+                type: 'applyRouteErrorOutput',
+                params: ({ event }: UnknownEventArgs) => ({
+                  output: (event as { output?: ErrorActorOutput }).output!,
+                }),
+              },
+            },
+          ],
+          onError: [
+            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
+            { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
+          ],
         },
-        {
-          target: 'persistingFailure',
-          actions: 'setFallbackPolicyFailure',
-        },
-      ],
+      },
     },
   },
   persistingSuccess: {

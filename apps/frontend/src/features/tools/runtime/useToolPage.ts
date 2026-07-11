@@ -13,6 +13,8 @@ import { useToolPageContext } from './tool-page-context';
 import { useToolPageRunController } from './useToolPageRunController';
 import { useBackendStreamEventConsumer } from './useBackendStreamEventConsumer';
 import { useAuthSessionStateConsumer } from './useAuthSessionStateConsumer';
+// DDD-158: UI state downstream consumer (BCM Line 25) — Sprint 4 Session 2 Phase 1 Step 5.
+import { useToolPageStateConsumer } from './useToolPageStateConsumer';
 
 export interface UseToolPageProps {
   toolKey: SupportedTool;
@@ -197,7 +199,14 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     }
   }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
-  return {
+  // DDD-158: ToolPageStateConsumer — UI-only state via downstream consumer pattern.
+  // The consumer returns a memoized { pageState, formState, navigationState } view
+  // (pure UI concerns, no domain/execution logic). The runController + streamEvents
+  // + local handlers remain external and are composed back into the flat return
+  // object below so the public API of useToolPage is identical (no breaking
+  // change for callers / tests). Sprint 4 Session 2 Phase 1 Step 5.
+  const toolPageState = useToolPageStateConsumer({
+    toolPageSnapshot,
     toolConfig,
     formState,
     setFormState,
@@ -205,8 +214,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     projectsLoading,
     briefingError,
     briefingGuidance,
-    dispatchError,
-    artifactsReloadError: streamEvents.artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     angleDetectorFileName: briefingSnapshot.context.angleDetectorFileName,
@@ -216,20 +223,53 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     completedStepsForFlow,
     latestArtifactByStep,
     completedArtifactsByStep,
+    nextAvailableStep,
     currentRunningStep,
     streamingStep,
     pausedCheckpointStep,
-    nextAvailableStep,
     effectiveCanonicalState,
     currentProject,
-    isStreamActive: streamEvents.isStreamActive,
+    navigate,
     sessionId,
+  });
+
+  return {
+    // pageState (DDD-158)
+    toolConfig: toolPageState.formState.toolConfig,
+    machineViewModel: toolPageState.pageState.machineViewModel,
+    isGenerating: toolPageState.pageState.isGenerating,
+    readinessSnapshot: toolPageState.pageState.readinessSnapshot,
+    completedStepsForFlow: toolPageState.pageState.completedStepsForFlow,
+    latestArtifactByStep: toolPageState.pageState.latestArtifactByStep,
+    completedArtifactsByStep: toolPageState.pageState.completedArtifactsByStep,
+    currentRunningStep: toolPageState.pageState.currentRunningStep,
+    streamingStep: toolPageState.pageState.streamingStep,
+    pausedCheckpointStep: toolPageState.pageState.pausedCheckpointStep,
+    nextAvailableStep: toolPageState.pageState.nextAvailableStep,
+    effectiveCanonicalState: toolPageState.pageState.effectiveCanonicalState,
+    sessionId: toolPageState.pageState.sessionId,
+    // formState (DDD-158)
+    formState: toolPageState.formState.formState,
+    setFormState: toolPageState.formState.setFormState,
+    projects: toolPageState.formState.projects,
+    projectsLoading: toolPageState.formState.projectsLoading,
+    briefingError: toolPageState.formState.briefingError,
+    briefingGuidance: toolPageState.formState.briefingGuidance,
+    effectiveBriefingStatus: toolPageState.formState.effectiveBriefingStatus,
+    effectiveBriefingFileName: toolPageState.formState.effectiveBriefingFileName,
+    angleDetectorFileName: toolPageState.formState.angleDetectorFileName,
+    currentProject: toolPageState.formState.currentProject,
+    // navigationState (DDD-158)
+    navigate: toolPageState.navigationState.navigate,
+    // Non-consumer fields: runController execution state + streamEvents + local handlers.
+    dispatchError,
+    artifactsReloadError: streamEvents.artifactsReloadError,
+    isStreamActive: streamEvents.isStreamActive,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
     handleExtractionStart,
     handleBriefingReset,
-    navigate,
   };
 };

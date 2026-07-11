@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
 import { generateRequestId } from '../../../app/runtime/shared-utils';
 import type { AuthStateValue, ApiConfigValue } from '../../../app/providers/AuthSessionProvider';
@@ -52,6 +52,10 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const nonStreamingCompletedStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
+  // Sprint 4 Session 2: idempotency for bridge branch (a). The consolidated bridge
+  // re-runs on every dep change; without this guard, branch (a) would re-dispatch
+  // the same pendingStepStart promise multiple times while it is in flight.
+  const dispatchedRunPrefixRef = useRef<string | null>(null);
   const primaryActionPolicy = machineViewModel.primaryActionPolicy;
 
   const volatileArgsRef = useRef({
@@ -228,26 +232,113 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     }
   }, [toolKey, toolConfig.steps, toolPageSend]);
 
-  useEffect(() => {
-    if (!pendingStepStart) return;
-    currentRunPrefixRef.current = pendingStepStart.runRequestPrefix;
-    toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
-    void startGenerationStep(pendingStepStart.step).then((success) => {
-      if (!success) {
-        setDispatchError(appCopy.ui.toolPage.runtimeErrors.dispatchFailed);
-        toolPageSend({ type: 'CANCEL_GENERATION' });
-      }
-    });
-  }, [pendingStepStart, startGenerationStep, toolPageSend]);
+  // ⚙️ Phase 1 Steps 2-4 (Sprint 4 Session 2, reducer-bridge pivot): consolidates
+  // the former Effect 2 (pending dispatch), Effect 3 (stream/generation terminal
+  // resolver) and Effect 4 (auto-chain driver) into a single deterministic bridge
+  // between the XState layer and async React execution. XState remains the single
+  // source of truth: pendingStepStart drives dispatch, STEP_DONE / STEP_FAILED /
+  // NONSTREAMING_STEP_COMPLETED resolve terminals, and auto-chain enqueues via
+  // REQUEST_STEP_START (no direct startGenerationStep bypass). Idempotency refs
+  // (dispatchedRunPrefixRef, nonStreamingCompletedStepsRef, wasStreamActiveRef,
+  // lastRequestedStepRef) prevent spurious re-fires under React 19 concurrent
+  // rendering. useLayoutEffect runs synchronously after DOM mutation; the async
+  // dispatch is fire-and-forget so it never blocks paint.
+  //
+  // Branch order rationale: (a) pending dispatch has priority (drives async run).
+  // (c) auto-chain runs BEFORE (b) so it stays independent of the terminal
+  // resolver's wasStreamActiveRef.current / generationStatus early-return: in the
+  // legacy code Effect 4 was a separate effect that triggered regardless of
+  // Effect 3's terminal guard, so the consolidated bridge must preserve that
+  // independence. On failure, branch (c) tears down auto-chain but does NOT
+  // return, so branch (b) still owns STEP_FAILED + CANCEL_GENERATION reporting.
+  useLayoutEffect(() => {
+    // (a) Pending step dispatch — bridge machine pendingStepStart into the async
+    //     run. STEP_REQUEST_DISPATCHED clears the machine field immediately so
+    //     this branch logically fires once per REQUEST_STEP_START. The
+    //     dispatchedRunPrefixRef guard hardens this against re-runs of the
+    //     consolidated bridge triggered by other deps changing while the run is
+    //     still in flight.
+    if (pendingStepStart) {
+      if (dispatchedRunPrefixRef.current === pendingStepStart.runRequestPrefix) return;
+      dispatchedRunPrefixRef.current = pendingStepStart.runRequestPrefix;
+      currentRunPrefixRef.current = pendingStepStart.runRequestPrefix;
+      toolPageSend({ type: 'STEP_REQUEST_DISPATCHED' });
+      void startGenerationStep(pendingStepStart.step).then((success) => {
+        if (!success) {
+          setDispatchError(appCopy.ui.toolPage.runtimeErrors.dispatchFailed);
+          toolPageSend({ type: 'CANCEL_GENERATION' });
+        }
+      });
+      return;
+    }
+    // pendingStepStart is null — release the dedup token so the next queued
+    // REQUEST_STEP_START dispatches freshly.
+    dispatchedRunPrefixRef.current = null;
 
-  useEffect(() => {
+    // (c) Auto-chain trigger — enqueue the next step via REQUEST_STEP_START so
+    //     the machine queue drives dispatch (restored by the machine change in
+    //     Sprint 4 Session 2). No direct startGenerationStep bypass remains.
+    if (isAutoChainEnabled) {
+      if (generationStream.streamStatus === 'failed' || generationStatus === 'failed') {
+        // Tear down auto-chain but DO NOT return — fall through to branch (b)
+        // which owns STEP_FAILED + CANCEL_GENERATION + dispatchError reporting.
+        const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
+        if (interruptedStep) setPausedCheckpointStep(interruptedStep);
+        stopAutoChain();
+      } else if (!generationStream.isStreamActive && !generationRun.isGenerationActive) {
+        // pendingStepStart is null (handled by branch (a) above); safe to enqueue.
+        const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
+        const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
+        if (import.meta.env.DEV) {
+          console.info('[useToolPage] auto-chain check', {
+            lastRequestedStep: lastRequestedStepRef.current,
+            nextAvailableStep,
+            effectiveNextStep,
+            locallyCompleted: Array.from(locallyCompleted),
+            completedStepsForFlow: Array.from(completedStepsForFlow),
+            isAutoChainEnabled,
+          });
+        }
+        if (!effectiveNextStep) {
+          stopAutoChain();
+          // fall through to branch (b) for terminal handling
+        } else if (
+          lastRequestedStepRef.current
+          && locallyCompleted.has(lastRequestedStepRef.current)
+          && lastRequestedStepRef.current !== effectiveNextStep
+        ) {
+          if (import.meta.env.DEV) {
+            console.info('[useToolPage] auto-chain starting next step', { effectiveNextStep });
+          }
+          // Preserve run-prefix continuity across the chain: reuse
+          // currentRunPrefixRef.current instead of generating a fresh id, mirroring
+          // the legacy auto-chain path (which called startGenerationStep directly
+          // and let startGenerationStep read currentRunPrefixRef.current). This
+          // keeps PROGRESS_SYNCED's runRequestPrefix filtering aligned with every
+          // chained step's artifacts. handleCancelGeneration / handlePrimaryAction
+          // own lifecycle resets of currentRunPrefixRef.
+          const runPrefix = currentRunPrefixRef.current ?? generateRequestId();
+          currentRunPrefixRef.current = runPrefix;
+          toolPageSend({ type: 'REQUEST_STEP_START', step: effectiveNextStep, runRequestPrefix: runPrefix });
+          // Enqueued — do NOT proceed to terminal resolution for this bridge run;
+          // branch (a) will own the actual dispatch on the next re-render once the
+          // machine has set the new pendingStepStart.
+          return;
+        }
+        // else: auto-chain armed but conditions not met yet — fall through to (b).
+      }
+      // else: stream/generation active — fall through to (b) which keeps
+      // wasStreamActiveRef.current in sync.
+    }
+
+    // (b) Stream/generation terminal resolution — react to terminal stream or
+    //     non-streaming generation status, forwarding lifecycle events to XState.
+    //     Never advances the queue; that is exclusively branch (c)'s job.
     if (generationStream.isStreamActive) {
       wasStreamActiveRef.current = true;
       return;
     }
-    if (generationRun.isGenerationActive) {
-      return;
-    }
+    if (generationRun.isGenerationActive) return;
     if (!wasStreamActiveRef.current && generationStatus !== 'completed' && generationStatus !== 'failed') return;
     wasStreamActiveRef.current = false;
 
@@ -261,13 +352,9 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       if (resolved) {
         nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
         toolPageSend({ type: 'STEP_DONE', step: resolved });
-        if (import.meta.env.DEV) {
-          console.info('[useToolPage] dispatching NONSTREAMING_STEP_COMPLETED', { step: resolved });
-        }
+        if (import.meta.env.DEV) console.info('[useToolPage] dispatching NONSTREAMING_STEP_COMPLETED', { step: resolved });
         toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
-        if (import.meta.env.DEV) {
-          console.info('[useToolPage] dispatched NONSTREAMING_STEP_COMPLETED', { step: resolved });
-        }
+        if (import.meta.env.DEV) console.info('[useToolPage] dispatched NONSTREAMING_STEP_COMPLETED', { step: resolved });
       }
       generationArtifacts.reloadArtifacts();
       return;
@@ -306,47 +393,15 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       toolPageSend({ type: 'CANCEL_GENERATION' });
     }
   }, [
-    generationStream.isStreamActive, generationStream.snapshot.context.errorMessage,
-    generationStream.snapshot.context.lastRequest, generationStream.streamStatus,
-    generationStream.terminalCompletedStep, generationStream.terminalFailedStep,
-    generationRun.isGenerationActive, generationRun.snapshot.context.errorMessage,
-    generationRun.snapshot.context.lastRequest, generationStatus, toolConfig.steps, toolPageSend,
-    nextAvailableStep,
-  ]);
-
-  useEffect(() => {
-    if (!isAutoChainEnabled) return;
-    if (generationStream.streamStatus === 'failed' || generationStatus === 'failed') {
-      const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
-      if (interruptedStep) setPausedCheckpointStep(interruptedStep);
-      stopAutoChain();
-      return;
-    }
-    if (generationStream.isStreamActive || generationRun.isGenerationActive) return;
-    if (pendingStepStart) return; // Prevent duplicate dispatch when request is already in flight
-
-    const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
-    const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
-    if (!effectiveNextStep) {
-      stopAutoChain();
-      return;
-    }
-
-    const lastRequestedStep = lastRequestedStepRef.current;
-    if (import.meta.env.DEV) {
-      console.info('[useToolPage] auto-chain check', { lastRequestedStep, nextAvailableStep, effectiveNextStep, locallyCompleted: Array.from(locallyCompleted), completedStepsForFlow: Array.from(completedStepsForFlow), isAutoChainEnabled });
-    }
-    if (lastRequestedStep && locallyCompleted.has(lastRequestedStep) && lastRequestedStep !== effectiveNextStep) {
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] auto-chain starting next step', { effectiveNextStep });
-      }
-      void startGenerationStep(effectiveNextStep);
-    }
-  }, [
-    completedStepsForFlow, currentRunningStep, generationStream.isStreamActive,
-    generationStream.streamStatus, generationRun.isGenerationActive, generationStatus,
-    isAutoChainEnabled, nextAvailableStep, startGenerationStep, toolKey, toolConfig.steps,
     pendingStepStart,
+    generationStream.isStreamActive, generationStream.streamStatus,
+    generationStream.terminalCompletedStep, generationStream.terminalFailedStep,
+    generationStream.snapshot.context.lastRequest, generationStream.snapshot.context.errorMessage,
+    generationRun.isGenerationActive, generationRun.snapshot.context.lastRequest,
+    generationRun.snapshot.context.errorMessage,
+    generationStatus, nextAvailableStep, currentRunningStep,
+    completedStepsForFlow, isAutoChainEnabled,
+    startGenerationStep, toolPageSend, toolKey, toolConfig.steps,
   ]);
 
   const handlePrimaryAction = useCallback(() => {

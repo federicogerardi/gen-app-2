@@ -15,6 +15,43 @@ export type ToolPageProgressState = {
   lastCheckpointStep: ToolStep | null;
 };
 
+/**
+ * Sprint 4 Session 2 (Phase 1 Step 6, Race A): structural equality check for
+ * ToolPageProgressState. Used by `buildSyncProgressState` to deduplicate the
+ * PROGRESS_SYNCED assignments issued from multiple sources (startGenerationStep,
+ * handleCancelGeneration, and the useToolPage sync effect) that occasionally
+ * fire back-to-back with identical artifact arrays during generation runs.
+ *
+ * Equality is based on:
+ *  - completedSteps: equal set membership (order-insensitive).
+ *  - latestArtifactByStep: equal keys + equal artifactId per key (we do NOT
+ *    compare full artifact contents — the id is the identity contract).
+ *  - lastCheckpointStep: strict equality.
+ *
+ * Returns true when the two states are structurally identical; in that case the
+ * caller returns `{}` so the XState `assign` no-ops and downstream consumers
+ * (readiness derivation, view-model recompute) are not invalidated.
+ */
+export const progressStatesEqual = (
+  a: ToolPageProgressState,
+  b: ToolPageProgressState,
+): boolean => {
+  if (a.lastCheckpointStep !== b.lastCheckpointStep) return false;
+  if (a.completedSteps.size !== b.completedSteps.size) return false;
+  for (const step of a.completedSteps) {
+    if (!b.completedSteps.has(step)) return false;
+  }
+  const aKeys = Object.keys(a.latestArtifactByStep);
+  const bKeys = Object.keys(b.latestArtifactByStep);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    const aArtifact = a.latestArtifactByStep[key as ToolStep];
+    const bArtifact = b.latestArtifactByStep[key as ToolStep];
+    if ((aArtifact?.artifactId ?? null) !== (bArtifact?.artifactId ?? null)) return false;
+  }
+  return true;
+};
+
 export const readStepDependencyArtifactIdsByStep = (
   artifact: GenerationArtifact | null,
 ): Partial<Record<ToolStep, string>> => {

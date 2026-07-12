@@ -292,7 +292,7 @@ export const generationSystemExecutionStates = {
           ],
         },
         {
-          target: 'persistingSuccessSync',
+          target: 'persistingSuccess',
           actions: {
             type: 'cacheGenerateResult',
             params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),

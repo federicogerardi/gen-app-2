@@ -1,12 +1,12 @@
 import { fromPromise } from 'xstate';
 import type { GenerationErrorContext } from './generation-system.context-types';
 
-type ErrorActorInput = GenerationErrorContext & {
+export type ErrorActorInput = GenerationErrorContext & {
   reason: string;
   hasContent: boolean;
 };
 
-type ErrorActorOutput =
+export type ErrorActorOutput =
   | { type: 'EXTRACTION_PARTIAL_RECOVERY'; recoveryReason: string }
   | { type: 'EXTRACTION_FALLBACK_TO_RAW'; fallbackReason: string }
   | { type: 'EXTRACTION_COMPLETE_FAILURE'; finalReason: string }
@@ -58,7 +58,7 @@ export const toolWorkflowErrorActor = fromPromise<ErrorActorOutput, ErrorActorIn
 
   return {
     type: 'TOOL_COMPLETE_FAILURE',
-    finalReason: pendingFallback?.defaultReason || 'workflow_failed',
+    finalReason: reason || pendingFallback?.defaultReason || 'workflow_failed',
   };
 });
 

@@ -5,6 +5,7 @@ import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput, 
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
+import type { ErrorActorOutput } from './generation-system.error-actors';
 import type { GenerationSystemProvidedActor } from './generation-system.actors';
 import type {
   CacheAcquisitionResultParams,
@@ -26,6 +27,10 @@ type GenerationActionArgs = {
 };
 
 type GenerationSystemActionObject =
+  | { type: 'cacheDomainMeta'; params: CacheRequestMetaParams }
+  | { type: 'cacheRuntimeMeta'; params: CacheRequestMetaParams }
+  | { type: 'resetMetricsMeta'; params: undefined }
+  | { type: 'resetErrorMeta'; params: undefined }
   | { type: 'cacheRequestMeta'; params: CacheRequestMetaParams }
   | { type: 'setUserId'; params: { userId: string } }
   | { type: 'setValidationData'; params: SetValidationDataParams }
@@ -51,11 +56,14 @@ type GenerationSystemActionObject =
   | { type: 'cacheCrawlingResult'; params: CacheCrawlingResultParams }
   | { type: 'cacheScoringResult'; params: CacheScoringResultParams }
   | { type: 'cacheExtractionResult'; params: CacheExtractionResultParams }
+  | { type: 'cacheExtractionDomainResult'; params: CacheExtractionResultParams }
+  | { type: 'cacheExtractionMetricsResult'; params: CacheExtractionResultParams }
   | { type: 'drivePersistenceFinalizeSuccess'; params: undefined }
   | { type: 'drivePersistenceFinalizeFailure'; params: undefined }
   | { type: 'setFailureFromInvokeOutput'; params: { reason: string } }
   | { type: 'queueFallbackDecision'; params: QueueFallbackDecisionParams }
   | { type: 'applyFallbackDecision'; params: { reason: string } }
+  | { type: 'applyRouteErrorOutput'; params: { output: ErrorActorOutput } }
   | { type: 'setFallbackPolicyFailure'; params: undefined }
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
@@ -137,30 +145,41 @@ const enqueueGenerationActions = <TParams extends ParameterizedObject['params'] 
   >(collect);
 
 export const generationSystemActions = {
-  cacheRequestMeta: assignGeneration<CacheRequestMetaParams>({
+  cacheDomainMeta: assignGeneration<CacheRequestMetaParams>({
     requestId: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.requestId,
+    userId: ({ context }: GenerationActionArgs) => context.userId,
     projectId: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.projectId,
     sessionId: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.sessionId,
     toolKey: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.toolKey,
-    artifactType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.artifactType,
     workflowType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.workflowType,
+    artifactType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.artifactType,
+    artifactId: () => null,
+    contentBuffer: () => '',
+    failureReason: () => null,
+  }),
+  cacheRuntimeMeta: assignGeneration<CacheRequestMetaParams>({
     model: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.model,
     requestInput: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.input,
     idempotencyKey: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.idempotencyKey,
     outputFormat: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.outputFormat,
-    registryVersion: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registryVersion,
-    registrySnapshotRef: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.registrySnapshotRef,
-    routeType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.routeType,
-    mode: ({ context }: GenerationActionArgs) => context.mode,
-    failureReason: null,
     syntheticResponse: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.syntheticResponse,
-    inputTokens: 0,
-    outputTokens: 0,
-    costUsd: 0,
-    contentBuffer: '',
-    artifactId: null,
-    pendingFallback: null,
+    routeType: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.routeType,
     effectiveModelResolution: (_: GenerationActionArgs, params: CacheRequestMetaParams) => params.effectiveModelResolution,
+    mode: ({ context }: GenerationActionArgs) => context.mode,
+  }),
+  resetMetricsMeta: assignGeneration<undefined>({
+    inputTokens: () => 0,
+    outputTokens: () => 0,
+    costUsd: () => 0,
+  }),
+  resetErrorMeta: assignGeneration<undefined>({
+    pendingFallback: () => null,
+  }),
+  cacheRequestMeta: enqueueGenerationActions<CacheRequestMetaParams>(({ enqueue }, params) => {
+    enqueue({ type: 'cacheDomainMeta', params });
+    enqueue({ type: 'cacheRuntimeMeta', params });
+    enqueue({ type: 'resetMetricsMeta' });
+    enqueue({ type: 'resetErrorMeta' });
   }),
   setUserId: assignGeneration<{ userId: string }>({
     userId: (_: GenerationActionArgs, params: { userId: string }) => params.userId,
@@ -262,18 +281,24 @@ export const generationSystemActions = {
       scoring: params.ranking,
     }),
   }),
-  cacheExtractionResult: assignGeneration<CacheExtractionResultParams>({
+  cacheExtractionDomainResult: assignGeneration<CacheExtractionResultParams>({
     contentBuffer: (_: GenerationActionArgs, params: CacheExtractionResultParams) => params.content,
     requestInput: ({ context }: GenerationActionArgs, params: CacheExtractionResultParams) => ({
       ...context.requestInput,
       extractionPayload: params.structuredPayload,
     }),
+  }),
+  cacheExtractionMetricsResult: assignGeneration<CacheExtractionResultParams>({
     inputTokens: ({ context }: GenerationActionArgs) =>
       Math.max(context.inputTokens, Math.max(1, Math.ceil(JSON.stringify(context.requestInput).length / 4))),
     outputTokens: (_: GenerationActionArgs, params: CacheExtractionResultParams) =>
       Math.max(1, Math.ceil(params.content.length / 4)),
     costUsd: ({ context }: GenerationActionArgs) =>
       context.costUsd > 0 ? context.costUsd : 0,
+  }),
+  cacheExtractionResult: enqueueGenerationActions<CacheExtractionResultParams>(({ enqueue }, params) => {
+    enqueue({ type: 'cacheExtractionDomainResult', params });
+    enqueue({ type: 'cacheExtractionMetricsResult', params });
   }),
   drivePersistenceFinalizeSuccess: enqueueGenerationActions<undefined>(({ enqueue, context }) => {
     enqueue.sendTo('persistenceActor', {
@@ -309,6 +334,22 @@ export const generationSystemActions = {
   }),
   applyFallbackDecision: assignGeneration<{ reason: string }>({
     failureReason: (_: GenerationActionArgs, params: { reason: string }) => params.reason,
+    pendingFallback: null,
+  }),
+  applyRouteErrorOutput: assignGeneration<{ output: ErrorActorOutput }>({
+    failureReason: (_: GenerationActionArgs, params: { output: ErrorActorOutput }) => {
+      const out = params.output;
+      switch (out.type) {
+        case 'EXTRACTION_PARTIAL_RECOVERY': return out.recoveryReason;
+        case 'EXTRACTION_FALLBACK_TO_RAW': return out.fallbackReason;
+        case 'EXTRACTION_COMPLETE_FAILURE': return out.finalReason;
+        case 'TOOL_PARTIAL_RECOVERY': return out.recoveryAction;
+        case 'TOOL_DEPENDENCY_RECOVERY': return out.recoveryAction;
+        case 'TOOL_COMPLETE_FAILURE': return out.finalReason;
+        case 'GENERIC_PARTIAL_RECOVERY': return out.recoveryReason;
+        case 'GENERIC_COMPLETE_FAILURE': return out.finalReason;
+      }
+    },
     pendingFallback: null,
   }),
   setFallbackPolicyFailure: assignGeneration<undefined>({

@@ -1,10 +1,10 @@
 ---
 goal: Deterministic plan for creating a new Tool in the repository, from DDD analysis through publication
-version: 2.0
+version: 2.1
 date_created: 2025-10-15
-last_updated: 2026-07-08
-last-reviewed: 2026-07-08
-next-review-date: 2026-10-08
+last_updated: 2026-07-12
+last-reviewed: 2026-07-12
+next-review-date: 2026-10-12
 owner: Platform
 status: active
 tags: [plan, tool-workspace, backend, frontend, ddd, validation, template]
@@ -96,8 +96,8 @@ Input rules:
 
 | # | File | What to Add | Pattern Reference |
 |---|------|-------------|-------------------|
-| A-001 | `packages/contracts/src/tool-workflows.ts` | Add `TOOL_WORKFLOW_DEFINITIONS` entry with `toolKey`, `workflowType`, `creditCost`, `steps[]` with explicit `dependencies`. Add `TOOL_AVAILABILITY_POLICY` entry. Add normalization aliases in `normalizeToolKeyCandidate`. | Lines 74-83, 124, 273-278 |
-| A-002 | `packages/contracts/src/extraction-fields.ts` | Add empty arrays/lookups for extraction fields, readiness fields, legacy aliases. Even if empty, the entries are required. | Lines 98, 115, 171 |
+| A-001 | `packages/contracts/src/tool-workflows.ts` | Add `TOOL_WORKFLOW_DEFINITIONS` entry with `toolKey`, `workflowType`, `creditCost`, `steps[]` with explicit `dependencies`. Add `TOOL_AVAILABILITY_POLICY` entry. Add normalization aliases in `normalizeToolKeyCandidate`. | See existing tool definitions |
+| A-002 | `packages/contracts/src/extraction-fields.ts` | Add empty arrays/lookups for extraction fields, readiness fields, legacy aliases. Even if empty, the entries are required. | See existing tool configurations |
 
 ### Auto-Derived (No Manual Changes Needed)
 
@@ -122,14 +122,14 @@ These derive from A-001 automatically via TypeScript:
 
 | # | File | What to Add | Pattern Reference |
 |---|------|-------------|-------------------|
-| B-001 | `apps/backend/src/lib/runtime/tool-workflow-registry.ts` | **Auto-derived** from contracts A-001. No changes needed unless the Tool has non-generation step types (like geometric's `crawling`/`scoring`). | Lines 56-61, 70-90 |
-| B-002 | `apps/backend/src/lib/runtime/workflow-normalizers.ts` | Add `TOOL_KEY` to `FINAL_STEP_BY_TOOL` map with its final step key. Add `TOOL_KEY` to `isStepMappedToolKey` guard. **This is required for artifact role classification** (`step` vs `final`). | Lines 16-24, 28-36 |
-| B-003 | `apps/backend/src/lib/runtime/tool-prompts/index.ts` | Add `toolKey:stepKey` entries in `PROMPT_FILE_BY_KEY` for each step that needs a prompt. | Lines 37-39 |
+| B-001 | `apps/backend/src/lib/runtime/tool-workflow-registry.ts` | **Auto-derived** from contracts A-001. No changes needed unless the Tool has non-generation step types (like geometric's `crawling`/`scoring`). | See existing step definitions |
+| B-002 | `apps/backend/src/lib/runtime/workflow-normalizers.ts` | Add `TOOL_KEY` to `FINAL_STEP_BY_TOOL` map with its final step key. Add `TOOL_KEY` to `isStepMappedToolKey` guard. **This is required for artifact role classification** (`step` vs `final`). | See existing tool mappings |
+| B-003 | `apps/backend/src/lib/runtime/tool-prompts/index.ts` | Add `toolKey:stepKey` entries in `PROMPT_FILE_BY_KEY` for each step that needs a prompt. | See existing prompt mappings |
 | B-004 | `apps/backend/src/lib/runtime/tool-prompts/<tool-key>/` | Create one `.md` prompt file per step. **Use `{{variable}}` placeholders for dynamic content.** See pattern below. | `prompt_blog_article.md` |
-| B-005 | `apps/backend/src/lib/machines/generation-system.actions.ts` | **If the Tool uses `{{placeholders}}` in prompts:** create `assemble<ToolName>Prompt` action (XState action level, NOT adapter level). See Section 11. | `assembleBlogArticlePrompt` (lines 379-431), `assembleGeometricPrompt` (lines 326-378) |
-| B-006 | `apps/backend/src/lib/machines/generation-system.actions.ts` | Add action type to `GenerationSystemActionObject` union. | Line 63 |
-| B-007 | `apps/backend/src/lib/machines/generation-system.execution.states.ts` | Wire `assemble<ToolName>Prompt` into `generating.entry` AND `streaming.entry`. Both states need it. | Lines 256, 297 |
-| B-008 | `apps/backend/src/lib/runtime/step-llm-model-overrides.config.ts` | **(Optional)** Add per-step LLM model overrides if the Tool benefits from different models per step. | Lines 35-53 |
+| B-005 | `apps/backend/src/lib/machines/generation-system.actions.ts` | **If the Tool uses `{{placeholders}}` in prompts:** create `assemble<ToolName>Prompt` action (XState action level, NOT adapter level). See Section 11. | `assembleBlogArticlePrompt`, `assembleGeometricPrompt` |
+| B-006 | `apps/backend/src/lib/machines/generation-system.actions.ts` | Add action type to `GenerationSystemActionObject` union. | See existing action union |
+| B-007 | `apps/backend/src/lib/machines/generation-system.execution.states.ts` | Wire `assemble<ToolName>Prompt` into `generating.entry` AND `streaming.entry`. Both states need it. | See `generating` and `streaming` entry blocks |
+| B-008 | `apps/backend/src/lib/runtime/step-llm-model-overrides.config.ts` | **(Optional)** Add per-step LLM model overrides if the Tool benefits from different models per step. | See existing overrides |
 | B-009 | `apps/backend/src/lib/tests/` | Create test files for prompt resolution and workflow registry validation. | `runtime.blog-article-tool-prompts.test.ts`, `runtime.blog-article-workflow-registry.test.ts` |
 
 ### Prompt Template Variable Rules
@@ -160,14 +160,14 @@ Prompts support these placeholder patterns:
 
 | # | File | What to Add | Pattern Reference |
 |---|------|-------------|-------------------|
-| C-001 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFormRegistry` entry with `toolKey`, `availabilityPolicy`, `displayName`, `defaultPrompt`, `defaultModel`, `steps`, `stepDependencies`, `defaults`. | Lines 203-214 |
-| C-002 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFileInstructionsRegistry` entry describing input files, required/optional fields, examples, notes. | Lines 418-432 |
-| C-003 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add navigation label, description, and route in `navLabels`, `navDescriptions`, `navRoutes`. | Lines 513, 524, 535 |
-| C-004 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `stepCardConfigRegistry` entry with `displayName`, `description`, `expectedOutputFormat` per step. | Lines 749-765 |
-| C-005 | `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts` | Add `TOOL_STEP_DISPLAY_CONFIG` entry with `visible` and `includeInDownload` per step. Even if all steps have defaults, the entry is required for test parity. | Lines 92-96 |
-| C-006 | `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` | **If direct-input-only:** create `build<ToolName>DirectInputExtractionInfo` function. Register in `selectGenerationExtractionInfo` guard. Inject form fields into `buildBaseGenerationRequest` if needed for template variables (e.g. `titolo`). | Lines 187-204, 332-334, 488-491 |
-| C-007 | `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` | **If direct-input-only:** add `build<ToolName>DirectInputExtractionInfo` call in the `directInputExtractionInfo` block. | Lines 116-119 |
-| C-008 | `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx` | Add `TOOL_KEY` to `isSupportedTool()` function. **This is a hardcoded union — the type alone is not enough.** | Line 26 |
+| C-001 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFormRegistry` entry with `toolKey`, `availabilityPolicy`, `displayName`, `defaultPrompt`, `defaultModel`, `steps`, `stepDependencies`, `defaults`. | See existing registry entries |
+| C-002 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `toolFileInstructionsRegistry` entry describing input files, required/optional fields, examples, notes. | See existing instructions |
+| C-003 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add navigation label, description, and route in `navLabels`, `navDescriptions`, `navRoutes`. | See existing navigation config |
+| C-004 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | Add `stepCardConfigRegistry` entry with `displayName`, `description`, `expectedOutputFormat` per step. | See existing step cards |
+| C-005 | `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts` | Add `TOOL_STEP_DISPLAY_CONFIG` entry with `visible` and `includeInDownload` per step. Even if all steps have defaults, the entry is required for test parity. | See existing display configs |
+| C-006 | `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` | **If direct-input-only:** create `build<ToolName>DirectInputExtractionInfo` function. Register in `selectGenerationExtractionInfo` guard. Inject form fields into `buildBaseGenerationRequest` if needed for template variables (e.g. `titolo`). | See `buildBlogArticleGeneratorDirectInputExtractionInfo` |
+| C-007 | `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` | **If direct-input-only:** add `build<ToolName>DirectInputExtractionInfo` call in the `directInputExtractionInfo` block. | See existing directInputExtractionInfo mappings |
+| C-008 | `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx` | Add `TOOL_KEY` to `isSupportedTool()` function. **This is a hardcoded union — the type alone is not enough.** | See `isSupportedTool` implementation |
 | C-009 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | **(If tool adds new form fields)** Add field to `ToolFormState` type and update `toolFormRegistry` defaults. Document which fields are required/hidden and whether model selector is visible. | `titolo` field pattern |
 
 ### Frontend Dependency Content Fetching (Multi-Step Tools)
@@ -345,7 +345,7 @@ streaming:  { entry: ['ensureArtifactId', 'assemble<ToolName>Prompt'], ... },
 
 **Add type** in the `GenerationSystemActionObject` union.
 
-**Reference:** `assembleGeometricPrompt` (lines 326-378), `assembleBlogArticlePrompt` (lines 379-431).
+**Reference:** `assembleGeometricPrompt`, `assembleBlogArticlePrompt`.
 
 ---
 
@@ -462,7 +462,7 @@ Add TOOL_KEY to BOTH:
 1. `FINAL_STEP_BY_TOOL` map with the final step key.
 2. `isStepMappedToolKey` guard.
 
-**Reference:** Lines 16-24, 28-36.
+**Reference:** See existing implementations in `FINAL_STEP_BY_TOOL` and `isStepMappedToolKey`.
 
 ---
 

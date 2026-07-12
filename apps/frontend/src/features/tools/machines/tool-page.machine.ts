@@ -33,6 +33,22 @@ export const toolPageMachine = setup({
       const policy = buildReactiveViewModel(context).primaryActionPolicy;
       return context.readiness.canStartFlow && canStartFromPolicy(policy);
     },
+    // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop the redundant second
+    // CANCEL_GENERATION issued when the bridge branch (b) failure path and the
+    // user-initiated handleCancelGeneration fire within the same clock cycle.
+    // Permissive signal: returns true when there is anything to cancel — either
+    // an enqueued step start, an active run request prefix, or accumulated flow
+    // progress (completed steps or checkpoint). After the first CANCEL_GENERATION
+    // runs resetConfig, all three clear to null/false so the duplicate CANCEL
+    // becomes a no-op drop instead of a redundant re-entering transition. Note
+    // that XState v5 guards do not expose `state`, so we rely on context fields;
+    // START_GENERATION entries reach `generating` without pendingStepStart but
+    // their preexisting progress makes the guard permissive in that branch too.
+    canCancelGeneration: ({ context }) =>
+      context.pendingStepStart !== null
+      || context.runRequestPrefix !== null
+      || context.progress.completedSteps.size > 0
+      || context.progress.lastCheckpointStep !== null,
   },
   actions: {
     spawnBriefingActor: assign({
@@ -155,23 +171,6 @@ export const toolPageMachine = setup({
         return { type: 'CANCEL' };
       },
     ),
-    updateNonStreamingProgress: assign({
-      progress: ({ context, event }) => {
-        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
-        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
-        if (import.meta.env.DEV) {
-          console.info('[toolPageMachine] updateNonStreamingProgress', {
-            step: event.step,
-            before: Array.from(context.progress.completedSteps),
-            after: Array.from(newCompleted),
-          });
-        }
-        return {
-          ...context.progress,
-          completedSteps: newCompleted,
-        };
-      },
-    }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -199,9 +198,6 @@ export const toolPageMachine = setup({
   on: {
     PROGRESS_SYNCED: {
       actions: 'syncProgress',
-    },
-    NONSTREAMING_STEP_COMPLETED: {
-      actions: 'updateNonStreamingProgress',
     },
   },
   initial: 'configuring',
@@ -280,6 +276,8 @@ export const toolPageMachine = setup({
           },
         ],
         CANCEL_GENERATION: {
+          // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop redundant cancels.
+          guard: 'canCancelGeneration',
           target: '.clean',
           reenter: true,
           actions: ['resetConfig', stopChild('briefingActor')],
@@ -394,7 +392,18 @@ export const toolPageMachine = setup({
           actions: 'controlGenerationLifecycle',
         },
         CANCEL_GENERATION: {
+          // Sprint 4 Session 2 (Phase 1 Step 6, Race D): the first cancel from
+          // `generating` always proceeds — the redundant second cancel will be
+          // dropped by the guard on the configuring handler below.
           target: 'configuring.clean',
+        },
+        // Sprint 4 Session 2: while in `generating`, accept REQUEST_STEP_START to
+        // enqueue the next step (auto-chain) via the same queue used by manual
+        // requests. This restores XState authority over dispatch — the bridge
+        // no longer calls startGenerationStep directly. No state transition: the
+        // pendingStepStart field is updated and the reducer-bridge reacts.
+        REQUEST_STEP_START: {
+          actions: 'queueStepStart',
         },
         STEP_REQUEST_DISPATCHED: {
           actions: 'clearPendingStepStart',

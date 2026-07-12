@@ -153,7 +153,7 @@ test('dispatchingMode routes to streaming when context.mode === stream', async (
   }
 });
 
-test('non-streaming path completes via persistingSuccessSync without flushProgress', async () => {
+test('non-streaming success path uses persistenceBatchMachine without flushProgress', async () => {
   const adapters = createInMemoryGenerationAdapters();
   let flushProgressCalls = 0;
   let finalizeSuccessCalls = 0;
@@ -190,7 +190,7 @@ test('non-streaming path completes via persistingSuccessSync without flushProgre
   assert.equal(finalizeSuccessCalls, 1, 'finalizeSuccess should be called exactly once');
 });
 
-test('non-streaming failure path completes via persistingFailureSync with single finalizeFailure', async () => {
+test('non-streaming failure path uses persistenceBatchMachine with single finalizeFailure', async () => {
   const adapters = createInMemoryGenerationAdapters();
   let finalizeFailureCalls = 0;
 

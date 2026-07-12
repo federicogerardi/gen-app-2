@@ -1,6 +1,6 @@
 ---
-status: in-progress
-version: 1.0-session-1
+status: completed
+version: 1.1-complete
 last-reviewed: 2026-07-12
 next-review-date: 2026-07-19
 owner: Domain Architecture Team
@@ -15,7 +15,7 @@ tags:
   - progress-state
   - race-condition
   - fe-be
-  - in-progress
+  - completed
 goal: Merge streaming/non-streaming persistence paths (V7), eliminate progress state race condition (V6), and remove legacy workarounds
 ---
 

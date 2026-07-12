@@ -51,16 +51,6 @@ export const generationSystemPersistenceStates = {
           }),
           onDone: [
             {
-              guard: 'modeIsGenerate',
-              target: '#generationSystemMachine.persistingFailureSync',
-              actions: {
-                type: 'applyRouteErrorOutput',
-                params: ({ event }: UnknownEventArgs) => ({
-                  output: (event as { output?: ErrorActorOutput }).output!,
-                }),
-              },
-            },
-            {
               target: '#generationSystemMachine.persistingFailure',
               actions: {
                 type: 'applyRouteErrorOutput',
@@ -71,7 +61,6 @@ export const generationSystemPersistenceStates = {
             },
           ],
           onError: [
-            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
             { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
           ],
         },
@@ -89,16 +78,6 @@ export const generationSystemPersistenceStates = {
           }),
           onDone: [
             {
-              guard: 'modeIsGenerate',
-              target: '#generationSystemMachine.persistingFailureSync',
-              actions: {
-                type: 'applyRouteErrorOutput',
-                params: ({ event }: UnknownEventArgs) => ({
-                  output: (event as { output?: ErrorActorOutput }).output!,
-                }),
-              },
-            },
-            {
               target: '#generationSystemMachine.persistingFailure',
               actions: {
                 type: 'applyRouteErrorOutput',
@@ -109,7 +88,6 @@ export const generationSystemPersistenceStates = {
             },
           ],
           onError: [
-            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
             { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
           ],
         },
@@ -127,16 +105,6 @@ export const generationSystemPersistenceStates = {
           }),
           onDone: [
             {
-              guard: 'modeIsGenerate',
-              target: '#generationSystemMachine.persistingFailureSync',
-              actions: {
-                type: 'applyRouteErrorOutput',
-                params: ({ event }: UnknownEventArgs) => ({
-                  output: (event as { output?: ErrorActorOutput }).output!,
-                }),
-              },
-            },
-            {
               target: '#generationSystemMachine.persistingFailure',
               actions: {
                 type: 'applyRouteErrorOutput',
@@ -147,7 +115,6 @@ export const generationSystemPersistenceStates = {
             },
           ],
           onError: [
-            { guard: 'modeIsGenerate', target: '#generationSystemMachine.persistingFailureSync', actions: 'setFallbackPolicyFailure' },
             { target: '#generationSystemMachine.persistingFailure', actions: 'setFallbackPolicyFailure' },
           ],
         },
@@ -244,45 +211,6 @@ export const generationSystemPersistenceStates = {
       input: ({ context }: ContextArgs) => ({ context }),
       onDone: 'failed',
       onError: 'failed',
-    },
-  },
-  persistingSuccessSync: {
-    invoke: {
-      id: 'simplePersistenceActor',
-      src: 'invokeSimplePersistence',
-      input: ({ context }: ContextArgs) => {
-        const artifactId = context.artifactId ?? context.artifactIdFactory();
-        return {
-          input: buildPersistenceBatchInput(context, artifactId),
-          mode: 'success' as const,
-          adapters: { persistence: context.adapters.persistence },
-        };
-      },
-      onDone: 'finalizeIdempotencySuccess',
-      onError: {
-        target: 'resolvingFallbackPolicy',
-        actions: {
-          type: 'queueFallbackDecision',
-          params: { defaultReason: 'persistence_finalize_failed' },
-        },
-      },
-    },
-  },
-  persistingFailureSync: {
-    invoke: {
-      id: 'simplePersistenceActor',
-      src: 'invokeSimplePersistence',
-      input: ({ context }: ContextArgs) => {
-        const artifactId = context.artifactId ?? context.artifactIdFactory();
-        return {
-          input: buildPersistenceBatchInput(context, artifactId),
-          mode: 'failure' as const,
-          reason: context.failureReason ?? 'generation_failed',
-          adapters: { persistence: context.adapters.persistence },
-        };
-      },
-      onDone: 'finalizeIdempotencyFailure',
-      onError: 'finalizeIdempotencyFailure',
     },
   },
   completed: {

@@ -13,6 +13,11 @@ import {
 } from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
 import { selectDomainContext, selectRuntimeContext } from './generation-system.context-accessors';
+import {
+  isFinalStepForPlan,
+  resolveRequestScopedStepDescriptor,
+  resolveToolWorkflowPlan,
+} from './generation-routing';
 
 type GenerationGuardArgs = {
   context: GenerationMachineContext;
@@ -76,5 +81,16 @@ export const generationSystemGuards = {
     const toolKey = domain.toolKey ?? '';
     const workflowType = domain.workflowType ?? '';
     return toolKey === 'geometric' || workflowType === 'geometric';
+  },
+  isNotFinalArtifact: ({ context }: GenerationGuardArgs) => {
+    if (context.routeType !== 'tool') {
+      return false;
+    }
+    const plan = resolveToolWorkflowPlan(context);
+    if (!plan) {
+      return false;
+    }
+    const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+    return !isFinalStepForPlan(plan, stepDescriptor.key);
   },
 };

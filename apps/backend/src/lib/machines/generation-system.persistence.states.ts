@@ -189,8 +189,24 @@ export const generationSystemPersistenceStates = {
       id: 'recordArtifactActor',
       src: 'invokeRecordArtifactSuccess',
       input: ({ context }: ContextArgs) => ({ context }),
-      onDone: 'consumingCredits',
-      onError: 'consumingCredits',
+      onDone: [
+        {
+          guard: 'isNotFinalArtifact',
+          target: 'completed',
+        },
+        {
+          target: 'consumingCredits',
+        },
+      ],
+      onError: [
+        {
+          guard: 'isNotFinalArtifact',
+          target: 'completed',
+        },
+        {
+          target: 'consumingCredits',
+        },
+      ],
     },
   },
   consumingCredits: {

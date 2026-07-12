@@ -6,7 +6,6 @@ import { streamTransportMachine } from './stream-transport.machine';
 import { toolWorkflowMachine } from './tool-workflow.machine';
 import { usageMachine } from './usage.machine';
 import { generationActor } from './generation-actor';
-import { simpleFinalizationActor } from './persistence-actor';
 import { extractionErrorActor, toolWorkflowErrorActor, genericErrorActor } from './generation-system.error-actors';
 import { buildExtractionStructuredPayload } from './generation/extraction-parsers';
 import { getRegistrySelector } from './generation-routing';
@@ -101,7 +100,6 @@ export const generationSystemActors = {
   invokeStream: streamTransportMachine,
   invokePersistence: persistenceBatchMachine,
   invokeGeneration: generationActor,
-  invokeSimplePersistence: simpleFinalizationActor,
   invokeExtraction: fromPromise(async ({ input }: { input: { context: GenerationMachineContext } }) => {
     const payload = buildExtractionStructuredPayload(input.context);
 
@@ -427,7 +425,6 @@ export type GenerationSystemProvidedActor =
   | { src: 'invokeConsumeCredits'; logic: typeof generationSystemActors.invokeConsumeCredits; id: string | undefined }
   | { src: 'invokeRecordArtifactSuccess'; logic: typeof generationSystemActors.invokeRecordArtifactSuccess; id: string | undefined }
   | { src: 'invokeGeneration'; logic: typeof generationSystemActors.invokeGeneration; id: string | undefined }
-  | { src: 'invokeSimplePersistence'; logic: typeof generationSystemActors.invokeSimplePersistence; id: string | undefined }
   | { src: 'extractionErrorActor'; logic: typeof generationSystemActors.extractionErrorActor; id: string | undefined }
   | { src: 'toolWorkflowErrorActor'; logic: typeof generationSystemActors.toolWorkflowErrorActor; id: string | undefined }
   | { src: 'genericErrorActor'; logic: typeof generationSystemActors.genericErrorActor; id: string | undefined };

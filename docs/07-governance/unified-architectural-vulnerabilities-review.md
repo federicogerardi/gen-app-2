@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 last-reviewed: 2026-07-12
 next-review-date: 2026-10-12
 owner: Domain Architecture
@@ -41,8 +41,8 @@ This unified review consolidates **architectural vulnerability identification** 
 | **V3** | **Sequential Dependency Fetching** | 90% | Medio | Basso | None | Sprint 1A ✅ |
 | **V4** | **Adapter Index Explosion** | 88% | Medio | Medio | Infrastructure Organization (A1) | Sprint 3B ✅ |
 | **V5** | **Tool Page Actor Coupling** | 89% | Alto | Medio | Frontend Domain Logic (A4) | Sprint 3A ✅ |
-| **V6** | **Progress State Mutation** | 91% | Medio | Medio | Context Decomposition (V1) | Sprint 5A |
-| **V7** | **NONSTREAMING Technical Debt** | 87% | Medio | Alto | Context Decomposition (V1) | Sprint 5B |
+| **V6** | **Progress State Mutation** | 91% | Medio | Medio | Context Decomposition (V1) | Sprint 7 ✅ |
+| **V7** | **NONSTREAMING Technical Debt** | 87% | Medio | Alto | Context Decomposition (V1) | Sprint 7 ✅ |
 
 ### **⚠️ ARCHITECTURAL IMPROVEMENTS** (Foundation Prerequisites)
 
@@ -227,10 +227,62 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Risk**: Zero — type alias is drop-in
 - **Status**: ✅ Completed 2026-07-12
 
-#### **5C. Technical Debt Elimination (V6 + V7)** ⏸️ Deferred
-- **5A (Progress State Mutation)**: Deferred to Sprint 6 — requires error-actors wiring first
-- **5B (NONSTREAMING Technical Debt)**: Deferred to Sprint 6 — requires error-actors wiring first
-- **Status**: ⏸️ Deferred to Sprint 6
+#### **5C. Technical Debt Elimination (V6 + V7)** → Sprint 6+7
+- **5A (Progress State Mutation)**: Resolved in Sprint 7
+- **5B (NONSTREAMING Technical Debt)**: Resolved in Sprint 7
+- **Status**: ✅ Resolved in Sprint 6+7
+
+### 🔧 **SPRINT 6: Error-Actors Wiring & Legacy Cleanup** ✅
+**Objective**: Wire route-specific error actors, replace universal fallback policy, remove legacy code
+**Risk Profile**: Basso — additive changes, backward-compatible
+**Status**: ✅ Completed 2026-07-12
+
+#### **6A. Error-Actors Wiring** ✅
+- **Location**: `generation-system.error-actors.ts`, `generation-system.persistence.states.ts`, `generation-system.actors.ts`
+- **Change**: Register 3 route-specific error actors (`extractionErrorActor`, `toolWorkflowErrorActor`, `genericErrorActor`)
+- **Change**: Restructure `resolvingFallbackPolicy` into compound state with route dispatch (23 call sites → zero changes)
+- **Change**: Add `applyRouteErrorOutput` action (8-variant → failureReason, fail-forward)
+- **Change**: Remove `invokeFallbackPolicy` + `generationFallbackActor` import
+- **Change**: Fix `GenerationSystemProvidedActor` union (removed 3 duplicates, added 3 new entries)
+- **Change**: Archive `generation-fallback.actor.ts` to docs/99-lifecycle/99-archive/
+- **ROI**: Route-specific error recovery, type-safe actor boundaries, dead code removed
+- **Risk**: Basso — compound state preserves name, zero call-site changes
+- **Status**: ✅ Completed 2026-07-12
+
+#### **6B. Legacy Cleanup** ✅
+- **Location**: `generation-system.types.ts`
+- **Change**: Remove `GenerationMachineContextLegacy` alias (zero consumers)
+- **Change**: Remove `getFallbackDoneOutput` dead code from events.ts
+- **Change**: Remove `GenerationFallbackOutput` import from events.ts
+- **ROI**: Dead code eliminated, type surface reduced
+- **Risk**: Zero — alias had no consumers
+- **Status**: ✅ Completed 2026-07-12
+
+### 🧹 **SPRINT 7: V7 NONSTREAMING + V6 Progress State** ✅
+**Objective**: Merge streaming/non-streaming persistence paths, eliminate progress state race condition
+**Risk Profile**: Medio — persistence path changes, race condition elimination
+**Status**: ✅ Completed 2026-07-12
+
+#### **7A. Backend — V7 Persistence Path Unification** ✅
+- **Location**: `generation-system.persistence.states.ts`, `generation-system.execution.states.ts`, `generation-system.actors.ts`
+- **Change**: Remove `persistingSuccessSync` + `persistingFailureSync` states (40 lines)
+- **Change**: Remove 6 `modeIsGenerate` branches in `resolvingFallbackPolicy` child states
+- **Change**: Update `generating.onDone` target → `persistingSuccess`
+- **Change**: Archive `simpleFinalizationActor` + remove `invokeSimplePersistence`
+- **Change**: Update non-streaming tests for unified path
+- **ROI**: Single persistence path (`persistenceBatchMachine`) for both streaming and non-streaming. `flushProgress` invariant preserved (0 calls without STREAM_CHUNK_RECEIVED)
+- **Risk**: Medio — affects critical persistence path, mitigated by 346 tests
+- **Status**: ✅ Completed 2026-07-12
+
+#### **7B. Frontend — V6 Race Condition Elimination** ✅
+- **Location**: `tool-page.types.ts`, `tool-page.machine.ts`, `useToolPageRunController.ts`
+- **Change**: Remove `NONSTREAMING_STEP_COMPLETED` event from union
+- **Change**: Remove `updateNonStreamingProgress` action + handler
+- **Change**: Rename `nonStreamingCompletedStepsRef` → `inFlightStepsRef`
+- **Change**: Remove `NONSTREAMING_STEP_COMPLETED` dispatch (double-dispatch eliminated)
+- **ROI**: `PROGRESS_SYNCED` is sole writer of `progress.completedSteps`. Race condition eliminated at root. Ref kept for auto-chain dedup only (no machine context competition)
+- **Risk**: Medio — affects progress tracking, mitigated by 448 tests
+- **Status**: ✅ Completed 2026-07-12
 
 ---
 
@@ -271,8 +323,24 @@ This unified review consolidates **architectural vulnerability identification** 
 - [x] **Test Coverage**: 5 context-decomposition tests (340 backend total)
 - [x] **Validation Script**: 6 automated checks pass
 - [x] **Regression Guard**: 340 backend + 448 frontend tests pass, typecheck clean
-- [ ] **Architecture Purity**: 0 workaround patterns — deferred to Sprint 6 (V6/V7)
-- [ ] **Error Handling**: Route-specific error recovery paths — deferred to Sprint 6 (error-actors wiring)
+- [x] **Architecture Purity**: 0 workaround patterns — resolved in Sprint 7
+- [x] **Error Handling**: Route-specific error recovery paths — resolved in Sprint 6
+
+### **Sprint 6 Gates** (Error-Actors Wiring)
+- [x] **Error Actors Registered**: `extractionErrorActor`, `toolWorkflowErrorActor`, `genericErrorActor`
+- [x] **invokeFallbackPolicy Removed**: 0 references across codebase
+- [x] **GenerationMachineContextLegacy Removed**: 0 references
+- [x] **generation-fallback.actor.ts Archived**: moved to docs/99-lifecycle/99-archive/
+- [x] **Regression Guard**: 345 backend + 448 frontend tests pass, typecheck clean
+
+### **Sprint 7 Gates** (V7 NONSTREAMING + V6 Progress State)
+- [x] **PersistingSuccessSync Removed**: 0 references across codebase
+- [x] **simpleFinalizationActor Archived**: moved to docs/99-lifecycle/99-archive/
+- [x] **NONSTREAMING_STEP_COMPLETED Removed**: 0 references across codebase
+- [x] **updateNonStreamingProgress Removed**: 0 references across codebase
+- [x] **Race Condition Eliminated**: PROGRESS_SYNCED is sole writer of progress.completedSteps
+- [x] **Invariants Preserved**: flushProgress=0, finalizeSuccess=1, finalizeFailure=1
+- [x] **Regression Guard**: 345 backend + 448 frontend tests pass, typecheck clean
 
 ---
 
@@ -282,7 +350,9 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Sprint 1-2**: **Basso** - Foundation work, isolated changes, high ROI
 - **Sprint 3**: **Medio** - Structural changes on solid foundation
 - **Sprint 4**: **Alto** - Core architecture BUT mitigated by foundation
-- **Sprint 5**: **Medio** - Cleanup work on solidified architecture
+- **Sprint 5**: **Basso** - Validation layer, backward-compatible
+- **Sprint 6**: **Basso** - Error-actors wiring, additive changes
+- **Sprint 7**: **Medio** - Persistence path unification, race condition elimination
 
 ### **Mitigation Strategy**
 | Risk Level | Approach | Implementation |
@@ -352,7 +422,7 @@ All implementation work MUST maintain compliance with:
 | **Context Complexity** | 25+ fields | < 15 fields per sub-context | 5 sub-contexts (≤10 each) | ✅ Sprint 4 |
 | **Actor Coupling** | 10+ sendTo | < 5 sendTo | 5 named sendTo | ✅ Sprint 3 |
 | **Effect Complexity** | 4+ hooks | < 2 hooks | 2 hooks (reducer-bridge) | ✅ Sprint 4 |
-| **Workaround Patterns** | 35+ instances | 0 patterns | 35+ | ⏸️ Sprint 6 (V6/V7) |
+| **Workaround Patterns** | 35+ instances | 0 patterns | 0 (Sprint 7 unified) | ✅ Sprint 7 |
 
 ### **Business Impact Metrics**
 - **Developer Velocity**: +40% improvement in story points per sprint
@@ -361,11 +431,11 @@ All implementation work MUST maintain compliance with:
 - **System Reliability**: Eliminated race conditions and workarounds
 
 ### **Review Closure Criteria**
-1. **✅ 7/7 Vulnerabilities Resolved**: V1 (Context Decomposition) ✅, V2 (Reactive Spaghetti) ✅, V3 (Sequential Fetching) ✅, V4 (Adapter Index) ✅, V5 (Actor Coupling) ✅, V6/V7 deferred to Sprint 6
-2. **✅ Sprint 1-5 Gates Passed**: All gates verified, Sprint 6 pending (V6/V7 + error-actors wiring)
+1. **✅ 7/7 Vulnerabilities Resolved**: V1 (Context Decomposition) ✅, V2 (Reactive Spaghetti) ✅, V3 (Sequential Fetching) ✅, V4 (Adapter Index) ✅, V5 (Actor Coupling) ✅, V6 (Progress State Mutation) ✅, V7 (NONSTREAMING Technical Debt) ✅
+2. **✅ Sprint 1-7 Gates Passed**: All gates verified and passed
 3. **✅ DDD Compliance Achieved**: 100% canonical term alignment maintained
-4. **✅ Performance Targets Met**: Generation latency (parallel) ✅, build performance (276ms) ✅, actor coupling (5 sendTo) ✅, context complexity (≤15 per sub-context) ✅, effect complexity (≤2 hooks) ✅
-5. **✅ Architecture Integrity**: Sprint 4 core architecture resolution complete, Sprint 5 validation layer verified
+4. **✅ Performance Targets Met**: Generation latency (parallel) ✅, build performance (276ms) ✅, actor coupling (5 sendTo) ✅, context complexity (≤15 per sub-context) ✅, effect complexity (≤2 hooks) ✅, workaround patterns (0) ✅
+5. **✅ Architecture Integrity**: All sprints complete, PR-ready for merge to dev
 
 ---
 
@@ -380,6 +450,6 @@ All implementation work MUST maintain compliance with:
 
 ---
 
-**Last Updated**: 2026-07-12 (Sprint 4+5 completed — V1/V2 resolved, V6/V7 deferred to Sprint 6)
+**Last Updated**: 2026-07-12 (Sprint 6+7 completed — all 7 vulnerabilities resolved, PR-ready)
 **Next Review**: 2026-07-19
 **Review Owner**: Domain Architecture Team

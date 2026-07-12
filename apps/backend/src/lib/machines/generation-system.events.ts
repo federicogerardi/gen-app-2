@@ -1,4 +1,3 @@
-import type { GenerationFallbackOutput } from './generation-fallback.actor';
 import type {
   AcquisitionDoneOutput,
   CacheAcquisitionResultParams,
@@ -137,9 +136,6 @@ export const getScoringResultParams = (event: unknown): CacheScoringResultParams
     ranking: output.ranking,
   };
 };
-
-export const getFallbackDoneOutput = (event: unknown): GenerationFallbackOutput | undefined =>
-  (event as { output?: GenerationFallbackOutput }).output;
 
 export const isExtractionPayloadSemanticallyValid = (payload: Record<string, unknown>): boolean => {
   const fields = payload.fields;

@@ -35,12 +35,6 @@ export type GenerationSystemInput = {
  */
 export type GenerationMachineContext = DecomposedGenerationContext;
 
-/**
- * Legacy alias for any consumer still referencing the pre-decomposition type name.
- * Removed in Sprint 6.
- */
-export type GenerationMachineContextLegacy = GenerationMachineContext;
-
 export type IdempotencyDoneOutput =
   | { type: 'IDEMPOTENCY_CLAIMED' }
   | { type: 'IDEMPOTENCY_REPLAY_READY'; artifactId: string; metadata: { content: string } }

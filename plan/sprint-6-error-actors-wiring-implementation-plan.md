@@ -1,6 +1,6 @@
 ---
-status: in-progress
-version: 1.0-session-1
+status: completed
+version: 1.1-complete
 last-reviewed: 2026-07-12
 next-review-date: 2026-07-19
 owner: Domain Architecture Team
@@ -14,7 +14,7 @@ tags:
   - compound-state
   - legacy-cleanup
   - be-only
-  - in-progress
+  - completed
 goal: Wire the 3 route-specific error actors (extraction/tool/generic) into the generation system machine, replace the universal resolvingFallbackPolicy with route-dispatching compound state, and remove legacy type alias
 ---
 

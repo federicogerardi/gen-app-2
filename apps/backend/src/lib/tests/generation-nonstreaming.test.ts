@@ -153,7 +153,7 @@ test('dispatchingMode routes to streaming when context.mode === stream', async (
   }
 });
 
-test('non-streaming path completes via persistingSuccessSync without flushProgress', async () => {
+test('non-streaming success path uses persistenceBatchMachine without flushProgress', async () => {
   const adapters = createInMemoryGenerationAdapters();
   let flushProgressCalls = 0;
   let finalizeSuccessCalls = 0;
@@ -190,7 +190,7 @@ test('non-streaming path completes via persistingSuccessSync without flushProgre
   assert.equal(finalizeSuccessCalls, 1, 'finalizeSuccess should be called exactly once');
 });
 
-test('non-streaming failure path completes via persistingFailureSync with single finalizeFailure', async () => {
+test('non-streaming failure path uses persistenceBatchMachine with single finalizeFailure', async () => {
   const adapters = createInMemoryGenerationAdapters();
   let finalizeFailureCalls = 0;
 
@@ -222,4 +222,49 @@ test('non-streaming failure path completes via persistingFailureSync with single
 
   assert.equal(result.status, 'failed');
   assert.equal(finalizeFailureCalls, 1, 'finalizeFailure should be called exactly once');
+});
+
+test('non-streaming success path uses persistenceBatchMachine (unified persistence)', async () => {
+  const adapters = createInMemoryGenerationAdapters();
+  let flushProgressCalls = 0;
+  let finalizeSuccessCalls = 0;
+  let finalizeFailureCalls = 0;
+
+  const origFlush = adapters.persistence.flushProgress;
+  adapters.persistence.flushProgress = async (...args) => {
+    flushProgressCalls += 1;
+    await origFlush(...args);
+  };
+
+  const origSuccess = adapters.persistence.finalizeSuccess;
+  adapters.persistence.finalizeSuccess = async (input) => {
+    finalizeSuccessCalls += 1;
+    await origSuccess(input);
+  };
+
+  const origFailure = adapters.persistence.finalizeFailure;
+  adapters.persistence.finalizeFailure = async (input, reason) => {
+    finalizeFailureCalls += 1;
+    await origFailure(input, reason);
+  };
+
+  const result = await runBackendGenerationSessionAsJson(
+    {
+      requestId: 'req-run-json-unified-001',
+      userId: 'seed-user-001',
+      projectId: 'seed-project-001',
+      artifactType: 'content',
+      model: 'openrouter/gpt-5.3-codex',
+      input: { prompt: 'unified persistence test' },
+      workflowType: null,
+      idempotencyKey: 'idem-run-json-unified-001',
+      registrySnapshotRef: 'snapshot:run-json-unified',
+    },
+    adapters,
+  );
+
+  assert.equal(result.status, 'completed');
+  assert.equal(flushProgressCalls, 0, 'flushProgress must not be called without STREAM_CHUNK_RECEIVED events');
+  assert.equal(finalizeSuccessCalls, 1, 'finalizeSuccess must be called exactly once via persistenceBatchMachine');
+  assert.equal(finalizeFailureCalls, 0, 'finalizeFailure must not be called on success path');
 });

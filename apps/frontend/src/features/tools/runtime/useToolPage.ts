@@ -206,7 +206,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   // object below so the public API of useToolPage is identical (no breaking
   // change for callers / tests). Sprint 4 Session 2 Phase 1 Step 5.
   const toolPageState = useToolPageStateConsumer({
-    toolPageSnapshot,
     toolConfig,
     formState,
     setFormState,

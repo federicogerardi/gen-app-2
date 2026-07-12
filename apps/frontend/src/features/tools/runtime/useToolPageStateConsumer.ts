@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { useNavigate } from 'react-router-dom';
 import type { ToolPageViewModel, ReadinessSnapshot } from '../machines/tool-page.machine';
-import type { ToolPageMachineSnapshot } from './tool-page-snapshot-types';
 import type { ToolFormConfig, ToolFormState } from './tool-form-architecture';
 import type { ToolStep } from '../machines/tool-flow.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
@@ -70,7 +69,6 @@ export interface ToolPageStateConsumerValue {
 }
 
 type UseToolPageStateConsumerArgs = {
-  toolPageSnapshot: ToolPageMachineSnapshot;
   toolConfig: ToolFormConfig;
   formState: ToolFormState;
   setFormState: React.Dispatch<React.SetStateAction<ToolFormState>>;

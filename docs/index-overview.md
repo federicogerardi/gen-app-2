@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 3.6
-last-reviewed: 2026-07-11
-next-review-date: 2026-10-11
+version: 3.7
+last-reviewed: 2026-07-12
+next-review-date: 2026-10-12
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-07-05  
+Data: 2026-07-12  
 Stato: publication-ready  
-Versione indice: 3.5
+Versione indice: 3.7
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -109,6 +109,10 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
+- [sprint-4-core-architecture-resolution-implementation-plan](../plan/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione del contesto `GenerationSystem`
+- [sprint-5-context-migration-validation-implementation-plan](../plan/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e livello di validazione del contesto backend
+- [sprint-6-error-actors-wiring-implementation-plan](../plan/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori per gestione errori route-specific e pulizia codice legacy
+- [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](../plan/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione percorsi streaming e non-streaming (V7) ed eliminazione race condition stato progresso (V6)
 - [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completato: migrazione del percorso di generazione tool da streaming (dormiente) a non-streaming (default); streaming SSE preservato per futuri usi
 
 ### Active Runbooks
@@ -118,7 +122,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Reviews
 
-- **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — 🔥 HIGH PRIORITY: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (2026-07-08)**
+- **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — ✅ COMPLETED: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (Sprints 1-7)**
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
 

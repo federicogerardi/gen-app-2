@@ -50,7 +50,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const currentRunPrefixRef = useRef<string | null>(null);
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
-  const nonStreamingCompletedStepsRef = useRef(new Set<ToolStep>());
+  const inFlightStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
   // Sprint 4 Session 2: idempotency for bridge branch (a). The consolidated bridge
   // re-runs on every dep change; without this guard, branch (a) would re-dispatch
@@ -239,7 +239,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   // source of truth: pendingStepStart drives dispatch, STEP_DONE / STEP_FAILED /
   // NONSTREAMING_STEP_COMPLETED resolve terminals, and auto-chain enqueues via
   // REQUEST_STEP_START (no direct startGenerationStep bypass). Idempotency refs
-  // (dispatchedRunPrefixRef, nonStreamingCompletedStepsRef, wasStreamActiveRef,
+  // (dispatchedRunPrefixRef, inFlightStepsRef, wasStreamActiveRef,
   // lastRequestedStepRef) prevent spurious re-fires under React 19 concurrent
   // rendering. useLayoutEffect runs synchronously after DOM mutation; the async
   // dispatch is fire-and-forget so it never blocks paint.
@@ -287,7 +287,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
         stopAutoChain();
       } else if (!generationStream.isStreamActive && !generationRun.isGenerationActive) {
         // pendingStepStart is null (handled by branch (a) above); safe to enqueue.
-        const locallyCompleted = new Set([...completedStepsForFlow, ...nonStreamingCompletedStepsRef.current]);
+        const locallyCompleted = new Set([...completedStepsForFlow, ...inFlightStepsRef.current]);
         const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
         if (import.meta.env.DEV) {
           console.info('[useToolPage] auto-chain check', {
@@ -345,16 +345,13 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     if (generationStatus === 'completed') {
       const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
       const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
-      if (resolved && nonStreamingCompletedStepsRef.current.has(resolved)) return;
+      if (resolved && inFlightStepsRef.current.has(resolved)) return;
       if (import.meta.env.DEV) {
         console.info('[useToolPage] non-streaming completed', { step, nextAvailableStep, lastRequestedStep: lastRequestedStepRef.current, resolved });
       }
       if (resolved) {
-        nonStreamingCompletedStepsRef.current = new Set(nonStreamingCompletedStepsRef.current).add(resolved);
+        inFlightStepsRef.current = new Set(inFlightStepsRef.current).add(resolved);
         toolPageSend({ type: 'STEP_DONE', step: resolved });
-        if (import.meta.env.DEV) console.info('[useToolPage] dispatching NONSTREAMING_STEP_COMPLETED', { step: resolved });
-        toolPageSend({ type: 'NONSTREAMING_STEP_COMPLETED', step: resolved });
-        if (import.meta.env.DEV) console.info('[useToolPage] dispatched NONSTREAMING_STEP_COMPLETED', { step: resolved });
       }
       generationArtifacts.reloadArtifacts();
       return;
@@ -408,7 +405,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     if (primaryActionPolicy === 'open-last-artifact' || !readinessSnapshot.canStartFlow || generationStream.isStreamActive || generationRun.isGenerationActive || !primaryTargetStep) return;
     const runPrefix = generateRequestId();
     currentRunPrefixRef.current = runPrefix;
-    nonStreamingCompletedStepsRef.current = new Set();
+    inFlightStepsRef.current = new Set();
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
@@ -417,7 +414,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
 
   const handleCancelGeneration = useCallback(() => {
     setIsAutoChainEnabled(false);
-    nonStreamingCompletedStepsRef.current = new Set();
+    inFlightStepsRef.current = new Set();
     const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
     if (interruptedStep) setPausedCheckpointStep(interruptedStep);
     currentRunPrefixRef.current = null;

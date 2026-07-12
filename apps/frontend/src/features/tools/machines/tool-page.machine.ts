@@ -171,23 +171,6 @@ export const toolPageMachine = setup({
         return { type: 'CANCEL' };
       },
     ),
-    updateNonStreamingProgress: assign({
-      progress: ({ context, event }) => {
-        if (event.type !== 'NONSTREAMING_STEP_COMPLETED') return context.progress;
-        const newCompleted = new Set(context.progress.completedSteps).add(event.step);
-        if (import.meta.env.DEV) {
-          console.info('[toolPageMachine] updateNonStreamingProgress', {
-            step: event.step,
-            before: Array.from(context.progress.completedSteps),
-            after: Array.from(newCompleted),
-          });
-        }
-        return {
-          ...context.progress,
-          completedSteps: newCompleted,
-        };
-      },
-    }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -215,9 +198,6 @@ export const toolPageMachine = setup({
   on: {
     PROGRESS_SYNCED: {
       actions: 'syncProgress',
-    },
-    NONSTREAMING_STEP_COMPLETED: {
-      actions: 'updateNonStreamingProgress',
     },
   },
   initial: 'configuring',

@@ -1,17 +1,19 @@
 import { Navigate } from 'react-router-dom';
 import { LoginForm } from '../../features/auth/ui/LoginForm';
-import { useAuthSession } from '../providers/AuthSessionProvider';
+import { useAuthState, useAuthActions, useOAuthUrl } from '../providers/AuthSessionProvider';
 import { ThemeToggleButton } from '../ui/ThemeToggleButton';
 import { Shell } from '../ui/primitives';
 
 export const PublicShell = () => {
-  const auth = useAuthSession();
+  const { session, loading, hasError } = useAuthState();
+  const { login } = useAuthActions();
+  const { oauthStartUrl } = useOAuthUrl();
 
-  if (auth.loading) {
+  if (loading) {
     return <Shell as="main" className="ui-shell-login" />;
   }
 
-  if (auth.session) {
+  if (session) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -20,7 +22,7 @@ export const PublicShell = () => {
       <div className="ui-shell-login-toggle">
         <ThemeToggleButton />
       </div>
-      <LoginForm onSubmit={auth.login} oauthStartUrl={auth.oauthStartUrl} hasExternalError={auth.hasError} />
+      <LoginForm onSubmit={login} oauthStartUrl={oauthStartUrl} hasExternalError={hasError} />
     </Shell>
   );
 };

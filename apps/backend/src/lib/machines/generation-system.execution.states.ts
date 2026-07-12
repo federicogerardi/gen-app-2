@@ -1,3 +1,18 @@
+/**
+ * Execution States - Multi-Context (Domain + Runtime + Metrics)
+ *
+ * States: extractionFlow, toolGenerationFlow, acquiringContext, crawlingFlow,
+ *         scoringFlow, genericGenerationFlow, dispatchingMode, generating, streaming
+ * Context Access: All contexts (business logic + execution + metrics collection)
+ * Primary Concerns: Orchestration between domain workflow and runtime execution
+ *
+ * Context Usage Patterns:
+ * - Domain Context: WorkflowType routing, artifact lifecycle
+ * - Runtime Context: Model selection, request input processing
+ * - Metrics Context: Token counting, cost accumulation
+ * - Infrastructure Context: Adapter selection, factory usage
+ */
+
 import {
   getAcquisitionResultParams,
   getCrawlingResultParams,
@@ -253,7 +268,7 @@ export const generationSystemExecutionStates = {
     ],
   },
   generating: {
-    entry: ['ensureArtifactId'],
+    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
     invoke: {
       id: 'generationActor',
       src: 'invokeGeneration',
@@ -277,7 +292,7 @@ export const generationSystemExecutionStates = {
           ],
         },
         {
-          target: 'persistingSuccessSync',
+          target: 'persistingSuccess',
           actions: {
             type: 'cacheGenerateResult',
             params: ({ event }: UnknownEventArgs) => getGenerateResultParams(event),
@@ -294,7 +309,7 @@ export const generationSystemExecutionStates = {
     },
   },
   streaming: {
-    entry: ['ensureArtifactId'],
+    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
     invoke: {
       id: 'streamActor',
       src: 'invokeStream',

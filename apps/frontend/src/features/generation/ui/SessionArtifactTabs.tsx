@@ -22,7 +22,8 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
     || value === 'angle-generator'
     || value === 'meta-ads'
     || value === 'youtube-description'
-    || value === 'geometric';
+    || value === 'geometric'
+    || value === 'blog-article-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {
@@ -176,6 +177,34 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
           &gt;
         </IconButton>
       </div>
+
+      {selected.model && (
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
+          <span style={{ fontSize: '0.75rem', color: '#666' }}>
+            Modello: {selected.model}
+            {selected.modelSource === 'step-override' && (
+              <span
+                style={{
+                  marginLeft: '4px',
+                  padding: '0 4px',
+                  fontSize: '0.65rem',
+                  backgroundColor: '#e3f2fd',
+                  color: '#1976d2',
+                  borderRadius: '2px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                Override
+              </span>
+            )}
+          </span>
+          {selected.overrideReason && (
+            <span style={{ display: 'block', fontSize: '0.7rem', color: '#888' }}>
+              Motivo: {selected.overrideReason}
+            </span>
+          )}
+        </div>
+      )}
 
       <ArtifactContentPreview
         content={selected.content}

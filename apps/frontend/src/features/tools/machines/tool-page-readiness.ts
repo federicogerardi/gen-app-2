@@ -19,6 +19,31 @@ export type ReadinessSnapshot = {
   reasonCodes: ReadinessReasonCode[];
 };
 
+/**
+ * Sprint 4 Session 2 (Phase 1 Step 6, Race A): structural equality check for
+ * ReadinessSnapshot. Used by `buildSyncProgressState` to decide whether the
+ * readiness part of a PROGRESS_SYNCED assign can be no-op'd alongside the
+ * progress part. Equality is: equal 4 booleans + equal reasonCodes set
+ * (order-insensitive membership, since reasonCodes is deduplicated upstream).
+ */
+export const readinessSnapshotsEqual = (
+  a: ReadinessSnapshot,
+  b: ReadinessSnapshot,
+): boolean => {
+  if (
+    a.canStartFlow !== b.canStartFlow
+    || a.hasProject !== b.hasProject
+    || a.hasExtractionContext !== b.hasExtractionContext
+    || a.hasPrimaryTargetStep !== b.hasPrimaryTargetStep
+  ) return false;
+  if (a.reasonCodes.length !== b.reasonCodes.length) return false;
+  const bSet = new Set(b.reasonCodes);
+  for (const code of a.reasonCodes) {
+    if (!bSet.has(code)) return false;
+  }
+  return true;
+};
+
 const READINESS_LOGGING_OVERRIDE_KEY = '__TOOL_PAGE_READINESS_LOGGING_ENABLED__';
 
 export const buildReadinessSnapshot = (

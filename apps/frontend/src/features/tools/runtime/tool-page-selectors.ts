@@ -184,6 +184,25 @@ export const buildYoutubeDescriptionDirectInputExtractionInfo = ({
   };
 };
 
+export const buildBlogArticleGeneratorDirectInputExtractionInfo = ({
+  titolo,
+}: Pick<ToolFormState, 'titolo'>): SelectedExtractionInfo | null => {
+  const normalizedTitolo = titolo.trim();
+
+  if (!normalizedTitolo) {
+    return null;
+  }
+
+  return {
+    extractionArtifactId: 'direct-input:blog-article-generator',
+    briefingId: 'direct-input:blog-article-generator',
+    briefingText: `Titolo: ${normalizedTitolo}`,
+    extractionPayload: {
+      titolo: normalizedTitolo,
+    },
+  };
+};
+
 type TerminalResolution =
   | { status: 'done'; step: ToolStep }
   | { status: 'failed'; step: ToolStep | null; message: string }
@@ -310,6 +329,10 @@ export const selectGenerationExtractionInfo = ({
     return directInputExtractionInfo;
   }
 
+  if (toolKey === 'blog-article-generator' && directInputExtractionInfo) {
+    return directInputExtractionInfo;
+  }
+
   const briefingContextText = briefingSnapshot.context.normalizedText ?? '';
   if (machineHydrationResult !== null) {
     return {
@@ -418,7 +441,7 @@ export const buildBaseGenerationRequest = ({
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef'>;
+  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -462,6 +485,10 @@ export const buildBaseGenerationRequest = ({
         campaign_objective: formState.campaignObjective.trim(),
       }
       : extractionInfo.extractionPayload,
+    // Include titolo directly in input for blog-article-generator template variable replacement
+    ...(toolKey === 'blog-article-generator' && typeof formState.titolo === 'string' && formState.titolo.trim().length > 0
+      ? { titolo: formState.titolo.trim() }
+      : {}),
   },
 });
 

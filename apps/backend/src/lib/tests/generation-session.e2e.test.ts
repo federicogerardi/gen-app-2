@@ -6,8 +6,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   ArtifactQueryRepositoryStub,
   ProjectQueryRepositoryStub,
+} from '../adapters/generation';
+import {
   createAuthStubRepositories,
-} from '../adapters';
+} from '../adapters/auth';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,

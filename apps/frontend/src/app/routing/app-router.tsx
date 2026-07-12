@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import type { FC, LazyExoticComponent, ReactElement } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
 import { PublicShell } from '../layouts/PublicShell';
-import { useAuthSession } from '../providers/AuthSessionProvider';
+import { useAuthState } from '../providers/AuthSessionProvider';
 import { isUserAdmin } from '../runtime/user-roles';
 import { AdminGuard } from '../../features/admin/routing/admin-guard';
 import { AdminPersistentNavigation } from '../../features/admin/ui/AdminPersistentNavigation';
@@ -24,6 +24,7 @@ const AngleGeneratorToolPage = lazy(() => import('../../features/tools/angle-gen
 const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/MetaAdsToolPage').then(m => ({ default: m.MetaAdsToolPage })));
 const YoutubeDescriptionToolPage = lazy(() => import('../../features/tools/youtube-description/pages/YoutubeDescriptionToolPage').then(m => ({ default: m.YoutubeDescriptionToolPage })));
 const GeometricToolPage = lazy(() => import('../../features/tools/geometric/pages/GeometricToolPage').then(m => ({ default: m.GeometricToolPage })));
+const BlogArticleGeneratorToolPage = lazy(() => import('../../features/tools/blog-article-generator/pages/BlogArticleGeneratorToolPage').then(m => ({ default: m.BlogArticleGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
@@ -35,7 +36,6 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
-const AdminGeometricScreenshotsPage = lazy(() => import('../../features/admin/pages/AdminGeometricScreenshotsPage').then(m => ({ default: m.AdminGeometricScreenshotsPage })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -45,11 +45,12 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'meta-ads': MetaAdsToolPage,
   'youtube-description': YoutubeDescriptionToolPage,
   'geometric': GeometricToolPage,
+  'blog-article-generator': BlogArticleGeneratorToolPage,
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
-  const auth = useAuthSession();
-  const role = auth.session && isUserAdmin(auth.session.user.role) ? 'admin' : 'member';
+  const { session } = useAuthState();
+  const role = session && isUserAdmin(session.user.role) ? 'admin' : 'member';
 
   if (!isToolEnabled(toolKey, role)) {
     return <Navigate to="/tools" replace />;
@@ -63,7 +64,6 @@ const lighthouseAdminRouteTargets: Record<string, string> = {
   changelog: '/admin/changelog',
   'user-reports': '/admin/user-reports',
   activity: '/admin/activity',
-  'geometric-screenshots': '/admin/geometric-screenshots',
 };
 
 const AdminLayout = () => {
@@ -191,10 +191,6 @@ export const createAppRouter = () => createBrowserRouter([
           {
             path: 'user-reports',
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
-          },
-          {
-            path: 'geometric-screenshots',
-            element: <Suspense fallback={<PageLoader />}><AdminGeometricScreenshotsPage /></Suspense>,
           },
         ],
       },

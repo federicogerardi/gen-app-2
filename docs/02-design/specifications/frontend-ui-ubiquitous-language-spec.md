@@ -418,3 +418,58 @@ Priority order for convergence:
 - Owner: Frontend Platform Team
 - Design review support: UX/UI
 - Update cadence: monthly or when a new page archetype is introduced
+
+---
+
+## Evidence Anchors
+
+Key source files referenced by this specification:
+
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`
+- `apps/frontend/src/features/tools/ui/ToolFormComponents.tsx`
+- `apps/frontend/src/features/tools/ui/ToolStepCard.tsx`
+- `apps/frontend/src/features/tools/ui/ToolStatusCard.tsx`
+- `apps/frontend/src/features/tools/runtime/useToolPage.ts`
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`
+- `apps/frontend/src/features/tools/machines/tool-page.machine.ts`
+- `apps/frontend/src/features/generation/ui/tool-ux-state.ts`
+- `apps/frontend/src/features/generation/ui/artifact-history.ts`
+- `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx`
+- `apps/frontend/src/features/artifacts/ui/SessionsListingSection.tsx`
+- `apps/frontend/src/features/artifacts/ui/ArtifactsListingSection.tsx`
+- `apps/frontend/src/features/artifacts/ui/ArtifactContentPreview.tsx`
+- `apps/frontend/src/features/artifacts/ui/DownloadFormatDropdown.tsx`
+- `apps/frontend/src/features/admin/pages/AdminUsersPage.tsx`
+- `apps/frontend/src/features/admin/pages/AdminModelsPage.tsx`
+- `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx`
+- `apps/frontend/src/features/admin/pages/AdminChangelogPage.tsx`
+- `apps/frontend/src/features/admin/pages/AdminUserReportsPage.tsx`
+- `apps/frontend/src/features/admin/ui/AdminUsersTable.tsx`
+- `apps/frontend/src/features/admin/ui/AdminApiServicesTable.tsx`
+- `apps/frontend/src/features/admin/ui/AdminChangelogTableRow.tsx`
+- `apps/frontend/src/features/admin/ui/AdminUserReportsTableActions.tsx`
+- `apps/frontend/src/features/admin/ui/AdminPageContainer.tsx`
+- `apps/frontend/src/features/admin/ui/AdminUserTableRow.tsx`
+- `apps/frontend/src/features/admin/reports/ReportsTable.tsx`
+- `apps/frontend/src/features/admin/changelog/ChangelogTable.tsx`
+- `apps/frontend/src/features/admin/activity/ActivityLogTable.tsx`
+- `apps/frontend/src/features/admin/llm/LLMTable.tsx`
+- `apps/frontend/src/features/dashboard/pages/DashboardPage.tsx`
+- `apps/frontend/src/features/projects/pages/ProjectsListPage.tsx`
+- `apps/frontend/src/features/projects/pages/ProjectDetailPage.tsx`
+- `apps/frontend/src/app/ui/primitives.tsx`
+- `apps/frontend/src/app/ui/StatusBadge.tsx`
+- `apps/frontend/src/app/ui/ListingTableSection.tsx`
+- `apps/frontend/src/app/ui/PaginationBlockControls.tsx`
+- `apps/frontend/src/app/ui/GlobalFeedbackViewport.tsx`
+- `apps/frontend/src/app/ui/CtaButtons.tsx`
+- `apps/frontend/src/app/ui/UploadFieldButton.tsx`
+- `apps/frontend/src/app/copy/system.ts`
+- `apps/frontend/src/app/config/ui-config.ts`
+- `apps/frontend/src/app/runtime/queries/useSessionsQuery.ts`
+- `apps/frontend/src/app/runtime/queries/useArtifactsQuery.ts`
+- `apps/frontend/src/app/runtime/queries/useProjectsQuery.ts`
+- `apps/frontend/src/app/runtime/queries/useAdminModelsQuery.ts`
+- `apps/frontend/src/app/runtime/queries/useAdminUsersQuery.ts`

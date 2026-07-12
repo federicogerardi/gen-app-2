@@ -6,11 +6,13 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
   ArtifactQueryRepositoryStub,
   createInMemoryGenerationAdapters,
-  createAuthStubRepositories,
   ProjectQueryRepositoryStub,
   type StubArtifactQueryRecord,
-} from '../adapters';
-import type { OrchestrateArtifactCache } from '../adapters';
+  type OrchestrateArtifactCache,
+} from '../adapters/generation';
+import {
+  createAuthStubRepositories,
+} from '../adapters/auth';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,

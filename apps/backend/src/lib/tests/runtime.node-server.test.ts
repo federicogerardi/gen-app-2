@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import { createAuthStubRepositories, createInMemoryGenerationAdapters } from '../adapters';
+import { createAuthStubRepositories } from '../adapters/auth';
+import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,

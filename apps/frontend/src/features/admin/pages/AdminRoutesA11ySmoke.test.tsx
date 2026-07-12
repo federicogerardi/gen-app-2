@@ -17,6 +17,23 @@ import { AdminUsersPage } from './AdminUsersPage';
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => getMockAuthSession(),
+  useAuthState: () => {
+    const auth = getMockAuthSession();
+    return { session: auth.session, loading: auth.loading, hasError: auth.hasError };
+  },
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => {
+    const auth = getMockAuthSession();
+    return { apiBaseUrl: auth.apiBaseUrl, capabilities: auth.capabilities };
+  },
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({

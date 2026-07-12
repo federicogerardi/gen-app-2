@@ -1,8 +1,8 @@
 import { appCopy } from '../../../app/copy/system';
 
 export type AdminNavigationItem = {
-  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity' | 'geometric-screenshots';
-  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity' | '/admin/geometric-screenshots';
+  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity';
+  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity';
   label: string;
   description: string;
   end?: boolean;
@@ -51,11 +51,5 @@ export const adminNavigationItems: readonly AdminNavigationItem[] = [
     to: '/admin/activity',
     label: appCopy.ui.adminNavigation.activityLabel,
     description: appCopy.ui.adminNavigation.activityDescription,
-  },
-  {
-    key: 'geometric-screenshots',
-    to: '/admin/geometric-screenshots',
-    label: appCopy.ui.adminNavigation.geometricScreenshotsLabel,
-    description: appCopy.ui.adminNavigation.geometricScreenshotsDescription,
   },
 ] as const;

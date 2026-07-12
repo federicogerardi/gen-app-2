@@ -25,7 +25,7 @@ import type { ToolCheckpoint } from '../ui/tool-checkpoints';
 import { STREAM_CONFIG } from '../../../app/config/stream-config';
 import { UI_CONFIG } from '../../../app/config/ui-config';
 import { buildRelaunchRequest, type GenerationArtifact } from '../ui/artifact-history';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig, type ApiConfigValue } from '../../../app/providers/AuthSessionProvider';
 import { listArtifactsPaginated } from '../../artifacts/runtime/artifacts-client';
 
 const readInputString = (
@@ -122,7 +122,7 @@ const GenerationProjectWorkspaceContext = createContext<GenerationProjectWorkspa
 const GenerationGenerationWorkspaceContext = createContext<GenerationGenerationWorkspaceValue | null>(null);
 
 const useGenerationArtifactsState = (
-  auth: ReturnType<typeof useAuthSession>,
+  auth: { session: ReturnType<typeof useAuthState>['session'] } & ApiConfigValue,
   snapshot: FrontendStreamSnapshot,
   send: FrontendStreamSend,
   streamStatus: FrontendStreamStatus,
@@ -269,7 +269,7 @@ const useGenerationArtifactsState = (
 };
 
 const useGenerationProjectState = (
-  auth: ReturnType<typeof useAuthSession>,
+  auth: { session: ReturnType<typeof useAuthState>['session'] },
   snapshot: FrontendStreamSnapshot,
   send: FrontendStreamSend,
 ) => {
@@ -310,10 +310,12 @@ const useGenerationProjectState = (
 };
 
 export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode }) => {
-  const auth = useAuthSession();
+  const { session } = useAuthState();
+  const { apiBaseUrl, capabilities } = useApiConfig();
+  const auth = { session, apiBaseUrl, capabilities };
   const [streamSnapshot, streamSend] = useMachine(frontendStreamMachine, {
     input: {
-      apiBaseUrl: auth.apiBaseUrl,
+      apiBaseUrl,
       maxReconnectAttempts: STREAM_CONFIG.reconnect.maxAttempts,
       reconnectBaseDelayMs: STREAM_CONFIG.reconnect.baseDelayMs,
       reconnectMaxDelayMs: STREAM_CONFIG.reconnect.maxDelayMs,
@@ -321,7 +323,7 @@ export const GenerationWorkspaceProvider = ({ children }: { children: ReactNode 
   });
   const [generationSnapshot, generationSend] = useMachine(frontendGenerationMachine, {
     input: {
-      apiBaseUrl: auth.apiBaseUrl,
+      apiBaseUrl,
     },
   });
 

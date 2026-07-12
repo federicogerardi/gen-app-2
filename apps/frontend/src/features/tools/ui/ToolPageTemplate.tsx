@@ -12,7 +12,7 @@ import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { useToolPage } from '../runtime/useToolPage';
@@ -47,6 +47,7 @@ type ToolPageFormValues = {
   projectId: string;
   model: string;
   tone: string;
+  titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
@@ -69,11 +70,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const isMetaAdsTool = props.toolKey === 'meta-ads';
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
   const isGeometricTool = props.toolKey === 'geometric';
+  const isBlogArticleGeneratorTool = props.toolKey === 'blog-article-generator';
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
   });
 
   const {
@@ -110,8 +112,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
   const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
   const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     toolKey: props.toolKey,
     apiAcquisitionInputs,
   });
@@ -237,6 +239,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     projectId: z.string().min(1, copy.form.validation.projectRequired),
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
+    titolo: z.string(),
     campaignObjective: z.string(),
     copyLengthFormat: z.enum(['short-form', 'medium-form', 'long-form']),
     videoTitle: z.string(),
@@ -293,6 +296,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 message: `${field.label} required`,
               });
             }
+          }
+        }
+
+        if (isBlogArticleGeneratorTool) {
+          const candidate = value.titolo;
+          if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['titolo'],
+              message: 'Titolo articolo richiesto',
+            });
           }
         }
 
@@ -373,6 +387,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: data.projectId,
       model: data.model,
       tone: data.tone,
+      titolo: isBlogArticleGeneratorTool ? data.titolo : prev.titolo,
       campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
       videoTitle: isYoutubeDescriptionTool ? data.videoTitle : prev.videoTitle,
       topic: isYoutubeDescriptionTool ? data.topic : prev.topic,
@@ -423,6 +438,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       projectId: formState.projectId,
       model: formState.model,
       tone: formState.tone,
+      titolo: formState.titolo ?? '',
       campaignObjective: formState.campaignObjective,
       copyLengthFormat: formState.copyLengthFormat ?? 'medium-form',
       videoTitle: formState.videoTitle ?? '',
@@ -469,6 +485,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('tone', formState.tone);
   }, [formState.tone, setValue]);
+
+  useEffect(() => {
+    setValue('titolo', formState.titolo ?? '');
+  }, [formState.titolo, setValue]);
 
   useEffect(() => {
     setValue('campaignObjective', formState.campaignObjective);
@@ -571,7 +591,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               executePrimaryActionFromForm(data);
             })}>
 
-              <div className="ui-tool-form-row ui-tool-form-row--triple">
+              <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
                 <Controller
                   name="projectId"
                   control={control}
@@ -599,35 +619,37 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   )}
                 />
 
-                <Controller
-                  name="model"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label={copy.form.modelLabel}
-                      disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setFormState((prev) => ({ ...prev, model: e.target.value }));
-                      }}
-                      value={field.value}
-                      error={!!errors.model}
-                      helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
-                      fullWidth
-                    >
-                      {modelsError ? (
-                        <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
-                      ) : modelOptions.length === 0 ? (
-                        <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
-                      ) : (
-                        modelOptions.map((o) => (
-                          <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
-                        ))
-                      )}
-                    </TextField>
-                  )}
-                />
+                {isBlogArticleGeneratorTool ? null : (
+                  <Controller
+                    name="model"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        select
+                        label={copy.form.modelLabel}
+                        disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, model: e.target.value }));
+                        }}
+                        value={field.value}
+                        error={!!errors.model}
+                        helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
+                        fullWidth
+                      >
+                        {modelsError ? (
+                          <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
+                        ) : modelOptions.length === 0 ? (
+                          <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
+                        ) : (
+                          modelOptions.map((o) => (
+                            <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+                          ))
+                        )}
+                      </TextField>
+                    )}
+                  />
+                )}
 
                 <Controller
                   name="tone"
@@ -655,6 +677,29 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   )}
                 />
               </div>
+
+              {isBlogArticleGeneratorTool ? (
+                <div className="ui-tool-form-row">
+                  <Controller
+                    name="titolo"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="Titolo articolo"
+                        disabled={isGenerationLocked}
+                        value={field.value}
+                        error={!!errors.titolo}
+                        helperText={errors.titolo?.message as string | undefined}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setFormState((prev) => ({ ...prev, titolo: e.target.value }));
+                        }}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </div>
+              ) : null}
 
               {isMetaAdsTool ? (
                 <div className="ui-tool-form-row">
@@ -1064,7 +1109,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
-                {dispatchError ? <p className={uiPrimitives.error} role="alert">{dispatchError}</p> : null}
+                {dispatchError ? (
+                  <div className={uiPrimitives.error} role="alert">
+                    <p>{dispatchError}</p>
+                    {(dispatchError.includes('tempo') || dispatchError.includes('Timeout') || dispatchError.includes('Connessione persa')) && (
+                      <button
+                        type="button"
+                        className={uiPrimitives.button}
+                        onClick={handlePrimaryAction}
+                        disabled={isFormLocked || isFormBusy}
+                      >
+                        Riprova
+                      </button>
+                    )}
+                  </div>
+                ) : null}
 
               <div className="ui-tool-action-buttons">
                 {isFormLocked || isFormBusy ? (

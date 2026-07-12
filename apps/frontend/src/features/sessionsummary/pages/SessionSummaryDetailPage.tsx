@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
@@ -69,11 +69,11 @@ type PageState =
 export const SessionSummaryDetailPage = () => {
   const { sessionId = '' } = useParams();
   const navigate = useNavigate();
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const generation = useGenerationWorkspace();
   const projectsQuery = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     enabled: sessionId.length > 0,
   });
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
@@ -84,8 +84,8 @@ export const SessionSummaryDetailPage = () => {
   );
   const relaunchArtifactQuery = useArtifactDetailQuery({
     artifactId: relaunchSourceArtifactId ?? '',
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     localArtifacts: generation.artifacts,
     enabled: sessionGroup !== null && relaunchSourceArtifactId !== null,
   });
@@ -106,15 +106,15 @@ export const SessionSummaryDetailPage = () => {
       );
 
       void downloadSessionFile(pageState.group.sessionId, format, {
-        apiBaseUrl: auth.apiBaseUrl,
-        capabilities: auth.capabilities,
+        apiBaseUrl,
+        capabilities,
       }, excludedSteps.length > 0 ? { excludeSteps: excludedSteps } : undefined).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error('[session-download] failed', err);
         }
       });
     },
-    [pageState, auth.apiBaseUrl, auth.capabilities],
+    [pageState, apiBaseUrl, capabilities],
   );
 
   useEffect(() => {
@@ -129,8 +129,8 @@ export const SessionSummaryDetailPage = () => {
     void (async () => {
       try {
         const group = await getSessionArtifacts(sessionId, {
-          apiBaseUrl: auth.apiBaseUrl,
-          capabilities: auth.capabilities,
+          apiBaseUrl,
+          capabilities,
         });
         if (!cancelled) {
           setPageState({ phase: 'session', group });
@@ -155,7 +155,7 @@ export const SessionSummaryDetailPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, auth.apiBaseUrl, auth.capabilities, navigate]);
+  }, [sessionId, apiBaseUrl, capabilities, navigate]);
 
   if (pageState.phase === 'loading') {
     return (
@@ -226,7 +226,7 @@ export const SessionSummaryDetailPage = () => {
               <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
                 {appCopy.ui.actions.relaunchPrimary}
               </SecondaryCtaButton>
-              {auth.capabilities.sessionDownload ? (
+              {capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}
             </div>

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -92,14 +92,14 @@ const toBindingInput = (values: import('../runtime/admin-api-service-binding-for
 });
 
 export const AdminApiServicesPage = () => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const [showCreateForm, setShowCreateForm] = useState(true);
   const [editingApiServiceId, setEditingApiServiceId] = useState<string | null>(null);
   const [selectedApiServiceId, setSelectedApiServiceId] = useState<string | null>(null);
 
   const apiServicesQuery = useAdminApiServicesQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
   });
 
   const editingApiService = apiServicesQuery.data.find((service) => service.id === editingApiServiceId) ?? null;
@@ -130,22 +130,22 @@ export const AdminApiServicesPage = () => {
   };
 
   const { busyAction, createApiService, updateApiService, deleteApiService } = useAdminApiServicesMutations({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     reloadApiServices: apiServicesQuery.reload,
     onCreateReset: () => createForm.reset(createEmptyAdminApiServiceForm()),
     onEditClosed: closeEditForm,
   });
 
   const bindingsQuery = useAdminApiServiceBindingsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     apiServiceId: selectedApiServiceId,
   });
 
   const { busyAction: bindingBusyAction, saveBinding, removeBinding } = useAdminApiServiceBindingsMutations({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     apiServiceId: selectedApiServiceId,
     reloadBindings: bindingsQuery.reload,
     onBindingSelected: () => undefined,

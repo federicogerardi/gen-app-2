@@ -287,7 +287,7 @@ Interventions 5 (B1), 13 (D2), 14 (E2) completed.
 
 | File | Changes |
 |---|---|
-| `app/copy/system.ts` | Added `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminGeometricScreenshots`, `adminNavigation`, `toolActions`, `toolPageForm` namespaces with ~80+ keys |
+| `app/copy/system.ts` | Added `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminNavigation`, `toolActions`, `toolPageForm` namespaces with ~80+ keys |
 | `features/admin/ui/AdminUserCreateForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminUsers.*` |
 | `features/admin/ui/AdminUserEditForm.tsx` | Replaced hardcoded strings with `appCopy.ui.adminUsers.*` |
 | `features/admin/ui/AdminUserFormFields.tsx` | Replaced hardcoded labels with `appCopy.ui.adminUsers.fieldLabels.*` |
@@ -310,7 +310,6 @@ Interventions 5 (B1), 13 (D2), 14 (E2) completed.
 | `features/admin/ui/AdminUserReportsToolbar.tsx` | Replaced hardcoded labels with `appCopy.ui.adminUserReports.*` |
 | `features/admin/reports/ReportsTable.tsx` | Replaced headers, title, empty message with `appCopy.ui.adminUserReports.*` |
 | `features/admin/ui/AdminChangelogTableRow.tsx` | Replaced `'Archivia'` with `appCopy.ui.adminChangelog.archiveAction` |
-| `features/admin/pages/AdminGeometricScreenshotsPage.tsx` | Replaced all hardcoded strings with `appCopy.ui.adminGeometricScreenshots.*` |
 | `features/admin/ui/AdminPersistentNavigation.tsx` | Replaced aria-label with `appCopy.ui.adminNavigation.ariaLabel` |
 | `features/admin/config/admin-navigation.ts` | Replaced all labels and descriptions with `appCopy.ui.adminNavigation.*` |
 | `features/tools/ui/ToolActionButtons.tsx` | Replaced hardcoded tooltips and labels with `appCopy.ui.toolActions.*` |
@@ -342,7 +341,7 @@ Verification: typecheck clean, 437/437 tests pass.
 | Tool buttons | `ToolActionButtons.tsx` | 8 | `"Riprova"`, `"Salta step"`, `"Annulla"`, `"Artefatto precedente"` + 4 `title` tooltips |
 | YouTube Description form | `ToolPageTemplate.tsx:636-821` | 9 | Field labels (`"Video title"`, `"Topic"`, `"Keywords"`, etc.) hardcoded in English |
 
-**Resolution**: All areas completed. Keys added to `appCopy.ui` under `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminGeometricScreenshots`, `adminNavigation`, `toolActions`, `toolPageForm`. Components updated and tests verified.
+**Resolution**: All areas completed. Keys added to `appCopy.ui` under `adminUsers`, `adminModels`, `adminChangelog`, `adminUserReports`, `adminDashboard`, `adminActivity`, `adminNavigation`, `toolActions`, `toolPageForm`. Components updated and tests verified.
 
 ---
 

@@ -57,7 +57,6 @@ export type ToolPageEvent =
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' }
-  | { type: 'NONSTREAMING_STEP_COMPLETED'; step: ToolStep }
   | {
       type: 'PROGRESS_SYNCED';
       artifacts: GenerationArtifact[];

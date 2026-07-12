@@ -5,7 +5,9 @@ import type {
   RegistryBackedWorkflowType,
   RequestReceivedEvent,
 } from '../types/xstate';
+import type { EffectiveModelResolution } from '../types/step-llm-model-override';
 import type { RouteType } from './generation-routing';
+import type { DecomposedGenerationContext } from './generation-system.context-types';
 
 export type GenerationSystemInput = {
   adapters: GenerationAdapters;
@@ -17,27 +19,21 @@ export type GenerationSystemInput = {
   };
 };
 
-export type GenerationMachineContext = GenerationSystemContext & {
-  adapters: GenerationAdapters;
-  model: string;
-  requestInput: Record<string, unknown>;
-  idempotencyKey: string | null;
-  outputFormat: OutputFormat;
-  syntheticResponse: string;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number;
-  routeType: RouteType;
-  mode: 'generate' | 'stream';
-  runtimeNow: () => Date;
-  artifactIdFactory: () => string;
-  responseBuilder: (request: RequestReceivedEvent) => string;
-  pendingFallback: {
-    reason: string | null;
-    defaultReason: string;
-  } | null;
-  _creditCost: number;
-};
+/**
+ * @deprecated Use sub-context accessors from generation-system.context-accessors.ts.
+ * Direct field access will be removed in Sprint 6 (post error-actors wiring).
+ * Migration path:
+ * - selectDomainContext() for business logic fields (DDD-167)
+ * - selectRuntimeContext() for request execution fields (DDD-168)
+ * - selectMetricsContext() for usage tracking fields (DDD-169)
+ * - selectInfraContext() for adapter layer fields (DDD-170)
+ * - selectErrorContext() for error handling fields (DDD-171)
+ *
+ * Sprint 5 keeps this alias for backward compatibility — all existing actions/guards
+ * continue to work unchanged. Sprint 6 will remove the alias once error-actors wiring
+ * is complete and all consumers migrate to accessor usage.
+ */
+export type GenerationMachineContext = DecomposedGenerationContext;
 
 export type IdempotencyDoneOutput =
   | { type: 'IDEMPOTENCY_CLAIMED' }
@@ -84,7 +80,7 @@ export type AcquisitionDoneOutput =
   | { type: 'ACQUISITION_ATTEMPT_SKIPPED'; reason: string };
 
 export type CrawlingDoneOutput =
-  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[]; screenshotIds?: string[] }
+  | { type: 'CRAWLING_COMPLETED'; crawlArtifacts: { query: string; isPaa: boolean; content: string; structuredPayload: Record<string, unknown> }[]; paaQueries: string[] }
   | { type: 'CRAWLING_FAILED'; reason: string };
 
 export type CacheCrawlingResultParams = {
@@ -107,6 +103,7 @@ export type CacheRequestMetaParams = {
   registrySnapshotRef: string | null;
   routeType: RouteType;
   syntheticResponse: string;
+  effectiveModelResolution: EffectiveModelResolution | null;
 };
 
 export type SetValidationDataParams = {

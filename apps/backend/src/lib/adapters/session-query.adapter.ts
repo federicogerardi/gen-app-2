@@ -20,6 +20,9 @@ export type SessionArtifactEntry = {
   updatedAt: string;
   workflowType: string | null;
   toolKey: string | null;
+  model?: string | null;
+  modelSource?: 'user-selection' | 'step-override' | null;
+  overrideReason?: string | null;
 };
 
 export type SessionArtifactGroup = {
@@ -62,6 +65,34 @@ const readRunMode = (value: unknown): 'new' | 'resume' | 'regenerate' | null => 
   return value === 'new' || value === 'resume' || value === 'regenerate' ? value : null;
 };
 
+type ModelResolutionMetadata = {
+  modelSource: 'user-selection' | 'step-override';
+  overrideReason?: string;
+};
+
+const readModelResolution = (input: Record<string, unknown>): ModelResolutionMetadata | null => {
+  const candidate = input.modelResolution;
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const resolution = candidate as Record<string, unknown>;
+  const modelSource = resolution.modelSource;
+
+  if (modelSource !== 'user-selection' && modelSource !== 'step-override') {
+    return null;
+  }
+
+  const overrideReason = typeof resolution.overrideReason === 'string'
+    ? resolution.overrideReason
+    : undefined;
+
+  return {
+    modelSource,
+    ...(overrideReason ? { overrideReason } : {}),
+  };
+};
+
 const deriveGroupStatus = (artifacts: SessionArtifactEntry[]): 'generating' | 'completed' | 'failed' => {
   if (artifacts.some((artifact) => artifact.status === 'generating')) {
     return 'generating';
@@ -87,6 +118,9 @@ export class SessionQueryAdapter {
     const toolKeyFromInput = readString(toolWorkflow.toolKey) ?? readString(artifact.input.toolKey);
     const toolKeyFromWorkflow = deriveToolKeyFromWorkflowType(artifact.workflowType);
 
+    // Extract model resolution metadata from input
+    const modelResolution = readModelResolution(artifact.input);
+
     return {
       artifactId: artifact.artifactId,
       requestId: artifact.requestId,
@@ -100,6 +134,9 @@ export class SessionQueryAdapter {
       updatedAt: artifact.updatedAt,
       workflowType: artifact.workflowType,
       toolKey: toolKeyFromInput ?? toolKeyFromWorkflow,
+      model: artifact.model,
+      modelSource: modelResolution?.modelSource ?? null,
+      overrideReason: modelResolution?.overrideReason ?? null,
     };
   }
 

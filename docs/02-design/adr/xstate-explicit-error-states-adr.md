@@ -136,7 +136,7 @@ Per future modifiche alle macchine XState:
 
 ## References
 
-- [XState Explicit Error States Refactoring Plan](../../../plan/refactor-xstate-explicit-error-states-a1.md)
+- [XState Explicit Error States Refactoring Plan](../../../99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md)
 - [Frontend UX Determinism Code Review](../frontend-ux-determinism-code-review.md) — Finding A1, A3
 - `auth-session.machine.ts` — Sprint 1 reference implementation
 - `briefing-upload.machine.ts` — Sprint 2 reference implementation

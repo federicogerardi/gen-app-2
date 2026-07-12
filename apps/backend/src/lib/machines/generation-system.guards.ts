@@ -12,6 +12,12 @@ import {
   isEmptyStreamSuccess,
 } from './generation-system.events';
 import type { GenerationMachineContext } from './generation-system.types';
+import { selectDomainContext, selectRuntimeContext } from './generation-system.context-accessors';
+import {
+  isFinalStepForPlan,
+  resolveRequestScopedStepDescriptor,
+  resolveToolWorkflowPlan,
+} from './generation-routing';
 
 type GenerationGuardArgs = {
   context: GenerationMachineContext;
@@ -50,8 +56,10 @@ export const generationSystemGuards = {
     const output = (event as { output?: { type?: string } }).output;
     return output?.type === 'GENERATE_TERMINATED_FAILURE';
   },
-  streamOutputIsEmptySuccess: ({ context, event }: GenerationGuardArgs) =>
-    context.routeType !== 'extraction' && isEmptyStreamSuccess(event),
+  streamOutputIsEmptySuccess: ({ context, event }: GenerationGuardArgs) => {
+    const runtime = selectRuntimeContext(context);
+    return runtime.routeType !== 'extraction' && isEmptyStreamSuccess(event);
+  },
   extractionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
     getExtractionDoneOutput(event)?.type === 'EXTRACTION_ATTEMPT_ACCEPTED',
   acquisitionOutputIsAccepted: ({ event }: GenerationGuardArgs) =>
@@ -64,12 +72,25 @@ export const generationSystemGuards = {
     getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
   modeIsGenerate: ({ context }: GenerationGuardArgs) => context.mode === 'generate',
   isNotGeometric: ({ context }: GenerationGuardArgs) => {
-    const toolKey = context.toolKey ?? '';
+    const domain = selectDomainContext(context);
+    const toolKey = domain.toolKey ?? '';
     return toolKey !== 'geometric';
   },
   routeIsGeometric: ({ context }: GenerationGuardArgs) => {
-    const toolKey = context.toolKey ?? '';
-    const workflowType = context.workflowType ?? '';
+    const domain = selectDomainContext(context);
+    const toolKey = domain.toolKey ?? '';
+    const workflowType = domain.workflowType ?? '';
     return toolKey === 'geometric' || workflowType === 'geometric';
+  },
+  isNotFinalArtifact: ({ context }: GenerationGuardArgs) => {
+    if (context.routeType !== 'tool') {
+      return false;
+    }
+    const plan = resolveToolWorkflowPlan(context);
+    if (!plan) {
+      return false;
+    }
+    const stepDescriptor = resolveRequestScopedStepDescriptor(context, plan);
+    return !isFinalStepForPlan(plan, stepDescriptor.key);
   },
 };

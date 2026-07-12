@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState } from '../../../app/providers/AuthSessionProvider';
 
 export const AdminGuard = ({ children }: { children: ReactElement }) => {
-  const auth = useAuthSession();
+  const { session } = useAuthState();
 
-  if (!auth.session || auth.session.user.role !== 'admin') {
+  if (!session || session.user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 

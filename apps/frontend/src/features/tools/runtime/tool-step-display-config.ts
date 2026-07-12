@@ -89,6 +89,11 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
     'strategic-reporting': { visible: true, includeInDownload: false },
     'unified-report': { visible: true, includeInDownload: true },
   },
+  'blog-article-generator': {
+    'blog_seo_structure': { visible: true, includeInDownload: false },
+    'blog_research': { visible: true, includeInDownload: false },
+    'blog_article': { visible: true, includeInDownload: true },
+  },
 };
 
 // ── Lookup helpers ────────────────────────────────────────────────────────────

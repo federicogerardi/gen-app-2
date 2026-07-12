@@ -19,6 +19,24 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     apiBaseUrl: '',
     capabilities: { artifacts: true },
   }),
+  useAuthState: () => ({
+    session: { user: { id: 'user-001' } },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: { artifacts: true },
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('@xstate/react', () => ({

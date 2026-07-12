@@ -86,6 +86,7 @@ export type ToolFormState = {
   projectId: string;
   model: string;
   tone: string;
+  titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
   videoTitle: string;
@@ -195,6 +196,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER.geometric,
     stepDependencies: TOOL_STEP_DEPENDENCIES.geometric,
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  'blog-article-generator': {
+    toolKey: 'blog-article-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('blog-article-generator'),
+    displayName: 'Blog Article Generator',
+    defaultPrompt: 'Generate comprehensive blog articles with SEO optimization and in-depth research.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['blog-article-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['blog-article-generator'],
     defaults: {
       registrySnapshotRef: 'snapshot:default',
     },
@@ -402,6 +415,21 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     ],
     stepConstraints: ['La sequenza canonica è serp-crawling -> competitor-scoring -> strategic-reporting -> unified-report.'],
   },
+  'blog-article-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Inserisci il titolo dell\'articolo da generare.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
+    requiredFieldKeys: [],
+    requiredFields: ['Titolo'],
+    optionalFields: [],
+    examples: [
+      'Titolo: Advanced React patterns for performance optimization',
+    ],
+    notes: ['Il titolo è l\'unico campo obbligatorio per avviare la generazione.'],
+    stepConstraints: ['La sequenza canonica è blog_seo_structure -> blog_research -> blog_article.'],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -482,6 +510,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'meta-ads': appCopy.ui.navigation.metaAds,
   'youtube-description': appCopy.ui.navigation.youtubeDescription,
   'geometric': appCopy.ui.navigation.geometric,
+  'blog-article-generator': 'Blog Article Generator',
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -492,6 +521,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'meta-ads': 'Produci asset Meta Ads coerenti con contesto, obiettivo campagna e priorita strategiche.',
   'youtube-description': 'Genera descrizioni YouTube complete con CTA iniziale, capitoli e blocchi SEO in un singolo step.',
   'geometric': 'Analizza SERP, scoring competitivo e report strategico unificato in italiano.',
+  'blog-article-generator': 'Generate Italian blog articles with SEO optimization and in-depth research.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -502,6 +532,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'meta-ads': '/tools/meta-ads',
   'youtube-description': '/tools/youtube-description',
   'geometric': '/tools/geometric',
+  'blog-article-generator': '/tools/blog-article-generator',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -713,6 +744,23 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Unified Report',
       description: 'Report unificato che combina analisi strategica e scoring quantitativo.',
       expectedOutputFormat: 'Markdown con tabelle competitor, analisi e raccomandazioni',
+    },
+  },
+  'blog-article-generator': {
+    'blog_seo_structure': {
+      displayName: 'SEO Structure',
+      description: 'Generate SEO-optimized article structure with headings and subheadings.',
+      expectedOutputFormat: 'Markdown with H1 title and H2 subheadings',
+    },
+    'blog_research': {
+      displayName: 'Research',
+      description: 'Conduct in-depth research on the topic with data and statistics.',
+      expectedOutputFormat: 'Structured research data per section',
+    },
+    'blog_article': {
+      displayName: 'Article Writing',
+      description: 'Write the complete Italian blog article with professional copywriting.',
+      expectedOutputFormat: 'Full Italian article in Markdown (~800 words)',
     },
   },
 };

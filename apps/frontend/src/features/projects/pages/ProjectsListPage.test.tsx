@@ -24,6 +24,24 @@ vi.mock('../../../app/providers/AuthSessionProvider', () => ({
     refresh: vi.fn(),
     clearError: () => {},
   }),
+  useAuthState: () => ({
+    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: authBag.capabilities,
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 beforeEach(() => {

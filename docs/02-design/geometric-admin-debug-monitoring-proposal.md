@@ -26,7 +26,6 @@ Definire strategie di debug e monitoraggio admin per verificare che gli output d
 | Strategia | Implementazione |
 |-----------|----------------|
 | **Raw SERP storage** | Salvare `crawlArtifacts[]` completi in DB/Redis per sessione admin-review |
-| **Screenshot archival** | Conservare screenshot `/tmp/serp-*.png` → S3 o storage persistente con `sessionId` |
 | **Artifact diffing** | Confrontare `sources.length`, `paaQueries.length` tra sessioni per anomalie |
 | **Session audit trail** | Log strutturato: `crawling.start` → `crawling.completed` → `scoring.completed` con `requestId` |
 
@@ -111,11 +110,9 @@ const aiOverviewConfidence = (element: Element): number => {
     "language": "it",
     "country": "google.it",
     "aiOverviewExtracted": true,
-    "aiOverviewConfidence": 0.95,
     "aiOverviewLength": 142,
     "sourcesCount": 8,
     "paaQueriesCount": 3,
-    "screenshotUrl": "/admin/screenshots/serp-123456.png",
     "durationMs": 12400,
     "errors": []
   },
@@ -179,7 +176,6 @@ Validazione AI Overview
 | Priorità | Strategia | Complessità | Valore |
 |----------|-----------|-------------|--------|
 | **🔴 Alta** | Error tracking strutturato | Bassa | Alto |
-| **🔴 Alta** | Screenshot archival per sessione | Media | Alto |
 | **🟡 Media** | AI Overview confidence score | Media | Medio |
 | **🟡 Media** | Admin verification endpoint | Media | Alto |
 | **🟢 Bassa** | Cross-query consistency check | Alta | Medio |
@@ -189,6 +185,6 @@ Validazione AI Overview
 
 ## 9. Raccomandazione
 
-Iniziare con **error tracking strutturato** + **screenshot archival** (bassa complessità, alto valore), poi aggiungere **AI Overview confidence score** e **admin verification endpoint**.
+Iniziare con **error tracking strutturato** (bassa complessità, alto valore), poi aggiungere **AI Overview confidence score** e **admin verification endpoint**.
 
 Questa proposta è indipendente dall'MVP di Geometric e può essere implementata in una fase successiva senza impattare il flusso esistente.

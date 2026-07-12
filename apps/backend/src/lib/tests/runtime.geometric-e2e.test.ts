@@ -160,12 +160,12 @@ test('geometric prompt resolver resolves strategic-reporting and unified-report 
   assert.ok(unifiedPrompt.prompt.length > 0);
 });
 
-test('geometric context assembly excludes screenshot data from LLM context', async () => {
+test('geometric context assembly excludes non-canonical fields from LLM context', async () => {
   const assembledInput = {
     crawling: {
       snippets: 'AI overview about protein',
       sources: [
-        { title: 'Healthline', url: 'https://healthline.com', snippet: 'Best protein', screenshot: 'base64-abc' },
+        { title: 'Healthline', url: 'https://healthline.com', snippet: 'Best protein', extraData: 'should-not-appear' },
       ],
       paaQueries: ['What is protein?'],
     },
@@ -179,10 +179,9 @@ test('geometric context assembly excludes screenshot data from LLM context', asy
   // Verify assembly was created
   assert.ok(assembly);
 
-  // Verify screenshot data is NOT in the assembled output
+  // Verify non-canonical data is NOT in the assembled output
   const assemblyStr = JSON.stringify(assembly);
-  assert.equal(assemblyStr.includes('base64-abc'), false);
-  assert.equal(assemblyStr.includes('screenshot'), false);
+  assert.equal(assemblyStr.includes('should-not-appear'), false);
 
   // Verify serp snippets and paaQueries ARE present
   assert.equal(assemblyStr.includes('AI overview about protein'), true);

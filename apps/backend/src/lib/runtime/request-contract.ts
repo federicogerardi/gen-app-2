@@ -7,6 +7,7 @@ import type {
 import type {
   CopyLengthFormat,
   GenerationRequest,
+  LlmModelId,
   OutputFormat,
   ToolKey,
   ToolStep,
@@ -16,8 +17,11 @@ import {
   resolveToolWorkflowType,
   TOOL_STEP_ORDER,
 } from '@gen-app-2/contracts';
+import type { EffectiveModelResolution } from '../types/step-llm-model-override';
 import { resolveToolPrompt } from './tool-prompts';
 import { normalizeStepKey } from './workflow-normalizers';
+import { extractRequestStepContext } from './step-key-extractor';
+import type { StepLlmModelResolver } from './step-llm-model-resolver';
 
 /**
  * Authoritative backend definition of the generation request payload.
@@ -145,6 +149,7 @@ const toCanonicalRequestTone = (
 
 export const buildRequestReceivedEvent = (
   request: BackendGenerationRequest,
+  modelResolver?: StepLlmModelResolver,
 ): RequestReceivedEvent => {
   const rawToolKey = request.toolKey;
   const normalizedToolKey: ToolKey | null =
@@ -183,6 +188,21 @@ export const buildRequestReceivedEvent = (
 
   const canonicalCopyLengthFormat = toCopyLengthFormat(_rawCopyLengthFormat);
 
+  // Resolve effective model using step override resolver
+  const normalizedModel = normalizeModelId(request.model) as LlmModelId;
+  let effectiveModelResolution: EffectiveModelResolution | null = null;
+
+  if (modelResolver) {
+    const stepContext = extractRequestStepContext(request);
+    if (stepContext) {
+      effectiveModelResolution = modelResolver.resolveEffectiveModel(
+        stepContext.toolKey,
+        stepContext.stepKey,
+        normalizedModel,
+      );
+    }
+  }
+
   const enrichedInput = {
     ...inputRest,
     ...(canonicalStep ? { step: canonicalStep } : {}),
@@ -201,7 +221,21 @@ export const buildRequestReceivedEvent = (
         resolvedPromptSource: resolvedPrompt.filePath,
       }
       : {}),
+    // Include model resolution metadata in input for persistence
+    ...(effectiveModelResolution
+      ? {
+        modelResolution: {
+          effectiveModel: effectiveModelResolution.effectiveModel,
+          modelSource: effectiveModelResolution.source,
+          originalUserModel: effectiveModelResolution.originalUserModel,
+          overrideReason: effectiveModelResolution.overrideReason,
+        },
+      }
+      : {}),
   };
+
+  // Use effective model if override is active
+  const resolvedModel = effectiveModelResolution?.effectiveModel ?? normalizedModel;
 
   const common = {
     type: 'REQUEST_RECEIVED' as const,
@@ -210,9 +244,10 @@ export const buildRequestReceivedEvent = (
     sessionId: toOptionalId(request.sessionId),
     toolKey: normalizedToolKey,
     artifactType: request.artifactType,
-    model: normalizeModelId(request.model),
+    model: resolvedModel,
     input: enrichedInput,
     workflowType: request.workflowType ?? null,
+    effectiveModelResolution,
   };
 
   const withIdempotency = request.idempotencyKey

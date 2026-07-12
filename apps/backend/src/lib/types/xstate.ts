@@ -1,4 +1,5 @@
 import type { ArtifactType, OutputFormat, ToolWorkflow } from './artifact';
+import type { EffectiveModelResolution } from './step-llm-model-override';
 import type { WorkflowRunMode } from '@gen-app-2/domain';
 
 export type IsoTimestamp = string;
@@ -199,6 +200,7 @@ export type RequestReceivedEvent = RequestRegistrySelector & {
   input: Record<string, unknown>;
   workflowType?: RegistryBackedWorkflowType;
   idempotencyKey?: string;
+  effectiveModelResolution?: EffectiveModelResolution | null;
 };
 
 export interface AuthOkEvent {

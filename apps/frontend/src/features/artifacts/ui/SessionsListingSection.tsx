@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import {
   cx,
   uiPrimitives,
@@ -42,7 +42,7 @@ export const SessionsListingSection = ({
   enabled,
   headingLevel = 'h3',
 }: SessionsListingSectionProps) => {
-  const auth = useAuthSession();
+  const { apiBaseUrl, capabilities } = useApiConfig();
   const normalizedFixedProjectId = useMemo(() => normalizeFixedProjectId(fixedProjectId), [fixedProjectId]);
 
   // Skip projects query when fixedProjectName is already provided for all items
@@ -51,15 +51,15 @@ export const SessionsListingSection = ({
     : false;
 
   const projectsQuery = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     ...(projectsQueryEnabled !== undefined ? { enabled: projectsQueryEnabled } : {}),
   });
 
   const sessionsQuery = useSessionsQuery({
     ...(normalizedFixedProjectId ? { projectId: normalizedFixedProjectId } : {}),
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     ...(enabled !== undefined ? { enabled } : {}),
   });
 

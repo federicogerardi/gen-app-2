@@ -20,8 +20,6 @@ export type SourceType = 'organic' | 'sitelink' | 'video' | 'sponsored' | 'ugc' 
 
 export type CrawlingResult = {
   aiOverviewSnippet: string | null;
-  aiOverviewConfidence: number;
-  selectorUsed: string;
   sources: {
     title: string;
     url: string;
@@ -30,20 +28,8 @@ export type CrawlingResult = {
     sitelinks?: string[];
     videoMeta?: { platform: string; views?: string };
   }[];
-  screenshotPath: string | null;
   adsCount: number;
   videoCount: number;
-};
-
-export const computeAiOverviewConfidence = (selectorUsed: string): number => {
-  const map: Record<string, number> = {
-    '[data-snf]': 0.95,
-    '.AIHVYe': 0.90,
-    '[data-attrid="wa:/description"]': 0.85,
-    'serpapi-ai-overview': 0.95, // High confidence for SerpApi structured data
-    'serpapi-google-search': 0.85, // Medium-high confidence for embedded AI Overview
-  };
-  return map[selectorUsed] ?? 0.50;
 };
 
 /**
@@ -105,10 +91,7 @@ const crawlSerpViaApi = async (
 
   // Step 3: Normalize data - prioritize AI Overview data, fallback to search results
   if (aiOverviewData) {
-    return {
-      ...aiOverviewData,
-      screenshotPath: null, // SerpApi doesn't provide screenshots
-    };
+    return aiOverviewData;
   }
 
   // Fallback: Extract from embedded AI Overview in search results
@@ -127,10 +110,7 @@ const crawlSerpViaApi = async (
 
     return {
       aiOverviewSnippet,
-      aiOverviewConfidence: 0.85,
-      selectorUsed: 'serpapi-google-search',
       sources,
-      screenshotPath: null,
       adsCount: 0,
       videoCount: sources.filter(s => s.url.includes('youtube.com')).length,
     };
@@ -139,15 +119,12 @@ const crawlSerpViaApi = async (
   // No AI Overview found - return minimal result
   return {
     aiOverviewSnippet: null,
-    aiOverviewConfidence: 0.0,
-    selectorUsed: 'serpapi-google-search',
     sources: googleSearchResult.organic_results?.slice(0, 10).map(result => ({
       title: result.title,
       url: result.link,
       snippet: result.snippet || null,
       sourceType: 'organic' as SourceType,
     })) || [],
-    screenshotPath: null,
     adsCount: 0,
     videoCount: 0,
   };

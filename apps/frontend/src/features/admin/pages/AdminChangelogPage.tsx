@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { appCopy } from '../../../app/copy/system';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { ChangelogTable } from '../changelog/ChangelogTable';
 import { useAdminChangelogQuery } from '../runtime/useAdminChangelogQuery';
 import { useAdminChangelogMutations } from '../runtime/useAdminChangelogMutations';
@@ -9,22 +9,23 @@ import { AdminChangelogPublishForm } from '../ui/AdminChangelogPublishForm';
 import { AdminPageContainer } from '../ui/AdminPageContainer';
 
 export const AdminChangelogPage = () => {
-  const auth = useAuthSession();
+  const { session } = useAuthState();
+  const { apiBaseUrl, capabilities } = useApiConfig();
 
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [showArchived, setShowArchived] = useState(false);
-  const isAdmin = auth.session?.user.role === 'admin';
+  const isAdmin = session?.user.role === 'admin';
 
   const changelogQuery = useAdminChangelogQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     showArchived,
   });
 
   const { isPublishing, busyAction, handlePublish, handleArchiveChangelog } = useAdminChangelogMutations({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
+    apiBaseUrl,
+    capabilities,
     reloadChangelog: changelogQuery.reload,
     draftTitle,
     draftBody,

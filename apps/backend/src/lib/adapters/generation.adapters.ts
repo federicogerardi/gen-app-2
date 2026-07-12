@@ -116,21 +116,6 @@ export interface LlmGenerateAdapter {
   generateText(input: LlmGenerateInput): Promise<LlmGenerateResult>;
 }
 
-export type ScreenshotArchivalParams = {
-  screenshotPath: string;
-  sessionId: string;
-  requestId: string;
-  query: string;
-  isPaa: boolean;
-  aiOverviewConfidence: number;
-  selectorUsed: string;
-};
-
-export interface ScreenshotArchivalAdapter {
-  archiveScreenshot(params: ScreenshotArchivalParams): Promise<string | null>;
-  cleanupExpiredScreenshots(now: Date): Promise<{ deletedFiles: number; deletedRecords: number }>;
-}
-
 export interface ApiServiceAdapter {
   resolveApiServiceForCrawling(id: string): Promise<ResolvedApiServiceForAcquisition | null>;
 }
@@ -148,7 +133,6 @@ export interface GenerationAdapters {
   generate: LlmGenerateAdapter;
   persistence: PersistenceAdapter;
   orchestrateCache: OrchestrateArtifactCache | null;
-  screenshotArchival: ScreenshotArchivalAdapter | null;
   apiService: ApiServiceAdapter | null;
 }
 
@@ -355,7 +339,6 @@ export const createInMemoryGenerationAdapters = (
     generate: createSyntheticLlmGenerateAdapter(),
     persistence,
     orchestrateCache: null,
-    screenshotArchival: null,
     apiService: null,
   };
 };

@@ -39,6 +39,7 @@ skills-lock.json
 *.tmp
 *.swp
 blackhole/
+logs/
 
 # Frontend env locali
 frontend/.env.local

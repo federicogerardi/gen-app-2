@@ -100,7 +100,6 @@
 │    }                                                         │
 ├──────────────────────────────────────────────────────────────┤
 │  Prompt: prompt_strategic_reporting.md                        │
-│  (Token efficiency: NO screenshot data included)             │
 ├──────────────────────────────────────────────────────────────┤
 │  Output: Strategic analysis text (markdown)                  │
 │    • Content gap analysis                                    │
@@ -125,7 +124,6 @@
 │    }                                                         │
 ├──────────────────────────────────────────────────────────────┤
 │  Prompt: prompt_unified_report.md                           │
-│  (Token efficiency: NO screenshot data included)             │
 ├──────────────────────────────────────────────────────────────┤
 │  Output: Comprehensive competitor report (markdown + docx)  │
 │    • Executive summary                                       │
@@ -193,7 +191,6 @@
 | Rule | Implementation |
 |------|----------------|
 | **No file upload** | Direct input only (`allowNoFiles: true`) |
-| **Token efficiency** | Screenshot data NEVER forwarded to LLM |
 | **DDD governance** | All domain terms in canonical glossary |
 | **Admin-only rollout** | `enabled-for-admin-only` policy |
 | **BullMQ queue** | Concurrency 3, retry 3x, exponential backoff |

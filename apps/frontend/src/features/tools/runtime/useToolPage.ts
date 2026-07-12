@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthSession } from '../../../app/providers/AuthSessionProvider';
+import { useAuthState, useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { readInputField } from '../../../app/runtime/shared-utils';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useGenerationArtifactsWorkspace, useGenerationGenerationWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
-import { extractArtifactStep } from '../../generation/runtime/step-hydration';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
 import { buildReactiveViewModel } from '../machines/tool-page-view-model';
 import { useToolPageContext } from './tool-page-context';
 import { useToolPageRunController } from './useToolPageRunController';
+import { useBackendStreamEventConsumer } from './useBackendStreamEventConsumer';
+import { useAuthSessionStateConsumer } from './useAuthSessionStateConsumer';
+// DDD-158: UI state downstream consumer (BCM Line 25) — Sprint 4 Session 2 Phase 1 Step 5.
+import { useToolPageStateConsumer } from './useToolPageStateConsumer';
 
 export interface UseToolPageProps {
   toolKey: SupportedTool;
@@ -28,19 +31,26 @@ export interface UseToolPageProps {
 
 export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
   const autoStartGenerationAfterExtractionRef = useRef(false);
-  const auth = useAuthSession();
+  const navigate = useNavigate();
+  const authState = useAuthState();
+  const apiConfig = useApiConfig();
+  const auth = { ...authState, ...apiConfig };
   const generationStream = useGenerationStreamWorkspace();
   const generationRun = useGenerationGenerationWorkspace();
   const generationArtifacts = useGenerationArtifactsWorkspace();
   const generationProject = useGenerationProjectWorkspace();
-  const navigate = useNavigate();
   const toolConfig = getToolFormConfig(toolKey);
   const { formState, setFormState } = useToolFormInit(toolKey, generationProject.focusedProjectId ?? initialProjectId ?? undefined);
-  const { data: projects, loading: projectsLoading } = useProjectsQuery({
-    apiBaseUrl: auth.apiBaseUrl,
-    capabilities: auth.capabilities,
-    enabled: auth.session !== null && auth.capabilities.projects,
+
+  // DDD-160: Auth session downstream consumer (BCM Line 25)
+  const authSession = useAuthSessionStateConsumer();
+
+  // DDD-159: Backend stream event downstream consumer (BCM Line 25)
+  const streamEvents = useBackendStreamEventConsumer({
+    generationStream,
+    generationArtifacts,
   });
+
   const {
     sessionId,
     toolPageSnapshot,
@@ -72,9 +82,16 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     briefingFileName,
   });
 
+  // DDD-158: UI state derived from machine snapshot (BCM Line 25)
+  const { data: projects, loading: projectsLoading } = useProjectsQuery({
+    apiBaseUrl: auth.apiBaseUrl,
+    capabilities: auth.capabilities,
+    enabled: authSession.session !== null && (authSession.capabilities.projects ?? false),
+  });
+
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
-  const configuringSubstate = typeof toolPageSnapshot.value === 'object' && 'configuring' in toolPageSnapshot.value
+  const configuringSubstate = typeof toolPageSnapshot.value === 'object' && toolPageSnapshot.value !== null && 'configuring' in toolPageSnapshot.value
     ? (toolPageSnapshot.value as { configuring: string }).configuring as 'clean' | 'hydrationFailed' | 'generationFailed'
     : 'clean' as const;
   const machineViewModel = buildReactiveViewModel(toolPageSnapshot.context, configuringSubstate);
@@ -82,26 +99,21 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.info('[useToolPage] progressState changed', {
-        completedSteps: Array.from(completedStepsForFlow),
-        completedStepsSize: completedStepsForFlow.size,
-        machineState: toolPageSnapshot.value,
-        primaryActionPolicy: machineViewModel.primaryActionPolicy,
-      });
-    }
-  }, [completedStepsForFlow, machineViewModel.primaryActionPolicy, toolPageSnapshot.value]);
   const completedArtifactsByStep = useMemo(() => Object.entries(latestArtifactByStep).reduce<Partial<Record<ToolStep, string>>>((acc, [step, artifact]) => {
     if (artifact?.artifactId) acc[step as ToolStep] = artifact.artifactId;
     return acc;
   }, {}), [latestArtifactByStep]);
+
   const nextAvailableStep = useAvailableSteps(toolKey, completedStepsForFlow)[0] ?? null;
-  const sourceStep = useMemo(() => {
-    const candidate = extractArtifactStep(sourceArtifact);
-    return candidate && toolConfig.steps.includes(candidate) ? candidate : null;
-  }, [sourceArtifact, toolConfig.steps]);
   const currentProject = projects.find((project) => project.id === formState.projectId);
+
+  const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const effectiveCanonicalState = isExtractionInProgress
+    ? 'processing-briefing'
+    : isGenerating || streamEvents.isStreamActive
+      ? 'running'
+      : machineViewModel.canonicalState;
+
   const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact as GenerationArtifact | null, 'notes') ?? '';
   const resolvedRelaunchSource = relaunchFromArtifactId ?? sourceArtifactId ?? sourceArtifact?.artifactId ?? null;
 
@@ -124,7 +136,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     resolvedNotes,
     resolvedRelaunchSource,
     nextAvailableStep,
-    sourceStep,
+    sourceStep: null,
     machineViewModel,
     readinessSnapshot,
     completedStepsForFlow,
@@ -139,18 +151,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const streamingStep = runController.streamingStep;
   const pausedCheckpointStep = runController.pausedCheckpointStep;
   const dispatchError = runController.dispatchError;
-  const artifactsReloadError = generationArtifacts.artifactsReloadError;
 
   useEffect(() => {
     toolPageSend({ type: 'PROGRESS_SYNCED', artifacts: generationArtifacts.artifacts, intent, sourceArtifact, runRequestPrefix: getCurrentRunRequestPrefix() });
   }, [briefingStatus, formState.projectId, generationArtifacts.artifacts, getCurrentRunRequestPrefix, intent, sourceArtifact, toolPageSend]);
 
-  const isExtractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
-  const effectiveCanonicalState = isExtractionInProgress
-    ? 'processing-briefing'
-    : isGenerating || generationStream.isStreamActive
-      ? 'running'
-      : machineViewModel.canonicalState;
   const handlePrimaryAction = useCallback(() => {
     autoStartGenerationAfterExtractionRef.current = false;
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
@@ -194,7 +199,13 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     }
   }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
-  return {
+  // DDD-158: ToolPageStateConsumer — UI-only state via downstream consumer pattern.
+  // The consumer returns a memoized { pageState, formState, navigationState } view
+  // (pure UI concerns, no domain/execution logic). The runController + streamEvents
+  // + local handlers remain external and are composed back into the flat return
+  // object below so the public API of useToolPage is identical (no breaking
+  // change for callers / tests). Sprint 4 Session 2 Phase 1 Step 5.
+  const toolPageState = useToolPageStateConsumer({
     toolConfig,
     formState,
     setFormState,
@@ -202,8 +213,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     projectsLoading,
     briefingError,
     briefingGuidance,
-    dispatchError,
-    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     angleDetectorFileName: briefingSnapshot.context.angleDetectorFileName,
@@ -213,20 +222,53 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     completedStepsForFlow,
     latestArtifactByStep,
     completedArtifactsByStep,
+    nextAvailableStep,
     currentRunningStep,
     streamingStep,
     pausedCheckpointStep,
-    nextAvailableStep,
     effectiveCanonicalState,
     currentProject,
-    isStreamActive: generationStream.isStreamActive,
+    navigate,
     sessionId,
+  });
+
+  return {
+    // pageState (DDD-158)
+    toolConfig: toolPageState.formState.toolConfig,
+    machineViewModel: toolPageState.pageState.machineViewModel,
+    isGenerating: toolPageState.pageState.isGenerating,
+    readinessSnapshot: toolPageState.pageState.readinessSnapshot,
+    completedStepsForFlow: toolPageState.pageState.completedStepsForFlow,
+    latestArtifactByStep: toolPageState.pageState.latestArtifactByStep,
+    completedArtifactsByStep: toolPageState.pageState.completedArtifactsByStep,
+    currentRunningStep: toolPageState.pageState.currentRunningStep,
+    streamingStep: toolPageState.pageState.streamingStep,
+    pausedCheckpointStep: toolPageState.pageState.pausedCheckpointStep,
+    nextAvailableStep: toolPageState.pageState.nextAvailableStep,
+    effectiveCanonicalState: toolPageState.pageState.effectiveCanonicalState,
+    sessionId: toolPageState.pageState.sessionId,
+    // formState (DDD-158)
+    formState: toolPageState.formState.formState,
+    setFormState: toolPageState.formState.setFormState,
+    projects: toolPageState.formState.projects,
+    projectsLoading: toolPageState.formState.projectsLoading,
+    briefingError: toolPageState.formState.briefingError,
+    briefingGuidance: toolPageState.formState.briefingGuidance,
+    effectiveBriefingStatus: toolPageState.formState.effectiveBriefingStatus,
+    effectiveBriefingFileName: toolPageState.formState.effectiveBriefingFileName,
+    angleDetectorFileName: toolPageState.formState.angleDetectorFileName,
+    currentProject: toolPageState.formState.currentProject,
+    // navigationState (DDD-158)
+    navigate: toolPageState.navigationState.navigate,
+    // Non-consumer fields: runController execution state + streamEvents + local handlers.
+    dispatchError,
+    artifactsReloadError: streamEvents.artifactsReloadError,
+    isStreamActive: streamEvents.isStreamActive,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
     handleExtractionStart,
     handleBriefingReset,
-    navigate,
   };
 };

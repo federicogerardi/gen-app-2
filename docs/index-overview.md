@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 3.4
-last-reviewed: 2026-06-26
-next-review-date: 2026-09-26
+version: 3.7
+last-reviewed: 2026-07-12
+next-review-date: 2026-10-12
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-06-20  
+Data: 2026-07-12  
 Stato: publication-ready  
-Versione indice: 3.2
+Versione indice: 3.7
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -41,8 +41,10 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 4. [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
 5. [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
 6. [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
-7. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
-8. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
+7. [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — **🔥 URGENT: critical architectural vulnerabilities with progressive execution plan**
+8. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+9. [production-observability-runbook](./04-testing/production-observability-runbook.md)
+10. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
 
 ## Section Map
 
@@ -56,18 +58,11 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 | 99-reference | [99-reference](./99-reference/) | Documentation Archivist |
 | 99-lifecycle | [99-lifecycle](./99-lifecycle/) | Documentation Archivist |
 
-## Geometric Tool Documents
-
-| Documento | Percorso | Tipo | Stato |
-| --- | --- | --- | --- |
-| [Geometric Crawling Step Reference](./99-reference/geometric-crawling-step-reference.md) | `99-reference/geometric-crawling-step-reference.md` | Reference | active |
-| [Geometric Admin Debug & Monitoring Proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) | `02-design/geometric-admin-debug-monitoring-proposal.md` | Proposal | draft |
-| [SerpApi Integration Guide](./99-reference/serpapi-integration-guide.md) | `99-reference/serpapi-integration-guide.md` | Integration Guide | active |
-
 ## Critical Documents Status
 
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
+| [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | active | 2026-07-08 | 2026-10-08 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-11 | 2026-08-03 |
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-26 | 2026-08-03 |
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-26 | 2026-08-03 |
@@ -86,12 +81,6 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 
 - [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
 
-### Geometric Tool References
-
-- [geometric-crawling-step-reference](./99-reference/geometric-crawling-step-reference.md) — **Backend operations reference for Geometric crawling step: XState actors, SerpApi adapter, ApiService resolution, merge actions, and validation guards**
-- [geometric-operation-schematic](./99-reference/geometric-operation-schematic.md) — **Visual schematic of Geometric tool 4-step flow: crawling → scoring → strategic reporting → unified report**
-- [serpapi-integration-guide](./99-reference/serpapi-integration-guide.md) — **SerpApi Google AI Overview integration: dual-channel crawling (SerpApi-only, no Puppeteer fallback), ApiService configuration, data normalization, and environment setup**
-
 ### Design Specifications
 
 - [frontend-design-system-ui-kit-guide](./02-design/specifications/frontend-design-system-ui-kit-guide.md)
@@ -103,7 +92,6 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 - [dependency-unification-proposal](./02-design/specifications/dependency-unification-proposal.md) — **Ranked proposal for dependency-slot allocation focused on code unification (Zod + Kysely implemented; Ky pending)**
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned, including DDD-081 readiness branches)**
 - [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
-- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Admin debug, AI Overview validation, error tracking, and monitoring proposal for Geometric tool**
 
 Validation path manifest (orphan-check canonical set):
 
@@ -121,6 +109,10 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
+- [sprint-4-core-architecture-resolution-implementation-plan](../plan/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione del contesto `GenerationSystem`
+- [sprint-5-context-migration-validation-implementation-plan](../plan/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e livello di validazione del contesto backend
+- [sprint-6-error-actors-wiring-implementation-plan](../plan/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori per gestione errori route-specific e pulizia codice legacy
+- [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](../plan/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione percorsi streaming e non-streaming (V7) ed eliminazione race condition stato progresso (V6)
 - [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completato: migrazione del percorso di generazione tool da streaming (dormiente) a non-streaming (default); streaming SSE preservato per futuri usi
 
 ### Active Runbooks
@@ -130,8 +122,14 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Reviews
 
+- **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — ✅ COMPLETED: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (Sprints 1-7)**
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
+
+### Active Proposals
+
+- [proposal-error-logging-and-ux-feedback](./02-design/proposal-error-logging-and-ux-feedback.md) — **Proposal: structured logging for idempotency/proxy errors, proxy request correlation via x-request-id, and UX feedback for timeout/conflict scenarios (based on 30/06 production log analysis)**
+- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
 
 ### Open Findings — UX Determinism Review (for future implementation)
 

@@ -60,7 +60,7 @@ type BriefingUploadInput = {
   userId: string | null;
 };
 
-type BriefingUploadEvent =
+export type BriefingUploadEvent =
   | { type: 'FILE_SELECTED'; file: File; sourceKey?: string }
   | { type: 'EXTRACTION_REQUESTED' }
   | {

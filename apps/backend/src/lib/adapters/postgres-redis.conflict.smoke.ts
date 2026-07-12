@@ -7,7 +7,7 @@ import { Pool } from 'pg';
 import {
   buildIdempotencyRedisLockKey,
   createPostgresRedisProductionGenerationAdapters,
-} from '../adapters';
+} from './generation';
 import { createSmokeCleanup } from './smoke-cleanup';
 
 const requiredEnv = (name: 'DATABASE_URL'): string => {

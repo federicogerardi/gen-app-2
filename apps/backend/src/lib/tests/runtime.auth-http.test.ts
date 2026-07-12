@@ -5,9 +5,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
   ArtifactQueryRepositoryStub,
-  createAuthStubRepositories,
   ProjectQueryRepositoryStub,
-} from '../adapters';
+} from '../adapters/generation';
+import {
+  createAuthStubRepositories,
+} from '../adapters/auth';
 import {
   createAuthHttpRuntime,
   createDefaultPasswordHashRuntime,

@@ -1,3 +1,16 @@
+/**
+ * Request Lifecycle States - Domain Context Primary
+ *
+ * States: idle → gateway → preGenerationGuards → routing
+ * Context Access: Primarily GenerationDomainContext + GenerationRuntimeContext
+ * Error Handling: Routes to routeSpecificErrorRecovery on guard failures
+ *
+ * Cross-references:
+ * - Execution flow: routing → extractionFlow | toolGenerationFlow | genericGenerationFlow
+ * - Error flow: Any guard failure → persistence.resolvingFallbackPolicy
+ * - Success flow: routing success → execution.dispatchingMode
+ */
+
 import type {
   AuthOkEvent,
   RequestReceivedEvent,
@@ -67,6 +80,7 @@ export const generationSystemRequestStates = {
                 String(event.artifactType),
               ),
               syntheticResponse: context.responseBuilder(event),
+              effectiveModelResolution: event.effectiveModelResolution ?? null,
             }),
           },
         },

@@ -152,6 +152,24 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => mocks.auth,
+  useAuthState: () => ({
+    session: mocks.auth.session,
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: mocks.auth.apiBaseUrl,
+    capabilities: mocks.auth.capabilities,
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
 }));
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({

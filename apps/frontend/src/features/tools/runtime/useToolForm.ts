@@ -20,6 +20,7 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
     projectId: prefillProjectId ?? '',
     model: config.defaultModel,
     tone: 'Professional',
+    titolo: '',
     campaignObjective: '',
     copyLengthFormat: 'medium-form',
     videoTitle: '',

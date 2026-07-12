@@ -8,7 +8,7 @@
  * with prefixed tag `[geometric]` + operation label + JSON metadata.
  *
  * Safety rules:
- *  - NEVER log screenshot binary data (base64, buffers)
+ *  - NEVER log binary data (base64, buffers)
  *  - NEVER log full HTML content (only lengths / truncated snippets)
  *  - NEVER log user query strings beyond first 80 chars
  *  - ALWAYS include requestId for cross-step correlation
@@ -40,8 +40,7 @@ const sanitizeMeta = (meta: GeometricLogMeta): GeometricLogMeta => {
   if (typeof sanitized.paaQuery === 'string') {
     sanitized.paaQuery = truncateQuery(sanitized.paaQuery);
   }
-  // NEVER forward screenshot or raw HTML content
-  delete sanitized.screenshot;
+  // NEVER forward binary or raw HTML content
   delete sanitized.htmlContent;
   delete sanitized.rawBuffer;
   return sanitized;

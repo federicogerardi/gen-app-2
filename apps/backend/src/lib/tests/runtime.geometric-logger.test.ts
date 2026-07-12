@@ -82,7 +82,7 @@ test('geometric logger produces correct prefix and includes requestId', () => {
   }
 });
 
-test('geometric logger sanitizes screenshot and html data from meta', () => {
+test('geometric logger sanitizes binary and html data from meta', () => {
   const logs: Array<{ message: string; meta: GeometricLogMeta }> = [];
   const originalInfo = console.info;
 
@@ -95,7 +95,6 @@ test('geometric logger sanitizes screenshot and html data from meta', () => {
       requestId: 'req-test-002',
       operation: 'invokeCrawling',
       sourceCount: 3,
-      screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       htmlContent: '<html><body>...</body></html>',
       rawBuffer: Buffer.from('raw data'),
     });
@@ -104,8 +103,7 @@ test('geometric logger sanitizes screenshot and html data from meta', () => {
     const meta = logs[0]?.meta;
     assert.ok(meta);
 
-    // Verify screenshot and html are stripped
-    assert.equal('screenshot' in meta, false);
+    // Verify binary and html data are stripped
     assert.equal('htmlContent' in meta, false);
     assert.equal('rawBuffer' in meta, false);
 

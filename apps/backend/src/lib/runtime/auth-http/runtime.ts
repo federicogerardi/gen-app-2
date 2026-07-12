@@ -3,10 +3,12 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Pool } from 'pg';
 import type {
   AuthRepositoryBundle,
+  UserQueryRepositoryBundle,
+} from '../../adapters/auth';
+import type {
   IdempotencyAdapter,
   OrchestrateArtifactCache,
-  UserQueryRepositoryBundle,
-} from '../../adapters';
+} from '../../adapters/generation';
 import type {
   AuthSessionPrincipal,
 } from '../../types/auth';
@@ -35,23 +37,22 @@ import {
   type PasswordHashRuntime,
   type SessionCookieRuntime,
 } from '../auth-contract';
-import { createAuthHandlers } from './auth-handlers';
-import { createProjectsHandlers } from './projects-handlers';
-import { createPublicHandlers } from './public-handlers';
+import { createAuthHandlers } from './auth/auth-handlers';
+import { createProjectsHandlers } from './projects/projects-handlers';
+import { createPublicHandlers } from './auth/public-handlers';
 import {
   buildRouteTable,
   dispatchRequest,
   type HandleAuthHttpRequestResult,
 } from './route-table';
-import { createToolsHandlers } from './tools-handlers';
+import { createToolsHandlers } from './tools/tools-handlers';
 import {
   resolveToolsHydrateArtifactScanLimit,
   resolveToolsOrchestrateArtifactScanLimit,
   resolveToolsOrchestrateTimeoutMs,
-} from './tools-orchestrate-config';
-import { createAdminHandlers } from './admin-handlers';
+} from './tools/tools-orchestrate-config';
+import { createAdminHandlers } from './admin/admin-handlers';
 import { assertGitHubApiConfig, readGitHubApiConfigFromEnv } from '../integrations/github-config';
-import type { ScreenshotStorageAdapter } from '../integrations/screenshot-storage';
 
 export type { HandleAuthHttpRequestResult } from './route-table';
 
@@ -72,7 +73,6 @@ export type AuthHttpRuntimeOptions = {
   idGenerator?: AuthIdGenerator;
   now?: () => Date;
   sessionTtlMs?: number;
-  screenshotStorage?: ScreenshotStorageAdapter | null;
 };
 
 export const createAuthHttpRuntime = (
@@ -102,7 +102,6 @@ export const createAuthHttpRuntime = (
   const githubApiConfig = readGitHubApiConfigFromEnv();
   assertGitHubApiConfig(githubApiConfig);
   const idGenerator = options.idGenerator ?? createDefaultAuthIdGenerator();
-  const screenshotStorage = options.screenshotStorage ?? null;
 
   const readPrincipalFromCookie = async (
     request: IncomingMessage,
@@ -236,7 +235,6 @@ export const createAuthHttpRuntime = (
     passwordHashing,
     now,
     githubApiConfig,
-    screenshotStorage,
     requireAdminPrincipal,
     requireDb,
     parseJsonBody,

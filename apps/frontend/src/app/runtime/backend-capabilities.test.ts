@@ -46,7 +46,6 @@ describe('backend-capabilities', () => {
       adminUserReportsUpdate: true,
       adminUserReportsPublishIssue: true,
       adminApiServicesCrud: true,
-      adminGeometricScreenshots: true,
       toolsApiServicesResolve: true,
     };
     const result = resolveBackendCapabilities(all);

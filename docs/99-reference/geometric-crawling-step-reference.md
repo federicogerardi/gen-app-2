@@ -53,8 +53,7 @@ invokeCrawling (fromPromise)
   ├─ 5. crawlSerp(baseQuery, language, country, serpApiService) → risultato base
   │     └─ Google Search API → AI Overview page_token (se presente)
   │     └─ Google AI Overview API (se page_token) → text_blocks + references
-  │     └─ Normalizzazione → aiOverviewSnippet, sources[], aiOverviewConfidence
-  │     └─ screenshotPath = null (SerpApi non fornisce screenshot)
+│     └─ Normalizzazione → aiOverviewSnippet, sources[]
   │
   ├─ 6. discoverPAAQueries(baseQuery, language, country, serpApiService) → array PAA
   │     └─ related_questions[] dalla Google Search API response
@@ -171,7 +170,7 @@ discoverPAAQueries() — SerpApi-only
 
 | Function | Scopo |
 |----------|-------|
-| `normalizeSerpApiAiOverview(response)` | SerpApi AI Overview JSON → `CrawlingResult` (senza screenshotPath) |
+| `normalizeSerpApiAiOverview(response)` | SerpApi AI Overview JSON → `CrawlingResult` |
 | `extractPAAQueriesFromSerpApi(response)` | `related_questions[]` → `string[]` |
 | `requiresSeparateAiOverviewRequest(response)` | Estrae `page_token` se presente, null altrimenti |
 | `classifySourceType(url, title, source)` | URL/title/source → `SourceType` (organic, video, ugc, news, sponsored) |
@@ -344,7 +343,6 @@ export type CacheCrawlingResultParams = {
 │     └─ Google Search API → page_token (se AI Overview)               │
 │     └─ Google AI Overview API → text_blocks + references             │
 │     └─ Normalizzazione → aiOverviewSnippet, sources[]                │
-│     └─ screenshotPath = null (SerpApi non fornisce screenshot)       │
 └─────────────────────────────────────────────────────────────────────┘
                                │
                                ▼
@@ -389,7 +387,6 @@ export type CacheCrawlingResultParams = {
 
 | Regola | Implementazione |
 |--------|----------------|
-| **No screenshot a LLM** | SerpApi non fornisce screenshot; `screenshotPath = null` |
 | **No Puppeteer fallback** | Se SerpApi fallisce → errore propagato, processo si interrompe |
 | **SerpApi service required** | Se `SERP_API_SERVICE_ID` non configurato o service non attivo → `CRAWLING_FAILED` |
 | **PAA non bloccante** | 0 PAA queries = step valido, continua con base query |

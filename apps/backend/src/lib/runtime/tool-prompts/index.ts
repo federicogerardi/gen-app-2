@@ -34,6 +34,9 @@ const PROMPT_FILE_BY_KEY = {
   'youtube-description:youtube-description-generation': YOUTUBE_DESCRIPTION_GENERATION_PROMPT_FILE,
   'geometric:strategic-reporting': 'src/lib/runtime/tool-prompts/geometric/prompt_strategic_reporting.md',
   'geometric:unified-report': 'src/lib/runtime/tool-prompts/geometric/prompt_unified_report.md',
+  'blog-article-generator:blog_seo_structure': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_seo_structure.md',
+  'blog-article-generator:blog_research': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_research.md',
+  'blog-article-generator:blog_article': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_article.md',
 } as const;
 
 const promptCache = new Map<string, string>();

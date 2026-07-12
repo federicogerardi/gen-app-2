@@ -13,6 +13,7 @@ describe('tool-step-display-config', () => {
       const toolsWithConfig = Object.keys(TOOL_STEP_DISPLAY_CONFIG).sort();
       expect(toolsWithConfig).toEqual([
         'angle-generator',
+        'blog-article-generator',
         'funnel-pages',
         'geometric',
         'meta-ads',

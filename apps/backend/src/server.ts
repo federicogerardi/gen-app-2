@@ -13,8 +13,11 @@ import {
   createDefaultSessionCookieRuntime,
   createNodeRuntimeServer,
 } from './lib/runtime';
-import { LocalScreenshotStorage } from './lib/runtime/integrations/screenshot-storage';
-import { LocalScreenshotArchival } from './lib/runtime/integrations/screenshot-archival';
+import {
+  getAllOverrides,
+} from './lib/runtime/step-llm-model-overrides.config';
+import { createStepLlmModelResolver } from './lib/runtime/step-llm-model-resolver';
+import { isToolKey } from '@gen-app-2/contracts';
 
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
@@ -53,6 +56,70 @@ const parseBooleanEnv = (raw: string | undefined, fallback: boolean): boolean =>
   return fallback;
 };
 
+/**
+ * Validates the step LLM model override configuration at startup.
+ * Checks:
+ * 1. All toolKey values exist in canonical registry
+ * 2. All overrideModelId values are valid LlmModelId format
+ * 3. All stepKey values are non-empty strings
+ *
+ * Failures are logged as warnings but don't prevent startup.
+ * Invalid overrides will be silently skipped during resolution.
+ */
+const validateStepLlmModelOverrides = (enabledModelKeys: Set<string>): void => {
+  const overrides = getAllOverrides();
+
+  if (overrides.length === 0) {
+    console.info('[startup][step-llm-model-overrides] No overrides configured - system ready for future use');
+    return;
+  }
+
+  let validationErrors = 0;
+
+  for (const override of overrides) {
+    // Validate toolKey exists in canonical registry
+    if (!isToolKey(override.toolKey)) {
+      console.warn(
+        `[startup][step-llm-model-overrides] Invalid toolKey: ${override.toolKey} in override ${override.toolKey}:${override.stepKey}`,
+      );
+      validationErrors++;
+    }
+
+    // Validate stepKey is non-empty
+    if (!override.stepKey || override.stepKey.trim().length === 0) {
+      console.warn(
+        `[startup][step-llm-model-overrides] Empty stepKey in override ${override.toolKey}:${override.stepKey}`,
+      );
+      validationErrors++;
+    }
+
+    // Validate overrideModelId format (must contain /)
+    if (!override.overrideModelId || !override.overrideModelId.includes('/')) {
+      console.warn(
+        `[startup][step-llm-model-overrides] Invalid overrideModelId format: ${override.overrideModelId} in override ${override.toolKey}:${override.stepKey}`,
+      );
+      validationErrors++;
+    }
+
+    // Warn if overrideModelId is not in enabled models (soft validation)
+    if (enabledModelKeys.size > 0 && !enabledModelKeys.has(override.overrideModelId)) {
+      console.warn(
+        `[startup][step-llm-model-overrides] Override model ${override.overrideModelId} not found in enabled models. Override will be skipped if model remains disabled.`,
+      );
+    }
+  }
+
+  if (validationErrors > 0) {
+    console.warn(
+      `[startup][step-llm-model-overrides] ${validationErrors} validation error(s) found in ${overrides.length} override(s). Check configuration.`,
+    );
+  } else {
+    console.info(
+      `[startup][step-llm-model-overrides] ${overrides.length} override(s) validated successfully`,
+    );
+  }
+};
+
 const run = async (): Promise<void> => {
   const databaseUrl = getRequiredEnv('DATABASE_URL');
   const redisUrl = getRequiredEnv('REDIS_URL');
@@ -88,27 +155,6 @@ const run = async (): Promise<void> => {
     redis,
   });
 
-  // ── Screenshot archival configuration (Geometric tool) ──────────────────
-  const screenshotStoragePath = process.env.SCREENSHOT_STORAGE_PATH ?? '/data/screenshots';
-  const screenshotRetentionDaysRaw = Number.parseInt(
-    process.env.SCREENSHOT_RETENTION_DAYS ?? '30',
-    10,
-  );
-  const screenshotRetentionDays =
-    Number.isFinite(screenshotRetentionDaysRaw) && screenshotRetentionDaysRaw > 0
-      ? screenshotRetentionDaysRaw
-      : 30;
-
-  const screenshotStorage = new LocalScreenshotStorage(screenshotStoragePath);
-  const screenshotArchival = new LocalScreenshotArchival(screenshotStorage, pg, screenshotRetentionDays);
-  console.log(`[DEBUG][screenshot] server init — screenshotStoragePath=${screenshotStoragePath}, retentionDays=${screenshotRetentionDays}, screenshotArchival=${screenshotArchival ? 'created' : 'NULL'}`);
-
-  const generationAdaptersWithScreenshot = {
-    ...generationAdapters,
-    screenshotArchival,
-  };
-  console.log(`[DEBUG][screenshot] generationAdaptersWithScreenshot — screenshotArchival=${generationAdaptersWithScreenshot.screenshotArchival ? 'present' : 'NULL'}`);
-
   // Short-lived in-memory cache for enabled model keys (TTL 60s). Mitigates RISK-002.
   let modelKeyCacheTimestamp = 0;
   let modelKeyCache: Set<string> = new Set();
@@ -140,6 +186,15 @@ const run = async (): Promise<void> => {
     return available;
   };
 
+  // Validate step LLM model override configuration at startup
+  try {
+    const enabledModels = await listEnabledModels(pg);
+    const enabledModelKeys = new Set(enabledModels.map((m) => m.key));
+    validateStepLlmModelOverrides(enabledModelKeys);
+  } catch (error) {
+    console.warn('[startup][step-llm-model-overrides] Failed to validate overrides (non-fatal):', error);
+  }
+
   const authRepositories = createAuthProductionRepositories({ pg });
   const authRuntime = createAuthHttpRuntime({
     repositories: authRepositories,
@@ -147,18 +202,23 @@ const run = async (): Promise<void> => {
       projects: new PostgresProjectQueryRepository(pg),
       artifacts: new PostgresArtifactQueryRepository(pg),
     },
-    idempotency: generationAdaptersWithScreenshot.idempotency,
-    orchestrateCache: generationAdaptersWithScreenshot.orchestrateCache,
+    idempotency: generationAdapters.idempotency,
+    orchestrateCache: generationAdapters.orchestrateCache,
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
-    screenshotStorage,
   });
 
+  // Create StepLlmModelResolver for per-step model override resolution (DDD-151)
+  const modelResolver = createStepLlmModelResolver(
+    (modelKey: string) => modelKeyCache.has(modelKey),
+  );
+
   const server = createNodeRuntimeServer({
-    generationAdapters: generationAdaptersWithScreenshot,
+    generationAdapters,
     authRuntime,
     checkModelAvailability,
+    modelResolver,
     debugGenerationLogs: parseBooleanEnv(process.env.GENERATION_DEBUG_LOGS, false),
     generationRoutePath: process.env.GENERATION_ROUTE_PATH ?? '/generation/stream',
     cors: {
@@ -212,22 +272,6 @@ const run = async (): Promise<void> => {
     : '(none configured)';
   console.log(`Runtime server listening on http://${host}:${port}`);
   console.log(`CORS allowed origins: ${corsInfo}`);
-  console.log(`Screenshot storage path: ${screenshotStoragePath}, retention: ${screenshotRetentionDays} days`);
-
-  // ── Scheduled cleanup for expired screenshots (every 24h) ─────────────
-  const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
-  setInterval(() => {
-    void screenshotArchival
-      .cleanupExpiredScreenshots(new Date())
-      .then((result) => {
-        console.log(
-          `[screenshot-cleanup] deletedFiles=${result.deletedFiles}, deletedRecords=${result.deletedRecords}`,
-        );
-      })
-      .catch((err) => {
-        console.error('[screenshot-cleanup] error:', err);
-      });
-  }, CLEANUP_INTERVAL_MS);
 };
 
 void run().catch((error) => {

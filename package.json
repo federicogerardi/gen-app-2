@@ -20,7 +20,7 @@
     "db:migrate:minimal": "npm --workspace apps/backend run db:migrate:minimal",
     "db:seed:minimal": "npm --workspace apps/backend run db:seed:minimal",
     "db:seed:redis:minimal": "npm --workspace apps/backend run db:seed:redis:minimal",
-    "start": "npm --workspace apps/backend run db:migrate:minimal && npm --workspace apps/backend run start:server",
+    "start": "npm --workspace apps/backend run db:migrate:minimal && npm --workspace apps/backend run db:seed:minimal && npm --workspace apps/backend run start:server",
     "test:smoke": "npm --workspace apps/backend run test:smoke",
     "smoke:idempotency": "npm --workspace apps/backend run smoke:idempotency",
     "smoke:conflict": "npm --workspace apps/backend run smoke:conflict",

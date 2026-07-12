@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createActor, toPromise } from 'xstate';
 
-import { createInMemoryGenerationAdapters } from '../adapters';
+import { createInMemoryGenerationAdapters } from '../adapters/generation';
 import { idempotencyCoordinatorMachine } from '../machines';
 import type {
   IdempotencyClaimedEvent,

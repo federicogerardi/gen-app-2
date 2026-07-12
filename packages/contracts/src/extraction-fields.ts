@@ -95,6 +95,7 @@ export const InstructionRequiredExtractionFieldKeysByTool: Readonly<Record<ToolK
   ],
   'youtube-description': [],
   'geometric': [],
+  'blog-article-generator': [],
 } as const;
 
 export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey, readonly ExtractionFieldKey[]>> = {
@@ -111,6 +112,7 @@ export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey
   'meta-ads': [],
   'youtube-description': [],
   'geometric': [],
+  'blog-article-generator': [],
 } as const;
 
 export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly<Record<string, ExtractionFieldKey>>>> = {
@@ -166,6 +168,7 @@ export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly
   },
   'youtube-description': {},
   'geometric': {},
+  'blog-article-generator': {},
 } as const;
 
 const normalizeAliasCandidate = (value: string): string => value.trim().toLowerCase();

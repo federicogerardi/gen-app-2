@@ -21,6 +21,28 @@ vi.mock('../../app/providers/AuthSessionProvider', () => ({
     refresh: vi.fn(),
     clearError: () => {},
   }),
+  useAuthState: () => ({
+    session: {
+      user: {
+        role: 'admin',
+      },
+    },
+    loading: false,
+    hasError: false,
+  }),
+  useAuthActions: () => ({
+    login: vi.fn(),
+    logout: vi.fn(),
+    refresh: vi.fn(),
+    clearError: () => {},
+  }),
+  useApiConfig: () => ({
+    apiBaseUrl: '',
+    capabilities: {},
+  }),
+  useOAuthUrl: () => ({
+    oauthStartUrl: '',
+  }),
   AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 

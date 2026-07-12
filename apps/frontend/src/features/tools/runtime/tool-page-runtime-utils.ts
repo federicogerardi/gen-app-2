@@ -37,6 +37,14 @@ export const normalizeToneProfile = (
   return match ?? fallbackTone;
 };
 
+export type DispatchErrorReasonCode =
+  | 'idempotency_conflict'
+  | 'extraction_context_insufficient'
+  | 'stream_empty_output'
+  | 'terminal_failed'
+  | 'timeout'
+  | 'connection_lost';
+
 export const mapInlineDispatchError = (reason: string | null | undefined): string | null => {
   if (!reason) {
     return null;
@@ -47,15 +55,51 @@ export const mapInlineDispatchError = (reason: string | null | undefined): strin
     return null;
   }
 
-  if (normalized === 'extraction_context_insufficient' || normalized === 'stream_empty_output') {
-    return appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient;
+  const reasonCode = normalizeToDispatchErrorReasonCode(normalized);
+  if (reasonCode === null) {
+    return normalized;
+  }
+  return mapReasonCodeToMessage(reasonCode);
+};
+
+const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReasonCode | null => {
+  if (reason === 'extraction_context_insufficient' || reason === 'stream_empty_output') {
+    return reason;
   }
 
-  if (normalized.startsWith('terminal_failed')) {
-    return appCopy.ui.toolPage.runtimeErrors.streamFailed;
+  if (reason === 'idempotency_conflict') {
+    return reason;
   }
 
-  return normalized;
+  if (reason.startsWith('terminal_failed')) {
+    return 'terminal_failed';
+  }
+
+  if (reason.includes('ECONNRESET') || reason.includes('AbortError') || reason.includes('TimeoutError')) {
+    return 'timeout';
+  }
+
+  if (reason.includes('ECONNREFUSED') || reason.includes('socket hang up')) {
+    return 'connection_lost';
+  }
+
+  return null;
+};
+
+const mapReasonCodeToMessage = (code: DispatchErrorReasonCode): string => {
+  switch (code) {
+    case 'idempotency_conflict':
+      return 'Generazione già in corso. Attendi il completamento.';
+    case 'extraction_context_insufficient':
+    case 'stream_empty_output':
+      return appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient;
+    case 'terminal_failed':
+      return appCopy.ui.toolPage.runtimeErrors.streamFailed;
+    case 'timeout':
+      return 'La generazione ha impiegato troppo tempo. Riprova o contatta il supporto.';
+    case 'connection_lost':
+      return 'Connessione persa. Controlla la tua connessione e riprova.';
+  }
 };
 
 export const isEmptyPayload = (payload: Record<string, unknown>): boolean =>

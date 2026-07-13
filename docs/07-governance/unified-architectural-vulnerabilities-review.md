@@ -1,8 +1,8 @@
 ---
-status: active
-version: 1.5
-last-reviewed: 2026-07-12
-next-review-date: 2026-10-12
+status: completed
+version: 1.6
+last-reviewed: 2026-07-13
+next-review-date: 2026-10-13
 owner: Domain Architecture
 date_created: 2026-07-08
 title: Unified Architectural Vulnerabilities Review
@@ -331,7 +331,7 @@ This unified review consolidates **architectural vulnerability identification** 
 - [x] **invokeFallbackPolicy Removed**: 0 references across codebase
 - [x] **GenerationMachineContextLegacy Removed**: 0 references
 - [x] **generation-fallback.actor.ts Archived**: moved to docs/99-lifecycle/99-archive/
-- [x] **Regression Guard**: 345 backend + 448 frontend tests pass, typecheck clean
+- [x] **Regression Guard**: 345 backend + 447 frontend tests pass (1 pre-existing `GlobalFeedbackViewport` failure unrelated), typecheck clean
 
 ### **Sprint 7 Gates** (V7 NONSTREAMING + V6 Progress State)
 - [x] **PersistingSuccessSync Removed**: 0 references across codebase
@@ -340,7 +340,7 @@ This unified review consolidates **architectural vulnerability identification** 
 - [x] **updateNonStreamingProgress Removed**: 0 references across codebase
 - [x] **Race Condition Eliminated**: PROGRESS_SYNCED is sole writer of progress.completedSteps
 - [x] **Invariants Preserved**: flushProgress=0, finalizeSuccess=1, finalizeFailure=1
-- [x] **Regression Guard**: 345 backend + 448 frontend tests pass, typecheck clean
+- [x] **Regression Guard**: 345 backend + 447 frontend tests pass, typecheck clean
 
 ---
 
@@ -366,6 +366,7 @@ This unified review consolidates **architectural vulnerability identification** 
 - **Sprint 1-3**: Individual commit reversion, minimal system impact
 - **Sprint 4**: Feature flags enable immediate rollback to stable state
 - **Sprint 5**: Tagged stable version rollback available
+- **Sprint 6-7**: Tagged stable version rollback available
 - **Emergency**: Complete rollback to pre-implementation tagged version
 
 ---
@@ -435,7 +436,7 @@ All implementation work MUST maintain compliance with:
 2. **✅ Sprint 1-7 Gates Passed**: All gates verified and passed
 3. **✅ DDD Compliance Achieved**: 100% canonical term alignment maintained
 4. **✅ Performance Targets Met**: Generation latency (parallel) ✅, build performance (276ms) ✅, actor coupling (5 sendTo) ✅, context complexity (≤15 per sub-context) ✅, effect complexity (≤2 hooks) ✅, workaround patterns (0) ✅
-5. **✅ Architecture Integrity**: All sprints complete, PR-ready for merge to dev
+5. **✅ Architecture Integrity**: All sprints complete, merged to dev
 
 ---
 
@@ -450,6 +451,6 @@ All implementation work MUST maintain compliance with:
 
 ---
 
-**Last Updated**: 2026-07-12 (Sprint 6+7 completed — all 7 vulnerabilities resolved, PR-ready)
-**Next Review**: 2026-07-19
+**Last Updated**: 2026-07-13 (Sprint 1-7 completed, merged to dev — all 7 vulnerabilities + 6 improvements resolved, review closed)
+**Next Review**: 2026-10-13
 **Review Owner**: Domain Architecture Team

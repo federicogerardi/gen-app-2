@@ -6,6 +6,7 @@ import {
   mapFailureReasonToBackendError,
   type BackendError,
 } from './error-contract';
+import { createComponentLogger, LogComponent } from './log-components';
 import {
   acceptChunkCandidate,
   hasChunkEvents,
@@ -50,22 +51,19 @@ export const runBackendGenerationSession = async (
       ? request.input.tone.trim()
       : '-';
   const correlationId = `run:${request.requestId}`;
+  const log = createComponentLogger(LogComponent.BACKEND_SESSION);
+  const sessionLog = log.child({ correlationId, requestId: request.requestId });
 
-  console.info(
-    [
-      '[gen][session-start]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `projectId=${request.projectId}`,
-      `sessionId=${request.sessionId ?? '-'}`,
-      `toolKey=${request.toolKey ?? '-'}`,
-      `workflowType=${request.workflowType ?? '-'}`,
-      `artifactType=${request.artifactType}`,
-      `step=${requestedStep}`,
-      `model=${request.model}`,
-      `tone=${requestedTone}`,
-    ].join(' '),
-  );
+  sessionLog.info({
+    projectId: request.projectId,
+    sessionId: request.sessionId ?? '-',
+    toolKey: request.toolKey ?? '-',
+    workflowType: request.workflowType ?? '-',
+    artifactType: request.artifactType,
+    step: requestedStep,
+    model: request.model,
+    tone: requestedTone,
+  }, 'session start');
 
   const actor = createActor(generationSystemMachine, {
     input: { adapters },
@@ -228,20 +226,15 @@ export const runBackendGenerationSession = async (
     ? mapFailureReasonToBackendError(doneSnapshot.context.failureReason)
     : null;
 
-  console.info(
-    [
-      '[gen][session-terminal]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `status=${status}`,
-      `artifactId=${doneSnapshot.context.artifactId ?? '-'}`,
-      `failureReason=${doneSnapshot.context.failureReason ?? '-'}`,
-      `contentLen=${doneSnapshot.context.contentBuffer.length}`,
-      `step=${requestedStep}`,
-      `model=${request.model}`,
-      `tone=${requestedTone}`,
-    ].join(' '),
-  );
+  sessionLog.info({
+    status,
+    artifactId: doneSnapshot.context.artifactId ?? '-',
+    failureReason: doneSnapshot.context.failureReason ?? '-',
+    contentLen: doneSnapshot.context.contentBuffer.length,
+    step: requestedStep,
+    model: request.model,
+    tone: requestedTone,
+  }, 'session terminal');
 
   emitStreamEvent(
     buildTerminalStreamEvent(doneSnapshot.context, status),
@@ -272,16 +265,10 @@ export const runBackendGenerationSessionAsJson = async (
   options: RunBackendGenerationSessionOptions = {},
 ): Promise<BackendJsonSessionResult> => {
   const correlationId = `run-json:${request.requestId}`;
+  const log = createComponentLogger(LogComponent.BACKEND_SESSION);
+  const jsonLog = log.child({ correlationId, requestId: request.requestId });
 
-  console.info(
-    [
-      '[gen][json-session-start]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `projectId=${request.projectId}`,
-      `mode=generate`,
-    ].join(' '),
-  );
+  jsonLog.info({ projectId: request.projectId, mode: 'generate' }, 'json session start');
 
   const actor = createActor(generationSystemMachine, {
     input: {
@@ -305,17 +292,12 @@ export const runBackendGenerationSessionAsJson = async (
     ? mapFailureReasonToBackendError(doneSnapshot.context.failureReason)
     : null;
 
-  console.info(
-    [
-      '[gen][json-session-terminal]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `status=${status}`,
-      `artifactId=${doneSnapshot.context.artifactId ?? '-'}`,
-      `failureReason=${doneSnapshot.context.failureReason ?? '-'}`,
-      `contentLen=${doneSnapshot.context.contentBuffer.length}`,
-    ].join(' '),
-  );
+  jsonLog.info({
+    status,
+    artifactId: doneSnapshot.context.artifactId ?? '-',
+    failureReason: doneSnapshot.context.failureReason ?? '-',
+    contentLen: doneSnapshot.context.contentBuffer.length,
+  }, 'json session terminal');
 
   actor.stop();
 

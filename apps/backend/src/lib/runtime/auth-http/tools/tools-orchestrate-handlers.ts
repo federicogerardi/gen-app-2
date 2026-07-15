@@ -13,6 +13,7 @@ import {
   createGenerationRouteDeadline,
   runGenerationRoutePipeline,
 } from '../../generation-route-pipeline';
+import { createComponentLogger, LogComponent } from '../../log-components';
 import { buildToolsOrchestrateIdempotencyInput } from '../../request-contract';
 import {
   buildCompletedArtifactsByStep,
@@ -243,7 +244,8 @@ export const createToolsOrchestrateHandlers = (
           cacheHit = true;
         }
       } catch (err) {
-        console.warn('[orchestrate-cache] read failed (fallback to DB)', err);
+        const log = createComponentLogger(LogComponent.ORCHESTRATE);
+        log.warn({ err }, 'orchestrate cache read failed (fallback to DB)');
       }
     }
 

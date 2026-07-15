@@ -22,16 +22,12 @@ export class GenerationRoutePipelineError extends Error {
   }
 }
 
+import { logger } from './logger';
+
 const defaultLogger: GenerationRoutePipelineLogger = {
-  info: (message, meta) => {
-    console.info(message, meta);
-  },
-  warn: (message, meta) => {
-    console.warn(message, meta);
-  },
-  error: (message, meta) => {
-    console.error(message, meta);
-  },
+  info: (message, meta) => logger.info(meta, message),
+  warn: (message, meta) => logger.warn(meta, message),
+  error: (message, meta) => logger.error(meta, message),
 };
 
 export const createGenerationRouteDeadline = (timeoutMs: number): GenerationRouteDeadline => {

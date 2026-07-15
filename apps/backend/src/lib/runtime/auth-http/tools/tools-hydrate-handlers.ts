@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
 import { parseExtractionContent as parseCanonicalExtractionContent } from '../../../machines/generation/extraction-parsers';
 import type { AuthSessionPrincipal } from '../../../types/auth';
+import { createComponentLogger, LogComponent } from '../../log-components';
 import type { AuthHttpWriteErrorFn, AuthHttpWriteSuccessFn } from '../support';
 import { canPrincipalRoleAccessToolKey } from '../tool-availability-policy';
 import {
@@ -55,7 +56,8 @@ export const createToolsHydrateHandlers = (
 
   const debugLog = (message: string, payload?: unknown): void => {
     if (shouldEmitHydrateDiagnostics()) {
-      console.debug(message, payload ?? '');
+      const log = createComponentLogger(LogComponent.HYDRATE);
+      log.debug(payload ?? {}, message);
     }
   };
 

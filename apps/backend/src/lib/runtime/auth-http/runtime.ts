@@ -12,6 +12,7 @@ import type {
 import type {
   AuthSessionPrincipal,
 } from '../../types/auth';
+import { createComponentLogger, LogComponent } from '../log-components';
 import {
   DEFAULT_SESSION_TTL_MS,
   getClientIp,
@@ -263,7 +264,8 @@ export const createAuthHttpRuntime = (
       try {
         return await dispatchRequest(routeTable, request, response, writeError);
       } catch (err) {
-        console.error(`[auth-http] unhandled error for ${request.method} ${request.url}:`, err);
+        const log = createComponentLogger(LogComponent.NODE_SERVER);
+        log.error({ err, method: request.method, url: request.url }, 'auth-http unhandled error');
         if (!response.writableEnded && !response.destroyed) {
           writeError(response, 500, 'internal', 'Internal server error');
         }

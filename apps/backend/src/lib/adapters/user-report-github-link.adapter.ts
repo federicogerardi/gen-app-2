@@ -9,6 +9,7 @@ import {
 
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 
 /**
  * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
@@ -67,11 +68,8 @@ export const publishUserReportIssueTransaction = async (
     publishedByUserId: string;
   },
 ): Promise<UserReportGithubLink> => {
-  console.debug('[publishUserReportIssueTransaction] Starting transaction', {
-    userReportId: payload.userReportId,
-    issueNumber: payload.issueNumber,
-    repository: payload.repository,
-  });
+  const log = createComponentLogger(LogComponent.USER_REPORT_GITHUB_LINK);
+  log.debug({ userReportId: payload.userReportId, issueNumber: payload.issueNumber, repository: payload.repository }, 'publishUserReportIssueTransaction starting');
 
   const db = getDb(pool);
 
@@ -89,7 +87,7 @@ export const publishUserReportIssueTransaction = async (
       .returningAll()
       .executeTakeFirstOrThrow() as unknown as UserReportGithubLinkRow;
 
-    console.debug('[publishUserReportIssueTransaction] INSERT user_report_github_links executed');
+    log.debug('publishUserReportIssueTransaction INSERT user_report_github_links executed');
 
     await trx
       .updateTable('user_reports')
@@ -106,11 +104,11 @@ export const publishUserReportIssueTransaction = async (
       .where('id', '=', payload.userReportId)
       .execute();
 
-    console.debug('[publishUserReportIssueTransaction] UPDATE user_reports executed');
+    log.debug('publishUserReportIssueTransaction UPDATE user_reports executed');
 
     return inserted;
   });
 
-  console.debug('[publishUserReportIssueTransaction] Transaction committed', { linkId: linkRow.user_report_id });
+  log.debug({ linkId: linkRow.user_report_id }, 'publishUserReportIssueTransaction committed');
   return rowToUserReportGithubLink(linkRow);
 };

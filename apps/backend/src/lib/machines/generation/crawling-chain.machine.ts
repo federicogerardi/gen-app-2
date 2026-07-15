@@ -1,7 +1,9 @@
 import { fromPromise, setup } from 'xstate';
 import { crawlSerp, discoverPAAQueries } from '../../runtime/integrations/crawling.adapter';
-import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../../runtime/integrations/geometric-logger';
+import { createComponentLogger, LogComponent } from '../../runtime/log-components';
 import type { ResolvedApiServiceForAcquisition } from '../../adapters/api-service.adapter';
+
+const glog = createComponentLogger(LogComponent.GEOMETRIC);
 
 export type CrawlingChainInput = {
   requestId: string;
@@ -39,21 +41,15 @@ export const crawlingChainMachine = setup({
       const language = chainInput.language || 'it';
       const country = chainInput.country || 'google.it';
 
-      logGeometricInfo('crawling.start', {
-        requestId,
-        operation: 'crawlingChainMachine',
-        baseQuery,
-        language,
-        country,
-      });
+      glog.info({ requestId, operation: 'crawlingChainMachine', baseQuery, language, country }, 'crawling.start');
 
       if (!baseQuery) {
-        logGeometricError('crawling.failed.base_query_missing', { requestId, operation: 'crawlingChainMachine' });
+        glog.error({ requestId, operation: 'crawlingChainMachine' }, 'crawling.failed.base_query_missing');
         throw new Error('base_query_missing');
       }
 
       if (!chainInput.apiService) {
-        logGeometricError('crawling.failed.api_service_missing', { requestId, operation: 'crawlingChainMachine' });
+        glog.error({ requestId, operation: 'crawlingChainMachine' }, 'crawling.failed.api_service_missing');
         throw new Error('api_service_missing');
       }
 
@@ -75,11 +71,7 @@ export const crawlingChainMachine = setup({
         ];
 
         if (paaQueries.length > 0) {
-          logGeometricInfo('crawling.paa.discovered', {
-            requestId,
-            operation: 'crawlingChainMachine',
-            paaCount: paaQueries.length,
-          });
+          glog.info({ requestId, operation: 'crawlingChainMachine', paaCount: paaQueries.length }, 'crawling.paa.discovered');
 
           const paaResults = await Promise.all(
             paaQueries.slice(0, 4).map(async (paaQuery) => {
@@ -92,11 +84,7 @@ export const crawlingChainMachine = setup({
                   structuredPayload: { sources: result.sources },
                 };
               } catch {
-                logGeometricWarn('crawling.paa.single_failed', {
-                  requestId,
-                  operation: 'crawlingChainMachine',
-                  paaQuery,
-                });
+                glog.warn({ requestId, operation: 'crawlingChainMachine', paaQuery }, 'crawling.paa.single_failed');
                 return null;
               }
             }),
@@ -105,13 +93,7 @@ export const crawlingChainMachine = setup({
         }
 
         const durationMs = Date.now() - startMs;
-        logGeometricInfo('crawling.completed', {
-          requestId,
-          operation: 'crawlingChainMachine',
-          durationMs,
-          sourceCount: baseResult.sources.length,
-          paaCount: paaQueries.length,
-        });
+        glog.info({ requestId, operation: 'crawlingChainMachine', durationMs, sourceCount: baseResult.sources.length, paaCount: paaQueries.length }, 'crawling.completed');
 
         return {
           type: 'CRAWLING_COMPLETED' as const,
@@ -122,12 +104,7 @@ export const crawlingChainMachine = setup({
         };
       } catch (err) {
         const durationMs = Date.now() - startMs;
-        logGeometricError('crawling.failed', {
-          requestId,
-          operation: 'crawlingChainMachine',
-          durationMs,
-          error: err instanceof Error ? err.message : 'crawling_error',
-        });
+        glog.error({ requestId, operation: 'crawlingChainMachine', durationMs, error: err instanceof Error ? err.message : 'crawling_error' }, 'crawling.failed');
         throw err;
       }
     }),

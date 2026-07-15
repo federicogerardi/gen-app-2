@@ -1,3 +1,5 @@
+import { createComponentLogger, LogComponent } from '../log-components';
+
 export type GitHubApiConfig = {
   token: string;
   owner?: string;
@@ -30,7 +32,8 @@ export const readGitHubApiConfigFromEnv = (): GitHubApiConfig | null => {
   const token = process.env.GITHUB_TOKEN?.trim() ?? '';
   if (!token) {
     if (shouldEmitGitHubConfigDiagnostics()) {
-      console.debug('[readGitHubApiConfigFromEnv] GitHub integration disabled: missing token');
+      const log = createComponentLogger(LogComponent.GITHUB_CONFIG);
+      log.debug('GitHub integration disabled: missing token');
     }
     return null;
   }
@@ -50,13 +53,8 @@ export const readGitHubApiConfigFromEnv = (): GitHubApiConfig | null => {
   };
 
   if (shouldEmitGitHubConfigDiagnostics()) {
-    console.debug('[readGitHubApiConfigFromEnv] GitHub config loaded', {
-      hasOwner: Boolean(config.owner),
-      hasRepo: Boolean(config.repo),
-      timeoutMs: config.timeoutMs,
-      maxRetries: config.maxRetries,
-      retryBaseDelayMs: config.retryBaseDelayMs,
-    });
+    const log = createComponentLogger(LogComponent.GITHUB_CONFIG);
+    log.debug({ hasOwner: Boolean(config.owner), hasRepo: Boolean(config.repo), timeoutMs: config.timeoutMs, maxRetries: config.maxRetries, retryBaseDelayMs: config.retryBaseDelayMs }, 'GitHub config loaded');
   }
 
   return config;

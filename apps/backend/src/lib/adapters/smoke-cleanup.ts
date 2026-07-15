@@ -1,3 +1,5 @@
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
+
 export type SmokeCleanupTask = () => Promise<void>;
 
 export type SmokeCleanup = {
@@ -17,7 +19,8 @@ export const createSmokeCleanup = (): SmokeCleanup => {
         try {
           await task();
         } catch (error) {
-          console.error('Smoke cleanup warning:', error);
+          const log = createComponentLogger(LogComponent.SMOKE_CLEANUP);
+          log.warn({ error }, 'smoke cleanup warning');
         }
       }
     },

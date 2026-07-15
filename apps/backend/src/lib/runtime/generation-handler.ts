@@ -16,6 +16,7 @@ import {
 import {
   createSseReplayStream,
 } from './generation-stream-replay';
+import { createComponentLogger, LogComponent } from './log-components';
 import type { BackendGenerationRequest } from './request-contract';
 import type { StepLlmModelResolver } from './step-llm-model-resolver';
 import { serializeSseEvent } from './stream-contract';
@@ -34,6 +35,7 @@ export const handleGenerationRequest = async (
   adapters: GenerationAdapters,
   options: HandleGenerationRequestOptions = {},
 ): Promise<HandleGenerationRequestResult> => {
+  const log = createComponentLogger(LogComponent.GENERATION_HANDLER);
   const sseFrames: string[] = [];
   const result = await runWithGenerationRetryPolicy(
     async () => runBackendGenerationSession(request, adapters, {
@@ -47,10 +49,7 @@ export const handleGenerationRequest = async (
     {
       maxAttempts: 1,
       onEscalation: (error) => {
-        console.error('[gen][session-escalation] request failed without retry', {
-          requestId: request.requestId,
-          error,
-        });
+        log.error({ requestId: request.requestId, error }, 'session escalation: request failed without retry');
       },
     },
   );
@@ -66,6 +65,7 @@ export const handleGenerationRequestAsSseStream = (
   adapters: GenerationAdapters,
   options: HandleGenerationRequestOptions = {},
 ): AsyncIterable<string> => {
+  const log = createComponentLogger(LogComponent.GENERATION_HANDLER);
   return createSseReplayStream(async (pushFrame) => {
     await runWithGenerationRetryPolicy(
       async () => runBackendGenerationSession(request, adapters, {
@@ -77,10 +77,7 @@ export const handleGenerationRequestAsSseStream = (
       {
         maxAttempts: 1,
         onEscalation: (error) => {
-          console.error('[gen][session-escalation] stream failed without retry', {
-            requestId: request.requestId,
-            error,
-          });
+          log.error({ requestId: request.requestId, error }, 'session escalation: stream failed without retry');
         },
       },
     );

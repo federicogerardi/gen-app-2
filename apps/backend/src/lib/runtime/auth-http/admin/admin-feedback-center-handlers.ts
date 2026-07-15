@@ -23,6 +23,7 @@ import {
 } from '../../feedback-center-policy';
 import type { GitHubApiConfig } from '../../integrations/github-config';
 import { PublishGitHubIssueError, publishGitHubIssue } from '../../integrations/github-issues';
+import { createComponentLogger, LogComponent } from '../../log-components';
 import type {
   AuthHttpWriteErrorFn,
   AuthHttpWriteSuccessFn,
@@ -95,7 +96,8 @@ export const createAdminFeedbackCenterHandlers = (
   // Gated debug logging utility
   const debugLog = (message: string, data?: unknown): void => {
     if (process.env.NODE_ENV !== 'production') {
-      console.debug(message, data ?? '');
+      const log = createComponentLogger(LogComponent.FEEDBACK_CENTER);
+      log.debug(data ?? {}, message);
     }
   };
 
@@ -445,7 +447,8 @@ export const createAdminFeedbackCenterHandlers = (
         githubLink,
       });
     } catch (error) {
-      console.error('[POST /api/admin/user-reports/:id/publish-issue] Error during publication:', error instanceof Error ? { message: error.message, stack: error.stack } : error);
+      const log = createComponentLogger(LogComponent.FEEDBACK_CENTER);
+      log.error({ err: error instanceof Error ? { message: error.message, stack: error.stack } : error }, 'feedback center publication error');
       if (error instanceof PublishGitHubIssueError) {
         debugLog('[POST /api/admin/user-reports/:id/publish-issue] PublishGitHubIssueError:', { code: error.code, statusCode: error.statusCode, message: error.message });
         if (error.code === 'auth_error') {

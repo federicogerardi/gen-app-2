@@ -1,6 +1,7 @@
 import type { GenerationAdapters } from './generation.adapters';
 import type { PostgresRedisAdapterDependencies } from './postgres-redis.interfaces';
 import { resolveApiServiceForCrawling } from './api-service.adapter';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 
 export const createPostgresRedisGenerationAdapters = (
   dependencies: PostgresRedisAdapterDependencies,
@@ -59,9 +60,10 @@ export const createPostgresRedisGenerationAdapters = (
                 stepKey,
                 input.artifactId,
               )
-              .catch((err) =>
-                console.warn('[orchestrate-cache] setStepArtifact failed (non-fatal)', err),
-              );
+              .catch((err) => {
+                const cacheLog = createComponentLogger(LogComponent.POSTGRES_REDIS);
+                cacheLog.warn({ err }, 'orchestrate cache setStepArtifact failed (non-fatal)');
+              });
           }
         }
       },

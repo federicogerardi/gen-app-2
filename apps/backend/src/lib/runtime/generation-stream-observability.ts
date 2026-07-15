@@ -1,3 +1,4 @@
+import { createComponentLogger, LogComponent } from './log-components';
 import type { BackendGenerationRequest } from './request-contract';
 
 const toDebugString = (value: unknown): string => {
@@ -102,25 +103,23 @@ export const logGenerationRequestDebug = (
   request: BackendGenerationRequest,
   info: GenerationDebugInfo,
 ): void => {
-  console.info(
-    [
-      '[gen][request]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `sessionId=${toDebugString(request.sessionId)}`,
-      `projectId=${request.projectId}`,
-      `toolKey=${toDebugString(request.toolKey)}`,
-      `workflowType=${toDebugString(request.workflowType)}`,
-      `artifactType=${request.artifactType}`,
-      `step=${info.step}`,
-      `modelRaw=${request.model}`,
-      `modelNormalized=${info.normalizedModel}`,
-      `tone=${info.tone}`,
-      `briefingTextLen=${info.briefingTextLength}`,
-      `extractionPayloadKeys=${info.extractionPayloadKeys}`,
-      `dependencyCount=${info.dependencyCount}`,
-    ].join(' '),
-  );
+  const log = createComponentLogger(LogComponent.GENERATION_STREAM_OBSERVABILITY);
+  log.info({
+    correlationId,
+    requestId: request.requestId,
+    sessionId: toDebugString(request.sessionId),
+    projectId: request.projectId,
+    toolKey: toDebugString(request.toolKey),
+    workflowType: toDebugString(request.workflowType),
+    artifactType: request.artifactType,
+    step: info.step,
+    modelRaw: request.model,
+    modelNormalized: info.normalizedModel,
+    tone: info.tone,
+    briefingTextLen: info.briefingTextLength,
+    extractionPayloadKeys: info.extractionPayloadKeys,
+    dependencyCount: info.dependencyCount,
+  }, 'generation request debug');
 };
 
 export const logModelCheckDebug = (
@@ -129,16 +128,14 @@ export const logModelCheckDebug = (
   normalizedModel: string,
   isAvailable: boolean,
 ): void => {
-  console.info(
-    [
-      '[gen][model-check]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `modelRaw=${request.model}`,
-      `modelNormalized=${normalizedModel}`,
-      `available=${isAvailable}`,
-    ].join(' '),
-  );
+  const log = createComponentLogger(LogComponent.GENERATION_STREAM_OBSERVABILITY);
+  log.info({
+    correlationId,
+    requestId: request.requestId,
+    modelRaw: request.model,
+    modelNormalized: normalizedModel,
+    available: isAvailable,
+  }, 'model check');
 };
 
 export const logGenerationStreamError = (
@@ -147,18 +144,16 @@ export const logGenerationStreamError = (
   info: GenerationDebugInfo,
   error: unknown,
 ): void => {
-  console.error(
-    [
-      '[gen][stream-error]',
-      `corr=${correlationId}`,
-      `requestId=${request.requestId}`,
-      `toolKey=${toDebugString(request.toolKey)}`,
-      `workflowType=${toDebugString(request.workflowType)}`,
-      `step=${info.step}`,
-      `modelRaw=${request.model}`,
-      `modelNormalized=${info.normalizedModel}`,
-      `tone=${info.tone}`,
-    ].join(' '),
-    error,
-  );
+  const log = createComponentLogger(LogComponent.GENERATION_STREAM_OBSERVABILITY);
+  log.error({
+    correlationId,
+    requestId: request.requestId,
+    toolKey: toDebugString(request.toolKey),
+    workflowType: toDebugString(request.workflowType),
+    step: info.step,
+    modelRaw: request.model,
+    modelNormalized: info.normalizedModel,
+    tone: info.tone,
+    err: error,
+  }, 'stream error');
 };

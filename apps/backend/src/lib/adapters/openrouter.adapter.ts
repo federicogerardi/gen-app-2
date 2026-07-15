@@ -7,6 +7,7 @@ import type {
   LlmStreamInput,
   LlmUsageMetrics,
 } from './generation.adapters';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 
 type OpenRouterAdapterOptions = {
   apiKey: string;
@@ -108,10 +109,8 @@ const buildContextBlock = (requestInput: Record<string, unknown>): string | null
 
   // Diagnostic logs are opt-in and sanitized to avoid exposing request content.
   if (shouldEmitOpenRouterDiagnostics()) {
-    console.debug('[openrouter] buildContextBlock diagnostics', {
-      hasBriefingText: !!briefingText,
-      hasExtractionPayloadObject: extractionPayload !== null && typeof extractionPayload === 'object',
-    });
+    const log = createComponentLogger(LogComponent.OPENROUTER);
+    log.debug({ hasBriefingText: !!briefingText, hasExtractionPayloadObject: extractionPayload !== null && typeof extractionPayload === 'object' }, 'openrouter buildContextBlock diagnostics');
   }
 
   const dependencyOutputsByStepRaw = requestInput.stepDependencyArtifactContentsByStep;
@@ -164,10 +163,8 @@ const buildMessages = (requestInput: Record<string, unknown>) => {
 
   // Diagnostic logs are opt-in and sanitized to avoid exposing message body snippets.
   if (shouldEmitOpenRouterDiagnostics()) {
-    console.debug('[openrouter] buildMessages final output', {
-      hasContextBlock: !!contextBlock,
-      messageCount: finalMessages.length,
-    });
+    const log = createComponentLogger(LogComponent.OPENROUTER);
+    log.debug({ hasContextBlock: !!contextBlock, messageCount: finalMessages.length }, 'openrouter buildMessages final output');
   }
 
   return finalMessages;

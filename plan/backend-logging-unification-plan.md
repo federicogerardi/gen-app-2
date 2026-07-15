@@ -1,11 +1,13 @@
 # Backend Logging Unification Plan
 
-**Status**: DRAFT  
+**Status**: COMPLETED  
 **Created**: 2026-07-15  
-**Updated**: 2026-07-15 (folded geometric-logger into Pino)  
+**Updated**: 2026-07-15 (execution completed)  
+**Completed**: 2026-07-15  
 **Estimated Effort**: 4-5 hours  
+**Actual Effort**: ~3 hours  
 **Risk Level**: Low (cosmetic changes, no business logic touched)  
-**Files Affected**: 26 source files + 2 new, 1 deleted  
+**Files Affected**: 22 source files edited + 2 new, 2 deleted  
 **DDD Gates**: None (infrastructure concern)  
 
 ## Overview
@@ -692,3 +694,41 @@ Each phase is self-contained. `git revert <phase-commit>` undoes that phase with
 - Test files and smoke test files retain `console.*` (test output is not operational logging)
 - No changes to `LOG_LEVEL` semantics or Pino configuration
 - No changes to `GenerationRoutePipelineLogger` interface signature
+
+---
+
+## Execution Summary (2026-07-15)
+
+### Verification Results
+
+- **Typecheck**: clean
+- **Tests**: 341/341 pass (4 tests removed with geometric-logger test file)
+- **geometric-logger**: fully removed (only comment reference in `log-serializers.ts`)
+
+### Files Created (2)
+- `apps/backend/src/lib/runtime/log-components.ts` — component name registry + `createComponentLogger()`
+- `apps/backend/src/lib/runtime/log-serializers.ts` — Pino serializers for query truncation + binary/HTML removal
+
+### Files Deleted (2)
+- `apps/backend/src/lib/runtime/integrations/geometric-logger.ts`
+- `apps/backend/src/lib/tests/runtime.geometric-logger.test.ts`
+
+### Files Edited (22)
+**Phase 0 — Infrastructure:** `logger.ts`, `generation-route-pipeline.ts`
+**Phase 1 — Critical Observability:** `backend-session.ts`, `node-server.ts`, `generation-handler.ts`, `generation-stream-observability.ts`
+**Phase 2 — Geometric → Pino:** `crawling-chain.machine.ts`, `tool-workflow.machine.ts`, `generation-system.actors.ts`, `context-generation-assembly.ts`, `idempotency-coordinator.machine.ts`
+**Phase 3 — Server/Infra:** `server.ts`, `postgres-redis.adapters.ts`, `postgres-redis.production.ts`
+**Phase 4 — Integrations:** `crawling-queue.ts`, `github-issues.ts`, `serpapi-service-resolver.ts`, `github-config.ts`
+**Phase 5 — Adapters/Handlers:** `openrouter.adapter.ts`, `user-report.adapter.ts`, `user-report-github-link.adapter.ts`, `auth-http/runtime.ts`, `tools-orchestrate-handlers.ts`, `tools-hydrate-handlers.ts`, `admin-feedback-center-handlers.ts`
+**Phase 6 — Cleanup:** `smoke-cleanup.ts`
+
+### Known Deviation
+
+`tools-orchestrate-handlers.ts` pipeline logger callbacks (lines 289-298) still use `console.info/warn/error` — the test infrastructure (`captureOrchestrateStartMeta`) monkey-patches `console.info` to capture pipeline log output. Full migration requires updating the test to capture Pino output instead.
+
+### Remaining `console.*` in Non-Test Files
+
+| File | Calls | Reason |
+|---|---|---|
+| `tools-orchestrate-handlers.ts` | 3 (`console.info/warn/error`) | Pipeline logger — test dependency |
+| `runtime.tools-orchestrate.benchmark.ts` | 1 (`console.log`) | Benchmark file, not production code |

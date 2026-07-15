@@ -12,6 +12,7 @@ import {
   type PostgresRedisProductionClients,
   type PostgresRedisProductionOptions,
 } from './postgres-redis.shared.types';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 
 import { PostgresRedisUsageRepository } from './postgres-redis.usage.repository';
 import { PostgresProjectOwnershipRepository } from './postgres.project-ownership.repository';
@@ -53,10 +54,8 @@ export const createPostgresRedisProductionDependencies = (
         'production_llm_adapter_missing: provide options.llm.adapter or set OPENROUTER_API_KEY',
       );
     }
-    console.warn(
-      '[adapter][llm] OPENROUTER_API_KEY is not set; falling back to synthetic LLM adapter. ' +
-        'All generation requests will return stubbed content instead of calling a real LLM.',
-    );
+    const llmLog = createComponentLogger(LogComponent.LLM_ADAPTER);
+    llmLog.warn('OPENROUTER_API_KEY is not set; LLM adapter will be unavailable');
   }
 
   const explicitGenerateAdapter = options.generate?.adapter;
@@ -71,10 +70,8 @@ export const createPostgresRedisProductionDependencies = (
         'production_generate_adapter_missing: provide options.generate.adapter or set OPENROUTER_API_KEY',
       );
     }
-    console.warn(
-      '[adapter][generate] OPENROUTER_API_KEY is not set; falling back to synthetic generate adapter. ' +
-        'All non-streaming generation requests will return stubbed content instead of calling a real LLM.',
-    );
+    const genLog = createComponentLogger(LogComponent.LLM_ADAPTER);
+    genLog.warn('OPENROUTER_API_KEY is not set; generate adapter will be unavailable');
   }
 
   return {

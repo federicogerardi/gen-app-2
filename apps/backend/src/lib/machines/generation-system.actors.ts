@@ -16,7 +16,9 @@ import type { ResolvedApiServiceForAcquisition } from '../adapters/api-service.a
 import { crawlSerp, discoverPAAQueries } from '../runtime/integrations/crawling.adapter';
 import { resolveSerpApiService } from '../runtime/integrations/serpapi-service-resolver';
 import { computeCompetitorRanking } from '../runtime/analysis/scoring-engine';
-import { logGeometricInfo, logGeometricWarn, logGeometricError } from '../runtime/integrations/geometric-logger';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
+
+const glog = createComponentLogger(LogComponent.GEOMETRIC);
 
 const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -231,7 +233,7 @@ export const generationSystemActors = {
 
     // Resolve SerpApi service — required, no fallback
     if (!context.adapters.apiService) {
-      logGeometricError('crawling.failed.api_service_adapter_missing', { requestId, operation: 'invokeCrawling' });
+      glog.error({ requestId, operation: 'invokeCrawling' }, 'crawling.failed.api_service_adapter_missing');
       return {
         type: 'CRAWLING_FAILED' as const,
         reason: 'api_service_adapter_missing',
@@ -242,11 +244,7 @@ export const generationSystemActors = {
     try {
       serpApiService = await resolveSerpApiService(context.adapters.apiService);
     } catch (error) {
-      logGeometricError('crawling.failed.service_resolution', {
-        requestId,
-        operation: 'invokeCrawling',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      glog.error({ requestId, operation: 'invokeCrawling', error: error instanceof Error ? error.message : 'Unknown error' }, 'crawling.failed.service_resolution');
       return {
         type: 'CRAWLING_FAILED' as const,
         reason: 'serpapi_resolution_failed',
@@ -254,24 +252,17 @@ export const generationSystemActors = {
     }
 
     if (!serpApiService) {
-      logGeometricError('crawling.failed.service_not_found', { requestId, operation: 'invokeCrawling' });
+      glog.error({ requestId, operation: 'invokeCrawling' }, 'crawling.failed.service_not_found');
       return {
         type: 'CRAWLING_FAILED' as const,
         reason: 'serpapi_service_not_found',
       };
     }
 
-    logGeometricInfo('crawling.start', {
-      requestId,
-      operation: 'invokeCrawling',
-      baseQuery,
-      language,
-      country,
-      brandName,
-    });
+    glog.info({ requestId, operation: 'invokeCrawling', baseQuery, language, country, brandName }, 'crawling.start');
 
     if (!baseQuery) {
-      logGeometricError('crawling.failed.base_query_missing', { requestId, operation: 'invokeCrawling' });
+      glog.error({ requestId, operation: 'invokeCrawling' }, 'crawling.failed.base_query_missing');
       return {
         type: 'CRAWLING_FAILED' as const,
         reason: 'base_query_missing',
@@ -296,11 +287,7 @@ export const generationSystemActors = {
       ];
 
       if (paaQueries.length > 0) {
-        logGeometricInfo('crawling.paa.discovered', {
-          requestId,
-          operation: 'invokeCrawling',
-          paaCount: paaQueries.length,
-        });
+        glog.info({ requestId, operation: 'invokeCrawling', paaCount: paaQueries.length }, 'crawling.paa.discovered');
 
         const paaResults = await Promise.all(
           paaQueries.slice(0, 4).map(async (paaQuery) => {
@@ -313,11 +300,7 @@ export const generationSystemActors = {
                 structuredPayload: { sources: result.sources },
               };
             } catch {
-              logGeometricWarn('crawling.paa.single_failed', {
-                requestId,
-                operation: 'invokeCrawling',
-                paaQuery,
-              });
+              glog.warn({ requestId, operation: 'invokeCrawling', paaQuery }, 'crawling.paa.single_failed');
               return null;
             }
           }),
@@ -326,13 +309,7 @@ export const generationSystemActors = {
       }
 
       const durationMs = Date.now() - startMs;
-      logGeometricInfo('crawling.completed', {
-        requestId,
-        operation: 'invokeCrawling',
-        durationMs,
-        sourceCount: baseResult.sources.length,
-        paaCount: paaQueries.length,
-      });
+      glog.info({ requestId, operation: 'invokeCrawling', durationMs, sourceCount: baseResult.sources.length, paaCount: paaQueries.length }, 'crawling.completed');
 
       return {
         type: 'CRAWLING_COMPLETED' as const,
@@ -341,12 +318,7 @@ export const generationSystemActors = {
       };
     } catch (err) {
       const durationMs = Date.now() - startMs;
-      logGeometricError('crawling.failed', {
-        requestId,
-        operation: 'invokeCrawling',
-        durationMs,
-        error: err instanceof Error ? err.message : 'crawling_error',
-      });
+      glog.error({ requestId, operation: 'invokeCrawling', durationMs, error: err instanceof Error ? err.message : 'crawling_error' }, 'crawling.failed');
       return {
         type: 'CRAWLING_FAILED' as const,
         reason: err instanceof Error ? err.message : 'crawling_error',
@@ -362,14 +334,10 @@ export const generationSystemActors = {
       : [];
     const requestId = context.requestId ?? 'unknown';
 
-    logGeometricInfo('scoring.start', {
-      requestId,
-      operation: 'invokeScoring',
-      sourceCount: sources.length,
-    });
+    glog.info({ requestId, operation: 'invokeScoring', sourceCount: sources.length }, 'scoring.start');
 
     if (sources.length === 0) {
-      logGeometricError('scoring.failed.no_sources', { requestId, operation: 'invokeScoring' });
+      glog.error({ requestId, operation: 'invokeScoring' }, 'scoring.failed.no_sources');
       return {
         type: 'SCORING_FAILED' as const,
         reason: 'no_crawling_sources_for_scoring',
@@ -382,12 +350,7 @@ export const generationSystemActors = {
       const durationMs = Date.now() - startMs;
       const competitorCount = Object.keys(ranking).length;
 
-      logGeometricInfo('scoring.completed', {
-        requestId,
-        operation: 'invokeScoring',
-        durationMs,
-        competitorCount,
-      });
+      glog.info({ requestId, operation: 'invokeScoring', durationMs, competitorCount }, 'scoring.completed');
 
       return {
         type: 'SCORING_COMPLETED' as const,
@@ -395,12 +358,7 @@ export const generationSystemActors = {
       };
     } catch (err) {
       const durationMs = Date.now() - startMs;
-      logGeometricError('scoring.failed', {
-        requestId,
-        operation: 'invokeScoring',
-        durationMs,
-        error: err instanceof Error ? err.message : 'scoring_error',
-      });
+      glog.error({ requestId, operation: 'invokeScoring', durationMs, error: err instanceof Error ? err.message : 'scoring_error' }, 'scoring.failed');
       return {
         type: 'SCORING_FAILED' as const,
         reason: err instanceof Error ? err.message : 'scoring_error',

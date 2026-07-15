@@ -1,6 +1,8 @@
 import { assign, setup } from 'xstate';
 import { mergeAcquisitionIntoGenerationInput } from './generation/context-generation-assembly';
-import { logGeometricInfo, logGeometricError } from '../runtime/integrations/geometric-logger';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
+
+const glog = createComponentLogger(LogComponent.GEOMETRIC);
 
 import type {
   ToolWorkflowEvent,
@@ -184,11 +186,7 @@ export const toolWorkflowMachine = setup({
 
         const crawlingOutput = event.output as { crawlArtifacts?: { content: string; structuredPayload: Record<string, unknown> }[] } | undefined;
         if (!crawlingOutput?.crawlArtifacts?.length) {
-          logGeometricError('merge.crawling.empty', {
-            requestId: context.input.requestId ?? 'unknown',
-            operation: 'mergeCrawlingOutput',
-            stepKey: event.stepKey,
-          });
+          glog.error({ requestId: context.input.requestId ?? 'unknown', operation: 'mergeCrawlingOutput', stepKey: event.stepKey }, 'merge.crawling.empty');
           return context.assembledGenerationInput;
         }
 
@@ -213,14 +211,7 @@ export const toolWorkflowMachine = setup({
           }
         }
 
-        logGeometricInfo('merge.crawling.completed', {
-          requestId: context.input.requestId ?? 'unknown',
-          operation: 'mergeCrawlingOutput',
-          stepKey: event.stepKey,
-          sourceCount: mergedSources.length,
-          paaCount: mergedPaaQueries.length,
-          snippetLength: mergedSnippets.length,
-        });
+        glog.info({ requestId: context.input.requestId ?? 'unknown', operation: 'mergeCrawlingOutput', stepKey: event.stepKey, sourceCount: mergedSources.length, paaCount: mergedPaaQueries.length, snippetLength: mergedSnippets.length }, 'merge.crawling.completed');
 
         const result: Record<string, unknown> = {
           ...context.assembledGenerationInput,
@@ -254,21 +245,12 @@ export const toolWorkflowMachine = setup({
 
         const scoringOutput = event.output as { ranking?: Record<string, unknown> } | undefined;
         if (!scoringOutput?.ranking) {
-          logGeometricError('merge.scoring.empty', {
-            requestId: context.input.requestId ?? 'unknown',
-            operation: 'mergeScoringOutput',
-            stepKey: event.stepKey,
-          });
+          glog.error({ requestId: context.input.requestId ?? 'unknown', operation: 'mergeScoringOutput', stepKey: event.stepKey }, 'merge.scoring.empty');
           return context.assembledGenerationInput;
         }
 
         const competitorCount = Object.keys(scoringOutput.ranking).length;
-        logGeometricInfo('merge.scoring.completed', {
-          requestId: context.input.requestId ?? 'unknown',
-          operation: 'mergeScoringOutput',
-          stepKey: event.stepKey,
-          competitorCount,
-        });
+        glog.info({ requestId: context.input.requestId ?? 'unknown', operation: 'mergeScoringOutput', stepKey: event.stepKey, competitorCount }, 'merge.scoring.completed');
 
         return {
           ...context.assembledGenerationInput,

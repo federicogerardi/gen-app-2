@@ -1,4 +1,5 @@
 import type { GitHubApiConfig } from './github-config';
+import { createComponentLogger, LogComponent } from '../log-components';
 
 type PublishGitHubIssueInput = {
   owner: string;
@@ -160,7 +161,8 @@ export const publishGitHubIssue = async (
       clearTimeout(timeout);
 
       if (error instanceof PublishGitHubIssueError) {
-        console.error('[publishGitHubIssue] PublishGitHubIssueError thrown', { code: error.code, statusCode: error.statusCode, message: error.message });
+        const log = createComponentLogger(LogComponent.GITHUB_ISSUES);
+        log.error({ code: error.code, statusCode: error.statusCode, message: error.message }, 'publishGitHubIssue error');
         throw error;
       }
 
@@ -174,7 +176,8 @@ export const publishGitHubIssue = async (
         continue;
       }
 
-      console.error('[publishGitHubIssue] Max retries exhausted, throwing upstream_unavailable error', { error: error instanceof Error ? { message: error.message, name: error.name } : error });
+      const log = createComponentLogger(LogComponent.GITHUB_ISSUES);
+      log.error({ err: error instanceof Error ? { message: error.message, name: error.name } : error }, 'publishGitHubIssue max retries exhausted');
       throw new PublishGitHubIssueError(
         'upstream_unavailable',
         503,
@@ -183,6 +186,7 @@ export const publishGitHubIssue = async (
     }
   }
 
-  console.error('[publishGitHubIssue] All retry attempts exhausted');
+  const log = createComponentLogger(LogComponent.GITHUB_ISSUES);
+  log.error('publishGitHubIssue all retry attempts exhausted');
   throw new PublishGitHubIssueError('upstream_unavailable', 503, 'Unable to reach GitHub Issues API');
 };

@@ -1,3 +1,7 @@
+import { createComponentLogger, LogComponent } from '../../runtime/log-components';
+
+const glog = createComponentLogger(LogComponent.GEOMETRIC);
+
 export const mergeAcquisitionIntoGenerationInput = (
   baseInput: Record<string, unknown>,
   acquisitionOutput: unknown,
@@ -89,14 +93,7 @@ export const assembleStrategicReportingInput = (
     result.brandName = brandName;
   }
 
-  console.info(`[geometric] assembly.strategic_reporting`, {
-    requestId: requestId ?? 'unknown',
-    operation: 'assembleStrategicReportingInput',
-    snippetCount: (result.serpSnippets as string[]).length,
-    paaCount: (result.paaQueries as string[]).length,
-    competitorCount: Object.keys(result.competitorRanking as Record<string, unknown>).length,
-    brandName: brandName || 'none',
-  });
+  glog.info({ requestId: requestId ?? 'unknown', operation: 'assembleStrategicReportingInput', snippetCount: (result.serpSnippets as string[]).length, paaCount: (result.paaQueries as string[]).length, competitorCount: Object.keys(result.competitorRanking as Record<string, unknown>).length, brandName: brandName || 'none' }, 'assembly.strategic_reporting');
 
   return result;
 };
@@ -133,15 +130,7 @@ export const assembleUnifiedReportInput = (
     result.brandName = brandName;
   }
 
-  console.info(`[geometric] assembly.unified_report`, {
-    requestId: requestId ?? 'unknown',
-    operation: 'assembleUnifiedReportInput',
-    snippetCount: serpSnippets.length,
-    paaCount: paaQueries.length,
-    competitorCount: Object.keys(result.competitorRanking as Record<string, unknown>).length,
-    brandName: brandName || 'none',
-    baseQuery: baseQuery || 'none',
-  });
+  glog.info({ requestId: requestId ?? 'unknown', operation: 'assembleUnifiedReportInput', snippetCount: serpSnippets.length, paaCount: paaQueries.length, competitorCount: Object.keys(result.competitorRanking as Record<string, unknown>).length, brandName: brandName || 'none', baseQuery: baseQuery || 'none' }, 'assembly.unified_report');
 
   return result;
 };
@@ -155,11 +144,7 @@ export const selectGeometricAssembly = (
   assembledInput: Record<string, unknown>,
   requestId?: string,
 ): Record<string, unknown> | null => {
-  console.info(`[geometric] assembly.select`, {
-    requestId: requestId ?? 'unknown',
-    operation: 'selectGeometricAssembly',
-    stepKey,
-  });
+  glog.info({ requestId: requestId ?? 'unknown', operation: 'selectGeometricAssembly', stepKey }, 'assembly.select');
 
   switch (stepKey) {
     case 'strategic-reporting':

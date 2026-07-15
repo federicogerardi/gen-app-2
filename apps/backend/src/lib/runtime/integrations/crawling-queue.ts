@@ -4,6 +4,7 @@
  */
 
 import { Queue, Worker, Job } from 'bullmq';
+import { createComponentLogger, LogComponent } from '../log-components';
 
 let queue: Queue | null = null;
 let worker: Worker | null = null;
@@ -45,11 +46,13 @@ export const startCrawlingWorker = (
   );
 
   worker.on('failed', (job, err) => {
-    console.error(`[crawling-queue] Job ${job?.id ?? 'unknown'} failed: ${err.message}`);
+    const log = createComponentLogger(LogComponent.CRAWLING_QUEUE);
+    log.error({ jobId: job?.id ?? 'unknown', error: err.message }, 'crawling job failed');
   });
 
   worker.on('completed', (job) => {
-    console.log(`[crawling-queue] Job ${job?.id ?? 'unknown'} completed`);
+    const log = createComponentLogger(LogComponent.CRAWLING_QUEUE);
+    log.info({ jobId: job?.id ?? 'unknown' }, 'crawling job completed');
   });
 
   return worker;

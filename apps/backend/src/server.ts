@@ -13,11 +13,14 @@ import {
   createDefaultSessionCookieRuntime,
   createNodeRuntimeServer,
 } from './lib/runtime';
+import { createComponentLogger, LogComponent } from './lib/runtime/log-components';
 import {
   getAllOverrides,
 } from './lib/runtime/step-llm-model-overrides.config';
 import { createStepLlmModelResolver } from './lib/runtime/step-llm-model-resolver';
 import { isToolKey } from '@gen-app-2/contracts';
+
+const log = createComponentLogger(LogComponent.SERVER);
 
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
@@ -70,7 +73,7 @@ const validateStepLlmModelOverrides = (enabledModelKeys: Set<string>): void => {
   const overrides = getAllOverrides();
 
   if (overrides.length === 0) {
-    console.info('[startup][step-llm-model-overrides] No overrides configured - system ready for future use');
+    log.info('No step LLM model overrides configured - system ready for future use');
     return;
   }
 
@@ -79,44 +82,32 @@ const validateStepLlmModelOverrides = (enabledModelKeys: Set<string>): void => {
   for (const override of overrides) {
     // Validate toolKey exists in canonical registry
     if (!isToolKey(override.toolKey)) {
-      console.warn(
-        `[startup][step-llm-model-overrides] Invalid toolKey: ${override.toolKey} in override ${override.toolKey}:${override.stepKey}`,
-      );
+      log.warn({ toolKey: override.toolKey, stepKey: override.stepKey }, 'invalid toolKey in step LLM model override');
       validationErrors++;
     }
 
     // Validate stepKey is non-empty
     if (!override.stepKey || override.stepKey.trim().length === 0) {
-      console.warn(
-        `[startup][step-llm-model-overrides] Empty stepKey in override ${override.toolKey}:${override.stepKey}`,
-      );
+      log.warn({ toolKey: override.toolKey, stepKey: override.stepKey }, 'empty stepKey in step LLM model override');
       validationErrors++;
     }
 
     // Validate overrideModelId format (must contain /)
     if (!override.overrideModelId || !override.overrideModelId.includes('/')) {
-      console.warn(
-        `[startup][step-llm-model-overrides] Invalid overrideModelId format: ${override.overrideModelId} in override ${override.toolKey}:${override.stepKey}`,
-      );
+      log.warn({ toolKey: override.toolKey, stepKey: override.stepKey, overrideModelId: override.overrideModelId }, 'invalid overrideModelId format in step LLM model override');
       validationErrors++;
     }
 
     // Warn if overrideModelId is not in enabled models (soft validation)
     if (enabledModelKeys.size > 0 && !enabledModelKeys.has(override.overrideModelId)) {
-      console.warn(
-        `[startup][step-llm-model-overrides] Override model ${override.overrideModelId} not found in enabled models. Override will be skipped if model remains disabled.`,
-      );
+      log.warn({ overrideModelId: override.overrideModelId, toolKey: override.toolKey, stepKey: override.stepKey }, 'step LLM model override not found in enabled models');
     }
   }
 
   if (validationErrors > 0) {
-    console.warn(
-      `[startup][step-llm-model-overrides] ${validationErrors} validation error(s) found in ${overrides.length} override(s). Check configuration.`,
-    );
+    log.warn({ overrideCount: overrides.length, errorCount: validationErrors }, 'step LLM model overrides validation errors');
   } else {
-    console.info(
-      `[startup][step-llm-model-overrides] ${overrides.length} override(s) validated successfully`,
-    );
+    log.info({ overrideCount: overrides.length }, 'step LLM model overrides validated successfully');
   }
 };
 
@@ -167,22 +158,15 @@ const run = async (): Promise<void> => {
         const enabled = await listEnabledModels(pg);
         modelKeyCache = new Set(enabled.map((m) => m.key));
         modelKeyCacheTimestamp = nowMs;
-        console.info(
-          `[gen][model-cache] corr=${correlationId} refreshed enabledCount=${enabled.length} sample=${enabled
-            .slice(0, 10)
-            .map((m) => m.key)
-            .join(',')}`,
-        );
+        log.info({ event: 'model-cache.refreshed', enabledCount: enabled.length, sample: enabled.slice(0, 10).map((m) => m.key).join(',') }, 'model cache refreshed');
       } catch {
         // Fail closed on model catalog read errors to avoid permissive generation.
-        console.warn(
-          `[gen][model-cache] corr=${correlationId} refresh_failed modelKey=${modelKey} fallback=deny`,
-        );
+        log.warn({ event: 'model-cache.refresh_failed', modelKey, correlationId }, 'model cache refresh failed, falling back to deny');
         return false;
       }
     }
     const available = modelKeyCache.has(modelKey);
-    console.info(`[gen][model-cache] corr=${correlationId} check modelKey=${modelKey} available=${available}`);
+    log.info({ modelKey, available, correlationId }, 'model cache check');
     return available;
   };
 
@@ -192,7 +176,7 @@ const run = async (): Promise<void> => {
     const enabledModelKeys = new Set(enabledModels.map((m) => m.key));
     validateStepLlmModelOverrides(enabledModelKeys);
   } catch (error) {
-    console.warn('[startup][step-llm-model-overrides] Failed to validate overrides (non-fatal):', error);
+    log.warn({ err: error }, 'failed to validate step LLM model overrides (non-fatal)');
   }
 
   const authRepositories = createAuthProductionRepositories({ pg });
@@ -270,11 +254,11 @@ const run = async (): Promise<void> => {
   const corsInfo = corsAllowedOrigins.length > 0
     ? corsAllowedOrigins.join(', ')
     : '(none configured)';
-  console.log(`Runtime server listening on http://${host}:${port}`);
-  console.log(`CORS allowed origins: ${corsInfo}`);
+  log.info({ host, port }, 'server listening');
+  log.info({ origins: corsInfo }, 'CORS configured');
 };
 
 void run().catch((error) => {
-  console.error(error);
+  log.error({ err: error }, 'server startup failed');
   process.exit(1);
 });

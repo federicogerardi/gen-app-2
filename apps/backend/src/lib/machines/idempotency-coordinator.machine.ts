@@ -1,7 +1,7 @@
 import { assign, fromPromise, setup } from 'xstate';
 import type { GenerationAdapters } from '../adapters/generation.adapters';
 
-import { logger } from '../runtime/logger';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 import type {
   IdempotencyClaimedEvent,
   IdempotencyConflictEvent,
@@ -171,11 +171,8 @@ export const idempotencyCoordinatorMachine = setup({
     conflict: {
       type: 'final',
       output: ({ context }) => {
-        const requestLogger = logger.child({
-          requestId: context.input.requestId,
-          userId: context.input.userId,
-          projectId: context.input.projectId,
-        });
+        const requestLogger = createComponentLogger(LogComponent.IDEMPOTENCY_COORDINATOR)
+          .child({ requestId: context.input.requestId, userId: context.input.userId, projectId: context.input.projectId });
         requestLogger.warn({
           event: 'generation.idempotency_conflict',
           workflowType: context.input.workflowType,

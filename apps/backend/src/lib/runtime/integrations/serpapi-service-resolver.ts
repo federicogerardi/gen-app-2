@@ -6,6 +6,7 @@
 
 import type { ResolvedApiServiceForAcquisition } from '../../adapters/api-service.adapter';
 import type { ApiServiceAdapter } from '../../adapters/generation.adapters';
+import { createComponentLogger, LogComponent } from '../log-components';
 
 /**
  * Resolves the SerpApi service configuration for crawling.
@@ -25,12 +26,14 @@ export const resolveSerpApiService = async (
     const service = await apiServiceAdapter.resolveApiServiceForCrawling(serviceId);
     
     if (!service) {
-      console.warn(`SerpApi service not found: ${serviceId}.`);
+      const log = createComponentLogger(LogComponent.SERPAPI_RESOLVER);
+      log.warn({ serviceId }, 'SerpApi service not found');
       return undefined;
     }
 
     if (service.status !== 'active') {
-      console.warn(`SerpApi service disabled: ${serviceId}.`);
+      const log = createComponentLogger(LogComponent.SERPAPI_RESOLVER);
+      log.warn({ serviceId }, 'SerpApi service disabled');
       return undefined;
     }
 
@@ -44,11 +47,8 @@ export const resolveSerpApiService = async (
 
     return service;
   } catch (error) {
-    console.warn(
-      `Failed to resolve SerpApi service ${serviceId}: ${
-        error instanceof Error ? error.message : 'Unknown error'
-      }.`
-    );
+    const log = createComponentLogger(LogComponent.SERPAPI_RESOLVER);
+    log.warn({ serviceId, reason: error instanceof Error ? error.message : 'Unknown error' }, 'failed to resolve SerpApi service');
     return undefined;
   }
 };

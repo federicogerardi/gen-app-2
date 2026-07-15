@@ -26,6 +26,7 @@ import {
   logGenerationStreamError,
   logModelCheckDebug,
 } from './generation-stream-observability';
+import { createComponentLogger, LogComponent } from './log-components';
 import type { StepLlmModelResolver } from './step-llm-model-resolver';
 import type {
   HandleAuthHttpRequestResult,
@@ -189,13 +190,14 @@ export const createNodeRuntimeRequestHandler = (
     const path = normalizePath(request.url);
     const method = request.method ?? 'UNKNOWN';
     const origin = getHeaderValue(request.headers.origin as string | string[] | undefined) ?? '(no origin)';
+    const log = createComponentLogger(LogComponent.NODE_SERVER);
     if (shouldLogRequestLifecycle) {
-      console.log(`[req] ${method} ${path} origin=${origin}`);
+      log.info({ method, path, origin }, 'request received');
     }
 
     if (shouldLogRequestLifecycle) {
       response.on('finish', () => {
-        console.log(`[res] ${method} ${path} → ${response.statusCode}`);
+        log.info({ method, path, statusCode: response.statusCode }, 'response sent');
       });
     }
 
@@ -275,11 +277,8 @@ export const createNodeRuntimeRequestHandler = (
     try {
       generationRequest = await parseGenerationRequest(request, options.mapGenerationRequest);
     } catch (error) {
-      console.warn('[gen][bad_request] unable to parse generation request', {
-        path,
-        method,
-        reason: error instanceof Error ? error.message : 'invalid_generation_request',
-      });
+      const log = createComponentLogger(LogComponent.NODE_SERVER);
+      log.warn({ method, path, reason: error instanceof Error ? error.message : 'invalid_generation_request' }, 'bad request');
       writeJson(response, 400, {
         ok: false,
         error: {
@@ -350,7 +349,8 @@ export const createNodeRuntimeRequestHandler = (
       }
     }
     } catch (unhandled) {
-      console.error(`[err] ${method} ${path}`, unhandled);
+      const log = createComponentLogger(LogComponent.NODE_SERVER);
+      log.error({ err: unhandled, method, path }, 'unhandled server error');
       if (!response.writableEnded && !response.destroyed) {
         writeJson(response, 500, { ok: false, error: { code: 'internal_error', message: 'Unexpected server error' } });
       }

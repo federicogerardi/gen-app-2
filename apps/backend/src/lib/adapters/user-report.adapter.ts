@@ -12,6 +12,7 @@ import {
 
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
 
 /**
  * Escape hatch: Kysely has no typed builder API for PostgreSQL server-side timestamp functions.
@@ -45,7 +46,8 @@ export const createUserReport = async (
   },
 ): Promise<UserReport> => {
   const reportId = payload.id ?? `rpt_${randomUUID()}`;
-  console.debug('[createUserReport] Starting insert with:', { reportId, category: payload.category, userId: payload.createdByUserId });
+  const log = createComponentLogger(LogComponent.USER_REPORT);
+  log.debug({ reportId, category: payload.category, userId: payload.createdByUserId }, 'createUserReport starting insert');
   try {
     const row = await getDb(pool)
       .insertInto('user_reports')
@@ -63,10 +65,10 @@ export const createUserReport = async (
       .executeTakeFirstOrThrow() as unknown as UserReportRow;
 
     const report = rowToUserReport(row);
-    console.debug('[createUserReport] Report successfully created:', { id: report.id, status: report.status });
+    log.debug({ reportId: report.id, status: report.status }, 'createUserReport completed');
     return report;
   } catch (error) {
-    console.error('[createUserReport] Error during insert:', error instanceof Error ? { message: error.message, code: (error as any).code } : error);
+    log.error({ err: error instanceof Error ? { message: error.message, code: (error as any).code } : error }, 'createUserReport insert failed');
     throw error;
   }
 };

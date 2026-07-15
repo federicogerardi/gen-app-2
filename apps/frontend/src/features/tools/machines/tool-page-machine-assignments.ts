@@ -47,6 +47,17 @@ export const buildSyncProgressState = (
     event.runRequestPrefix,
   );
 
+  if (import.meta.env.DEV) {
+    console.info('[tool-page][progress-synced] computed', {
+      intent: event.intent,
+      runRequestPrefix: event.runRequestPrefix,
+      artifactCount: event.artifacts.length,
+      completedSteps: Array.from(progress.completedSteps),
+      progressUnchanged: progressStatesEqual(context.progress, progress),
+      contextCompletedSteps: Array.from(context.progress.completedSteps),
+    });
+  }
+
   // Sprint 4 Session 2 (Phase 1 Step 6, Race A): dedup consecutive PROGRESS_SYNCED
   // events. Multiple sources (startGenerationStep, handleCancelGeneration, the
   // useToolPage sync effect) can issue PROGRESS_SYNCED back-to-back with the same

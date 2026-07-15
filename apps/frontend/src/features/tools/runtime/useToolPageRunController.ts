@@ -45,6 +45,9 @@ type UseToolPageRunControllerArgs = {
 };
 
 export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId }: UseToolPageRunControllerArgs) => {
+  const isDebugOrchestration = import.meta.env.DEV
+    || (typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('debug_tool_orchestration') === '1');
   const [isAutoChainEnabled, setIsAutoChainEnabled] = useState(false);
   const [pausedCheckpointStep, setPausedCheckpointStep] = useState<ToolStep | null>(null);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
@@ -87,6 +90,24 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     setIsAutoChainEnabled(false);
   };
 
+  const logBridgeState = (label: string) => {
+    if (!isDebugOrchestration) return;
+    console.info(`[tool-page][bridge] ${label}`, {
+      hasPendingStepStart: pendingStepStart !== null,
+      pendingStep: pendingStepStart?.step ?? null,
+      isAutoChainEnabled,
+      generationStatus,
+      isStreamActive: generationStream.isStreamActive,
+      isGenerationActive: generationRun.isGenerationActive,
+      nextAvailableStep,
+      completedSteps: Array.from(completedStepsForFlow),
+      lastRequestedStep: lastRequestedStepRef.current,
+      inFlightSteps: Array.from(inFlightStepsRef.current),
+      wasStreamActive: wasStreamActiveRef.current,
+      pausedCheckpointStep,
+    });
+  };
+
   useEffect(() => {
     if (pausedCheckpointStep && completedStepsForFlow.has(pausedCheckpointStep)) setPausedCheckpointStep(null);
   }, [completedStepsForFlow, pausedCheckpointStep]);
@@ -96,8 +117,8 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     const normalizedProjectId = v.formState.projectId.trim();
     if (!v.auth.session || !normalizedProjectId) return false;
 
-    if (import.meta.env.DEV) {
-      console.info('[useToolPage] generation start', {
+    if (isDebugOrchestration) {
+      console.info('[tool-page][dispatch] generation start', {
         step, toolKey, routeIntent: v.intent, runtimeIntent: v.runtimeIntent, primaryActionPolicy: v.primaryActionPolicy, readiness: v.readinessSnapshot,
         sourceArtifactId: v.sourceArtifactId, resolvedBriefingId: v.resolvedBriefingId, hydrationResult: v.machineHydrationResult,
         nextAvailableStep: v.nextAvailableStep, sourceStep: v.sourceStep, primaryTargetStep: v.primaryTargetStep, hasSession: true, normalizedProjectId,
@@ -205,15 +226,15 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
           resolvedArtifactContentMap[result.value.stepKey] = result.value.content;
         }
       }
-      if (import.meta.env.DEV && stepArtifactEntries.length > 0) {
-        console.debug('[useToolPage] artifact content resolved', {
+      if (isDebugOrchestration && stepArtifactEntries.length > 0) {
+        console.debug('[tool-page][dispatch] artifact content resolved', {
           step,
           resolvedSteps: Object.keys(resolvedArtifactContentMap),
         });
       }
       const request = createStepRequest(baseRequest, toolKey, step, orchestrationResult.dependencyArtifactIdsByStep, resolvedArtifactContentMap);
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] generation request dispatched', {
+      if (isDebugOrchestration) {
+        console.info('[tool-page][dispatch] generation request dispatched', {
           step,
           runtimeIntent: request.input.intent,
           requestId: request.requestId,
@@ -227,7 +248,14 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       v.generationRun.startRun(request);
       return true;
     } catch (err) {
-      console.error('[useToolPage] orchestrateToolStep failed', { toolKey, step, err });
+      console.error('[tool-page][orchestrate-failed]', {
+        toolKey,
+        step,
+        projectId: normalizedProjectId,
+        error: err instanceof Error ? { message: err.message, name: err.name } : String(err),
+        inFlightSteps: Array.from(inFlightStepsRef.current),
+        completedSteps: Array.from(completedStepsForFlow),
+      });
       return false;
     }
   }, [toolKey, toolConfig.steps, toolPageSend]);
@@ -252,6 +280,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   // independence. On failure, branch (c) tears down auto-chain but does NOT
   // return, so branch (b) still owns STEP_FAILED + CANCEL_GENERATION reporting.
   useLayoutEffect(() => {
+    logBridgeState('enter');
     // (a) Pending step dispatch — bridge machine pendingStepStart into the async
     //     run. STEP_REQUEST_DISPATCHED clears the machine field immediately so
     //     this branch logically fires once per REQUEST_STEP_START. The
@@ -289,8 +318,8 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
         // pendingStepStart is null (handled by branch (a) above); safe to enqueue.
         const locallyCompleted = new Set([...completedStepsForFlow, ...inFlightStepsRef.current]);
         const effectiveNextStep = getAvailableSteps(toolKey, locallyCompleted)[0] ?? null;
-        if (import.meta.env.DEV) {
-          console.info('[useToolPage] auto-chain check', {
+    if (isDebugOrchestration) {
+      console.info('[tool-page][auto-chain] check', {
             lastRequestedStep: lastRequestedStepRef.current,
             nextAvailableStep,
             effectiveNextStep,
@@ -307,8 +336,8 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
           && locallyCompleted.has(lastRequestedStepRef.current)
           && lastRequestedStepRef.current !== effectiveNextStep
         ) {
-          if (import.meta.env.DEV) {
-            console.info('[useToolPage] auto-chain starting next step', { effectiveNextStep });
+          if (isDebugOrchestration) {
+            console.info('[tool-page][auto-chain] starting next step', { effectiveNextStep });
           }
           // Preserve run-prefix continuity across the chain: reuse
           // currentRunPrefixRef.current instead of generating a fresh id, mirroring
@@ -346,8 +375,14 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
       const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
       if (resolved && inFlightStepsRef.current.has(resolved)) return;
-      if (import.meta.env.DEV) {
-        console.info('[useToolPage] non-streaming completed', { step, nextAvailableStep, lastRequestedStep: lastRequestedStepRef.current, resolved });
+      if (isDebugOrchestration) {
+        console.info('[tool-page][step-done] non-streaming', {
+          step: resolved,
+          artifactId: generationRun.snapshot.context.artifactId,
+          lastRequestStep: readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps),
+          nextAvailableStep,
+          completedStepsBefore: Array.from(completedStepsForFlow),
+        });
       }
       if (resolved) {
         inFlightStepsRef.current = new Set(inFlightStepsRef.current).add(resolved);
@@ -378,6 +413,15 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       toolSteps: toolConfig.steps,
     });
     if (terminalResolution.status === 'done' || terminalResolution.status === 'inferred') {
+      if (isDebugOrchestration) {
+        console.info('[tool-page][step-done] stream', {
+          step: terminalResolution.step,
+          status: terminalResolution.status,
+          completedStep: generationStream.terminalCompletedStep,
+          failedStep: generationStream.terminalFailedStep,
+          streamStatus: generationStream.streamStatus,
+        });
+      }
       toolPageSend({ type: 'STEP_DONE', step: terminalResolution.step });
       return;
     }

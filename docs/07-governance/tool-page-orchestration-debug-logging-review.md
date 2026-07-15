@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 2.0
 date_created: 2026-07-15
 last-reviewed: 2026-07-15
 next-review-date: 2026-10-15
@@ -18,6 +18,8 @@ Code review focalizzata sul gap di osservabilità nell'orchestrazione multi-step
 Copre: bridge `useToolPageRunController`, `PROGRESS_SYNCED`, `inFlightStepsRef`, e la pipeline di auto-chain.
 
 Contesto: [Production Observability Runbook](../04-testing/production-observability-runbook.md).
+
+**v2.0 (2026-07-15)**: Raccomandazioni C1-C6 implementate. Flag `isDebugOrchestration` unifica DEV gate + `?debug_tool_orchestration=1` per debug remoto.
 
 ---
 
@@ -242,3 +244,24 @@ Dopo l'implementazione dei log C1–C6:
 3. Forzare un fallimento di orchestrate (es. backend down) e verificare che C4 emetta l'errore strutturato
 4. Simulare `PROGRESS_SYNCED` con `runRequestPrefix: null` e verificare che C3 mostri `completedSteps: []`
 5. Deploy in staging con `?debug_tool_orchestration=1`, raccogliere log per 24h, confrontare con le sessioni incomplete
+
+---
+
+## F. Implementation Summary (2026-07-15)
+
+### Modifiche implementate
+
+| Rec | File | Cambiamento |
+|---|---|---|
+| C6 | `useToolPageRunController.ts` | Flag `isDebugOrchestration` — `import.meta.env.DEV \|\| ?debug_tool_orchestration=1` |
+| C1 | `useToolPageRunController.ts` | `logBridgeState('enter')` all'inizio del `useLayoutEffect` |
+| C2 | `useToolPageRunController.ts` | Log `[tool-page][step-done] non-streaming` e `[tool-page][step-done] stream` prima di `STEP_DONE` |
+| C3 | `tool-page-machine-assignments.ts` | Log `[tool-page][progress-synced] computed` dopo `resolveFlowProgressState` (DEV-gated) |
+| C4 | `useToolPageRunController.ts` | Log `[tool-page][orchestrate-failed]` con `inFlightSteps` + `completedSteps` strutturati |
+| C5 | `frontend-stream.machine.ts` | Log `[tool-page][stream-terminal] missing completedStep` in streamTransport callback (DEV-gated) |
+
+### Verifica
+
+- Typecheck frontend: clean
+- Test frontend: 448/448 pass
+- Test backend: 341/341 pass

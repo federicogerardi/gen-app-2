@@ -126,6 +126,13 @@ export const frontendStreamMachine = setup({
             completedStep: event.data.completedStep ?? null,
             failedStep: event.data.failedStep ?? null,
           });
+          if (import.meta.env.DEV && event.data.status === 'completed' && !event.data.completedStep) {
+            console.warn('[tool-page][stream-terminal] missing completedStep in SSE_TERMINAL', {
+              artifactId: event.data.artifactId,
+              status: event.data.status,
+              reason: event.data.reason,
+            });
+          }
         },
       }).catch((error: unknown) => {
         if (controller.signal.aborted) {

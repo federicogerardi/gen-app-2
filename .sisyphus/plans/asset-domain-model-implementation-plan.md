@@ -17,7 +17,7 @@ tags: [ddd, asset-domain, cross-tool-integration]
 | 1 | B — Database | ✅ Complete | 4 migrations created (000023–000026) |
 | 2 | C — Backend Types & Adapters | ✅ Complete | `types/asset.ts` + `adapters/asset.adapter.ts` created |
 | 2 | D — Prompt Injection | ✅ Complete | `runtime/asset-injection-resolver.ts` created |
-| 3 | E — HTTP Handlers | ⏳ Pending | |
+| 3 | E — HTTP Handlers | ✅ Complete | `tools-asset-handlers.ts` + routes registered |
 | 4 | F — Frontend | ⏳ Pending | |
 | 5 | G — Testing & Governance | ⏳ Pending | |
 
@@ -308,5 +308,37 @@ Phase 5: G → 5h total
 
 ---
 
-*Plan Status: In Progress — Phases 1 & 2 Complete*
-*Next: Execute Phase 3 (HTTP Handlers & Routes)*
+## Phase 3 Completion Log (2026-07-16)
+
+### Track E: HTTP Handlers & Routes ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| E-001 | — | `tools-asset-handlers.ts` | ✅ Factory function following existing patterns |
+| E-002 | — | `tools-asset-handlers.ts` | ✅ `handlePromoteArtifactToAsset` with artifact validation |
+| E-003 | — | `tools-asset-handlers.ts` | ✅ Asset group CRUD (list, get, create, update, add/remove members) |
+| E-004 | — | `tools-asset-handlers.ts` | ✅ `handleCreateAssetVersion` with transaction + current_version update |
+| E-005 | — | `tools-handlers.ts` | ✅ `ToolsAssetHandlers` composed into `ToolsHandlers` |
+| E-006 | — | `tools-routes.ts` | ✅ 17 asset routes registered (CRUD, promote, groups, versions, discovery) |
+| E-007 | — | `route-table.ts` | ✅ `tools.assets` and `tools.asset-groups` capabilities declared |
+
+**Routes registered**:
+- `GET/POST /api/tools/assets` — list/create assets
+- `GET/PUT /api/tools/assets/:id` — get/update asset
+- `POST /api/tools/assets/promote` — promote artifact to asset
+- `POST /api/tools/assets/:id/archive` — archive asset
+- `POST /api/tools/assets/:id/reactivate` — reactivate asset
+- `GET/POST /api/tools/assets/:id/versions` — list/create versions
+- `GET /api/tools/assets/compatible` — list compatible assets
+- `GET /api/tools/assets/gaps` — detect asset gaps
+- `GET/POST /api/tools/asset-groups` — list/create groups
+- `GET/PUT /api/tools/asset-groups/:id` — get/update group
+- `POST /api/tools/asset-groups/:id/assets` — add asset to group
+- `DELETE /api/tools/asset-groups/:id/assets/:assetId` — remove asset from group
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+---
+
+*Plan Status: In Progress — Phases 1, 2 & 3 Complete*
+*Next: Execute Phase 4 (Frontend Integration)*

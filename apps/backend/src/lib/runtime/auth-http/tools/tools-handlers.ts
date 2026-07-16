@@ -32,6 +32,10 @@ import {
   createToolsApiServiceHandlers,
   type ToolsApiServiceHandlers,
 } from './tools-api-service-handlers';
+import {
+  createToolsAssetHandlers,
+  type ToolsAssetHandlers,
+} from './tools-asset-handlers';
 
 export type CreateToolsHandlersDependencies = {
   repositories: AuthRepositoryBundle;
@@ -58,7 +62,8 @@ export type ToolsHandlers =
   & ToolsHydrateHandlers
   & ToolsOrchestrateHandlers
   & ToolsSessionHandlers
-  & ToolsApiServiceHandlers;
+  & ToolsApiServiceHandlers
+  & ToolsAssetHandlers;
 
 export const createToolsHandlers = (deps: CreateToolsHandlersDependencies): ToolsHandlers => {
   const briefHandlers = createToolsBriefHandlers(deps);
@@ -66,6 +71,7 @@ export const createToolsHandlers = (deps: CreateToolsHandlersDependencies): Tool
   const orchestrateHandlers = createToolsOrchestrateHandlers(deps);
   const sessionHandlers = createToolsSessionHandlers(deps);
   const apiServiceHandlers = createToolsApiServiceHandlers(deps);
+  const assetHandlers = createToolsAssetHandlers(deps);
 
   return {
     ...briefHandlers,
@@ -73,5 +79,6 @@ export const createToolsHandlers = (deps: CreateToolsHandlersDependencies): Tool
     ...orchestrateHandlers,
     ...sessionHandlers,
     ...apiServiceHandlers,
+    ...assetHandlers,
   };
 };

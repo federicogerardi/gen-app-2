@@ -19,7 +19,7 @@ tags: [ddd, asset-domain, cross-tool-integration]
 | 2 | D — Prompt Injection | ✅ Complete | `runtime/asset-injection-resolver.ts` created |
 | 3 | E — HTTP Handlers | ✅ Complete | `tools-asset-handlers.ts` + routes registered |
 | 4 | F — Frontend | ✅ Complete | `asset-client.ts`, `useAssetSuggestions.ts`, types updated |
-| 5 | G — Testing & Governance | ⏳ Pending | |
+| 5 | G — Testing & Governance | ✅ Complete | 35 tests passing, all typechecks pass |
 
 # Asset Domain Model Implementation Plan
 
@@ -362,4 +362,40 @@ Phase 5: G → 5h total
 ---
 
 *Plan Status: In Progress — Phases 1, 2, 3 & 4 Complete*
-*Next: Execute Phase 5 (Integration Testing & Governance)*
+---
+
+## Phase 5 Completion Log (2026-07-16)
+
+### Track G: Integration, Testing & Governance ✅
+
+| Task | Description | Status |
+|------|-------------|--------|
+| G-001 | Unit tests for AssetCompatibilityMatrix (contracts) | ✅ 20 tests passing |
+| G-002 | Unit tests for asset injection resolver | ✅ 15 tests passing |
+| G-003 | All workspace typechecks pass | ✅ `npm run typecheck` passes |
+
+**Test files created**:
+- `apps/backend/src/lib/tests/runtime.asset-contracts.test.ts` — 20 tests
+- `apps/backend/src/lib/tests/runtime.asset-injection-resolver.test.ts` — 15 tests
+
+**Test coverage**:
+- `ASSET_TYPES` validation (12 values)
+- `ToolAssetContract` structure validation
+- `AssetCompatibilityMatrix` queries (consumer tools, compatible types, production chains)
+- `AssetReference` xor validation
+- `AssetFieldMapping` resolution
+- `validateAssetReferences` (valid/invalid references)
+- `resolveAssetContent` (raw content, field mapping, fallback)
+- `resolveAssetInjectedPrompt` (prepend/append/replace modes)
+- `checkAssetStaleness` (fresh/stale assets)
+- `createAssetInjectionLogger` (custom logger support)
+
+**Verification**:
+- `npm run typecheck` — ✅ PASS (all workspaces)
+- `node --import tsx --test apps/backend/src/lib/tests/runtime.asset-contracts.test.ts` — ✅ 20/20 pass
+- `node --import tsx --test apps/backend/src/lib/tests/runtime.asset-injection-resolver.test.ts` — ✅ 15/15 pass
+
+---
+
+*Plan Status: ✅ COMPLETE — All Phases Executed*
+*Total: 4 commits, 35 tests, all typechecks passing*

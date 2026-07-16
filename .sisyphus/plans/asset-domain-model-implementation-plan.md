@@ -15,8 +15,8 @@ tags: [ddd, asset-domain, cross-tool-integration]
 |-------|-------|--------|-------|
 | 1 | A — Contracts | ✅ Complete | `packages/contracts/src/asset.ts` created, all types exported |
 | 1 | B — Database | ✅ Complete | 4 migrations created (000023–000026) |
-| 2 | C — Backend Types & Adapters | ⏳ Pending | |
-| 2 | D — Prompt Injection | ⏳ Pending | |
+| 2 | C — Backend Types & Adapters | ✅ Complete | `types/asset.ts` + `adapters/asset.adapter.ts` created |
+| 2 | D — Prompt Injection | ✅ Complete | `runtime/asset-injection-resolver.ts` created |
 | 3 | E — HTTP Handlers | ⏳ Pending | |
 | 4 | F — Frontend | ⏳ Pending | |
 | 5 | G — Testing & Governance | ⏳ Pending | |
@@ -271,5 +271,42 @@ Phase 5: G → 5h total
 
 ---
 
-*Plan Status: In Progress — Phase 1 Complete*
-*Next: Execute Phase 2 (Backend Types & Adapters + Prompt Injection)*
+## Phase 2 Completion Log (2026-07-16)
+
+### Track C: Backend Types & Adapters ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| C-001 | 188 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetRow`, `rowToAsset` mapper |
+| C-002 | 194 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetGroupRow`, `rowToAssetGroup` mapper |
+| C-003 | 196 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetVersionRow`, `rowToAssetVersion` mapper |
+| C-004 | 197 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetDerivationChainRow`, `rowToDerivationChain` mapper |
+| C-005 | 188 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ Asset CRUD (create, get, update, archive, list) |
+| C-006 | 194 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ AssetGroup CRUD (create, get, update, add/remove members) |
+| C-007 | 196 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `createAssetVersion` with transaction |
+| C-008 | 197 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `createDerivationLink` + query functions |
+| C-009 | 202 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `listCompatibleAssets` combining contracts + DB |
+| C-010 | 203 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `detectAssetGaps` comparing contract vs existing |
+| C-011 | 205 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `recordFeedback`, `getArtifactFeedbackScore` |
+| C-012 | — | `apps/backend/src/lib/adapters/generation/index.ts` | ✅ All asset adapters re-exported |
+
+**Additional**: Added Asset tables to Kysely DB interface (`postgres-kysely.types.ts`)
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+### Track D: Backend Runtime — Prompt Injection ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| D-001 | 189 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `AssetReferenceInput` type + validation |
+| D-002 | 193,207 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `resolveAssetContent` with field mapping |
+| D-003 | 193 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `resolveAssetInjectedPrompt` (prepend/append/replace) |
+| D-004 | 196 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `AssetSnapshotResolver` with version snapshot semantics |
+| D-005 | 198 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `checkAssetStaleness` + structured logger |
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+---
+
+*Plan Status: In Progress — Phases 1 & 2 Complete*
+*Next: Execute Phase 3 (HTTP Handlers & Routes)*

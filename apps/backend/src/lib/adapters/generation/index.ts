@@ -40,6 +40,34 @@ export {
   type UpdateApiServiceInput,
 } from '../api-service.adapter';
 
+// Asset Domain (DDD-188 through DDD-207)
+export {
+  createAsset,
+  getAssetById,
+  getAssetByIdForProject,
+  updateAsset,
+  archiveAsset,
+  reactivateAsset,
+  listAssets,
+  countAssets,
+  createAssetGroup,
+  addAssetToGroup,
+  removeAssetFromGroup,
+  getAssetGroupById,
+  updateAssetGroup,
+  listAssetGroups,
+  createAssetVersion,
+  getAssetVersions,
+  getAssetVersion,
+  createDerivationLink,
+  getDownstreamAssets,
+  getUpstreamAssets,
+  listCompatibleAssets,
+  detectAssetGaps,
+  recordFeedback,
+  getArtifactFeedbackScore,
+} from '../asset.adapter';
+
 export { createPostgresRedisGenerationAdapters } from '../postgres-redis.adapters';
 
 export {

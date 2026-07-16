@@ -215,6 +215,69 @@ export interface RequestIdempotencyTable {
   updated_at: Generated<Date>;
 }
 
+// =====================================================================
+// Asset Domain Tables (DDD-188 through DDD-207)
+// =====================================================================
+
+export interface AssetsTable {
+  id: string;
+  project_id: string;
+  asset_type: string;
+  source: string;
+  source_artifact_id: string | null;
+  status: string;
+  content: string;
+  label: string;
+  current_version: number;
+  stale_upstream: boolean;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface AssetGroupsTable {
+  id: string;
+  project_id: string;
+  label: string;
+  group_usage: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface AssetGroupMembersTable {
+  group_id: string;
+  asset_id: string;
+  position: number;
+  created_at: Generated<Date>;
+}
+
+export interface AssetVersionsTable {
+  id: Generated<number>;
+  asset_id: string;
+  version_number: number;
+  content: string;
+  source_artifact_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface AssetDerivationChainsTable {
+  id: Generated<number>;
+  upstream_asset_id: string;
+  upstream_version: number;
+  downstream_asset_id: string;
+  tool_key: string;
+  session_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface GenerationFeedbackTable {
+  id: Generated<number>;
+  artifact_id: string;
+  user_id: string;
+  rating: string;
+  comment: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface DB {
   artifacts: ArtifactsTable;
   users: UsersTable;
@@ -230,4 +293,10 @@ export interface DB {
   product_changelogs: ProductChangelogsTable;
   llm_models: LlmModelsTable;
   request_idempotency: RequestIdempotencyTable;
+  assets: AssetsTable;
+  asset_groups: AssetGroupsTable;
+  asset_group_members: AssetGroupMembersTable;
+  asset_versions: AssetVersionsTable;
+  asset_derivation_chains: AssetDerivationChainsTable;
+  generation_feedback: GenerationFeedbackTable;
 }

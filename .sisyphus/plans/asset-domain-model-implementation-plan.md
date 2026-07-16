@@ -18,7 +18,7 @@ tags: [ddd, asset-domain, cross-tool-integration]
 | 2 | C — Backend Types & Adapters | ✅ Complete | `types/asset.ts` + `adapters/asset.adapter.ts` created |
 | 2 | D — Prompt Injection | ✅ Complete | `runtime/asset-injection-resolver.ts` created |
 | 3 | E — HTTP Handlers | ✅ Complete | `tools-asset-handlers.ts` + routes registered |
-| 4 | F — Frontend | ⏳ Pending | |
+| 4 | F — Frontend | ✅ Complete | `asset-client.ts`, `useAssetSuggestions.ts`, types updated |
 | 5 | G — Testing & Governance | ⏳ Pending | |
 
 # Asset Domain Model Implementation Plan
@@ -340,5 +340,26 @@ Phase 5: G → 5h total
 
 ---
 
-*Plan Status: In Progress — Phases 1, 2 & 3 Complete*
-*Next: Execute Phase 4 (Frontend Integration)*
+## Phase 4 Completion Log (2026-07-16)
+
+### Track F: Frontend Integration ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| F-001 | 192 | `tool-form-architecture.ts` | ✅ `project-asset` added to `ToolInputSourceFamily` + `ToolProjectAssetPolicyEntry` type |
+| F-003 | — | `asset-client.ts` | ✅ Full HTTP client with CRUD, groups, versions, discovery |
+| F-004 | — | `useAssetSuggestions.ts` | ✅ Hook returning `{ compatibleAssets, gaps, loading, error, refresh }` |
+
+**Files created**:
+- `apps/frontend/src/features/tools/runtime/asset-client.ts` — HTTP functions
+- `apps/frontend/src/features/tools/runtime/useAssetSuggestions.ts` — React hook
+
+**Files modified**:
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` — Added `project-asset` to `ToolInputSourceFamily` + `ToolProjectAssetPolicyEntry` type
+
+**Verification**: `npm --workspace apps/frontend run typecheck` — ✅ PASS
+
+---
+
+*Plan Status: In Progress — Phases 1, 2, 3 & 4 Complete*
+*Next: Execute Phase 5 (Integration Testing & Governance)*

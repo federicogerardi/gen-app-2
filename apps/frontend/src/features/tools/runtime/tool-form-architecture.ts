@@ -64,7 +64,8 @@ export type ToolInputFileRequiredness =
 export type ToolInputSourceFamily =
   | 'direct-input'
   | 'tool-input-file'
-  | 'api-acquisition';
+  | 'api-acquisition'
+  | 'project-asset';
 
 export type ToolInputFilePolicyEntry = {
   key: string;
@@ -76,6 +77,17 @@ export type ToolInputFilePolicyEntry = {
 export type ToolApiAcquisitionPolicyEntry = {
   key: string;
   label: string;
+  requiredness: ToolInputFileRequiredness;
+};
+
+/**
+ * F-001: Policy entry for project-asset input family (DDD-192).
+ * Declares which AssetTypes a tool can consume as input.
+ */
+export type ToolProjectAssetPolicyEntry = {
+  key: string;
+  label: string;
+  assetType: string;
   requiredness: ToolInputFileRequiredness;
 };
 

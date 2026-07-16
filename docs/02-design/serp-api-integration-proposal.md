@@ -1,12 +1,13 @@
 ---
 goal: Replace Puppeteer-based Google SERP crawling in Geometric with SERP API as the sole channel; reposition Puppeteer for future non-Google tool contexts
-version: 2.3
+version: 3.0
 date_created: 2026-06-13
-last-reviewed: 2026-06-15
-next-review-date: 2026-09-13
+last-reviewed: 2026-07-16
+next-review-date: 2027-01-16
 owner: Backend Runtime
-status: active
+status: implemented
 type: adr
+implementation_date: 2026-07-16
 tags: [geometric, serp-api, serpapi, crawling, api-service, puppeteer-repurpose, paa, related-questions, ddd-129]
 ---
 

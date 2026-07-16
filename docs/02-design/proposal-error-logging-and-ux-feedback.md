@@ -1,11 +1,13 @@
 ---
-status: draft
-version: 1.0
+status: implemented
+version: 2.0
 date_created: 2026-06-30
-last-reviewed: 2026-06-30
-next-review-date: 2026-07-30
+last-reviewed: 2026-07-16
+next-review-date: 2027-01-16
 owner: Backend Runtime
 type: proposal
+implementation_date: 2026-07-16
+implementation_notes: All items implemented except generation.step_failed structured logging (3.1.2) — tracked as low-priority follow-up
 tags: [logging, ux, error-handling, proxy, idempotency, observability, debug]
 goal: Improve error logging correlation and user-facing feedback for generation/run failures
 ---

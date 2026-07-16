@@ -1,16 +1,16 @@
 ---
 status: approved
-version: 3.7
-last-reviewed: 2026-07-12
-next-review-date: 2026-10-12
+version: 3.8
+last-reviewed: 2026-07-16
+next-review-date: 2026-10-16
 owner: Documentation Archivist
 ---
 
 # Documentation Index Overview
 
-Data: 2026-07-12  
+Data: 2026-07-16  
 Stato: publication-ready  
-Versione indice: 3.7
+Versione indice: 3.8
 
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
 
@@ -128,8 +128,15 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Proposals
 
-- [proposal-error-logging-and-ux-feedback](./02-design/proposal-error-logging-and-ux-feedback.md) — **Proposal: structured logging for idempotency/proxy errors, proxy request correlation via x-request-id, and UX feedback for timeout/conflict scenarios (based on 30/06 production log analysis)**
 - [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
+- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
+
+### Implemented Proposals
+
+- [llm-model-step-override-proposal](./02-design/llm-model-step-override-proposal.md) — **Implemented 2026-07-16: per-step LLM model override system (DDD-150/151/152)**
+- [serp-api-integration-proposal](./02-design/serp-api-integration-proposal.md) — **Implemented 2026-07-16: SerpAPI replaces Puppeteer for Geometric crawling**
+- [proposal-error-logging-and-ux-feedback](./02-design/proposal-error-logging-and-ux-feedback.md) — **Implemented 2026-07-16: structured logging for idempotency/proxy errors, proxy request correlation, UX feedback for timeout/conflict scenarios**
+- [tool-proposal-blog-article-generator](./07-governance/tool-proposal-blog-article-generator.md) — **Implemented 2026-07-16: Blog Article Generator tool (3-step workflow, DDD-155/156/157)**
 
 ### Open Findings — UX Determinism Review (for future implementation)
 

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 4.5
-last-reviewed: 2026-07-08
-next-review-date: 2026-08-08
+version: 4.6
+last-reviewed: 2026-07-16
+next-review-date: 2026-08-16
 owner: Domain Architecture
 ---
 

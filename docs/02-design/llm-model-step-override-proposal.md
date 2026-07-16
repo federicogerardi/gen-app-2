@@ -1,12 +1,13 @@
 ---
-status: active
-version: 1.1
+status: implemented
+version: 2.0
 date_created: 2026-07-07
-last-reviewed: 2026-07-07
-next-review-date: 2026-10-07
+last-reviewed: 2026-07-16
+next-review-date: 2027-01-16
 owner: Domain Architecture
 title: LLM Model Step Override System
 type: proposal
+implementation_date: 2026-07-16
 tags: [llm-models, tool-steps, generation, backend, contracts]
 goal: Enable per-step model override configuration to allow tools to specify default models for individual workflow steps
 ---

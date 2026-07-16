@@ -1,8 +1,8 @@
 ---
 status: active
-version: 2.14
-last-reviewed: 2026-07-06
-next-review-date: 2026-10-06
+version: 2.15
+last-reviewed: 2026-07-16
+next-review-date: 2026-10-16
 owner: Domain Architecture
 ---
 
@@ -320,5 +320,58 @@ Key source files referenced by this glossary:
 | blog_seo_structure | ToolStep | First step of blog article generation workflow. Generates SEO-optimized article structure with H1, H2 headers and source citations using `gpt-4o-mini-search-preview` model. Output serves as structural foundation for subsequent research and writing steps. Step type: `generation`. | `docs/07-governance/domain-naming-decision-log.md` (DDD-156) | canonical |
 | blog_research | ToolStep | Second step of blog article generation workflow. Conducts comprehensive topical research with detailed, structured information using `gpt-5-search-api` model. Consumes SEO structure from step 1 and produces research data for article composition. Step type: `generation`. | `docs/07-governance/domain-naming-decision-log.md` (DDD-156) | canonical |
 | blog_article | ToolStep | Final step of blog article generation workflow. Composes complete 800-word professional article using `gpt-5.2` model. Consumes both SEO structure and research data from previous steps. Produces final downloadable artifact with `ArtifactRole = 'final'`. Step type: `generation`. | `docs/07-governance/domain-naming-decision-log.md` (DDD-156) | canonical |
+
+---
+
+## Asset Domain — Project Workspace
+
+The following terms define the **Asset** domain model, evolving the system from monofunctional tools producing session-scoped `Artifact`s to a networked project workspace where `Asset`s are first-class, cross-tool reusable project property.
+
+Core semantic distinction: **`Artifact` = content produced in the Project** (generation output record, session-scoped, DDD-001). **`Asset` = property of the Project** (persistent resource, project-scoped, DDD-188).
+
+### Base Asset Model
+
+| Term | Type | Definition | Source | Status |
+| --- | --- | --- | --- | --- |
+| Asset | Entity | A persistent project resource that can be used as input across multiple Tools. Originates from a completed `Artifact` promoted by the user (`AssetSource = 'generated'`), an external file upload (`'uploaded'`), or manual user creation (`'manual'`). Core fields: `assetId`, `projectId` (FK to `Project`), `assetType: AssetType`, `source: AssetSource`, `sourceArtifactId` (nullable, set only for `'generated'`), `status: AssetStatus`, `content`, `label`, `createdAt`, `updatedAt`. Lifecycle is independent from `GenerationSession` — persists across sessions and survives project archival. See DDD-188. | `docs/07-governance/domain-naming-decision-log.md` (DDD-188) | canonical |
+| AssetReference | Value Object | A reference to an Asset used as input in `GenerationRequest`. Shape: `{ assetId?, assetGroupId?, sourceToolKey: ToolKey, usageIntent: 'input' \| 'injection' }`. `assetId` and `assetGroupId` are xor (mutually exclusive). `sourceToolKey` records the Tool that originally produced the Asset. `usageIntent = 'input'` means primary input context; `'injection'` means injected into a specific step via `AssetInjectionDirective`. Carried in `GenerationRequest.input.assetReferences`. See DDD-189. | `docs/07-governance/domain-naming-decision-log.md` (DDD-189) | canonical |
+| AssetSource | Value Object | Origin classification of an Asset. Values: `'generated'` (promoted from a completed `Artifact` — carries `sourceArtifactId`), `'uploaded'` (file uploaded directly as project resource), `'manual'` (user-created inline content). Immutable after creation. See DDD-190. | `docs/07-governance/domain-naming-decision-log.md` (DDD-190) | canonical |
+| AssetStatus | Value Object | Lifecycle state of an Asset. Values: `'active'` (selectable as input in Tools, visible in project asset browser), `'archived'` (preserved for audit and existing references but hidden from input selectors). Archival is reversible. Mirrors `ArtifactStatus` pattern (DDD-017) with distinct semantics. See DDD-191. | `docs/07-governance/domain-naming-decision-log.md` (DDD-191) | canonical |
+| AssetInjectionDirective | Value Object | Specification for injecting Asset content into a specific `WorkflowStep` during prompt assembly. Shape: `{ assetId, stepKey, injectionMode: 'prepend' \| 'append' \| 'replace', fieldMappingKey? }`. `fieldMappingKey` references an `AssetFieldMapping` (DDD-207) entry for structured extraction. Multiple directives can target the same step, processed in order. See DDD-193. | `docs/07-governance/domain-naming-decision-log.md` (DDD-193) | canonical |
+| AssetGroup | Entity | A named collection of Assets within a Project. Fields: `groupId`, `projectId` (FK), `label`, `assetIds: string[]` (ordered), `groupUsage: AssetGroupUsage`. Referenced via `AssetReference.assetGroupId`. An Asset can belong to multiple groups; deleting a group does not delete its members. See DDD-194. | `docs/07-governance/domain-naming-decision-log.md` (DDD-194) | canonical |
+| AssetGroupUsage | Value Object | Consumption mode for an `AssetGroup`. Values: `'individual'` (Tool iterates over each Asset independently — N outputs) and `'bundled'` (all Assets injected together — 1 combined output). Declared at group creation, mutable. See DDD-195. | `docs/07-governance/domain-naming-decision-log.md` (DDD-195) | canonical |
+
+### Versioning and Derivation
+
+| Term | Type | Definition | Source | Status |
+| --- | --- | --- | --- | --- |
+| AssetVersion | Value Object | Incremental version of an Asset. Each update creates a new version: `{ versionNumber, assetId, content, sourceArtifactId?, createdAt }`. Current version = highest `versionNumber`. Past versions retained immutably. Consumer `AssetReference` resolves to current version at dispatch time (snapshot semantics). See DDD-196. | `docs/07-governance/domain-naming-decision-log.md` (DDD-196) | canonical |
+| AssetDerivationChain | Entity | DAG tracking genealogical relationships between Assets. Fields: `upstreamAssetId`, `upstreamVersion`, `downstreamAssetId`, `toolKey` (Tool that performed the derivation), `sessionId`, `createdAt`. Populated automatically when a `GenerationRequest` carries `AssetReference`s and completes successfully. See DDD-197. | `docs/07-governance/domain-naming-decision-log.md` (DDD-197) | canonical |
+| AssetStalenessPolicy | Policy | Rules for how downstream Assets react to upstream version changes: (1) upstream versioning marks downstreams with `staleUpstream` flag; (2) stale Assets show warning but remain functional; (3) user can dismiss warning or regenerate; (4) staleness never auto-resolves; (5) archived/deleted upstream → permanent staleness. See DDD-198. | `docs/07-governance/domain-naming-decision-log.md` (DDD-198) | canonical |
+
+### Typing and Compatibility
+
+| Term | Type | Definition | Source | Status |
+| --- | --- | --- | --- | --- |
+| AssetType | Value Object | Semantic content type classification of an Asset. Canonical values: `angle`, `persona`, `brand-voice`, `hook`, `competitor-analysis`, `creative-brief`, `ad-copy`, `landing-page`, `article-outline`, `article`, `script`, `description`. Authority: `packages/contracts`. Bridges producing and consuming Tools via `ToolAssetContract` (DDD-200). Extensible through DDD governance. See DDD-199. | `docs/07-governance/domain-naming-decision-log.md` (DDD-199) | canonical |
+| ToolAssetContract | Policy | Per-`ToolKey` declaration of `produces: AssetType[]` and `consumes: AssetType[]`. Authority: `packages/contracts/src/tool-workflows.ts`. `consumes` entries may be `required` or `optional`. Enables `AssetCompatibilityMatrix` (DDD-201) and `AssetGapDetection` (DDD-203). See DDD-200. | `docs/07-governance/domain-naming-decision-log.md` (DDD-200) | canonical |
+| AssetCompatibilityMatrix | Domain Service | Derives cross-tool compatibility from `ToolAssetContract` declarations. Queries: `getCompatibleConsumerTools(assetType)`, `getCompatibleAssetTypes(toolKey)`, `getCompatibleAssets(projectId, toolKey)`, `getToolProductionChain(fromTool, toTool)`. Pure function over static contracts — no DB access. See DDD-201. | `docs/07-governance/domain-naming-decision-log.md` (DDD-201) | canonical |
+
+### Discovery and Quality
+
+| Term | Type | Definition | Source | Status |
+| --- | --- | --- | --- | --- |
+| AssetDiscovery | Domain Service | Finds compatible Assets for a Project+Tool. Queries `AssetCompatibilityMatrix` + project Assets, returns results ordered by quality score descending, then recency. Exposed via `GET /api/projects/{id}/assets/compatible?toolKey={key}`. See DDD-202. | `docs/07-governance/domain-naming-decision-log.md` (DDD-202) | canonical |
+| AssetGapDetection | Domain Service | Identifies missing Assets that would improve Tool output. Returns `{ missingAssetTypes: { assetType, canBeProducedBy: ToolKey[] }[] }`. Example: "No Persona asset. Generate one with angle-generator." See DDD-203. | `docs/07-governance/domain-naming-decision-log.md` (DDD-203) | canonical |
+| AssetSimilarityScore | Value Object | Semantic similarity measure between two Assets of the same `AssetType`. Range `0.0..1.0`. Used for redundancy detection (score > 0.85 suggests merge/differentiate). Advisory only. See DDD-204. | `docs/07-governance/domain-naming-decision-log.md` (DDD-204) | canonical |
+| AssetQualityScore | Value Object | Composite quality measure (`0..100`). Weighted factors: `feedbackScore` (40%, from `GenerationFeedback`), `usageScore` (25%, log-scaled usage count), `freshnessScore` (20%, recency decay), `completenessScore` (15%, structural completeness). Recomputed on read, not persisted. See DDD-205. | `docs/07-governance/domain-naming-decision-log.md` (DDD-205) | canonical |
+| AssetQualityGate | Policy | Advisory gate based on `AssetQualityScore`: ≥70 silent, 40–69 mild warning, <40 strong warning. Never blocks generation — user always decides. Applied at Asset selection and dispatch time. See DDD-206. | `docs/07-governance/domain-naming-decision-log.md` (DDD-206) | canonical |
+| AssetFieldMapping | Value Object | Structured extraction rules for injecting Asset fields into Tool prompts. Per `(assetType, toolKey)` pair: `{ fieldKey → { sourcePath, injectionTemplate, required } }`. Referenced by `AssetInjectionDirective.fieldMappingKey`. Uses Markdown templates with `{{fieldKey}}` placeholders. Authority: `packages/contracts`. See DDD-207. | `docs/07-governance/domain-naming-decision-log.md` (DDD-207) | canonical |
+
+### Extended Concepts
+
+| Term | Type | Definition | Source | Status |
+| --- | --- | --- | --- | --- |
+| ToolInputSourceFamily | Value Object | **Extended DDD-106.** Adds `'project-asset'` to the existing set (`direct-input`, `tool-input-file`, `api-acquisition`). `project-asset` entries default to `requiredness: optional-by-tool-setting` in `ToolInputRequirementMatrix`. See DDD-192. | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`, `docs/07-governance/domain-naming-decision-log.md` (DDD-192) | canonical |
 
 ---

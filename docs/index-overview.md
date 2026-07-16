@@ -63,9 +63,9 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
 | [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | active | 2026-07-08 | 2026-10-08 |
-| [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-05-11 | 2026-08-03 |
-| [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-05-26 | 2026-08-03 |
-| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-05-26 | 2026-08-03 |
+| [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-07-16 | 2026-10-16 |
+| [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-07-16 | 2026-10-16 |
+| [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-07-16 | 2026-08-16 |
 | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | approved | 2026-05-27 | 2026-08-16 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
 

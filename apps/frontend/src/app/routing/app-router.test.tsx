@@ -113,10 +113,6 @@ vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
   },
 }));
 
-vi.mock('../../features/tools/pages/ToolsHubPage', () => ({
-  ToolsHubPage: () => <h1>Tools hub</h1>,
-}));
-
 vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
   ArtifactsPage: () => (
     <div data-testid="artifacts-listing">
@@ -140,13 +136,15 @@ vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
 
 
 describe('app router – integration', () => {
-  it('renders tools hub route at /tools', async () => {
+  it('redirects /tools to /workspaces via wildcard', async () => {
     window.history.pushState({}, '', '/tools');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole('heading', { name: /tools hub/i })).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(window.location.pathname).toBe('/workspaces');
+    });
     router.dispose();
   });
 

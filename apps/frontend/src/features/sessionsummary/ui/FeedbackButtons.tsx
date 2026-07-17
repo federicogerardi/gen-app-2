@@ -29,7 +29,8 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
         const url = `/api/tools/feedback?artifactId=${encodeURIComponent(artifactId)}`;
         const res = await fetch(url, { credentials: 'include' });
         if (!res.ok || cancelled) return;
-        const data = await res.json();
+        const body = await res.json();
+        const data = body.data ?? body;
         if (!cancelled) {
           setPositive(data.positive ?? 0);
           setNegative(data.negative ?? 0);
@@ -57,7 +58,8 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
         body: JSON.stringify({ artifactId, rating }),
       });
       if (!response.ok) return;
-      const data = await response.json();
+      const body = await response.json();
+      const data = body.data ?? body;
       setPositive(data.positive ?? positive);
       setNegative(data.negative ?? negative);
       setNetScore(data.netScore ?? 0);

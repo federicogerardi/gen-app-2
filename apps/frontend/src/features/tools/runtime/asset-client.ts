@@ -69,6 +69,13 @@ export type PromoteArtifactInput = {
   label: string;
 };
 
+// Backend wraps success responses as { ok: true, data: {...} }
+type ApiResponse<T> = { ok?: boolean; data?: T; };
+const assetFetch = async <T>(url: string, opts: Parameters<typeof requestJson>[1] = {}): Promise<T> => {
+  const res = await requestJson<ApiResponse<T>>(url, { credentials: 'include', ...opts });
+  return (res.data ?? {}) as T;
+};
+
 // =====================================================================
 // Asset CRUD functions
 // =====================================================================
@@ -91,7 +98,7 @@ export const listAssets = async (
   if (options?.limit) params.set('limit', String(options.limit));
   if (options?.offset) params.set('offset', String(options.offset));
 
-  return requestJson<AssetListResponse>(
+  return assetFetch<AssetListResponse>(
     joinApiPath('/api/tools/assets', `?${params.toString()}`),
     { method: 'GET' },
   );
@@ -101,7 +108,7 @@ export const listAssets = async (
  * Get an asset by ID.
  */
 export const getAsset = async (assetId: string): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}`),
     { method: 'GET' },
   );
@@ -111,7 +118,7 @@ export const getAsset = async (assetId: string): Promise<{ asset: AssetDto }> =>
  * Create a new asset.
  */
 export const createAsset = async (input: CreateAssetInput): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', ''),
     {
       method: 'POST',
@@ -128,7 +135,7 @@ export const updateAsset = async (
   assetId: string,
   input: UpdateAssetInput,
 ): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}`),
     {
       method: 'PUT',
@@ -142,7 +149,7 @@ export const updateAsset = async (
  * Archive an asset.
  */
 export const archiveAsset = async (assetId: string): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}/archive`),
     { method: 'POST' },
   );
@@ -152,7 +159,7 @@ export const archiveAsset = async (assetId: string): Promise<{ asset: AssetDto }
  * Reactivate an archived asset.
  */
 export const reactivateAsset = async (assetId: string): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}/reactivate`),
     { method: 'POST' },
   );
@@ -164,7 +171,7 @@ export const reactivateAsset = async (assetId: string): Promise<{ asset: AssetDt
 export const promoteArtifactToAsset = async (
   input: PromoteArtifactInput,
 ): Promise<{ asset: AssetDto }> => {
-  return requestJson<{ asset: AssetDto }>(
+  return assetFetch<{ asset: AssetDto }>(
     joinApiPath('/api/tools/assets', '/promote'),
     {
       method: 'POST',
@@ -182,7 +189,7 @@ export const promoteArtifactToAsset = async (
  * List versions for an asset.
  */
 export const listAssetVersions = async (assetId: string): Promise<AssetVersionsResponse> => {
-  return requestJson<AssetVersionsResponse>(
+  return assetFetch<AssetVersionsResponse>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}/versions`),
     { method: 'GET' },
   );
@@ -195,7 +202,7 @@ export const createAssetVersion = async (
   assetId: string,
   input: { content: string; sourceArtifactId?: string },
 ): Promise<{ version: AssetVersionDto }> => {
-  return requestJson<{ version: AssetVersionDto }>(
+  return assetFetch<{ version: AssetVersionDto }>(
     joinApiPath('/api/tools/assets', `/${encodeURIComponent(assetId)}/versions`),
     {
       method: 'POST',
@@ -214,7 +221,7 @@ export const createAssetVersion = async (
  */
 export const listAssetGroups = async (projectId: string): Promise<AssetGroupListResponse> => {
   const params = new URLSearchParams({ projectId });
-  return requestJson<AssetGroupListResponse>(
+  return assetFetch<AssetGroupListResponse>(
     joinApiPath('/api/tools/asset-groups', `?${params.toString()}`),
     { method: 'GET' },
   );
@@ -224,7 +231,7 @@ export const listAssetGroups = async (projectId: string): Promise<AssetGroupList
  * Get an asset group by ID.
  */
 export const getAssetGroup = async (groupId: string): Promise<{ group: AssetGroupDto }> => {
-  return requestJson<{ group: AssetGroupDto }>(
+  return assetFetch<{ group: AssetGroupDto }>(
     joinApiPath('/api/tools/asset-groups', `/${encodeURIComponent(groupId)}`),
     { method: 'GET' },
   );
@@ -236,7 +243,7 @@ export const getAssetGroup = async (groupId: string): Promise<{ group: AssetGrou
 export const createAssetGroup = async (
   input: CreateAssetGroupInput,
 ): Promise<{ group: AssetGroupDto }> => {
-  return requestJson<{ group: AssetGroupDto }>(
+  return assetFetch<{ group: AssetGroupDto }>(
     joinApiPath('/api/tools/asset-groups', ''),
     {
       method: 'POST',
@@ -253,7 +260,7 @@ export const updateAssetGroup = async (
   groupId: string,
   input: { label?: string; groupUsage?: string },
 ): Promise<{ group: AssetGroupDto }> => {
-  return requestJson<{ group: AssetGroupDto }>(
+  return assetFetch<{ group: AssetGroupDto }>(
     joinApiPath('/api/tools/asset-groups', `/${encodeURIComponent(groupId)}`),
     {
       method: 'PUT',
@@ -271,7 +278,7 @@ export const addAssetToGroup = async (
   assetId: string,
   position?: number,
 ): Promise<{ ok: boolean }> => {
-  return requestJson<{ ok: boolean }>(
+  return assetFetch<{ ok: boolean }>(
     joinApiPath('/api/tools/asset-groups', `/${encodeURIComponent(groupId)}/assets`),
     {
       method: 'POST',
@@ -288,7 +295,7 @@ export const removeAssetFromGroup = async (
   groupId: string,
   assetId: string,
 ): Promise<{ ok: boolean }> => {
-  return requestJson<{ ok: boolean }>(
+  return assetFetch<{ ok: boolean }>(
     joinApiPath(
       '/api/tools/asset-groups',
       `/${encodeURIComponent(groupId)}/assets/${encodeURIComponent(assetId)}`,
@@ -309,7 +316,7 @@ export const listCompatibleAssets = async (
   toolKey: string,
 ): Promise<CompatibleAssetsResponse> => {
   const params = new URLSearchParams({ projectId, toolKey });
-  return requestJson<CompatibleAssetsResponse>(
+  return assetFetch<CompatibleAssetsResponse>(
     joinApiPath('/api/tools/assets', `/compatible?${params.toString()}`),
     { method: 'GET' },
   );
@@ -323,7 +330,7 @@ export const detectAssetGaps = async (
   toolKey: string,
 ): Promise<AssetGapsResponse> => {
   const params = new URLSearchParams({ projectId, toolKey });
-  return requestJson<AssetGapsResponse>(
+  return assetFetch<AssetGapsResponse>(
     joinApiPath('/api/tools/assets', `/gaps?${params.toString()}`),
     { method: 'GET' },
   );

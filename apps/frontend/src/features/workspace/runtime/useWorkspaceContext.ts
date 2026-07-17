@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AssetDto, ToolKey } from '@gen-app-2/contracts';
 import { useAssetSuggestions } from '../../tools/runtime/useAssetSuggestions';
+import { listAssets } from '../../tools/runtime/asset-client';
 
 export interface WorkspaceAsset {
   id: string;
@@ -51,37 +52,68 @@ export const useWorkspaceContext = (
   error: string | null;
   refetch: () => void;
 } => {
+  const hasToolKey = Boolean(toolKey);
+
   const assetsQuery = useAssetSuggestions(
     workspaceId || null,
-    toolKey || null,
-    !!workspaceId,
+    hasToolKey ? (toolKey || null) : null,
+    hasToolKey && !!workspaceId,
   );
 
-  const qualityGateStatus = useMemo((): 'healthy' | 'needs-attention' | 'blocked' => {
-    const assets = assetsQuery.compatibleAssets || [];
-    if (assets.length === 0) return 'healthy';
+  // When no toolKey (dashboard mode), fetch ALL project assets
+  const [allAssets, setAllAssets] = useState<AssetDto[]>([]);
+  const [allAssetsLoading, setAllAssetsLoading] = useState(false);
+  const [allAssetsError, setAllAssetsError] = useState<string | null>(null);
 
+  const refreshAll = useCallback(async () => {
+    if (!workspaceId || hasToolKey) return;
+    setAllAssetsLoading(true);
+    setAllAssetsError(null);
+    try {
+      const result = await listAssets(workspaceId, { status: 'active', limit: 100 });
+      setAllAssets(result.assets);
+    } catch (err) {
+      setAllAssetsError(err instanceof Error ? err.message : 'Failed to load assets');
+    } finally {
+      setAllAssetsLoading(false);
+    }
+  }, [workspaceId, hasToolKey]);
+
+  useEffect(() => {
+    if (!workspaceId || hasToolKey) return;
+    void refreshAll();
+  }, [workspaceId, hasToolKey, refreshAll]);
+
+  // Use tool-specific assets when toolKey is set, all assets otherwise
+  const effectiveAssets = hasToolKey
+    ? (assetsQuery.compatibleAssets || [])
+    : allAssets;
+
+  const effectiveLoading = hasToolKey ? assetsQuery.loading : allAssetsLoading;
+  const effectiveError = hasToolKey ? assetsQuery.error : allAssetsError;
+
+  const qualityGateStatus = useMemo((): 'healthy' | 'needs-attention' | 'blocked' => {
+    const assets = effectiveAssets;
+    if (assets.length === 0) return 'healthy';
     const hasStale = assets.some(a => a.staleUpstream);
     if (hasStale) return 'needs-attention';
-
     return 'healthy';
-  }, [assetsQuery.compatibleAssets]);
+  }, [effectiveAssets]);
 
   const overallQualityScore = useMemo(() => {
-    const assets = assetsQuery.compatibleAssets || [];
+    const assets = effectiveAssets;
     if (assets.length === 0) return 0;
     const totalScore = assets.reduce((sum, a) => sum + (a.staleUpstream ? 50 : 100), 0);
     return Math.round(totalScore / assets.length);
-  }, [assetsQuery.compatibleAssets]);
+  }, [effectiveAssets]);
 
   const mappedAssets = useMemo(
-    () => (assetsQuery.compatibleAssets || []).map(mapAssetDto),
-    [assetsQuery.compatibleAssets],
+    () => effectiveAssets.map(mapAssetDto),
+    [effectiveAssets],
   );
 
   const workflowPosition = useMemo((): WorkflowPosition | undefined => {
     if (mappedAssets.length === 0) return undefined;
-
     const completedTools = new Set<string>();
     mappedAssets.forEach(asset => {
       if (asset.sourceToolKey) {
@@ -115,9 +147,9 @@ export const useWorkspaceContext = (
       canBeProducedBy: g.canBeProducedBy,
     })),
     overallQualityScore,
-    loading: assetsQuery.loading,
-    error: assetsQuery.error,
-    refetch: assetsQuery.refresh,
+    loading: effectiveLoading,
+    error: effectiveError,
+    refetch: hasToolKey ? assetsQuery.refresh : refreshAll,
   };
 
   if (workflowPosition) {

@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { IconButton, Tooltip, Typography } from '@mui/material';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useAuthState } from '../../../app/providers/AuthSessionProvider';
 
 interface FeedbackButtonsProps {
@@ -13,7 +12,6 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
   artifactId,
   disabled = false,
 }) => {
-  const { apiBaseUrl } = useApiConfig();
   const { session } = useAuthState();
   const [positive, setPositive] = useState(0);
   const [negative, setNegative] = useState(0);
@@ -23,12 +21,12 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!session || !apiBaseUrl) return;
+    if (!session) return;
     let cancelled = false;
 
     const fetchScore = async () => {
       try {
-        const url = `${apiBaseUrl}/api/tools/feedback?artifactId=${encodeURIComponent(artifactId)}`;
+        const url = `/api/tools/feedback?artifactId=${encodeURIComponent(artifactId)}`;
         const res = await fetch(url, { credentials: 'include' });
         if (!res.ok || cancelled) return;
         const data = await res.json();
@@ -46,13 +44,13 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
 
     fetchScore();
     return () => { cancelled = true; };
-  }, [artifactId, apiBaseUrl, session]);
+  }, [artifactId, session]);
 
   const handleVote = useCallback(async (rating: 'positive' | 'negative') => {
     if (loading || disabled || !session) return;
     setLoading(true);
     try {
-      const response = await fetch(`${apiBaseUrl}/api/tools/feedback`, {
+      const response = await fetch(`/api/tools/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -69,7 +67,7 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [artifactId, apiBaseUrl, session, loading, disabled, positive, negative]);
+  }, [artifactId, session, loading, disabled, positive, negative]);
 
   if (!session) return null;
 

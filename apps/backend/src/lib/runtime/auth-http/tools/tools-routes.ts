@@ -67,6 +67,19 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
     // Asset routes (DDD-188 through DDD-207)
     // ====================================================================
 
+    // Discovery — MUST come before the regex `assets/:id` catch-all routes
+    // so that the string match takes priority over `assets/([^/]+)`.
+    {
+      method: 'GET',
+      pattern: '/api/tools/assets/compatible',
+      handler: toolsHandlers.handleListCompatibleAssets,
+    },
+    {
+      method: 'GET',
+      pattern: '/api/tools/assets/gaps',
+      handler: toolsHandlers.handleDetectAssetGaps,
+    },
+
     // Asset CRUD
     {
       method: 'GET',
@@ -154,18 +167,6 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
           decodeURIComponent(assetId ?? ''),
         );
       },
-    },
-
-    // Discovery
-    {
-      method: 'GET',
-      pattern: '/api/tools/assets/compatible',
-      handler: toolsHandlers.handleListCompatibleAssets,
-    },
-    {
-      method: 'GET',
-      pattern: '/api/tools/assets/gaps',
-      handler: toolsHandlers.handleDetectAssetGaps,
     },
 
     // Asset Groups

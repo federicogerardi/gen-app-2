@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { IconButton, Tooltip, Typography } from '@mui/material';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
@@ -6,23 +6,47 @@ import { useAuthState } from '../../../app/providers/AuthSessionProvider';
 
 interface FeedbackButtonsProps {
   artifactId: string;
-  initialPositive?: number;
-  initialNegative?: number;
   disabled?: boolean;
 }
 
 export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
   artifactId,
-  initialPositive = 0,
-  initialNegative = 0,
   disabled = false,
 }) => {
   const { apiBaseUrl } = useApiConfig();
   const { session } = useAuthState();
-  const [positive, setPositive] = useState(initialPositive);
-  const [negative, setNegative] = useState(initialNegative);
+  const [positive, setPositive] = useState(0);
+  const [negative, setNegative] = useState(0);
+  const [netScore, setNetScore] = useState(0);
   const [userVote, setUserVote] = useState<'positive' | 'negative' | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!session || !apiBaseUrl) return;
+    let cancelled = false;
+
+    const fetchScore = async () => {
+      try {
+        const url = `${apiBaseUrl}/api/tools/feedback?artifactId=${encodeURIComponent(artifactId)}`;
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setPositive(data.positive ?? 0);
+          setNegative(data.negative ?? 0);
+          setNetScore(data.netScore ?? 0);
+          setUserVote(data.userVote ?? null);
+          setLoaded(true);
+        }
+      } catch {
+        // Non-critical
+      }
+    };
+
+    fetchScore();
+    return () => { cancelled = true; };
+  }, [artifactId, apiBaseUrl, session]);
 
   const handleVote = useCallback(async (rating: 'positive' | 'negative') => {
     if (loading || disabled || !session) return;
@@ -34,16 +58,14 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
         credentials: 'include',
         body: JSON.stringify({ artifactId, rating }),
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to record feedback');
-      }
+      if (!response.ok) return;
       const data = await response.json();
       setPositive(data.positive ?? positive);
       setNegative(data.negative ?? negative);
+      setNetScore(data.netScore ?? 0);
       setUserVote(rating);
     } catch {
-      // Silently fail — feedback is non-critical
+      // Non-critical
     } finally {
       setLoading(false);
     }
@@ -51,18 +73,16 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
 
   if (!session) return null;
 
-  const netScore = positive * 10 - negative * 5;
-
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <Tooltip title={userVote === 'positive' ? 'Voted' : 'Good example'}>
+      <Tooltip title={userVote === 'positive' ? 'Già votato positivo' : 'Buon esempio'}>
         <span>
           <IconButton
             size="small"
             onClick={() => handleVote('positive')}
             disabled={disabled || loading}
-            color={userVote === 'positive' ? 'success' : 'default'}
-            aria-label="Positive feedback"
+            color={loaded && userVote === 'positive' ? 'success' : 'default'}
+            aria-label="Voto positivo"
           >
             <ThumbsUp size={14} />
           </IconButton>
@@ -72,14 +92,14 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
         {positive}
       </Typography>
 
-      <Tooltip title={userVote === 'negative' ? 'Voted' : 'Poor example'}>
+      <Tooltip title={userVote === 'negative' ? 'Già votato negativo' : 'Esempio scarso'}>
         <span>
           <IconButton
             size="small"
             onClick={() => handleVote('negative')}
             disabled={disabled || loading}
-            color={userVote === 'negative' ? 'error' : 'default'}
-            aria-label="Negative feedback"
+            color={loaded && userVote === 'negative' ? 'error' : 'default'}
+            aria-label="Voto negativo"
           >
             <ThumbsDown size={14} />
           </IconButton>

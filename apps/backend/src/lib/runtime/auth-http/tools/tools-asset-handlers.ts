@@ -67,6 +67,7 @@ export type ToolsAssetHandlers = {
   handleDetectAssetGaps(request: IncomingMessage, response: ServerResponse): Promise<void>;
 
   // Feedback
+  handleGetFeedbackScore(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleRecordFeedback(request: IncomingMessage, response: ServerResponse): Promise<void>;
 };
 
@@ -964,6 +965,55 @@ export const createToolsAssetHandlers = (
     writeSuccess(response, 200, { gaps });
   };
 
+  const handleGetFeedbackScore = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'GET') {
+      writeError(response, 405, 'method_not_allowed', 'Use GET for feedback score');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) return;
+
+    const db = requireDb(response);
+    if (!db) return;
+
+    const searchParams = parseRequestUrl(request).searchParams;
+    const artifactId = searchParams.get('artifactId');
+    if (!artifactId) {
+      writeError(response, 400, 'bad_request', 'artifactId is required');
+      return;
+    }
+
+    const positiveResult = await db.query(
+      `SELECT COUNT(*) as count FROM generation_feedback WHERE artifact_id = $1 AND rating = 'positive'`,
+      [artifactId],
+    );
+    const negativeResult = await db.query(
+      `SELECT COUNT(*) as count FROM generation_feedback WHERE artifact_id = $1 AND rating = 'negative'`,
+      [artifactId],
+    );
+
+    // Check if current user has voted
+    const userVoteResult = await db.query(
+      `SELECT rating FROM generation_feedback WHERE artifact_id = $1 AND user_id = $2`,
+      [artifactId, principal.user.id],
+    );
+
+    const positive = Number(positiveResult.rows[0]?.count ?? 0);
+    const negative = Number(negativeResult.rows[0]?.count ?? 0);
+    const userVote = userVoteResult.rows[0]?.rating ?? null;
+
+    writeSuccess(response, 200, {
+      positive,
+      negative,
+      netScore: positive * 10 - negative * 5,
+      userVote,
+    });
+  };
+
   const handleRecordFeedback = async (
     request: IncomingMessage,
     response: ServerResponse,
@@ -1031,6 +1081,7 @@ export const createToolsAssetHandlers = (
       positive,
       negative,
       netScore: positive * 10 - negative * 5,
+      userVote: body.rating,
     });
   };
 
@@ -1052,6 +1103,7 @@ export const createToolsAssetHandlers = (
     handleCreateAssetVersion,
     handleListCompatibleAssets,
     handleDetectAssetGaps,
+    handleGetFeedbackScore,
     handleRecordFeedback,
   };
 };

@@ -82,6 +82,11 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
 
     // Feedback
     {
+      method: 'GET',
+      pattern: '/api/tools/feedback',
+      handler: toolsHandlers.handleGetFeedbackScore,
+    },
+    {
       method: 'POST',
       pattern: '/api/tools/feedback',
       handler: toolsHandlers.handleRecordFeedback,

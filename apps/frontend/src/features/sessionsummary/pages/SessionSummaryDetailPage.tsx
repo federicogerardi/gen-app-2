@@ -253,7 +253,7 @@ export const SessionSummaryDetailPage = () => {
             </div>
 
             {lastArtifact && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <div style={{ marginTop: 8 }}>
                 <FeedbackButtons
                   artifactId={lastArtifact.artifactId}
                   disabled={group.status !== 'completed'}

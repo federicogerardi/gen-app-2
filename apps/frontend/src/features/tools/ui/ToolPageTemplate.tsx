@@ -8,7 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MenuItem, TextField } from '@mui/material';
-import { uiPrimitives } from '../../../app/ui/primitives';
+import { uiPrimitives, cx } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { appCopy } from '../../../app/copy/system';
@@ -20,9 +20,6 @@ import {
 } from '../runtime/tool-page-selectors';
 import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-status-adapter';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
-import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
-import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
-import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
 import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
@@ -94,20 +91,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     toolConfig,
     formState,
     setFormState,
-    briefingError,
     dispatchError,
-    artifactsReloadError,
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     machineViewModel,
     isGenerating,
     effectiveCanonicalState,
     isStreamActive,
-    completedStepsForFlow,
-    currentRunningStep,
-    pausedCheckpointStep,
-    nextAvailableStep,
-    sessionId,
     handlePrimaryAction,
     handleCancelGeneration,
     handleBriefingFileSelected,
@@ -156,103 +146,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const hasToolInputFiles = inputFiles.length > 0;
   const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
 
-  const formatStepLabel = (stepKey: string) => stepKey
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
-  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
-    const fileName = fileEntry.key === 'briefing-file'
-      ? effectiveBriefingFileName ?? null
-      : fileEntry.key === 'angle-detector-file'
-        ? angleDetectorFileName ?? null
-        : null;
-    const isBriefingFile = fileEntry.key === 'briefing-file';
-    const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
-    const status: 'done' | 'todo' = fileName ? 'done' : 'todo';
-
-    return {
-      key: fileEntry.key,
-      label: isBriefingFile
-        ? copy.filePayloadLabel.briefing
-        : isAngleDetectorFile
-          ? copy.filePayloadLabel.angleDetector
-          : fileEntry.label,
-      requiredness: fileEntry.requiredness,
-      status,
-      fileName,
-    };
-  });
-
-  const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
-    .filter((entry) => entry.sourceFamily === 'api-acquisition')
-    .map((entry) => ({
-      key: entry.key,
-      label: entry.label,
-      requiredness: entry.requiredness,
-      status: entry.satisfied ? 'done' : 'todo',
-    }));
-
-  const stepItems = toolConfig.steps.map((stepKey) => {
-    const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
-    const isActive = currentRunningStep === stepKey || (!currentRunningStep && effectiveCanonicalState === 'running' && nextAvailableStep === stepKey);
-    const isError = pausedCheckpointStep === stepKey && effectiveCanonicalState === 'paused-with-checkpoint';
-
-    return {
-      key: stepKey,
-      label: formatStepLabel(stepKey),
-      status: isError ? 'error' : isActive ? 'running' : isDone ? 'done' : 'idle',
-    };
-  });
-
-  const extractionProgress = (() => {
-    const totalCount = 3;
-    if (effectiveBriefingStatus === 'uploading') {
-      return {
-        completedCount: 1,
-        totalCount,
-        currentStepLabel: copy.extraction.uploadStepLabel,
-        statusLabel: copy.extraction.uploadStatusLabel,
-      };
-    }
-
-    if (effectiveBriefingStatus === 'extracting') {
-      return {
-        completedCount: 2,
-        totalCount,
-        currentStepLabel: copy.extraction.extractingStepLabel,
-        statusLabel: copy.extraction.extractingStatusLabel,
-      };
-    }
-
-    if (effectiveBriefingStatus === 'ready') {
-      return {
-        completedCount: 3,
-        totalCount,
-        currentStepLabel: copy.extraction.completedStepLabel,
-        statusLabel: copy.extraction.completedStatusLabel,
-      };
-    }
-
-    return {
-      completedCount: 0,
-      totalCount,
-      currentStepLabel: copy.extraction.idleStepLabel,
-      statusLabel: copy.extraction.idleStatusLabel,
-    };
-  })();
-
-  const generationProgress = {
-    completedCount: effectiveCanonicalState === 'completed' ? toolConfig.steps.length : completedStepsForFlow.size,
-    totalCount: toolConfig.steps.length,
-    currentStepLabel: (() => {
-      const activeStep = currentRunningStep ?? nextAvailableStep ?? (pausedCheckpointStep && effectiveCanonicalState === 'paused-with-checkpoint' ? pausedCheckpointStep : null);
-      return activeStep ? formatStepLabel(activeStep) : null;
-    })(),
-    stepItems,
-    sessionId,
-    extractionProgress,
-  };
+  const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
+  const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
+  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
+    && !isStreamActive
+    && !extractionInProgress
+    && !extractionAlreadyReady
+    && inputRequirementMatrix.requiredEntriesSatisfied;
+  const isFormBusy = extractionInProgress || isGenerating || isStreamActive;
+  const isGenerationLocked = isFormLocked || isFormBusy;
 
   const fileFieldShape = Object.fromEntries(
     inputFiles.map((entry) => [entry.key, z.any().optional()]),
@@ -357,53 +259,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
   });
 
-  const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
-  const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
-    && !isStreamActive
-    && !extractionInProgress
-    && !extractionAlreadyReady
-    && inputRequirementMatrix.requiredEntriesSatisfied;
-  const isFormBusy = extractionInProgress || isGenerating || isStreamActive;
-  const isGenerationLocked = isFormLocked || isFormBusy;
-
   useEffect(() => {
     if (isFormBusy) {
       setIsFormLocked(false);
     }
   }, [isFormBusy]);
-
-  const lockedPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = isFormLocked
-    ? { label: copy.flow.progressAria.generationInProgress, disabled: true }
-    : undefined;
-  const generationInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = effectiveCanonicalState === 'running'
-    ? {
-      label: copy.flow.progressAria.generationInProgress,
-      disabled: true,
-    }
-    : undefined;
-  const extractionInProgressPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined = extractionInProgress
-    ? {
-      label: copy.primaryActionPolicy.startGenerationLabel,
-      disabled: true,
-    }
-    : undefined;
-  const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
-    !inputRequirementMatrix.requiredEntriesSatisfied
-      && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
-      ? {
-        label: copy.primaryActionPolicy.disabledLabel,
-        disabled: true,
-        tooltip: copy.primaryActionPolicy.disabledTooltip,
-      }
-      : undefined;
-  const extractionPrimaryOverride = canStartExtraction
-    ? {
-      label: copy.primaryActionPolicy.startGenerationLabel,
-      disabled: false,
-      tooltip: copy.extraction.startActionTooltip,
-    }
-    : undefined;
 
   const executePrimaryActionFromForm = (data: ToolPageFormValues & Record<string, unknown>) => {
     setFormState((prev) => ({
@@ -574,32 +434,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('country', formState.country ?? '');
   }, [formState.country, setValue]);
 
- const basePrimaryAction = lockedPrimaryOverride
-    ?? generationInProgressPrimaryOverride
-    ?? extractionInProgressPrimaryOverride
-    ?? matrixBlockingPrimaryOverride
-    ?? extractionPrimaryOverride
-    ?? derivePrimaryActionLabel(machineViewModel.primaryActionPolicy);
-  const isGenerationInProgressCta = generationInProgressPrimaryOverride !== undefined;
-  const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
-    ? handlePrimaryAction
-    : handleSubmit((data) => {
-      setIsFormLocked(true);
-      executePrimaryActionFromForm(data);
-    });
-
   const handleCancelWithLockReset = useCallback(() => {
     setIsFormLocked(false);
     handleCancelGeneration();
   }, [handleCancelGeneration]);
-
-  const unifiedPrimaryActionCta: NonNullable<ToolGenerationFlowVerticalProps['primaryActionCta']> = {
-    label: machineViewModel.primaryActionPolicy === 'open-last-artifact' ? copy.openSessionLabel : basePrimaryAction.label,
-    disabled: (basePrimaryAction.disabled ?? false) || isStreamActive,
-    isLoading: isStreamActive && !isGenerationInProgressCta,
-    onClick: handleUnifiedPrimaryActionClick,
-    ...(basePrimaryAction.tooltip ? { tooltip: basePrimaryAction.tooltip } : {}),
-  };
 
   return (
     <section className="ui-tool-page-template">
@@ -1113,16 +951,47 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             </form>
           </section>
 
+          {/* ── Right column: progress CTA ── */}
           <section className="ui-tool-column ui-tool-column-status">
-            <ToolGenerationFlowVertical
-              canonicalState={effectiveCanonicalState}
-              projectName={workspaceContext?.workspace.id ?? null}
-              errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-              inputFilePayload={inputFilePayload}
-              apiAcquisitionPayload={apiAcquisitionPayload}
-              generationProgress={generationProgress}
-              primaryActionCta={unifiedPrimaryActionCta}
-            />
+            <div className="ui-fv-root" role="region" aria-label="Stato generazione">
+              <div className="ui-fv-dashboard">
+                <section className="ui-fv-card ui-fv-card--progress">
+                  <div className="ui-fv-card-header">
+                    <span className="ui-fv-label">Generazione</span>
+                    <p className="workflow-status-text" aria-live="polite">
+                      {effectiveCanonicalState === 'completed'
+                        ? 'Completato'
+                        : effectiveCanonicalState === 'running'
+                          ? 'In corso...'
+                          : isFormLocked
+                            ? 'In preparazione...'
+                            : 'Pronto'}
+                    </p>
+                  </div>
+                  <div
+                    className={`workflow-preload-bar is-${effectiveCanonicalState === 'completed' ? 'completed' : effectiveCanonicalState === 'running' || isFormLocked ? 'active' : 'idle'}`}
+                    role="progressbar"
+                    aria-label="Progresso generazione"
+                    aria-valuenow={effectiveCanonicalState === 'completed' ? 100 : 0}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                  <button
+                    type="button"
+                    className={cx(uiPrimitives.button, 'ui-fv-session-button')}
+                    onClick={handleSubmit((data) => {
+                      setIsFormLocked(true);
+                      executePrimaryActionFromForm(data);
+                    })}
+                    disabled={isStreamActive || isFormLocked || effectiveCanonicalState === 'running' || (!inputRequirementMatrix.requiredEntriesSatisfied && machineViewModel.primaryActionPolicy !== 'open-last-artifact')}
+                    title={!inputRequirementMatrix.requiredEntriesSatisfied ? copy.primaryActionPolicy.disabledTooltip : undefined}
+                  >
+                    {isStreamActive ? copy.flow.loadingActionLabel : effectiveCanonicalState === 'running' ? copy.flow.progressAria.generationInProgress : isFormLocked ? copy.flow.progressAria.generationInProgress : copy.primaryActionPolicy.startGenerationLabel}
+                  </button>
+                </section>
+              </div>
+              {(dispatchError || machineViewModel.messages.error) && <p className={uiPrimitives.error} role="alert">{dispatchError ?? machineViewModel.messages.error}</p>}
+            </div>
           </section>
         </div>
       </div>

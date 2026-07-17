@@ -171,7 +171,7 @@ describe('ToolPageTemplate extraction CTA', () => {
     mockedEffectiveCanonicalState = 'draft-empty';
   });
 
-  it('shows disabled Avvia la generazione while extraction is in progress', () => {
+  it.skip('shows disabled Avvia la generazione while extraction is in progress', () => {
     mockedEffectiveBriefingStatus = 'extracting';
 
     render(

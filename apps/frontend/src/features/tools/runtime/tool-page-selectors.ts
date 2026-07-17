@@ -19,6 +19,7 @@ import {
   toolFileInstructionsRegistry,
   type ToolApiAcquisitionPolicyEntry,
   type ToolInputFilePolicyEntry,
+  type ToolInputFileRequiredness,
   type ToolFileInstructionsConfig,
   type ToolFormConfig,
   type ToolFormState,
@@ -622,12 +623,16 @@ export const deriveToolInputRequirementMatrix = ({
   completedFileKeys,
   apiAcquisitionStatus = [],
   includeApiAcquisition = true,
+  selectedAssetIds = [],
+  toolAssetInputs = [],
 }: {
   toolKey: SupportedTool;
   hasProjectSelected: boolean;
   completedFileKeys: readonly string[];
   apiAcquisitionStatus?: readonly ToolApiAcquisitionStatus[];
   includeApiAcquisition?: boolean;
+  selectedAssetIds?: readonly string[];
+  toolAssetInputs?: readonly { assetType: string; label: string; requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required' }[];
 }): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
@@ -662,7 +667,20 @@ export const deriveToolInputRequirementMatrix = ({
     satisfied: apiStatusByKey.get(apiInput.key) ?? false,
   }));
 
-  const entries = [...directEntries, ...fileEntries, ...apiEntries];
+  // ── Workspace knowledge asset entries (DDD-192: project-asset source family) ──
+  const selectedIds = new Set(selectedAssetIds);
+  const assetEntries: ToolInputRequirementMatrixEntry[] = toolAssetInputs
+    .filter((a) => a.requiredness !== 'never-required')
+    .map((a) => ({
+      key: `asset:${a.assetType}`,
+      label: a.label,
+      sourceFamily: 'project-asset',
+      requiredness: a.requiredness as ToolInputFileRequiredness,
+      // Satisfied when at least one asset is selected in the Knowledge section
+      satisfied: selectedIds.size > 0,
+    }));
+
+  const entries = [...directEntries, ...fileEntries, ...apiEntries, ...assetEntries];
   const missingRequiredEntries = entries.filter((entry) => (
     (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
     && !entry.satisfied

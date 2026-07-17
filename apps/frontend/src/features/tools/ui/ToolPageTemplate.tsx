@@ -79,12 +79,21 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   });
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
+  // ── Workspace context (project is auto-resolved from the workspace URL) ──
+  const workspaceContext = (() => {
+    try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      return useWorkspace();
+    } catch {
+      return null;
+    }
+  })();
+  const workspaceProjectId = workspaceContext?.workspace.id ?? '';
+
   const {
     toolConfig,
     formState,
     setFormState,
-    projects,
-    projectsLoading,
     briefingError,
     dispatchError,
     artifactsReloadError,
@@ -93,7 +102,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     machineViewModel,
     isGenerating,
     effectiveCanonicalState,
-    currentProject,
     isStreamActive,
     completedStepsForFlow,
     currentRunningStep,
@@ -119,6 +127,19 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     apiAcquisitionInputs,
   });
   const hasProjectSelected = formState.projectId.trim().length > 0;
+
+  // ── Auto-set projectId from workspace context ──
+  useEffect(() => {
+    if (workspaceProjectId && formState.projectId !== workspaceProjectId) {
+      setFormState((prev) => ({ ...prev, projectId: workspaceProjectId }));
+    }
+  }, [workspaceProjectId, formState.projectId, setFormState]);
+
+  const toolAssetInputs = useMemo(
+    () => (workspaceProjectId ? getToolAssetInputs(props.toolKey) : []),
+    [workspaceProjectId, props.toolKey],
+  );
+
   const completedFileKeys = [
     ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
@@ -129,6 +150,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     completedFileKeys,
     includeApiAcquisition: apiBindingStatusAdapter.enabled,
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
+    selectedAssetIds,
+    toolAssetInputs,
   });
   const hasToolInputFiles = inputFiles.length > 0;
   const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
@@ -237,7 +260,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
-    projectId: z.string().min(1, copy.form.validation.projectRequired),
+    projectId: z.string(),  // auto-resolved from workspace context
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
     titolo: z.string(),
@@ -597,32 +620,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 <p className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
 
               <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
-                <Controller
-                  name="projectId"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label={copy.form.projectLabel}
-                      disabled={projectsLoading || isGenerationLocked}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setFormState((prev) => ({ ...prev, projectId: e.target.value }));
-                      }}
-                      value={field.value}
-                      error={!!errors.projectId}
-                      helperText={errors.projectId?.message as string | undefined}
-                      fullWidth
-                    >
-                      <MenuItem value="">{projectsLoading ? copy.form.loadingProjects : copy.form.selectProject}</MenuItem>
-                      {projects.map((p) => (
-                        <MenuItem key={p.id} value={p.id}>
-                          {p.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
+                {/* Project is auto-resolved from workspace context — no selector needed */}
 
                 {isBlogArticleGeneratorTool ? null : (
                   <Controller
@@ -1118,7 +1116,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
-              projectName={currentProject?.name ?? null}
+              projectName={workspaceContext?.workspace.id ?? null}
               errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
               inputFilePayload={inputFilePayload}
               apiAcquisitionPayload={apiAcquisitionPayload}

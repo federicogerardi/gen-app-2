@@ -2,7 +2,7 @@
 
 ---
 status: active
-version: 1.6.0
+version: 2.0.0
 last-reviewed: 2026-07-17
 next-review-date: 2026-07-24
 owner: frontend-team
@@ -2177,6 +2177,258 @@ grep -q "Navigate.*to=\"/workspaces\"" apps/frontend/src/app/routing/app-router.
 
 ---
 
+## 📦 **PHASE 6: Artifact Promotion & Manual Asset Creation**
+
+*Bridges the gap between generated artifacts and the asset knowledge system*
+
+### **P6.1 - Artifact→Asset Promotion UI** ⏱️ 1.5 days | **Priority: HIGH**
+
+#### **P6.1.1 - Add promote button to SessionSummary detail page**
+**File**: `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+
+**Changes**:
+- For each artifact in the session summary, add a "Promote to asset" button (visible only when `status === 'completed'`)
+- On click, show a dialog/modal with:
+  - Asset type selector (dropdown of `ASSET_TYPES`)
+  - Label input (pre-filled with artifact name)
+  - Confirm button
+- Call `promoteArtifactToAsset()` from `asset-client.ts`
+- Show success/error feedback via `useFeedbackMessage`
+
+**Wireframe**:
+```
+┌─ Artifact: optin ─────────────────────────────────────┐
+│  [content preview...]                        [⬇️ dl]  │
+│  [📦 Promote to Asset]                                │
+└──────────────────────────────────────────────────────┘
+
+┌─ Artifact: vsl ──────────────────────────────────────┐
+│  [content preview...]                        [⬇️ dl]  │
+│  [📦 Promote to Asset]                                │
+│  👍 3   👎 1                                          │  ← P7 voting
+└──────────────────────────────────────────────────────┘
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "promoteArtifactToAsset" apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx
+```
+
+---
+
+### **P6.2 - Manual Asset Creation** ⏱️ 1 day | **Priority: HIGH**
+
+#### **P6.2.1 - Add manual asset creation form**
+**File**: `apps/frontend/src/features/workspace/ui/CreateAssetPrompt.tsx`
+
+**Changes**:
+When `producerTool === null` (no tool produces this asset type), instead of showing disabled text, render a simple form:
+- Text input for asset label
+- Textarea for asset content (optional, can be empty)
+- "Create asset" button that calls `createAsset()` with `source: 'manual'`
+
+This unblocks `persona`, `brand-voice`, and `creative-brief` which have no producing tools.
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "createAsset" apps/frontend/src/features/workspace/ui/CreateAssetPrompt.tsx
+```
+
+---
+
+### **P6.3 - Phase 6 Integration Test** ⏱️ 0.5 day | **Priority: HIGH**
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run build
+npm --workspace apps/frontend run test
+grep -q "promoteArtifactToAsset" apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx
+grep -q "createAsset" apps/frontend/src/features/workspace/ui/CreateAssetPrompt.tsx
+```
+
+---
+
+### **P6 Acceptance Criteria**
+
+- [ ] **Promote Button**: Each artifact in SessionSummary has a "Promote to asset" button
+- [ ] **Promote Dialog**: Asset type selector + label input + confirm
+- [ ] **Promote Success**: Asset created with `source: 'generated'`, linked to artifact
+- [ ] **Manual Creation**: `persona`, `brand-voice`, `creative-brief` can be created via form
+- [ ] **Feedback**: Success/error messages shown to user
+- [ ] **No Regression**: Existing artifact download/relaunch still works
+
+---
+
+## 🗳️ **PHASE 7: Feedback/Voting System**
+
+*Enables quality scoring per step to improve LLM instructions over time*
+
+### **P7.1 - feedbackEnabled Contract Flag** ⏱️ 0.5 day | **Priority: HIGH**
+
+#### **P7.1.1 - Add feedbackEnabled to step definitions**
+**File**: `packages/contracts/src/tool-workflows.ts`
+
+**Changes**:
+- Add optional `feedbackEnabled?: boolean` to the step definition type
+- Default: `true` only for the **last step** of each tool (explicit)
+- For tools with intermediate votable steps (e.g., `geometric`), set `true` on specific steps
+
+```ts
+// Example for funnel-pages
+steps: [
+  { key: 'optin', dependencies: [], feedbackEnabled: false },
+  { key: 'quiz', dependencies: ['optin'], feedbackEnabled: false },
+  { key: 'vsl', dependencies: ['optin', 'quiz'], feedbackEnabled: true },  // finale
+],
+
+// Example for geometric (intermediate votable steps)
+steps: [
+  { key: 'serp-crawling', dependencies: [], feedbackEnabled: false },
+  { key: 'competitor-scoring', dependencies: ['serp-crawling'], feedbackEnabled: false },
+  { key: 'strategic-reporting', dependencies: [...], feedbackEnabled: true },
+  { key: 'unified-report', dependencies: [...], feedbackEnabled: true },
+],
+```
+
+**Validation**:
+```bash
+npm --workspace apps/backend run typecheck
+grep -q "feedbackEnabled" packages/contracts/src/tool-workflows.ts
+```
+
+---
+
+### **P7.2 - Backend Feedback API** ⏱️ 1 day | **Priority: HIGH**
+
+#### **P7.2.1 - Create feedback HTTP endpoint**
+**Files**:
+- `apps/backend/src/lib/runtime/auth-http/tools/tools-routes.ts`
+- `apps/backend/src/lib/runtime/auth-http/tools/tools-asset-handlers.ts`
+
+**Changes**:
+- Add `POST /api/tools/feedback` route
+- Handler: validates `artifactId`, `rating` ('positive'|'negative'), optional `comment`
+- Requires authenticated session
+- Calls `recordFeedback()` adapter (already implemented)
+- Returns `{ ok: true, netScore: number }`
+
+**Validation**:
+```bash
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test
+grep -q "handleRecordFeedback" apps/backend/src/lib/runtime/auth-http/tools/tools-asset-handlers.ts
+```
+
+---
+
+### **P7.3 - Frontend Voting UI** ⏱️ 1.5 days | **Priority: HIGH**
+
+#### **P7.3.1 - Add thumbs-up/down to SessionSummary detail page**
+**File**: `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+
+**Changes**:
+- For each artifact whose step has `feedbackEnabled: true`, render voting buttons
+- Use `TOOL_WORKFLOW_DEFINITIONS[toolKey].steps` to check `feedbackEnabled`
+- Thumbs-up / Thumbs-down buttons
+- Show current net score
+- Call `POST /api/tools/feedback` on vote
+- Disable after voting (one vote per user per artifact)
+
+**Wireframe**:
+```
+┌─ Step: vsl (feedbackEnabled: true) ──────────────────┐
+│  [content preview...]                        [⬇️ dl]  │
+│  [📦 Promote]  👍 5  👎 1                             │
+└──────────────────────────────────────────────────────┘
+
+┌─ Step: optin (feedbackEnabled: false) ───────────────┐
+│  [content preview...]                        [⬇️ dl]  │
+│  [📦 Promote]                                         │  ← no vote buttons
+└──────────────────────────────────────────────────────┘
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "feedbackEnabled" apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx
+```
+
+---
+
+### **P7.4 - Backend Scoring Integration** ⏱️ 1 day | **Priority: MEDIUM**
+
+#### **P7.4.1 - Expose feedback score in artifact queries**
+**File**: `apps/backend/src/lib/adapters/asset.adapter.ts`
+
+**Changes**:
+- Add `getArtifactFeedbackScore()` to artifact list/detail queries
+- Return `feedbackScore: { positive: number, negative: number, netScore: number }` per artifact
+- Formula: `netScore = positive * 10 - negative * 5` (DDD-205)
+
+**Validation**:
+```bash
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test
+```
+
+---
+
+### **P7.5 - Phase 7 Integration Test** ⏱️ 0.5 day | **Priority: HIGH**
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run build
+npm --workspace apps/frontend run test
+npm --workspace apps/backend run typecheck
+npm --workspace apps/backend run test
+```
+
+---
+
+### **P7 Acceptance Criteria**
+
+- [ ] **Contract**: `feedbackEnabled` flag defined per step in `TOOL_WORKFLOW_DEFINITIONS`
+- [ ] **Backend API**: `POST /api/tools/feedback` creates/updates rating
+- [ ] **Backend Score**: `getArtifactFeedbackScore()` returns positive/negative/net
+- [ ] **Frontend UI**: Thumbs-up/down buttons on votable artifacts only
+- [ ] **One Vote**: User can vote once per artifact (DB constraint enforced)
+- [ ] **Score Display**: Net score shown next to vote buttons
+- [ ] **No Regression**: Existing artifact functionality unaffected
+
+---
+
+## 🔧 **PHASE 8: Bug Fixes & Hardening** ✅ COMPLETED 2026-07-17
+
+*Backend fixes discovered during integration testing*
+
+### **P8.1 - Backend Asset Routes Reordering** ✅ DONE
+
+**Problem**: Route dispatch iterates in order. Regex `/^\/api\/tools\/assets\/([^/]+)$/` was matching `/api/tools/assets/compatible` and `/api/tools/assets/gaps` before the dedicated string-pattern routes could be reached.
+
+**Fix**: Moved `compatible` and `gaps` discovery routes to the top of the asset routes block, before the regex catch-all patterns.
+
+**File**: `apps/backend/src/lib/runtime/auth-http/tools/tools-routes.ts`
+**Commit**: `16a7b39`
+
+---
+
+### **P8.2 - Pre-existing TS Errors in Backend Tests** ✅ DONE
+
+**Fixes**:
+- Type `expectedTools` array as `ToolKey[]` in `runtime.asset-contracts.test.ts`
+- Remove unused destructured variable
+- Add null-safe access for `resolveFieldMapping` result
+- Add optional chaining for `logs` array access
+
+**Files**: `runtime.asset-contracts.test.ts`, `runtime.asset-injection-resolver.test.ts`
+**Commit**: `609f3cd`
+
+---
+
 ## 📊 **Implementation Timeline & Resources**
 
 ### **Critical Path Analysis**
@@ -2212,14 +2464,30 @@ P5 Polish (2-3 days) [AFTER P1-P4]
 ├─ P5.3 Legacy Cleanup (0.5 day)
 ├─ P5.4 Accessibility Audit (0.5 day) [PARALLEL with P5.3]
 └─ P5.5 Integration Test (0.5 day)
+
+P6 Promotion & Manual Assets (3-4 days) [AFTER P1-P5]
+├─ P6.1 Artifact→Asset Promotion UI (1.5 days)
+├─ P6.2 Manual Asset Creation (1 day) [PARALLEL with P6.1]
+└─ P6.3 Integration Test (0.5 day)
+
+P7 Feedback/Voting System (4-5 days) [AFTER P1-P6]
+├─ P7.1 feedbackEnabled Contract Flag (0.5 day)
+├─ P7.2 Backend Feedback API (1 day) [AFTER P7.1]
+├─ P7.3 Frontend Voting UI (1.5 days) [AFTER P7.2]
+├─ P7.4 Backend Scoring Integration (1 day) [PARALLEL with P7.3]
+└─ P7.5 Integration Test (0.5 day)
+
+P8 Bug Fixes & Hardening (1 day) [AFTER P1-P5]
+├─ P8.1 Backend Asset Routes Reordering (0.5 day) ✅ DONE
+└─ P8.2 Pre-existing TS Errors (0.5 day) ✅ DONE
 ```
 
-**Total Duration**: 28-35 days
-**Critical Path**: P1 → P2A → P3 → P5 (21-26 days)
-**Parallelizable Work**: P1.2, P2B, P3.2, P4.1/P4.2, P5.2 (up to 7-9 days savings)
-**Total Atomic Tasks**: 8 (Phase 1) + 4 (Phase 2A) + 6 (Phase 2B) + 10 (Phase 3) + 8 (Phase 4) + 10 (Phase 5) = 46 tasks
-**Completed**: All phases (46 tasks) ✅ — 2026-07-17
-**Remaining**: None
+**Total Duration**: 39-50 days
+**Critical Path**: P1 → P2A → P3 → P5 → P6 → P7 (31-40 days)
+**Parallelizable Work**: P1.2, P2B, P3.2, P4.1/P4.2, P5.2, P6.2, P7.4 (up to 10-12 days savings)
+**Total Atomic Tasks**: 46 (Phases 1-5) + 3 (Phase 6) + 5 (Phase 7) + 2 (Phase 8) = 56 tasks
+**Completed**: Phases 1-5 + Phase 8 (48 tasks) ✅ — 2026-07-17
+**Remaining**: Phases 6, 7 (8 tasks)
 
 ### **Resource Requirements**
 

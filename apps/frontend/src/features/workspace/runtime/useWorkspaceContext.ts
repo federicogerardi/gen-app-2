@@ -71,7 +71,7 @@ export const useWorkspaceContext = (
     setAllAssetsError(null);
     try {
       const result = await listAssets(workspaceId, { status: 'active', limit: 100 });
-      setAllAssets(result.assets);
+      setAllAssets(result.assets ?? []);
     } catch (err) {
       setAllAssetsError(err instanceof Error ? err.message : 'Failed to load assets');
     } finally {
@@ -93,7 +93,7 @@ export const useWorkspaceContext = (
   const effectiveError = hasToolKey ? assetsQuery.error : allAssetsError;
 
   const qualityGateStatus = useMemo((): 'healthy' | 'needs-attention' | 'blocked' => {
-    const assets = effectiveAssets;
+    const assets = effectiveAssets || [];
     if (assets.length === 0) return 'healthy';
     const hasStale = assets.some(a => a.staleUpstream);
     if (hasStale) return 'needs-attention';
@@ -101,14 +101,14 @@ export const useWorkspaceContext = (
   }, [effectiveAssets]);
 
   const overallQualityScore = useMemo(() => {
-    const assets = effectiveAssets;
+    const assets = effectiveAssets || [];
     if (assets.length === 0) return 0;
     const totalScore = assets.reduce((sum, a) => sum + (a.staleUpstream ? 50 : 100), 0);
     return Math.round(totalScore / assets.length);
   }, [effectiveAssets]);
 
   const mappedAssets = useMemo(
-    () => effectiveAssets.map(mapAssetDto),
+    () => (effectiveAssets || []).map(mapAssetDto),
     [effectiveAssets],
   );
 

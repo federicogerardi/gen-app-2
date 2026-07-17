@@ -91,6 +91,10 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
             size="small"
             className="asset-group-section__expand-button"
             aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpanded(!isExpanded);
+            }}
           >
             {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </IconButton>

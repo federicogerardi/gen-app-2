@@ -71,6 +71,7 @@ export const useWorkspaceContext = (
     setAllAssetsError(null);
     try {
       const result = await listAssets(workspaceId, { status: 'active', limit: 100 });
+      if (import.meta.env.DEV) console.log('[useWorkspaceContext] listAssets result:', result);
       setAllAssets(result.assets ?? []);
     } catch (err) {
       setAllAssetsError(err instanceof Error ? err.message : 'Failed to load assets');

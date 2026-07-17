@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.0.0
+version: 1.1.0
 last-reviewed: 2026-07-17
 next-review-date: 2026-07-24
 owner: ai-execution-engine
@@ -16,52 +16,60 @@ goal: Wire asset selection from FE to LLM prompt injection in BE generation flow
 FE AssetKnowledgePanel  ──→  onAssetSelect={() => {}}  ✗  callback vuoto
                                     │
                                     ▼
-         assetReferences NON inviati nella richiesta orchestrata
+         assetReferences NON inviati nella richiesta di stream
                                     │
                                     ▼
-BE asset-injection-resolver.ts esiste (419 linee) ma MAI chiamato da generation flow
+BE generationActor (generation-actor.ts, XState fromPromise)
+  chiama context.adapters.generate.generateText()
+  MA asset-injection-resolver.ts MAI invocato
 ```
 
-Il risolutore `asset-injection-resolver.ts` (419 linee) è **completamente implementato** con:
-- Snapshot semantics (DDD-196): risoluzione al momento della generazione
-- Field mappings (DDD-207): estrazione strutturata da asset content
-- 3 modalità di injection: `prepend`, `append`, `replace`
-- Staleness checking (DDD-198): warning per asset con upstream obsoleto
-- Structured logging (DDD-205): tracciamento injection per quality scoring
+Il risolutore `asset-injection-resolver.ts` (419 linee) è completamente implementato ma isolato dal flusso di generazione.
 
-**Ma non è mai chiamato durante la generazione reale.**
+## Revisione XState v5
 
----
+La macchina di generazione usa il pattern XState v5 `setup()`:
 
-## Architettura del flusso
+```ts
+// generation-system.definition.ts
+generationSystemMachine = setup({
+  types: {
+    context: {} as GenerationMachineContext,
+    input: {} as GenerationSystemInput,
+    events: {} as GenerationSystemEvent,
+  },
+  actions: generationSystemActions,
+  guards: generationSystemGuards,
+  actors: generationSystemActors,
+}).createMachine({
+  context: ({ input }) => ({
+    ...buildGenerationCoreDefaults(),
+    ...buildGenerationRuntimeDefaults(),
+    ...buildGenerationMetricsDefaults(),
+    ...buildGenerationInfraContext(input.adapters, input.runtime),
+    ...input.initialContext,       // ← qui si iniettano campi extra
+  }),
+  states: { ... },
+});
 
+// generation-actor.ts — dove avviene la generazione effettiva
+generationActor = fromPromise(async ({ input }) => {
+  const { context } = input;
+  const result = await context.adapters.generate.generateText({
+    requestId: context.requestId,
+    model: context.model,
+    requestInput: context.requestInput,  // Record<string, unknown> — contiene prompt e params
+  });
+});
 ```
-FE                          BE
-─────────────────────────────────────────────────
-AssetKnowledgePanel
-  │ checkbox ✓              
-  ▼
-selectedAssetIds[]          
-  │                         
-  ▼ POST /generation/stream 
-  │ assetReferences: [...]  
-  │                         ──→ http-sse-request-adapter.ts
-  │                               │ parse body.assetReferences
-  │                               ▼
-  │                             generation-system.machine.ts
-  │                               │ resolveToolPrompt →
-  │                               │ assetSnapshotResolver →
-  │                               │ resolveAssetInjectedPrompt() →
-  │                               │ finalPrompt → LLM
-  │                             ◄──
-  ◄── SSE stream
-```
 
-**Decisione architetturale**: Gli `assetReferences` vanno nella richiesta `POST /generation/stream`, **NON** nell'orchestrate (`POST /api/tools/orchestrate`), perché:
-- L'orchestrate risolve solo dipendenze tra step, non injection
-- Snapshot semantics: gli asset vanno risolti al momento della generazione (DDD-196)
-- Separazione pulita: orchestrate = cosa serve da step precedenti, stream = cosa iniettare nel prompt
-- L'orchestrate può essere servito da cache (idempotency) senza asset data
+**Punti di inserimento chiave**:
+
+| Cosa | Dove | Come |
+|---|---|---|
+| `assetReferences` come input | `initialContext` in `GenerationSystemInput` | Campo extra nel `GenerationRuntimeContext` |
+| `assetSnapshotResolver` | `GenerationAdapters` | Nuovo campo nell'interfaccia adapters |
+| Injection nel prompt | Dentro `generationActor` | Prima di `generateText()`, modificare `requestInput` con il prompt iniettato |
 
 ---
 
@@ -70,16 +78,11 @@ selectedAssetIds[]
 **File**: `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
 **Complessità**: MEDIUM
 
-**Cambiamento**: Sostituire `onAssetSelect={() => {}}` con uno state che traccia gli assetId selezionati.
-
 **Prima**:
 ```tsx
 <AssetKnowledgePanel
-  workspaceAssets={workspace.assets}
-  toolAssetInputs={assetInputs}
-  projectId={workspace.id}
-  onAssetSelect={() => {}}                    // ← vuoto
-  onCreateAssetAction={handleCreateAssetAction}
+  onAssetSelect={() => {}}   // ← vuoto
+  ...
 />
 ```
 
@@ -88,292 +91,252 @@ selectedAssetIds[]
 const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 // ...
 <AssetKnowledgePanel
-  workspaceAssets={workspace.assets}
-  toolAssetInputs={assetInputs}
-  projectId={workspace.id}
-  onAssetSelect={setSelectedAssetIds}          // ← reale
-  onCreateAssetAction={handleCreateAssetAction}
+  onAssetSelect={setSelectedAssetIds}
+  ...
 />
 ```
 
-Passare `selectedAssetIds` al context di `useToolPage` in modo che siano disponibili nella dispatch di generazione.
+Passare `selectedAssetIds` al controller di generazione (`useToolPage`).
 
 ---
 
-## Task 2: FE — Inviare selectedAssetIds nella richiesta di stream
+## Task 2: FE — Inviare assetReferences nel POST /generation/stream
 
-**File**: `apps/frontend/src/features/tools/runtime/useToolPage.ts`
+**File**: `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts`
 **Complessità**: ALTO
 
-Il `useToolPage` hook (o il controller equivalente) gestisce la dispatch di generazione via `POST /generation/stream`.
-
-**Cambiamento**: Aggiungere `selectedAssetIds` al payload della richiesta stream:
+Aggiungere `assetReferences` al payload della richiesta di stream:
 
 ```ts
-// In startGeneration() o handlePrimaryAction():
 const assetReferences = selectedAssetIds.map(assetId => ({
   assetId,
   usageIntent: 'injection' as const,
 }));
 
-await fetch('/generation/stream', {
-  method: 'POST',
-  body: JSON.stringify({
-    projectId,
-    toolKey,
-    stepKey: targetStep,
-    // ... altri campi esistenti
-    assetReferences: assetReferences.length > 0 ? assetReferences : undefined,
-  }),
+// Nel payload di POST /generation/stream:
+{
+  projectId,
+  toolKey,
+  stepKey,
+  requestInput: { ... },
+  assetReferences: assetReferences.length > 0 ? assetReferences : undefined,
+}
+```
+
+---
+
+## Task 3: BE — Ricevere assetReferences nello stream handler
+
+**File**: `apps/backend/src/lib/runtime/auth-http/generation/` (il file che gestisce `POST /generation/stream`)
+**Complessità**: BASSO
+
+Estrarre e validare `assetReferences` dal body, passarli come `initialContext` alla macchina:
+
+```ts
+const assetReferences = body.assetReferences ?? [];
+
+const actor = createActor(generationSystemMachine, {
+  input: {
+    adapters: generationAdapters,
+    initialContext: {
+      assetReferences,  // ← XState v5: context({ input }) lo merge
+    },
+  },
 });
 ```
 
-**Attenzione**: Il payload stream è probabilmente gestito via XState events. Occorre capire se `useToolPage` delega a `useToolPageRunController` o a `GenerationWorkspaceProvider`. Il `assetReferences` va aggiunto all'event TypeScript/XState che innesca la generazione.
-
-**Opzioni di implementazione**:
-1. **Aggiungere al context di useToolPageRunController**: se il controller ha un `input` object, aggiungere `assetReferences` lì
-2. **Passare via GenerationWorkspaceProvider**: aggiungere `assetReferences` allo stato condiviso
-3. **Modificare l'evento di dispatch**: se la generazione usa un evento XState `START_GENERATION`, aggiungere `assetReferences` al payload dell'evento
-
-Da verificare nel codice esistente quale pattern è più coerente.
-
 ---
 
-## Task 3: BE — Ricevere assetReferences nel generation stream
+## Task 4: BE — Aggiungere assetReferences al GenerationRuntimeContext
 
-**File**: `apps/backend/src/lib/runtime/auth-http/generation/http-sse-request-adapter.ts`
+**File**: `apps/backend/src/lib/machines/generation-system.context-types.ts`
 **Complessità**: BASSO
 
-**Cambiamento**: Nel parsing della richiesta `POST /generation/stream`, estrarre e validare `assetReferences`:
-
 ```ts
-// Accanto al parsing di projectId, toolKey, stepKey:
-const assetReferences: AssetReferenceInput[] = Array.isArray(body.assetReferences)
-  ? body.assetReferences.filter(ref => 
-      typeof ref.assetId === 'string' && ref.assetId.length > 0
-    )
-  : [];
+import type { AssetReferenceInput } from '../runtime/asset-injection-resolver';
 
-// Validazione
-import { validateAssetReferences } from '../../runtime/asset-injection-resolver';
-
-if (assetReferences.length > 0) {
-  const validation = validateAssetReferences(assetReferences);
-  if (!validation.valid) {
-    writeError(response, 400, 'bad_request', 
-      `Invalid assetReferences: ${validation.errors.join('; ')}`);
-    return;
-  }
-}
+export type GenerationRuntimeContext = {
+  // ...esistenti
+  readonly assetReferences?: AssetReferenceInput[];
+};
 ```
-
-Passare `assetReferences` al `GenerationSystemDependencies` o all'evento di avvio della macchina XState.
 
 ---
 
-## Task 4: BE — Iniettare asset nel prompt prima della chiamata LLM
+## Task 5: BE — Aggiungere assetSnapshotResolver ai GenerationAdapters
 
-**File**: `apps/backend/src/lib/machines/generation-system.machine.ts`
+**File**: `apps/backend/src/lib/adapters/generation.adapters.ts`
 **Complessità**: MEDIO
 
-**Punto di inserimento**: Dopo la risoluzione del prompt (`resolveToolPrompt` / `readPromptFile`) e **prima** della chiamata LLM (`llmGenerate` actor).
-
-**Cambiamento**:
-
 ```ts
-// Dopo resolveToolPrompt:
-const basePrompt = resolvedPrompt; // prompt risolto da file markdown
+import type { AssetSnapshotResolver } from '../runtime/asset-injection-resolver';
 
-// Se ci sono assetReferences, risolvere e iniettare
-let finalPrompt = basePrompt;
-
-if (context.assetReferences?.length > 0) {
-  const resolvedAssets: ResolvedAssetContent[] = [];
-  
-  for (const ref of context.assetReferences) {
-    const snapshot = await deps.assetSnapshotResolver.getAssetSnapshot(ref.assetId);
-    if (snapshot) {
-      resolvedAssets.push(snapshot);
-    }
-  }
-
-  // Generare injection directives
-  const directives: InjectionDirectiveInput[] = resolvedAssets.map(asset => ({
-    assetId: asset.assetId,
-    stepKey: context.currentStep,
-    injectionMode: 'prepend' as const,
-    fieldMappingKey: `${asset.assetType}→${context.toolKey}`,
-  }));
-
-  // Applicare injection
-  finalPrompt = resolveAssetInjectedPrompt(
-    basePrompt,
-    resolvedAssets,
-    directives,
-    context.currentStep,
-  );
-
-  // Logging
-  const logger = createAssetInjectionLogger();
-  for (const asset of resolvedAssets) {
-    logger.logInjectionResolved({
-      assetId: asset.assetId,
-      assetType: asset.assetType,
-      contentLength: asset.content.length,
-    });
-    if (asset.staleUpstream) {
-      logger.logStalenessWarning({
-        assetId: asset.assetId,
-        upstreamLabel: asset.upstreamLabel ?? 'unknown',
-        versionNumber: asset.versionNumber,
-      });
-    }
-  }
-}
-
-// Usare finalPrompt invece di basePrompt nella chiamata LLM
-```
-
-**Assunzione**: `context.assetReferences` è disponibile come parte del context della macchina XState. Se non lo è, va aggiunto al `GenerationSystemContext`.
-
----
-
-## Task 5: BE — Collegare assetSnapshotResolver ai repository DB
-
-**File**: 
-- `apps/backend/src/lib/adapters/asset.adapter.ts`
-- `apps/backend/src/lib/machines/generation-system.types.ts`
-- `apps/backend/src/lib/machines/generation-system.context-types.ts`
-
-**Complessità**: MEDIO
-
-### 5a: Aggiungere al GenerationSystemDependencies
-
-```ts
-// In generation-system.types.ts:
-export interface GenerationSystemDependencies {
+export interface GenerationAdapters {
   // ... esistenti
-  assetSnapshotResolver: AssetSnapshotResolver;
+  readonly assetSnapshotResolver: AssetSnapshotResolver;
 }
 ```
 
-### 5b: Creare il resolver al bootstrap
-
-Nel file che costruisce la macchina XState (probabilmente `generation-system.machine.ts` o un file di factory):
+Il resolver va costruito al bootstrap, prima di creare la macchina:
 
 ```ts
-import { createAssetSnapshotResolver } from '../runtime/asset-injection-resolver';
-
+// In server.ts o dove si costruiscono i GenerationAdapters:
 const assetSnapshotResolver = createAssetSnapshotResolver(
+  // getAssetById → usa pool.query('SELECT * FROM assets WHERE id = $1')
   async (id) => {
-    // Usare l'adapter esistente per fetchare asset
-    const asset = await deps.getAssetById(id);
-    if (!asset) return null;
-    return {
-      assetId: asset.assetId,
-      assetType: asset.assetType,
-      label: asset.label,
-      content: asset.content,
-      currentVersion: asset.currentVersion,
-      staleUpstream: asset.staleUpstream,
-    };
+    const result = await pool.query('SELECT * FROM assets WHERE id = $1', [id]);
+    // ... mapping
   },
+  // getAssetVersions
   async (assetId) => {
-    // Usare listAssetVersions
-    const response = await deps.listAssetVersions(assetId);
-    return response.versions;
+    const result = await pool.query('SELECT * FROM asset_versions WHERE asset_id = $1', [assetId]);
+    // ... mapping
   },
+  // getAssetGroupById
   async (groupId) => {
-    // Fetch asset group
-    const group = await deps.getAssetGroupById(groupId);
-    return group ? { assetIds: group.assetIds } : null;
+    const result = await pool.query('SELECT * FROM asset_groups WHERE id = $1', [groupId]);
+    // ... mapping
   },
 );
 ```
 
-### 5c: Aggiungere assetReferences al context
+---
+
+## Task 6: BE — Iniettare asset nel prompt dentro generationActor
+
+**File**: `apps/backend/src/lib/machines/generation-actor.ts`
+**Complessità**: MEDIO
+
+Il punto esatto: **prima** di chiamare `context.adapters.generate.generateText()`.
 
 ```ts
-// In generation-system.context-types.ts:
-export interface GenerationSystemContext {
-  // ... esistenti
-  assetReferences?: AssetReferenceInput[];
-}
+import { resolveAssetInjectedPrompt, createAssetInjectionLogger } from '../runtime/asset-injection-resolver';
+import type { ResolvedAssetContent, InjectionDirectiveInput } from '../runtime/asset-injection-resolver';
+
+export const generationActor = fromPromise(
+  async ({ input }: { input: { context: GenerationMachineContext } }): Promise<GenerateDoneOutput> => {
+    const { context } = input;
+
+    // ═══════════════════════════════
+    // Asset injection (NUOVO)
+    // ═══════════════════════════════
+    let resolvedPrompt = context.requestInput as Record<string, unknown>;
+    
+    if (context.assetReferences?.length > 0) {
+      const adapter = context.adapters.assetSnapshotResolver;
+      const resolvedAssets: ResolvedAssetContent[] = [];
+
+      for (const ref of context.assetReferences) {
+        const snapshot = await adapter.getAssetSnapshot(ref.assetId);
+        if (snapshot) {
+          resolvedAssets.push(snapshot);
+        }
+      }
+
+      if (resolvedAssets.length > 0) {
+        const directives: InjectionDirectiveInput[] = resolvedAssets.map(asset => ({
+          assetId: asset.assetId,
+          stepKey: (context as any).stepKey ?? '',
+          injectionMode: 'prepend' as const,
+          fieldMappingKey: `${asset.assetType}→${context.toolKey}`,
+        }));
+
+        const basePrompt = typeof resolvedPrompt.prompt === 'string' ? resolvedPrompt.prompt : '';
+        const injectedPrompt = resolveAssetInjectedPrompt(
+          basePrompt,
+          resolvedAssets,
+          directives,
+          (context as any).stepKey ?? '',
+        );
+
+        resolvedPrompt = { ...resolvedPrompt, prompt: injectedPrompt };
+      }
+    }
+    // ═══════════════════════════════
+
+    const result = await context.adapters.generate.generateText({
+      requestId: context.requestId,
+      model: context.model,
+      requestInput: resolvedPrompt,
+    });
+    // ...
+  },
+);
 ```
+
+### Nota su `context.stepKey` e `context.toolKey`
+
+Se `stepKey` e `toolKey` non sono campi diretti del `GenerationMachineContext`, sono probabilmente dentro `requestInput`:
+
+```ts
+const toolKey = context.toolKey ?? (context.requestInput as Record<string, unknown>).toolKey as string;
+const stepKey = (context.requestInput as Record<string, unknown>).stepKey as string;
+```
+
+Questo va verificato nel codice reale e adattato.
 
 ---
 
-## Task 6: Integration test
+## Task 7: Integration test
 
 **Complessità**: MEDIO
 
-### 6a: Test unitario del resolver (già esistente)
-
-Verificare che i test esistenti in `runtime.asset-injection-resolver.test.ts` passino dopo le modifiche (dovrebbero già passare — verificare).
-
-### 6b: Test di integrazione end-to-end
-
 ```ts
 test('selected assets are injected into generation prompt', async () => {
-  // 1. Creare un asset nel DB
   const asset = await createTestAsset({ 
     assetType: 'competitor-analysis', 
-    content: '{"title": "Test Angle", "hook": "Test Hook"}' 
+    content: '{"title": "Test Angle"}' 
   });
 
-  // 2. Avviare generazione con assetReferences
-  const result = await generateContent({
-    toolKey: 'angle-generator',
-    stepKey: 'context-and-angle-matrix',
-    assetReferences: [{ assetId: asset.id, usageIntent: 'injection' }],
+  const machine = generationSystemMachine.provide({
+    actors: {
+      generateText: fromPromise(async ({ input }) => {
+        // Cattura il prompt che sarebbe stato inviato all'LLM
+        const reqInput = input.context.requestInput as Record<string, unknown>;
+        const prompt = reqInput.prompt as string;
+        expect(prompt).toContain('Test Angle');
+        expect(prompt).toContain('## Angle:');
+        return { content: 'mock output' };
+      }),
+    },
   });
 
-  // 3. Verificare che il prompt contenga il contenuto dell'asset
-  expect(result.prompt).toContain('Test Angle');
-  expect(result.prompt).toContain('## Angle:');
-});
-
-test('stale asset triggers warning during injection', async () => {
-  const asset = await createTestAsset({ 
-    assetType: 'angle', 
-    staleUpstream: true 
+  const actor = createActor(machine, {
+    input: {
+      adapters: mockAdapters,
+      initialContext: {
+        toolKey: 'angle-generator' as any,
+        requestInput: { prompt: 'Original prompt', stepKey: 'context-and-angle-matrix' },
+        assetReferences: [{ assetId: asset.id, usageIntent: 'injection' }],
+      },
+    },
   });
-
-  const { logs } = await generateContentWithCapturedLogs({
-    assetReferences: [{ assetId: asset.id, usageIntent: 'injection' }],
-  });
-
-  expect(logs).toContain('[AssetStalenessPolicy] Stale asset used');
+  actor.start();
+  actor.send({ type: 'START_GENERATION' });
 });
 ```
-
-### 6c: Smoke test manuale
-
-1. Aprire `meta-ads` in un workspace con asset `angle` disponibili
-2. Selezionare un asset angle nella checkbox
-3. Avviare generazione
-4. Verificare nel prompt LLM (log backend) che l'angle sia stato iniettato
-5. Verificare che la generazione produca output coerente con l'input iniettato
 
 ---
 
 ## Riepilogo task
 
-| # | Task | File principale | Complessità | Dipendenze |
-|---|---|---|---|---|
-| T1 | Store asset selection state | `ToolPageTemplate.tsx` | MEDIUM | — |
-| T2 | Send assetReferences in stream request | `useToolPage.ts` | ALTO | T1 |
-| T3 | Parse assetReferences in stream handler | `http-sse-request-adapter.ts` | BASSO | — |
-| T4 | Inject assets into prompt before LLM call | `generation-system.machine.ts` | MEDIO | T3 |
-| T5 | Connect assetSnapshotResolver to DB | `asset.adapter.ts` + types | MEDIO | T4 |
-| T6 | Integration tests | test files | MEDIO | T5 |
+| # | File | Complessità | XState relevancy |
+|---|---|---|---|
+| T1 | `ToolPageTemplate.tsx` | MEDIUM | — |
+| T2 | `useToolPageRunController.ts` | ALTO | — |
+| T3 | Stream handler | BASSO | `createActor(machine, { input: { initialContext: { assetReferences } } })` |
+| T4 | `generation-system.context-types.ts` | BASSO | Aggiungere a `context` type |
+| T5 | `generation.adapters.ts` | MEDIO | `GenerationAdapters.assetSnapshotResolver` |
+| T6 | `generation-actor.ts` | MEDIO | `fromPromise` → iniettare prima di `generateText` |
+| T7 | Integration test | MEDIO | Mock `generateText` actor via `machine.provide()` |
 
-### Ordine esecuzione
+### Ordine
 
 ```
-T1 ──→ T2 ──→ T6
-T3 ──→ T4 ──→ T5 ──┘
+T1 ──→ T2 ──→ T7
+T4 ──→ T5 ──→ T6 ──┘
+T3 ──→ T5 ──┘
 ```
 
-**Durata stimata**: 3-4 giorni
-**Critical path**: T3 → T4 → T5 → T6 (2-3 giorni)
+**Critical path**: T4 → T5 → T6 → T7 (2-3 giorni)
+**Durata totale**: 3-4 giorni

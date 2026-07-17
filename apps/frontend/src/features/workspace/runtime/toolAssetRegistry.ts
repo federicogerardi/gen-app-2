@@ -19,6 +19,7 @@ const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   'article': 'Article',
   'script': 'Script',
   'description': 'Description',
+  'brief': 'Brief',
 };
 
 export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntry[] => {
@@ -28,7 +29,7 @@ export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntr
   return contract.consumes.map(assetType => ({
     assetType,
     label: ASSET_TYPE_LABELS[assetType] || assetType,
-    requiredness: 'always-required' as const,
+    requiredness: assetType === 'brief' ? 'optional-by-tool-setting' as const : 'always-required' as const,
   }));
 };
 

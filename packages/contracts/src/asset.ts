@@ -48,6 +48,7 @@ export const ASSET_TYPES = [
   'article',
   'script',
   'description',
+  'brief',
 ] as const;
 
 export type AssetType = (typeof ASSET_TYPES)[number];
@@ -101,23 +102,23 @@ export type ToolAssetContract = {
 export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   'funnel-pages': {
     produces: ['landing-page'],
-    consumes: ['persona', 'brand-voice'],
+    consumes: ['persona', 'brand-voice', 'brief'],
   },
   nextland: {
     produces: ['landing-page'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis'],
+    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'brief'],
   },
   'youtube-lf-script': {
     produces: ['script'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis'],
+    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'brief'],
   },
   'angle-generator': {
     produces: ['angle'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis'],
+    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'brief'],
   },
   'meta-ads': {
     produces: ['ad-copy', 'hook'],
-    consumes: ['angle', 'persona', 'brand-voice', 'hook'],
+    consumes: ['angle', 'persona', 'brand-voice', 'hook', 'brief'],
   },
   'youtube-description': {
     produces: ['description'],

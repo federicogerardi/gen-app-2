@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button, TextField, Typography } from '@mui/material';
-import { Plus, Upload } from 'lucide-react';
+import { Plus, Upload, FileText } from 'lucide-react';
 import { createAsset, type CreateAssetInput } from '../../tools/runtime/asset-client';
 
 interface CreateAssetPromptProps {
@@ -25,6 +25,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleManualCreate = async () => {
     if (!projectId || !assetLabel.trim()) return;
@@ -51,6 +52,36 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!projectId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const text = await file.text();
+      await createAsset({
+        projectId,
+        assetType: assetType as CreateAssetInput['assetType'],
+        source: 'uploaded' as const,
+        label: file.name.replace(/\.[^/.]+$/, ''),
+        content: text,
+      });
+      onCreateAction();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+    // Reset so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (showForm) {
@@ -107,6 +138,18 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
         }
       </Typography>
 
+      {/* Hidden file input for brief file upload */}
+      {assetType === 'brief' && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".txt,.md,.docx"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+          disabled={loading}
+        />
+      )}
+
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         {producerTool ? (
           <Button
@@ -118,6 +161,26 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
           >
             Generate with {producerTool}
           </Button>
+        ) : assetType === 'brief' ? (
+          <>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<FileText size={14} />}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+            >
+              {loading ? 'Uploading...' : 'Upload file'}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Plus size={14} />}
+              onClick={() => setShowForm(true)}
+            >
+              Paste text
+            </Button>
+          </>
         ) : (
           <Button
             variant="outlined"

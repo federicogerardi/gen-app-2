@@ -36,6 +36,7 @@ const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   'article': 'Article',
   'script': 'Script',
   'description': 'Description',
+  'brief': 'Brief',
 };
 
 type DialogState = 'form' | 'loading' | 'success' | 'error';

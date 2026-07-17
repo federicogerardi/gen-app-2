@@ -8,10 +8,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MenuItem, TextField } from '@mui/material';
-import { Upload } from 'lucide-react';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
-import { UploadFieldButton } from '../../../app/ui/UploadFieldButton';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { appCopy } from '../../../app/copy/system';
 import type { SupportedTool } from '../machines/tool-flow.machine';
@@ -24,7 +22,6 @@ import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-stat
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
-import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
@@ -108,7 +105,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleBriefingFileSelected,
     handleAngleDetectorFileSelected,
     handleExtractionStart,
-    handleBriefingReset,
+    handleBriefingReset: _handleBriefingReset,
     angleDetectorFileName,
   } = useToolPage({ ...props, selectedAssetIds });
   const [isFormLocked, setIsFormLocked] = useState(false);
@@ -1081,47 +1078,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 ) : null}
 
               </div>{/* end configuration section */}
-
-              {/* ── Resources Section (files + instructions) ── */}
-              {(inputFiles.length > 0) ? (
-                <div className="ui-tool-setup-section">
-                  <p className="ui-tool-setup-section__label">{copy.sections.resources}</p>
-
-                {inputFiles.map((fileEntry) => (
-                 <Controller
-                   key={fileEntry.key}
-                   name={fileEntry.key as never}
-                   control={control}
-                   render={({ field }) => (
-                     <div>
-                       <UploadFieldButton
-                         label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                         disabled={!formState.projectId.trim() || isGenerationLocked}
-                         icon={<Upload size={16} aria-hidden="true" />}
-                         accept={fileEntry.accept}
-                         onFileSelected={(file) => {
-                           field.onChange(file);
-                           if (!file) {
-                             handleBriefingReset();
-                             return;
-                           }
-
-                           if (fileEntry.key === 'angle-detector-file') {
-                             handleAngleDetectorFileSelected(file);
-                             return;
-                           }
-
-                           handleBriefingFileSelected(file);
-                         }}
-                       />
-                     </div>
-                   )}
-                 />
-               ))}
-
-               <ToolFileInstructionsSection instructions={toolFileInstructions} />
-                </div>
-              ) : null}
 
               {/* ── Knowledge Section (workspace assets) ── */}
               <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} />

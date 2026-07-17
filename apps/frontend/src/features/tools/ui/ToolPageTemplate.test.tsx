@@ -484,18 +484,10 @@ describe('ToolPageTemplate wiring', () => {
     expect(secondRequest.input.step).toBe('quiz');
   });
 
-  it('renders the file instructions section for the active tool', () => {
+  it('no longer renders the file instructions section (moved to workspace Knowledge)', () => {
     renderTemplate({ toolKey: 'angle-generator' });
-
-    const accordion = screen.getByTestId('tool-file-instructions-accordion');
-    expect(accordion).not.toHaveAttribute('open');
-    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
-
-    expect(accordion).toHaveAttribute('open');
-    expect(screen.getByText('Obiettivo')).toBeInTheDocument();
-    expect(screen.getByText('Prodotto o servizio')).toBeInTheDocument();
-    expect(screen.getByText('Vincoli creativi')).toBeInTheDocument();
-    expect(screen.queryByText('Tone of voice')).toBeNull();
+    // File instructions are now handled by brief assets in Knowledge section
+    expect(screen.queryByTestId('tool-file-instructions-accordion')).toBeNull();
   });
 
   it('persists extraction context and grows step dependency context incrementally across steps', async () => {

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TOOL_ASSET_CONTRACTS, type ToolKey, type AssetType, type ToolAccessRole } from '@gen-app-2/contracts';
 import { useWorkspaceContext } from './useWorkspaceContext';
 import { getEnabledToolNavigationItems } from '../../tools/runtime/tool-form-architecture';
+import { getToolAssetInputs } from './toolAssetRegistry';
 
 export interface ToolRecommendation {
   toolKey: ToolKey;
@@ -40,11 +41,18 @@ export const useToolRecommendations = (
       const contract = TOOL_ASSET_CONTRACTS[toolKey];
       if (!contract || contract.consumes.length === 0) continue;
 
-      const coveredCount = contract.consumes.filter(a => existingAssetTypes.has(a)).length;
+      const toolInputs = getToolAssetInputs(toolKey);
+      const requiredTypes = new Set(toolInputs.filter(i => i.requiredness === 'always-required').map(i => i.assetType));
+      const requiredConsumes = contract.consumes.filter(a => requiredTypes.has(a));
+
+      // Readiness based only on required assets (optional assets don't reduce score)
+      const coveredCount = requiredConsumes.filter(a => existingAssetTypes.has(a)).length;
       const missingAssets = contract.consumes.filter(a => !existingAssetTypes.has(a));
       const fillableGaps = contract.produces.filter(a => gapAssetTypes.has(a));
 
-      const readinessScore = Math.round((coveredCount / contract.consumes.length) * 100);
+      const readinessScore = requiredConsumes.length > 0
+        ? Math.round((coveredCount / requiredConsumes.length) * 100)
+        : 0;
       const impactScore = fillableGaps.length * 30;
       const priorityScore = readinessScore * 0.6 + impactScore * 0.4;
 

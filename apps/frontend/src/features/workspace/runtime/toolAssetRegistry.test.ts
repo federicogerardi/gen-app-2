@@ -5,9 +5,11 @@ describe('toolAssetRegistry', () => {
   describe('getToolAssetInputs', () => {
     it('returns consumes for funnel-pages', () => {
       const result = getToolAssetInputs('funnel-pages');
-      expect(result).toHaveLength(2);
-      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['persona', 'brand-voice']));
-      expect(result.every(e => e.requiredness === 'always-required')).toBe(true);
+      expect(result).toHaveLength(3);
+      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['persona', 'brand-voice', 'brief']));
+      // brief is optional-by-tool-setting, others are always-required
+      expect(result.filter(e => e.assetType !== 'brief').every(e => e.requiredness === 'always-required')).toBe(true);
+      expect(result.find(e => e.assetType === 'brief')?.requiredness).toBe('optional-by-tool-setting');
     });
 
     it('returns consumes for meta-ads', () => {

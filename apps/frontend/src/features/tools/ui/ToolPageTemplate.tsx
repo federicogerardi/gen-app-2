@@ -27,7 +27,6 @@ import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertic
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
-import { CrossToolWorkflowPanel } from '../../workspace/ui/CrossToolWorkflowPanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
 import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
 
@@ -596,6 +595,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               executePrimaryActionFromForm(data);
             })}>
 
+              {/* ── Configuration Section ── */}
+              <div className="ui-tool-setup-section">
+                <p className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
+
               <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
                 <Controller
                   name="projectId"
@@ -1075,44 +1078,52 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                      />
                    </div>
                  </>
-               ) : null}
+                ) : null}
 
-               {inputFiles.map((fileEntry) => (
-                <Controller
-                  key={fileEntry.key}
-                  name={fileEntry.key as never}
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <UploadFieldButton
-                        label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                        disabled={!formState.projectId.trim() || isGenerationLocked}
-                        icon={<Upload size={16} aria-hidden="true" />}
-                        accept={fileEntry.accept}
-                        onFileSelected={(file) => {
-                          field.onChange(file);
-                          if (!file) {
-                            handleBriefingReset();
-                            return;
-                          }
+              </div>{/* end configuration section */}
 
-                          if (fileEntry.key === 'angle-detector-file') {
-                            handleAngleDetectorFileSelected(file);
-                            return;
-                          }
+              {/* ── Resources Section (files + instructions) ── */}
+              {(inputFiles.length > 0) ? (
+                <div className="ui-tool-setup-section">
+                  <p className="ui-tool-setup-section__label">{copy.sections.resources}</p>
 
-                          handleBriefingFileSelected(file);
-                        }}
-                      />
-                    </div>
-                  )}
-                />
-              ))}
+                {inputFiles.map((fileEntry) => (
+                 <Controller
+                   key={fileEntry.key}
+                   name={fileEntry.key as never}
+                   control={control}
+                   render={({ field }) => (
+                     <div>
+                       <UploadFieldButton
+                         label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
+                         disabled={!formState.projectId.trim() || isGenerationLocked}
+                         icon={<Upload size={16} aria-hidden="true" />}
+                         accept={fileEntry.accept}
+                         onFileSelected={(file) => {
+                           field.onChange(file);
+                           if (!file) {
+                             handleBriefingReset();
+                             return;
+                           }
 
-              <ToolFileInstructionsSection instructions={toolFileInstructions} />
+                           if (fileEntry.key === 'angle-detector-file') {
+                             handleAngleDetectorFileSelected(file);
+                             return;
+                           }
 
-              <CrossToolWorkflowPanelWrapper toolKey={props.toolKey} />
+                           handleBriefingFileSelected(file);
+                         }}
+                       />
+                     </div>
+                   )}
+                 />
+               ))}
 
+               <ToolFileInstructionsSection instructions={toolFileInstructions} />
+                </div>
+              ) : null}
+
+              {/* ── Knowledge Section (workspace assets) ── */}
               <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} />
 
                 {/* DispatchError ownership contract (DDD-061):
@@ -1165,26 +1176,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   );
 };
 
-const CrossToolWorkflowPanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ toolKey }) => {
-  let workspace;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const ctx = useWorkspace();
-    workspace = ctx.workspace;
-  } catch {
-    return null;
-  }
-
-  return (
-    <div className="ui-tool-form-section">
-      <CrossToolWorkflowPanel
-        workspaceId={workspace.id}
-        currentToolKey={toolKey}
-      />
-    </div>
-  );
-};
-
 const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSelect?: (ids: string[]) => void }> = ({ toolKey, onAssetSelect }) => {
   let workspace;
   try {
@@ -1207,7 +1198,8 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSele
   if (assetInputs.length === 0) return null;
 
   return (
-    <div className="ui-tool-form-section">
+    <div className="ui-tool-setup-section ui-tool-setup-section--knowledge">
+      <p className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.knowledge}</p>
       <AssetKnowledgePanel
         workspaceAssets={workspace.assets}
         toolAssetInputs={assetInputs}

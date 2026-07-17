@@ -156,6 +156,11 @@ export const appCopy = {
     },
     toolPage: {
       headingMetaSuffix: 'configurazione e generazione',
+      sections: {
+        configuration: 'Configurazione',
+        resources: 'Risorse',
+        knowledge: 'Conoscenza',
+      },
       guidance: {
         angleDetectorRequired: 'Brief pronto. Carica Angle Detector File per continuare.',
       },

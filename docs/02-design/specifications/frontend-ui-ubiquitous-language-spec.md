@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.4
+version: 1.5
 date_created: 2026-05-08
-last-reviewed: 2026-05-26
-next-review-date: 2026-06-08
+last-reviewed: 2026-07-17
+next-review-date: 2026-08-17
 owner: Frontend Platform Team
 type: ui-governance-spec
 ---
@@ -37,7 +37,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | --- | --- | --- | --- |
 | Tool Workspace Page | The canonical two-column tool execution page built from `ToolPageTemplate` with setup panel and workflow panel. | Tool pages under `apps/frontend/src/features/tools/` | Wizard page, generator page, flow page |
 | Tool Availability Policy | Role-aware tri-state exposure policy for tools: `enabled-for-all`, `disabled-for-all`, `enabled-for-admin-only`. Applies to discovery (Tools hub, navigation shortcuts) and route access. | Tool discovery and routing surfaces | Binary enabled/disabled flag without role semantics |
-| Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. | `ToolPageTemplate` form area | Left column form, input area |
+| Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. Canonical composition includes: Configuration Section (form fields), Resources Section (file uploads + file instructions accordion), Knowledge Section (workspace assets, optional), Dispatch Error slot, and Primary CTA. Sections use compact typographic headers with subtle dividers; no nested cards. | `ToolPageTemplate` form area with section headers | Left column form, input area |
 | Workflow Panel | Right panel in Tool Workspace Page for status, payload visibility, and unified process feedback. | `ToolGenerationFlowVertical` (payload + monitoring + feedback sections) | Progress column, steps area |
 | Status Card | Summary card exposing run status and actionable context. | Shared tool UI cards | Header card, info block |
 | Step Card | Visual representation of a single step state in sequence. | Shared tool UI cards | Task card, stage card |
@@ -58,6 +58,10 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Missing Required Files Message | Blocking process feedback listing policy-required files that must be uploaded to enable primary generation action. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Generic upload warning without required list |
 | Missing Optional Files Advisory | Non-blocking informational recommendation shown when optional files are missing but required files are complete. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Warning/error feedback that blocks CTA |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
+| Setup Panel Section | Canonical grouping container in the Setup Panel. Uses a compact typographic header (uppercase, small font, muted color) with a thin bottom border divider. Three canonical sections defined: Configuration (form fields), Resources (file uploads + instructions accordion), Knowledge (workspace assets, optional). Sections replace nested card groupings — spacing and dividers provide structure, not card surfaces. | `ui-tool-setup-section` + `ui-tool-setup-section__label` | Nested cards, separate card panels per input source |
+| Configuration Section | Setup Panel section for form fields: project selector, model selector, tone selector, and tool-specific fields (campaign objective, copy length, etc.). Rendered first in the form. | `ui-tool-setup-section` inside Setup Panel form | Top form section |
+| Resources Section | Setup Panel section for file uploads and the Tool File Instructions accordion. Rendered after Configuration, before Knowledge. Absent when the tool has no input files. | `ui-tool-setup-section` with `ToolFileInstructionsSection` | File upload area |
+| Knowledge Section | Setup Panel section for workspace asset selection (`AssetKnowledgePanel`). Workspace-oriented — shows compatible project Assets for the current Tool. Absent when the tool has no compatible Asset types or when not inside a WorkspaceProvider. Rendered after Resources. Flattened styling: card borders removed to avoid nested-card violation. | `ui-tool-setup-section--knowledge` with `AssetKnowledgePanel` | Asset panel card, workspace knowledge card |
 
 Tri-state policy rule:
 Tool discovery and tool route access must evaluate the same policy from shared contracts. `enabled-for-admin-only` tools are hidden for `member` users and accessible for `admin` users only.
@@ -142,6 +146,11 @@ Composition:
 - secondary actions rendered only through policy flags
 - no extra wrapper containers that dilute panel hierarchy
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
+- **Setup Panel Section layout (canonical)**: Setup Panel content is grouped into compact sections using typographic headers with subtle dividers, not nested cards. Three canonical sections are defined:
+  - **Configuration Section**: form fields (project, model, tone, tool-specific fields) — always present
+  - **Resources Section**: file uploads + Tool File Instructions accordion — present when the tool has input files
+  - **Knowledge Section**: workspace asset selection (`AssetKnowledgePanel`) — present when the tool has compatible Asset types and a WorkspaceProvider is active
+  - **Cross-tool workflow panel is explicitly removed from the canonical Setup Panel composition** (2026-07-17) — it was fragmenting the input collection area. Cross-tool workflow state is displayed in the Dashboard, not in individual Tool pages.
 - **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
 - **Workflow Panel feedback centralization**: process-feedback messages are centralized in Workflow Panel `inline-action` feedback section. This includes `briefingError`, missing required files, readiness feedback, `artifactsReloadError`, `briefingGuidance`, missing optional files advisory, and extraction-start hint. Setup Panel remains interaction-only for these process messages.
 - **Tool File Instructions Section**: a deterministic inline guidance accordion is rendered directly below the upload/form controls when registry metadata exists. The accordion is closed by default; the section title is fixed and the body shows only the required fields list; no optional groups, examples, notes, or tone guidance are rendered in the card body.
@@ -425,7 +434,9 @@ Priority order for convergence:
 
 Key source files referenced by this specification:
 
-- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (Target: Section headers pattern)
+- `apps/frontend/src/styles.css` (Target: `.ui-tool-setup-section`, `.ui-tool-setup-section__label`, `.ui-tool-setup-section--knowledge`)
+- `apps/frontend/src/app/copy/system.ts` (Target: `toolPage.sections` keys)
 - `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`
 - `apps/frontend/src/features/tools/ui/ToolFormComponents.tsx`
 - `apps/frontend/src/features/tools/ui/ToolStepCard.tsx`

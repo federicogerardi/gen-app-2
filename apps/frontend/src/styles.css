@@ -2268,6 +2268,50 @@ button:not(.MuiButton-root):not([class]):disabled,
   gap: var(--space-2);
 }
 
+/* ── Setup Panel unified sections ── */
+.ui-tool-setup-section {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+}
+
+.ui-tool-setup-section__label {
+  margin: 0;
+  padding-bottom: var(--space-1);
+  font-family: var(--font-family-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Flatten nested card styling inside Setup Panel Knowledge section */
+.ui-tool-setup-section--knowledge .asset-knowledge-panel {
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.ui-tool-setup-section--knowledge .asset-knowledge-panel__header {
+  padding: 0;
+  border-bottom: none;
+}
+
+.ui-tool-setup-section--knowledge .asset-knowledge-panel__groups {
+  padding: var(--space-1) 0 0;
+}
+
+.ui-tool-setup-section--knowledge .asset-knowledge-panel__selection-summary {
+  padding: var(--space-1) 0 0;
+  border-top: 1px solid var(--border-subtle);
+  background-color: transparent;
+  text-align: left;
+}
+
 .ui-tool-action-buttons {
   display: flex;
   flex-wrap: wrap;

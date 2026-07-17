@@ -1,13 +1,13 @@
 ---
 goal: Deterministic plan for creating a new Tool in the repository, from DDD analysis through publication
-version: 2.1
+version: 2.2
 date_created: 2025-10-15
-last_updated: 2026-07-12
-last-reviewed: 2026-07-12
-next-review-date: 2026-10-12
+last_updated: 2026-07-17
+last-reviewed: 2026-07-17
+next-review-date: 2026-10-17
 owner: Platform
 status: active
-tags: [plan, tool-workspace, backend, frontend, ddd, validation, template]
+tags: [plan, tool-workspace, backend, frontend, ddd, validation, template, asset, workspace-knowledge]
 ---
 
 # Tool Development Plan Template
@@ -30,9 +30,11 @@ Before starting, classify your Tool. The archetype determines which patterns and
 |-----------|----------------|-------------------------|
 | **Direct-input, single-step** | User fills form fields, one generation step | `youtube-description` |
 | **Direct-input, multi-step** | Multiple sequential generation steps, each depends on prior output | `blog-article-generator`, `geometric` |
-| **File-upload, multi-step** | User uploads a file, extraction step, then generation steps | `meta-ads`, `funnel-pages` |
-| **File-upload, single-step** | User uploads a file, one generation step | `nextland` (thank_you) |
+| **File-upload, multi-step** | User uploads a file via workspace Knowledge section as a `brief` Asset, then generation steps | `meta-ads`, `funnel-pages`, `angle-generator` |
+| **Workspace-knowledge** | Tool consumes workspace Assets (e.g. `brief`, `angle`, `persona`) as persistent inputs. File uploads happen in the Knowledge section, not in the tool page. Replaces the legacy file-upload archetype. | `funnel-pages` (consumes `brief`), `meta-ads` (consumes `angle`, `brief`) |
 | **API-acquisition** | Backend fetches external data before generation | `geometric` (serp-crawling) |
+
+**Note (2026-07-17):** The legacy "file-upload" archetype (where files are uploaded directly in the Tool Page via `UploadFieldButton`) is **deprecated**. File-based inputs now use the `brief` AssetType. Users upload files in the Knowledge section of the Setup Panel, creating persistent workspace Assets that are reusable across multiple tools. See `AssetType = 'brief'` and the `CreateAssetPrompt` component.
 
 If your Tool spans multiple archetypes (e.g., file-upload + API-acquisition), apply the union of all relevant patterns.
 
@@ -169,6 +171,8 @@ Prompts support these placeholder patterns:
 | C-007 | `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` | **If direct-input-only:** add `build<ToolName>DirectInputExtractionInfo` call in the `directInputExtractionInfo` block. | See existing directInputExtractionInfo mappings |
 | C-008 | `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx` | Add `TOOL_KEY` to `isSupportedTool()` function. **This is a hardcoded union — the type alone is not enough.** | See `isSupportedTool` implementation |
 | C-009 | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` | **(If tool adds new form fields)** Add field to `ToolFormState` type and update `toolFormRegistry` defaults. Document which fields are required/hidden and whether model selector is visible. | `titolo` field pattern |
+| C-010 | `packages/contracts/src/asset.ts` | **(If tool consumes workspace Assets)** Add `TOOL_KEY` to `TOOL_ASSET_CONTRACTS` with `produces` and `consumes` arrays. Add new `AssetType` values to `ASSET_TYPES` if needed. Add label to `ASSET_TYPE_LABELS` in `toolAssetRegistry.ts`. | See existing contract entries |
+| C-011 | `apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts` | Add `ASSET_TYPE_LABELS` entry for any new `AssetType`. If the asset is optional for the tool (like `brief`), mark `requiredness: 'optional-by-tool-setting'` in `getToolAssetInputs`. | `brief: 'optional-by-tool-setting'` |
 
 ### Frontend Dependency Content Fetching (Multi-Step Tools)
 
@@ -476,6 +480,61 @@ Add TOOL_KEY to BOTH:
 3. Backend `assemble<ToolName>Prompt` action reads it from `requestInput` and replaces `{{field}}`.
 
 **Do NOT** add form fields to `extractionPayload` unless the field is genuinely extracted data. Direct-input fields go directly on `requestInput`.
+
+---
+
+### Pattern 8: Workspace Knowledge (brief Asset) Input
+
+**When:** Tool consumes workspace Assets (e.g., `brief` files) instead of legacy file uploads.
+
+**Location:** Multiple files (see track C-010, C-011).
+
+**Step 1 — Register AssetType in contracts:**
+```typescript
+// packages/contracts/src/asset.ts
+export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
+  '<tool-key>': {
+    produces: ['<output-asset-type>'],
+    consumes: ['persona', 'brand-voice', 'brief'],  // ← brief = raw knowledge file
+  },
+};
+```
+
+**Step 2 — Register label in frontend:**
+```typescript
+// apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  // ...existing
+  'brief': 'Brief',
+};
+```
+
+**Step 3 — Optional vs required:** Use `getToolAssetInputs` to control whether the asset is required or optional:
+```typescript
+requiredness: assetType === 'brief' ? 'optional-by-tool-setting' : 'always-required',
+```
+
+**Step 4 — Prompt template:** Use adaptive prompt template that works with both asset content (when `brief` asset selected) and legacy `extractionPayload` (when no asset selected):
+```markdown
+{% if assetReferences.brief %}
+## Documento caricato
+{{assetReferences.brief.content}}
+{% else %}
+## Briefing strutturato
+Campagna: {{extractionPayload.campaign_objective}}
+{% endif %}
+```
+
+The asset content is injected automatically by `generation-actor.ts` via `asset-injection-resolver.ts` when `assetReferences` are present in the generation request.
+
+**How file upload works (from user perspective):**
+1. User opens Tool Page → sees Knowledge section with "Brief: 0 asset"
+2. Clicks "Upload file" → selects .txt/.md/.docx
+3. File is read as text, creates Asset with `source='uploaded'`
+4. Asset appears in Knowledge section, user selects it
+5. Asset content is injected into LLM prompt at generation time
+
+**Backward compatibility:** Tools that still need file upload (not yet migrated to brief assets) retain the legacy Resources section. Once all tools migrate to brief assets, the Resources section is removed from `ToolPageTemplate`.
 
 ---
 

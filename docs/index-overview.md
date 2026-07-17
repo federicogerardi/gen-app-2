@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 3.8
-last-reviewed: 2026-07-16
-next-review-date: 2026-10-16
+version: 3.9
+last-reviewed: 2026-07-17
+next-review-date: 2026-10-17
 owner: Documentation Archivist
 ---
 
@@ -20,7 +20,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 >
 > 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-095), termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-207), termini deprecati e alias backward-compat. Asset Domain Model: DDD-188–DDD-207.
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 

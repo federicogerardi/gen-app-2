@@ -152,7 +152,7 @@ export const createToolsAssetHandlers = (
     const assetTypeParam = searchParams.get('assetType');
     const statusParam = searchParams.get('status');
     const limitParam = searchParams.get('limit');
-    const offsetParam = searchParams.get('limit');
+    const offsetParam = searchParams.get('offset');
 
     const limit = limitParam ? Math.min(Number.parseInt(limitParam, 10) || 100, 500) : 100;
     const offset = offsetParam ? Math.max(Number.parseInt(offsetParam, 10) || 0, 0) : 0;

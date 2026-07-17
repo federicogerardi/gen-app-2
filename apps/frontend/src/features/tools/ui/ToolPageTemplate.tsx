@@ -27,7 +27,9 @@ import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertic
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
+import { CrossToolWorkflowPanel } from '../../workspace/ui/CrossToolWorkflowPanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
+import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
 
 const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
@@ -1108,6 +1110,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
+              <CrossToolWorkflowPanelWrapper toolKey={props.toolKey} />
+
               <AssetKnowledgePanelWrapper toolKey={props.toolKey} />
 
                 {/* DispatchError ownership contract (DDD-061):
@@ -1160,6 +1164,26 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   );
 };
 
+const CrossToolWorkflowPanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ toolKey }) => {
+  let workspace;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ctx = useWorkspace();
+    workspace = ctx.workspace;
+  } catch {
+    return null;
+  }
+
+  return (
+    <div className="ui-tool-form-section">
+      <CrossToolWorkflowPanel
+        workspaceId={workspace.id}
+        currentToolKey={toolKey}
+      />
+    </div>
+  );
+};
+
 const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ toolKey }) => {
   let workspace;
   try {
@@ -1171,12 +1195,7 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ tool
     return null;
   }
 
-  const assetInputs = useMemo(() => {
-    return [
-      { assetType: 'angle', label: 'Angle', requiredness: 'optional-by-tool-setting' as const },
-      { assetType: 'persona', label: 'Persona', requiredness: 'optional-by-tool-setting' as const },
-    ];
-  }, [toolKey]);
+  const assetInputs = useMemo(() => getToolAssetInputs(toolKey), [toolKey]);
 
   const handleCreateAssetAction = useCallback((_assetType: string, sourceToolKey?: SupportedTool) => {
     if (sourceToolKey && workspace.id) {

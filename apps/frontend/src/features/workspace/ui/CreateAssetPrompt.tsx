@@ -138,17 +138,15 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
         }
       </Typography>
 
-      {/* Hidden file input for brief file upload */}
-      {assetType === 'brief' && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".txt,.md,.docx"
-          style={{ display: 'none' }}
-          onChange={handleFileChange}
-          disabled={loading}
-        />
-      )}
+      {/* Hidden file input for upload (all asset types) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,.md,.docx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        disabled={loading}
+      />
 
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         {producerTool ? (
@@ -161,7 +159,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
           >
             Generate with {producerTool}
           </Button>
-        ) : assetType === 'brief' ? (
+        ) : (
           <>
             <Button
               variant="contained"
@@ -181,15 +179,6 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
               Paste text
             </Button>
           </>
-        ) : (
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Plus size={14} />}
-            onClick={() => setShowForm(true)}
-          >
-            Create manually
-          </Button>
         )}
       </div>
     </div>

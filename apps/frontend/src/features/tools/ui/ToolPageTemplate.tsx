@@ -1210,6 +1210,7 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ tool
       <AssetKnowledgePanel
         workspaceAssets={workspace.assets}
         toolAssetInputs={assetInputs}
+        projectId={workspace.id}
         onAssetSelect={() => {}}
         onCreateAssetAction={handleCreateAssetAction}
       />

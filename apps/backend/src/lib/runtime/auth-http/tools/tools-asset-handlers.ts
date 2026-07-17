@@ -65,6 +65,9 @@ export type ToolsAssetHandlers = {
   // Discovery
   handleListCompatibleAssets(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleDetectAssetGaps(request: IncomingMessage, response: ServerResponse): Promise<void>;
+
+  // Feedback
+  handleRecordFeedback(request: IncomingMessage, response: ServerResponse): Promise<void>;
 };
 
 // =====================================================================
@@ -961,6 +964,76 @@ export const createToolsAssetHandlers = (
     writeSuccess(response, 200, { gaps });
   };
 
+  const handleRecordFeedback = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (request.method !== 'POST') {
+      writeError(response, 405, 'method_not_allowed', 'Use POST to record feedback');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) return;
+
+    const db = requireDb(response);
+    if (!db) return;
+
+    const body = await parseJsonBody<{
+      artifactId?: string;
+      rating?: string;
+      comment?: string;
+    }>(request);
+
+    if (!body.artifactId || !body.rating) {
+      writeError(response, 400, 'bad_request', 'artifactId and rating are required');
+      return;
+    }
+
+    if (body.rating !== 'positive' && body.rating !== 'negative') {
+      writeError(response, 400, 'bad_request', 'rating must be "positive" or "negative"');
+      return;
+    }
+
+    // Verify artifact exists
+    const artifactResult = await db.query(
+      'SELECT id FROM artifacts WHERE id = $1',
+      [body.artifactId],
+    );
+    if (artifactResult.rows.length === 0) {
+      writeError(response, 404, 'not_found', 'Artifact not found');
+      return;
+    }
+
+    // Upsert feedback (one per user per artifact)
+    await db.query(
+      `INSERT INTO generation_feedback (artifact_id, user_id, rating, comment, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (artifact_id, user_id) DO UPDATE SET rating = $3, comment = $4`,
+      [body.artifactId, principal.user.id, body.rating, body.comment ?? null],
+    );
+
+    // Get updated scores
+    const positiveResult = await db.query(
+      `SELECT COUNT(*) as count FROM generation_feedback WHERE artifact_id = $1 AND rating = 'positive'`,
+      [body.artifactId],
+    );
+    const negativeResult = await db.query(
+      `SELECT COUNT(*) as count FROM generation_feedback WHERE artifact_id = $1 AND rating = 'negative'`,
+      [body.artifactId],
+    );
+
+    const positive = Number(positiveResult.rows[0]?.count ?? 0);
+    const negative = Number(negativeResult.rows[0]?.count ?? 0);
+
+    writeSuccess(response, 200, {
+      ok: true,
+      positive,
+      negative,
+      netScore: positive * 10 - negative * 5,
+    });
+  };
+
   return {
     handleListAssets,
     handleGetAsset,
@@ -979,5 +1052,6 @@ export const createToolsAssetHandlers = (
     handleCreateAssetVersion,
     handleListCompatibleAssets,
     handleDetectAssetGaps,
+    handleRecordFeedback,
   };
 };

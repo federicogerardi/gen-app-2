@@ -25,7 +25,7 @@ export type RouteEntry = {
 export namespace HttpRouteCapabilities {
   export type AuthOperations    = 'login' | 'logout' | 'session' | 'google.start';
   export type AdminOperations   = 'users' | 'models' | 'api-services' | 'api-service-bindings';
-  export type ToolsOperations   = 'briefs' | 'hydrate' | 'orchestrate' | 'api-services' | 'sessions' | 'assets' | 'asset-groups';
+  export type ToolsOperations   = 'briefs' | 'hydrate' | 'orchestrate' | 'api-services' | 'sessions' | 'assets' | 'asset-groups' | 'feedback';
   export type ProjectOperations = 'projects';
   export type ArtifactOperations = 'artifacts';
   export type FeedbackOperations = 'public' | 'admin';
@@ -57,6 +57,7 @@ export const AUTH_HTTP_ROUTE_CAPABILITIES: Readonly<Record<AuthHttpRouteCapabili
   'tools.sessions': true,
   'tools.assets': true,
   'tools.asset-groups': true,
+  'tools.feedback': true,
   'feedback.public': true,
   'feedback.admin': true,
 } as const;

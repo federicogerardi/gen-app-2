@@ -80,6 +80,13 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
       handler: toolsHandlers.handleDetectAssetGaps,
     },
 
+    // Feedback
+    {
+      method: 'POST',
+      pattern: '/api/tools/feedback',
+      handler: toolsHandlers.handleRecordFeedback,
+    },
+
     // Asset CRUD
     {
       method: 'GET',

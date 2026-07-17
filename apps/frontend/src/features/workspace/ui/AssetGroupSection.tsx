@@ -17,6 +17,7 @@ interface AssetGroupSectionProps {
   isExpanded: boolean;
   selectedAssetIds: string[];
   producerTool?: string | null;
+  projectId?: string;
   onToggleExpanded: (expanded: boolean) => void;
   onAssetToggle: (assetId: string, checked: boolean) => void;
   onCreateAction: () => void;
@@ -30,6 +31,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
   isExpanded,
   selectedAssetIds,
   producerTool,
+  projectId,
   onToggleExpanded,
   onAssetToggle,
   onCreateAction,
@@ -162,6 +164,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
               label={label}
               producerTool={producerTool ?? null}
               isRequired={isRequired}
+              {...(projectId !== undefined ? { projectId } : {})}
               onCreateAction={onCreateAction}
             />
           )}

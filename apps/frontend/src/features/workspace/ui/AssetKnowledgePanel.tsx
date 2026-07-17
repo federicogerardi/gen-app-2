@@ -19,6 +19,7 @@ interface ToolProjectAssetPolicyEntry {
 interface AssetKnowledgePanelProps {
   workspaceAssets: WorkspaceAsset[];
   toolAssetInputs: ToolProjectAssetPolicyEntry[];
+  projectId?: string;
   onAssetSelect: (assetIds: string[]) => void;
   onCreateAssetAction: (assetType: string, sourceToolKey?: SupportedTool) => void;
 }
@@ -48,6 +49,7 @@ const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Rec
 export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   workspaceAssets,
   toolAssetInputs,
+  projectId,
   onAssetSelect,
   onCreateAssetAction,
 }) => {
@@ -173,6 +175,7 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
               isExpanded={isExpanded}
               selectedAssetIds={selectedAssetIds}
               {...(producerTool !== null ? { producerTool } : {})}
+              {...(projectId !== undefined ? { projectId } : {})}
               onToggleExpanded={(expanded) => handleGroupToggle(input.assetType, expanded)}
               onAssetToggle={handleAssetToggle}
               onCreateAction={() => onCreateAssetAction(input.assetType, producerTool ?? undefined)}

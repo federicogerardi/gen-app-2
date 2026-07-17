@@ -4,9 +4,9 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'funnel_pages',
     creditCost: 1,
     steps: [
-      { key: 'optin', dependencies: [] },
-      { key: 'quiz', dependencies: ['optin'] },
-      { key: 'vsl', dependencies: ['optin', 'quiz'] },
+      { key: 'optin', dependencies: [], feedbackEnabled: false },
+      { key: 'quiz', dependencies: ['optin'], feedbackEnabled: false },
+      { key: 'vsl', dependencies: ['optin', 'quiz'], feedbackEnabled: true },
     ],
   },
   nextland: {
@@ -14,8 +14,8 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'nextland',
     creditCost: 1,
     steps: [
-      { key: 'landing', dependencies: [] },
-      { key: 'thank_you', dependencies: ['landing'] },
+      { key: 'landing', dependencies: [], feedbackEnabled: false },
+      { key: 'thank_you', dependencies: ['landing'], feedbackEnabled: true },
     ],
   },
   'youtube-lf-script': {
@@ -23,12 +23,12 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'youtube_lf_script',
     creditCost: 1,
     steps: [
-      { key: 'pre-script-analysis', dependencies: [] },
-      { key: 'packaging', dependencies: ['pre-script-analysis'] },
-      { key: 'intro-structure', dependencies: ['packaging'] },
-      { key: 'body-structure', dependencies: ['intro-structure'] },
-      { key: 'native-cta-embeds', dependencies: ['body-structure'] },
-      { key: 'outro-structure', dependencies: ['native-cta-embeds'] },
+      { key: 'pre-script-analysis', dependencies: [], feedbackEnabled: false },
+      { key: 'packaging', dependencies: ['pre-script-analysis'], feedbackEnabled: false },
+      { key: 'intro-structure', dependencies: ['packaging'], feedbackEnabled: false },
+      { key: 'body-structure', dependencies: ['intro-structure'], feedbackEnabled: false },
+      { key: 'native-cta-embeds', dependencies: ['body-structure'], feedbackEnabled: false },
+      { key: 'outro-structure', dependencies: ['native-cta-embeds'], feedbackEnabled: true },
     ],
   },
   'angle-generator': {
@@ -36,9 +36,9 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'angle_generator',
     creditCost: 1,
     steps: [
-      { key: 'context-and-angle-matrix', dependencies: [] },
-      { key: 'angle-prioritization', dependencies: ['context-and-angle-matrix'] },
-      { key: 'creative-activation', dependencies: ['angle-prioritization'] },
+      { key: 'context-and-angle-matrix', dependencies: [], feedbackEnabled: false },
+      { key: 'angle-prioritization', dependencies: ['context-and-angle-matrix'], feedbackEnabled: false },
+      { key: 'creative-activation', dependencies: ['angle-prioritization'], feedbackEnabled: true },
     ],
   },
   'meta-ads': {
@@ -46,8 +46,8 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'meta_ads_generator',
     creditCost: 1,
     steps: [
-      { key: 'context-generation', dependencies: [] },
-      { key: 'ads-generation', dependencies: ['context-generation'] },
+      { key: 'context-generation', dependencies: [], feedbackEnabled: false },
+      { key: 'ads-generation', dependencies: ['context-generation'], feedbackEnabled: true },
     ],
     copyLengthOptions: ['short-form', 'medium-form', 'long-form'] as const,
     defaultCopyLength: 'medium-form' as const,
@@ -57,7 +57,7 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'youtube_description',
     creditCost: 1,
     steps: [
-      { key: 'youtube-description-generation', dependencies: [] },
+      { key: 'youtube-description-generation', dependencies: [], feedbackEnabled: true },
     ],
   },
   'geometric': {
@@ -65,10 +65,10 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'geometric_analysis',
     creditCost: 1,
     steps: [
-      { key: 'serp-crawling', dependencies: [] },
-      { key: 'competitor-scoring', dependencies: ['serp-crawling'] },
-      { key: 'strategic-reporting', dependencies: ['serp-crawling', 'competitor-scoring'] },
-      { key: 'unified-report', dependencies: ['strategic-reporting', 'competitor-scoring'] },
+      { key: 'serp-crawling', dependencies: [], feedbackEnabled: false },
+      { key: 'competitor-scoring', dependencies: ['serp-crawling'], feedbackEnabled: false },
+      { key: 'strategic-reporting', dependencies: ['serp-crawling', 'competitor-scoring'], feedbackEnabled: true },
+      { key: 'unified-report', dependencies: ['strategic-reporting', 'competitor-scoring'], feedbackEnabled: true },
     ],
   },
   'blog-article-generator': {
@@ -76,9 +76,9 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
     workflowType: 'blog_article_generator',
     creditCost: 3,
     steps: [
-      { key: 'blog_seo_structure', dependencies: [] },
-      { key: 'blog_research', dependencies: ['blog_seo_structure'] },
-      { key: 'blog_article', dependencies: ['blog_research'] },
+      { key: 'blog_seo_structure', dependencies: [], feedbackEnabled: false },
+      { key: 'blog_research', dependencies: ['blog_seo_structure'], feedbackEnabled: false },
+      { key: 'blog_article', dependencies: ['blog_research'], feedbackEnabled: true },
     ],
   },
 } as const;
@@ -91,6 +91,7 @@ export type ToolStep =
 export type ToolWorkflowStepDefinition = {
   key: ToolStep;
   dependencies: ToolStep[];
+  feedbackEnabled?: boolean;
 };
 export type CopyLengthFormat = 'short-form' | 'medium-form' | 'long-form';
 

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Button } from '@mui/material';
+import { Package } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
@@ -26,6 +28,8 @@ import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { PromoteAssetDialog } from '../ui/PromoteAssetDialog';
+import { FeedbackButtons } from '../ui/FeedbackButtons';
 
 const formatToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
@@ -94,6 +98,13 @@ export const SessionSummaryDetailPage = () => {
     [relaunchArtifactQuery.data],
   );
   const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
+
+  const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
+  const lastArtifact = useMemo(() => {
+    if (!sessionGroup) return null;
+    const completed = sessionGroup.artifacts.filter((a) => a.status === 'completed');
+    return completed.length > 0 ? completed[completed.length - 1] : null;
+  }, [sessionGroup]);
 
   const handleSessionDownload = useCallback(
     (format: DownloadFormat) => {
@@ -229,7 +240,26 @@ export const SessionSummaryDetailPage = () => {
               {capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}
+              {lastArtifact && projectId && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Package size={14} />}
+                  onClick={() => setPromoteDialogOpen(true)}
+                >
+                  Promote to Asset
+                </Button>
+              )}
             </div>
+
+            {lastArtifact && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <FeedbackButtons
+                  artifactId={lastArtifact.artifactId}
+                  disabled={group.status !== 'completed'}
+                />
+              </div>
+            )}
 
             <details className="ui-artifact-accessory">
               <summary>{appCopy.ui.sessions.detail.detailsSummaryLabel}</summary>
@@ -249,6 +279,17 @@ export const SessionSummaryDetailPage = () => {
           </section>
         </aside>
       </div>
+
+      {lastArtifact && projectId && (
+        <PromoteAssetDialog
+          open={promoteDialogOpen}
+          artifactId={lastArtifact.artifactId}
+          projectId={projectId}
+          defaultLabel={`${formatToolName(group.toolKey)} - ${lastArtifact.stepKey ?? 'output'}`}
+          onClose={() => setPromoteDialogOpen(false)}
+          onPromoted={() => setPromoteDialogOpen(false)}
+        />
+      )}
     </Surface>
   );
 };

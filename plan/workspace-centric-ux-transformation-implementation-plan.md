@@ -1,10 +1,10 @@
 # Workspace-Centric UX Transformation Implementation Plan
 
 ---
-status: draft
-version: 1.0.0
-last-reviewed: 2026-07-16
-next-review-date: 2026-07-23
+status: active
+version: 1.4.0
+last-reviewed: 2026-07-17
+next-review-date: 2026-07-24
 owner: frontend-team
 type: ux-transformation-plan
 goal: Transform app UX from tool-centric to workspace-centric paradigm following Asset Domain Model integration
@@ -40,16 +40,16 @@ goal: Transform app UX from tool-centric to workspace-centric paradigm following
 
 ## 📋 **Implementation Phases**
 
-### **PHASE 1: Foundation Infrastructure (8-10 days)**
+### **PHASE 1: Foundation Infrastructure (8-10 days)** ✅ COMPLETED 2026-07-17
 *Critical path - all subsequent phases depend on this*
 
-### **PHASE 2A: Workspace Context (4-5 days) [PARALLEL]**
+### **PHASE 2A: Workspace Context (4-5 days) [PARALLEL]** ✅ COMPLETED 2026-07-17
 *Can start after P1.3 completion*
 
-### **PHASE 2B: Asset Knowledge (4-5 days) [PARALLEL]**
+### **PHASE 2B: Asset Knowledge (4-5 days) [PARALLEL]** ✅ COMPLETED 2026-07-17
 *Can start after P1.3 completion*
 
-### **PHASE 3: Dashboard & Navigation (6-8 days)**
+### **PHASE 3: Dashboard & Navigation (6-8 days)** ✅ COMPLETED 2026-07-17
 *Requires P1 + P2A completion*
 
 ### **PHASE 4: Cross-Tool Integration (4-6 days)**
@@ -60,7 +60,7 @@ goal: Transform app UX from tool-centric to workspace-centric paradigm following
 
 ---
 
-## 🔧 **PHASE 1: Foundation Infrastructure**
+## 🔧 **PHASE 1: Foundation Infrastructure** ✅ COMPLETED 2026-07-17
 
 ### **P1.1 - Routing Architecture** ⏱️ 3-4 days | **Priority: CRITICAL**
 
@@ -505,7 +505,7 @@ export const useWorkspace = (): WorkspaceContextValue => {
 
 ---
 
-## 🎨 **PHASE 2A: Workspace Context [PARALLEL]**
+## 🎨 **PHASE 2A: Workspace Context [PARALLEL]** ✅ COMPLETED 2026-07-17
 
 *Can start after P1.3 completion*
 
@@ -776,7 +776,7 @@ export const WorkspaceContextHeader: React.FC<WorkspaceContextHeaderProps> = ({
 
 ---
 
-## 🗃️ **PHASE 2B: Asset Knowledge Panel [PARALLEL]**
+## 🗃️ **PHASE 2B: Asset Knowledge Panel [PARALLEL]** ✅ COMPLETED 2026-07-17
 
 *Can start after P1.3 completion*
 
@@ -1240,41 +1240,325 @@ const baseRequest = buildBaseGenerationRequest({
 
 ---
 
-## 🏠 **PHASE 3: Dashboard & Navigation** 
+## 🏠 **PHASE 3: Dashboard & Navigation** ✅ COMPLETED 2026-07-17
 
 *Requires P1 + P2A completion*
 
-### **P3.1 - WorkspaceDashboard** ⏱️ 4-5 days | **Priority: HIGH**
+### **P3.1 - WorkspaceDashboard** ⏱️ 3-4 days | **Priority: HIGH**
 
-#### **P3.1.1 - Create WorkspaceDashboard page**
-**File**: `apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx` (NEW)
-**Complexity**: HIGH
-
-#### **P3.1.2 - Implement dashboard panels**
+#### **P3.1.1 - Create dashboard panel components**
 **Directory**: `apps/frontend/src/features/workspace/ui/dashboard/` (NEW)
 
-Create dashboard panel components:
-- `WorkspaceKnowledgeOverview.tsx`
-- `SuggestedActionsPanel.tsx`
-- `ContextualToolsPanel.tsx` 
-- `AssetLibraryQuickAccess.tsx`
-- `RecentActivityPanel.tsx`
+Create 5 panel components + 1 CSS file:
 
-### **P3.2 - Navigation Updates** ⏱️ 2-3 days | **Priority: MEDIUM**
+| Component | Purpose | Data Source |
+|---|---|---|
+| `WorkspaceKnowledgeOverview.tsx` | Quality score, asset count, gate status | `useWorkspaceContext` |
+| `SuggestedActionsPanel.tsx` | Gap-based tool suggestions | `useWorkspaceContext.gaps` + `useWorkspaceContext.workflowPosition.suggestedNext` |
+| `ContextualToolsPanel.tsx` | Grid of tools with readiness scores | `getEnabledToolNavigationItems(role, workspaceId)` + `useWorkspaceContext.gaps` |
+| `AssetLibraryQuickAccess.tsx` | Top 6 recent assets with type icons | `useWorkspaceContext.assets.slice(0, 6)` |
+| `RecentActivityPanel.tsx` | Last 5 sessions in this workspace | `useSessionsQuery({ projectId: workspaceId })` |
 
-#### **P3.2.1 - Update main navigation**
+**P3.1.1.1 - WorkspaceKnowledgeOverview.tsx**
+```tsx
+// Shows: quality score (large number), asset count, gate status badge, workflow progress bar
+// Data: useWorkspaceContext()
+// Layout: horizontal card with 3 sections: [Score] [Stats] [Progress]
+// Score: large qualityScore number + label "Quality Score"
+// Stats: "X assets" + gate status chip (healthy/needs-attention/blocked)
+// Progress: LinearProgress with estimatedCompletion + "X/Y tools completed"
+interface WorkspaceKnowledgeOverviewProps {
+  workspaceId: string;
+}
+```
+
+**P3.1.1.2 - SuggestedActionsPanel.tsx**
+```tsx
+// Shows: list of suggested next tools based on gaps
+// Data: useWorkspaceContext().gaps + workflowPosition.suggestedNext
+// Layout: vertical list of action cards
+// Each card: [Tool icon] [Tool name] [Gap description] [CTA button "Go to tool"]
+// Empty state: "No suggestions — workspace is fully loaded"
+interface SuggestedActionsPanelProps {
+  workspaceId: string;
+}
+```
+
+**P3.1.1.3 - ContextualToolsPanel.tsx**
+```tsx
+// Shows: grid of available tools with readiness indicator per tool
+// Data: getEnabledToolNavigationItems('member', workspaceId) + useWorkspaceContext()
+// Layout: 2-column grid of tool cards
+// Each card: [Tool icon] [Display name] [Description] [Readiness badge] [Link to tool]
+// Readiness: derived from gaps — tool is "ready" if its required assets exist
+interface ContextualToolsPanelProps {
+  workspaceId: string;
+}
+```
+
+**P3.1.1.4 - AssetLibraryQuickAccess.tsx**
+```tsx
+// Shows: top 6 assets as mini-cards
+// Data: useWorkspaceContext().assets.slice(0, 6)
+// Layout: horizontal scroll or 3x2 grid
+// Each card: [AssetTypeIcon] [Label] [QualityScoreBadge]
+// Footer: "View all assets →" link to /workspaces/:id/assets
+interface AssetLibraryQuickAccessProps {
+  workspaceId: string;
+}
+```
+
+**P3.1.1.5 - RecentActivityPanel.tsx**
+```tsx
+// Shows: last 5 sessions as list items
+// Data: useSessionsQuery({ projectId: workspaceId, apiBaseUrl, capabilities })
+// Layout: vertical list
+// Each item: [Tool icon] [Tool name] [Status chip] [Artifact count] [Relative time]
+// Empty state: "No sessions yet — start by selecting a tool"
+interface RecentActivityPanelProps {
+  workspaceId: string;
+}
+```
+
+**P3.1.1.6 - dashboard-panels.css**
+```css
+/* Shared styles for all dashboard panels */
+.dashboard-panel { border: 1px solid var(--mui-palette-divider); border-radius: 12px; background: var(--mui-palette-background-paper); }
+.dashboard-panel__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--mui-palette-divider); }
+.dashboard-panel__content { padding: 16px 20px; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+```
+
+**Validation**:
+```bash
+test -f apps/frontend/src/features/workspace/ui/dashboard/WorkspaceKnowledgeOverview.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/SuggestedActionsPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/ContextualToolsPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/AssetLibraryQuickAccess.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/RecentActivityPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/dashboard-panels.css
+npm --workspace apps/frontend run typecheck
+```
+
+---
+
+#### **P3.1.2 - Implement WorkspaceDashboard page**
+**File**: `apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx` (REPLACE placeholder)
+**Complexity**: HIGH
+
+**Wireframe**:
+```
+┌─────────────────────────────────────────────────────────┐
+│ WorkspaceContextHeader (already exists from P2A)        │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─ WorkspaceKnowledgeOverview (full width) ──────────┐ │
+│  │  Quality Score: 85  │  12 assets  │  3/8 tools    │ │
+│  │  ████████████░░░░░░░░░░░░░░░░░░░░  37%            │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                         │
+│  ┌─ SuggestedActionsPanel ──┐ ┌─ ContextualToolsPanel ┐ │
+│  │  ▸ Generate Angle        │ │  ┌─────────┐ ┌──────┐ │ │
+│  │  ▸ Create Persona        │ │  │Funnel   │ │Nextl.│ │ │
+│  │  ▸ Upload Briefing       │ │  │ 92% ✓  │ │ 78%  │ │ │
+│  │                          │ │  └─────────┘ └──────┘ │ │
+│  └──────────────────────────┘ │  ┌─────────┐ ┌──────┐ │ │
+│                                │  │YT Script│ │Meta  │ │ │
+│                                │  │  45% ⚠ │ │  N/A │ │ │
+│                                │  └─────────┘ └──────┘ │ │
+│                                └──────────────────────┘ │
+│                                                         │
+│  ┌─ AssetLibraryQuickAccess ─┐ ┌─ RecentActivityPanel ┐ │
+│  │  [Angle] [Persona] [Hook] │ │  ▸ Meta Ads — done   │ │
+│  │  [Brief] [Ad Copy] [Desc] │ │  ▸ YT Script — running│ │
+│  │  View all assets →        │ │  ▸ Funnel — done      │ │
+│  └──────────────────────────┘ └──────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Implementation**:
+```tsx
+// FILE: apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+import { useParams, Link } from 'react-router-dom';
+import { Surface, uiPrimitives } from '../../../app/ui/primitives';
+import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
+import { WorkspaceKnowledgeOverview } from '../ui/dashboard/WorkspaceKnowledgeOverview';
+import { SuggestedActionsPanel } from '../ui/dashboard/SuggestedActionsPanel';
+import { ContextualToolsPanel } from '../ui/dashboard/ContextualToolsPanel';
+import { AssetLibraryQuickAccess } from '../ui/dashboard/AssetLibraryQuickAccess';
+import { RecentActivityPanel } from '../ui/dashboard/RecentActivityPanel';
+import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
+import '../ui/dashboard/dashboard-panels.css';
+
+export const WorkspaceDashboard: React.FC = () => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const ctx = useWorkspaceContext(workspaceId);
+
+  if (ctx.loading) return <LoadingStateMessage>Loading workspace...</LoadingStateMessage>;
+  if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
+  if (!workspaceId) return null;
+
+  return (
+    <section className="workspace-dashboard">
+      <WorkspaceKnowledgeOverview workspaceId={workspaceId} />
+      <div className="dashboard-grid">
+        <SuggestedActionsPanel workspaceId={workspaceId} />
+        <ContextualToolsPanel workspaceId={workspaceId} />
+      </div>
+      <div className="dashboard-grid">
+        <AssetLibraryQuickAccess workspaceId={workspaceId} />
+        <RecentActivityPanel workspaceId={workspaceId} />
+      </div>
+    </section>
+  );
+};
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run build
+grep -q "WorkspaceKnowledgeOverview" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+grep -q "SuggestedActionsPanel" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+grep -q "ContextualToolsPanel" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+grep -q "AssetLibraryQuickAccess" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+grep -q "RecentActivityPanel" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+```
+
+---
+
+### **P3.2 - WorkspacesListPage** ⏱️ 1-2 days | **Priority: HIGH**
+
+#### **P3.2.1 - Implement WorkspacesListPage**
+**File**: `apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx` (REPLACE placeholder)
+**Complexity**: MEDIUM
+
+**Wireframe**:
+```
+┌─────────────────────────────────────────────────────────┐
+│ TopBar: "Workspaces"                    [+ New Workspace]│
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─ Workspace Card ──────────────────────────────────┐  │
+│  │  [Icon] Project Name                              │  │
+│  │  12 assets · 85% quality · 3/8 tools             │  │
+│  │  [Open Workspace →]                               │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                         │
+│  ┌─ Workspace Card ──────────────────────────────────┐  │
+│  │  [Icon] Another Project                           │  │
+│  │  5 assets · 60% quality · 1/8 tools              │  │
+│  │  [Open Workspace →]                               │  │
+│  └──────────────────────────────────────────────────┘  │
+│                                                         │
+│  Empty state: "No workspaces yet. Create your first    │
+│  project to get started."                              │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Implementation**:
+```tsx
+// Fetches: useProjectsQuery({ apiBaseUrl, capabilities })
+// Maps: each Project → WorkspaceCard with summary stats
+// Each card uses useWorkspaceContext(project.id) for stats
+// CTA: Link to /workspaces/:id (dashboard)
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run build
+grep -q "useProjectsQuery" apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx
+grep -q "useWorkspaceContext" apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx
+```
+
+---
+
+### **P3.3 - Navigation Updates** ⏱️ 1 day | **Priority: MEDIUM**
+
+#### **P3.3.1 - Update navigation-metadata.ts**
 **File**: `apps/frontend/src/app/runtime/navigation-metadata.ts`
 
-#### **P3.2.2 - Create WorkspacesListPage**
-**File**: `apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx` (NEW)
+**Changes**:
+```tsx
+// Replace /tools entry with /workspaces
+const NAVIGATION_ITEMS: NavigationItem[] = [
+  { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true, iconKey: 'dashboard' },
+  { to: '/workspaces', label: appCopy.ui.navigation.workspaces, end: false, iconKey: 'projects' },
+  // REMOVE: { to: '/tools', ... }
+  { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true, iconKey: 'projects' },
+  { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false, iconKey: 'sessions' },
+  // ... rest unchanged
+];
+
+// Update NavigationIconKey type to add 'workspaces' if needed
+export type NavigationIconKey = 'dashboard' | 'projects' | 'tools' | 'workspaces' | 'sessions' | 'artifacts' | 'admin';
+```
+
+**Also update**: `MainNavigation.css` if it references `/tools` in active-state logic.
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "workspaces" apps/frontend/src/app/runtime/navigation-metadata.ts
+grep -q "/tools" apps/frontend/src/app/runtime/navigation-metadata.ts && echo "WARN: /tools still present" || echo "PASS: /tools removed"
+```
+
+#### **P3.3.2 - Update MainNavigation active-state**
+**File**: `apps/frontend/src/app/layouts/MainNavigation.tsx`
+
+**Changes**: Update active-state detection to recognize `/workspaces` routes as active when the current path starts with `/workspaces`.
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "workspaces" apps/frontend/src/app/layouts/MainNavigation.tsx
+```
+
+---
+
+### **P3.4 - Phase 3 Integration Test** ⏱️ 1 day | **Priority: HIGH**
+
+#### **P3.4.1 - Full validation**
+```bash
+# TypeScript
+npm --workspace apps/frontend run typecheck
+
+# Build
+npm --workspace apps/frontend run build
+
+# Component existence
+test -f apps/frontend/src/features/workspace/ui/dashboard/WorkspaceKnowledgeOverview.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/SuggestedActionsPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/ContextualToolsPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/AssetLibraryQuickAccess.tsx
+test -f apps/frontend/src/features/workspace/ui/dashboard/RecentActivityPanel.tsx
+
+# Page integration
+grep -q "WorkspaceKnowledgeOverview" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+grep -q "useProjectsQuery" apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx
+
+# Navigation
+grep -q "workspaces" apps/frontend/src/app/runtime/navigation-metadata.ts
+```
+
+---
 
 ### **P3 Acceptance Criteria**
 
-- [ ] **Dashboard**: WorkspaceDashboard replaces ProjectDetailPage as primary workspace view
-- [ ] **Overview Panels**: All dashboard panels render correct data
-- [ ] **Navigation**: Primary navigation points to workspaces, not tools
-- [ ] **Tool Access**: Tools accessible through workspace context
-- [ ] **List View**: WorkspacesListPage shows available workspaces
+- [ ] **Dashboard**: WorkspaceDashboard renders 5 panels with real data from `useWorkspaceContext` + `useSessionsQuery`
+- [ ] **Overview**: KnowledgeOverview shows quality score, asset count, gate status, progress bar
+- [ ] **Suggestions**: SuggestedActionsPanel shows gap-based tool recommendations
+- [ ] **Tools**: ContextualToolsPanel shows available tools with readiness indicators
+- [ ] **Assets**: AssetLibraryQuickAccess shows recent assets with "View all" link
+- [ ] **Activity**: RecentActivityPanel shows last 5 sessions with status chips
+- [ ] **List**: WorkspacesListPage shows all projects as workspace cards with stats
+- [ ] **Navigation**: Sidebar shows "Workspaces" instead of "Tools", active state works
+- [ ] **Responsive**: Dashboard panels stack vertically on mobile
+- [ ] **Empty states**: All panels show meaningful empty states when data is missing
+- [ ] **Loading states**: Dashboard shows loading indicators during data fetch
+- [ ] **Error states**: Dashboard shows error messages with retry option
 
 ---
 
@@ -1282,26 +1566,434 @@ Create dashboard panel components:
 
 *Requires P1 + P2A + P2B completion*
 
-### **P4.1 - Workflow Visualization** ⏱️ 2-3 days | **Priority: MEDIUM**
+### **P4.1 - Per-Tool Asset Registry** ⏱️ 1 day | **Priority: HIGH**
 
-#### **P4.1.1 - Implement CrossToolWorkflowPanel**
-**File**: `apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx` (NEW)
+#### **P4.1.1 - Create toolAssetRegistry.ts**
+**File**: `apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts` (NEW)
+**Complexity**: LOW
 
-#### **P4.1.2 - Add workflow panel to ToolPageTemplate**
+**Problem**: `ToolPageTemplate` hardcodes `assetInputs` as a stub. Each tool needs a proper mapping from `toolKey` → `ToolProjectAssetPolicyEntry[]` based on `TOOL_ASSET_CONTRACTS` from contracts.
 
-### **P4.2 - Contextual Recommendations** ⏱️ 2-3 days | **Priority: MEDIUM**
+**Implementation**:
+```tsx
+// FILE: apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+import { TOOL_ASSET_CONTRACTS, type ToolKey, type AssetType } from '@gen-app-2/contracts';
 
-#### **P4.2.1 - Implement useToolRecommendations hook**
+export type ToolProjectAssetPolicyEntry = {
+  assetType: string;
+  label: string;
+  requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required';
+};
+
+// Asset type display labels (canonical, from contracts ASSET_TYPES)
+const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+  'angle': 'Angle',
+  'persona': 'Persona',
+  'brand-voice': 'Brand Voice',
+  'hook': 'Hook',
+  'competitor-analysis': 'Competitor Analysis',
+  'creative-brief': 'Creative Brief',
+  'ad-copy': 'Ad Copy',
+  'landing-page': 'Landing Page',
+  'article-outline': 'Article Outline',
+  'article': 'Article',
+  'script': 'Script',
+  'description': 'Description',
+};
+
+/**
+ * Returns the asset inputs for a given tool based on TOOL_ASSET_CONTRACTS.
+ * Required assets (always-required) come from `consumes` minus optional.
+ * Optional assets are derived from the contract's optional list.
+ */
+export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntry[] => {
+  const contract = TOOL_ASSET_CONTRACTS[toolKey];
+  if (!contract) return [];
+
+  const required = contract.consumes.map(assetType => ({
+    assetType,
+    label: ASSET_TYPE_LABELS[assetType] || assetType,
+    requiredness: 'always-required' as const,
+  }));
+
+  return required;
+};
+
+/**
+ * Returns all tools that can produce a specific asset type.
+ */
+export const getProducerToolsForAsset = (assetType: AssetType): ToolKey[] => {
+  return (Object.keys(TOOL_ASSET_CONTRACTS) as ToolKey[]).filter(toolKey =>
+    TOOL_ASSET_CONTRACTS[toolKey].produces.includes(assetType),
+  );
+};
+```
+
+**Validation**:
+```bash
+test -f apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+npm --workspace apps/frontend run typecheck
+grep -q "getToolAssetInputs" apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+grep -q "getProducerToolsForAsset" apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+```
+
+---
+
+### **P4.2 - useToolRecommendations Hook** ⏱️ 1-2 days | **Priority: HIGH**
+
+#### **P4.2.1 - Implement useToolRecommendations**
 **File**: `apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts` (NEW)
+**Complexity**: HIGH
 
-#### **P4.2.2 - Update tool discovery flows**
+**Purpose**: Given a workspace state (gaps, completed tools), compute ranked tool recommendations with reasons.
+
+**Data sources**:
+- `useWorkspaceContext(workspaceId)` → `gaps`, `workflowPosition.completedSteps`, `assets`
+- `TOOL_ASSET_CONTRACTS` from `@gen-app-2/contracts` → static tool→asset→consumer mapping
+- `getEnabledToolNavigationItems(role, workspaceId)` → available tools with routes
+
+**Algorithm**:
+```
+For each tool T not yet in completedSteps:
+  1. Get T.consumes (required input assetTypes)
+  2. Count how many of T.consumes exist in workspace assets → coveredCount
+  3. Count how many of T.consumes are in gaps → gapCount
+  4. readinessScore = (coveredCount / T.consumes.length) * 100
+  5. impactScore = T.produces.length * gapCount (how many gaps this tool fills)
+  6. priorityScore = readinessScore * 0.6 + impactScore * 0.4
+  7. reason: "Ready to run" | "Needs X, Y assets" | "Fills Z gaps"
+Sort by priorityScore desc, return top 5
+```
+
+**Implementation**:
+```tsx
+// FILE: apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+import { useMemo } from 'react';
+import { TOOL_ASSET_CONTRACTS, type ToolKey, type AssetType } from '@gen-app-2/contracts';
+import { useWorkspaceContext } from './useWorkspaceContext';
+import { getEnabledToolNavigationItems } from '../../tools/runtime/tool-form-architecture';
+import type { ToolAccessRole } from '@gen-app-2/contracts';
+
+export interface ToolRecommendation {
+  toolKey: ToolKey;
+  label: string;
+  description: string;
+  to: string;
+  readinessScore: number;   // 0-100, how many required inputs exist
+  impactScore: number;      // how many gaps this tool would fill
+  priorityScore: number;    // combined ranking
+  reason: string;           // human-readable recommendation reason
+  missingAssets: AssetType[];
+  fillableGaps: AssetType[];
+}
+
+export const useToolRecommendations = (
+  workspaceId?: string,
+  role: ToolAccessRole = 'member',
+  limit: number = 5,
+): ToolRecommendation[] => {
+  const ctx = useWorkspaceContext(workspaceId);
+
+  return useMemo(() => {
+    if (!workspaceId || ctx.loading || !ctx.workflowPosition) return [];
+
+    const completedSet = new Set(ctx.workflowPosition.completedSteps);
+    const gapAssetTypes = new Set(ctx.gaps.map(g => g.assetType));
+    const availableTools = getEnabledToolNavigationItems(role, workspaceId);
+
+    const recommendations: ToolRecommendation[] = [];
+
+    for (const item of availableTools) {
+      const toolKey = item.toolKey as ToolKey;
+      if (completedSet.has(toolKey)) continue;
+
+      const contract = TOOL_ASSET_CONTRACTS[toolKey];
+      if (!contract || contract.consumes.length === 0) continue;
+
+      const existingAssetTypes = new Set(ctx.assets.map(a => a.assetType));
+
+      const coveredCount = contract.consumes.filter(a => existingAssetTypes.has(a)).length;
+      const missingAssets = contract.consumes.filter(a => !existingAssetTypes.has(a));
+      const fillableGaps = contract.produces.filter(a => gapAssetTypes.has(a));
+
+      const readinessScore = Math.round((coveredCount / contract.consumes.length) * 100);
+      const impactScore = fillableGaps.length * 30;
+      const priorityScore = readinessScore * 0.6 + impactScore * 0.4;
+
+      let reason: string;
+      if (missingAssets.length === 0) {
+        reason = 'Ready to run — all inputs available';
+      } else if (fillableGaps.length > 0) {
+        reason = `Needs ${missingAssets.join(', ')} — fills ${fillableGaps.length} gap(s)`;
+      } else {
+        reason = `Needs ${missingAssets.join(', ')} inputs`;
+      }
+
+      recommendations.push({
+        toolKey,
+        label: item.label,
+        description: item.description,
+        to: item.to,
+        readinessScore,
+        impactScore,
+        priorityScore,
+        reason,
+        missingAssets,
+        fillableGaps,
+      });
+    }
+
+    return recommendations
+      .sort((a, b) => b.priorityScore - a.priorityScore)
+      .slice(0, limit);
+  }, [workspaceId, role, limit, ctx.loading, ctx.workflowPosition, ctx.gaps, ctx.assets]);
+};
+```
+
+**Validation**:
+```bash
+test -f apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+npm --workspace apps/frontend run typecheck
+grep -q "TOOL_ASSET_CONTRACTS" apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+grep -q "priorityScore" apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+grep -q "readinessScore" apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+```
+
+---
+
+### **P4.3 - CrossToolWorkflowPanel** ⏱️ 1-2 days | **Priority: MEDIUM**
+
+#### **P4.3.1 - Implement CrossToolWorkflowPanel**
+**File**: `apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx` (NEW)
+**Complexity**: MEDIUM
+
+**Purpose**: Horizontal pipeline visualization showing which tools have been used, current position, and suggested next steps.
+
+**Wireframe**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Cross-Tool Workflow                                         │
+│                                                             │
+│  ┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐    ┌─────┐     │
+│  │Geo. │───▶│Angl.│───▶│Meta │───▶│  ?  │───▶│  ?  │     │
+│  │  ✓  │    │  ✓  │    │  ✓  │    │     │    │     │     │
+│  └─────┘    └─────┘    └─────┘    └─────┘    └─────┘     │
+│                                                             │
+│  ✅ Completed    ⏳ Suggested    ○ Available                │
+│                                                             │
+│  Suggested next: Angle Generator, Funnel Pages              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implementation**:
+```tsx
+// FILE: apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx
+import { useMemo } from 'react';
+import { Chip, Typography } from '@mui/material';
+import { Check, Clock, Circle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import type { ToolKey } from '@gen-app-2/contracts';
+import { TOOL_ASSET_CONTRACTS } from '@gen-app-2/contracts';
+import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
+import { useToolRecommendations } from '../runtime/useToolRecommendations';
+import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import './CrossToolWorkflowPanel.css';
+
+interface CrossToolWorkflowPanelProps {
+  workspaceId: string;
+  currentToolKey?: string;
+}
+
+// Canonical tool ordering for visual pipeline display
+const TOOL_PIPELINE_ORDER: ToolKey[] = [
+  'geometric', 'angle-generator', 'meta-ads', 'funnel-pages',
+  'nextland', 'youtube-lf-script', 'youtube-description', 'blog-article-generator',
+];
+
+export const CrossToolWorkflowPanel: React.FC<CrossToolWorkflowPanelProps> = ({
+  workspaceId,
+  currentToolKey,
+}) => {
+  const ctx = useWorkspaceContext(workspaceId);
+  const recommendations = useToolRecommendations(workspaceId, 'member', 3);
+
+  const pipeline = useMemo(() => {
+    const completedSet = new Set(ctx.workflowPosition?.completedSteps || []);
+    const suggestedSet = new Set(recommendations.map(r => r.toolKey));
+
+    return TOOL_PIPELINE_ORDER.map(toolKey => ({
+      toolKey,
+      status: completedSet.has(toolKey)
+        ? 'completed'
+        : suggestedSet.has(toolKey)
+          ? 'suggested'
+          : 'available',
+      isCurrent: toolKey === currentToolKey,
+    }));
+  }, [ctx.workflowPosition, recommendations, currentToolKey]);
+
+  if (ctx.loading || !ctx.workflowPosition) return null;
+
+  return (
+    <div className="cross-tool-workflow-panel">
+      <Typography variant="subtitle2" className="cross-tool-workflow-panel__title">
+        Cross-Tool Workflow
+      </Typography>
+
+      <div className="cross-tool-workflow-panel__pipeline">
+        {pipeline.map((item, index) => (
+          <div key={item.toolKey} className="cross-tool-workflow-panel__step-wrapper">
+            {index > 0 && (
+              <div className={`cross-tool-workflow-panel__connector cross-tool-workflow-panel__connector--${item.status}`} />
+            )}
+            <Link
+              to={`/workspaces/${workspaceId}/tools/${item.toolKey}`}
+              className={`cross-tool-workflow-panel__step cross-tool-workflow-panel__step--${item.status} ${item.isCurrent ? 'cross-tool-workflow-panel__step--current' : ''}`}
+            >
+              {item.status === 'completed' ? <Check size={14} /> :
+               item.status === 'suggested' ? <Clock size={14} /> :
+               <Circle size={14} />}
+              <span className="cross-tool-workflow-panel__step-label">
+                {getToolLabel(item.toolKey)}
+              </span>
+            </Link>
+          </div>
+        ))}
+      </div>
+
+      {recommendations.length > 0 && (
+        <div className="cross-tool-workflow-panel__suggestions">
+          <Typography variant="caption" color="text.secondary">
+            Suggested next: {recommendations.map(r => r.label).join(', ')}
+          </Typography>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+**CSS** (`CrossToolWorkflowPanel.css`):
+```css
+.cross-tool-workflow-panel { border: 1px solid var(--mui-palette-divider); border-radius: 12px; background: var(--mui-palette-background-paper); padding: 16px 20px; margin-bottom: 24px; }
+.cross-tool-workflow-panel__title { margin-bottom: 12px; }
+.cross-tool-workflow-panel__pipeline { display: flex; align-items: center; overflow-x: auto; gap: 0; padding: 8px 0; }
+.cross-tool-workflow-panel__step-wrapper { display: flex; align-items: center; }
+.cross-tool-workflow-panel__connector { width: 24px; height: 2px; background: var(--mui-palette-divider); }
+.cross-tool-workflow-panel__connector--completed { background: var(--mui-palette-success-main); }
+.cross-tool-workflow-panel__step { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: inherit; min-width: 64px; transition: background 0.2s; }
+.cross-tool-workflow-panel__step:hover { background: var(--mui-palette-action-hover); }
+.cross-tool-workflow-panel__step--completed { color: var(--mui-palette-success-main); }
+.cross-tool-workflow-panel__step--suggested { color: var(--mui-palette-warning-main); }
+.cross-tool-workflow-panel__step--available { color: var(--mui-palette-text-secondary); }
+.cross-tool-workflow-panel__step--current { outline: 2px solid var(--mui-palette-primary-main); outline-offset: 2px; }
+.cross-tool-workflow-panel__step-label { font-size: 0.75rem; white-space: nowrap; }
+.cross-tool-workflow-panel__suggestions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--mui-palette-divider); }
+```
+
+**Validation**:
+```bash
+test -f apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.css
+npm --workspace apps/frontend run typecheck
+grep -q "TOOL_PIPELINE_ORDER" apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx
+grep -q "useToolRecommendations" apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx
+```
+
+---
+
+### **P4.4 - Integrate into ToolPageTemplate** ⏱️ 0.5 day | **Priority: HIGH**
+
+#### **P4.4.1 - Add CrossToolWorkflowPanel to ToolPageTemplate**
+**File**: `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+
+**Changes**:
+```tsx
+// 1. Add import
+import { CrossToolWorkflowPanel } from '../../workspace/ui/CrossToolWorkflowPanel';
+import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
+
+// 2. Inside ToolPageTemplate component, add workspace-aware rendering:
+// Find the section before <form> (around line 590) and insert:
+
+// After the existing header, before the form:
+{(() => {
+  try {
+    const { workspace } = useWorkspace();
+    return (
+      <CrossToolWorkflowPanel
+        workspaceId={workspace.id}
+        currentToolKey={props.toolKey}
+      />
+    );
+  } catch {
+    return null; // Not inside WorkspaceProvider — skip
+  }
+})()}
+```
+
+**Also**: Replace the hardcoded `assetInputs` stub with the real registry:
+```tsx
+// BEFORE (hardcoded stub):
+const assetInputs = useMemo(() => {
+  return [
+    { assetType: 'angle', label: 'Angle', requiredness: 'optional-by-tool-setting' as const },
+    { assetType: 'persona', label: 'Persona', requiredness: 'optional-by-tool-setting' as const },
+  ];
+}, [toolKey]);
+
+// AFTER (from registry):
+import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
+const assetInputs = useMemo(() => getToolAssetInputs(props.toolKey), [props.toolKey]);
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "CrossToolWorkflowPanel" apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx
+grep -q "getToolAssetInputs" apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx
+grep -q "TOOL_ASSET_CONTRACTS\|toolAssetRegistry" apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx
+```
+
+---
+
+### **P4.5 - Phase 4 Integration Test** ⏱️ 0.5 day | **Priority: HIGH**
+
+#### **P4.5.1 - Full validation**
+```bash
+# TypeScript
+npm --workspace apps/frontend run typecheck
+
+# Build
+npm --workspace apps/frontend run build
+
+# Component existence
+test -f apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts
+test -f apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+test -f apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.tsx
+test -f apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.css
+
+# Integration
+grep -q "CrossToolWorkflowPanel" apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx
+grep -q "getToolAssetInputs" apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx
+grep -q "useToolRecommendations" apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+grep -q "TOOL_ASSET_CONTRACTS" apps/frontend/src/features/workspace/runtime/useToolRecommendations.ts
+```
+
+---
 
 ### **P4 Acceptance Criteria**
 
-- [ ] **Workflow Display**: Cross-tool workflow position visible in tools
-- [ ] **Recommendations**: Tool suggestions based on workspace state
-- [ ] **Discovery**: Users discover new tools through workspace recommendations
-- [ ] **Context Awareness**: Tool behavior adapts to workspace context
+- [ ] **Registry**: `toolAssetRegistry.ts` provides per-tool asset inputs from `TOOL_ASSET_CONTRACTS`
+- [ ] **Recommendations**: `useToolRecommendations` returns ranked tool suggestions with readiness/impact scores
+- [ ] **Workflow Panel**: `CrossToolWorkflowPanel` shows horizontal pipeline with completed/suggested/available states
+- [ ] **Pipeline Order**: Tools display in canonical production order
+- [ ] **Current Tool Highlight**: Active tool is visually highlighted in pipeline
+- [ ] **Suggestions**: Pipeline footer shows top 3 recommended next tools
+- [ ] **Integration**: `ToolPageTemplate` renders workflow panel when inside workspace context
+- [ ] **Asset Inputs**: `ToolPageTemplate` uses `getToolAssetInputs()` instead of hardcoded stub
+- [ ] **Responsive**: Pipeline scrolls horizontally on mobile
+- [ ] **Empty State**: Panel hidden when no workspace context available
 
 ---
 
@@ -1309,35 +2001,179 @@ Create dashboard panel components:
 
 *Final integration and optimization*
 
-### **P5.1 - Testing & QA** ⏱️ 1-2 days | **Priority: HIGH**
+### **P5.1 - Test Updates** ⏱️ 1 day | **Priority: HIGH**
 
-#### **P5.1.1 - Update existing tests**
-- Update all tests using old tool routing  
-- Update component snapshots
-- Add integration tests for workspace flows
+#### **P5.1.1 - Update existing tests for new routing**
+**Files**: `apps/frontend/src/features/tools/ui/ToolPageTemplate*.test.tsx`, `apps/frontend/src/app/routing/*.test.tsx`
 
-#### **P5.1.2 - Add new component tests**
-- Comprehensive testing for all new components
-- E2E tests for workspace workflows
+**Changes**:
+- Update all test renders that use `/tools/:toolKey` routes to also test `/workspaces/:id/tools/:toolKey`
+- Add `WorkspaceProvider` wrapper to tests that render components needing workspace context
+- Update snapshot tests for modified components (`ToolPageTemplate`, `WorkspaceToolWrapper`)
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run test 2>&1 | tail -5
+```
+
+#### **P5.1.2 - Add workspace component tests**
+**Directory**: `apps/frontend/src/features/workspace/**/*.test.tsx` (NEW)
+
+Create test files for each new component:
+
+| Test File | Covers | Key assertions |
+|---|---|---|
+| `useWorkspaceContext.test.ts` | Hook | Returns correct data shape, handles loading/error, refetch works |
+| `WorkspaceProvider.test.tsx` | Context | Provides context, throws outside provider |
+| `WorkspaceToolWrapper.test.tsx` | Wrapper | Shows header, redirects on missing workspace, loading states |
+| `WorkspaceContextHeader.test.tsx` | Header | Breadcrumbs render, quality chip shows correct color |
+| `AssetKnowledgePanel.test.tsx` | Panel | Groups assets correctly, selection works, empty states |
+| `AssetGroupSection.test.tsx` | Group | Expand/collapse, select all/none, create prompt |
+| `CrossToolWorkflowPanel.test.tsx` | Pipeline | Shows completed/suggested states, highlights current tool |
+| `useToolRecommendations.test.ts` | Hook | Returns ranked recommendations, handles empty workspace |
+| `toolAssetRegistry.test.ts` | Registry | Returns correct asset inputs per tool |
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run test 2>&1 | grep -E "pass|fail|PASS|FAIL"
+```
+
+---
 
 ### **P5.2 - Performance & Polish** ⏱️ 1 day | **Priority: MEDIUM**
 
-#### **P5.2.1 - Performance optimization**
-- Bundle analysis and optimization
-- Component memoization
-- Lazy loading verification
+#### **P5.2.1 - Bundle analysis and lazy loading**
+**Check**: All new workspace components are lazy-loaded via `app-router.tsx`.
 
-#### **P5.2.2 - UX refinements**
-- Loading states polish
-- Error boundaries  
-- Accessibility audit and fixes
+**Actions**:
+- Verify `WorkspaceDashboard`, `WorkspacesListPage`, `ProjectAssetsPage` use `React.lazy()`
+- Verify `CrossToolWorkflowPanel`, `AssetKnowledgePanel` are imported inline (not lazy, since they're inside already-lazy tool pages)
+- Run `npm --workspace apps/frontend run build` and check chunk sizes
+- Target: no single chunk > 150KB gzipped
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run build 2>&1 | grep -E "\.js\s+[0-9]+\.?[0-9]* kB" | awk '{if ($3+0 > 150) print "WARN: " $0}'
+```
+
+#### **P5.2.2 - Component memoization audit**
+**Files**: All new workspace components
+
+**Actions**:
+- Add `React.memo()` to pure presentational components: `QualityScoreBadge`, `AssetTypeIcon`, `AssetSelectionList`
+- Verify `useMemo` usage in `useWorkspaceContext`, `useToolRecommendations`, `AssetKnowledgePanel`
+- Verify `useCallback` for handlers passed as props to child components
+- Target: no unnecessary re-renders when workspace data hasn't changed
+
+#### **P5.2.3 - CSS performance**
+**Files**: All new `.css` files
+
+**Actions**:
+- Remove any duplicate CSS rules across workspace CSS files
+- Use CSS custom properties (MUI vars) consistently — no hardcoded colors
+- Verify responsive breakpoints work at 768px and 480px
+- Remove unused CSS classes
+
+---
+
+### **P5.3 - Legacy Cleanup** ⏱️ 0.5 day | **Priority: MEDIUM**
+
+#### **P5.3.1 - Remove legacy `/tools` hub route**
+**File**: `apps/frontend/src/app/routing/app-router.tsx`
+
+**Changes**:
+- Remove the `/tools` route that renders `ToolsHubPage`
+- Keep `/tools/:toolKey` → `LegacyToolRedirect` for backward compatibility
+- Update wildcard `*` route to redirect to `/workspaces` instead of `/dashboard`
+
+```tsx
+// BEFORE:
+{ path: '/tools', element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense> },
+{ path: '/tools/:toolKey', element: <Suspense fallback={<PageLoader />}><LegacyToolRedirect /></Suspense> },
+// ...
+{ path: '*', element: <Navigate to="/dashboard" replace /> },
+
+// AFTER:
+{ path: '/tools/:toolKey', element: <Suspense fallback={<PageLoader />}><LegacyToolRedirect /></Suspense> },
+// ...
+{ path: '*', element: <Navigate to="/workspaces" replace /> },
+```
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+grep -q "/tools/:toolKey.*LegacyToolRedirect" apps/frontend/src/app/routing/app-router.tsx
+grep -c "ToolsHubPage" apps/frontend/src/app/routing/app-router.tsx && echo "WARN: ToolsHubPage still imported" || echo "PASS: ToolsHubPage removed from router"
+```
+
+#### **P5.3.2 - Deprecate ToolsHubPage import**
+**File**: `apps/frontend/src/app/routing/app-router.tsx`
+
+**Actions**:
+- Remove lazy import of `ToolsHubPage` (no longer referenced)
+- Keep `ToolsHubPage.tsx` file for now (deprecation cycle)
+
+---
+
+### **P5.4 - Accessibility Audit** ⏱️ 0.5 day | **Priority: MEDIUM**
+
+#### **P5.4.1 - Keyboard navigation verification**
+**Components**: All new workspace components
+
+**Checklist**:
+- [ ] `WorkspaceContextHeader`: breadcrumb links keyboard-navigable, chips focusable
+- [ ] `AssetGroupSection`: expand/collapse via Enter/Space, header clickable
+- [ ] `AssetSelectionList`: checkboxes keyboard-operable, focus visible
+- [ ] `CrossToolWorkflowPanel`: pipeline links keyboard-navigable
+- [ ] `WorkspaceToolWrapper`: loading/error states announced to screen readers
+
+#### **P5.4.2 - ARIA labels**
+**Actions**:
+- Add `aria-label` to `AssetGroupSection` expand button
+- Add `role="status"` to loading states in workspace components
+- Add `aria-live="polite"` to selection count in `AssetKnowledgePanel`
+- Verify all interactive elements have visible focus indicators
+
+---
+
+### **P5.5 - Phase 5 Integration Test** ⏱️ 0.5 day | **Priority: HIGH**
+
+#### **P5.5.1 - Full validation**
+```bash
+# TypeScript
+npm --workspace apps/frontend run typecheck
+
+# Build
+npm --workspace apps/frontend run build
+
+# All tests pass
+npm --workspace apps/frontend run test
+
+# No console errors in build output
+npm --workspace apps/frontend run build 2>&1 | grep -i "error\|warning" | grep -v "node_modules" | head -5
+
+# Bundle size check
+npm --workspace apps/frontend run build 2>&1 | grep "vendor" | awk '{if ($3+0 > 250) print "WARN: vendor chunk too large"}'
+
+# Legacy route still works
+grep -q "LegacyToolRedirect" apps/frontend/src/app/routing/app-router.tsx
+
+# Wildcard defaults to workspaces
+grep -q "Navigate.*to=\"/workspaces\"" apps/frontend/src/app/routing/app-router.tsx
+```
+
+---
 
 ### **P5 Acceptance Criteria**
 
-- [ ] **Test Coverage**: All new components have >85% test coverage
-- [ ] **Performance**: No significant performance degradation  
-- [ ] **Accessibility**: WCAG 2.1 AA compliance maintained
-- [ ] **Polish**: Smooth animations, proper loading states, error handling
+- [ ] **Tests**: All existing tests pass, new workspace tests added
+- [ ] **Coverage**: New components have >80% test coverage
+- [ ] **Performance**: No chunk > 150KB gzipped, memoization applied
+- [ ] **Legacy**: `/tools` hub removed, `/tools/:toolKey` redirect preserved
+- [ ] **Wildcard**: Default route redirects to `/workspaces`
+- [ ] **Accessibility**: Keyboard navigation works, ARIA labels present
+- [ ] **CSS**: No duplicate rules, consistent custom properties
+- [ ] **Build**: Clean build with no warnings
 
 ---
 
@@ -1364,17 +2200,26 @@ P3 Dashboard (6-8 days) [AFTER P1 + P2A]
 └─ P3.2 Navigation Updates (2-3 days) [PARALLEL with P3.1]
 
 P4 Cross-Tool (4-6 days) [AFTER P1 + P2A + P2B]
-├─ P4.1 Workflow Visualization (2-3 days)
-└─ P4.2 Contextual Recommendations (2-3 days) [PARALLEL with P4.1]
+├─ P4.1 Per-Tool Asset Registry (1 day) [AFTER P2B]
+├─ P4.2 useToolRecommendations (1-2 days) [PARALLEL with P4.1]
+├─ P4.3 CrossToolWorkflowPanel (1-2 days) [AFTER P4.2]
+├─ P4.4 ToolPageTemplate Integration (0.5 day) [AFTER P4.1 + P4.3]
+└─ P4.5 Integration Test (0.5 day)
 
 P5 Polish (2-3 days) [AFTER P1-P4]
-├─ P5.1 Testing & QA (1-2 days)
-└─ P5.2 Performance & Polish (1 day) [PARALLEL with P5.1]
+├─ P5.1 Test Updates (1 day)
+├─ P5.2 Performance & Polish (1 day) [PARALLEL with P5.1]
+├─ P5.3 Legacy Cleanup (0.5 day)
+├─ P5.4 Accessibility Audit (0.5 day) [PARALLEL with P5.3]
+└─ P5.5 Integration Test (0.5 day)
 ```
 
 **Total Duration**: 28-35 days
 **Critical Path**: P1 → P2A → P3 → P5 (21-26 days)
 **Parallelizable Work**: P1.2, P2B, P3.2, P4.1/P4.2, P5.2 (up to 7-9 days savings)
+**Total Atomic Tasks**: 8 (Phase 1) + 4 (Phase 2A) + 6 (Phase 2B) + 10 (Phase 3) + 8 (Phase 4) + 10 (Phase 5) = 46 tasks
+**Completed**: Phases 1, 2A, 2B, 3 (28 tasks) ✅ — 2026-07-17
+**Remaining**: Phases 4, 5 (18 tasks)
 
 ### **Resource Requirements**
 

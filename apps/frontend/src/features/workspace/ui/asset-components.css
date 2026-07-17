@@ -1,0 +1,11 @@
+.create-asset-prompt {
+  padding: 16px;
+  text-align: center;
+  background-color: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.create-asset-prompt__button {
+  margin-top: 8px;
+}

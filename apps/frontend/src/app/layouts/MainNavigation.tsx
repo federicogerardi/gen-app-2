@@ -3,7 +3,6 @@ import type { ComponentType } from 'react';
 import {
   LayoutDashboard,
   FolderOpen,
-  Zap,
   Archive,
   Settings,
   ChevronLeft,
@@ -30,7 +29,7 @@ type MainNavigationProps = {
 const navIcons: Record<NavigationIconKey, NavIcon> = {
   dashboard: LayoutDashboard,
   projects: FolderOpen,
-  tools: Zap,
+  workspaces: FolderOpen,
   sessions: Archive,
   artifacts: Archive,
   admin: Settings,

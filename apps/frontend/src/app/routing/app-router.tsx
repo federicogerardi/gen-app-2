@@ -36,6 +36,11 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
+const WorkspacesListPage = lazy(() => import('../../features/workspace/pages/WorkspacesListPage').then(m => ({ default: m.WorkspacesListPage })));
+const WorkspaceDashboard = lazy(() => import('../../features/workspace/pages/WorkspaceDashboard').then(m => ({ default: m.WorkspaceDashboard })));
+const ProjectAssetsPage = lazy(() => import('../../features/workspace/pages/ProjectAssetsPage').then(m => ({ default: m.ProjectAssetsPage })));
+const WorkspaceToolWrapper = lazy(() => import('../../features/workspace/ui/WorkspaceToolWrapper').then(m => ({ default: m.WorkspaceToolWrapper })));
+const LegacyToolRedirect = lazy(() => import('../../features/workspace/ui/LegacyToolRedirect').then(m => ({ default: m.LegacyToolRedirect })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -127,8 +132,49 @@ export const createAppRouter = () => createBrowserRouter([
         element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
       },
       {
+        path: '/workspaces',
+        children: [
+          {
+            index: true,
+            element: <Suspense fallback={<PageLoader />}><WorkspacesListPage /></Suspense>,
+          },
+          {
+            path: ':workspaceId',
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={<PageLoader />}><WorkspaceDashboard /></Suspense>,
+              },
+              {
+                path: 'assets',
+                element: <Suspense fallback={<PageLoader />}><ProjectAssetsPage /></Suspense>,
+              },
+              {
+                path: 'tools',
+                children: Object.entries(toolPageComponents).map(([toolKey, Component]) => ({
+                  path: toolKey,
+                  element: (
+                    <ToolRouteGuard toolKey={toolKey as SupportedTool}>
+                      <Suspense fallback={<PageLoader />}>
+                        <WorkspaceToolWrapper toolKey={toolKey as SupportedTool}>
+                          <Component />
+                        </WorkspaceToolWrapper>
+                      </Suspense>
+                    </ToolRouteGuard>
+                  ),
+                })),
+              },
+            ],
+          },
+        ],
+      },
+      {
         path: '/tools',
         element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
+      },
+      {
+        path: '/tools/:toolKey',
+        element: <Suspense fallback={<PageLoader />}><LegacyToolRedirect /></Suspense>,
       },
       ...Object.keys(toolPageComponents).map((toolKey) => {
         const typedToolKey = toolKey as SupportedTool;

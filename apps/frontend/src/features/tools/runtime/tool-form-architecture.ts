@@ -564,12 +564,18 @@ export const getToolLabel = (toolKey: string | null): string => {
   return toolKey;
 };
 
-export const getToolRoute = (toolKey: string | null): string | null => {
+export const getToolRoute = (toolKey: string | null, workspaceId?: string): string | null => {
   if (toolKey === null) {
     return null;
   }
 
   const normalizedToolKey = normalizeToolKeyCandidate(toolKey);
+
+  if (workspaceId) {
+    const key = normalizedToolKey || toolKey;
+    return `/workspaces/${workspaceId}/tools/${key}`;
+  }
+
   if (normalizedToolKey && normalizedToolKey in toolRouteByKey) {
     return toolRouteByKey[normalizedToolKey as SupportedTool];
   }
@@ -583,13 +589,16 @@ export const getToolRoute = (toolKey: string | null): string | null => {
 
 export const getEnabledToolNavigationItems = (
   role: ToolAccessRole = 'member',
+  workspaceId?: string,
 ): ToolNavigationItem[] => (
   getEnabledToolKeys(role).map((toolKey) => ({
     toolKey,
-    to: toolRouteByKey[toolKey],
+    to: workspaceId
+      ? `/workspaces/${workspaceId}/tools/${toolKey}`
+      : toolRouteByKey[toolKey],
     label: toolNavigationLabelByKey[toolKey],
     description: toolNavigationDescriptionByKey[toolKey],
-  }))
+  }  ))
 );
 
 /**

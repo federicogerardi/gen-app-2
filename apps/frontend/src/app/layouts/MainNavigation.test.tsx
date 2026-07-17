@@ -21,7 +21,7 @@ describe('MainNavigation', () => {
     expect(screen.queryByRole('link', { name: 'Feedback' })).toBeNull();
   });
 
-  it('renders only the Tools hub link in sidebar and not per-tool links', () => {
+  it('renders the Workspaces link in sidebar and not per-tool links', () => {
     render(
       <MemoryRouter>
         <MainNavigation
@@ -35,7 +35,7 @@ describe('MainNavigation', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('link', { name: 'Tools' })).toHaveAttribute('href', '/tools');
+    expect(screen.getByRole('link', { name: 'Workspaces' })).toHaveAttribute('href', '/workspaces');
     expect(screen.queryByRole('link', { name: 'Hotlead Funnel' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'YouTube LF Script' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Angle Generator' })).toBeNull();

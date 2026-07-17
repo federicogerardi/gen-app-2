@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,8 @@ import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
+import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
+import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
 
 const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
@@ -1106,6 +1108,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <ToolFileInstructionsSection instructions={toolFileInstructions} />
 
+              <AssetKnowledgePanelWrapper toolKey={props.toolKey} />
+
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
                   It must not be mirrored to the global feedback channel. */}
@@ -1153,5 +1157,43 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         </div>
       </div>
     </section>
+  );
+};
+
+const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ toolKey }) => {
+  let workspace;
+  try {
+    // useWorkspace throws if not inside WorkspaceProvider
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ctx = useWorkspace();
+    workspace = ctx.workspace;
+  } catch {
+    return null;
+  }
+
+  const assetInputs = useMemo(() => {
+    return [
+      { assetType: 'angle', label: 'Angle', requiredness: 'optional-by-tool-setting' as const },
+      { assetType: 'persona', label: 'Persona', requiredness: 'optional-by-tool-setting' as const },
+    ];
+  }, [toolKey]);
+
+  const handleCreateAssetAction = useCallback((_assetType: string, sourceToolKey?: SupportedTool) => {
+    if (sourceToolKey && workspace.id) {
+      window.location.href = `/workspaces/${workspace.id}/tools/${sourceToolKey}`;
+    }
+  }, [workspace.id]);
+
+  if (assetInputs.length === 0) return null;
+
+  return (
+    <div className="ui-tool-form-section">
+      <AssetKnowledgePanel
+        workspaceAssets={workspace.assets}
+        toolAssetInputs={assetInputs}
+        onAssetSelect={() => {}}
+        onCreateAssetAction={handleCreateAssetAction}
+      />
+    </div>
   );
 };

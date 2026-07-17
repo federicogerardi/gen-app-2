@@ -434,6 +434,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('country', formState.country ?? '');
   }, [formState.country, setValue]);
 
+  const handleCtaClick = useCallback(() => {
+    if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
+      handlePrimaryAction();
+      return;
+    }
+    setIsFormLocked(true);
+    handleSubmit((data) => {
+      executePrimaryActionFromForm(data);
+    })();
+  }, [handleSubmit, executePrimaryActionFromForm, machineViewModel.primaryActionPolicy, handlePrimaryAction]);
+
   const handleCancelWithLockReset = useCallback(() => {
     setIsFormLocked(false);
     handleCancelGeneration();
@@ -979,14 +990,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   <button
                     type="button"
                     className={cx(uiPrimitives.button, 'ui-fv-session-button')}
-                    onClick={handleSubmit((data) => {
-                      setIsFormLocked(true);
-                      executePrimaryActionFromForm(data);
-                    })}
-                    disabled={isStreamActive || isFormLocked || effectiveCanonicalState === 'running' || (!inputRequirementMatrix.requiredEntriesSatisfied && machineViewModel.primaryActionPolicy !== 'open-last-artifact')}
+                    onClick={handleCtaClick}
+                    disabled={isStreamActive || isFormLocked || effectiveCanonicalState === 'running' || !inputRequirementMatrix.requiredEntriesSatisfied}
                     title={!inputRequirementMatrix.requiredEntriesSatisfied ? copy.primaryActionPolicy.disabledTooltip : undefined}
                   >
-                    {isStreamActive ? copy.flow.loadingActionLabel : effectiveCanonicalState === 'running' ? copy.flow.progressAria.generationInProgress : isFormLocked ? copy.flow.progressAria.generationInProgress : copy.primaryActionPolicy.startGenerationLabel}
+                    {machineViewModel.primaryActionPolicy === 'open-last-artifact'
+                      ? copy.openSessionLabel
+                      : isStreamActive
+                        ? copy.flow.loadingActionLabel
+                        : effectiveCanonicalState === 'running' || isFormLocked
+                          ? copy.flow.progressAria.generationInProgress
+                          : copy.primaryActionPolicy.startGenerationLabel}
                   </button>
                 </section>
               </div>

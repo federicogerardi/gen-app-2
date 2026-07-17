@@ -8,6 +8,7 @@ import type {
 import type { ArtifactStatus } from '../types/artifact';
 import type { OrchestrateArtifactCache } from './postgres-redis.interfaces';
 import type { ResolvedApiServiceForAcquisition } from './api-service.adapter';
+import type { AssetSnapshotResolver } from '../runtime/asset-injection-resolver';
 
 export type { LlmUsageMetrics };
 
@@ -134,6 +135,7 @@ export interface GenerationAdapters {
   persistence: PersistenceAdapter;
   orchestrateCache: OrchestrateArtifactCache | null;
   apiService: ApiServiceAdapter | null;
+  assetSnapshotResolver: AssetSnapshotResolver;
 }
 
 type QuotaBucket = {
@@ -340,5 +342,9 @@ export const createInMemoryGenerationAdapters = (
     persistence,
     orchestrateCache: null,
     apiService: null,
+    assetSnapshotResolver: {
+      getAssetSnapshot: async () => null,
+      getGroupAssetSnapshots: async () => [],
+    },
   };
 };

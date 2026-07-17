@@ -159,6 +159,7 @@ export type SessionArtifactModelInfo = {
 
 // Import for local use in GenerationRequest type definitions
 import type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
+import type { AssetReference } from './asset';
 export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
 
 // =====================================================================
@@ -212,6 +213,9 @@ export type GenerationRequestInput = {
   normalizedText?: string;
   parsedFormat?: 'txt' | 'md' | 'docx';
   copyLengthFormat?: CopyLengthFormat;
+
+  // DDD-189: Asset references for prompt injection during generation
+  assetReferences?: AssetReference[];
 
   // Canonical extraction envelope persisted by backend adapters.
   extraction?: {

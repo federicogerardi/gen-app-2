@@ -27,9 +27,10 @@ export interface UseToolPageProps {
   briefingId?: string | null;
   extractionArtifactId?: string | null;
   briefingFileName?: string | null;
+  selectedAssetIds?: string[];
 }
 
-export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
+export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName, selectedAssetIds }: UseToolPageProps) => {
   const autoStartGenerationAfterExtractionRef = useRef(false);
   const navigate = useNavigate();
   const authState = useAuthState();
@@ -143,6 +144,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     pendingStepStart: toolPageSnapshot.context.pendingStepStart,
     toolPageSend,
     sessionId,
+    selectedAssetIds: selectedAssetIds ?? [],
   });
   const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
   const handleRunControllerPrimaryAction = runController.handlePrimaryAction;

@@ -81,6 +81,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     apiBaseUrl,
     capabilities,
   });
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   const {
     toolConfig,
@@ -110,7 +111,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleExtractionStart,
     handleBriefingReset,
     angleDetectorFileName,
-  } = useToolPage(props);
+  } = useToolPage({ ...props, selectedAssetIds });
   const [isFormLocked, setIsFormLocked] = useState(false);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
@@ -1112,7 +1113,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <CrossToolWorkflowPanelWrapper toolKey={props.toolKey} />
 
-              <AssetKnowledgePanelWrapper toolKey={props.toolKey} />
+              <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} />
 
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
@@ -1184,7 +1185,7 @@ const CrossToolWorkflowPanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ t
   );
 };
 
-const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ toolKey }) => {
+const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSelect?: (ids: string[]) => void }> = ({ toolKey, onAssetSelect }) => {
   let workspace;
   try {
     // useWorkspace throws if not inside WorkspaceProvider
@@ -1211,7 +1212,7 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool }> = ({ tool
         workspaceAssets={workspace.assets}
         toolAssetInputs={assetInputs}
         projectId={workspace.id}
-        onAssetSelect={() => {}}
+        onAssetSelect={onAssetSelect ?? (() => {})}
         onCreateAssetAction={handleCreateAssetAction}
       />
     </div>

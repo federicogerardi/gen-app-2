@@ -42,9 +42,10 @@ type UseToolPageRunControllerArgs = {
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
   toolPageSend: (event: ToolPageEvent) => void;
   sessionId: string;
+  selectedAssetIds: string[];
 };
 
-export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId }: UseToolPageRunControllerArgs) => {
+export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId, selectedAssetIds }: UseToolPageRunControllerArgs) => {
   const isDebugOrchestration = import.meta.env.DEV
     || (typeof window !== 'undefined'
       && new URLSearchParams(window.location.search).get('debug_tool_orchestration') === '1');
@@ -197,6 +198,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       effectiveBriefingFileName: v.effectiveBriefingFileName,
       extractionInfo: effectiveExtractionInfo,
       runPrefix,
+      selectedAssetIds,
     });
 
     try {

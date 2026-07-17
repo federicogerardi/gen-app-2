@@ -1,4 +1,5 @@
 import { resolveToolWorkflowType } from '@gen-app-2/contracts';
+import type { AssetReference } from '@gen-app-2/contracts';
 import type {
   GenerationProjectWorkspaceValue,
   GenerationStreamWorkspaceValue,
@@ -435,6 +436,7 @@ export const buildBaseGenerationRequest = ({
   effectiveBriefingFileName,
   extractionInfo,
   runPrefix,
+  selectedAssetIds,
 }: {
   userId: string;
   projectId: string;
@@ -450,6 +452,7 @@ export const buildBaseGenerationRequest = ({
   effectiveBriefingFileName: string | null | undefined;
   extractionInfo: SelectedExtractionInfo;
   runPrefix: string;
+  selectedAssetIds: string[];
 }): GenerationRequest => ({
   requestId: runPrefix,
   userId,
@@ -488,6 +491,16 @@ export const buildBaseGenerationRequest = ({
     // Include titolo directly in input for blog-article-generator template variable replacement
     ...(toolKey === 'blog-article-generator' && typeof formState.titolo === 'string' && formState.titolo.trim().length > 0
       ? { titolo: formState.titolo.trim() }
+      : {}),
+    // DDD-189: Asset references for prompt injection during generation
+    ...(selectedAssetIds.length > 0
+      ? {
+          assetReferences: selectedAssetIds.map((assetId) => ({
+            assetId,
+            sourceToolKey: toolKey as AssetReference['sourceToolKey'],
+            usageIntent: 'injection' as const,
+          })),
+        }
       : {}),
   },
 });

@@ -243,6 +243,7 @@ describe('buildBaseGenerationRequest', () => {
         briefingText: 'brief text',
       },
       runPrefix: 'run-1',
+      selectedAssetIds: [],
     });
 
     expect(request.input.extractionPayload).toMatchObject({
@@ -281,6 +282,7 @@ describe('buildBaseGenerationRequest', () => {
         briefingText: 'brief text',
       },
       runPrefix: 'run-1',
+      selectedAssetIds: [],
     });
 
     expect(request.input.extractionPayload).toMatchObject({

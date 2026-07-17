@@ -73,5 +73,9 @@ export const createPostgresRedisGenerationAdapters = (
     apiService: dependencies.pg ? {
       resolveApiServiceForCrawling: (id) => resolveApiServiceForCrawling(dependencies.pg!, id),
     } : null,
+    assetSnapshotResolver: {
+      getAssetSnapshot: async () => null,
+      getGroupAssetSnapshots: async () => [],
+    },
   };
 };

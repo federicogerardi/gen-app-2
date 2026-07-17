@@ -20,7 +20,7 @@ import {
   resolveFieldMapping,
   ASSET_FIELD_MAPPINGS,
 } from '@gen-app-2/contracts';
-import type { AssetReference } from '@gen-app-2/contracts';
+import type { AssetReference, ToolKey } from '@gen-app-2/contracts';
 
 // =====================================================================
 // A-001: AssetType tests
@@ -56,7 +56,7 @@ test('isAssetType validates correct values', () => {
 // =====================================================================
 
 test('TOOL_ASSET_CONTRACTS has entry for all tools', () => {
-  const expectedTools = [
+  const expectedTools: ToolKey[] = [
     'funnel-pages',
     'nextland',
     'youtube-lf-script',
@@ -113,7 +113,7 @@ test('getCompatibleConsumerTools returns empty for unsupported type', () => {
 });
 
 test('getCompatibleAssetTypes returns required and optional for meta-ads', () => {
-  const { required, optional } = getCompatibleAssetTypes('meta-ads');
+  const { required } = getCompatibleAssetTypes('meta-ads');
   assert.ok(required.includes('angle'), 'angle should be required for meta-ads');
   assert.ok(required.includes('persona'), 'persona should be required for meta-ads');
   assert.ok(required.includes('brand-voice'), 'brand-voice should be required for meta-ads');
@@ -200,7 +200,7 @@ test('ASSET_FIELD_MAPPINGS contains angle→meta-ads mapping', () => {
 test('resolveFieldMapping returns mapping for valid key', () => {
   const mapping = resolveFieldMapping('angle→meta-ads');
   assert.ok(mapping);
-  assert.equal(mapping.title.injectionTemplate, '## Angle: {{title}}');
+  assert.ok(mapping!.title?.injectionTemplate, '## Angle: {{title}}');
 });
 
 test('resolveFieldMapping returns null for unknown key', () => {

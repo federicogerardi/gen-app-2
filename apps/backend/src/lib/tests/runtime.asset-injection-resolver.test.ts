@@ -274,6 +274,6 @@ test('createAssetInjectionLogger uses custom logger when provided', () => {
   });
 
   assert.equal(logs.length, 1);
-  assert.ok(logs[0].includes('INFO:'));
-  assert.ok(logs[0].includes('ast_1'));
+  assert.ok(logs[0]?.includes('INFO:'));
+  assert.ok(logs[0]?.includes('ast_1'));
 });

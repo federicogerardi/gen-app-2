@@ -304,6 +304,13 @@ Key source files referenced by this bounded context map:
 - `apps/backend/src/lib/runtime/auth-http/tools-orchestrate-handlers.ts`
 - `apps/backend/src/lib/runtime/auth-http/tools-session-handlers.ts`
 - `apps/backend/src/lib/runtime/auth-http/tools-api-service-handlers.ts`
+- `apps/backend/src/lib/runtime/asset-injection-resolver.ts` (DDD-189, DDD-193, DDD-207)
+- `apps/backend/src/lib/machines/generation-actor.ts` (asset injection dispatch point)
+- `apps/backend/src/lib/adapters/generation.adapters.ts` (`AssetSnapshotResolver` adapter interface)
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (asset selection state)
+- `apps/frontend/src/features/tools/runtime/tool-page-selectors.ts` (`AssetReference[]` assembly)
+- `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` (asset threading)
+- `apps/backend/src/lib/tests/asset-injection.integration.test.ts`
 - `apps/backend/src/lib/types/xstate.ts`
 - `apps/backend/src/lib/types/artifact.ts`
 - `apps/backend/src/lib/types/api-service.ts`

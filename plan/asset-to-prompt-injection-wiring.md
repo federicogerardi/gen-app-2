@@ -1,8 +1,8 @@
 ---
-status: draft
-version: 1.1.0
+status: completed
+version: 1.2.0
 last-reviewed: 2026-07-17
-next-review-date: 2026-07-24
+next-review-date: 2026-08-17
 owner: ai-execution-engine
 type: implementation-plan
 goal: Wire asset selection from FE to LLM prompt injection in BE generation flow
@@ -10,21 +10,20 @@ goal: Wire asset selection from FE to LLM prompt injection in BE generation flow
 
 # Asset → Prompt Injection Wiring Plan
 
-## Stato attuale (gap)
+## Stato attuale (gap) — COMPLETED
 
 ```
-FE AssetKnowledgePanel  ──→  onAssetSelect={() => {}}  ✗  callback vuoto
+FE AssetKnowledgePanel  ──→  onAssetSelect={setSelectedAssetIds}  ✓
                                     │
                                     ▼
-         assetReferences NON inviati nella richiesta di stream
+         assetReferences inviati via input.assetReferences
                                     │
                                     ▼
 BE generationActor (generation-actor.ts, XState fromPromise)
-  chiama context.adapters.generate.generateText()
-  MA asset-injection-resolver.ts MAI invocato
+  estrae assetReferences da context.requestInput
+  risolve snapshot via context.adapters.assetSnapshotResolver
+  inietta nel prompt prima di generateText()
 ```
-
-Il risolutore `asset-injection-resolver.ts` (419 linee) è completamente implementato ma isolato dal flusso di generazione.
 
 ## Revisione XState v5
 

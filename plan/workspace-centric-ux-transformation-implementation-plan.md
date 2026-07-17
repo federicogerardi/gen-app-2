@@ -2,7 +2,7 @@
 
 ---
 status: active
-version: 2.0.0
+version: 2.0.1
 last-reviewed: 2026-07-17
 next-review-date: 2026-07-24
 owner: frontend-team
@@ -2164,6 +2164,45 @@ grep -q "Navigate.*to=\"/workspaces\"" apps/frontend/src/app/routing/app-router.
 
 ---
 
+### **P5.6 - UX Flow Completion** ⏱️ 0.5 day | **Priority: HIGH** | ✅ COMPLETED 2026-07-17
+
+Scoperto durante smoke test: il flusso utente era spezzato — la card workspace era cliccabile solo via freccia, e la dashboard non aveva un CTA primario per iniziare la generazione.
+
+#### **P5.6.1 - Clickable workspace cards**
+**File**: `apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx`
+
+**Changes**:
+- Card interamente cliccabile (wrapper `<Link>`, non solo freccia `→`)
+- Hover effects: border highlight + shadow lift + micro-translate
+- Label "Apri workspace" visibile accanto al gate status chip
+- Workspace count nell'header della pagina
+- Stili responsive: stacking verticale su mobile
+
+#### **P5.6.2 - Dashboard hero CTA**
+**File**: `apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx`
+
+**Changes**:
+- Hero section con nome progetto (via `useProjectDetailQuery`) + CTA primario
+- CTA adattivo: "Start generating" (con icona ▶) se ci sono tool suggeriti, "Choose a tool" altrimenti
+- L'ancora `#available-tools` scrolla alla griglia tool quando nessun suggerimento
+- Stato descrittivo: "X tool suggestions ready" / "X assets · select a tool" / "Start by creating your first asset"
+- Hero stacking verticale su mobile
+
+**CSS**: `dashboard-panels.css` — nuove classi: `.workspace-dashboard__hero`, `.workspace-list-card`, `.workspace-list-card__inner`, `.workspace-list-page`
+
+**Commit**: `3391707`
+
+**Validation**:
+```bash
+npm --workspace apps/frontend run typecheck
+npm --workspace apps/frontend run build
+npm --workspace apps/frontend run test
+grep -q "Apri workspace" apps/frontend/src/features/workspace/pages/WorkspacesListPage.tsx
+grep -q "Start generating" apps/frontend/src/features/workspace/pages/WorkspaceDashboard.tsx
+```
+
+---
+
 ### **P5 Acceptance Criteria**
 
 - [ ] **Tests**: All existing tests pass, new workspace tests added
@@ -2463,7 +2502,8 @@ P5 Polish (2-3 days) [AFTER P1-P4]
 ├─ P5.2 Performance & Polish (1 day) [PARALLEL with P5.1]
 ├─ P5.3 Legacy Cleanup (0.5 day)
 ├─ P5.4 Accessibility Audit (0.5 day) [PARALLEL with P5.3]
-└─ P5.5 Integration Test (0.5 day)
+├─ P5.5 Integration Test (0.5 day)
+└─ P5.6 UX Flow Completion (0.5 day) [AFTER P5.5] ✅ DONE
 
 P6 Promotion & Manual Assets (3-4 days) [AFTER P1-P5]
 ├─ P6.1 Artifact→Asset Promotion UI (1.5 days)
@@ -2484,9 +2524,9 @@ P8 Bug Fixes & Hardening (1 day) [AFTER P1-P5]
 
 **Total Duration**: 39-50 days
 **Critical Path**: P1 → P2A → P3 → P5 → P6 → P7 (31-40 days)
-**Parallelizable Work**: P1.2, P2B, P3.2, P4.1/P4.2, P5.2, P6.2, P7.4 (up to 10-12 days savings)
-**Total Atomic Tasks**: 46 (Phases 1-5) + 3 (Phase 6) + 5 (Phase 7) + 2 (Phase 8) = 56 tasks
-**Completed**: Phases 1-5 + Phase 8 (48 tasks) ✅ — 2026-07-17
+**Parallelizable Work**: P1.2, P2B, P3.2, P4.1/P4.2, P5.2, P5.6, P6.2, P7.4 (up to 10-12 days savings)
+**Total Atomic Tasks**: 46 (Phases 1-5) + 1 (P5.6 UX) + 3 (Phase 6) + 5 (Phase 7) + 2 (Phase 8) = 57 tasks
+**Completed**: Phases 1-5 (incl. P5.6 UX) + Phase 8 (48 tasks) ✅ — 2026-07-17
 **Remaining**: Phases 6, 7 (8 tasks)
 
 ### **Resource Requirements**

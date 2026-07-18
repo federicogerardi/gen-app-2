@@ -207,14 +207,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
     selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });
-  const hasToolInputFiles = inputFiles.length > 0;
-  const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
-
-  const formatStepLabel = (stepKey: string) => stepKey
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-
   const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
     const fileName = fileEntry.key === 'briefing-file'
       ? effectiveBriefingFileName ?? null
@@ -237,6 +229,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       fileName,
     };
   });
+
+  const formatStepLabel = (stepKey: string) => stepKey
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 
   const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
     .filter((entry) => entry.sourceFamily === 'api-acquisition')
@@ -412,8 +409,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = !hasAssetBasedExtractionContext
-    && (hasToolInputFiles || hasContextGenerationStep)
+  // Extraction only starts when there's a file awaiting extraction.
+  // If no file is uploaded but assets provide context → direct generation.
+  // If a file is uploaded AND assets are present → extract first, then generate with both.
+  const hasFileAwaitingExtraction = effectiveBriefingFileName !== null
+    && effectiveBriefingStatus !== 'ready';
+  const canStartExtraction = hasFileAwaitingExtraction
     && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady

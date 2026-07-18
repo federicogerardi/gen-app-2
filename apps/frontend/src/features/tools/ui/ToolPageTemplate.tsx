@@ -401,6 +401,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     : undefined;
 
   const executePrimaryActionFromForm = (data: ToolPageFormValues & Record<string, unknown>) => {
+    if (import.meta.env.DEV) console.info('[ToolPageTemplate] executePrimaryActionFromForm:', { canStartExtraction, hasProjectSelected });
     setFormState((prev) => ({
       ...prev,
       projectId: data.projectId,
@@ -443,6 +444,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       return;
     }
 
+    if (import.meta.env.DEV) console.info('[ToolPageTemplate] calling handlePrimaryAction()');
     handlePrimaryAction();
   };
 
@@ -579,8 +581,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {
+      if (import.meta.env.DEV) console.info('[ToolPageTemplate] CTA form submit — form data:', { projectId: data.projectId, model: data.model, tone: data.tone, primaryActionPolicy: machineViewModel.primaryActionPolicy, canStartFlow: machineViewModel.readiness.canStartFlow });
       setIsFormLocked(true);
       executePrimaryActionFromForm(data);
+    }, (formErrors) => {
+      if (import.meta.env.DEV) console.warn('[ToolPageTemplate] CTA form validation FAILED:', formErrors);
     });
 
   const handleCancelWithLockReset = useCallback(() => {

@@ -41,14 +41,14 @@ export const AssetSelectionList: React.FC<AssetSelectionListProps> = ({
               <ListItemText
                 primary={asset.label}
                 secondary={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
                     <QualityScoreBadge score={asset.qualityScore} size="small" />
                     {asset.staleUpstream && (
                       <span style={{ fontSize: '0.75rem', color: 'orange' }}>
                         Needs Update
                       </span>
                     )}
-                  </div>
+                  </span>
                 }
               />
             </ListItemButton>

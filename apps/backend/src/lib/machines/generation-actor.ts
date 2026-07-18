@@ -32,6 +32,14 @@ export const generationActor = fromPromise(
         ? ((effectiveRequestInput as Record<string, unknown>).toolKey as string).trim()
         : 'unknown';
 
+      console.info('[generation-actor] asset injection start', {
+        requestId: context.requestId,
+        toolKey,
+        stepKey,
+        assetRefCount: rawAssetRefs.length,
+        assetRefs: rawAssetRefs,
+      });
+
       const resolvedAssets: Awaited<ReturnType<typeof snapshotResolver.getAssetSnapshot>>[] = [];
 
       for (const ref of rawAssetRefs) {
@@ -50,6 +58,12 @@ export const generationActor = fromPromise(
 
       const validSnapshots = resolvedAssets.filter((s): s is NonNullable<typeof s> => s !== null);
 
+      console.info('[generation-actor] asset resolution result', {
+        requestId: context.requestId,
+        resolvedCount: validSnapshots.length,
+        assets: validSnapshots.map((s) => ({ id: s.assetId, type: s.assetType, contentLen: s.content.length })),
+      });
+
       if (validSnapshots.length > 0) {
         const directives = validSnapshots.map((asset) => ({
           assetId: asset.assetId,
@@ -65,14 +79,34 @@ export const generationActor = fromPromise(
         const injectedPrompt = resolveAssetInjectedPrompt(basePrompt, validSnapshots, directives, stepKey);
 
         if (injectedPrompt !== basePrompt) {
+          console.info('[generation-actor] asset prompt injected', {
+            requestId: context.requestId,
+            basePromptLen: basePrompt.length,
+            injectedPromptLen: injectedPrompt.length,
+            delta: injectedPrompt.length - basePrompt.length,
+          });
           effectiveRequestInput = {
             ...effectiveRequestInput,
             prompt: injectedPrompt,
           };
+        } else {
+          console.info('[generation-actor] asset prompt NOT injected (no change)', {
+            requestId: context.requestId,
+            basePromptLen: basePrompt.length,
+          });
         }
       }
     }
     // ═══════════════════════════════════════════════════════════════
+
+    if (!isAssetReferenceArray(rawAssetRefs)) {
+      console.info('[generation-actor] no asset references found', {
+        requestId: context.requestId,
+        inputKeys: Object.keys(effectiveRequestInput as Record<string, unknown>),
+        rawAssetRefsType: typeof rawAssetRefs,
+        isArray: Array.isArray(rawAssetRefs),
+      });
+    }
 
     const result = await context.adapters.generate.generateText({
       requestId: context.requestId,

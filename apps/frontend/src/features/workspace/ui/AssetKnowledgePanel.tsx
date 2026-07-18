@@ -93,11 +93,14 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
       const newSelection = checked
         ? [...prev, assetId]
         : prev.filter(id => id !== assetId);
-
-      onAssetSelect(newSelection);
       return newSelection;
     });
-  }, [onAssetSelect]);
+  }, []);
+
+  // Defer parent notification to commit phase to avoid setState-in-render warning
+  useEffect(() => {
+    onAssetSelect(selectedAssetIds);
+  }, [selectedAssetIds, onAssetSelect]);
 
   const handleGroupToggle = useCallback((assetType: string, expanded: boolean) => {
     setExpandedGroups(prev => {

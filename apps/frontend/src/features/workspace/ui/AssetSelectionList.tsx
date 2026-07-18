@@ -40,17 +40,15 @@ export const AssetSelectionList: React.FC<AssetSelectionListProps> = ({
 
               <ListItemText
                 primary={asset.label}
-                secondary={
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                    <QualityScoreBadge score={asset.qualityScore} size="small" />
-                    {asset.staleUpstream && (
-                      <span style={{ fontSize: '0.75rem', color: 'orange' }}>
-                        Needs Update
-                      </span>
-                    )}
-                  </span>
-                }
               />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+                <QualityScoreBadge score={asset.qualityScore} size="small" />
+                {asset.staleUpstream && (
+                  <span style={{ fontSize: '0.75rem', color: 'orange' }}>
+                    Needs Update
+                  </span>
+                )}
+              </span>
             </ListItemButton>
           </ListItem>
         );

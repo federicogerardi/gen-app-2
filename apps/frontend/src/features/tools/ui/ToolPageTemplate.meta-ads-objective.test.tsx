@@ -56,6 +56,8 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingOptionalFiles: [],
     missingRequiredApiAcquisition: [],
     missingOptionalApiAcquisition: [],
+    missingRequiredAssets: [],
+    missingOptionalAssets: [],
   }),
 }));
 

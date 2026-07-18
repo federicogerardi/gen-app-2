@@ -9,13 +9,15 @@ import type { SupportedTool } from './tool-flow.machine';
 export type ReadinessReasonCode =
   | 'missing_project'
   | 'missing_extraction_context'
-  | 'missing_primary_target_step';
+  | 'missing_primary_target_step'
+  | 'missing_required_assets';
 
 export type ReadinessSnapshot = {
   canStartFlow: boolean;
   hasProject: boolean;
   hasExtractionContext: boolean;
   hasPrimaryTargetStep: boolean;
+  hasRequiredAssets: boolean;
   reasonCodes: ReadinessReasonCode[];
 };
 
@@ -35,6 +37,7 @@ export const readinessSnapshotsEqual = (
     || a.hasProject !== b.hasProject
     || a.hasExtractionContext !== b.hasExtractionContext
     || a.hasPrimaryTargetStep !== b.hasPrimaryTargetStep
+    || a.hasRequiredAssets !== b.hasRequiredAssets
   ) return false;
   if (a.reasonCodes.length !== b.reasonCodes.length) return false;
   const bSet = new Set(b.reasonCodes);
@@ -50,6 +53,7 @@ export const buildReadinessSnapshot = (
   projectId: string,
   hasExtractionContext: boolean,
   hasPrimaryTargetStep: boolean,
+  hasRequiredAssets: boolean = true,
 ): ReadinessSnapshot => {
   const hasProject = projectId.trim().length > 0;
   const reasonCodes: ReadinessReasonCode[] = [];
@@ -66,11 +70,16 @@ export const buildReadinessSnapshot = (
     reasonCodes.push('missing_primary_target_step');
   }
 
+  if (!hasRequiredAssets) {
+    reasonCodes.push('missing_required_assets');
+  }
+
   return {
     canStartFlow: reasonCodes.length === 0,
     hasProject,
     hasExtractionContext,
     hasPrimaryTargetStep,
+    hasRequiredAssets,
     reasonCodes,
   };
 };

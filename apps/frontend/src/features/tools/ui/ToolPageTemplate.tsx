@@ -398,13 +398,22 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       disabled: true,
     }
     : undefined;
+  // ── Soft validation: asset-only missing → warning tooltip, CTA stays clickable ──
+  const nonAssetMissingRequired = inputRequirementMatrix.missingRequiredEntries.filter(
+    (e) => e.sourceFamily !== 'project-asset',
+  );
+  const isOnlyAssetBlocked = inputRequirementMatrix.missingRequiredAssets.length > 0
+    && nonAssetMissingRequired.length === 0;
+
   const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
     !inputRequirementMatrix.requiredEntriesSatisfied
       && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
       ? {
-        label: copy.primaryActionPolicy.disabledLabel,
-        disabled: true,
-        tooltip: copy.primaryActionPolicy.disabledTooltip,
+        label: isOnlyAssetBlocked ? copy.primaryActionPolicy.startGenerationLabel : copy.primaryActionPolicy.disabledLabel,
+        disabled: !isOnlyAssetBlocked,
+        tooltip: isOnlyAssetBlocked
+          ? copy.primaryActionPolicy.missingAssetsWarningTooltip
+          : copy.primaryActionPolicy.disabledTooltip,
       }
       : undefined;
   const extractionPrimaryOverride = canStartExtraction

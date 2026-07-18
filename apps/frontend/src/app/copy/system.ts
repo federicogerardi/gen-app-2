@@ -191,6 +191,7 @@ export const appCopy = {
         openLastArtifactTooltip: "Apri l'artefatto generato",
         regenerateCurrentStepLabel: 'Rigenera',
         regenerateCurrentStepTooltip: 'Rigenera con i nuovi parametri',
+        missingAssetsWarningTooltip: 'Aggiungi asset di conoscenza per risultati migliori',
       },
       form: {
         projectLabel: 'Progetto',

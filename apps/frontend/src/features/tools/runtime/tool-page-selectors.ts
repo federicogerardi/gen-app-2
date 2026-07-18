@@ -615,6 +615,8 @@ export type ToolInputRequirementMatrix = {
   missingOptionalFiles: ToolInputFilePolicyEntry[];
   missingRequiredApiAcquisition: ToolApiAcquisitionPolicyEntry[];
   missingOptionalApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+  missingRequiredAssets: ToolInputRequirementMatrixEntry[];
+  missingOptionalAssets: ToolInputRequirementMatrixEntry[];
 };
 
 export const deriveToolInputRequirementMatrix = ({
@@ -715,6 +717,14 @@ export const deriveToolInputRequirementMatrix = ({
     && !(apiStatusByKey.get(apiInput.key) ?? false)
   ));
 
+  const missingRequiredAssets = assetEntries.filter((entry) => (
+    (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
+    && !entry.satisfied
+  ));
+  const missingOptionalAssets = assetEntries.filter((entry) => (
+    entry.requiredness === 'optional-by-tool-setting' && !entry.satisfied
+  ));
+
   return {
     entries,
     requiredEntriesSatisfied: missingRequiredEntries.length === 0,
@@ -724,6 +734,8 @@ export const deriveToolInputRequirementMatrix = ({
     missingOptionalFiles,
     missingRequiredApiAcquisition,
     missingOptionalApiAcquisition,
+    missingRequiredAssets,
+    missingOptionalAssets,
   };
 };
 

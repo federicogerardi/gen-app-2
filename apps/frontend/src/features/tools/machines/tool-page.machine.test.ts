@@ -526,6 +526,7 @@ describe('toolPageMachine', () => {
       hasProject: false,
       hasExtractionContext: false,
       hasPrimaryTargetStep: true,
+      hasRequiredAssets: true,
       reasonCodes: [
         'missing_project',
         'missing_extraction_context',

@@ -6,6 +6,8 @@ import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { getToolLabel } from '../../../tools/runtime/tool-form-architecture';
 import { PromoteAssetDialog } from '../../../sessionsummary/ui/PromoteAssetDialog';
 import { EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
+import { formatRelativeTime } from '../../../../app/ui/format-utils';
+import { appCopy } from '../../../../app/copy/system';
 
 interface RecentArtifactsPanelProps {
   workspaceId: string;
@@ -13,19 +15,6 @@ interface RecentArtifactsPanelProps {
 
 const truncate = (text: string, maxLen: number): string =>
   text.length > maxLen ? text.slice(0, maxLen) + '…' : text;
-
-const formatRelativeTime = (dateStr: string): string => {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}d ago`;
-};
 
 export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ workspaceId }) => {
   const artifactsQuery = useProjectArtifacts(workspaceId);
@@ -45,7 +34,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
     return (
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Artifacts</span>
+          <span className="dashboard-panel__title">{appCopy.ui.workspace.dashboard.recentArtifactsTitle}</span>
         </div>
         <div className="dashboard-panel__content">
           {[1, 2, 3].map(i => (
@@ -60,7 +49,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
     return (
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Artifacts</span>
+          <span className="dashboard-panel__title">{appCopy.ui.workspace.dashboard.recentArtifactsTitle}</span>
         </div>
         <div className="dashboard-panel__content">
           <ErrorStateMessage>{artifactsQuery.error}</ErrorStateMessage>
@@ -73,10 +62,10 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
     return (
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Artifacts</span>
+          <span className="dashboard-panel__title">{appCopy.ui.workspace.dashboard.recentArtifactsTitle}</span>
         </div>
         <div className="dashboard-panel__content">
-          <EmptyStateMessage>No recent artifacts. Run a tool to generate content.</EmptyStateMessage>
+          <EmptyStateMessage>{appCopy.ui.workspace.dashboard.recentArtifactsEmpty}</EmptyStateMessage>
         </div>
       </div>
     );
@@ -86,13 +75,13 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
     <>
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Artifacts</span>
+          <span className="dashboard-panel__title">{appCopy.ui.workspace.dashboard.recentArtifactsTitle}</span>
         </div>
         <div>
           {artifactsQuery.artifacts.map(artifact => {
             const isPromoted = promotedArtifactIds.has(artifact.artifactId);
             const toolName = getToolLabel(artifact.toolKey);
-            const contentPreview = truncate(artifact.content || '(no content)', 80);
+            const contentPreview = truncate(artifact.content || appCopy.ui.workspace.dashboard.recentArtifactsNoContent, 80);
 
             return (
               <div key={artifact.artifactId} className="recent-artifacts__item">
@@ -102,7 +91,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
                     {toolName} · {formatRelativeTime(artifact.updatedAt)}
                   </span>
                   {isPromoted ? (
-                    <Chip label="Asset ✓" size="small" color="success" variant="outlined" />
+                    <Chip label={appCopy.ui.workspace.dashboard.recentArtifactsPromotedChip} size="small" color="success" variant="outlined" />
                   ) : (
                     <Button
                       size="small"
@@ -110,7 +99,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
                       endIcon={<ArrowUpRight size={12} />}
                       onClick={() => setPromoteDialogArtifactId(artifact.artifactId)}
                     >
-                      Promote to Asset
+                      {appCopy.ui.workspace.dashboard.recentArtifactsPromoteAction}
                     </Button>
                   )}
                 </div>

@@ -3,6 +3,7 @@ import { useSessionsQuery } from '../../../../app/runtime/queries/useSessionsQue
 import { useApiConfig } from '../../../../app/providers/AuthSessionProvider';
 import { toolFormRegistry } from '../../../tools/runtime/tool-form-architecture';
 import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
+import { formatRelativeTime } from '../../../../app/ui/format-utils';
 
 interface RecentActivityPanelProps {
   workspaceId: string;
@@ -13,20 +14,6 @@ const STATUS_CONFIG = {
   generating: { color: 'primary' as const, label: 'Running' },
   failed: { color: 'error' as const, label: 'Failed' },
 };
-
-function relativeTime(dateStr?: string): string {
-  if (!dateStr) return '';
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHrs = Math.floor(diffMin / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffHrs / 24);
-  return `${diffDays}d ago`;
-}
 
 export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ workspaceId }) => {
   const { apiBaseUrl, capabilities } = useApiConfig();
@@ -75,7 +62,7 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
                     {session.artifactCount} {session.artifactCount === 1 ? 'artifact' : 'artifacts'}
                   </Typography>
                   <Typography variant="caption" className="activity-item__time">
-                    {relativeTime(session.updatedAt)}
+                    {formatRelativeTime(session.updatedAt)}
                   </Typography>
                 </div>
               </div>

@@ -22,7 +22,26 @@ vi.mock('./CreateAssetPrompt', () => ({
 }));
 
 vi.mock('../../../app/copy/system', () => ({
-  appCopy: { ui: { workspace: { assetPanel: {} } } },
+  appCopy: {
+    ui: {
+      workspace: {
+        assetPanel: {
+          groupRequiredLabel: 'Required',
+          groupOptionalLabel: 'Optional',
+          groupMissingRequired: 'Missing (Required)',
+          groupMissingOptional: 'Missing (Optional)',
+          selectedCount: 'selected',
+          generateMoreAction: 'Generate More',
+          createAssetAction: 'Create',
+          staleLabel: 'Stale',
+          selectAll: 'Select All',
+          deselectAll: 'Deselect All',
+          collapseGroup: 'Collapse group',
+          expandGroup: 'Expand group',
+        },
+      },
+    },
+  },
 }));
 
 const baseProps = {

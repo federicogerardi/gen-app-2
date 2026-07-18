@@ -4,6 +4,7 @@ import { FileText, Mic, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { toolFormRegistry } from '../../../tools/runtime/tool-form-architecture';
 import { QualityScoreBadge } from '../QualityScoreBadge';
+import { appCopy } from '../../../../app/copy/system';
 import type { SupportedTool } from '../../../tools/machines/tool-flow.machine';
 
 interface FoundationToolsPanelProps {
@@ -39,9 +40,9 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
   return (
     <div className="foundation-tools">
       <div className="foundation-tools__header">
-        <span className="foundation-tools__header-title">Foundation</span>
+        <span className="foundation-tools__header-title">{appCopy.ui.workspace.dashboard.foundationToolsTitle}</span>
         <span className="foundation-tools__header-subtitle">
-          Start here to build your workspace knowledge
+          {appCopy.ui.workspace.dashboard.foundationToolsSubtitle}
         </span>
       </div>
       <div className="foundation-tools__grid">
@@ -74,7 +75,7 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
 
               <div className="foundation-tools__card-meta">
                 <Chip
-                  label={`Produces: ${tool.producedAssetType}`}
+                  label={`${appCopy.ui.workspace.dashboard.foundationToolsProduces}: ${tool.producedAssetType}`}
                   size="small"
                   variant="outlined"
                 />
@@ -97,7 +98,7 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
                 ) : (
                   <span className="foundation-tools__card-status--empty">
                     <AlertTriangle size={14} />
-                    <span>No {tool.producedAssetType} yet</span>
+                    <span>{appCopy.ui.workspace.dashboard.foundationToolsEmpty(tool.producedAssetType)}</span>
                   </span>
                 )}
               </div>
@@ -111,7 +112,9 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
                   endIcon={<ArrowRight size={14} />}
                   fullWidth
                 >
-                  {tool.hasAssets ? 'Regenerate' : `Generate ${tool.producedAssetType}`}
+                  {tool.hasAssets
+                    ? appCopy.ui.workspace.dashboard.foundationToolsRegenerate
+                    : appCopy.ui.workspace.dashboard.foundationToolsGenerate(tool.producedAssetType)}
                 </Button>
               </div>
             </div>

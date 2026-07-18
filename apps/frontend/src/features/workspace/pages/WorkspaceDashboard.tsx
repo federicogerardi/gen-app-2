@@ -9,6 +9,7 @@ import { ContextualToolsPanel } from '../ui/dashboard/ContextualToolsPanel';
 import { FoundationToolsPanel } from '../ui/dashboard/FoundationToolsPanel';
 import { AssetLibraryAccordion } from '../ui/dashboard/AssetLibraryAccordion';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
+import { appCopy } from '../../../app/copy/system';
 import '../ui/dashboard/dashboard-panels.css';
 
 export const WorkspaceDashboard: React.FC = () => {
@@ -41,10 +42,10 @@ export const WorkspaceDashboard: React.FC = () => {
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
             {suggestedNext.length > 0
-              ? `${suggestedNext.length} tool suggestion${suggestedNext.length > 1 ? 's' : ''} ready`
+              ? appCopy.ui.workspace.dashboard.heroSuggestionsReady(suggestedNext.length)
               : hasAssets
-                ? `${ctx.assets.length} asset${ctx.assets.length > 1 ? 's' : ''} · select a tool to continue`
-                : 'Start by creating your first asset'}
+                ? appCopy.ui.workspace.dashboard.heroAssetsReady(ctx.assets.length)
+                : appCopy.ui.workspace.dashboard.heroFirstAsset}
           </Typography>
         </div>
 
@@ -56,7 +57,9 @@ export const WorkspaceDashboard: React.FC = () => {
             size="large"
             startIcon={firstSuggestedTool ? <Play size={18} /> : <ArrowRight size={18} />}
           >
-            {firstSuggestedTool ? 'Start generating' : 'Choose a tool'}
+            {firstSuggestedTool
+              ? appCopy.ui.workspace.dashboard.heroStartGenerating
+              : appCopy.ui.workspace.dashboard.heroChooseTool}
           </Button>
         </div>
       </div>

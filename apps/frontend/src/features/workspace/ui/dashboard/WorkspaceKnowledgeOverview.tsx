@@ -1,17 +1,12 @@
 import { Chip, LinearProgress, Typography } from '@mui/material';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
+import { QUALITY_GATE_CONFIG } from './quality-gate-config';
+import { appCopy } from '../../../../app/copy/system';
 
 interface WorkspaceKnowledgeOverviewProps {
   workspaceId: string;
 }
-
-const GATE_CONFIG = {
-  healthy: { icon: CheckCircle, color: 'success' as const, label: 'Ready' },
-  'needs-attention': { icon: AlertTriangle, color: 'warning' as const, label: 'Needs Review' },
-  blocked: { icon: XCircle, color: 'error' as const, label: 'Blocked' },
-};
 
 export const WorkspaceKnowledgeOverview: React.FC<WorkspaceKnowledgeOverviewProps> = ({ workspaceId }) => {
   const ctx = useWorkspaceContext(workspaceId);
@@ -19,7 +14,7 @@ export const WorkspaceKnowledgeOverview: React.FC<WorkspaceKnowledgeOverviewProp
   if (ctx.loading) return <LoadingStateMessage>Loading knowledge overview...</LoadingStateMessage>;
   if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
 
-  const gateConfig = GATE_CONFIG[ctx.qualityGateStatus];
+  const gateConfig = QUALITY_GATE_CONFIG[ctx.qualityGateStatus];
   const GateIcon = gateConfig.icon;
   const completion = ctx.workflowPosition?.estimatedCompletion ?? 0;
   const toolsCompleted = ctx.workflowPosition?.completedSteps.length ?? 0;
@@ -31,7 +26,7 @@ export const WorkspaceKnowledgeOverview: React.FC<WorkspaceKnowledgeOverviewProp
         <div className="knowledge-overview">
           <div className="knowledge-overview__score">
             <span className="knowledge-overview__score-value">{ctx.overallQualityScore}</span>
-            <span className="knowledge-overview__score-label">Quality Score</span>
+            <span className="knowledge-overview__score-label">{appCopy.ui.workspace.dashboard.qualityScoreLabel}</span>
           </div>
 
           <div className="knowledge-overview__stats">
@@ -52,7 +47,7 @@ export const WorkspaceKnowledgeOverview: React.FC<WorkspaceKnowledgeOverviewProp
 
           <div className="knowledge-overview__progress">
             <div className="knowledge-overview__progress-label">
-              {toolsCompleted}/{toolsTotal} tools completed
+              {appCopy.ui.workspace.dashboard.toolsCompletedLabel(toolsCompleted, toolsTotal)}
             </div>
             <LinearProgress
               variant="determinate"

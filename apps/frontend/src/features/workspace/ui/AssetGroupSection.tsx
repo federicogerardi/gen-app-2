@@ -92,7 +92,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
           <IconButton
             size="small"
             className="asset-group-section__expand-button"
-            aria-label={isExpanded ? 'Collapse group' : 'Expand group'}
+            aria-label={isExpanded ? appCopy.ui.workspace.assetPanel.collapseGroup : appCopy.ui.workspace.assetPanel.expandGroup}
             onClick={(e) => {
               e.stopPropagation();
               onToggleExpanded(!isExpanded);
@@ -153,7 +153,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
                     <span className="asset-group-section__browse-label">{asset.label}</span>
                     <QualityScoreBadge score={asset.qualityScore} size="small" />
                     {asset.staleUpstream && (
-                      <Chip label="Stale" size="small" color="warning" variant="outlined" />
+                      <Chip label={appCopy.ui.workspace.assetPanel.staleLabel} size="small" color="warning" variant="outlined" />
                     )}
                   </div>
                 ))}
@@ -167,7 +167,9 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
                     onClick={handleSelectAllInGroup}
                     startIcon={selectedAssetsInGroup === assets.length ? <Minus size={14} /> : <Plus size={14} />}
                   >
-                    {selectedAssetsInGroup === assets.length ? 'Deselect All' : 'Select All'}
+                    {selectedAssetsInGroup === assets.length
+                      ? appCopy.ui.workspace.assetPanel.deselectAll
+                      : appCopy.ui.workspace.assetPanel.selectAll}
                   </Button>
                 </div>
 

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Button, TextField, Typography } from '@mui/material';
 import { Plus, Upload, FileText } from 'lucide-react';
 import { createAsset, type CreateAssetInput } from '../../tools/runtime/asset-client';
+import { appCopy } from '../../../app/copy/system';
 
 interface CreateAssetPromptProps {
   assetType: string;
@@ -27,6 +28,8 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const copy = appCopy.ui.workspace.createAsset;
+
   const handleManualCreate = async () => {
     if (!projectId || !assetLabel.trim()) return;
     setLoading(true);
@@ -48,7 +51,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
       setContent('');
       onCreateAction();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create asset');
+      setError(err instanceof Error ? err.message : copy.failedCreate);
     } finally {
       setLoading(false);
     }
@@ -69,7 +72,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
       });
       onCreateAction();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(err instanceof Error ? err.message : copy.failedUpload);
     } finally {
       setLoading(false);
     }
@@ -89,21 +92,21 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
       <div className="create-asset-prompt" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <TextField
           size="small"
-          label={`${label} name`}
+          label={copy.nameLabel(label)}
           value={assetLabel}
           onChange={(e) => setAssetLabel(e.target.value)}
-          placeholder={`My ${label}`}
+          placeholder={copy.namePlaceholder(label)}
           autoFocus
         />
         <TextField
           size="small"
-          label="Content (optional)"
+          label={copy.contentLabel}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           multiline
           minRows={2}
           maxRows={6}
-          placeholder={`Paste or type ${label.toLowerCase()} content...`}
+          placeholder={copy.contentPlaceholder(label)}
         />
         {error && (
           <Typography variant="caption" color="error">{error}</Typography>
@@ -116,13 +119,13 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
             onClick={handleManualCreate}
             disabled={loading || !assetLabel.trim()}
           >
-            {loading ? 'Creating...' : 'Create asset'}
+            {loading ? copy.creating : copy.createAsset}
           </Button>
           <Button
             size="small"
             onClick={() => { setShowForm(false); setError(null); }}
           >
-            Cancel
+            {copy.cancel}
           </Button>
         </div>
       </div>
@@ -133,8 +136,8 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
     <div className="create-asset-prompt">
       <Typography variant="body2" color="text.secondary">
         {isRequired
-          ? `${label} assets are required for optimal generation.`
-          : `${label} assets would improve generation quality.`
+          ? copy.requiredHint(label)
+          : copy.optionalHint(label)
         }
       </Typography>
 
@@ -157,7 +160,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
             onClick={onCreateAction}
             className="create-asset-prompt__button"
           >
-            Generate with {producerTool}
+            {copy.generateWith(producerTool)}
           </Button>
         ) : (
           <>
@@ -168,7 +171,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
               onClick={() => fileInputRef.current?.click()}
               disabled={loading}
             >
-              {loading ? 'Uploading...' : 'Upload file'}
+              {loading ? copy.uploading : copy.uploadFile}
             </Button>
             <Button
               variant="outlined"
@@ -176,7 +179,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
               startIcon={<Plus size={14} />}
               onClick={() => setShowForm(true)}
             >
-              Paste text
+              {copy.pasteText}
             </Button>
           </>
         )}

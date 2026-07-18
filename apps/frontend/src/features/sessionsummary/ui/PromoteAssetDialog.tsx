@@ -14,6 +14,7 @@ import { Package, CheckCircle } from 'lucide-react';
 import { ASSET_TYPES, type AssetType } from '@gen-app-2/contracts';
 import { promoteArtifactToAsset } from '../../tools/runtime/asset-client';
 import { ASSET_TYPE_LABELS } from '../../workspace/runtime/toolAssetRegistry';
+import { appCopy } from '../../../app/copy/system';
 
 interface PromoteAssetDialogProps {
   open: boolean;
@@ -39,6 +40,8 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
   const [state, setState] = useState<DialogState>('form');
   const [error, setError] = useState<string | null>(null);
 
+  const copy = appCopy.ui.promoteDialog;
+
   const handlePromote = async () => {
     setState('loading');
     setError(null);
@@ -56,7 +59,7 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
         setState('form');
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to promote artifact');
+      setError(err instanceof Error ? err.message : copy.failedPromote);
       setState('error');
     }
   };
@@ -70,25 +73,25 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={state === 'success' ? handleClose : handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Package size={20} />
-        Promote to Asset
+        {copy.title}
       </DialogTitle>
       <DialogContent>
         {state === 'success' ? (
           <Alert severity="success" icon={<CheckCircle fontSize="inherit" />} sx={{ mb: 1 }}>
-            Asset creato con successo! Disponibile nel workspace.
+            {copy.successMessage}
           </Alert>
         ) : (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Convert this generated artifact into a reusable asset in your workspace.
+              {copy.description}
             </Typography>
             <TextField
               select
               fullWidth
-              label="Asset Type"
+              label={copy.assetTypeLabel}
               value={assetType}
               onChange={(e) => setAssetType(e.target.value as AssetType)}
               sx={{ mb: 2 }}
@@ -102,11 +105,11 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
             </TextField>
             <TextField
               fullWidth
-              label="Label"
+              label={copy.labelField}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder={ASSET_TYPE_LABELS[assetType]}
-              helperText="A descriptive name for this asset"
+              helperText={copy.labelHelper}
               disabled={state === 'loading'}
             />
             {error && (
@@ -119,7 +122,7 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose} disabled={state === 'loading'}>
-          {state === 'success' ? 'Close' : 'Cancel'}
+          {state === 'success' ? copy.close : copy.cancel}
         </Button>
         {state !== 'success' && (
           <Button
@@ -128,7 +131,7 @@ export const PromoteAssetDialog: React.FC<PromoteAssetDialogProps> = ({
             disabled={state === 'loading' || !label.trim()}
             startIcon={<Package size={14} />}
           >
-            {state === 'loading' ? 'Promoting...' : 'Promote'}
+            {state === 'loading' ? copy.promoting : copy.promote}
           </Button>
         )}
       </DialogActions>

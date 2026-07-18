@@ -19,6 +19,7 @@ describe('tool-step-display-config', () => {
         'geometric',
         'meta-ads',
         'nextland',
+        'tov-generator',
         'youtube-description',
         'youtube-lf-script',
       ]);

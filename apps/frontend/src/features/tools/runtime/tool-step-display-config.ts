@@ -97,6 +97,9 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
   'brief-generator': {
     'brief-generation': { visible: true, includeInDownload: true },
   },
+  'tov-generator': {
+    'tov-generation': { visible: true, includeInDownload: true },
+  },
 };
 
 // ── Lookup helpers ────────────────────────────────────────────────────────────

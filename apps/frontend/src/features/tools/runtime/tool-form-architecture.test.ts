@@ -48,6 +48,7 @@ describe('getAvailableSteps', () => {
       'geometric',
       'blog-article-generator',
       'brief-generator',
+      'tov-generator',
     ]);
     expect(getEnabledToolKeys('admin')).toEqual([
       'funnel-pages',
@@ -59,6 +60,7 @@ describe('getAvailableSteps', () => {
       'geometric',
       'blog-article-generator',
       'brief-generator',
+      'tov-generator',
     ]);
     expect(isToolEnabled('nextland', 'member')).toBe(false);
     expect(isToolEnabled('nextland', 'admin')).toBe(true);

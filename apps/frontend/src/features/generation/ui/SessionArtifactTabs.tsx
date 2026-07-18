@@ -24,7 +24,8 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
     || value === 'youtube-description'
     || value === 'geometric'
     || value === 'blog-article-generator'
-    || value === 'brief-generator';
+    || value === 'brief-generator'
+    || value === 'tov-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {

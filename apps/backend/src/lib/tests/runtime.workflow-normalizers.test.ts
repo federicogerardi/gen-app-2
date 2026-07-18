@@ -56,6 +56,10 @@ test('resolveToolStepArtifactRole maps final steps for funnel, nextland, and you
   assert.equal(resolveToolStepArtifactRole('meta-ads', 'ads-generation'), 'final');
 
   assert.equal(resolveToolStepArtifactRole('youtube-description', 'youtube-description-generation'), 'final');
+
+  assert.equal(resolveToolStepArtifactRole('brief-generator', 'brief-generation'), 'final');
+
+  assert.equal(resolveToolStepArtifactRole('tov-generator', 'tov-generation'), 'final');
 });
 
 test('resolveToolStepArtifactRole preserves explicit role and returns null for unknown tool', () => {

@@ -89,6 +89,14 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'brief-generation', dependencies: [], feedbackEnabled: true },
     ],
   },
+  'tov-generator': {
+    toolKey: 'tov-generator',
+    workflowType: 'tov_generator',
+    creditCost: 1,
+    steps: [
+      { key: 'tov-generation', dependencies: [], feedbackEnabled: true },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -132,6 +140,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'geometric': 'enabled-for-all',
   'blog-article-generator': 'enabled-for-all',
   'brief-generator': 'enabled-for-all',
+  'tov-generator': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -289,6 +298,10 @@ export const normalizeToolKeyCandidate = (
 
   if (normalized === 'brief_generator' || normalized === 'briefgenerator') {
     return 'brief-generator';
+  }
+
+  if (normalized === 'tov_generator' || normalized === 'tovgenerator') {
+    return 'tov-generator';
   }
 
   return isToolKey(normalized) ? normalized : null;

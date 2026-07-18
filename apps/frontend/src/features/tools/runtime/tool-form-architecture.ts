@@ -236,6 +236,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'tov-generator': {
+    toolKey: 'tov-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('tov-generator'),
+    displayName: 'TOV Generator',
+    defaultPrompt: 'Genera un Tone of Voice strutturato a partire dai dati estratti dal documento.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['tov-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['tov-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
@@ -477,6 +489,29 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     ],
     stepConstraints: [],
   },
+  'tov-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un documento con descrizioni del brand, valori aziendali o comunicazioni esistenti. TOV Generator estrae i dati rilevanti e produce un Tone of Voice strutturato.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.txt,.md,.docx',
+        requiredness: 'always-required',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    requiredFieldKeys: ['brand_or_company', 'target_audience', 'tone', 'product_or_service', 'market'],
+    optionalFields: [],
+    examples: [
+      'Documento con mission aziendale, valori e descrizione del brand.',
+      'Trascrizione di un workshop sul posizionamento del brand.',
+    ],
+    notes: [
+      'Il TOV in output è compatibile con funnel-pages, meta-ads, angle-generator, youtube-lf-script e altri tool.',
+    ],
+    stepConstraints: [],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -559,6 +594,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'geometric': appCopy.ui.navigation.geometric,
   'blog-article-generator': 'Blog Article Generator',
   'brief-generator': 'Brief Generator',
+  'tov-generator': 'TOV Generator',
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -571,6 +607,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'geometric': 'Analizza SERP, scoring competitivo e report strategico unificato in italiano.',
   'blog-article-generator': 'Generate Italian blog articles with SEO optimization and in-depth research.',
   'brief-generator': 'Trasforma documenti grezzi in brief strutturati pronti per la generazione con altri tool.',
+  'tov-generator': 'Genera un Tone of Voice strutturato a partire da documenti sul brand.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -583,6 +620,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'geometric': '/tools/geometric',
   'blog-article-generator': '/tools/blog-article-generator',
   'brief-generator': '/tools/brief-generator',
+  'tov-generator': '/tools/tov-generator',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -827,6 +865,13 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Brief Generation',
       description: 'Trasforma i dati estratti in un brief creativo strutturato e standardizzato pronto per il consumo da parte degli altri tool.',
       expectedOutputFormat: 'Markdown strutturato con tutte le sezioni canoniche del brief',
+    },
+  },
+  'tov-generator': {
+    'tov-generation': {
+      displayName: 'TOV Generation',
+      description: 'Trasforma i dati estratti in un Tone of Voice strutturato e completo pronto per il consumo da parte degli altri tool.',
+      expectedOutputFormat: 'Markdown strutturato con identità, valori, voce, linguaggio, canali ed esempi',
     },
   },
 };

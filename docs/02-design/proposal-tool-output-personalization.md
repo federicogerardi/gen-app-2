@@ -473,6 +473,19 @@ The extraction context pipeline was migrated from briefing-file-driven to worksp
 2. **Assets only** (no file upload): direct generation with `assetReferences` injected.
 3. **File + assets**: extraction first, then generation with both.
 
+### 10.2 TOV Generator — First `brand-voice` Producer (Implemented — 2026-07-18)
+
+The `tov-generator` tool (DDD-211/212) is the first producer of `brand-voice` assets. Prior to this, `brand-voice` was consumed by 7 tools but never produced. The `tov-generator` closes this gap as a primitive tool following the same pattern as `brief-generator`:
+
+| Change | Detail |
+|---|---|
+| `TOOL_ASSET_CONTRACTS` (DDD-211) | `tov-generator` declares `produces: ['brand-voice']`, `consumes: []` |
+| Extraction fields | 5 essential fields: `brand_or_company`, `target_audience`, `tone`, `product_or_service`, `market` |
+| Generation prompt | 6 canonical TOV sections in Italian: Identità del Brand, Valori e Posizionamento, Voce e Tono, Linguaggio, Adattamento per Canale, Esempi |
+| 7 downstream consumers | `funnel-pages`, `nextland`, `youtube-lf-script`, `angle-generator`, `meta-ads`, `youtube-description`, `blog-article-generator` |
+
+This enables the first complete asset-to-tool pipeline: upload document → `tov-generator` produces `brand-voice` → downstream tools consume `brand-voice` as prompt injection context.
+
 ---
 
 ## 11. Rejected Items

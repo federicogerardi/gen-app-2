@@ -41,6 +41,10 @@ const PROMPT_FILE_BY_KEY = {
     'src/lib/runtime/tool-prompts/brief-generator/prompt_extraction.md',
   'brief-generator:brief-generation':
     'src/lib/runtime/tool-prompts/brief-generator/prompt_brief_generation.md',
+  'tov-generator:extraction':
+    'src/lib/runtime/tool-prompts/tov-generator/prompt_extraction.md',
+  'tov-generator:tov-generation':
+    'src/lib/runtime/tool-prompts/tov-generator/prompt_tov_generation.md',
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -86,6 +90,9 @@ const resolvePromptFilePath = (input: {
     }
     if (extractionToolKey === 'brief-generator') {
       return PROMPT_FILE_BY_KEY['brief-generator:extraction'];
+    }
+    if (extractionToolKey === 'tov-generator') {
+      return PROMPT_FILE_BY_KEY['tov-generator:extraction'];
     }
     return PROMPT_FILE_BY_KEY.extraction;
   }

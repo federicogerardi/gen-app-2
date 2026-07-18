@@ -22,6 +22,7 @@ const FINAL_STEP_BY_TOOL = {
   'youtube-description': 'youtube-description-generation',
   'geometric': 'unified-report',
   'brief-generator': 'brief-generation',
+  'tov-generator': 'tov-generation',
 } as const;
 
 type StepMappedToolKey = keyof typeof FINAL_STEP_BY_TOOL;
@@ -34,7 +35,8 @@ const isStepMappedToolKey = (value: string | null): value is StepMappedToolKey =
     || value === 'meta-ads'
     || value === 'youtube-description'
     || value === 'geometric'
-    || value === 'brief-generator';
+    || value === 'brief-generator'
+    || value === 'tov-generator';
 };
 
 export const normalizeToolWorkflowKey = (value: string | null | undefined): string | null => {

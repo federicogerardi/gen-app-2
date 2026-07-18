@@ -28,7 +28,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
 
   it('renders the project shell in draft-empty state', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
-    expect(screen.getByText('Nessun progetto selezionato')).toBeInTheDocument();
+    expect(screen.getByText('Nessun workspace selezionato')).toBeInTheDocument();
     expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
     expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
     expect(screen.getByText('Generazione contesto in attesa')).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     );
 
     expect(screen.getByText('Informazioni di contesto')).toBeInTheDocument();
-    expect(screen.getByText('Progetto')).toBeInTheDocument();
+    expect(screen.getByText('Workspace')).toBeInTheDocument();
     const projectIndicator = container.querySelector('.ui-fv-context-project');
     expect(projectIndicator?.classList.contains('is-done')).toBe(true);
     expect(screen.getByText('BriefingFile')).toBeInTheDocument();

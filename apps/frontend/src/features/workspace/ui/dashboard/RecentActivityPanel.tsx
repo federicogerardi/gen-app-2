@@ -1,4 +1,5 @@
 import { Chip, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { useSessionsQuery } from '../../../../app/runtime/queries/useSessionsQuery';
 import { useApiConfig } from '../../../../app/providers/AuthSessionProvider';
 import { toolFormRegistry } from '../../../tools/runtime/tool-form-architecture';
@@ -68,6 +69,11 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
               </div>
             );
           })}
+        </div>
+        <div className="dashboard-panel__footer" style={{ marginTop: 12, paddingLeft: 16 }}>
+          <Link to={`/workspaces/${workspaceId}/sessions`} style={{ textDecoration: 'none', color: '#1976d2', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            View all sessions →
+          </Link>
         </div>
       </div>
     </div>

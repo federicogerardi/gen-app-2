@@ -38,7 +38,7 @@ export const DashboardPage = () => {
           <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.zeroState.eyebrow}</p>
           <h2>{appCopy.editorial.dashboard.zeroState.headline}</h2>
           <p>{appCopy.editorial.dashboard.zeroState.body}</p>
-          <Button component={Link} to="/dashboard/projects/new" variant="contained" color="primary">
+          <Button component={Link} to="/workspaces" variant="contained" color="primary">
             {appCopy.editorial.dashboard.zeroState.cta}
           </Button>
         </div>
@@ -76,7 +76,7 @@ export const DashboardPage = () => {
           <CardContent>
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.projects.body}</p>
-            <Link to="/dashboard/projects" className="ui-dashboard-card-cta-link ui-button">
+            <Link to="/workspaces" className="ui-dashboard-card-cta-link ui-button">
               {appCopy.ui.actions.openProjects}
             </Link>
           </div>
@@ -88,7 +88,7 @@ export const DashboardPage = () => {
           <CardContent>
           <div className="ui-dashboard-card-cta-content">
             <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.tools.body}</p>
-            <Link to="/tools" className="ui-dashboard-card-cta-link ui-button">
+            <Link to="/workspaces" className="ui-dashboard-card-cta-link ui-button">
               {appCopy.ui.navigation.tools}
             </Link>
           </div>

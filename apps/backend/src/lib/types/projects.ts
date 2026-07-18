@@ -2,6 +2,7 @@ export type ProjectSummary = {
   id: string;
   name: string;
   description: string;
+  status: 'active' | 'archived';
   updatedAt: string;
 };
 
@@ -19,6 +20,7 @@ type ProjectRow = {
   id: string;
   user_id: string;
   name: string | null;
+  status: string | null;
   created_at: Date | string;
   updated_at: Date | string;
 };
@@ -32,6 +34,7 @@ export const mapProjectRowToSummary = (row: ProjectRow): ProjectSummary => {
     id: row.id,
     name: row.name ?? 'Untitled project',
     description: '',
+    status: (row.status as 'active' | 'archived') ?? 'active',
     updatedAt: toIso(row.updated_at),
   };
 };

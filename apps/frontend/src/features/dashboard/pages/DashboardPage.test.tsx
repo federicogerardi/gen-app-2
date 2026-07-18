@@ -76,7 +76,7 @@ describe('DashboardPage', () => {
     const toolsLinks = screen.getAllByRole('link', { name: appCopy.ui.navigation.tools });
 
     expect(toolsLinks.length).toBeGreaterThan(0);
-    expect(toolsLinks[0]).toHaveAttribute('href', '/tools');
+    expect(toolsLinks[0]).toHaveAttribute('href', '/workspaces');
   });
 
   it('shows empty state when no recent sessions', () => {

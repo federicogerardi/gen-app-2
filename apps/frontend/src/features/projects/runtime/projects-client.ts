@@ -10,6 +10,7 @@ export type ProjectSummary = {
   id: string;
   name: string;
   description: string;
+  status: 'active' | 'archived';
   updatedAt: string;
 };
 
@@ -129,6 +130,45 @@ export const createProject = async (
   } catch (error) {
     if (isHttpClientError(error)) {
       throw new Error(`Unable to create project (HTTP ${error.status ?? 'unknown'})`);
+    }
+
+    throw error;
+  }
+};
+
+export const updateProject = async (
+  id: string,
+  patch: { name?: string; status?: 'active' | 'archived' },
+  options: ProjectsClientOptions = {},
+): Promise<ProjectSummary> => {
+  const capabilities = resolveBackendCapabilities(options.capabilities);
+  const path = buildApiPaths(capabilities).projects.byId(id);
+
+  if (!path) {
+    throw new Error('Projects capability is disabled');
+  }
+
+  try {
+    const payload = await requestJson<ProjectsListResponse>(joinApiPath(options.apiBaseUrl ?? '', path), {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+
+    if (Array.isArray(payload)) {
+      return payload[0] as ProjectSummary;
+    }
+
+    const updated = payload.data?.project;
+    if (!updated) {
+      throw new Error('Unable to update project (invalid payload)');
+    }
+
+    return updated;
+  } catch (error) {
+    if (isHttpClientError(error)) {
+      throw new Error(`Unable to update project (HTTP ${error.status ?? 'unknown'})`);
     }
 
     throw error;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import type { AssetDto, ToolKey } from '@gen-app-2/contracts';
-import { TOOL_ASSET_CONTRACTS } from '@gen-app-2/contracts';
+import type { AssetDto, ToolKey, AssetType } from '@gen-app-2/contracts';
+import { TOOL_ASSET_CONTRACTS, ASSET_TYPES } from '@gen-app-2/contracts';
 import { useAssetSuggestions } from '../../tools/runtime/useAssetSuggestions';
 import { listAssets } from '../../tools/runtime/asset-client';
 
@@ -187,10 +187,29 @@ export const useWorkspaceContext = (
     id: workspaceId || '',
     assets: mappedAssets,
     qualityGateStatus,
-    gaps: (assetsQuery.gaps || []).map(g => ({
-      assetType: g.assetType,
-      canBeProducedBy: g.canBeProducedBy,
-    })),
+    gaps: (() => {
+      if (hasToolKey) {
+        return (assetsQuery.gaps || []).map(g => ({
+          assetType: g.assetType,
+          canBeProducedBy: g.canBeProducedBy,
+        }));
+      }
+
+      // Dashboard mode: compare ASSET_TYPES to those present in groupedByType
+      return ASSET_TYPES.filter(type => {
+        const hasAssets = groupedByType[type] && groupedByType[type].length > 0;
+        return !hasAssets;
+      }).map(type => {
+        // Identify which tools produce this asset type
+        const producers = (Object.keys(TOOL_ASSET_CONTRACTS) as ToolKey[]).filter(key =>
+          TOOL_ASSET_CONTRACTS[key].produces.includes(type as AssetType)
+        );
+        return {
+          assetType: type,
+          canBeProducedBy: producers,
+        };
+      }).filter(gap => gap.canBeProducedBy.length > 0);
+    })(),
     overallQualityScore,
     groupedByType,
     foundationTools,

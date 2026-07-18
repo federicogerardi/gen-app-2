@@ -9,6 +9,7 @@ test('project mappers normalize nullable DB fields', () => {
     id: 'proj_1',
     user_id: 'user_1',
     name: null,
+    status: null,
     created_at: '2026-04-24T10:00:00.000Z',
     updated_at: '2026-04-24T10:05:00.000Z',
   };
@@ -16,10 +17,12 @@ test('project mappers normalize nullable DB fields', () => {
   const summary = mapProjectRowToSummary(row);
   assert.equal(summary.name, 'Untitled project');
   assert.equal(summary.description, '');
+  assert.equal(summary.status, 'active');
 
   const detail = mapProjectRowToDetail(row);
   assert.equal(detail.userId, 'user_1');
   assert.equal(detail.createdAt, '2026-04-24T10:00:00.000Z');
+  assert.equal(detail.status, 'active');
 });
 
 test('artifact mappers normalize row to API shape', () => {

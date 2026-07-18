@@ -95,6 +95,7 @@ export interface ProjectsTable {
   id: string;
   user_id: string;
   name: string | null;
+  status: Generated<'active' | 'archived'>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

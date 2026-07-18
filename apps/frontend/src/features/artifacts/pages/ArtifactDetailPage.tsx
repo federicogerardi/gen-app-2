@@ -106,7 +106,7 @@ export const ArtifactDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
         <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </Surface>
@@ -124,7 +124,7 @@ export const ArtifactDetailPage = () => {
         {!artifactQuery.loading ? (
           <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
         ) : null}
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </Surface>
@@ -203,7 +203,7 @@ const LegacyArtifactView = ({
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </TopBar>

@@ -73,6 +73,7 @@ type StubProjectRecord = {
   userId: string;
   name: string;
   description: string;
+  status: 'active' | 'archived';
   createdAt: string;
   updatedAt: string;
 };
@@ -274,6 +275,7 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
         id: project.id,
         name: project.name,
         description: project.description,
+        status: project.status,
         updatedAt: project.updatedAt,
       }));
   }
@@ -289,6 +291,7 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
       userId: project.userId,
       name: project.name,
       description: project.description,
+      status: project.status,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     };
@@ -302,6 +305,7 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
       userId,
       name: input.name,
       description: input.description ?? '',
+      status: 'active',
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -313,8 +317,35 @@ export class ProjectQueryRepositoryStub implements ProjectQueryRepository {
       userId,
       name: record.name,
       description: record.description,
+      status: record.status,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
+    };
+  }
+
+  async updateProjectForUser(
+    userId: string,
+    projectId: string,
+    input: { name?: string; status?: 'active' | 'archived' }
+  ): Promise<ProjectDetail | null> {
+    const project = this.projects.get(projectId);
+    if (!project || project.userId !== userId) {
+      return null;
+    }
+
+    const timestamp = toIsoNow(this.runtime);
+    if (input.name !== undefined) project.name = input.name;
+    if (input.status !== undefined) project.status = input.status;
+    project.updatedAt = timestamp;
+
+    return {
+      id: project.id,
+      userId: project.userId,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
     };
   }
 }

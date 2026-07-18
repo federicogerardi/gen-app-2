@@ -106,7 +106,7 @@ vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
     const navigate = useNavigate();
 
     return (
-      <button type="button" onClick={() => navigate('/artifacts')}>
+      <button type="button" onClick={() => navigate('/admin/artifacts')}>
         Visualizza i risultati
       </button>
     );
@@ -117,7 +117,7 @@ vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
   ArtifactsPage: () => (
     <div data-testid="artifacts-listing">
       Artifacts listing loaded
-      <Link to="/artifacts/art-1">Apri dettaglio artifact</Link>
+      <Link to="/admin/artifacts/art-1">Apri dettaglio artifact</Link>
     </div>
   ),
 }));
@@ -161,8 +161,8 @@ describe('app router – integration', () => {
     router.dispose();
   });
 
-  it('navigates from /artifacts listing item to /artifacts/:id detail route', async () => {
-    window.history.pushState({}, '', '/artifacts');
+  it('navigates from /admin/artifacts listing item to /admin/artifacts/:id detail route', async () => {
+    window.history.pushState({}, '', '/admin/artifacts');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);

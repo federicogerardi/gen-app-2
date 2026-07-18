@@ -23,6 +23,13 @@ export const buildProjectsRoutes = (
       },
     },
     {
+      method: 'PUT',
+      pattern: /^\/api\/projects\/([^/]+)$/,
+      handler: async (request, response, projectId) => {
+        await projectsHandlers.handleProjectUpdate(request, response, decodeURIComponent(projectId ?? ''));
+      },
+    },
+    {
       method: 'GET',
       pattern: '/api/artifacts',
       handler: projectsHandlers.handleArtifactsList,

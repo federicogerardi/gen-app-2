@@ -1,9 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
-import { Button, Typography } from '@mui/material';
-import { ArrowRight, Play } from 'lucide-react';
+import { Button, Typography, Alert } from '@mui/material';
+import { ArrowRight, Play, RefreshCw } from 'lucide-react';
+import { useCallback } from 'react';
 import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDetailQuery';
+import { updateProject } from '../../../features/projects/runtime/projects-client';
 import { WorkspaceKnowledgeOverview } from '../ui/dashboard/WorkspaceKnowledgeOverview';
 import { ContextualToolsPanel } from '../ui/dashboard/ContextualToolsPanel';
 import { FoundationToolsPanel } from '../ui/dashboard/FoundationToolsPanel';
@@ -16,24 +18,51 @@ export const WorkspaceDashboard: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const ctx = useWorkspaceContext(workspaceId);
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const { data: project } = useProjectDetailQuery({
+  const { data: project, reload: reloadProject } = useProjectDetailQuery({
     projectId: workspaceId ?? '',
     apiBaseUrl,
     capabilities,
     enabled: Boolean(workspaceId),
   });
 
+  const handleReactivate = useCallback(async () => {
+    if (!workspaceId) return;
+    await updateProject(workspaceId, { status: 'active' });
+    reloadProject();
+  }, [workspaceId, reloadProject]);
+
   if (ctx.loading) return <LoadingStateMessage>Loading workspace...</LoadingStateMessage>;
   if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
   if (!workspaceId) return null;
 
   const projectName = project?.name ?? workspaceId;
+  const isArchived = project?.status === 'archived';
   const suggestedNext = ctx.workflowPosition?.suggestedNext ?? [];
   const firstSuggestedTool = suggestedNext[0];
   const hasAssets = ctx.assets.length > 0;
 
   return (
     <section className="workspace-dashboard">
+      {/* ── Archived warning banner ── */}
+      {isArchived && (
+        <Alert
+          severity="warning"
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              startIcon={<RefreshCw size={16} />}
+              onClick={handleReactivate}
+            >
+              Reactivate
+            </Button>
+          }
+          sx={{ mb: 2 }}
+        >
+          This workspace is archived. Reactivate to continue working.
+        </Alert>
+      )}
+
       {/* ── Hero section ── */}
       <div className="workspace-dashboard__hero">
         <div className="workspace-dashboard__hero-content">
@@ -56,6 +85,7 @@ export const WorkspaceDashboard: React.FC = () => {
             variant="contained"
             size="large"
             startIcon={firstSuggestedTool ? <Play size={18} /> : <ArrowRight size={18} />}
+            disabled={isArchived}
           >
             {firstSuggestedTool
               ? appCopy.ui.workspace.dashboard.heroStartGenerating

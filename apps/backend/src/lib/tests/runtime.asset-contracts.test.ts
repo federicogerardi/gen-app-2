@@ -26,8 +26,8 @@ import type { AssetReference, ToolKey } from '@gen-app-2/contracts';
 // A-001: AssetType tests
 // =====================================================================
 
-test('ASSET_TYPES contains all 12 canonical values', () => {
-  assert.equal(ASSET_TYPES.length, 12);
+test('ASSET_TYPES contains all 13 canonical values', () => {
+  assert.equal(ASSET_TYPES.length, 13);
   assert.ok(ASSET_TYPES.includes('angle'));
   assert.ok(ASSET_TYPES.includes('persona'));
   assert.ok(ASSET_TYPES.includes('brand-voice'));
@@ -40,6 +40,7 @@ test('ASSET_TYPES contains all 12 canonical values', () => {
   assert.ok(ASSET_TYPES.includes('article'));
   assert.ok(ASSET_TYPES.includes('script'));
   assert.ok(ASSET_TYPES.includes('description'));
+  assert.ok(ASSET_TYPES.includes('brief'));
 });
 
 test('isAssetType validates correct values', () => {

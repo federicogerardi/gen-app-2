@@ -37,6 +37,10 @@ const PROMPT_FILE_BY_KEY = {
   'blog-article-generator:blog_seo_structure': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_seo_structure.md',
   'blog-article-generator:blog_research': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_research.md',
   'blog-article-generator:blog_article': 'src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_article.md',
+  'brief-generator:extraction':
+    'src/lib/runtime/tool-prompts/brief-generator/prompt_extraction.md',
+  'brief-generator:brief-generation':
+    'src/lib/runtime/tool-prompts/brief-generator/prompt_brief_generation.md',
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -79,6 +83,9 @@ const resolvePromptFilePath = (input: {
     }
     if (extractionToolKey === 'meta-ads') {
       return PROMPT_FILE_BY_KEY['meta-ads:extraction'];
+    }
+    if (extractionToolKey === 'brief-generator') {
+      return PROMPT_FILE_BY_KEY['brief-generator:extraction'];
     }
     return PROMPT_FILE_BY_KEY.extraction;
   }

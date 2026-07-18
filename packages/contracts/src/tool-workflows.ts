@@ -81,6 +81,14 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'blog_article', dependencies: ['blog_research'], feedbackEnabled: true },
     ],
   },
+  'brief-generator': {
+    toolKey: 'brief-generator',
+    workflowType: 'brief_generator',
+    creditCost: 1,
+    steps: [
+      { key: 'brief-generation', dependencies: [], feedbackEnabled: true },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -123,6 +131,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'youtube-description': 'enabled-for-all',
   'geometric': 'enabled-for-all',
   'blog-article-generator': 'enabled-for-all',
+  'brief-generator': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -276,6 +285,10 @@ export const normalizeToolKeyCandidate = (
     || normalized === 'blogarticlegenerator'
   ) {
     return 'blog-article-generator';
+  }
+
+  if (normalized === 'brief_generator' || normalized === 'briefgenerator') {
+    return 'brief-generator';
   }
 
   return isToolKey(normalized) ? normalized : null;

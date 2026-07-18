@@ -14,6 +14,7 @@ describe('tool-step-display-config', () => {
       expect(toolsWithConfig).toEqual([
         'angle-generator',
         'blog-article-generator',
+        'brief-generator',
         'funnel-pages',
         'geometric',
         'meta-ads',

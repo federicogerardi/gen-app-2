@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.0
-last-reviewed: 2026-06-21
-next-review-date: 2026-09-21
+version: 1.1
+last-reviewed: 2026-07-18
+next-review-date: 2026-10-18
 owner: Frontend Platform + Backend Runtime
 title: Tool Step Display Configuration Specification
 type: specification
@@ -94,6 +94,9 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
     'strategic-reporting': { visible: true, includeInDownload: false },
     'unified-report': { visible: true, includeInDownload: true },
   },
+  'brief-generator': {
+    'brief-generation': { visible: true, includeInDownload: true },
+  },
 };
 ```
 
@@ -122,6 +125,7 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
 | geometric | competitor-scoring | ❌ | ❌ |
 | geometric | strategic-reporting | ✅ | ❌ |
 | geometric | unified-report | ✅ | ✅ |
+| brief-generator | brief-generation | ✅ | ✅ |
 
 ## 5. Lookup Helpers
 

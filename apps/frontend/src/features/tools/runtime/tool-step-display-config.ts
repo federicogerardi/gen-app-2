@@ -94,6 +94,9 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
     'blog_research': { visible: true, includeInDownload: false },
     'blog_article': { visible: true, includeInDownload: true },
   },
+  'brief-generator': {
+    'brief-generation': { visible: true, includeInDownload: true },
+  },
 };
 
 // ── Lookup helpers ────────────────────────────────────────────────────────────

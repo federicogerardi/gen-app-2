@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.2
+version: 1.3
 date_created: 2026-05-24
-last-reviewed: 2026-07-08
-next-review-date: 2026-10-08
+last-reviewed: 2026-07-18
+next-review-date: 2026-10-18
 owner: Documentation Archivist
 title: Tool Governance Matrix
 tags: [governance, tools, matrix, routing, ddd]
@@ -26,6 +26,7 @@ This document consolidates the current tool-by-tool governance view for the impl
 | `angle-generator` \| workflow: `angle_generator` \| label: `Angle Generator` | `enabled` | `/tools/angle-generator` | `context-and-angle-matrix` -> `angle-prioritization` -> `creative-activation` | Multi-file policy: `BriefingFile` always-required; `AngleDetectorFile` optional-by-tool-setting | `POST /api/tools/briefs` (dual-source envelope for `briefing` + `angleDetector`), `POST /api/tools/hydrate`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 | `meta-ads` \| workflow: `meta_ads_generator` \| label: `MetaAds Generator` | `enabled` | `/tools/meta-ads` | `context-generation` -> `ads-generation` | Multi-file policy: `BriefingFile` always-required; `AngleDetectorFile` optional-by-tool-setting; API acquisition: `campaignObjective` direct-input | `POST /api/tools/briefs` (dual-source envelope for `briefing` + `angleDetector`), `GET /api/tools/api-services` (api-acquisition resolve), `POST /api/tools/hydrate`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 | `blog-article-generator` \| workflow: `blog_article_generator` \| label: `Blog Article Generator` | `enabled-for-all` | `/tools/blog-article-generator` | `blog_seo_structure` -> `blog_research` -> `blog_article` | Direct-input-only policy: `titolo` (title) required; no file upload; LLM model selector hidden (hardcoded overrides per step) | `POST /generation/stream`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
+| `brief-generator` \| workflow: `brief_generator` \| label: `Brief Generator` (DDD-210) | `enabled-for-all` | `/tools/brief-generator` | `brief-generation` | Single-file policy: `BriefingFile` (.txt, .md, .docx) always-required. Primitive tool: upload file → extraction (5 fields) → generation → `brief` asset promotion. | `POST /api/tools/briefs`, `POST /api/tools/hydrate`, `POST /api/tools/orchestrate`, `GET /api/tools/sessions`, `GET /api/tools/sessions/{sessionId}`, `GET /api/tools/sessions/{sessionId}/step/{stepKey}`, `GET /api/tools/sessions/{sessionId}/download?format=` |
 
 ## Governance Notes
 

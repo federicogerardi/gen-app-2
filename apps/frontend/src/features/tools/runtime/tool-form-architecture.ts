@@ -224,6 +224,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'brief-generator': {
+    toolKey: 'brief-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('brief-generator'),
+    displayName: 'Brief Generator',
+    defaultPrompt: 'Genera un brief strutturato completo a partire dai dati estratti dal documento.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['brief-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['brief-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
@@ -442,6 +454,29 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     notes: ['Il titolo è l\'unico campo obbligatorio per avviare la generazione.'],
     stepConstraints: ['La sequenza canonica è blog_seo_structure -> blog_research -> blog_article.'],
   },
+  'brief-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un documento con appunti, bullet points o descrizioni. Brief Generator estrae i dati rilevanti e produce un brief strutturato pronto per gli altri tool.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.txt,.md,.docx',
+        requiredness: 'always-required',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    requiredFieldKeys: ['product_or_service', 'target_audience', 'campaign_objective', 'primary_offer', 'tone'],
+    optionalFields: [],
+    examples: [
+      'Appunti sparsi su prodotto, target e obiettivi campagna.',
+      'Trascrizione di una call commerciale da strutturare in brief formale.',
+    ],
+    notes: [
+      'Il brief in output è compatibile con funnel-pages, meta-ads, angle-generator, youtube-lf-script e nextland.',
+    ],
+    stepConstraints: [],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -523,6 +558,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'youtube-description': appCopy.ui.navigation.youtubeDescription,
   'geometric': appCopy.ui.navigation.geometric,
   'blog-article-generator': 'Blog Article Generator',
+  'brief-generator': 'Brief Generator',
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -534,6 +570,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'youtube-description': 'Genera descrizioni YouTube complete con CTA iniziale, capitoli e blocchi SEO in un singolo step.',
   'geometric': 'Analizza SERP, scoring competitivo e report strategico unificato in italiano.',
   'blog-article-generator': 'Generate Italian blog articles with SEO optimization and in-depth research.',
+  'brief-generator': 'Trasforma documenti grezzi in brief strutturati pronti per la generazione con altri tool.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -545,6 +582,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'youtube-description': '/tools/youtube-description',
   'geometric': '/tools/geometric',
   'blog-article-generator': '/tools/blog-article-generator',
+  'brief-generator': '/tools/brief-generator',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -782,6 +820,13 @@ export const stepCardConfigRegistry: Record<
       displayName: 'Article Writing',
       description: 'Write the complete Italian blog article with professional copywriting.',
       expectedOutputFormat: 'Full Italian article in Markdown (~800 words)',
+    },
+  },
+  'brief-generator': {
+    'brief-generation': {
+      displayName: 'Brief Generation',
+      description: 'Trasforma i dati estratti in un brief creativo strutturato e standardizzato pronto per il consumo da parte degli altri tool.',
+      expectedOutputFormat: 'Markdown strutturato con tutte le sezioni canoniche del brief',
     },
   },
 };

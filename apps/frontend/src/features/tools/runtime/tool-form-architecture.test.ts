@@ -47,6 +47,7 @@ describe('getAvailableSteps', () => {
       'youtube-description',
       'geometric',
       'blog-article-generator',
+      'brief-generator',
     ]);
     expect(getEnabledToolKeys('admin')).toEqual([
       'funnel-pages',
@@ -57,6 +58,7 @@ describe('getAvailableSteps', () => {
       'youtube-description',
       'geometric',
       'blog-article-generator',
+      'brief-generator',
     ]);
     expect(isToolEnabled('nextland', 'member')).toBe(false);
     expect(isToolEnabled('nextland', 'admin')).toBe(true);

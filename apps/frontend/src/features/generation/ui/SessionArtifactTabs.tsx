@@ -23,7 +23,8 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
     || value === 'meta-ads'
     || value === 'youtube-description'
     || value === 'geometric'
-    || value === 'blog-article-generator';
+    || value === 'blog-article-generator'
+    || value === 'brief-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {

@@ -1,8 +1,8 @@
 ---
 status: active
-version: 3.5
-last-reviewed: 2026-07-17
-next-review-date: 2026-10-17
+version: 3.6
+last-reviewed: 2026-07-18
+next-review-date: 2026-10-18
 owner: Domain Architecture
 ---
 
@@ -58,11 +58,17 @@ owner: Domain Architecture
 - Backend verification evidence: `apps/backend/src/lib/tests/runtime.api-service-auth-http.test.ts`, `apps/backend/src/lib/tests/runtime.api-acquisition.adapter.test.ts`, `apps/backend/src/lib/tests/runtime.api-service-validation.test.ts`, `apps/backend/src/lib/tests/runtime.acquisition-workflow.machine.test.ts`, `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts`, `apps/backend/src/lib/tests/generation-system.runtime.test.ts`
 - Frontend admin verification evidence: `apps/frontend/src/features/admin/pages/AdminApiServicesPage.tsx`, `apps/frontend/src/features/admin/pages/AdminApiServicesPage.test.tsx`, `apps/frontend/src/features/admin/pages/AdminRoutesA11ySmoke.test.tsx`
 
-**Runtime evidence (Asset injection and brief AssetType, 2026-07-17)**:
+**Runtime evidence (Asset injection and brief AssetType, 2026-07-18)**:
 - Migrations: `packages/infra-db/migrations/20260716_000023_asset_core.sql`, `packages/infra-db/migrations/20260717_000025_asset_type_add_brief.sql`
-- Injection: `apps/backend/src/lib/runtime/asset-injection-resolver.ts`, `apps/backend/src/lib/machines/generation-actor.ts`, `apps/backend/src/lib/adapters/generation.adapters.ts`, `apps/backend/src/lib/tests/asset-injection.integration.test.ts`
-- Frontend: `apps/frontend/src/features/workspace/ui/CreateAssetPrompt.tsx`, `apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts`
+- Injection: `apps/backend/src/lib/runtime/asset-injection-resolver.ts`, `apps/backend/src/lib/machines/generation-actor.ts` (debug logging at each stage: assetRefs detection, snapshot resolution, prompt injection)
+- Production wiring: `apps/backend/src/lib/adapters/postgres-redis.adapters.ts` (real `assetSnapshotResolver` via `createAssetSnapshotResolver` + Kysely DB)
+- Tests: `apps/backend/src/lib/tests/asset-injection.integration.test.ts`
+- Frontend: `apps/frontend/src/features/workspace/ui/AssetKnowledgePanel.tsx`, `apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts`
 - Setup Panel: `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, `apps/frontend/src/styles.css`
+- Gatekeeping: `apps/frontend/src/features/tools/machines/tool-page-readiness.ts` (`hasRequiredAssets` field, `missing_required_assets` reason code)
+- Extraction override: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (`effectiveReadinessSnapshot` with asset-based context)
+- Guard: `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (`canStartGeneration` allows when only `missing_extraction_context`)
+- Stale closure fix: `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` (`selectedAssetIds` in volatileRef)
 
 **Key Events**: `BackendStreamEvent` (start, chunk, terminal)
 

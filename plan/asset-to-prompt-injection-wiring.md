@@ -1,8 +1,8 @@
 ---
 status: completed
-version: 1.2.0
-last-reviewed: 2026-07-17
-next-review-date: 2026-08-17
+version: 1.3.0
+last-reviewed: 2026-07-18
+next-review-date: 2026-08-18
 owner: ai-execution-engine
 type: implementation-plan
 goal: Wire asset selection from FE to LLM prompt injection in BE generation flow
@@ -10,20 +10,44 @@ goal: Wire asset selection from FE to LLM prompt injection in BE generation flow
 
 # Asset → Prompt Injection Wiring Plan
 
-## Stato attuale (gap) — COMPLETED
+## Stato attuale — COMPLETED (validated 2026-07-18)
 
 ```
 FE AssetKnowledgePanel  ──→  onAssetSelect={setSelectedAssetIds}  ✓
                                     │
                                     ▼
-         assetReferences inviati via input.assetReferences
+     selectedAssetIds → volatileArgsRef  ✓  (fix: stale closure bug)
+                                    │
+                                    ▼
+     assetReferences inviati via input.assetReferences  ✓
+     (buildBaseGenerationRequest → createStepRequest)
                                     │
                                     ▼
 BE generationActor (generation-actor.ts, XState fromPromise)
   estrae assetReferences da context.requestInput
-  risolve snapshot via context.adapters.assetSnapshotResolver
-  inietta nel prompt prima di generateText()
+  risolve snapshot via context.adapters.assetSnapshotResolver  ✓  (fix: stub → real DB)
+  inietta nel prompt prima di generateText()  ✓
 ```
+
+### Validazione (2026-07-18)
+
+Flusso testato end-to-end con `funnel-pages` + asset `brief`:
+1. Frontend invia `assetReferences: [{ assetId: "ast_c291899c...", sourceToolKey: "funnel-pages", usageIntent: "injection" }]`
+2. Backend `generationActor` risolve l'asset via `getAssetSnapshot()` → 149KB di contenuto
+3. `resolveAssetInjectedPrompt()` inietta il contenuto nel prompt (prepend mode)
+4. Prompt finito: basePrompt(11KB) → injectedPrompt(161KB) → delta +149KB
+5. LLM genera output pertinente al brief
+
+### Fix applicati in sessione
+
+| Fix | File | Root cause |
+|-----|------|------------|
+| `selectedAssetIds` in volatileRef | `useToolPageRunController.ts` | Stale closure: useCallback deps non includevano `selectedAssetIds` |
+| Real `assetSnapshotResolver` | `postgres-redis.adapters.ts` | Stub restituiva sempre null, ignora asset DB |
+| `canStartGeneration` guard | `tool-page.machine.ts` | Guard bloccava su `missing_extraction_context` anche quando asset coprivano il contesto |
+| `hasAssetBasedExtractionContext` | `useToolPage.ts`, `ToolPageTemplate.tsx` | Override readiness quando asset always-required soddisfatti |
+| `completedFileKeys` override | `ToolPageTemplate.tsx` | Include briefing-file quando asset coprono (matrix non blocca) |
+| Brief required, others optional | `toolAssetRegistry.ts` | Invertito: brief=always-required, persona/brand-voice=optional |
 
 ## Revisione XState v5
 

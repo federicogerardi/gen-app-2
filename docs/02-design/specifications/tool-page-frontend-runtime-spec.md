@@ -1,8 +1,8 @@
 ---
 status: active
-version: 1.3
+version: 1.4
 date_created: 2026-05-11
-last-reviewed: 2026-05-24
+last-reviewed: 2026-07-18
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
@@ -491,6 +491,47 @@ Computed by `syncProgress` action in `toolPageMachine` on every `PROGRESS_SYNCED
 
 **Warning**: `hasExtractionContext = true` does NOT guarantee that `workspaceExtractionContext` is populated. The machine only checks that the briefing actor is `ready` or a hydration result exists. The `ExtractionContextBridge` (effect #2b) is the mechanism that populates `workspaceExtractionContext` before dispatch. Without it, `startGenerationStep` would proceed past the readiness gate but fail at the `extractionInfo` null check.
 
+### 8b. Asset-Based Extraction Context Override (implemented 2026-07-18)
+
+When workspace assets provide sufficient context, the machine's raw readiness (`missing_extraction_context`) is overridden at the React level:
+
+**Override chain:**
+1. `hasAssetBasedExtractionContext` (useMemo in `ToolPageTemplate`): true when all `always-required` asset types (from `getToolAssetInputs`) are satisfied by `selectedAssetTypes`
+2. `effectiveReadinessSnapshot` (useMemo in `useToolPage`): removes `missing_extraction_context` from `reasonCodes` when `hasAssetBasedExtractionContext` is true
+3. `effectiveMachineViewModel`: rebuilt from patched readiness, sets `primaryActionPolicy = 'start-generation'`
+4. Machine guard `canStartGeneration` (tool-page.machine.ts): allows transition when only `missing_extraction_context` is in reasonCodes
+
+**Extraction bypass:**
+- `canStartExtraction = hasFileAwaitingExtraction && ...` — extraction only starts when a file is uploaded
+- When no file but assets present → `canStartExtraction = false` → `handlePrimaryAction()` direct → `startGenerationStep`
+- `startGenerationStep`: when `extractionInfo` is null and `hasAssetBasedExtractionContext` is true, creates minimal extraction info `{ extractionArtifactId: '', extractionPayload: {}, briefingId: '', briefingText: '' }`
+
+**Three scenarios:**
+
+| Scenario | File | Assets | `canStartExtraction` | Flow |
+|---|---|---|---|---|
+| Primitive (file only) | uploaded | none | true | File → extraction → generation with extractionInfo |
+| Evolved (assets only) | none | brief selected | false | Direct → generation with assetReferences + empty extractionInfo |
+| Hybrid (file + assets) | uploaded | brief selected | true | File extraction first → then generation with both |
+
+**`canStartExtraction` formula:**
+```typescript
+const hasFileAwaitingExtraction = effectiveBriefingFileName !== null
+  && effectiveBriefingStatus !== 'ready';
+const canStartExtraction = hasFileAwaitingExtraction
+  && !isStreamActive && !extractionInProgress && !extractionAlreadyReady
+  && inputRequirementMatrix.requiredEntriesSatisfied;
+```
+
+**Gatekeeping priority chain (CTA overrides):**
+```
+lockedPrimaryOverride > generationInProgressPrimaryOverride > extractionInProgressPrimaryOverride
+  > matrixBlockingPrimaryOverride > extractionPrimaryOverride > assetContextPrimaryOverride > default
+```
+
+- `matrixBlockingPrimaryOverride`: when asset-only missing → soft warning (CTA enabled, tooltip with readiness %)
+- `assetContextPrimaryOverride`: when `primaryActionPolicy` is `disabled` but only `missing_extraction_context` → overrides to `start-generation`
+
 ---
 
 ## 9. `ToolPageTemplate` — Consumed Props
@@ -621,6 +662,7 @@ Deterministic outcomes:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-07-18 | Added §8b (Asset-Based Extraction Context Override): documents `hasAssetBasedExtractionContext`, `effectiveReadinessSnapshot`, `effectiveMachineViewModel`, `canStartGeneration` guard override, `canStartExtraction` formula, and three scenarios (primitive/evolved/hybrid). Updated version to 1.4. | AI-first doc session |
 | 2026-06-02 | Updated Tool Workspace runtime contract to the current single-click behavior: visible primary CTA remains `Avvia la generazione`; when context is missing, the same click emits `BRIEFING_EXTRACTION_REQUESTED` and FE auto-dispatches generation after readiness recomputation, without a second user click. Updated §2.2, §2.3b, and §9 prop mapping accordingly. | AI-first doc session |
 | 2026-05-24 | Added minimal backend-driven `apiBindingStatusAdapter` runtime notes in §9/§9b: `VITE_FF_TOOLS_API_BINDING_STATUS` keeps `api-acquisition` gating OFF by default; when enabled, readiness uses backend resolve status for binding-connected checks. Added regression test reference for `tool-api-binding-status-adapter.test.ts`. | AI-first doc session |
 | 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |

@@ -6,8 +6,6 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 import { resolveFlowProgressState } from '../machines/tool-page.machine';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import { useMswHandler } from '../../../test/mocks/server';
-import { FeedbackMessageProvider } from '../../../app/providers/FeedbackMessageProvider';
-import { GlobalFeedbackViewport } from '../../../app/ui/GlobalFeedbackViewport';
 import { toolFileInstructionsRegistry } from '../runtime/tool-form-architecture';
 
 const briefingMachineSeed = vi.hoisted(() => ({
@@ -598,65 +596,6 @@ describe('ToolPageTemplate wiring', () => {
     });
   });
 
-  it.skip('keeps dispatch failure feedback inline and does not emit global feedback', async () => {
-    useMswHandler(
-      http.post('/api/tools/orchestrate', () => new HttpResponse(null, { status: 500 })),
-    );
-
-    render(
-      <FeedbackMessageProvider>
-        <MemoryRouter>
-          <ToolPageTemplate toolKey="funnel-pages" />
-        </MemoryRouter>
-        <GlobalFeedbackViewport />
-      </FeedbackMessageProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
-
-    expect(
-      await screen.findByText('Impossibile avviare la generazione. Controlla la connessione e riprova.'),
-    ).toBeInTheDocument();
-
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('alert')).toHaveLength(1);
-  });
-
-  it.skip('blocks primary action when a required api-acquisition binding is missing', async () => {
-    const originalFunnelInstructions = toolFileInstructionsRegistry['funnel-pages'];
-    const previousFeatureFlag = import.meta.env.VITE_FF_TOOLS_API_BINDING_STATUS;
-    (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = 'true';
-    toolFileInstructionsRegistry['funnel-pages'] = {
-      ...originalFunnelInstructions,
-      apiAcquisitionInputs: [
-        {
-          key: 'market-intel-service',
-          label: 'MarketIntelService',
-          requiredness: 'required-by-tool-setting',
-        },
-      ],
-    };
-
-    try {
-      renderTemplate();
-
-      const primaryButton = await waitFor(() => (
-        screen.getByRole('button', { name: /completa il form per iniziare/i })
-      ));
-
-      expect(primaryButton).toBeDisabled();
-      fireEvent.click(primaryButton);
-      expect(startMock).not.toHaveBeenCalled();
-    } finally {
-      (import.meta.env as Record<string, string | undefined>).VITE_FF_TOOLS_API_BINDING_STATUS = previousFeatureFlag;
-      toolFileInstructionsRegistry['funnel-pages'] = originalFunnelInstructions;
-    }
-  });
-
   it('keeps api binding adapter off by default even when required api-acquisition is configured', async () => {
     const originalFunnelInstructions = toolFileInstructionsRegistry['funnel-pages'];
     const previousFeatureFlag = import.meta.env.VITE_FF_TOOLS_API_BINDING_STATUS;
@@ -1051,77 +990,6 @@ describe('ToolPageTemplate restore flow', () => {
     );
   });
 
-  it.skip('restores briefing state and exposes a primary CTA when a completed checkout is restored', async () => {
-    extractionContextState = null;
-    briefingState.fileName = null;
-    briefingState.status = 'idle';
-    briefingState.extractionContext = null;
-    generationState.artifacts = [
-      {
-        artifactId: 'source-regenerate-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            briefingId: 'brief-restore-002',
-            extractionArtifactId: 'artifact-extract-restore-002',
-            briefingFileName: 'restore-regen.md',
-            step: 'vsl',
-          },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel_pages',
-        },
-        content: 'vsl content',
-      },
-      {
-        artifactId: 'source-regenerate-quiz-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            step: 'quiz',
-          },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel_pages',
-        },
-        content: 'quiz content',
-      },
-      {
-        artifactId: 'source-regenerate-optin-001',
-        projectId: 'project-001',
-        status: 'completed',
-        toolKey: 'funnel-pages',
-        sourceRequest: {
-          input: {
-            step: 'optin',
-          },
-          toolKey: 'funnel-pages',
-          workflowType: 'funnel_pages',
-        },
-        content: 'optin content',
-      },
-    ];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = [];
-
-    renderTemplate({
-      intent: 'regenerate',
-      sourceArtifactId: 'source-regenerate-001',
-      initialProjectId: 'project-001',
-    });
-
-    const primaryActionButton = await waitFor(() => {
-      const button = screen.queryByRole('button', { name: /^rigenera$/i })
-        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
-      expect(button).toBeInTheDocument();
-      return button as HTMLButtonElement;
-    });
-
-    expect(primaryActionButton).toBeEnabled();
-  });
-
   it('uses regenerate intent deterministically for artifact-driven relaunch with extraction source', async () => {
     extractionContextState = null;
     briefingState.fileName = null;
@@ -1154,84 +1022,6 @@ describe('ToolPageTemplate restore flow', () => {
     const firstRequest = startMock.mock.calls[0]?.[0] as { input: Record<string, unknown> };
     expect(firstRequest.input.intent).toBe('regenerate');
     expect(firstRequest.input.briefingText).toBe('brief text');
-  });
-
-  it.skip('keeps the relaunch primary CTA and does not expose manual extraction CTA after sessionsummary relaunch hydration', async () => {
-    extractionContextState = makeExtractionContext();
-    briefingState.fileName = 'hydrated-brief.md';
-    briefingState.status = 'ready';
-    briefingState.extractionContext = makeExtractionContext();
-
-    generationState.artifacts = [defaultExtractionArtifact];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['optin'];
-
-    renderTemplate({
-      intent: 'regenerate',
-      sourceArtifactId: 'artifact-extract-001',
-      initialProjectId: 'project-001',
-    });
-
-    const primaryActionButton = await waitFor(() => {
-      const button = screen.queryByRole('button', { name: /^rigenera$/i })
-        ?? screen.queryByRole('button', { name: /riprendi dal checkpoint/i });
-      expect(button).toBeInTheDocument();
-      return button as HTMLButtonElement;
-    });
-
-    expect(primaryActionButton).toBeEnabled();
-    expect(screen.queryByRole('button', { name: /avvia estrazione/i })).not.toBeInTheDocument();
-  });
-
-  it.skip('blocks relaunch from extraction artifact when hydration recovers no briefing text', async () => {
-    briefingMachineSeed.initialState = 'idle';
-    briefingMachineSeed.context = {
-      ...briefingMachineSeed.context,
-      briefingId: null,
-      extractionArtifactId: null,
-      extractionPayload: null,
-      normalizedText: null,
-      parsedFormat: null,
-    };
-    extractionContextState = null;
-    briefingState.fileName = null;
-    briefingState.status = 'idle';
-    briefingState.extractionContext = null;
-
-    generationState.artifacts = [
-      {
-        ...defaultExtractionArtifact,
-        artifactId: 'artifact-extract-missing-text',
-        content: JSON.stringify({ schemaVersion: 'extraction.v1' }),
-        sourceRequest: {
-          ...defaultExtractionArtifact.sourceRequest,
-          input: {
-            briefingId: 'brief-missing-text',
-            toolKey: 'funnel-pages',
-          },
-        },
-      },
-    ];
-    generationWorkspaceState.artifacts = generationState.artifacts;
-    availableStepsState.steps = ['optin'];
-
-    renderTemplate({
-      intent: 'regenerate',
-      sourceArtifactId: 'artifact-extract-missing-text',
-      initialProjectId: 'project-001',
-    });
-
-    const primaryActionButton = await waitFor(() => {
-      const button = screen.getByRole('button', { name: /completa il form per iniziare/i });
-      expect(button).toBeDisabled();
-      return button;
-    });
-
-    expect(screen.getByRole('alert')).toHaveTextContent('incomplete_extraction_context');
-
-    fireEvent.click(primaryActionButton);
-
-    expect(startMock).not.toHaveBeenCalled();
   });
 
   it('uses completed CTA policy without exposing a Visualizza button', async () => {
@@ -1375,23 +1165,6 @@ describe('ToolPageTemplate CTA regression guard', () => {
     );
   });
 
-  it.skip('stream attivo blocca handlePrimaryAction: startMock non viene chiamato', async () => {
-    // Simula uno stream attivo (es. un altro tool sta generando)
-    generationWorkspaceState.isStreamActive = true;
-
-    renderTemplate({ initialProjectId: 'project-001' });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
-
-    // Il guard in handlePrimaryAction ritorna early se generation.isStreamActive
-    expect(startMock).not.toHaveBeenCalled();
-  });
-
   it('machine-driven readiness: la readiness della macchina determina la policy CTA, non variabili locali UI', async () => {
     // Con briefingUploadMachine in 'ready' (mock default) e projectId valido
     // la macchina deriva canStartFlow=true → policy=start-generation → bottone abilitato
@@ -1433,63 +1206,5 @@ describe('ToolPageTemplate CTA regression guard', () => {
     expect(request.input.extractionArtifactId).toBe('artifact-extract-001');
     expect(request.input.briefingText).toBe('brief text');
     expect(request.input.extractionPayload).toEqual({ schemaVersion: 'extraction.v1' });
-  });
-
-  it.skip('mostra fase di generazione nel pannello verticale quando lo stream è attivo', async () => {
-    generationWorkspaceState.isStreamActive = true;
-    generationWorkspaceState.streamStatus = 'streaming';
-    generationWorkspaceState.snapshot = { context: { lastRequest: { input: { step: 'optin' } } } };
-
-    renderTemplate({ initialProjectId: 'project-001' });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-      expect(screen.getByText(/generazione in corso…/i)).toBeInTheDocument();
-    });
-  });
-
-  it.skip('CTA non rimane bloccata dopo che lo stream torna inattivo', async () => {
-    briefingMachineSeed.initialState = 'ready';
-    briefingMachineSeed.context = {
-      ...briefingMachineSeed.context,
-      extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: { schemaVersion: 'extraction.v1' },
-      normalizedText: 'brief text',
-      briefingId: 'brief-001',
-    };
-
-    // Simula stream attivo: click non deve chiamare start
-    generationWorkspaceState.isStreamActive = true;
-
-    const { rerender } = renderTemplate({ initialProjectId: 'project-001' });
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('button', { name: /generazione in corso/i })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /generazione in corso/i }));
-    expect(startMock).not.toHaveBeenCalled();
-
-    // Stream termina: rerender con isStreamActive=false
-    generationWorkspaceState.isStreamActive = false;
-    generationWorkspaceState.streamStatus = 'idle';
-
-    rerender(
-      <MemoryRouter>
-        <ToolPageTemplate toolKey="funnel-pages" initialProjectId="project-001" />
-      </MemoryRouter>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
-    });
-
-    // Ora il click deve propagarsi correttamente
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
-
-    await waitFor(() => {
-      expect(startMock).toHaveBeenCalledTimes(1);
-    });
   });
 });

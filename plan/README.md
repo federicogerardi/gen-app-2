@@ -77,6 +77,18 @@ The original Sprint 2 plan contained **critical DDD violations** that required c
 
 The DDD-corrected Sprint 2 specifically addresses this through Infrastructure Layer route capability organization that enables Sprint 4B context routing without violating domain boundaries.
 
+## Feature & Tool Plans
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| [blog-article-generator](./blog-article-generator-implementation-plan.md) | TBD | Blog Article Generator tool (3-step workflow) |
+| [brief-generator](./brief-generator-implementation-plan.md) | ✅ **COMPLETE** | Brief Generator — primitive tool for structured briefs |
+| [tov-generator](./tov-generator-implementation-plan.md) | ✅ **COMPLETE** | TOV Generator — primitive tool for brand-voice assets |
+| [workspace-dashboard-ux-restyling](./workspace-dashboard-ux-restyling-implementation-plan.md) | 📝 **DRAFT** | Dashboard restyling: asset accordion, foundation tools, inline artifact promotion |
+| [workspace-centric-ux-transformation](./workspace-centric-ux-transformation-implementation-plan.md) | TBD | Workspace-centric UX transformation |
+| [feature-tool-output-personalization-1](./feature-tool-output-personalization-1.md) | TBD | Tool output personalization (multi-variant, HITL, feedback) |
+| [backend-logging-unification](./backend-logging-unification-plan.md) | TBD | Backend logging unification |
+
 ## Next Steps
 
 ### **Sprint 2 Execution**

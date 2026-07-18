@@ -13,6 +13,7 @@ import {
 import { Package, CheckCircle } from 'lucide-react';
 import { ASSET_TYPES, type AssetType } from '@gen-app-2/contracts';
 import { promoteArtifactToAsset } from '../../tools/runtime/asset-client';
+import { ASSET_TYPE_LABELS } from '../../workspace/runtime/toolAssetRegistry';
 
 interface PromoteAssetDialogProps {
   open: boolean;
@@ -22,22 +23,6 @@ interface PromoteAssetDialogProps {
   onClose: () => void;
   onPromoted?: () => void;
 }
-
-const ASSET_TYPE_LABELS: Record<AssetType, string> = {
-  'angle': 'Angle',
-  'persona': 'Persona',
-  'brand-voice': 'Brand Voice',
-  'hook': 'Hook',
-  'competitor-analysis': 'Competitor Analysis',
-  'creative-brief': 'Creative Brief',
-  'ad-copy': 'Ad Copy',
-  'landing-page': 'Landing Page',
-  'article-outline': 'Article Outline',
-  'article': 'Article',
-  'script': 'Script',
-  'description': 'Description',
-  'brief': 'Brief',
-};
 
 type DialogState = 'form' | 'loading' | 'success' | 'error';
 

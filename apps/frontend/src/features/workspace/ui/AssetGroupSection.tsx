@@ -18,6 +18,7 @@ interface AssetGroupSectionProps {
   selectedAssetIds: string[];
   producerTool?: string | null;
   projectId?: string;
+  mode?: 'select' | 'browse';
   onToggleExpanded: (expanded: boolean) => void;
   onAssetToggle: (assetId: string, checked: boolean) => void;
   onCreateAction: () => void;
@@ -32,6 +33,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
   selectedAssetIds,
   producerTool,
   projectId,
+  mode = 'select',
   onToggleExpanded,
   onAssetToggle,
   onCreateAction,
@@ -144,24 +146,38 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
       <Collapse in={isExpanded}>
         <div className="asset-group-section__content">
           {hasAssets ? (
-            <>
-              <div className="asset-group-section__controls">
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={handleSelectAllInGroup}
-                  startIcon={selectedAssetsInGroup === assets.length ? <Minus size={14} /> : <Plus size={14} />}
-                >
-                  {selectedAssetsInGroup === assets.length ? 'Deselect All' : 'Select All'}
-                </Button>
+            mode === 'browse' ? (
+              <div className="asset-group-section__browse-list">
+                {assets.map(asset => (
+                  <div key={asset.id} className="asset-group-section__browse-item">
+                    <span className="asset-group-section__browse-label">{asset.label}</span>
+                    <QualityScoreBadge score={asset.qualityScore} size="small" />
+                    {asset.staleUpstream && (
+                      <Chip label="Stale" size="small" color="warning" variant="outlined" />
+                    )}
+                  </div>
+                ))}
               </div>
+            ) : (
+              <>
+                <div className="asset-group-section__controls">
+                  <Button
+                    size="small"
+                    variant="text"
+                    onClick={handleSelectAllInGroup}
+                    startIcon={selectedAssetsInGroup === assets.length ? <Minus size={14} /> : <Plus size={14} />}
+                  >
+                    {selectedAssetsInGroup === assets.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                </div>
 
-              <AssetSelectionList
-                assets={assets}
-                selectedAssetIds={selectedAssetIds}
-                onAssetToggle={onAssetToggle}
-              />
-            </>
+                <AssetSelectionList
+                  assets={assets}
+                  selectedAssetIds={selectedAssetIds}
+                  onAssetToggle={onAssetToggle}
+                />
+              </>
+            )
           ) : (
               <CreateAssetPrompt
               assetType={assetType}

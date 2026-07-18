@@ -41,7 +41,8 @@ describe('CrossToolWorkflowPanel', () => {
   it('renders nothing when loading', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
-      overallQualityScore: 0, loading: true, error: null, refetch: vi.fn(),
+      overallQualityScore: 0, groupedByType: {}, foundationTools: [],
+      loading: true, error: null, refetch: vi.fn(),
     });
 
     const { container } = render(
@@ -53,7 +54,8 @@ describe('CrossToolWorkflowPanel', () => {
   it('renders nothing when no workflowPosition', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
-      overallQualityScore: 0, loading: false, error: null, refetch: vi.fn(),
+      overallQualityScore: 0, groupedByType: {}, foundationTools: [],
+      loading: false, error: null, refetch: vi.fn(),
     });
 
     const { container } = render(
@@ -66,7 +68,8 @@ describe('CrossToolWorkflowPanel', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy',
       workflowPosition: { currentStep: '0 tools completed', totalSteps: 8, completedSteps: [], estimatedCompletion: 0 },
-      gaps: [], overallQualityScore: 0, loading: false, error: null, refetch: vi.fn(),
+      gaps: [], overallQualityScore: 0, groupedByType: {}, foundationTools: [],
+      loading: false, error: null, refetch: vi.fn(),
     });
     mockUseToolRecommendations.mockReturnValue([]);
 
@@ -84,7 +87,8 @@ describe('CrossToolWorkflowPanel', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy',
       workflowPosition: { currentStep: '0 tools completed', totalSteps: 8, completedSteps: [], estimatedCompletion: 0 },
-      gaps: [], overallQualityScore: 0, loading: false, error: null, refetch: vi.fn(),
+      gaps: [], overallQualityScore: 0, groupedByType: {}, foundationTools: [],
+      loading: false, error: null, refetch: vi.fn(),
     });
     mockUseToolRecommendations.mockReturnValue([]);
 
@@ -100,7 +104,8 @@ describe('CrossToolWorkflowPanel', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy',
       workflowPosition: { currentStep: '0 tools completed', totalSteps: 8, completedSteps: [], estimatedCompletion: 0 },
-      gaps: [], overallQualityScore: 0, loading: false, error: null, refetch: vi.fn(),
+      gaps: [], overallQualityScore: 0, groupedByType: {}, foundationTools: [],
+      loading: false, error: null, refetch: vi.fn(),
     });
     mockUseToolRecommendations.mockReturnValue([
       { toolKey: 'angle-generator', label: 'Angle Generator', description: '', to: '', readinessScore: 100, impactScore: 30, priorityScore: 80, reason: '', missingAssets: [], fillableGaps: [] },

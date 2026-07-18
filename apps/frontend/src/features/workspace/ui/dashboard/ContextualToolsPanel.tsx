@@ -4,6 +4,9 @@ import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { getEnabledToolNavigationItems } from '../../../tools/runtime/tool-form-architecture';
 import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
 
+// Foundation tools are shown in FoundationToolsPanel, not here
+const FOUNDATION_TOOL_KEYS = new Set<string>(['brief-generator', 'tov-generator']);
+
 interface ContextualToolsPanelProps {
   workspaceId: string;
 }
@@ -14,7 +17,8 @@ export const ContextualToolsPanel: React.FC<ContextualToolsPanelProps> = ({ work
   if (ctx.loading) return <LoadingStateMessage>Loading tools...</LoadingStateMessage>;
   if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
 
-  const toolItems = getEnabledToolNavigationItems('member', workspaceId);
+  const allToolItems = getEnabledToolNavigationItems('member', workspaceId);
+  const toolItems = allToolItems.filter(item => !FOUNDATION_TOOL_KEYS.has(item.toolKey));
   const gapToolKeys = new Set(ctx.gaps.flatMap(g => g.canBeProducedBy));
 
   if (toolItems.length === 0) {

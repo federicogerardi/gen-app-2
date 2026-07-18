@@ -7,8 +7,9 @@ import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDe
 import { WorkspaceKnowledgeOverview } from '../ui/dashboard/WorkspaceKnowledgeOverview';
 import { SuggestedActionsPanel } from '../ui/dashboard/SuggestedActionsPanel';
 import { ContextualToolsPanel } from '../ui/dashboard/ContextualToolsPanel';
-import { AssetLibraryQuickAccess } from '../ui/dashboard/AssetLibraryQuickAccess';
-import { RecentActivityPanel } from '../ui/dashboard/RecentActivityPanel';
+import { FoundationToolsPanel } from '../ui/dashboard/FoundationToolsPanel';
+import { AssetLibraryAccordion } from '../ui/dashboard/AssetLibraryAccordion';
+import { RecentArtifactsPanel } from '../ui/dashboard/RecentArtifactsPanel';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
 import '../ui/dashboard/dashboard-panels.css';
 
@@ -65,16 +66,19 @@ export const WorkspaceDashboard: React.FC = () => {
       {/* ── Knowledge overview ── */}
       <WorkspaceKnowledgeOverview workspaceId={workspaceId} />
 
-      {/* ── Two-column: Suggestions + Tools ── */}
+      {/* ── Foundation Tools ── */}
+      <FoundationToolsPanel workspaceId={workspaceId} />
+
+      {/* ── Two-column: Asset Library + Suggested Actions ── */}
       <div className="dashboard-grid" id="available-tools">
+        <AssetLibraryAccordion workspaceId={workspaceId} />
         <SuggestedActionsPanel workspaceId={workspaceId} />
-        <ContextualToolsPanel workspaceId={workspaceId} />
       </div>
 
-      {/* ── Two-column: Assets + Activity ── */}
+      {/* ── Two-column: Recent Artifacts + Available Tools ── */}
       <div className="dashboard-grid">
-        <AssetLibraryQuickAccess workspaceId={workspaceId} />
-        <RecentActivityPanel workspaceId={workspaceId} />
+        <RecentArtifactsPanel workspaceId={workspaceId} />
+        <ContextualToolsPanel workspaceId={workspaceId} />
       </div>
     </section>
   );

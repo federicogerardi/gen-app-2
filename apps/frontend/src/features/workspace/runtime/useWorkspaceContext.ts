@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AssetDto, ToolKey } from '@gen-app-2/contracts';
+import { TOOL_ASSET_CONTRACTS } from '@gen-app-2/contracts';
 import { useAssetSuggestions } from '../../tools/runtime/useAssetSuggestions';
 import { listAssets } from '../../tools/runtime/asset-client';
 
@@ -11,6 +12,7 @@ export interface WorkspaceAsset {
   status: string;
   staleUpstream: boolean;
   sourceToolKey?: string;
+  sourceArtifactId?: string | null;
 }
 
 export interface AssetGap {
@@ -26,6 +28,15 @@ export interface WorkflowPosition {
   estimatedCompletion?: number;
 }
 
+// "Foundation Tool" is a UI-layer classification derived from TOOL_ASSET_CONTRACTS.
+// Not a canonical domain term — use in component comments/props only.
+export interface FoundationToolStatus {
+  toolKey: string;
+  producedAssetType: string;
+  existingAssets: WorkspaceAsset[];
+  hasAssets: boolean;
+}
+
 export interface WorkspaceContextData {
   id: string;
   assets: WorkspaceAsset[];
@@ -33,6 +44,8 @@ export interface WorkspaceContextData {
   workflowPosition?: WorkflowPosition;
   gaps: AssetGap[];
   overallQualityScore: number;
+  groupedByType: Record<string, WorkspaceAsset[]>;
+  foundationTools: FoundationToolStatus[];
 }
 
 const mapAssetDto = (a: AssetDto): WorkspaceAsset => ({
@@ -42,6 +55,7 @@ const mapAssetDto = (a: AssetDto): WorkspaceAsset => ({
   qualityScore: a.staleUpstream ? 50 : 100,
   status: a.status,
   staleUpstream: a.staleUpstream,
+  sourceArtifactId: a.sourceArtifactId,
 });
 
 export const useWorkspaceContext = (
@@ -112,6 +126,37 @@ export const useWorkspaceContext = (
     [effectiveAssets],
   );
 
+  const groupedByType = useMemo(() => {
+    const groups: Record<string, WorkspaceAsset[]> = {};
+    for (const asset of mappedAssets) {
+      if (!groups[asset.assetType]) groups[asset.assetType] = [];
+      groups[asset.assetType]!.push(asset);
+    }
+    return groups;
+  }, [mappedAssets]);
+
+  // Foundation tools: tools with consumes === [], excluding analysis-only tools
+  // (geometric). This is a UI-layer derivation, not a domain concept.
+  const EXCLUDED_FOUNDATION_TOOLS = new Set<ToolKey>(['geometric']);
+
+  const foundationTools = useMemo((): FoundationToolStatus[] => {
+    const foundationToolKeys = (Object.keys(TOOL_ASSET_CONTRACTS) as ToolKey[])
+      .filter(key => (TOOL_ASSET_CONTRACTS[key]?.consumes ?? []).length === 0)
+      .filter(key => !EXCLUDED_FOUNDATION_TOOLS.has(key));
+
+    return foundationToolKeys.map(toolKey => {
+      const contract = TOOL_ASSET_CONTRACTS[toolKey];
+      const producedType = contract?.produces[0] ?? '';
+      const existingAssets = mappedAssets.filter(a => a.assetType === producedType);
+      return {
+        toolKey,
+        producedAssetType: producedType,
+        existingAssets,
+        hasAssets: existingAssets.length > 0,
+      };
+    });
+  }, [mappedAssets]);
+
   const workflowPosition = useMemo((): WorkflowPosition | undefined => {
     if (mappedAssets.length === 0) return undefined;
     const completedTools = new Set<string>();
@@ -147,6 +192,8 @@ export const useWorkspaceContext = (
       canBeProducedBy: g.canBeProducedBy,
     })),
     overallQualityScore,
+    groupedByType,
+    foundationTools,
     loading: effectiveLoading,
     error: effectiveError,
     refetch: hasToolKey ? assetsQuery.refresh : refreshAll,

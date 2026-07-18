@@ -6,7 +6,7 @@ export type ToolProjectAssetPolicyEntry = {
   requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required';
 };
 
-const ASSET_TYPE_LABELS: Record<AssetType, string> = {
+export const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   'angle': 'Angle',
   'persona': 'Persona',
   'brand-voice': 'Brand Voice',

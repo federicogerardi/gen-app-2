@@ -434,17 +434,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     setValue('country', formState.country ?? '');
   }, [formState.country, setValue]);
 
-  const handleCtaClick = useCallback(() => {
-    if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      handlePrimaryAction();
-      return;
-    }
-    setIsFormLocked(true);
-    handleSubmit((data) => {
-      executePrimaryActionFromForm(data);
-    })();
-  }, [handleSubmit, executePrimaryActionFromForm, machineViewModel.primaryActionPolicy, handlePrimaryAction]);
-
   const handleCancelWithLockReset = useCallback(() => {
     setIsFormLocked(false);
     handleCancelGeneration();
@@ -460,7 +449,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               <p className={uiPrimitives.metaLine}>{toolConfig.displayName} {copy.headingMetaSuffix}</p>
             </header>
 
-            <form className="ui-tool-form" onSubmit={handleSubmit((data) => {
+            <form id="tool-setup-form" className="ui-tool-form" onSubmit={handleSubmit((data) => {
               executePrimaryActionFromForm(data);
             })}>
 
@@ -988,9 +977,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     aria-valuemax={100}
                   />
                   <button
-                    type="button"
+                    type="submit"
+                    form="tool-setup-form"
                     className={cx(uiPrimitives.button, 'ui-fv-session-button')}
-                    onClick={handleCtaClick}
+                    onClick={(e) => {
+                      if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
+                        e.preventDefault();
+                        handlePrimaryAction();
+                        return;
+                      }
+                      setIsFormLocked(true);
+                    }}
                     disabled={isStreamActive || isFormLocked || effectiveCanonicalState === 'running' || !inputRequirementMatrix.requiredEntriesSatisfied}
                     title={!inputRequirementMatrix.requiredEntriesSatisfied ? copy.primaryActionPolicy.disabledTooltip : undefined}
                   >

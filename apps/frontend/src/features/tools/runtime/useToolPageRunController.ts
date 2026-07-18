@@ -69,7 +69,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
     readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
     runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
-    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext,
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext, selectedAssetIds,
   });
   volatileArgsRef.current = {
     auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts, generationStream, generationRun,
@@ -77,7 +77,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
     readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
     runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
-    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext,
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext, selectedAssetIds,
   };
   const streamingStep = selectStreamingStep({ isStreamActive: generationStream.isStreamActive, lastRequest: generationStream.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
   const currentRunningStep = streamingStep;
@@ -210,7 +210,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       effectiveBriefingFileName: v.effectiveBriefingFileName,
       extractionInfo: effectiveExtractionInfo,
       runPrefix,
-      selectedAssetIds,
+      selectedAssetIds: v.selectedAssetIds,
     });
 
     try {

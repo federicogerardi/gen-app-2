@@ -31,7 +31,16 @@ export const toolPageMachine = setup({
   guards: {
     canStartGeneration: ({ context }) => {
       const policy = buildReactiveViewModel(context).primaryActionPolicy;
-      return context.readiness.canStartFlow && canStartFromPolicy(policy);
+      // Asset-based context override: when the only blocking reason is missing
+      // extraction context, allow generation to proceed. The React layer
+      // (useToolPage) has already verified that workspace assets provide
+      // sufficient context, and the generation request will include
+      // assetReferences instead of extraction data.
+      const extractionOnlyMissing = !context.readiness.canStartFlow
+        && context.readiness.reasonCodes.length === 1
+        && context.readiness.reasonCodes[0] === 'missing_extraction_context';
+      return (context.readiness.canStartFlow || extractionOnlyMissing)
+        && (canStartFromPolicy(policy) || extractionOnlyMissing);
     },
     // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop the redundant second
     // CANCEL_GENERATION issued when the bridge branch (b) failure path and the

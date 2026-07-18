@@ -448,7 +448,6 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   ]);
 
   const handlePrimaryAction = useCallback(() => {
-    if (import.meta.env.DEV) console.info('[tool-page][runController] handlePrimaryAction:', { primaryActionPolicy, canStartFlow: readinessSnapshot.canStartFlow, isStreamActive: generationStream.isStreamActive, isGenActive: generationRun.isGenerationActive, primaryTargetStep });
     if (primaryActionPolicy === 'open-last-artifact' || !readinessSnapshot.canStartFlow || generationStream.isStreamActive || generationRun.isGenerationActive || !primaryTargetStep) return;
     const runPrefix = generateRequestId();
     currentRunPrefixRef.current = runPrefix;

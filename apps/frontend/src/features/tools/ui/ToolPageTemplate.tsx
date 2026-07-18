@@ -341,14 +341,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         continue;
       }
 
-      const candidate = (value as Record<string, unknown>)[fileEntry.key];
-      if (!(candidate instanceof File)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [fileEntry.key],
-          message: `${copy.form.validation.uploadToContinuePrefix}${fileEntry.label}${copy.form.validation.uploadToContinueSuffix}`,
-        });
-      }
+      // SPRINT 4: DDD-192 removal — this validation was blocking extraction
+      // start because handleSubmit validates the form BEFORE executePrimaryActionFromForm
+      // can call handleExtractionStart. The inputRequirementMatrix and
+      // matrixBlockingPrimaryOverride already guard via completedFileKeys,
+      // so this duplicate check only prevented the extraction process from
+      // being initiated. File upload is handled by handleBriefingFileSelected,
+      // not by form submission.
     }
   });
 
@@ -401,7 +400,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     : undefined;
 
   const executePrimaryActionFromForm = (data: ToolPageFormValues & Record<string, unknown>) => {
-    if (import.meta.env.DEV) console.info('[ToolPageTemplate] executePrimaryActionFromForm:', { canStartExtraction, hasProjectSelected });
     setFormState((prev) => ({
       ...prev,
       projectId: data.projectId,
@@ -444,7 +442,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       return;
     }
 
-    if (import.meta.env.DEV) console.info('[ToolPageTemplate] calling handlePrimaryAction()');
     handlePrimaryAction();
   };
 
@@ -581,11 +578,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const handleUnifiedPrimaryActionClick = machineViewModel.primaryActionPolicy === 'open-last-artifact'
     ? handlePrimaryAction
     : handleSubmit((data) => {
-      if (import.meta.env.DEV) console.info('[ToolPageTemplate] CTA form submit — form data:', { projectId: data.projectId, model: data.model, tone: data.tone, primaryActionPolicy: machineViewModel.primaryActionPolicy, canStartFlow: machineViewModel.readiness.canStartFlow });
       setIsFormLocked(true);
       executePrimaryActionFromForm(data);
-    }, (formErrors) => {
-      if (import.meta.env.DEV) console.warn('[ToolPageTemplate] CTA form validation FAILED:', formErrors);
     });
 
   const handleCancelWithLockReset = useCallback(() => {

@@ -160,7 +160,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   const handlePrimaryAction = useCallback(() => {
     autoStartGenerationAfterExtractionRef.current = false;
-    if (import.meta.env.DEV) console.info('[useToolPage] handlePrimaryAction:', { primaryActionPolicy: machineViewModel.primaryActionPolicy, sessionId });
     if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
       void navigate(`/sessionsummary/${sessionId}`);
       return;

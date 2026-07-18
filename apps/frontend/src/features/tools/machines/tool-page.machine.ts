@@ -31,9 +31,7 @@ export const toolPageMachine = setup({
   guards: {
     canStartGeneration: ({ context }) => {
       const policy = buildReactiveViewModel(context).primaryActionPolicy;
-      const result = context.readiness.canStartFlow && canStartFromPolicy(policy);
-      if (import.meta.env.DEV) console.info('[tool-page][machine] canStartGeneration:', { canStartFlow: context.readiness.canStartFlow, policy, canStartFromPolicy: canStartFromPolicy(policy), result, projectId: context.projectId, readiness: context.readiness });
-      return result;
+      return context.readiness.canStartFlow && canStartFromPolicy(policy);
     },
     // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop the redundant second
     // CANCEL_GENERATION issued when the bridge branch (b) failure path and the

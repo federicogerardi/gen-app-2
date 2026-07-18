@@ -112,7 +112,7 @@ export const DashboardPage = () => {
 
                 return (
                   <li key={session.sessionId}>
-                    <Link to={`/sessionsummary/${session.sessionId}`} style={{ textDecoration: 'none' }}>
+                    <Link to={`/workspaces/${session.projectId}/sessions/${session.sessionId}`} style={{ textDecoration: 'none' }}>
                     <Button color="inherit" size="small" variant="text">
                         {projectName} · {formatSessionToolName(session.toolKey)} · {createdAt}
                     </Button>

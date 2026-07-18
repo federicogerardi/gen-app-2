@@ -78,7 +78,7 @@ export const ArtifactDetailPage = () => {
 
   useEffect(() => {
     if (isSessionSummaryRouteId(artifactId)) {
-      navigate(`/sessionsummary/${artifactId}`, { replace: true });
+      navigate('/workspaces', { replace: true });
     }
   }, [artifactId, navigate]);
 
@@ -168,8 +168,9 @@ const LegacyArtifactView = ({
   const resolvedProjectName = projectName ?? `Progetto ${artifact.projectId}`;
   const sessionPath = useMemo(() => {
     const sessionId = artifact.sessionId?.trim();
-    return sessionId ? `/sessionsummary/${sessionId}` : null;
-  }, [artifact.sessionId]);
+    const projectId = artifact.projectId?.trim();
+    return sessionId && projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : null;
+  }, [artifact.sessionId, artifact.projectId]);
   const resolvedToolKey = useMemo(() => resolveArtifactToolKey(artifact), [artifact]);
   const toolName = useMemo(
     () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : 'Tool non disponibile'),

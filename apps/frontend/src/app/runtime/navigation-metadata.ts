@@ -13,7 +13,6 @@ export type NavigationItem = {
 const NAVIGATION_ITEMS: NavigationItem[] = [
   { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true, iconKey: 'dashboard' },
   { to: '/workspaces', label: appCopy.ui.navigation.workspaces, end: false, iconKey: 'workspaces' },
-  { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false, iconKey: 'sessions' },
   { to: '/admin/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true, iconKey: 'artifacts' },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true, iconKey: 'admin' },
 ];

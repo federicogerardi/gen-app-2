@@ -191,7 +191,7 @@ describe('ArtifactDetailPage', () => {
     });
 
     renderPage('art-1');
-    expect(screen.getByRole('link', { name: 'Apri sessione' })).toHaveAttribute('href', '/sessionsummary/sess_demo');
+    expect(screen.getByRole('link', { name: 'Apri sessione' })).toHaveAttribute('href', '/workspaces/proj-1/sessions/sess_demo');
   });
 
   it('shows a disabled session CTA with explicit copy when sessionId is missing', () => {
@@ -248,16 +248,16 @@ describe('ArtifactDetailPage', () => {
     expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
   });
 
-  it('redirects legacy session-style artifact ids to /sessionsummary/:sessionId', async () => {
+  it('redirects legacy session-style artifact ids to /workspaces', async () => {
     render(
       <MemoryRouter initialEntries={['/artifacts/sess_demo']}>
         <Routes>
           <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
-          <Route path="/sessionsummary/:sessionId" element={<LocationEcho />} />
+          <Route path="/workspaces" element={<LocationEcho />} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId('location-echo')).toHaveTextContent('/sessionsummary/sess_demo');
+    expect(await screen.findByTestId('location-echo')).toHaveTextContent('/workspaces');
   });
 });

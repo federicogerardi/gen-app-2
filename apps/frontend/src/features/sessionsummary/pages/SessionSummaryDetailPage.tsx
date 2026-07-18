@@ -71,10 +71,11 @@ type PageState =
   | { phase: 'not-found' };
 
 export const SessionSummaryDetailPage = () => {
-  const { sessionId = '' } = useParams();
+  const { workspaceId = '', sessionId = '' } = useParams();
   const navigate = useNavigate();
   const { apiBaseUrl, capabilities } = useApiConfig();
   const generation = useGenerationWorkspace();
+  const sessionsBackPath = workspaceId ? `/workspaces/${workspaceId}/sessions` : '/workspaces';
   const projectsQuery = useProjectsQuery({
     apiBaseUrl,
     capabilities,
@@ -182,7 +183,7 @@ export const SessionSummaryDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.sessions.detailTitle}</h2>
         <EmptyStateMessage>{appCopy.editorial.sessions.notFound}</EmptyStateMessage>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </Surface>
@@ -194,7 +195,7 @@ export const SessionSummaryDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.sessions.detailTitle}</h2>
         <ErrorStateMessage>{pageState.message}</ErrorStateMessage>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </Surface>
@@ -221,7 +222,7 @@ export const SessionSummaryDetailPage = () => {
           <h2>{detailTitle}</h2>
           <StatusBadge status={group.status} />
         </div>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </TopBar>

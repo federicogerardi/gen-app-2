@@ -197,7 +197,8 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const handlePrimaryAction = useCallback(() => {
     autoStartGenerationAfterExtractionRef.current = false;
     if (effectiveMachineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      void navigate(`/sessionsummary/${sessionId}`);
+      const projectId = formState.projectId;
+      void navigate(projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : `/workspaces`);
       return;
     }
     handleRunControllerPrimaryAction();

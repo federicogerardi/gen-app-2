@@ -25,7 +25,6 @@ const BriefGeneratorToolPage = lazy(() => import('../../features/tools/brief-gen
 const TovGeneratorToolPage = lazy(() => import('../../features/tools/tov-generator/pages/TovGeneratorToolPage').then(m => ({ default: m.TovGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
-const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
 const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
@@ -157,7 +156,16 @@ export const createAppRouter = () => createBrowserRouter([
               },
               {
                 path: 'sessions',
-                element: <Suspense fallback={<PageLoader />}><WorkspaceSessionsPage /></Suspense>,
+                children: [
+                  {
+                    index: true,
+                    element: <Suspense fallback={<PageLoader />}><WorkspaceSessionsPage /></Suspense>,
+                  },
+                  {
+                    path: ':sessionId',
+                    element: <Suspense fallback={<PageLoader />}><SessionSummaryDetailPage /></Suspense>,
+                  },
+                ],
               },
               {
                 path: 'tools',
@@ -198,11 +206,11 @@ export const createAppRouter = () => createBrowserRouter([
       }),
       {
         path: '/sessionsummary',
-        element: <Suspense fallback={<PageLoader />}><SessionSummaryListPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/sessionsummary/:sessionId',
-        element: <Suspense fallback={<PageLoader />}><SessionSummaryDetailPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/admin',

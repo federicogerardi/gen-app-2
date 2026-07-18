@@ -135,9 +135,9 @@ vi.mock('../../generation/ui/SessionArtifactTabs', () => ({
 
 const renderPage = (SessionSummaryDetailPage: () => ReactElement) =>
   render(
-    <MemoryRouter initialEntries={['/sessionsummary/sess_demo']}>
+    <MemoryRouter initialEntries={['/workspaces/p-1/sessions/sess_demo']}>
       <Routes>
-        <Route path="/sessionsummary/:sessionId" element={<SessionSummaryDetailPage />} />
+        <Route path="/workspaces/:workspaceId/sessions/:sessionId" element={<SessionSummaryDetailPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -501,7 +501,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getByText('Ultimo aggiornamento')).toBeInTheDocument();
     expect(screen.getByText('Artefatti')).toBeInTheDocument();
     expect(screen.getByText('Dettagli sessione')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/sessionsummary');
+    expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/workspaces/p-1/sessions');
     const relaunchLink = screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');
     expect(relaunchLink.getAttribute('href')).toContain('intent=regenerate');

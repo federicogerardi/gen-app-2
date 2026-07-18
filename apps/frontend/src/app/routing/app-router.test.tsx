@@ -126,10 +126,6 @@ vi.mock('../../features/artifacts/pages/ArtifactDetailPage', () => ({
   ArtifactDetailPage: () => <div data-testid="artifact-detail-page">Artifact detail loaded</div>,
 }));
 
-vi.mock('../../features/sessionsummary/pages/SessionSummaryListPage', () => ({
-  SessionSummaryListPage: () => <div data-testid="sessionsummary-list">SessionSummary list loaded</div>,
-}));
-
 vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
   SessionSummaryDetailPage: () => <div data-testid="sessionsummary-detail">SessionSummary detail loaded</div>,
 }));
@@ -174,8 +170,8 @@ describe('app router – integration', () => {
     router.dispose();
   });
 
-  it('renders session summary detail route at /sessionsummary/:sessionId', async () => {
-    window.history.pushState({}, '', '/sessionsummary/sess_demo');
+  it('renders session summary detail route at /workspaces/:workspaceId/sessions/:sessionId', async () => {
+    window.history.pushState({}, '', '/workspaces/proj-1/sessions/sess_demo');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);

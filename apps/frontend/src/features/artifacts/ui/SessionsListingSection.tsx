@@ -118,7 +118,7 @@ export const SessionsListingSection = ({
 
         return (
           <Link
-            to={`/sessionsummary/${session.sessionId}`}
+            to={`/workspaces/${session.projectId}/sessions/${session.sessionId}`}
             className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
           >
             {appCopy.ui.actions.openDetail}

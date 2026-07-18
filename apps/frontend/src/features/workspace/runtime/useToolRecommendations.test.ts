@@ -63,6 +63,7 @@ describe('useToolRecommendations', () => {
       assets: [
         { id: 'a1', assetType: 'persona', label: 'P1', qualityScore: 100, status: 'active', staleUpstream: false },
         { id: 'a2', assetType: 'brand-voice', label: 'BV1', qualityScore: 100, status: 'active', staleUpstream: false },
+        { id: 'a3', assetType: 'brief', label: 'Brief1', qualityScore: 100, status: 'active', staleUpstream: false },
       ],
       qualityGateStatus: 'healthy',
       workflowPosition: { currentStep: '0 tools completed', totalSteps: 8, completedSteps: [], estimatedCompletion: 0 },
@@ -75,7 +76,7 @@ describe('useToolRecommendations', () => {
 
     const { result } = renderHook(() => useToolRecommendations('w1'));
     expect(result.current.length).toBeGreaterThan(0);
-    // funnel-pages consumes persona + brand-voice, both available → high readiness
+    // funnel-pages consumes persona + brand-voice + brief, all available → high readiness
     const funnelRec = result.current.find(r => r.toolKey === 'funnel-pages');
     expect(funnelRec).toBeDefined();
     expect(funnelRec!.readinessScore).toBe(100);

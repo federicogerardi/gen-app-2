@@ -29,7 +29,7 @@ export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntr
   return contract.consumes.map(assetType => ({
     assetType,
     label: ASSET_TYPE_LABELS[assetType] || assetType,
-    requiredness: assetType === 'brief' ? 'optional-by-tool-setting' as const : 'always-required' as const,
+    requiredness: assetType === 'brief' ? 'always-required' as const : 'optional-by-tool-setting' as const,
   }));
 };
 

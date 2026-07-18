@@ -185,6 +185,14 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const [isFormLocked, setIsFormLocked] = useState(false);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  // Hide file upload when the corresponding workspace asset type replaces it.
+  // briefing-file → brief asset, angle-detector-file → (no direct asset equivalent yet)
+  const toolAssetInputsForFilter = getToolAssetInputs(props.toolKey);
+  const consumedAssetTypes = new Set(toolAssetInputsForFilter.map((a) => a.assetType));
+  const visibleInputFiles = inputFiles.filter((f) => {
+    if (f.key === 'briefing-file' && consumedAssetTypes.has('brief')) return false;
+    return true;
+  });
   const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
   const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
     apiBaseUrl,
@@ -207,7 +215,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
     selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });
-  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
+  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = visibleInputFiles.map((fileEntry) => {
     const fileName = fileEntry.key === 'briefing-file'
       ? effectiveBriefingFileName ?? null
       : fileEntry.key === 'angle-detector-file'
@@ -1142,11 +1150,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               </div>{/* end configuration section */}
 
               {/* ── Resources Section (briefing file upload) ── */}
-              {inputFiles.length > 0 ? (
+              {visibleInputFiles.length > 0 ? (
                 <div className="ui-tool-setup-section">
                   <p className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.resources}</p>
 
-                  {inputFiles.map((fileEntry) => (
+                  {visibleInputFiles.map((fileEntry) => (
                     <Controller
                       key={fileEntry.key}
                       name={fileEntry.key as never}

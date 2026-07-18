@@ -144,12 +144,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
+  // ── Per-type asset satisfaction: map selected asset IDs to their types ──
+  const selectedAssetTypes = useMemo(() => {
+    if (!workspaceContext) return null;
+    const assets = workspaceContext.workspace.assets;
+    if (assets.length === 0) return new Set<string>();
+    const typeById = new Map(assets.map((a) => [a.id, a.assetType]));
+    return new Set(selectedAssetIds.map((id) => typeById.get(id) ?? null).filter((t): t is string => t !== null));
+  }, [workspaceContext, selectedAssetIds]);
+
   const inputRequirementMatrix = deriveToolInputRequirementMatrix({
     toolKey: props.toolKey,
     hasProjectSelected,
     completedFileKeys,
     includeApiAcquisition: apiBindingStatusAdapter.enabled,
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
+    // Only wire asset gatekeeping when inside a WorkspaceProvider (soft migration path)
+    selectedAssetIds: workspaceContext ? selectedAssetIds : [],
+    toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
+    selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });
   const hasToolInputFiles = inputFiles.length > 0;
   const hasContextGenerationStep = toolConfig.steps.includes('context-generation');

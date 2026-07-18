@@ -625,6 +625,7 @@ export const deriveToolInputRequirementMatrix = ({
   includeApiAcquisition = true,
   selectedAssetIds = [],
   toolAssetInputs = [],
+  selectedAssetTypes,
 }: {
   toolKey: SupportedTool;
   hasProjectSelected: boolean;
@@ -633,6 +634,8 @@ export const deriveToolInputRequirementMatrix = ({
   includeApiAcquisition?: boolean;
   selectedAssetIds?: readonly string[];
   toolAssetInputs?: readonly { assetType: string; label: string; requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required' }[];
+  /** Pre-computed set of asset types that have at least one selected asset in the workspace. */
+  selectedAssetTypes?: Set<string> | null;
 }): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
@@ -669,6 +672,8 @@ export const deriveToolInputRequirementMatrix = ({
 
   // ── Workspace knowledge asset entries (DDD-192: project-asset source family) ──
   const selectedIds = new Set(selectedAssetIds);
+  const satisfiedTypes = selectedAssetTypes ?? null;
+  const hasAnyAssetSelected = selectedIds.size > 0;
   const assetEntries: ToolInputRequirementMatrixEntry[] = toolAssetInputs
     .filter((a) => a.requiredness !== 'never-required')
     .map((a) => ({
@@ -676,8 +681,9 @@ export const deriveToolInputRequirementMatrix = ({
       label: a.label,
       sourceFamily: 'project-asset',
       requiredness: a.requiredness as ToolInputFileRequiredness,
-      // Satisfied when at least one asset is selected in the Knowledge section
-      satisfied: selectedIds.size > 0,
+      // Per-type: satisfied when at least one asset of this specific type is selected.
+      // Falls back to the legacy any-selected check when selectedAssetTypes is not provided.
+      satisfied: satisfiedTypes ? satisfiedTypes.has(a.assetType) : hasAnyAssetSelected,
     }));
 
   const entries = [...directEntries, ...fileEntries, ...apiEntries, ...assetEntries];

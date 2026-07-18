@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -118,8 +118,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     angleDetectorFileName,
   } = useToolPage({ ...props, selectedAssetIds });
 
-  // ── Auto-set projectId from workspace context ──
-  useEffect(() => {
+  // ── Auto-set projectId from workspace context (useLayoutEffect: sync before paint,
+  //     prevents race where user clicks CTA before RHF has the projectId value) ──
+  useLayoutEffect(() => {
     if (workspaceProjectId && formState.projectId !== workspaceProjectId) {
       setFormState((prev) => ({ ...prev, projectId: workspaceProjectId }));
     }
@@ -254,7 +255,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
-    projectId: z.string().min(1, copy.form.validation.projectRequired),
+    projectId: z.string(),
     model: z.string().min(1, copy.form.validation.modelRequired),
     tone: z.string().min(1, copy.form.validation.toneRequired),
     titolo: z.string(),

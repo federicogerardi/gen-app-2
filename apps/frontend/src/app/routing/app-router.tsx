@@ -39,6 +39,7 @@ const ProjectAssetsPage = lazy(() => import('../../features/workspace/pages/Proj
 const WorkspaceToolWrapper = lazy(() => import('../../features/workspace/ui/WorkspaceToolWrapper').then(m => ({ default: m.WorkspaceToolWrapper })));
 const LegacyToolRedirect = lazy(() => import('../../features/workspace/ui/LegacyToolRedirect').then(m => ({ default: m.LegacyToolRedirect })));
 const WorkspaceSessionsPage = lazy(() => import('../../features/workspace/pages/WorkspaceSessionsPage').then(m => ({ default: m.WorkspaceSessionsPage })));
+const WorkspaceLayout = lazy(() => import('../../features/workspace/layouts/WorkspaceLayout').then(m => ({ default: m.WorkspaceLayout })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -145,6 +146,7 @@ export const createAppRouter = () => createBrowserRouter([
           },
           {
             path: ':workspaceId',
+            element: <Suspense fallback={<PageLoader />}><WorkspaceLayout /></Suspense>,
             children: [
               {
                 index: true,

@@ -73,7 +73,7 @@ describe('FoundationToolsPanel', () => {
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
 
-    expect(screen.getByText('Foundation')).toBeInTheDocument();
+    expect(screen.getByText('Foundation Assets')).toBeInTheDocument();
     expect(screen.getByText('Brief Generator')).toBeInTheDocument();
     expect(screen.getByText('TOV Generator')).toBeInTheDocument();
   });

@@ -34,8 +34,6 @@ export const WorkspaceToolWrapper: React.FC<WorkspaceToolWrapperProps> = ({
   return (
     <div className="workspace-tool-wrapper">
       <WorkspaceContextHeader
-        workspaceId={workspaceId}
-        workspaceName={workspaceContext.id}
         currentTool={toolKey}
         assetCount={workspaceContext.assets.length}
         qualityGateStatus={workspaceContext.qualityGateStatus}

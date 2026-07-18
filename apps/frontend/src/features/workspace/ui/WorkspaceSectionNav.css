@@ -1,0 +1,38 @@
+.workspace-section-nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--mui-palette-background-paper, #fff);
+  border-bottom: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.workspace-section-nav__pill {
+  display: inline-flex; align-items: center;
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 0.8125rem; font-weight: 500;
+  text-decoration: none; white-space: nowrap;
+  scroll-snap-align: start;
+  color: var(--mui-palette-text-secondary, rgba(0,0,0,0.6));
+  background: transparent; border: 1px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.workspace-section-nav__pill:hover {
+  background: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
+  color: var(--mui-palette-text-primary, rgba(0,0,0,0.87));
+}
+.workspace-section-nav__pill--active {
+  color: var(--mui-palette-primary-main, #1976d2);
+  background: var(--mui-palette-primary-light, rgba(25,118,210,0.08));
+  border-color: var(--mui-palette-primary-main, #1976d2);
+  font-weight: 600;
+}
+.workspace-section-nav__pill:focus-visible {
+  outline: 2px solid var(--mui-palette-primary-main, #1976d2);
+  outline-offset: 2px;
+}
+@media (max-width: 768px) {
+  .workspace-section-nav { padding: 8px 12px; gap: 2px; }
+  .workspace-section-nav__pill { padding: 6px 12px; font-size: 0.75rem; }
+}

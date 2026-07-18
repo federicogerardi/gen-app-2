@@ -3,6 +3,7 @@ import { ChevronRight, Folder, FolderOpen, Database, CheckCircle, AlertTriangle,
 import { Link } from 'react-router-dom';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import { toolFormRegistry } from '../../tools/runtime/tool-form-architecture';
+import { useWorkspaceProject } from '../runtime/WorkspaceProjectContext';
 import { appCopy } from '../../../app/copy/system';
 import './WorkspaceContextHeader.css';
 
@@ -15,8 +16,6 @@ interface WorkflowPosition {
 }
 
 interface WorkspaceContextHeaderProps {
-  workspaceId: string;
-  workspaceName: string;
   currentTool: SupportedTool;
   assetCount: number;
   qualityGateStatus: 'healthy' | 'needs-attention' | 'blocked';
@@ -30,13 +29,12 @@ const QUALITY_GATE_CONFIG = {
 };
 
 export const WorkspaceContextHeader: React.FC<WorkspaceContextHeaderProps> = ({
-  workspaceId,
-  workspaceName,
   currentTool,
   assetCount,
   qualityGateStatus,
   crossToolPosition,
 }) => {
+  const { workspaceId, projectName } = useWorkspaceProject();
   const qualityConfig = QUALITY_GATE_CONFIG[qualityGateStatus];
   const QualityIcon = qualityConfig.icon;
 
@@ -44,19 +42,13 @@ export const WorkspaceContextHeader: React.FC<WorkspaceContextHeaderProps> = ({
     <div className="workspace-context-header">
       <div className="workspace-context-header__breadcrumb">
         <Breadcrumbs separator={<ChevronRight size={14} />} className="workspace-context-header__breadcrumbs">
-          <Link
-            to="/workspaces"
-            className="workspace-context-header__breadcrumb-link"
-          >
+          <Link to="/workspaces" className="workspace-context-header__breadcrumb-link">
             <Folder size={16} />
             {appCopy.ui.workspace?.contextHeader?.breadcrumbWorkspaces || 'Workspaces'}
           </Link>
-          <Link
-            to={`/workspaces/${workspaceId}`}
-            className="workspace-context-header__breadcrumb-link"
-          >
+          <Link to={`/workspaces/${workspaceId}`} className="workspace-context-header__breadcrumb-link">
             <FolderOpen size={16} />
-            {workspaceName}
+            {projectName}
           </Link>
           <Typography variant="body2" color="text.primary">
             {toolFormRegistry[currentTool]?.displayName || currentTool}

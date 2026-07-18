@@ -5,6 +5,48 @@
   overflow: hidden;
 }
 
+/* ── Workspace Layout (unified wrapper) ── */
+.workspace-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.workspace-layout__content {
+  flex: 1;
+  padding: 24px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+@media (max-width: 768px) {
+  .workspace-layout__content {
+    padding: 16px;
+  }
+}
+
+/* ── Asset Page Items ── */
+.asset-page__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
+  border-radius: 8px;
+}
+.asset-page__item + .asset-page__item { margin-top: 8px; }
+.asset-page__item-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+.asset-page__item-meta {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .dashboard-panel__header {
   display: flex;
   justify-content: space-between;

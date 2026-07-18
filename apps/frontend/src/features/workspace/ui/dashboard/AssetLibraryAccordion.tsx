@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { ASSET_TYPE_LABELS, getProducerToolsForAsset } from '../../runtime/toolAssetRegistry';
 import { AssetGroupSection } from '../AssetGroupSection';
@@ -13,6 +13,7 @@ interface AssetLibraryAccordionProps {
 
 export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ workspaceId }) => {
   const ctx = useWorkspaceContext(workspaceId);
+  const navigate = useNavigate();
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() =>
     new Set(
@@ -31,6 +32,13 @@ export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ wo
 
   const getProducerTool = (assetType: string): string | null =>
     (getProducerToolsForAsset(assetType as AssetType) as string[])[0] ?? null;
+
+  const handleCreateAction = useCallback((assetType: string) => {
+    const toolKey = getProducerTool(assetType);
+    if (toolKey) {
+      navigate(`/workspaces/${workspaceId}/tools/${toolKey}`);
+    }
+  }, [navigate, workspaceId]);
 
   return (
     <DashboardPanel
@@ -63,7 +71,7 @@ export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ wo
               });
             }}
             onAssetToggle={() => {}}
-            onCreateAction={() => { /* navigate to producer tool */ }}
+            onCreateAction={() => handleCreateAction(assetType)}
           />
         ))}
       </div>

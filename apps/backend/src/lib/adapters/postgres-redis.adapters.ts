@@ -2,10 +2,14 @@ import type { GenerationAdapters } from './generation.adapters';
 import type { PostgresRedisAdapterDependencies } from './postgres-redis.interfaces';
 import { resolveApiServiceForCrawling } from './api-service.adapter';
 import { createComponentLogger, LogComponent } from '../runtime/log-components';
+import { createAssetSnapshotResolver } from '../runtime/asset-injection-resolver';
+import { getAssetById, getAssetVersions, getAssetGroupById } from './asset.adapter';
+import { createKyselyDb } from './postgres-kysely.dialect';
 
 export const createPostgresRedisGenerationAdapters = (
   dependencies: PostgresRedisAdapterDependencies,
 ): GenerationAdapters => {
+  const assetDb = dependencies.pg ? createKyselyDb(dependencies.pg) : null;
   return {
     ownership: {
       checkProjectOwnership: (input) => dependencies.ownership.checkProjectOwnership(input),
@@ -73,9 +77,15 @@ export const createPostgresRedisGenerationAdapters = (
     apiService: dependencies.pg ? {
       resolveApiServiceForCrawling: (id) => resolveApiServiceForCrawling(dependencies.pg!, id),
     } : null,
-    assetSnapshotResolver: {
-      getAssetSnapshot: async () => null,
-      getGroupAssetSnapshots: async () => [],
-    },
+    assetSnapshotResolver: assetDb
+      ? createAssetSnapshotResolver(
+          (id) => getAssetById(assetDb, id),
+          (id) => getAssetVersions(assetDb, id),
+          (id) => getAssetGroupById(assetDb, id),
+        )
+      : {
+          getAssetSnapshot: async () => null,
+          getGroupAssetSnapshots: async () => [],
+        },
   };
 };

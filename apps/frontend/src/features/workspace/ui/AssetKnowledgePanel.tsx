@@ -2,19 +2,15 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Chip, Typography } from '@mui/material';
 import { Database } from 'lucide-react';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
+import type { AssetType } from '@gen-app-2/contracts';
 import type { WorkspaceAsset } from '../runtime/useWorkspaceContext';
 import { AssetGroupSection } from './AssetGroupSection';
 import { QualityScoreBadge } from './QualityScoreBadge';
+import { getProducerToolsForAsset, type ToolProjectAssetPolicyEntry } from '../runtime/toolAssetRegistry';
 import { appCopy } from '../../../app/copy/system';
 import './AssetKnowledgePanel.css';
 import './AssetGroupSection.css';
 import './asset-components.css';
-
-interface ToolProjectAssetPolicyEntry {
-  assetType: string;
-  label: string;
-  requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required';
-}
 
 interface AssetKnowledgePanelProps {
   workspaceAssets: WorkspaceAsset[];
@@ -23,17 +19,6 @@ interface AssetKnowledgePanelProps {
   onAssetSelect: (assetIds: string[]) => void;
   onCreateAssetAction: (assetType: string, sourceToolKey?: SupportedTool) => void;
 }
-
-const TOOL_ASSET_CONTRACTS: Record<string, { produces: string[] }> = {
-  'angle-generator': { produces: ['angle'] },
-  'meta-ads': { produces: ['ad-copy', 'hook'] },
-  'blog-article-generator': { produces: ['article', 'article-outline'] },
-  'youtube-description': { produces: ['description'] },
-  'funnel-pages': { produces: ['landing-page'] },
-  'nextland': { produces: ['creative-brief'] },
-  'youtube-lf-script': { produces: ['script'] },
-  'geometric': { produces: ['competitor-analysis'] },
-};
 
 const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Record<string, T[]> => {
   return array.reduce((groups, item) => {
@@ -115,12 +100,7 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   }, []);
 
   const getProducerTool = useCallback((assetType: string): SupportedTool | null => {
-    for (const [toolKey, contract] of Object.entries(TOOL_ASSET_CONTRACTS)) {
-      if (contract.produces.includes(assetType)) {
-        return toolKey as SupportedTool;
-      }
-    }
-    return null;
+    return (getProducerToolsForAsset(assetType as AssetType) as SupportedTool[])[0] ?? null;
   }, []);
 
   useEffect(() => {

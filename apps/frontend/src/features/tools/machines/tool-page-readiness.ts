@@ -116,7 +116,7 @@ export const deriveHasExtractionContext = (
       return;
     }
 
-    console.warn(message, {
+    console.debug(message, {
       toolKey,
       ...details,
     });

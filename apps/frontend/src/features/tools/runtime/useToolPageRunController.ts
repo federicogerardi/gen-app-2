@@ -43,9 +43,10 @@ type UseToolPageRunControllerArgs = {
   toolPageSend: (event: ToolPageEvent) => void;
   sessionId: string;
   selectedAssetIds: string[];
+  hasAssetBasedExtractionContext: boolean;
 };
 
-export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId, selectedAssetIds }: UseToolPageRunControllerArgs) => {
+export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId, selectedAssetIds, hasAssetBasedExtractionContext }: UseToolPageRunControllerArgs) => {
   const isDebugOrchestration = import.meta.env.DEV
     || (typeof window !== 'undefined'
       && new URLSearchParams(window.location.search).get('debug_tool_orchestration') === '1');
@@ -68,7 +69,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
     readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
     runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
-    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext,
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext,
   });
   volatileArgsRef.current = {
     auth, briefingSnapshot, effectiveBriefingFileName, formState, generationArtifacts, generationStream, generationRun,
@@ -76,7 +77,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     primaryTargetStep: selectPrimaryTargetStep({ primaryActionPolicy, pausedCheckpointStep, sourceStep, nextAvailableStep }),
     readinessSnapshot, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource,
     runtimeIntent: resolveToolPageRuntimeIntent({ primaryActionPolicy, intent, sourceArtifactId, sourceArtifact, machineHydrationResult }),
-    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext,
+    sessionId, sourceArtifact, sourceArtifactId, sourceStep, workspaceExtractionContext, hasAssetBasedExtractionContext,
   };
   const streamingStep = selectStreamingStep({ isStreamActive: generationStream.isStreamActive, lastRequest: generationStream.snapshot.context.lastRequest, toolSteps: toolConfig.steps });
   const currentRunningStep = streamingStep;
@@ -128,7 +129,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
       });
     }
 
-    const extractionInfo = selectGenerationExtractionInfo({
+    let extractionInfo = selectGenerationExtractionInfo({
       machineHydrationResult: v.machineHydrationResult,
       workspaceExtractionContext: v.workspaceExtractionContext,
       briefingSnapshot: v.briefingSnapshot,
@@ -164,7 +165,18 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
         return null;
       })(),
     });
-    if (!extractionInfo) return false;
+    if (!extractionInfo) {
+      // Asset-based context: workspace assets provide structured, validated input.
+      // No extraction needed — create minimal extraction info so the generation
+      // request can proceed with assetReferences as the primary context source.
+      if (!v.hasAssetBasedExtractionContext) return false;
+      extractionInfo = {
+        extractionArtifactId: '',
+        extractionPayload: {},
+        briefingId: '',
+        briefingText: '',
+      };
+    }
 
     let effectiveExtractionInfo = extractionInfo;
     if (needsResolvedExtractionArtifact(effectiveExtractionInfo)) {

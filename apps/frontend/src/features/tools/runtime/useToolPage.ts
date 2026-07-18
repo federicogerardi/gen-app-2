@@ -180,6 +180,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     toolPageSend,
     sessionId,
     selectedAssetIds: selectedAssetIds ?? [],
+    hasAssetBasedExtractionContext,
   });
   const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
   const handleRunControllerPrimaryAction = runController.handlePrimaryAction;

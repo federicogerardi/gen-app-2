@@ -800,6 +800,7 @@ export const appCopy = {
         heroSuggestionsReady: (count: number) => `${count} tool suggestion${count > 1 ? 's' : ''} ready`,
         heroAssetsReady: (count: number) => `${count} asset${count > 1 ? 's' : ''} · select a tool to continue`,
         heroFirstAsset: 'Start by creating your first asset',
+        viewAllSessions: 'View all sessions',
       },
       assetPanel: {
         title: 'Workspace Knowledge',

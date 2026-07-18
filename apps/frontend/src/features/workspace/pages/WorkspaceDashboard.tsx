@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { Button, Typography, Alert } from '@mui/material';
-import { ArrowRight, Play, RefreshCw } from 'lucide-react';
+import { ArrowRight, Play, RefreshCw, List } from 'lucide-react';
 import { useCallback } from 'react';
 import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
@@ -105,6 +105,20 @@ export const WorkspaceDashboard: React.FC = () => {
 
       {/* ── Available Tools ── */}
       <ContextualToolsPanel workspaceId={workspaceId} />
+
+      {/* ── Sessions CTA ── */}
+      <div className="workspace-dashboard__sessions-cta" style={{ marginTop: 24, textAlign: 'center' }}>
+        <Button
+          component={Link}
+          to={`/workspaces/${workspaceId}/sessions`}
+          variant="outlined"
+          size="large"
+          startIcon={<List size={18} />}
+          disabled={isArchived}
+        >
+          {appCopy.ui.workspace.dashboard.viewAllSessions}
+        </Button>
+      </div>
     </section>
   );
 };

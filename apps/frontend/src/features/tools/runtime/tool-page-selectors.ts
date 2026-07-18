@@ -625,7 +625,6 @@ export const deriveToolInputRequirementMatrix = ({
   completedFileKeys,
   apiAcquisitionStatus = [],
   includeApiAcquisition = true,
-  selectedAssetIds = [],
   toolAssetInputs = [],
   selectedAssetTypes,
 }: {
@@ -634,9 +633,9 @@ export const deriveToolInputRequirementMatrix = ({
   completedFileKeys: readonly string[];
   apiAcquisitionStatus?: readonly ToolApiAcquisitionStatus[];
   includeApiAcquisition?: boolean;
-  selectedAssetIds?: readonly string[];
   toolAssetInputs?: readonly { assetType: string; label: string; requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required' }[];
-  /** Pre-computed set of asset types that have at least one selected asset in the workspace. */
+  /** Pre-computed set of asset types that have at least one selected asset in the workspace.
+   *  When not provided, all asset entries are unsatisfied (caller must supply type info). */
   selectedAssetTypes?: Set<string> | null;
 }): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
@@ -673,9 +672,6 @@ export const deriveToolInputRequirementMatrix = ({
   }));
 
   // ── Workspace knowledge asset entries (DDD-192: project-asset source family) ──
-  const selectedIds = new Set(selectedAssetIds);
-  const satisfiedTypes = selectedAssetTypes ?? null;
-  const hasAnyAssetSelected = selectedIds.size > 0;
   const assetEntries: ToolInputRequirementMatrixEntry[] = toolAssetInputs
     .filter((a) => a.requiredness !== 'never-required')
     .map((a) => ({
@@ -684,8 +680,8 @@ export const deriveToolInputRequirementMatrix = ({
       sourceFamily: 'project-asset',
       requiredness: a.requiredness as ToolInputFileRequiredness,
       // Per-type: satisfied when at least one asset of this specific type is selected.
-      // Falls back to the legacy any-selected check when selectedAssetTypes is not provided.
-      satisfied: satisfiedTypes ? satisfiedTypes.has(a.assetType) : hasAnyAssetSelected,
+      // When selectedAssetTypes is not provided, all entries are unsatisfied.
+      satisfied: selectedAssetTypes?.has(a.assetType) ?? false,
     }));
 
   const entries = [...directEntries, ...fileEntries, ...apiEntries, ...assetEntries];

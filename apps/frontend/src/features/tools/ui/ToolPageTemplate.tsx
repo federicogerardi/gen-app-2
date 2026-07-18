@@ -204,7 +204,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     includeApiAcquisition: apiBindingStatusAdapter.enabled,
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
     // Only wire asset gatekeeping when inside a WorkspaceProvider (soft migration path)
-    selectedAssetIds: workspaceContext ? selectedAssetIds : [],
     toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
     selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });

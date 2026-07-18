@@ -93,6 +93,27 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   })();
   const workspaceProjectId = workspaceContext?.workspace.id ?? '';
 
+  // ── Per-type asset satisfaction: map selected asset IDs to their types ──
+  const selectedAssetTypes = useMemo(() => {
+    if (!workspaceContext) return null;
+    const assets = workspaceContext.workspace.assets;
+    if (assets.length === 0) return new Set<string>();
+    const typeById = new Map(assets.map((a) => [a.id, a.assetType]));
+    return new Set(selectedAssetIds.map((id) => typeById.get(id) ?? null).filter((t): t is string => t !== null));
+  }, [workspaceContext, selectedAssetIds]);
+
+  // ── Asset-based extraction context: when all always-required asset types
+  //     are satisfied, the tool has enough context even without a briefing file ──
+  const hasAssetBasedExtractionContext = useMemo(() => {
+    if (!workspaceContext || !selectedAssetTypes) return false;
+    const toolAssets = getToolAssetInputs(props.toolKey);
+    const alwaysRequiredTypes = toolAssets
+      .filter((a) => a.requiredness === 'always-required')
+      .map((a) => a.assetType);
+    return alwaysRequiredTypes.length > 0
+      && alwaysRequiredTypes.every((type) => selectedAssetTypes.has(type));
+  }, [workspaceContext, props.toolKey, selectedAssetTypes]);
+
   const {
     toolConfig,
     formState,
@@ -119,7 +140,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleExtractionStart,
     handleBriefingReset,
     angleDetectorFileName,
-  } = useToolPage({ ...props, selectedAssetIds });
+  } = useToolPage({ ...props, selectedAssetIds, hasAssetBasedExtractionContext });
 
   // ── Auto-set projectId from workspace context (useLayoutEffect: sync before paint,
   //     prevents race where user clicks CTA before RHF has the projectId value) ──
@@ -141,18 +162,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   });
   const hasProjectSelected = formState.projectId.trim().length > 0;
   const completedFileKeys = [
-    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
+    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready' || hasAssetBasedExtractionContext) ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
-  // ── Per-type asset satisfaction: map selected asset IDs to their types ──
-  const selectedAssetTypes = useMemo(() => {
-    if (!workspaceContext) return null;
-    const assets = workspaceContext.workspace.assets;
-    if (assets.length === 0) return new Set<string>();
-    const typeById = new Map(assets.map((a) => [a.id, a.assetType]));
-    return new Set(selectedAssetIds.map((id) => typeById.get(id) ?? null).filter((t): t is string => t !== null));
-  }, [workspaceContext, selectedAssetIds]);
-
   const inputRequirementMatrix = deriveToolInputRequirementMatrix({
     toolKey: props.toolKey,
     hasProjectSelected,
@@ -369,7 +381,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
+  const canStartExtraction = !hasAssetBasedExtractionContext
+    && (hasToolInputFiles || hasContextGenerationStep)
     && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady

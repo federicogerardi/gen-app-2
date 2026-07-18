@@ -18,6 +18,7 @@ interface AssetKnowledgePanelProps {
   projectId?: string;
   onAssetSelect: (assetIds: string[]) => void;
   onCreateAssetAction: (assetType: string, sourceToolKey?: SupportedTool) => void;
+  readinessScore?: number;
 }
 
 const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Record<string, T[]> => {
@@ -37,6 +38,7 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   projectId,
   onAssetSelect,
   onCreateAssetAction,
+  readinessScore,
 }) => {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -72,6 +74,8 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
 
     return totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : 0;
   }, [toolAssetInputs, groupedAssets]);
+
+  const effectiveReadinessScore = readinessScore ?? toolReadinessScore;
 
   const handleAssetToggle = useCallback((assetId: string, checked: boolean) => {
     setSelectedAssetIds(prev => {
@@ -135,9 +139,9 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
             label={appCopy.ui.workspace?.assetPanel?.metricsQuality || 'quality'}
           />
           <Chip
-            label={`${toolReadinessScore}% ready`}
+            label={`${effectiveReadinessScore}% ready`}
             size="small"
-            color={toolReadinessScore >= 70 ? 'success' : toolReadinessScore >= 40 ? 'warning' : 'error'}
+            color={effectiveReadinessScore >= 70 ? 'success' : effectiveReadinessScore >= 40 ? 'warning' : 'error'}
           />
         </div>
       </div>

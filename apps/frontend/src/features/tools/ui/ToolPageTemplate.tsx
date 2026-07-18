@@ -114,6 +114,38 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       && alwaysRequiredTypes.every((type) => selectedAssetTypes.has(type));
   }, [workspaceContext, props.toolKey, selectedAssetTypes]);
 
+  // ── Tool readiness score (0-100%): weighted average of asset type completion
+  //     Always-required types count 3×, others 1×; achievement uses avg quality ──
+  const toolReadinessScore = useMemo(() => {
+    if (!workspaceContext) return 0;
+    const assets = workspaceContext.workspace.assets;
+    const toolAssets = getToolAssetInputs(props.toolKey);
+    if (toolAssets.length === 0) return 0;
+
+    const groupedByType = new Map<string, typeof assets>();
+    for (const asset of assets) {
+      const list = groupedByType.get(asset.assetType) ?? [];
+      list.push(asset);
+      groupedByType.set(asset.assetType, list);
+    }
+
+    let totalWeight = 0;
+    let achievedWeight = 0;
+
+    for (const input of toolAssets) {
+      const weight = input.requiredness === 'always-required' ? 3 : 1;
+      totalWeight += weight;
+
+      const typeAssets = groupedByType.get(input.assetType) ?? [];
+      if (typeAssets.length > 0) {
+        const avgQuality = typeAssets.reduce((sum, a) => sum + a.qualityScore, 0) / typeAssets.length;
+        achievedWeight += (avgQuality / 100) * weight;
+      }
+    }
+
+    return totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : 0;
+  }, [workspaceContext, props.toolKey]);
+
   const {
     toolConfig,
     formState,
@@ -425,7 +457,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         label: isOnlyAssetBlocked ? copy.primaryActionPolicy.startGenerationLabel : copy.primaryActionPolicy.disabledLabel,
         disabled: !isOnlyAssetBlocked,
         tooltip: isOnlyAssetBlocked
-          ? copy.primaryActionPolicy.missingAssetsWarningTooltip
+          ? `${copy.primaryActionPolicy.missingAssetsWarningTooltip} (readiness ${toolReadinessScore}%)`
           : copy.primaryActionPolicy.disabledTooltip,
       }
       : undefined;
@@ -1151,7 +1183,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {/* ── Knowledge Section (workspace assets) ── */}
-              <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} />
+              <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} readinessScore={toolReadinessScore} />
 
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
@@ -1203,7 +1235,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   );
 };
 
-const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSelect?: (ids: string[]) => void }> = ({ toolKey, onAssetSelect }) => {
+const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSelect?: (ids: string[]) => void; readinessScore?: number }> = ({ toolKey, onAssetSelect, readinessScore }) => {
   let workspace;
   try {
     // useWorkspace throws if not inside WorkspaceProvider
@@ -1233,6 +1265,7 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSele
         projectId={workspace.id}
         onAssetSelect={onAssetSelect ?? (() => {})}
         onCreateAssetAction={handleCreateAssetAction}
+        {...(readinessScore !== undefined ? { readinessScore } : {})}
       />
     </div>
   );

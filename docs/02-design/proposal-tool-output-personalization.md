@@ -1,9 +1,9 @@
 ---
 status: draft
-version: 3.0
+version: 3.1
 date_created: 2026-07-11
-last-reviewed: 2026-07-11
-next-review-date: 2026-10-11
+last-reviewed: 2026-07-18
+next-review-date: 2026-08-18
 owner: Frontend Platform Team & Domain Architecture
 type: proposal
 tags: [personalization, tools, ux, generation, variants, feedback, hitl, enterprise]
@@ -161,12 +161,14 @@ CREATE INDEX idx_gen_feedback_rag ON generation_feedback(project_id, tool_key, r
 ### Phase 1 (P0) — Foundations & Registry
 **Effort**: Medium
 
-| Task | Detail |
-|---|---|
-| Implement `PersonalizationFieldDef` in `packages/contracts/src/tool-workflows.ts` | Type definition + per-tool registration for angle-generator, meta-ads, geometric, blog-article-generator |
-| Build `DynamicPersonalizationForm` in Frontend | Generic renderer that reads `PersonalizationFieldDef[]` and emits `personalizationOverrides` |
-| Implement Prompt Injection Contract | Backend maps `personalizationOverrides` → `<personalization_directives>` Markdown block appended to LLM system prompt |
-| Frontend wiring | Integrate `DynamicPersonalizationForm` into Tool Workspace Setup Panel for the 4 approved tools |
+| Task | Detail | Status |
+|---|---|---|
+| Implement `PersonalizationFieldDef` in `packages/contracts/src/tool-workflows.ts` | Type definition + per-tool registration for angle-generator, meta-ads, geometric, blog-article-generator | ❌ Pending |
+| Build `DynamicPersonalizationForm` in Frontend | Generic renderer that reads `PersonalizationFieldDef[]` and emits `personalizationOverrides` | ❌ Pending |
+| Implement Prompt Injection Contract | Backend maps `personalizationOverrides` → `<personalization_directives>` Markdown block appended to LLM system prompt | ✅ Implemented |
+| Frontend wiring | Integrate `DynamicPersonalizationForm` into Tool Workspace Setup Panel for the 4 approved tools | ❌ Pending |
+
+**Note on Prompt Injection Contract**: The backend prompt injection pipeline is implemented via workspace assets. The `generation-actor.ts` resolves asset snapshots, injects them into prompts at runtime via `injectAssetReferences` (DDD-188/189/193/196), and logs the delta. The contract supports both `assetReferences` (primary, workspace-asset-driven) and legacy `briefingFile`/`briefingText` (fallback). The `DynamicPersonalizationForm` (`PersonalizationFieldDef`) remains pending as a separate UI-driven layer.
 
 ### Phase 2 (P0) — Project Brand Persona
 **Effort**: Low
@@ -445,11 +447,39 @@ This section defines the deterministic mapping between each approved architectur
 
 ---
 
-## 10. Rejected Items
+## 10. Implementation Log
+
+This section tracks incremental implementation progress against the proposal.
+
+### 10.1 Asset-Based Extraction Context (Implemented — 2026-07-18)
+
+The extraction context pipeline was migrated from briefing-file-driven to workspace-asset-driven. This is not part of the original proposal (which focused on personalization fields), but is a prerequisite infrastructure change that enables asset-first prompt injection.
+
+| Change | Detail |
+|---|---|
+| `TOOL_ASSET_CONTRACTS` in `toolAssetRegistry.ts` | Brief is primary `always-required` asset. Persona, brand-voice, angle, hook = `optional-by-tool-setting`. |
+| `getToolAssetInputs()` | Defines per-tool asset requirements. Evolved tools (funnel-pages) consume assets; primitive tools produce them. |
+| `canStartGeneration` guard (`tool-page.machine.ts`) | Allows transition when only `missing_extraction_context` reasonCode exists (asset context override). |
+| `startGenerationStep` stale closure fix | Reads `selectedAssetIds` from `volatileArgsRef` instead of stale closure. |
+| Production `assetSnapshotResolver` (`postgres-redis.adapters.ts`) | Wired to real Kysely DB via `createAssetSnapshotResolver` + `getAssetById/getAssetVersions/getAssetGroupById`. |
+| `effectiveReadinessSnapshot` (`useToolPage.ts`) | Patches `readinessSnapshot` to remove `missing_extraction_context` when `hasAssetBasedExtractionContext` is true. |
+| `effectiveMachineViewModel` (`useToolPage.ts`) | Rebuilds viewModel from patched readiness. Returns `primaryActionPolicy: 'start-generation'` when assets satisfy context. |
+| `TOOL_ASSET_CONTRACTS` unification | Removed buggy local copy from `AssetKnowledgePanel.tsx`. Now uses `getProducerToolsForAsset()` from `toolAssetRegistry.ts`. |
+| `deriveToolInputRequirementMatrix` | Removed dead `selectedAssetIds` param (Step J). Uses only `selectedAssetTypes` (Set of types). |
+| `generation-actor.ts` debug logging | Logs at each stage: assetRefs detection, snapshot resolution, prompt injection delta. |
+
+**Three validated scenarios**:
+1. **File only**: extraction → generation with assets.
+2. **Assets only** (no file upload): direct generation with `assetReferences` injected.
+3. **File + assets**: extraction first, then generation with both.
+
+---
+
+## 11. Rejected Items
 
 The following per-tool personalization registries were proposed and rejected. They are preserved here for future reference but are explicitly **out of scope** for this proposal's implementation.
 
-### 10.1 funnel-pages (DDD-184) — ❌ Rejected
+### 11.1 funnel-pages (DDD-184) — ❌ Rejected
 | Key | Type | Description / Options |
 |---|---|---|
 | `visualStyle` | select | minimal, bold, corporate, playful, luxury |
@@ -457,14 +487,14 @@ The following per-tool personalization registries were proposed and rejected. Th
 | `pageLength` | select | squeeze-page, standard, long-form-story |
 | `hookStrategy` | select | PAS (Problem-Agitate-Solve), story, social-proof, direct |
 
-### 10.2 nextland (DDD-185) — ❌ Rejected
+### 11.2 nextland (DDD-185) — ❌ Rejected
 | Key | Type | Description / Options |
 |---|---|---|
 | `sitePersonality` | select | luxury, startup, educational, e-commerce, local-business |
 | `navigationStyle` | select | single-page, multi-page, sticky-cta |
 | `componentLibrary` | multi-select | hero, proof, FAQ, pricing, testimonial, blog-preview |
 
-### 10.3 youtube-lf-script (DDD-186) — ❌ Rejected
+### 11.3 youtube-lf-script (DDD-186) — ❌ Rejected
 *Proposed `WorkflowStepType = 'interactive'` for `packaging` (Hook selection).*
 | Key | Type | Description / Options |
 |---|---|---|
@@ -473,7 +503,7 @@ The following per-tool personalization registries were proposed and rejected. Th
 | `ctaDensity` | select | single-soft, single-hard, multiple, none |
 | `retentionPattern` | select | loop-recap, ladder, spiral, sandwich |
 
-### 10.4 youtube-description (DDD-187) — ❌ Rejected
+### 11.4 youtube-description (DDD-187) — ❌ Rejected
 | Key | Type | Description / Options |
 |---|---|---|
 | `descriptionStyle` | select | professional, conversational, hype, educational |
@@ -483,7 +513,7 @@ The following per-tool personalization registries were proposed and rejected. Th
 
 ---
 
-## 11. Acceptance Gates
+## 12. Acceptance Gates
 
 1. **Contracts Integrity**: `npm run typecheck` passes after adding `PersonalizationFieldDef` to shared contracts.
 2. **Quota Enforcement**: Requesting 3 variants of a 1-credit tool correctly claims 3 credits via `RedisQuotaRepository`.
@@ -493,7 +523,7 @@ The following per-tool personalization registries were proposed and rejected. Th
 
 ---
 
-## 12. DDD-NNN Reference Index
+## 13. DDD-NNN Reference Index
 
 This section lists the concepts introduced by this proposal that have been registered in the `domain-naming-decision-log.md`.
 
@@ -510,7 +540,7 @@ This section lists the concepts introduced by this proposal that have been regis
 | DDD-181 | meta-ads Personalization | Policy | Frontend | ✅ Approved | Registration of `adFormat`, `visualDirection`, `platformPlacement`, `ctaStyle`, plus `interactive` Hook Library step. |
 | DDD-182 | geometric Personalization | Policy | Frontend | ✅ Approved | Registration of `reportDepth`, `strategicFocus`. |
 | DDD-183 | blog-article-generator Personalization | Policy | Frontend | ✅ Approved | Registration of `articleFormat`, `targetWordCount`, `includeFaq`, `includeMeta`, plus `interactive` Outline step. |
-| DDD-184 | funnel-pages Personalization | Policy | Frontend | ❌ Rejected | Registration of `visualStyle`, `conversionGoal`, `pageLength`, `hookStrategy` via `PersonalizationFieldDef`. See §10.1. |
-| DDD-185 | nextland Personalization | Policy | Frontend | ❌ Rejected | Registration of `sitePersonality`, `navigationStyle`, `componentLibrary` via `PersonalizationFieldDef`. See §10.2. |
-| DDD-186 | youtube-lf-script Personalization | Policy | Frontend | ❌ Rejected | Registration of `videoFormat`, `hookApproach`, `ctaDensity`, `retentionPattern`, plus `interactive` Hook step. See §10.3. |
-| DDD-187 | youtube-description Personalization | Policy | Frontend | ❌ Rejected | Registration of `descriptionStyle`, `seoDepth`, `descriptionLength`, `featuredSnippet`. See §10.4. |
+| DDD-184 | funnel-pages Personalization | Policy | Frontend | ❌ Rejected | Registration of `visualStyle`, `conversionGoal`, `pageLength`, `hookStrategy` via `PersonalizationFieldDef`. See §11.1. |
+| DDD-185 | nextland Personalization | Policy | Frontend | ❌ Rejected | Registration of `sitePersonality`, `navigationStyle`, `componentLibrary` via `PersonalizationFieldDef`. See §11.2. |
+| DDD-186 | youtube-lf-script Personalization | Policy | Frontend | ❌ Rejected | Registration of `videoFormat`, `hookApproach`, `ctaDensity`, `retentionPattern`, plus `interactive` Hook step. See §11.3. |
+| DDD-187 | youtube-description Personalization | Policy | Frontend | ❌ Rejected | Registration of `descriptionStyle`, `seoDepth`, `descriptionLength`, `featuredSnippet`. See §11.4. |

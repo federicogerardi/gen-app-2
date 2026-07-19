@@ -840,6 +840,7 @@ export const appCopy = {
         foundationActionGenerate: 'Generate',
         foundationTooltipBrief: 'Generate new Brief',
         foundationTooltipTov: 'Generate new Brand Voice',
+        foundationTooltipPersonas: 'Generate new Personas',
         heroStartGenerating: 'Start generating',
         heroChooseTool: 'Choose a tool',
         heroSuggestionsReady: (count: number) => `${count} tool suggestion${count > 1 ? 's' : ''} ready`,

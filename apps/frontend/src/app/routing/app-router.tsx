@@ -23,6 +23,7 @@ const GeometricToolPage = lazy(() => import('../../features/tools/geometric/page
 const BlogArticleGeneratorToolPage = lazy(() => import('../../features/tools/blog-article-generator/pages/BlogArticleGeneratorToolPage').then(m => ({ default: m.BlogArticleGeneratorToolPage })));
 const BriefGeneratorToolPage = lazy(() => import('../../features/tools/brief-generator/pages/BriefGeneratorToolPage').then(m => ({ default: m.BriefGeneratorToolPage })));
 const TovGeneratorToolPage = lazy(() => import('../../features/tools/tov-generator/pages/TovGeneratorToolPage').then(m => ({ default: m.TovGeneratorToolPage })));
+const PersonasGeneratorToolPage = lazy(() => import('../../features/tools/personas-generator/pages/PersonasGeneratorToolPage').then(m => ({ default: m.PersonasGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
@@ -52,6 +53,7 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'blog-article-generator': BlogArticleGeneratorToolPage,
   'brief-generator': BriefGeneratorToolPage,
   'tov-generator': TovGeneratorToolPage,
+  'personas-generator': PersonasGeneratorToolPage,
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {

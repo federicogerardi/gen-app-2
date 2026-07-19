@@ -61,10 +61,20 @@ const TOOL_PROMPT_CONFIGS: ToolPromptConfig[] = [
       },
     ],
   },
+  {
+    toolKey: 'personas-generator',
+    workflowType: 'personas_generator',
+    extractionFields: ['demographics', 'goals', 'pain_point', 'behaviors', 'objections'],
+    prompts: [{
+      stepKey: 'personas-generation',
+      filePathPattern: /prompt_personas_generation\.md$/,
+      contentPatterns: [/PERSONAS GENERATION/i, /Italian only/i],
+    }],
+  },
 ];
 
 type WorkflowRegistryConfig = {
-  toolKey: 'brief-generator' | 'tov-generator' | 'blog-article-generator';
+  toolKey: 'brief-generator' | 'tov-generator' | 'blog-article-generator' | 'personas-generator';
   workflowType: string;
   stepKeys: string[];
   dependencies: Record<string, string[]>;
@@ -99,6 +109,13 @@ const WORKFLOW_REGISTRY_CONFIGS: WorkflowRegistryConfig[] = [
       { artifactId: 'artifact-seo-001', stepKey: 'blog_seo_structure' },
       { artifactId: 'artifact-research-001', stepKey: 'blog_research' },
     ],
+  },
+  {
+    toolKey: 'personas-generator',
+    workflowType: 'personas_generator',
+    stepKeys: ['personas-generation'],
+    dependencies: { 'personas-generation': [] },
+    sampleArtifacts: [{ artifactId: 'artifact-personas-001', stepKey: 'personas-generation' }],
   },
 ];
 

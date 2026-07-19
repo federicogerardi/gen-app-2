@@ -140,6 +140,10 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
     produces: ['brand-voice'],
     consumes: [],
   },
+  'personas-generator': {
+    produces: ['persona'],
+    consumes: [],
+  },
 };
 
 // =====================================================================

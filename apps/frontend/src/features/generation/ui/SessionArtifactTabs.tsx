@@ -26,7 +26,8 @@ const isSupportedTool = (value: string | null | undefined): value is SupportedTo
     || value === 'geometric'
     || value === 'blog-article-generator'
     || value === 'brief-generator'
-    || value === 'tov-generator';
+    || value === 'tov-generator'
+    || value === 'personas-generator';
 };
 
 const toDisplayStep = (entry: SessionArtifactEntry): string => {

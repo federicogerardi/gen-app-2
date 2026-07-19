@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FileText, Mic, AlertTriangle, CheckCircle, Archive, RefreshCw } from 'lucide-react';
+import { FileText, Mic, Users, AlertTriangle, CheckCircle, Archive, RefreshCw } from 'lucide-react';
 import { useMemo, useCallback } from 'react';
 import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
@@ -22,11 +22,13 @@ interface WorkspaceHubCardProps {
 const FOUNDATION_TOOL_LABELS: Record<string, string> = {
   'brief-generator': 'Brief',
   'tov-generator': 'Brand Voice',
+  'personas-generator': 'Personas',
 };
 
 const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {
   'brief-generator': <FileText size={16} />,
   'tov-generator': <Mic size={16} />,
+  'personas-generator': <Users size={16} />,
 };
 
 /** Format a date string as a relative time label for activity display. */

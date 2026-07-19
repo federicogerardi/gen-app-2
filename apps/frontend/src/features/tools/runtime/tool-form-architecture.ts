@@ -248,6 +248,18 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'personas-generator': {
+    toolKey: 'personas-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('personas-generator'),
+    displayName: 'Personas Generator',
+    defaultPrompt: 'Genera una buyer persona strutturata a partire dai dati estratti dal documento.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['personas-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['personas-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
@@ -512,6 +524,31 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     ],
     stepConstraints: [],
   },
+  'personas-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Carica un documento con dati di mercato, descrizioni del target o ricerche sui clienti. Personas Generator estrae i dati rilevanti e produce una buyer persona strutturata.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'BriefingFile',
+        accept: '.txt,.md,.docx',
+        requiredness: 'always-required',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    requiredFieldKeys: ['demographics', 'goals', 'pain_point', 'behaviors', 'objections'],
+    optionalFields: [],
+    examples: [
+      'Report di ricerche di mercato con dati su target e comportamenti d\'acquisto.',
+      'Trascrizione di interviste ai clienti con pain point e obiezioni.',
+      'Documento di posizionamento con descrizione della buyer persona ideale.',
+    ],
+    notes: [
+      'La persona in output è compatibile con funnel-pages, nextland, youtube-lf-script, angle-generator, meta-ads e blog-article-generator.',
+      'Se un campo non è disponibile nel file, l\'estrazione lo segna come "non disponibile" e la persona lo esplicita.',
+    ],
+    stepConstraints: [],
+  },
 };
 
 const validateToolInputFilePolicyRegistry = (
@@ -595,6 +632,7 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'blog-article-generator': 'Blog Article Generator',
   'brief-generator': 'Brief Generator',
   'tov-generator': 'TOV Generator',
+  'personas-generator': 'Personas Generator',
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
@@ -608,6 +646,7 @@ const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
   'blog-article-generator': 'Generate blog articles with SEO optimization and in-depth research.',
   'brief-generator': 'Transform raw documents into structured briefs ready for generation with other tools.',
   'tov-generator': 'Generate a structured Tone of Voice from brand documents.',
+  'personas-generator': 'Genera buyer personas strutturate a partire da documenti e ricerche di mercato.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -621,6 +660,7 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'blog-article-generator': '/tools/blog-article-generator',
   'brief-generator': '/tools/brief-generator',
   'tov-generator': '/tools/tov-generator',
+  'personas-generator': '/tools/personas-generator',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -872,6 +912,13 @@ export const stepCardConfigRegistry: Record<
       displayName: 'TOV Generation',
       description: 'Transform extracted data into a complete, structured Tone of Voice ready for consumption by other tools.',
       expectedOutputFormat: 'Structured markdown with identity, values, voice, language, channels, and examples',
+    },
+  },
+  'personas-generator': {
+    'personas-generation': {
+      displayName: 'Personas Generation',
+      description: 'Trasforma i dati estratti in una buyer persona strutturata e completa pronta per il consumo da parte degli altri tool.',
+      expectedOutputFormat: 'Markdown strutturato con demografia, obiettivi, pain point, comportamenti, obiezioni, messaggistica e trigger',
     },
   },
 };

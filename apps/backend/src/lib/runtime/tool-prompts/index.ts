@@ -45,6 +45,10 @@ const PROMPT_FILE_BY_KEY = {
     'src/lib/runtime/tool-prompts/tov-generator/prompt_extraction.md',
   'tov-generator:tov-generation':
     'src/lib/runtime/tool-prompts/tov-generator/prompt_tov_generation.md',
+  'personas-generator:extraction':
+    'src/lib/runtime/tool-prompts/personas-generator/prompt_extraction.md',
+  'personas-generator:personas-generation':
+    'src/lib/runtime/tool-prompts/personas-generator/prompt_personas_generation.md',
 } as const;
 
 const promptCache = new Map<string, string>();
@@ -93,6 +97,9 @@ const resolvePromptFilePath = (input: {
     }
     if (extractionToolKey === 'tov-generator') {
       return PROMPT_FILE_BY_KEY['tov-generator:extraction'];
+    }
+    if (extractionToolKey === 'personas-generator') {
+      return PROMPT_FILE_BY_KEY['personas-generator:extraction'];
     }
     return PROMPT_FILE_BY_KEY.extraction;
   }

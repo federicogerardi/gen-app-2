@@ -6,7 +6,7 @@ import { DashboardPanel } from './DashboardPanel';
 import { appCopy } from '../../../../app/copy/system';
 
 // Foundation tools are shown in FoundationToolsPanel, not here
-const FOUNDATION_TOOL_KEYS = new Set<string>(['brief-generator', 'tov-generator']);
+const FOUNDATION_TOOL_KEYS = new Set<string>(['brief-generator', 'tov-generator', 'personas-generator']);
 
 interface ContextualToolsPanelProps {
   workspaceId: string;

@@ -11,6 +11,7 @@ vi.mock('../../../tools/runtime/tool-form-architecture', () => ({
   toolFormRegistry: {
     'brief-generator': { displayName: 'Brief Generator', defaultPrompt: 'Trasforma documenti in brief strutturati.' },
     'tov-generator': { displayName: 'TOV Generator', defaultPrompt: 'Genera un Tone of Voice strutturato.' },
+    'personas-generator': { displayName: 'Personas Generator', defaultPrompt: 'Genera una buyer persona strutturata.' },
   },
 }));
 
@@ -77,6 +78,28 @@ describe('FoundationToolsPanel', () => {
     expect(screen.getByText('Foundation')).toBeInTheDocument();
     expect(screen.getByText('Brief')).toBeInTheDocument();
     expect(screen.getByText('Brand Voice')).toBeInTheDocument();
+  });
+
+  it('renders personas-generator foundation status item', () => {
+    mockUseWorkspaceContext.mockReturnValue({
+      id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
+      overallQualityScore: 0, groupedByType: {}, foundationTools: [
+        {
+          toolKey: 'personas-generator',
+          producedAssetType: 'persona',
+          existingAssets: [],
+          hasAssets: false,
+        },
+      ],
+      loading: false, error: null, refetch: vi.fn(),
+    } as ReturnType<typeof useWorkspaceContext>);
+
+    render(
+      <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
+    );
+
+    expect(screen.getByText('Foundation')).toBeInTheDocument();
+    expect(screen.getByText('Personas')).toBeInTheDocument();
   });
 
   it('shows missing status when no assets', () => {

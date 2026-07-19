@@ -38,4 +38,9 @@ describe('isToolEnabled', () => {
     expect(getEnabledToolKeys('member').length).toBeGreaterThan(0);
     expect(getEnabledToolKeys('admin').length).toBeGreaterThan(getEnabledToolKeys('member').length);
   });
+
+  it('includes personas-generator for members (enabled-for-all)', () => {
+    expect(getEnabledToolKeys('member')).toContain('personas-generator');
+    expect(getEnabledToolKeys('admin')).toContain('personas-generator');
+  });
 });

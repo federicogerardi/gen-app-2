@@ -97,6 +97,14 @@ export const TOOL_WORKFLOW_DEFINITIONS = {
       { key: 'tov-generation', dependencies: [], feedbackEnabled: true },
     ],
   },
+  'personas-generator': {
+    toolKey: 'personas-generator',
+    workflowType: 'personas_generator',
+    creditCost: 1,
+    steps: [
+      { key: 'personas-generation', dependencies: [], feedbackEnabled: true },
+    ],
+  },
 } as const;
 
 export type ToolKey = keyof typeof TOOL_WORKFLOW_DEFINITIONS;
@@ -141,6 +149,7 @@ export const TOOL_AVAILABILITY_POLICY_BY_TOOL_KEY: Record<ToolKey, ToolAvailabil
   'blog-article-generator': 'enabled-for-all',
   'brief-generator': 'enabled-for-all',
   'tov-generator': 'enabled-for-all',
+  'personas-generator': 'enabled-for-all',
 };
 export const GENERATION_ROUTE_TOOL_KEY = 'extraction' as const;
 export type GenerationRouteToolKey = typeof GENERATION_ROUTE_TOOL_KEY;
@@ -302,6 +311,10 @@ export const normalizeToolKeyCandidate = (
 
   if (normalized === 'tov_generator' || normalized === 'tovgenerator') {
     return 'tov-generator';
+  }
+
+  if (normalized === 'personas_generator' || normalized === 'personasgenerator') {
+    return 'personas-generator';
   }
 
   return isToolKey(normalized) ? normalized : null;

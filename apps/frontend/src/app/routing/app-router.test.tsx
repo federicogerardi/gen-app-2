@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type * as React from 'react';
 import { Link, Outlet, RouterProvider, useNavigate } from 'react-router-dom';
@@ -99,6 +99,12 @@ vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
 
 
 describe('app router – integration', () => {
+  beforeEach(() => {
+    // createBrowserRouter reads the shared jsdom history; reset it so this
+    // file does not inherit location state left by sibling tests in the same worker.
+    window.history.replaceState({}, '', '/');
+  });
+
   it('redirects /tools to /workspaces via wildcard', async () => {
     window.history.pushState({}, '', '/tools');
     const router = createAppRouter();
@@ -138,12 +144,13 @@ describe('app router – integration', () => {
   });
 
   it('renders session summary detail route at /workspaces/:workspaceId/sessions/:sessionId', async () => {
+    window.history.pushState({}, '', '/');
     window.history.pushState({}, '', '/workspaces/proj-1/sessions/sess_demo');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByTestId('sessionsummary-detail')).toBeInTheDocument();
+    expect(await screen.findByTestId('sessionsummary-detail', {}, { timeout: 3000 })).toBeInTheDocument();
     router.dispose();
   });
 

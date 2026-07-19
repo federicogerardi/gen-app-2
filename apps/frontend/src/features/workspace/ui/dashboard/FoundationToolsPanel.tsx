@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Skeleton, IconButton, Tooltip } from '@mui/material';
-import { FileText, Mic, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
+import { FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { appCopy } from '../../../../app/copy/system';
 import type { FoundationToolStatus } from '../../runtime/useWorkspaceContext';
@@ -12,11 +12,13 @@ interface FoundationToolsPanelProps {
 const FOUNDATION_TOOL_LABELS: Record<string, string> = {
   'brief-generator': 'Brief',
   'tov-generator': 'Brand Voice',
+  'personas-generator': 'Personas',
 };
 
 const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {
   'brief-generator': <FileText size={16} />,
   'tov-generator': <Mic size={16} />,
+  'personas-generator': <Users size={16} />,
 };
 
 export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ workspaceId }) => {

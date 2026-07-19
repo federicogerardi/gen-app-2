@@ -100,6 +100,9 @@ export const TOOL_STEP_DISPLAY_CONFIG: ToolStepDisplayConfigMap = {
   'tov-generator': {
     'tov-generation': { visible: true, includeInDownload: true },
   },
+  'personas-generator': {
+    'personas-generation': { visible: true, includeInDownload: true },
+  },
 };
 
 // ── Lookup helpers ────────────────────────────────────────────────────────────

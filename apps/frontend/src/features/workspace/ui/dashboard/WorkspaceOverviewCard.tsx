@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button, IconButton, Tooltip } from '@mui/material';
-import { ArrowRight, Play, FileText, Mic, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowRight, Play, FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { useWorkspaceProject } from '../../runtime/WorkspaceProjectContext';
 import { appCopy } from '../../../../app/copy/system';
@@ -13,16 +13,19 @@ interface WorkspaceOverviewCardProps {
 const FOUNDATION_TOOL_LABELS: Record<string, string> = {
   'brief-generator': 'Brief',
   'tov-generator': 'Brand Voice',
+  'personas-generator': 'Personas',
 };
 
 const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {
   'brief-generator': <FileText size={16} />,
   'tov-generator': <Mic size={16} />,
+  'personas-generator': <Users size={16} />,
 };
 
 const FOUNDATION_TOOL_TOOLTIPS: Record<string, string> = {
   'brief-generator': appCopy.ui.workspace.dashboard.foundationTooltipBrief,
   'tov-generator': appCopy.ui.workspace.dashboard.foundationTooltipTov,
+  'personas-generator': appCopy.ui.workspace.dashboard.foundationTooltipPersonas,
 };
 
 export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ workspaceId }) => {

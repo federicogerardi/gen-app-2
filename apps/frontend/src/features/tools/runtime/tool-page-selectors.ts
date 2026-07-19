@@ -659,7 +659,7 @@ export const deriveToolInputRequirementMatrix = ({
     key: file.key,
     label: file.label,
     sourceFamily: 'tool-input-file',
-    requiredness: 'optional-by-tool-setting' as const,
+    requiredness: file.requiredness,
     satisfied: completedKeys.has(file.key),
   }));
 

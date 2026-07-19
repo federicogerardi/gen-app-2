@@ -86,9 +86,9 @@ describe('selectToolFileInstructions', () => {
     expect(matrix.requiredEntriesSatisfied).toBe(false);
     expect(matrix.missingRequiredEntries.map((entry) => entry.key)).toEqual([
       'project-selection',
+      'briefing-file',
     ]);
     expect(matrix.missingOptionalEntries.map((entry) => entry.key)).toEqual([
-      'briefing-file',
       'angle-detector-file',
     ]);
   });

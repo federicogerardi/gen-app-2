@@ -1,7 +1,7 @@
 .asset-group-section {
   border: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: var(--space-1);
+  margin-bottom: var(--space-1);
   overflow: hidden;
 }
 
@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: var(--space-1-5) var(--space-2);
   background-color: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -22,26 +22,26 @@
 .asset-group-section__header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-1);
 }
 
 .asset-group-section__header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-1);
 }
 
 .asset-group-section__content {
-  padding: 16px;
+  padding: var(--space-2);
 }
 
 .asset-group-section__controls {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-1);
 }
 
 .asset-group-section__actions {
-  margin-top: 12px;
+  margin-top: var(--space-1-5);
   text-align: center;
 }

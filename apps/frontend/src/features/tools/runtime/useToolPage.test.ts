@@ -214,7 +214,6 @@ beforeEach(() => {
 
   mocks.formState.projectId = 'project-001';
   mocks.formState.model = 'openrouter/auto';
-  mocks.formState.tone = 'Professional';
   mocks.formState.campaignObjective = '';
   mocks.formState.videoTitle = '';
   mocks.formState.topic = '';
@@ -386,7 +385,6 @@ describe('useToolPage', () => {
 
   it('normalizes model legacy provider format before dispatch', async () => {
     mocks.formState.model = 'openrouter:auto';
-    mocks.formState.tone = 'Professional';
     mocks.machineSnapshot.context.hydrationResult = {
       extractionArtifactId: 'artifact-extract-001',
       extractionPayload: { schemaVersion: 'extraction.v1' },
@@ -407,7 +405,6 @@ describe('useToolPage', () => {
 
     const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
       model: string;
-      input: { tone: string };
     };
 
     expect(mocks.send).toHaveBeenCalledWith(
@@ -417,37 +414,6 @@ describe('useToolPage', () => {
       }),
     );
     expect(request.model).toBe('openrouter/auto');
-    expect(request.input.tone).toBe('Professional');
-  });
-
-  it('falls back to canonical defaults for empty model and non-canonical tone', async () => {
-    mocks.formState.model = '   ';
-    mocks.formState.tone = 'warm and playful';
-    mocks.machineSnapshot.context.hydrationResult = {
-      extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: { schemaVersion: 'extraction.v1' },
-      briefingId: 'brief-001',
-      normalizedText: 'brief text',
-      parsedFormat: 'md',
-    };
-    mocks.machineSnapshot.context.pendingStepStart = {
-      step: 'optin',
-      runRequestPrefix: 'run-002',
-    };
-
-    renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
-
-    await waitFor(() => {
-      expect(mocks.generationRun.startRun).toHaveBeenCalledTimes(1);
-    });
-
-    const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
-      model: string;
-      input: { tone: string };
-    };
-
-    expect(request.model).toBe('openrouter/auto');
-    expect(request.input.tone).toBe('Professional');
   });
 
   it('dispatches youtube-description with direct-input extraction payload after CTA flow', async () => {
@@ -465,7 +431,6 @@ describe('useToolPage', () => {
     });
 
     mocks.formState.model = 'openrouter/auto';
-    mocks.formState.tone = 'Professional';
     mocks.formState.projectId = 'project-001';
     mocks.formState.videoTitle = 'Strategia YouTube 2026';
     mocks.formState.topic = 'Growth organica';

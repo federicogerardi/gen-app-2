@@ -229,7 +229,6 @@ test('generation root extraction flow completes from invoke input bootstrap', as
       input: {
         prompt: 'extract this',
         briefingText: 'Business B2B con offerta audit e call strategica.',
-        tone: 'analitico',
       },
       workflowType: 'extraction',
       idempotencyKey: 'idem-root-extraction-001',

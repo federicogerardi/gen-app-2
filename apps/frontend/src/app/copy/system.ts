@@ -136,7 +136,6 @@ export const appCopy = {
       briefFile: 'Brief file (.docx, .txt, .md)',
       artifactType: 'Content type',
       model: 'AI model',
-      toneOptional: 'Tone (optional)',
       notesOptional: 'Additional notes (optional)',
       prompt: 'Prompt',
       promptFallback: 'Fallback prompt',
@@ -182,12 +181,6 @@ export const appCopy = {
         ready: 'Ready for generation',
         waiting: 'Select a project and upload a brief to get started',
       },
-      toneProfiles: [
-        { value: 'Professional', label: 'Professional' },
-        { value: 'Casual', label: 'Casual' },
-        { value: 'Formal', label: 'Formal' },
-        { value: 'Technical', label: 'Technical' },
-      ] satisfies ReadonlyArray<CopyOption<'Professional' | 'Casual' | 'Formal' | 'Technical'>>,
       primaryActionPolicy: {
         disabledLabel: 'Complete the form to get started',
         disabledTooltip: 'Select a workspace and upload a briefing document',
@@ -203,7 +196,6 @@ export const appCopy = {
       form: {
         projectLabel: 'Workspace',
         modelLabel: 'Model',
-        toneLabel: 'Tone',
         campaignObjectiveLabel: 'Campaign objective',
         campaignObjectivePlaceholder: 'Select campaign objective',
         campaignObjectiveOptions: [
@@ -229,7 +221,6 @@ export const appCopy = {
         validation: {
           projectRequired: 'Workspace required',
           modelRequired: 'Model required',
-          toneRequired: 'Tone required',
           copyLengthFormatRequired: 'Copy length format required',
           uploadToContinuePrefix: 'Upload ',
           uploadToContinueSuffix: ' to continue.',

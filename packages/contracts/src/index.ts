@@ -137,9 +137,7 @@ import type {
   ToolWorkflowType,
 } from './tool-workflows';
 
-export type ToneProfile = 'Professional' | 'Casual' | 'Formal' | 'Technical';
 export type LlmModelId = `${string}/${string}`;
-export type RequestTone = ToneProfile | 'analitico';
 
 /**
  * SessionArtifactModelInfo — DDD-152 projection
@@ -196,7 +194,6 @@ export type GenerationRequestInput = {
   prompt?: string;
   step?: ToolStep;
   intent?: WorkflowRunMode;
-  tone?: RequestTone;
   notes?: string;
   toolKey?: ToolKey;
   briefingId?: string | null;

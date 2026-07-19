@@ -79,7 +79,6 @@ describe('artifact history', () => {
         ...request,
         input: {
           prompt: 'seed',
-          tone: 'Formal',
           notes: 'keep CTA concise',
           briefingId: 'brief-42',
           briefingFileName: 'brief.md',
@@ -93,7 +92,6 @@ describe('artifact history', () => {
     expect(query.get('projectId')).toBe('project-42');
     expect(query.get('sourceArtifactId')).toBe('art-route');
     expect(query.get('relaunchFromArtifactId')).toBe('art-route');
-    expect(query.get('tone')).toBe('Formal');
     expect(query.get('notes')).toBe('keep CTA concise');
     expect(query.get('briefingId')).toBe('brief-42');
     expect(query.get('briefingFileName')).toBe('brief.md');
@@ -107,7 +105,6 @@ describe('artifact history', () => {
         ...request,
         input: {
           prompt: 'seed',
-          tone: 'Formal',
           notes: 'stale note',
           briefingId: 'brief-stale',
           extractionArtifactId: 'ext-stale',
@@ -124,7 +121,6 @@ describe('artifact history', () => {
     expect(query.get('briefingId')).toBe('brief-stale');
     expect(query.get('extractionArtifactId')).toBe('ext-stale');
     expect(query.get('relaunchFromArtifactId')).toBeNull();
-    expect(query.get('tone')).toBeNull();
     expect(query.get('notes')).toBeNull();
     expect(query.get('briefingFileName')).toBeNull();
   });
@@ -179,7 +175,6 @@ describe('artifact history', () => {
         toolKey: 'funnel-pages',
         input: {
           prompt: 'seed',
-          tone: 'Formal',
           notes: 'carry-over',
           briefingId: 'brief-1',
           extractionArtifactId: 'ext-1',

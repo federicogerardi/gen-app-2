@@ -138,25 +138,6 @@ describe('ArtifactDetailPage', () => {
     expect(screen.getByText(/Hotlead Funnel - Project Apollo/)).toBeInTheDocument();
   });
 
-  it('shows tone metadata in technical details when tone is present', () => {
-    artifactDetailBag.artifact = makeArtifact({
-      sourceRequest: {
-        requestId: 'req-1',
-        userId: 'user-1',
-        projectId: 'proj-1',
-        artifactType: 'content',
-        model: 'openrouter/gpt-4',
-        input: { tone: 'Professional' },
-        toolKey: 'funnel-pages',
-        workflowType: 'funnel_pages',
-      },
-    });
-
-    renderPage('art-1');
-    expect(screen.getByText(appCopy.ui.labels.toneOptional)).toBeInTheDocument();
-    expect(screen.getByText('Professional')).toBeInTheDocument();
-  });
-
   it('links to session detail when artifact has a sessionId', () => {
     artifactDetailBag.artifact = makeArtifact({
       sessionId: 'sess_demo',
@@ -186,7 +167,6 @@ describe('ArtifactDetailPage', () => {
         artifactType: 'content',
         model: 'openrouter/gpt-4',
         input: {
-          tone: 'Formal',
           notes: 'old-note',
           briefingId: 'brief-legacy',
           briefingFileName: 'brief-legacy.md',
@@ -215,7 +195,6 @@ describe('ArtifactDetailPage', () => {
     expect(location).toHaveTextContent('sourceArtifactId=art-1');
     expect(location).toHaveTextContent('briefingId=brief-legacy');
     expect(location).toHaveTextContent('relaunchFromArtifactId=art-1');
-    expect(location).toHaveTextContent('tone=Formal');
     expect(location).toHaveTextContent('notes=old-note');
     expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
   });

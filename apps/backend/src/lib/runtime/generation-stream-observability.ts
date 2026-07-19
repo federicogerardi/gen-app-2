@@ -65,18 +65,8 @@ const readStep = (request: BackendGenerationRequest): string => {
   return '-';
 };
 
-const readTone = (request: BackendGenerationRequest): string => {
-  const tone = request.input.tone;
-  if (typeof tone === 'string' && tone.trim().length > 0) {
-    return tone.trim();
-  }
-
-  return '-';
-};
-
 export type GenerationDebugInfo = {
   step: string;
-  tone: string;
   briefingTextLength: number;
   extractionPayloadKeys: number;
   dependencyCount: number;
@@ -90,7 +80,6 @@ export const buildGenerationDebugInfo = (
 ): GenerationDebugInfo => {
   return {
     step: readStep(request),
-    tone: readTone(request),
     briefingTextLength: readBriefingTextLength(request),
     extractionPayloadKeys: readExtractionPayloadKeys(request),
     dependencyCount: readDependencyCount(request),
@@ -115,7 +104,6 @@ export const logGenerationRequestDebug = (
     step: info.step,
     modelRaw: request.model,
     modelNormalized: info.normalizedModel,
-    tone: info.tone,
     briefingTextLen: info.briefingTextLength,
     extractionPayloadKeys: info.extractionPayloadKeys,
     dependencyCount: info.dependencyCount,
@@ -153,7 +141,6 @@ export const logGenerationStreamError = (
     step: info.step,
     modelRaw: request.model,
     modelNormalized: info.normalizedModel,
-    tone: info.tone,
     err: error,
   }, 'stream error');
 };

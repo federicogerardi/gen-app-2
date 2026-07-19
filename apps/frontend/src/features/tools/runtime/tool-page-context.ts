@@ -15,7 +15,7 @@ import { isExtractionContextValidForTool } from '../machines/extraction-context-
 import { toolPageMachine } from '../machines/tool-page.machine';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import { getRequiredToolInputFiles, type ToolFormConfig, type ToolFormState } from './tool-form-architecture';
-import { mapInlineDispatchError, normalizeToneProfile } from './tool-page-runtime-utils';
+import { mapInlineDispatchError } from './tool-page-runtime-utils';
 
 type UseToolPageContextArgs = {
   auth: AuthStateValue & ApiConfigValue;
@@ -28,7 +28,6 @@ type UseToolPageContextArgs = {
   sourceArtifactId: string | null | undefined;
   intent: 'new' | 'regenerate' | 'resume';
   initialProjectId: string | null | undefined;
-  relaunchTone: string | null | undefined;
   briefingId: string | null | undefined;
   extractionArtifactId: string | null | undefined;
   briefingFileName: string | null | undefined;
@@ -45,7 +44,6 @@ export const useToolPageContext = ({
   sourceArtifactId,
   intent,
   initialProjectId,
-  relaunchTone,
   briefingId,
   extractionArtifactId,
   briefingFileName,
@@ -67,7 +65,6 @@ export const useToolPageContext = ({
   const initialPrefillDoneRef = useRef(false);
   const previousProjectIdRef = useRef((generationProject.focusedProjectId ?? initialProjectId ?? '').trim());
   const previousCampaignObjectiveRef = useRef(formState.campaignObjective.trim());
-  const tonePrefillDoneRef = useRef(false);
   const sessionIdRef = useRef(toolPageSnapshot.context.sessionId);
   const briefingSnapshot = useSelector(
     toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,
@@ -199,21 +196,6 @@ export const useToolPageContext = ({
     toolPageSend({ type: 'CAMPAIGN_OBJECTIVE_CHANGED', campaignObjective: normalizedCampaignObjective });
     previousCampaignObjectiveRef.current = normalizedCampaignObjective;
   }, [formState.campaignObjective, toolPageSend]);
-
-  useEffect(() => {
-    if (tonePrefillDoneRef.current) return;
-    if (relaunchTone !== null && relaunchTone !== undefined) {
-      setFormState((prev) => ({ ...prev, tone: normalizeToneProfile(relaunchTone) }));
-      tonePrefillDoneRef.current = true;
-      return;
-    }
-    if ((sourceArtifactId?.trim().length ?? 0) > 0 && sourceArtifact === null) return;
-    const sourceTone = readInputField(sourceArtifact, 'tone');
-    if (sourceTone) {
-      setFormState((prev) => ({ ...prev, tone: normalizeToneProfile(sourceTone) }));
-    }
-    tonePrefillDoneRef.current = true;
-  }, [relaunchTone, setFormState, sourceArtifact, sourceArtifactId]);
 
   const machineHydrationResult = toolPageSnapshot.context.hydrationResult;
   const effectiveBriefingFileName = briefingSnapshot.context.fileName ?? briefingFileName ?? readInputField(sourceArtifact, 'briefingFileName');

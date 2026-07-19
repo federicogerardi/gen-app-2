@@ -57,7 +57,7 @@ const TOOL_PROMPT_CONFIGS: ToolPromptConfig[] = [
       {
         stepKey: 'blog_article',
         filePathPattern: /prompt_blog_article\.md$/,
-        contentPatterns: [/professional copywriter/i, /Write the article content in Italian/i, /\{\{tone\}\}/],
+        contentPatterns: [/professional copywriter/i, /Write the article content in Italian/i],
       },
     ],
   },

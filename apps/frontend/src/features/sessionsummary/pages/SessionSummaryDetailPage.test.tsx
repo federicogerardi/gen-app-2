@@ -229,7 +229,6 @@ describe('SessionSummaryDetailPage', () => {
         model: 'openrouter/auto',
         input: {
           notes: 'angle notes',
-          tone: 'Formal',
           briefingId: 'brief-angle',
           briefingFileName: 'brief-angle.txt',
         },
@@ -310,7 +309,6 @@ describe('SessionSummaryDetailPage', () => {
         model: 'openrouter/auto',
         input: {
           notes: 'angle notes',
-          tone: 'Formal',
           briefingId: 'brief-angle',
           briefingFileName: 'brief-angle.txt',
         },
@@ -377,7 +375,6 @@ describe('SessionSummaryDetailPage', () => {
         model: 'openrouter/auto',
         input: {
           notes: 'note value',
-          tone: 'Formal',
           briefingId: 'brief-1',
           briefingFileName: 'brief.txt',
         },
@@ -447,7 +444,6 @@ describe('SessionSummaryDetailPage', () => {
         model: 'openrouter/auto',
         input: {
           notes: 'note value',
-          tone: 'Formal',
           briefingId: 'brief-1',
           briefingFileName: 'brief.txt',
         },

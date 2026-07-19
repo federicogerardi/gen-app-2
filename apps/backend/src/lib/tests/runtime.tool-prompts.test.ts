@@ -171,7 +171,6 @@ test('buildRequestReceivedEvent resolves youtube extraction prompt from extracti
 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
-  assert.equal(input.tone, 'analitico');
 });
 
 test('buildRequestReceivedEvent resolves angle-generator extraction prompt from extraction target tool key', () => {
@@ -193,7 +192,6 @@ test('buildRequestReceivedEvent resolves angle-generator extraction prompt from 
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
   assert.match(String(input.resolvedPromptSource), /angle-generator/);
-  assert.equal(input.tone, 'analitico');
 });
 
 test('buildRequestReceivedEvent resolves meta-ads extraction prompt from extraction target tool key', () => {
@@ -215,10 +213,9 @@ test('buildRequestReceivedEvent resolves meta-ads extraction prompt from extract
   const input = event.input as Record<string, unknown>;
   assert.match(String(input.resolvedPromptSource), /prompt_extraction\.md$/);
   assert.match(String(input.resolvedPromptSource), /meta-ads/);
-  assert.equal(input.tone, 'analitico');
 });
 
-test('buildRequestReceivedEvent canonicalizes generation tone profile and step key aliases', () => {
+test('buildRequestReceivedEvent canonicalizes generation step key aliases', () => {
   const event = buildRequestReceivedEvent({
     requestId: 'req-generation-normalization-001',
     userId: 'seed-user-001',
@@ -229,17 +226,15 @@ test('buildRequestReceivedEvent canonicalizes generation tone profile and step k
     workflowType: 'nextland',
     input: {
       step: 'thank-you',
-      tone: 'formal',
     },
     registrySnapshotRef: 'snapshot:generation-normalization',
   } as unknown as BackendGenerationRequest);
 
   const input = event.input as Record<string, unknown>;
   assert.equal(input.step, 'thank_you');
-  assert.equal(input.tone, 'Formal');
 });
 
-test('buildRequestReceivedEvent drops invalid step and non-canonical generation tone', () => {
+test('buildRequestReceivedEvent drops invalid step key', () => {
   const event = buildRequestReceivedEvent({
     requestId: 'req-generation-normalization-002',
     userId: 'seed-user-001',
@@ -250,14 +245,12 @@ test('buildRequestReceivedEvent drops invalid step and non-canonical generation 
     workflowType: 'funnel_pages',
     input: {
       step: 'landing',
-      tone: 'direct',
     },
     registrySnapshotRef: 'snapshot:generation-normalization',
   } as unknown as BackendGenerationRequest);
 
   const input = event.input as Record<string, unknown>;
   assert.equal(Object.hasOwn(input, 'step'), false);
-  assert.equal(Object.hasOwn(input, 'tone'), false);
 });
 
 test('resolveToolPrompt falls back to canonical extraction prompt for non-youtube extraction', () => {

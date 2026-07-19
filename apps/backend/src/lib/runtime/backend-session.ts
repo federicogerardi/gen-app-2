@@ -46,10 +46,6 @@ export const runBackendGenerationSession = async (
     typeof request.input.step === 'string' && request.input.step.trim().length > 0
       ? request.input.step.trim()
       : '-';
-  const requestedTone =
-    typeof request.input.tone === 'string' && request.input.tone.trim().length > 0
-      ? request.input.tone.trim()
-      : '-';
   const correlationId = `run:${request.requestId}`;
   const log = createComponentLogger(LogComponent.BACKEND_SESSION);
   const sessionLog = log.child({ correlationId, requestId: request.requestId });
@@ -62,7 +58,6 @@ export const runBackendGenerationSession = async (
     artifactType: request.artifactType,
     step: requestedStep,
     model: request.model,
-    tone: requestedTone,
   }, 'session start');
 
   const actor = createActor(generationSystemMachine, {
@@ -233,7 +228,6 @@ export const runBackendGenerationSession = async (
     contentLen: doneSnapshot.context.contentBuffer.length,
     step: requestedStep,
     model: request.model,
-    tone: requestedTone,
   }, 'session terminal');
 
   emitStreamEvent(

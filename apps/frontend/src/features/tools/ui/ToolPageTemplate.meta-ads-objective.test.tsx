@@ -49,7 +49,6 @@ vi.mock('../runtime/useToolPage', () => ({
     formState: {
       projectId: 'project-1',
       model: 'openrouter/auto',
-      tone: 'Professional',
       campaignObjective: '',
     },
     setFormState,

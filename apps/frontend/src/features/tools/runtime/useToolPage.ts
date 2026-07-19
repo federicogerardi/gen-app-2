@@ -21,7 +21,6 @@ export interface UseToolPageProps {
   sourceArtifactId?: string | null;
   intent?: 'new' | 'regenerate' | 'resume';
   initialProjectId?: string | null;
-  relaunchTone?: string | null;
   relaunchNotes?: string | null;
   relaunchFromArtifactId?: string | null;
   briefingId?: string | null;
@@ -31,7 +30,7 @@ export interface UseToolPageProps {
   hasAssetBasedExtractionContext?: boolean;
 }
 
-export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName, selectedAssetIds, hasAssetBasedExtractionContext = false }: UseToolPageProps) => {
+export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName, selectedAssetIds, hasAssetBasedExtractionContext = false }: UseToolPageProps) => {
   const autoStartGenerationAfterExtractionRef = useRef(false);
   const navigate = useNavigate();
   const authState = useAuthState();
@@ -78,7 +77,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     sourceArtifactId,
     intent,
     initialProjectId,
-    relaunchTone,
     briefingId,
     extractionArtifactId,
     briefingFileName,

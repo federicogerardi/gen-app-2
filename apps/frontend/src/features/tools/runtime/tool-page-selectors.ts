@@ -29,7 +29,6 @@ import {
   isEmptyPayload,
   mapInlineDispatchError,
   normalizeModelForPayload,
-  normalizeToneProfile,
 } from './tool-page-runtime-utils';
 
 export const buildGeometricDirectInputExtractionInfo = ({
@@ -444,7 +443,7 @@ export const buildBaseGenerationRequest = ({
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
+  formState: Pick<ToolFormState, 'model' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -467,7 +466,6 @@ export const buildBaseGenerationRequest = ({
   registrySnapshotRef: formState.registrySnapshotRef,
   input: {
     intent: runtimeIntent,
-    tone: normalizeToneProfile(formState.tone),
     notes: resolvedNotes,
     relaunchFromArtifactId: resolvedRelaunchSource,
     sourceArtifactId: sourceArtifactId ?? null,

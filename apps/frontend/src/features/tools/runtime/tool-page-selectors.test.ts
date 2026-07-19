@@ -171,7 +171,6 @@ describe('buildBaseGenerationRequest', () => {
       runtimeIntent: 'new',
       formState: {
         model: 'openrouter/auto',
-        tone: 'Professional',
         campaignObjective: 'Leads',
         registrySnapshotRef: 'snapshot:default',
         titolo: '',
@@ -211,7 +210,6 @@ describe('buildBaseGenerationRequest', () => {
       runtimeIntent: 'new',
       formState: {
         model: 'openrouter/auto',
-        tone: 'Professional',
         campaignObjective: 'Traffic',
         registrySnapshotRef: 'snapshot:default',
         titolo: '',

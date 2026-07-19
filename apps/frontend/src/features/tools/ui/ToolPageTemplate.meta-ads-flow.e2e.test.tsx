@@ -14,7 +14,6 @@ let mockedEffectiveBriefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready'
 const formState = {
   projectId: 'project-1',
   model: 'openrouter/auto',
-  tone: 'Professional',
   campaignObjective: '',
 };
 const setFormState = vi.fn((updater: (prev: typeof formState) => typeof formState) => {

@@ -30,7 +30,6 @@ import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
 import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
 
-const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
 
 interface ToolPageTemplateProps {
@@ -38,7 +37,6 @@ interface ToolPageTemplateProps {
   sourceArtifactId?: string | null;
   intent?: 'new' | 'regenerate' | 'resume';
   initialProjectId?: string | null;
-  relaunchTone?: string | null;
   relaunchNotes?: string | null;
   relaunchFromArtifactId?: string | null;
   briefingId?: string | null;
@@ -49,7 +47,6 @@ interface ToolPageTemplateProps {
 type ToolPageFormValues = {
   projectId: string;
   model: string;
-  tone: string;
   titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
@@ -321,7 +318,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const toolFormSchema = z.object({
     projectId: z.string(),
     model: z.string().min(1, copy.form.validation.modelRequired),
-    tone: z.string().min(1, copy.form.validation.toneRequired),
     titolo: z.string(),
     campaignObjective: z.string(),
     copyLengthFormat: z.enum(['short-form', 'medium-form', 'long-form']),
@@ -487,7 +483,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       ...prev,
       projectId: data.projectId,
       model: data.model,
-      tone: data.tone,
       titolo: isBlogArticleGeneratorTool ? data.titolo : prev.titolo,
       campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
       videoTitle: isYoutubeDescriptionTool ? data.videoTitle : prev.videoTitle,
@@ -538,7 +533,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     defaultValues: {
       projectId: formState.projectId,
       model: formState.model,
-      tone: formState.tone,
       titolo: formState.titolo ?? '',
       campaignObjective: formState.campaignObjective,
       copyLengthFormat: formState.copyLengthFormat ?? 'medium-form',
@@ -582,10 +576,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('model', formState.model);
   }, [formState.model, setValue]);
-
-  useEffect(() => {
-    setValue('tone', formState.tone);
-  }, [formState.tone, setValue]);
 
   useEffect(() => {
     setValue('titolo', formState.titolo ?? '');
@@ -730,32 +720,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     )}
                   />
                 )}
-
-                <Controller
-                  name="tone"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label={copy.form.toneLabel}
-                      disabled={isGenerationLocked}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setFormState((prev) => ({ ...prev, tone: e.target.value }));
-                      }}
-                      value={field.value}
-                      error={!!errors.tone}
-                      helperText={errors.tone?.message as string | undefined}
-                      fullWidth
-                    >
-                      {toneProfileOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
               </div>
 
               {isBlogArticleGeneratorTool ? (

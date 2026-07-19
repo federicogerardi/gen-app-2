@@ -19,7 +19,7 @@ In "Online_research_results" you will find data often accompanied by links or na
 2. YES TO PRIMARY AND AUTHORITATIVE SOURCES: If data is linked to an original official source (e.g., state law, decree, scientific study, research institute report like ISTAT, McKinsey, etc.), cite this authority to add value and credibility (e.g., "Ai sensi della Legge 7/2000...", "Secondo uno studio scientifico del...").
 
 [WRITING AND STYLE RULES]
-- Tone of voice: {{tone}} (Professional, Casual, Formal, Technical)
+- Tone of voice: Iniettato via Brand Voice asset se disponibile; altrimenti usa un registro professionale neutro.
 - Timeliness: Treat information as fresh and contemporary
 - Narrative flow: Avoid stereotypical openings and closings. Go straight to practical value.
 

@@ -458,12 +458,6 @@ export const generationSystemActions = {
         filledPrompt = filledPrompt.replace(/\{\{titolo\}\}/g, titolo);
       }
 
-      // Replace {{tone}} from request input
-      const tone = context.requestInput.tone;
-      if (typeof tone === 'string' && tone.trim().length > 0) {
-        filledPrompt = filledPrompt.replace(/\{\{tone\}\}/g, tone);
-      }
-
       return {
         ...context.requestInput,
         prompt: filledPrompt,

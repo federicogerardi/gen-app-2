@@ -314,6 +314,66 @@ export const ASSET_FIELD_MAPPINGS: Record<string, AssetFieldMapping> = {
       required: false,
     },
   },
+  'brand-voice→funnel-pages': {
+    tone: {
+      sourcePath: 'tone',
+      injectionTemplate: '## Brand Tone: {{tone}}',
+      required: true,
+    },
+    guidelines: {
+      sourcePath: 'guidelines',
+      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
+      required: false,
+    },
+  },
+  'brand-voice→nextland': {
+    tone: {
+      sourcePath: 'tone',
+      injectionTemplate: '## Brand Tone: {{tone}}',
+      required: true,
+    },
+    guidelines: {
+      sourcePath: 'guidelines',
+      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
+      required: false,
+    },
+  },
+  'brand-voice→youtube-lf-script': {
+    tone: {
+      sourcePath: 'tone',
+      injectionTemplate: '## Brand Tone: {{tone}}',
+      required: true,
+    },
+    guidelines: {
+      sourcePath: 'guidelines',
+      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
+      required: false,
+    },
+  },
+  'brand-voice→youtube-description': {
+    tone: {
+      sourcePath: 'tone',
+      injectionTemplate: '## Brand Tone: {{tone}}',
+      required: true,
+    },
+    guidelines: {
+      sourcePath: 'guidelines',
+      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
+      required: false,
+    },
+  },
+  'brand-voice→blog-article-generator': {
+    tone: {
+      sourcePath: 'tone',
+      injectionTemplate: '## Brand Tone: {{tone}}',
+      required: true,
+    },
+    guidelines: {
+      sourcePath: 'guidelines',
+      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
+      required: false,
+    },
+  },
 };
 
 /**

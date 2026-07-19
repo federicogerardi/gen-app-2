@@ -176,15 +176,6 @@ const LegacyArtifactView = ({
     () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : appCopy.ui.artifactDetail.toolUnavailable),
     [resolvedToolKey],
   );
-  const toneLabel = useMemo(() => {
-    const tone = artifact.sourceRequest.input?.tone;
-    if (typeof tone !== 'string') {
-      return '-';
-    }
-
-    const normalized = tone.trim();
-    return normalized.length > 0 ? normalized : '-';
-  }, [artifact.sourceRequest.input]);
 
   const handleDownload = useCallback(
     (format: DownloadFormat) => {
@@ -253,14 +244,11 @@ const LegacyArtifactView = ({
 
           <details className="ui-artifact-accessory">
             <summary>{appCopy.ui.artifactDetail.technicalDetails}</summary>
-            {toneLabel !== '-' ? <meta itemProp="keywords" content={`tone:${toneLabel}`} /> : null}
             <dl className="ui-artifact-metadata">
               <dt>{appCopy.ui.meta.artifactId}</dt>
               <dd itemProp="identifier">{artifact.artifactId}</dd>
               <dt>{appCopy.ui.labels.model}</dt>
               <dd>{modelLabel}</dd>
-              <dt>{appCopy.ui.labels.toneOptional}</dt>
-              <dd>{toneLabel}</dd>
             </dl>
           </details>
 

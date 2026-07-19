@@ -219,7 +219,6 @@ vi.mock('../runtime/useToolForm', () => {
       formState: {
         projectId: 'project-001',
         model: 'openrouter/auto',
-        tone: 'Professional',
         campaignObjective: '',
         registrySnapshotRef: 'snapshot:default',
         briefingFile: null,

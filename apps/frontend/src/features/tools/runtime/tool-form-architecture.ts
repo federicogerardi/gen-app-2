@@ -97,7 +97,6 @@ export type ToolProjectAssetPolicyEntry = {
 export type ToolFormState = {
   projectId: string;
   model: string;
-  tone: string;
   titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
@@ -332,7 +331,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'knowledge_content: key knowledge points to transform into script.',
       'target_duration_minutes: 12.',
     ],
-    notes: ['Missing fields must be explicit and set to null in the extracted payload.', 'The brief tone does not replace the generation ToneProfile.'],
+    notes: ['Missing fields must be explicit and set to null in the extracted payload.'],
     stepConstraints: ['The canonical sequence is pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.'],
   },
   'angle-generator': {

@@ -104,7 +104,7 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ ok: true });
   });
 
-  it('runExtraction enforces fixed analitico tone for extraction jobs', async () => {
+  it('runExtraction sends extraction request for extraction jobs', async () => {
     streamGenerationMock.mockImplementation(async (_request, options) => {
       options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
       options.onEvent({
@@ -123,16 +123,11 @@ describe('tools-client', () => {
       projectId: 'project-001',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
-      tone: 'Casual',
       briefingId: 'brief-001',
       briefingText: 'brief text',
     });
 
     expect(streamGenerationMock).toHaveBeenCalledTimes(1);
-    const request = streamGenerationMock.mock.calls[0]?.[0] as {
-      input?: { tone?: string };
-    };
-    expect(request.input?.tone).toBe('analitico');
   });
 
   it('runExtraction recovers payload from artifact detail when stream has no chunks', async () => {

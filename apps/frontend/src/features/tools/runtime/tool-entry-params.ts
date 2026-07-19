@@ -4,7 +4,6 @@ export type ToolEntryParams = {
   intent: ToolEntryIntent;
   sourceArtifactId: string | null;
   initialProjectId: string | null;
-  relaunchTone: string | null;
   relaunchNotes: string | null;
   relaunchFromArtifactId: string | null;
   briefingId: string | null;
@@ -34,7 +33,6 @@ export const parseToolEntryParams = (searchParams: URLSearchParams): ToolEntryPa
     intent: parseToolIntent(searchParams.get('intent')),
     sourceArtifactId: parseOptionalString(searchParams.get('sourceArtifactId')),
     initialProjectId: parseOptionalString(searchParams.get('projectId')),
-    relaunchTone: parseOptionalString(searchParams.get('tone')),
     relaunchNotes: parseOptionalString(searchParams.get('notes')),
     relaunchFromArtifactId: parseOptionalString(searchParams.get('relaunchFromArtifactId')),
     briefingId: parseOptionalString(searchParams.get('briefingId')),

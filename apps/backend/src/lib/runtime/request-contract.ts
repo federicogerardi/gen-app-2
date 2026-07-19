@@ -93,7 +93,6 @@ const normalizeModelId = (value: string): string => {
   return normalized;
 };
 
-const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
 const COPY_LENGTH_FORMAT_ALLOWED = ['short-form', 'medium-form', 'long-form'] as const;
 
 const toCopyLengthFormat = (value: unknown): CopyLengthFormat | null => {
@@ -103,20 +102,6 @@ const toCopyLengthFormat = (value: unknown): CopyLengthFormat | null => {
 
   const normalized = value.trim().toLowerCase();
   const match = COPY_LENGTH_FORMAT_ALLOWED.find((candidate) => candidate === normalized);
-  return match ?? null;
-};
-
-const toCanonicalToneProfile = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (normalized.length === 0) {
-    return null;
-  }
-
-  const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
   return match ?? null;
 };
 
@@ -136,17 +121,6 @@ const toCanonicalRequestStep = (toolKey: ToolKey | null, value: unknown): ToolSt
     : null;
 };
 
-const toCanonicalRequestTone = (
-  workflowType: GenerationRequest['workflowType'],
-  value: unknown,
-): string | null => {
-  if (workflowType === 'extraction') {
-    return 'analitico';
-  }
-
-  return toCanonicalToneProfile(value);
-};
-
 export const buildRequestReceivedEvent = (
   request: BackendGenerationRequest,
   modelResolver?: StepLlmModelResolver,
@@ -155,7 +129,6 @@ export const buildRequestReceivedEvent = (
   const normalizedToolKey: ToolKey | null =
     typeof rawToolKey === 'string' && isToolKey(rawToolKey) ? rawToolKey : null;
   const canonicalStep = toCanonicalRequestStep(normalizedToolKey, request.input.step);
-  const canonicalTone = toCanonicalRequestTone(request.workflowType ?? null, request.input.tone);
 
   const resolvedPrompt = resolveToolPrompt({
     toolKey: normalizedToolKey,
@@ -181,7 +154,7 @@ export const buildRequestReceivedEvent = (
     .concat(toDependencyArtifactIds(request.input.stepDependencyArtifactIds));
   const dedupedDependencyArtifactIds = [...new Set(stepDependencyArtifactIds)];
 
-  const { step: _rawStep, tone: _rawTone, copyLengthFormat: _rawCopyLengthFormat, ...inputRest } = request.input;
+  const { step: _rawStep, copyLengthFormat: _rawCopyLengthFormat, ...inputRest } = request.input;
   const resolvedOutputFormat = normalizedToolKey === 'youtube-description'
     ? 'markdown'
     : toOutputFormat(request.outputFormat);
@@ -206,7 +179,6 @@ export const buildRequestReceivedEvent = (
   const enrichedInput = {
     ...inputRest,
     ...(canonicalStep ? { step: canonicalStep } : {}),
-    ...(canonicalTone ? { tone: canonicalTone } : {}),
     ...(canonicalCopyLengthFormat ? { copyLengthFormat: canonicalCopyLengthFormat } : {}),
     outputFormat: resolvedOutputFormat,
     ...(briefingId ? { briefingId } : {}),

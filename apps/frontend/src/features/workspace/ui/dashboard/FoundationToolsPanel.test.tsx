@@ -23,7 +23,7 @@ describe('FoundationToolsPanel', () => {
     vi.clearAllMocks();
   });
 
-  it('renders loading skeleton', () => {
+  it('renders loading skeletons', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {}, foundationTools: [],
@@ -33,7 +33,8 @@ describe('FoundationToolsPanel', () => {
     const { container } = render(
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
-    expect(container.querySelector('.foundation-tools')).toBeInTheDocument();
+    expect(container.querySelector('.foundation-status')).toBeInTheDocument();
+    expect(container.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
   });
 
   it('renders nothing when no foundation tools', () => {
@@ -46,10 +47,10 @@ describe('FoundationToolsPanel', () => {
     const { container } = render(
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
-    expect(container.querySelector('.foundation-tools')).not.toBeInTheDocument();
+    expect(container.querySelector('.foundation-status')).not.toBeInTheDocument();
   });
 
-  it('renders foundation tool cards', () => {
+  it('renders foundation status items', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {}, foundationTools: [
@@ -73,12 +74,12 @@ describe('FoundationToolsPanel', () => {
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
 
-    expect(screen.getByText('Foundation Assets')).toBeInTheDocument();
-    expect(screen.getByText('Brief Generator')).toBeInTheDocument();
-    expect(screen.getByText('TOV Generator')).toBeInTheDocument();
+    expect(screen.getByText('Foundation')).toBeInTheDocument();
+    expect(screen.getByText('Brief')).toBeInTheDocument();
+    expect(screen.getByText('Brand Voice')).toBeInTheDocument();
   });
 
-  it('shows empty state CTA when no assets', () => {
+  it('shows missing status when no assets', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {}, foundationTools: [
@@ -96,11 +97,10 @@ describe('FoundationToolsPanel', () => {
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
 
-    expect(screen.getByText('No brief yet')).toBeInTheDocument();
-    expect(screen.getByText('Generate brief')).toBeInTheDocument();
+    expect(screen.getByText('Missing — generate to unlock tools')).toBeInTheDocument();
   });
 
-  it('shows has-assets state with count and regenerate', () => {
+  it('shows present status with asset count', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {}, foundationTools: [
@@ -120,7 +120,6 @@ describe('FoundationToolsPanel', () => {
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
 
-    expect(screen.getAllByText('1 asset').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Regenerate')).toBeInTheDocument();
+    expect(screen.getByText('1 asset')).toBeInTheDocument();
   });
 });

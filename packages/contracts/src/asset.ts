@@ -83,6 +83,14 @@ export type AssetGroupUsage = 'individual' | 'bundled';
 // =====================================================================
 
 /**
+ * A single consumes entry: an AssetType, optionally suffixed with '?' to mark
+ * it as optional (not required to start the tool).
+ *
+ * DDD-200: '?' suffix convention is parsed by parseConsumesEntry.
+ */
+export type ToolAssetContractConsumesEntry = AssetType | `${AssetType}?`;
+
+/**
  * Declares which AssetType values a Tool produces and consumes.
  * '?' suffix in consumes means optional (not required to start).
  *
@@ -90,7 +98,7 @@ export type AssetGroupUsage = 'individual' | 'bundled';
  */
 export type ToolAssetContract = {
   produces: AssetType[];
-  consumes: AssetType[];
+  consumes: ToolAssetContractConsumesEntry[];
 };
 
 /**
@@ -114,7 +122,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   },
   'angle-generator': {
     produces: ['angle'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'brief'],
+    consumes: ['brief', 'persona?', 'competitor-analysis?'],
   },
   'meta-ads': {
     produces: ['ad-copy', 'hook'],
@@ -142,7 +150,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   },
   'personas-generator': {
     produces: ['persona'],
-    consumes: [],
+    consumes: ['brief', 'competitor-analysis?'],
   },
 };
 

@@ -26,11 +26,15 @@ export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntr
   const contract = TOOL_ASSET_CONTRACTS[toolKey];
   if (!contract) return [];
 
-  return contract.consumes.map(assetType => ({
-    assetType,
-    label: ASSET_TYPE_LABELS[assetType] || assetType,
-    requiredness: assetType === 'brief' ? 'always-required' as const : 'optional-by-tool-setting' as const,
-  }));
+  return contract.consumes.map(entry => {
+    // Strip the '?' optional suffix so the UI renders the canonical asset label
+    const assetType = entry.replace(/\?$/, '') as AssetType;
+    return {
+      assetType,
+      label: ASSET_TYPE_LABELS[assetType] || assetType,
+      requiredness: assetType === 'brief' ? 'always-required' as const : 'optional-by-tool-setting' as const,
+    };
+  });
 };
 
 export const getProducerToolsForAsset = (assetType: AssetType): ToolKey[] => {

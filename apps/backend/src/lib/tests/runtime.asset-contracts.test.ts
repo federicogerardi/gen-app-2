@@ -78,9 +78,10 @@ test('TOOL_ASSET_CONTRACTS has entry for all tools', () => {
 test('angle-generator produces angle and consumes optional types', () => {
   const contract = TOOL_ASSET_CONTRACTS['angle-generator'];
   assert.deepEqual(contract.produces, ['angle']);
-  assert.ok(contract.consumes.includes('persona'));
-  assert.ok(contract.consumes.includes('brand-voice'));
-  assert.ok(contract.consumes.includes('competitor-analysis'));
+  assert.ok(contract.consumes.includes('brief'));
+  assert.ok(contract.consumes.includes('persona?'));
+  assert.ok(contract.consumes.includes('competitor-analysis?'));
+  assert.ok(!contract.consumes.includes('brand-voice'));
 });
 
 test('meta-ads produces ad-copy and hook, consumes angle', () => {

@@ -120,7 +120,7 @@ describe('FoundationToolsPanel', () => {
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
 
-    expect(screen.getByText('Missing — generate to unlock tools')).toBeInTheDocument();
+    expect(screen.getByText('Missing')).toBeInTheDocument();
   });
 
   it('shows present status with asset count', () => {

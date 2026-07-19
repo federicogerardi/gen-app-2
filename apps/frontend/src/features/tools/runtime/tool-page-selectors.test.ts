@@ -3,24 +3,11 @@ import {
   buildBaseGenerationRequest,
   buildGeometricDirectInputExtractionInfo,
   buildYoutubeDescriptionDirectInputExtractionInfo,
-  deriveToolInputFileCompletion,
   deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
 } from './tool-page-selectors';
 
 describe('selectToolFileInstructions', () => {
-  it('returns canonical angle-generator instructions with optional second file policy', () => {
-    const instructions = selectToolFileInstructions('angle-generator');
-
-    expect(instructions).not.toBeNull();
-    expect(instructions?.alwaysRequiredFiles.map((file) => file.label)).toEqual(['BriefingFile']);
-    expect(instructions?.requiredBySettingFiles).toEqual([]);
-    expect(instructions?.optionalBySettingFiles.map((file) => file.label)).toEqual(['AngleDetectorFile']);
-    expect(instructions?.stepConstraints).toEqual([
-      'The canonical sequence is context-and-angle-matrix -> angle-prioritization -> creative-activation.',
-    ]);
-  });
-
   it('returns canonical youtube-lf-script instructions with the full extraction schema', () => {
     const instructions = selectToolFileInstructions('youtube-lf-script');
 
@@ -55,42 +42,6 @@ describe('selectToolFileInstructions', () => {
     ]);
     expect(instructions?.requiredFields).not.toContain('funnel_goal');
     expect(instructions?.requiredFields).not.toContain('primary_cta');
-  });
-
-  it('derives required and optional completion deterministically from policy keys', () => {
-    const angleMissingSecondOptional = deriveToolInputFileCompletion({
-      toolKey: 'angle-generator',
-      completedFileKeys: ['briefing-file'],
-    });
-
-    expect(angleMissingSecondOptional.requiredFilesComplete).toBe(true);
-    expect(angleMissingSecondOptional.missingRequiredFiles).toEqual([]);
-    expect(angleMissingSecondOptional.missingOptionalFiles.map((file) => file.key)).toEqual(['angle-detector-file']);
-
-    const angleAllRequiredComplete = deriveToolInputFileCompletion({
-      toolKey: 'angle-generator',
-      completedFileKeys: ['briefing-file', 'angle-detector-file'],
-    });
-
-    expect(angleAllRequiredComplete.requiredFilesComplete).toBe(true);
-    expect(angleAllRequiredComplete.missingRequiredFiles).toEqual([]);
-  });
-
-  it('builds the canonical input requirement matrix with direct-input and file entries', () => {
-    const matrix = deriveToolInputRequirementMatrix({
-      toolKey: 'angle-generator',
-      hasProjectSelected: false,
-      completedFileKeys: [],
-    });
-
-    expect(matrix.requiredEntriesSatisfied).toBe(false);
-    expect(matrix.missingRequiredEntries.map((entry) => entry.key)).toEqual([
-      'project-selection',
-      'briefing-file',
-    ]);
-    expect(matrix.missingOptionalEntries.map((entry) => entry.key)).toEqual([
-      'angle-detector-file',
-    ]);
   });
 
   it('keeps api-acquisition entries empty for current tools without bindings', () => {

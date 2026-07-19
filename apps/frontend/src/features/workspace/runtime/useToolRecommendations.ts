@@ -41,13 +41,15 @@ export const useToolRecommendations = (
       const contract = TOOL_ASSET_CONTRACTS[toolKey];
       if (!contract || contract.consumes.length === 0) continue;
 
+      // Strip the '?' optional suffix so displayed asset references stay canonical
+      const stripOptional = (entry: string): AssetType => entry.replace(/\?$/, '') as AssetType;
       const toolInputs = getToolAssetInputs(toolKey);
       const requiredTypes = new Set(toolInputs.filter(i => i.requiredness === 'always-required').map(i => i.assetType));
-      const requiredConsumes = contract.consumes.filter(a => requiredTypes.has(a));
+      const requiredConsumes = contract.consumes.map(stripOptional).filter(a => requiredTypes.has(a));
 
       // Readiness based only on required assets (optional assets don't reduce score)
       const coveredCount = requiredConsumes.filter(a => existingAssetTypes.has(a)).length;
-      const missingAssets = contract.consumes.filter(a => !existingAssetTypes.has(a));
+      const missingAssets = contract.consumes.map(stripOptional).filter(a => !existingAssetTypes.has(a));
       const fillableGaps = contract.produces.filter(a => gapAssetTypes.has(a));
 
       const readinessScore = requiredConsumes.length > 0

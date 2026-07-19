@@ -392,12 +392,6 @@ describe('ToolPageTemplate wiring', () => {
     expect(secondRequest.input.step).toBe('quiz');
   });
 
-  it('renders the file instructions section when input files are present', () => {
-    renderTemplate({ toolKey: 'angle-generator' });
-    // File instructions are displayed in the Resources section to guide users on file format requirements
-    expect(screen.getByTestId('tool-file-instructions-accordion')).toBeInTheDocument();
-  });
-
   it('persists extraction context and grows step dependency context incrementally across steps', async () => {
     availableStepsState.steps = ['optin'];
     generationState.artifacts = [defaultExtractionArtifact];

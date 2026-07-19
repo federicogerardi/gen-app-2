@@ -269,7 +269,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
@@ -290,7 +290,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
@@ -311,7 +311,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
@@ -337,22 +337,10 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   },
   'angle-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Upload a mandatory BriefingFile and, if available, a complementary AngleDetectorFile.',
-    inputFiles: [
-      {
-        key: 'briefing-file',
-        label: 'BriefingFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'always-required',
-      },
-      {
-        key: 'angle-detector-file',
-        label: 'AngleDetectorFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'optional-by-tool-setting',
-      },
-    ],
-    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    summary: 'Generate prioritized, actionable marketing angles from a workspace Brief (required) and optionally a Persona or Competitor Analysis. No file upload required.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
     requiredFieldKeys: [
       'goal',
       'product_or_service',
@@ -365,10 +353,10 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     ],
     optionalFields: ['Tone of voice', 'Examples of previously used angles', 'Benchmarks or competitors', 'Strategic notes'],
     examples: [
-      'Briefing: description of the brand and product to position.',
-      'Angle detector: market insights and competitive signals to cross-reference with the brief.',
+      'A Brief describing the brand and product to position.',
+      'A Persona or Competitor Analysis to cross-reference with the brief.',
     ],
-    notes: ['If you upload both files, they must describe the same work context.', 'AngleDetectorFile enriches the context but does not block generation if absent.'],
+    notes: ['Angles are compatible with meta-ads, funnel-pages, and other downstream tools.'],
     stepConstraints: ['The canonical sequence is context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
   'meta-ads': {
@@ -377,7 +365,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
@@ -484,7 +472,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.txt,.md,.docx',
         requiredness: 'always-required',
       },
@@ -507,7 +495,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.txt,.md,.docx',
         requiredness: 'always-required',
       },
@@ -526,26 +514,19 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   },
   'personas-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Carica un documento con dati di mercato, descrizioni del target o ricerche sui clienti. Personas Generator estrae i dati rilevanti e produce una buyer persona strutturata.',
-    inputFiles: [
-      {
-        key: 'briefing-file',
-        label: 'BriefingFile',
-        accept: '.txt,.md,.docx',
-        requiredness: 'always-required',
-      },
-    ],
-    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    summary: 'Generate a structured buyer persona from a workspace Brief (required) and optionally a Competitor Analysis. Personas Generator derives demographics, goals, behaviors, pain points, and objections from the selected assets — no file upload required.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
     requiredFieldKeys: ['demographics', 'goals', 'pain_point', 'behaviors', 'objections'],
     optionalFields: [],
     examples: [
-      'Report di ricerche di mercato con dati su target e comportamenti d\'acquisto.',
-      'Trascrizione di interviste ai clienti con pain point e obiezioni.',
-      'Documento di posizionamento con descrizione della buyer persona ideale.',
+      'A Brief describing target market, offer, and positioning.',
+      'A Competitor Analysis with audience overlaps and differentiation.',
     ],
     notes: [
-      'La persona in output è compatibile con funnel-pages, nextland, youtube-lf-script, angle-generator, meta-ads e blog-article-generator.',
-      'Se un campo non è disponibile nel file, l\'estrazione lo segna come "non disponibile" e la persona lo esplicita.',
+      'The output persona is compatible with funnel-pages, nextland, youtube-lf-script, angle-generator, meta-ads and blog-article-generator.',
+      'If a field is not available in the inputs, extraction marks it as "unavailable" and the persona states it explicitly.',
     ],
     stepConstraints: [],
   },

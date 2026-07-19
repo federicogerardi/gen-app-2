@@ -137,14 +137,20 @@ export const useWorkspaceContext = (
     return groups;
   }, [mappedAssets]);
 
-  // Foundation tools: tools with consumes === [], excluding analysis-only tools
-  // (geometric). This is a UI-layer derivation, not a domain concept.
-  const EXCLUDED_FOUNDATION_TOOLS = new Set<ToolKey>(['geometric']);
+  // Foundation tools: the primitive asset generators that seed the workspace
+  // knowledge base. These produce a single foundational asset (brief, brand voice,
+  // persona) and may consume other assets as input — that does not remove them
+  // from the Foundation panel. Explicitly allowlisted; analysis-only tools
+  // (e.g. geometric) are excluded. UI-layer derivation, not a domain concept.
+  const FOUNDATION_TOOL_KEYS = new Set<ToolKey>([
+    'brief-generator',
+    'tov-generator',
+    'personas-generator',
+  ]);
 
   const foundationTools = useMemo((): FoundationToolStatus[] => {
     const foundationToolKeys = (Object.keys(TOOL_ASSET_CONTRACTS) as ToolKey[])
-      .filter(key => (TOOL_ASSET_CONTRACTS[key]?.consumes ?? []).length === 0)
-      .filter(key => !EXCLUDED_FOUNDATION_TOOLS.has(key));
+      .filter(key => FOUNDATION_TOOL_KEYS.has(key));
 
     return foundationToolKeys.map(toolKey => {
       const contract = TOOL_ASSET_CONTRACTS[toolKey];

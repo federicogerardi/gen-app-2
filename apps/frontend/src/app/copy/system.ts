@@ -835,7 +835,7 @@ export const appCopy = {
         recentAssetsEmpty: 'No assets yet — start by using a tool.',
         foundationToolsTitle: 'Foundation',
         foundationToolsRegenerate: 'Regenerate',
-        foundationStatusMissing: 'Missing — generate to unlock tools',
+        foundationStatusMissing: 'Missing',
         foundationStatusPresent: (count: number) => `${count} asset${count === 1 ? '' : 's'}`,
         foundationActionGenerate: 'Generate',
         foundationTooltipBrief: 'Generate new Brief',

@@ -814,7 +814,7 @@ Every rendered string maps to an existing `appCopy` key. No new copy keys are in
 | "Enter workspace" | `appCopy.ui.actions.enterWorkspace` | "Enter workspace" |
 | Foundation section label | `appCopy.ui.workspace.dashboard.workspaceOverviewFoundationLabel` | "Foundation Assets" |
 | Foundation — present | `appCopy.ui.workspace.dashboard.foundationStatusPresent(count)` | "{n} assets" |
-| Foundation — missing | `appCopy.ui.workspace.dashboard.foundationStatusMissing` | "Missing — generate to unlock tools" |
+| Foundation — missing | `appCopy.ui.workspace.dashboard.foundationStatusMissing` | "Missing" |
 | Quality score | `appCopy.ui.workspace.dashboard.workspaceOverviewQuality(score)` | "{n}% quality" |
 | Asset count | `appCopy.ui.workspace.dashboard.workspaceOverviewStatsAssets(count)` | "{n} assets" |
 | Type count | `appCopy.ui.workspace.dashboard.workspaceOverviewStatsTypes(count)` | "{n} types" |

@@ -130,7 +130,7 @@ export const UserReportSubmissionPage = () => {
             </TextField>
 
             <TextField
-              label="Titolo"
+              label={appCopy.ui.feedbackCenter.formTitleLabel}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               fullWidth
@@ -139,7 +139,7 @@ export const UserReportSubmissionPage = () => {
             />
 
             <TextField
-              label="Descrizione"
+              label={appCopy.ui.feedbackCenter.formDescriptionLabel}
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               fullWidth
@@ -151,7 +151,7 @@ export const UserReportSubmissionPage = () => {
 
             <div className={uiPrimitives.actions}>
               <button type="submit" className={uiPrimitives.button} disabled={isSubmitting}>
-                {isSubmitting ? 'Invio in corso...' : 'Invia report'}
+                {isSubmitting ? appCopy.ui.feedbackCenter.submitButtonLoading : appCopy.ui.feedbackCenter.submitButtonText}
               </button>
             </div>
 

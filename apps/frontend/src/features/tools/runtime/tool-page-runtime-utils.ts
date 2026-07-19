@@ -89,16 +89,16 @@ const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReason
 const mapReasonCodeToMessage = (code: DispatchErrorReasonCode): string => {
   switch (code) {
     case 'idempotency_conflict':
-      return 'Generazione già in corso. Attendi il completamento.';
+      return appCopy.ui.toolPage.runtimeErrors.idempotencyConflict;
     case 'extraction_context_insufficient':
     case 'stream_empty_output':
       return appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient;
     case 'terminal_failed':
       return appCopy.ui.toolPage.runtimeErrors.streamFailed;
     case 'timeout':
-      return 'La generazione ha impiegato troppo tempo. Riprova o contatta il supporto.';
+      return appCopy.ui.toolPage.runtimeErrors.timeout;
     case 'connection_lost':
-      return 'Connessione persa. Controlla la tua connessione e riprova.';
+      return appCopy.ui.toolPage.runtimeErrors.connectionLost;
   }
 };
 

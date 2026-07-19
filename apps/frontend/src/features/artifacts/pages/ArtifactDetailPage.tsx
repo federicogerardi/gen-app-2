@@ -154,7 +154,7 @@ const LegacyArtifactView = ({
   const stepTitle = useMemo(() => {
     const normalized = artifact.stepKey?.trim();
     if (!normalized) {
-      return 'Step non disponibile';
+      return appCopy.ui.artifactDetail.stepUnavailable;
     }
 
     return normalized
@@ -165,7 +165,7 @@ const LegacyArtifactView = ({
   const modelLabel = artifact.model.trim().length > 0 ? artifact.model : '-';
   const completedAtRaw = artifact.completedAt ?? artifact.updatedAt;
   const completedAtHumanReadable = useMemo(() => toHumanReadableDate(completedAtRaw), [completedAtRaw]);
-  const resolvedProjectName = projectName ?? `Progetto ${artifact.projectId}`;
+  const resolvedProjectName = projectName ?? `Project ${artifact.projectId}`;
   const sessionPath = useMemo(() => {
     const sessionId = artifact.sessionId?.trim();
     const projectId = artifact.projectId?.trim();
@@ -173,7 +173,7 @@ const LegacyArtifactView = ({
   }, [artifact.sessionId, artifact.projectId]);
   const resolvedToolKey = useMemo(() => resolveArtifactToolKey(artifact), [artifact]);
   const toolName = useMemo(
-    () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : 'Tool non disponibile'),
+    () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : appCopy.ui.artifactDetail.toolUnavailable),
     [resolvedToolKey],
   );
   const toneLabel = useMemo(() => {
@@ -210,12 +210,12 @@ const LegacyArtifactView = ({
       </TopBar>
 
       <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/DigitalDocument">
-        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto artifact">
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.artifactDetail.previewAriaLabel}>
           <ArtifactContentPreview content={artifact.content} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label="Contesto e azioni artifact">
-          <section className="ui-artifact-overview" aria-label="Panoramica artifact">
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.artifactDetail.contextAriaLabel}>
+          <section className="ui-artifact-overview" aria-label={appCopy.ui.artifactDetail.overviewAriaLabel}>
             <div className="ui-artifact-overview-main">
               <div className="ui-artifact-overview-heading-row">
                 <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
@@ -228,7 +228,7 @@ const LegacyArtifactView = ({
             <div className="ui-artifact-overview-actions">
               {sessionPath ? (
                 <PrimaryCtaButton component={Link} to={sessionPath}>
-                  Apri sessione
+                  {appCopy.ui.toolPage.openSessionLabel}
                 </PrimaryCtaButton>
               ) : (
                 <PrimaryCtaButton type="button" disabled>
@@ -252,7 +252,7 @@ const LegacyArtifactView = ({
           </section>
 
           <details className="ui-artifact-accessory">
-            <summary>Dettagli tecnici</summary>
+            <summary>{appCopy.ui.artifactDetail.technicalDetails}</summary>
             {toneLabel !== '-' ? <meta itemProp="keywords" content={`tone:${toneLabel}`} /> : null}
             <dl className="ui-artifact-metadata">
               <dt>{appCopy.ui.meta.artifactId}</dt>

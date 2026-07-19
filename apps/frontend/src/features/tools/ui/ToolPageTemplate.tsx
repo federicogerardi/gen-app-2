@@ -388,7 +388,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             context.addIssue({
               code: z.ZodIssueCode.custom,
               path: ['titolo'],
-              message: 'Titolo articolo richiesto',
+              message: appCopy.ui.toolPage.form.validation.articleTitleRequired,
             });
           }
         }
@@ -1211,7 +1211,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                         onClick={handlePrimaryAction}
                         disabled={isFormLocked || isFormBusy}
                       >
-                        Riprova
+                        Retry
                       </button>
                     )}
                   </div>

@@ -64,7 +64,7 @@ describe('ProjectsListPage', () => {
       <Routes>
         <Route
           path="/start"
-          element={<Link to="/dashboard/projects">Apri projects</Link>}
+          element={<Link to="/dashboard/projects">Open projects</Link>}
         />
         <Route
           path="/dashboard/projects"
@@ -74,7 +74,7 @@ describe('ProjectsListPage', () => {
       { initialEntries: ['/start'] },
     );
 
-    fireEvent.click(screen.getByRole('link', { name: 'Apri projects' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Open projects' }));
     expect(await screen.findByText('Project 1')).toBeInTheDocument();
     await waitFor(() => {
       expect(requestCount).toBe(1);

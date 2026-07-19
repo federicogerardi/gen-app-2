@@ -41,7 +41,7 @@ export const ProjectsListPage = () => {
             <thead>
               <tr>
                 <th scope="col">{appCopy.ui.labels.project ?? 'Progetto'}</th>
-                <th scope="col">Descrizione</th>
+                <th scope="col">{appCopy.ui.labels.projectDescription}</th>
                 <th scope="col">{appCopy.ui.meta.updated}</th>
                 <th scope="col">{appCopy.ui.actions.openDetail}</th>
               </tr>

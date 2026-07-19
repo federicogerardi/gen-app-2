@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, IconButton } from '@mui/material';
+import { appCopy } from '../../../app/copy/system';
 import { uiPrimitives } from '../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../artifacts/ui/ArtifactContentPreview';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
@@ -202,7 +203,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
           </span>
           {selected.overrideReason && (
             <span style={{ display: 'block', fontSize: '0.7rem', color: '#888' }}>
-              Motivo: {selected.overrideReason}
+              Reason: {selected.overrideReason}
             </span>
           )}
         </div>
@@ -210,7 +211,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
 
       <ArtifactContentPreview
         content={selected.content}
-        toolbarLabel="Modalita visualizzazione contenuto artifact di sessione"
+        toolbarLabel={appCopy.ui.artifactPreview.toolbarLabel}
         panelLabel="Selected session artifact"
       />
     </section>

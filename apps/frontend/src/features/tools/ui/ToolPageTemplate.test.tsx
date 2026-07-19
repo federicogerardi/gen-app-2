@@ -320,10 +320,10 @@ describe('ToolPageTemplate wiring', () => {
     renderTemplate();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /start generation/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);
@@ -349,10 +349,10 @@ describe('ToolPageTemplate wiring', () => {
     const { rerender } = renderTemplate();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /start generation/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);
@@ -406,10 +406,10 @@ describe('ToolPageTemplate wiring', () => {
     const { rerender } = renderTemplate();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /start generation/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledTimes(1);
@@ -525,7 +525,7 @@ describe('ToolPageTemplate wiring', () => {
       renderTemplate();
 
       const primaryButton = await waitFor(() => (
-        screen.getByRole('button', { name: /avvia la generazione/i })
+        screen.getByRole('button', { name: /start generation/i })
       ));
 
       expect(primaryButton).toBeEnabled();
@@ -539,7 +539,7 @@ describe('ToolPageTemplate wiring', () => {
     renderTemplate();
 
     const primaryButton = await waitFor(() => (
-      screen.getByRole('button', { name: /avvia la generazione/i })
+      screen.getByRole('button', { name: /start generation/i })
     ));
 
     expect(primaryButton).toBeEnabled();
@@ -917,8 +917,8 @@ describe('ToolPageTemplate restore flow', () => {
     });
 
     const primaryActionButton = await waitFor(() => {
-      const button = screen.queryByRole('button', { name: /^rigenera$/i })
-        ?? screen.queryByRole('button', { name: /avvia la generazione/i });
+      const button = screen.queryByRole('button', { name: /^Regenerate$/i })
+        ?? screen.queryByRole('button', { name: /start generation/i });
       expect(button).toBeInTheDocument();
       return button as HTMLButtonElement;
     });
@@ -934,7 +934,7 @@ describe('ToolPageTemplate restore flow', () => {
     expect(firstRequest.input.briefingText).toBe('brief text');
   });
 
-  it('uses completed CTA policy without exposing a Visualizza button', async () => {
+  it('uses completed CTA policy without exposing a View button', async () => {
     extractionContextState = makeExtractionContext();
     briefingState.fileName = 'completed-brief.md';
     briefingState.status = 'ready';
@@ -1081,11 +1081,11 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /avvia la generazione/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /start generation/i })).toBeInTheDocument();
     });
 
     // Bottone presente e non disabled (la policy non è 'disabled')
-    expect(screen.getByRole('button', { name: /avvia la generazione/i })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: /start generation/i })).not.toBeDisabled();
   });
 
   it('non interrompe la chain dopo extraction success con extraction context valido', async () => {
@@ -1101,7 +1101,7 @@ describe('ToolPageTemplate CTA regression guard', () => {
     renderTemplate({ initialProjectId: 'project-001' });
 
     const primaryActionButton = await waitFor(() => {
-      const button = screen.getByRole('button', { name: /avvia la generazione/i });
+      const button = screen.getByRole('button', { name: /start generation/i });
       expect(button).not.toBeDisabled();
       return button;
     });

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { appCopy } from '../../../app/copy/system';
 import type { ApiServiceBinding, ApiServiceBindingRequiredness, ApiServiceBindingStatus } from './admin-client';
 
 export const ADMIN_API_SERVICE_BINDING_STATUS_OPTIONS = [
@@ -15,8 +16,8 @@ export const ADMIN_API_SERVICE_BINDING_REQUIREDNESS_OPTIONS = [
 
 export const adminApiServiceBindingFormSchema = z.object({
   id: z.string().optional(),
-  toolKey: z.string().min(1, 'Tool key richiesto'),
-  stepKey: z.string().min(1, 'Step key richiesto'),
+  toolKey: z.string().min(1, appCopy.ui.adminApiServices.validation.toolKeyRequired),
+  stepKey: z.string().min(1, appCopy.ui.adminApiServices.validation.stepKeyRequired),
   workflowStepType: z.literal('acquisition'),
   bindingStatus: z.enum(['active', 'inactive']),
   requiredness: z.enum(['always-required', 'required-by-tool-setting', 'optional-by-tool-setting']),

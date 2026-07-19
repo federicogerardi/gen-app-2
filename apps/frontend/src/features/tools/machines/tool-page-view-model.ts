@@ -1,4 +1,5 @@
 import { toolStepOrder } from '../runtime/tool-generation-engine';
+import { appCopy } from '../../../app/copy/system';
 import type {
   CanonicalToolUiState,
   PrimaryActionPolicy,
@@ -21,8 +22,8 @@ export type ToolPageViewModel = {
 };
 
 export const TOOL_PAGE_MESSAGES = {
-  readyStatus: 'Pronto per la generazione',
-  waitingStatus: 'Seleziona un progetto e carica un brief per iniziare',
+  readyStatus: appCopy.ui.toolPage.statusMessages.ready,
+  waitingStatus: appCopy.ui.toolPage.statusMessages.waiting,
 } as const;
 
 const buildDefaultStepStatuses = (

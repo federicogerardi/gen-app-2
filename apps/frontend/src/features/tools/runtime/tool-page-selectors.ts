@@ -198,7 +198,7 @@ export const buildBlogArticleGeneratorDirectInputExtractionInfo = ({
   return {
     extractionArtifactId: 'direct-input:blog-article-generator',
     briefingId: 'direct-input:blog-article-generator',
-    briefingText: `Titolo: ${normalizedTitolo}`,
+    briefingText: `Title: ${normalizedTitolo}`,
     extractionPayload: {
       titolo: normalizedTitolo,
     },

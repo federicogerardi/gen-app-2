@@ -62,7 +62,7 @@ export const FeedbackNewsSticky = () => {
     key: session ? [apiBaseUrl, capabilities, 'feedback-news'] : null,
     fetcher: listPublishedChangelogQuery,
     emptyData: [],
-    errorMessage: 'Impossibile caricare il changelog pubblicato.',
+    errorMessage: appCopy.ui.fallbackErrors.loadAdminChangelog,
   });
 
   const visibleChangelog = useMemo(

@@ -9,15 +9,15 @@ describe('ToolFileInstructionsSection', () => {
 
     const accordion = screen.getByTestId('tool-file-instructions-accordion');
     expect(accordion).not.toHaveAttribute('open');
-    expect(screen.getByText('Istruzioni compilazione file')).toBeInTheDocument();
+    expect(screen.getByText('File compilation instructions')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
+    fireEvent.click(screen.getByText('File compilation instructions'));
 
     expect(accordion).toHaveAttribute('open');
-    expect(screen.getByRole('heading', { name: 'Campi obbligatori' })).toBeInTheDocument();
-    expect(screen.getByText('Obiettivo del funnel')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Required fields' })).toBeInTheDocument();
+    expect(screen.getByText('Funnel goal')).toBeInTheDocument();
     expect(screen.getByText('Proof')).toBeInTheDocument();
-    expect(screen.getByText('CTA principale')).toBeInTheDocument();
+    expect(screen.getByText('Primary CTA')).toBeInTheDocument();
     expect(screen.queryByText('BriefingFile (.docx, .txt, .md)')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'File sempre richiesti' })).toBeNull();
     expect(screen.queryByRole('heading', { name: 'File richiesti dalla configurazione tool' })).toBeNull();
@@ -28,30 +28,30 @@ describe('ToolFileInstructionsSection', () => {
   it('keeps meta-ads required fields focused on core marketing brief information', () => {
     const instructions = selectToolFileInstructions('meta-ads');
     expect(instructions?.requiredFields).toEqual([
-      'Prodotto o servizio',
+      'Product or service',
       'Target',
-      'Obiettivo campagna',
-      'Offerta principale',
+      'Campaign objective',
+      'Primary offer',
       'Proof points',
-      'Pain point dominanti',
-      'Obiezioni',
+      'Dominant pain points',
+      'Objections',
     ]);
 
     render(<ToolFileInstructionsSection instructions={instructions} />);
 
-    fireEvent.click(screen.getByText('Istruzioni compilazione file'));
+    fireEvent.click(screen.getByText('File compilation instructions'));
 
-    expect(screen.getByText('Prodotto o servizio')).toBeInTheDocument();
+    expect(screen.getByText('Product or service')).toBeInTheDocument();
     expect(screen.getByText('Target')).toBeInTheDocument();
-    expect(screen.getByText('Obiettivo campagna')).toBeInTheDocument();
-    expect(screen.getByText('Offerta principale')).toBeInTheDocument();
+    expect(screen.getByText('Campaign objective')).toBeInTheDocument();
+    expect(screen.getByText('Primary offer')).toBeInTheDocument();
     expect(screen.getByText('Proof points')).toBeInTheDocument();
-    expect(screen.getByText('Pain point dominanti')).toBeInTheDocument();
-    expect(screen.getByText('Obiezioni')).toBeInTheDocument();
+    expect(screen.getByText('Dominant pain points')).toBeInTheDocument();
+    expect(screen.getByText('Objections')).toBeInTheDocument();
 
-    expect(screen.queryByText('Priorita LF8')).toBeNull();
+    expect(screen.queryByText('LF8 priority')).toBeNull();
     expect(screen.queryByText('Awareness priority')).toBeNull();
-    expect(screen.queryByText('Meccanismo unico')).toBeNull();
+    expect(screen.queryByText('Unique mechanism')).toBeNull();
     expect(screen.queryByText('Angle candidates')).toBeNull();
   });
 });

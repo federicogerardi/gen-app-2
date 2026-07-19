@@ -74,8 +74,8 @@ describe('UserReportSubmissionPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Cannot save project' } });
-    fireEvent.change(screen.getByRole('textbox', { name: /descrizione/i }), { target: { value: 'Save fails with 500.' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /title/i }), { target: { value: 'Cannot save project' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /description/i }), { target: { value: 'Save fails with 500.' } });
     fireEvent.click(screen.getByRole('button', { name: appCopy.editorial.feedback.userReportSubmitButton }));
 
     expect(await screen.findByText(appCopy.editorial.feedback.userReportSuccessMessage)).toBeInTheDocument();
@@ -108,8 +108,8 @@ describe('UserReportSubmissionPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Bad report' } });
-    fireEvent.change(screen.getByRole('textbox', { name: /descrizione/i }), { target: { value: 'Bad desc' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /title/i }), { target: { value: 'Bad report' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /description/i }), { target: { value: 'Bad desc' } });
     fireEvent.click(screen.getByRole('button', { name: appCopy.editorial.feedback.userReportSubmitButton }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('title is required');

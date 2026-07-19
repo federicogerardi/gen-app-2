@@ -237,9 +237,9 @@ describe('AdminUsersPage', () => {
     renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
-    const editForm = screen.getByRole('heading', { name: 'Modifica utente' }).closest('form');
+    const editForm = screen.getByRole('heading', { name: 'Edit user' }).closest('form');
     expect(editForm).not.toBeNull();
     if (!editForm) {
       throw new Error('Edit form not found');
@@ -309,7 +309,7 @@ describe('AdminUsersPage', () => {
       <Routes>
         <Route
           path="/start"
-          element={<Link to="/admin">Apri admin</Link>}
+          element={<Link to="/admin">Open admin</Link>}
         />
         <Route path="/admin" element={<AdminUsersPage />} />
       </Routes>,

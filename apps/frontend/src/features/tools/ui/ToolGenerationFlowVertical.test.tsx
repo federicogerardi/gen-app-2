@@ -15,7 +15,7 @@ const baseProps: ToolGenerationFlowVerticalProps = {
 describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
   it('renders the region container', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
-    expect(screen.getByRole('region', { name: 'Flusso di generazione' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Generation flow' })).toBeInTheDocument();
   });
 
   it('renders extraction bar in idle stop state on draft-empty', () => {
@@ -23,16 +23,16 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in attesa');
+    expect(bar).toHaveAttribute('aria-label', 'Context generation waiting');
   });
 
   it('renders the project shell in draft-empty state', () => {
     render(<ToolGenerationFlowVertical {...baseProps} />);
-    expect(screen.getByText('Nessun workspace selezionato')).toBeInTheDocument();
-    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
-    expect(screen.getByText('Generazione contesto in attesa')).toBeInTheDocument();
-    expect(screen.queryByText('Seleziona un progetto per visualizzare i file del contesto')).toBeNull();
+    expect(screen.getByText('No workspace selected')).toBeInTheDocument();
+    expect(screen.getByText('Phase: Context generation')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Preparing context')).toBeInTheDocument();
+    expect(screen.getByText('Context generation waiting')).toBeInTheDocument();
+    expect(screen.queryByText('Select a project to view context files')).toBeNull();
     expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
   });
 
@@ -43,12 +43,12 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto completata');
+    expect(bar).toHaveAttribute('aria-label', 'Context generation completed');
   });
 
   it('renders correct status text for draft-ready', () => {
     render(<ToolGenerationFlowVertical {...baseProps} canonicalState="draft-ready" />);
-    expect(screen.getByText('Pronto per la generazione')).toBeInTheDocument();
+    expect(screen.getByText('Ready for generation')).toBeInTheDocument();
   });
 
   it('renders active bar with progressbar role when running', () => {
@@ -58,7 +58,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-active');
     expect(bar).toHaveAttribute('role', 'progressbar');
-    expect(bar).toHaveAttribute('aria-label', 'Generazione in corso');
+    expect(bar).toHaveAttribute('aria-label', 'Generation in progress');
   });
 
   it('renders paused-with-checkpoint as stopped generation bar', () => {
@@ -67,7 +67,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     );
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-idle');
-    expect(bar).toHaveAttribute('aria-label', 'Generazione in pausa');
+    expect(bar).toHaveAttribute('aria-label', 'Generation paused');
   });
 
   it('renders completed bar with aria-valuenow=100 when completed', () => {
@@ -84,12 +84,12 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       <ToolGenerationFlowVertical
         {...baseProps}
         canonicalState="draft-ready"
-        errorMessage="Qualcosa è andato storto"
+        errorMessage="Something went wrong"
       />,
     );
     const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
-    expect(alert).toHaveTextContent('Qualcosa è andato storto');
+    expect(alert).toHaveTextContent('Something went wrong');
   });
 
   it('does not render error element when errorMessage is null', () => {
@@ -103,11 +103,11 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     );
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveClass('is-active');
-    expect(bar).toHaveAttribute('aria-label', 'Generazione contesto in corso');
-    expect(screen.getByText('Fase: Generazione contesto')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Preparazione contesto')).toBeInTheDocument();
-    expect(screen.getByText('Generazione contesto in corso')).toBeInTheDocument();
-    expect(screen.getByText('Generazione contesto in corso…')).toBeInTheDocument();
+    expect(bar).toHaveAttribute('aria-label', 'Context generation in progress');
+    expect(screen.getByText('Phase: Context generation')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Preparing context')).toBeInTheDocument();
+    expect(screen.getByText('Generating context')).toBeInTheDocument();
+    expect(screen.getByText('Generating context…')).toBeInTheDocument();
   });
 
   it('renders dynamic extraction metrics and progress value during processing-briefing', () => {
@@ -123,8 +123,8 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
           extractionProgress: {
             completedCount: 2,
             totalCount: 3,
-            currentStepLabel: 'Estrazione contesto',
-            statusLabel: 'Estrazione contesto in corso',
+            currentStepLabel: 'Extracting context',
+            statusLabel: 'Extracting context',
           },
         }}
       />,
@@ -132,8 +132,8 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
 
     const bar = container.querySelector('.workflow-preload-bar');
     expect(bar).toHaveAttribute('aria-valuenow', '67');
-    expect(screen.getByText('Step corrente: Estrazione contesto')).toBeInTheDocument();
-    expect(screen.getByText('Estrazione contesto in corso')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Extracting context')).toBeInTheDocument();
+    expect(screen.getByText('Extracting context')).toBeInTheDocument();
   });
 
   it('does not render session handoff in draft-ready even if sessionId exists', () => {
@@ -152,7 +152,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('link', { name: 'Apri sessione →' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open session' })).toBeNull();
   });
 
   it('renders payload, progress metrics, and unified primary CTA for completed runs', () => {
@@ -186,7 +186,7 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
             sessionId: 'session-123',
           }}
           primaryActionCta={{
-            label: 'Apri sessione',
+            label: 'Open session',
             disabled: false,
             onClick: onPrimaryAction,
           }}
@@ -194,17 +194,17 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Informazioni di contesto')).toBeInTheDocument();
+    expect(screen.getByText('Context information')).toBeInTheDocument();
     expect(screen.getByText('Workspace')).toBeInTheDocument();
     const projectIndicator = container.querySelector('.ui-fv-context-project');
     expect(projectIndicator?.classList.contains('is-done')).toBe(true);
     expect(screen.getByText('BriefingFile')).toBeInTheDocument();
     expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
-    expect(screen.getByText('richiesto')).toBeInTheDocument();
-    expect(screen.getByText('opzionale')).toBeInTheDocument();
-    expect(screen.getByText('3 / 3 step completati')).toBeInTheDocument();
-    expect(screen.getByText('Step corrente: Landing Page')).toBeInTheDocument();
-    const actionButton = screen.getByRole('button', { name: 'Apri sessione' });
+    expect(screen.getByText('required')).toBeInTheDocument();
+    expect(screen.getByText('optional')).toBeInTheDocument();
+    expect(screen.getByText('3 / 3 steps completed')).toBeInTheDocument();
+    expect(screen.getByText('Current step: Landing Page')).toBeInTheDocument();
+    const actionButton = screen.getByRole('button', { name: 'Open session' });
     expect(actionButton).toHaveClass('ui-fv-session-button');
     expect(actionButton).toHaveClass('ui-button');
   });
@@ -226,9 +226,9 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       />,
     );
 
-    expect(screen.getByText('Acquisizione API')).toBeInTheDocument();
+    expect(screen.getByText('API acquisition')).toBeInTheDocument();
     expect(screen.getByText('MarketIntelService')).toBeInTheDocument();
-    expect(screen.getByText('Connesso')).toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 });
 

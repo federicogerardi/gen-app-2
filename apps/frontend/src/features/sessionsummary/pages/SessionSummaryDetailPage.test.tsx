@@ -244,7 +244,7 @@ describe('SessionSummaryDetailPage', () => {
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Project One - Angle Generator' })).toBeInTheDocument();
     expect(screen.getAllByText('Angle Generator').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Tool non disponibile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool unavailable')).not.toBeInTheDocument();
   });
 
   it('keeps relaunch enabled for angle-generator when latest artifact is non-step but a step artifact exists', async () => {
@@ -463,13 +463,13 @@ describe('SessionSummaryDetailPage', () => {
     expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
     expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.panelAriaLabel)).toHaveLength(2);
     expect(screen.getByLabelText(appCopy.ui.sessions.detail.overviewAriaLabel)).toBeInTheDocument();
-    expect(screen.getByText('Completato')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
     expect(screen.getByText('Project One')).toBeInTheDocument();
     expect(screen.getByText('Tool')).toBeInTheDocument();
-    expect(screen.getByText('Data job')).toBeInTheDocument();
-    expect(screen.getByText('Ultimo aggiornamento')).toBeInTheDocument();
-    expect(screen.getByText('Artefatti')).toBeInTheDocument();
-    expect(screen.getByText('Dettagli sessione')).toBeInTheDocument();
+    expect(screen.getByText('Job date')).toBeInTheDocument();
+    expect(screen.getByText('Last update')).toBeInTheDocument();
+    expect(screen.getByText('Artifacts')).toBeInTheDocument();
+    expect(screen.getByText('Session details')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: appCopy.ui.actions.openSessionArchive })).toHaveAttribute('href', '/workspaces/p-1/sessions');
     const relaunchLink = screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary });
     expect(relaunchLink.getAttribute('href')).toContain('/tools/funnel-pages?');

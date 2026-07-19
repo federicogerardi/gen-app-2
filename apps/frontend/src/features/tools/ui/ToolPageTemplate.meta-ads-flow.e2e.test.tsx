@@ -149,13 +149,13 @@ describe('ToolPageTemplate meta-ads e2e flow', () => {
       </MemoryRouter>,
     );
 
-    const objectiveSelect = screen.getByRole('combobox', { name: /obiettivo campagna/i });
+    const objectiveSelect = screen.getByRole('combobox', { name: /campaign objective/i });
     fireEvent.mouseDown(objectiveSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Leads' }));
 
     expect(formState.campaignObjective).toBe('Leads');
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);

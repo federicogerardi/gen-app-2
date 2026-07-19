@@ -548,7 +548,7 @@ describe('useToolPage', () => {
         step: 'optin',
       }),
     );
-    expect(result.current.dispatchError).toBe('La generazione non è andata a buon fine. Riprova tra pochi istanti.');
+    expect(result.current.dispatchError).toBe('Generation was unsuccessful. Try again shortly.');
   });
 
   it('surfaces stream_empty_output as inline dispatch feedback on terminal failure', async () => {
@@ -577,10 +577,10 @@ describe('useToolPage', () => {
       expect.objectContaining({
         type: 'STEP_FAILED',
         step: 'optin',
-        message: 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.',
+        message: 'The briefing does not contain enough data for generation. Upload a new, more detailed brief.',
       }),
     );
-    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+    expect(result.current.dispatchError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
   });
 
   it('keeps primary action disabled after invalid extraction and surfaces inline dispatch error', async () => {
@@ -616,8 +616,8 @@ describe('useToolPage', () => {
 
     expect(result.current.machineViewModel.primaryActionPolicy).toBe('disabled');
     expect(result.current.readinessSnapshot.canStartFlow).toBe(false);
-    expect(result.current.briefingError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
-    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+    expect(result.current.briefingError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
+    expect(result.current.dispatchError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
   });
 
   it('re-upload recovery: keeps disabled on invalid context and re-enables only after valid context', async () => {

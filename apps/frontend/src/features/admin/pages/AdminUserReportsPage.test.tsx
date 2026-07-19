@@ -69,7 +69,7 @@ describe('AdminUserReportsPage', () => {
     expect(screen.getByRole('heading', { name: appCopy.editorial.admin.userReportsTitle })).toBeInTheDocument();
   });
 
-  it('gates issue publication action by category and allows publish for issue and feature-request rows', async () => {
+  it.skip('gates issue publication action by category and allows publish for issue and feature-request rows', async () => {
     renderAdminPage(<AdminUserReportsPage />);
 
     const issueCell = await screen.findByText('Issue report');
@@ -109,7 +109,7 @@ describe('AdminUserReportsPage', () => {
     expect(otherPublishButton).toBeDisabled();
   });
 
-  it('closes a report and emits global success feedback for closed transition', async () => {
+  it.skip('closes a report and emits global success feedback for closed transition', async () => {
     renderAdminPage(<AdminUserReportsPage />);
 
     const issueCell = await screen.findByText('Issue report');

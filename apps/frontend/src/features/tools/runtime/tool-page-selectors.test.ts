@@ -17,7 +17,7 @@ describe('selectToolFileInstructions', () => {
     expect(instructions?.requiredBySettingFiles).toEqual([]);
     expect(instructions?.optionalBySettingFiles.map((file) => file.label)).toEqual(['AngleDetectorFile']);
     expect(instructions?.stepConstraints).toEqual([
-      'La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.',
+      'The canonical sequence is context-and-angle-matrix -> angle-prioritization -> creative-activation.',
     ]);
   });
 
@@ -30,7 +30,7 @@ describe('selectToolFileInstructions', () => {
       'Avatar',
       'Pain point',
       'Purchase process type',
-      'Offerta',
+      'Offer',
       'Proof',
       'Target duration (minutes)',
       'Proprietary methodology disclosure',
@@ -38,7 +38,7 @@ describe('selectToolFileInstructions', () => {
     expect(instructions?.requiredFields).not.toContain('knowledge_content');
     expect(instructions?.requiredFields).not.toContain('target_duration_minutes');
     expect(instructions?.stepConstraints).toEqual([
-      'La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.',
+      'The canonical sequence is pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.',
     ]);
   });
 
@@ -47,11 +47,11 @@ describe('selectToolFileInstructions', () => {
 
     expect(instructions).not.toBeNull();
     expect(instructions?.requiredFields).toEqual([
-      'Obiettivo del funnel',
+      'Funnel goal',
       'Target',
-      'Offerta',
+      'Offer',
       'Proof',
-      'CTA principale',
+      'Primary CTA',
     ]);
     expect(instructions?.requiredFields).not.toContain('funnel_goal');
     expect(instructions?.requiredFields).not.toContain('primary_cta');

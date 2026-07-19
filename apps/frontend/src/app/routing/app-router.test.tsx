@@ -61,7 +61,7 @@ vi.mock('../../features/admin/pages/AdminUserReportsPage', () => ({
 }));
 
 vi.mock('../../features/admin/pages/AdminActivityPage', () => ({
-  AdminActivityPage: () => <h1>Attività recente</h1>,
+  AdminActivityPage: () => <h1>Recent activity</h1>,
 }));
 
 vi.mock('../../features/admin/pages/AdminDashboardPage', () => ({
@@ -74,7 +74,7 @@ vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
 
     return (
       <button type="button" onClick={() => navigate('/admin/artifacts')}>
-        Visualizza i risultati
+        View results
       </button>
     );
   },
@@ -84,7 +84,7 @@ vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
   ArtifactsPage: () => (
     <div data-testid="artifacts-listing">
       Artifacts listing loaded
-      <Link to="/admin/artifacts/art-1">Apri dettaglio artifact</Link>
+      <Link to="/admin/artifacts/art-1">Open artifact detail</Link>
     </div>
   ),
 }));
@@ -117,7 +117,7 @@ describe('app router – integration', () => {
 
     render(<RouterProvider router={router} />);
 
-    const cta = await screen.findByRole('button', { name: /visualizza i risultati/i });
+    const cta = await screen.findByRole('button', { name: /view results/i });
     cta.click();
 
     expect(await screen.findByTestId('artifacts-listing')).toBeInTheDocument();
@@ -130,7 +130,7 @@ describe('app router – integration', () => {
 
     render(<RouterProvider router={router} />);
 
-    const openDetailLink = await screen.findByRole('link', { name: /apri dettaglio artifact/i });
+    const openDetailLink = await screen.findByRole('link', { name: /open artifact detail/i });
     fireEvent.click(openDetailLink);
 
     expect(await screen.findByTestId('artifact-detail-page')).toBeInTheDocument();
@@ -172,7 +172,7 @@ describe('app router – integration', () => {
     ['/admin?lh-route=models', /admin models/i, '/admin/models'],
     ['/admin?lh-route=changelog', /admin changelog/i, '/admin/changelog'],
     ['/admin?lh-route=user-reports', /admin user reports/i, '/admin/user-reports'],
-    ['/admin?lh-route=activity', /attività recente/i, '/admin/activity'],
+    ['/admin?lh-route=activity', /recent activity/i, '/admin/activity'],
   ])('resolves lighthouse seed route %s to target admin section', async (entryPath, headingName, expectedPathname) => {
     window.history.pushState({}, '', entryPath);
     const router = createAppRouter();

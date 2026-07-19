@@ -15,7 +15,7 @@ describe('LoginForm', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: /email/i }), { target: { value: 'not-an-email' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: /entra nel workspace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /enter workspace/i }));
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: /email/i })).toHaveAttribute('aria-invalid', 'true');
@@ -36,7 +36,7 @@ describe('LoginForm', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: /email/i }), { target: { value: 'test@example.com' } });
     fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'StrongPassword1!' } });
-    fireEvent.click(screen.getByRole('button', { name: /entra nel workspace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /enter workspace/i }));
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith('test@example.com', 'StrongPassword1!');

@@ -181,7 +181,7 @@ describe('ToolPageTemplate geometric direct input gating', () => {
     fireEvent.change(screen.getByLabelText('Base query'), { target: { value: 'protein supplements' } });
 
     fireEvent.mouseDown(screen.getByLabelText('Language'));
-    const languageOptions = screen.getAllByText('Italiano (it)');
+    const languageOptions = screen.getAllByText('Italian (it)');
     fireEvent.click(languageOptions[languageOptions.length - 1]!);
 
     fireEvent.mouseDown(screen.getByLabelText('Country / Google Domain'));

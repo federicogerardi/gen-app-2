@@ -163,7 +163,7 @@ describe('ArtifactDetailPage', () => {
     });
 
     renderPage('art-1');
-    expect(screen.getByRole('link', { name: 'Apri sessione' })).toHaveAttribute('href', '/workspaces/proj-1/sessions/sess_demo');
+    expect(screen.getByRole('link', { name: 'Open session' })).toHaveAttribute('href', '/workspaces/proj-1/sessions/sess_demo');
   });
 
   it('shows a disabled session CTA with explicit copy when sessionId is missing', () => {

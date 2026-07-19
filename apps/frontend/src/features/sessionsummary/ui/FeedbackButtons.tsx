@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { IconButton, Tooltip, Typography } from '@mui/material';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { appCopy } from '../../../app/copy/system';
 import { useAuthState } from '../../../app/providers/AuthSessionProvider';
 
 interface FeedbackButtonsProps {
@@ -75,14 +76,14 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <Tooltip title={userVote === 'positive' ? 'Già votato positivo' : 'Buon esempio'}>
+      <Tooltip title={userVote === 'positive' ? appCopy.ui.feedbackButtons.alreadyVotedPositive : appCopy.ui.feedbackButtons.goodExample}>
         <span>
           <IconButton
             size="small"
             onClick={() => handleVote('positive')}
             disabled={disabled || loading}
             color={loaded && userVote === 'positive' ? 'success' : 'default'}
-            aria-label="Voto positivo"
+            aria-label={appCopy.ui.feedbackButtons.votePositiveAria}
           >
             <ThumbsUp size={14} />
           </IconButton>
@@ -92,14 +93,14 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
         {positive}
       </Typography>
 
-      <Tooltip title={userVote === 'negative' ? 'Già votato negativo' : 'Esempio scarso'}>
+      <Tooltip title={userVote === 'negative' ? appCopy.ui.feedbackButtons.alreadyVotedNegative : appCopy.ui.feedbackButtons.poorExample}>
         <span>
           <IconButton
             size="small"
             onClick={() => handleVote('negative')}
             disabled={disabled || loading}
             color={loaded && userVote === 'negative' ? 'error' : 'default'}
-            aria-label="Voto negativo"
+            aria-label={appCopy.ui.feedbackButtons.voteNegativeAria}
           >
             <ThumbsDown size={14} />
           </IconButton>

@@ -81,11 +81,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 /* Knowledge Overview */
@@ -425,7 +420,6 @@
   }
 
   .workspace-dashboard {
-    padding: 16px;
     gap: 16px;
   }
 

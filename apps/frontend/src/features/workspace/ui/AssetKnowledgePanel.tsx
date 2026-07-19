@@ -1,11 +1,10 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Chip, FormControl, InputLabel, MenuItem, Select, Typography } from '@mui/material';
+import { Chip, MenuItem, Select, Typography } from '@mui/material';
 import { Database } from 'lucide-react';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import type { AssetType } from '@gen-app-2/contracts';
 import type { WorkspaceAsset } from '../runtime/useWorkspaceContext';
 import { AssetGroupSection } from './AssetGroupSection';
-import { QualityScoreBadge } from './QualityScoreBadge';
 import { getProducerToolsForAsset, type ToolProjectAssetPolicyEntry } from '../runtime/toolAssetRegistry';
 import { appCopy } from '../../../app/copy/system';
 import './AssetKnowledgePanel.css';
@@ -18,7 +17,6 @@ interface AssetKnowledgePanelProps {
   projectId?: string;
   onAssetSelect: (assetIds: string[]) => void;
   onCreateAssetAction: (assetType: string, sourceToolKey?: SupportedTool) => void;
-  readinessScore?: number;
   /** LlmModelId correntemente selezionato (dal form state) */
   modelValue?: string;
   /** Opzioni disponibili da LlmModelCatalog */
@@ -46,7 +44,6 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   projectId,
   onAssetSelect,
   onCreateAssetAction,
-  readinessScore,
   modelValue,
   modelOptions,
   onModelChange,
@@ -62,32 +59,6 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   const groupedAssets = useMemo(() => {
     return groupBy(workspaceAssets, 'assetType');
   }, [workspaceAssets]);
-
-  const overallQualityScore = useMemo(() => {
-    if (workspaceAssets.length === 0) return 0;
-    const totalScore = workspaceAssets.reduce((sum, asset) => sum + asset.qualityScore, 0);
-    return Math.round(totalScore / workspaceAssets.length);
-  }, [workspaceAssets]);
-
-  const toolReadinessScore = useMemo(() => {
-    let totalWeight = 0;
-    let achievedWeight = 0;
-
-    toolAssetInputs.forEach(input => {
-      const weight = input.requiredness === 'always-required' ? 3 : 1;
-      totalWeight += weight;
-
-      const assets = groupedAssets[input.assetType] || [];
-      if (assets.length > 0) {
-        const avgQuality = assets.reduce((sum, a) => sum + a.qualityScore, 0) / assets.length;
-        achievedWeight += (avgQuality / 100) * weight;
-      }
-    });
-
-    return totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : 0;
-  }, [toolAssetInputs, groupedAssets]);
-
-  const effectiveReadinessScore = readinessScore ?? toolReadinessScore;
 
   const handleAssetToggle = useCallback((assetId: string, checked: boolean) => {
     setSelectedAssetIds(prev => {
@@ -141,37 +112,23 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
         </div>
 
         <div className="asset-knowledge-panel__metrics">
-          {showModelSelector && modelOptions && modelOptions.length > 0 && (
-            <FormControl size="small" className="asset-knowledge-panel__model-selector">
-              <InputLabel id="knowledge-model-label">
-                {appCopy.ui.toolPage.form.modelLabel}
-              </InputLabel>
-              <Select
-                labelId="knowledge-model-label"
-                value={modelValue ?? ''}
-                label={appCopy.ui.toolPage.form.modelLabel}
-                onChange={(e) => onModelChange?.(e.target.value)}
-              >
-                {modelOptions.map((o) => (
-                  <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
           <Chip
             label={`${workspaceAssets.length} ${appCopy.ui.workspace?.assetPanel?.metricsAssets || 'assets'}`}
             size="small"
             color={workspaceAssets.length > 0 ? 'primary' : 'default'}
           />
-          <QualityScoreBadge
-            score={overallQualityScore}
-            label={appCopy.ui.workspace?.assetPanel?.metricsQuality || 'quality'}
-          />
-          <Chip
-            label={`${effectiveReadinessScore}% ready`}
-            size="small"
-            color={effectiveReadinessScore >= 70 ? 'success' : effectiveReadinessScore >= 40 ? 'warning' : 'error'}
-          />
+          {showModelSelector && modelOptions && modelOptions.length > 0 && (
+            <Select
+              size="small"
+              value={modelValue ?? ''}
+              onChange={(e) => onModelChange?.(e.target.value)}
+              className="asset-knowledge-panel__model-selector"
+            >
+              {modelOptions.map((o) => (
+                <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+              ))}
+            </Select>
+          )}
         </div>
       </div>
 

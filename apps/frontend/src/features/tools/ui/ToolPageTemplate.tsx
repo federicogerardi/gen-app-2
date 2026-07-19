@@ -1118,7 +1118,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               <AssetKnowledgePanelWrapper
                 toolKey={props.toolKey}
                 onAssetSelect={setSelectedAssetIds}
-                readinessScore={toolReadinessScore}
                 modelValue={formState.model}
                 modelOptions={modelOptions}
                 onModelChange={(newModel: string) => {
@@ -1180,11 +1179,10 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 const AssetKnowledgePanelWrapper: React.FC<{
   toolKey: SupportedTool;
   onAssetSelect?: (ids: string[]) => void;
-  readinessScore?: number;
   modelValue?: string;
   modelOptions?: Array<{ key: string; label: string; isDefault: boolean }>;
   onModelChange?: (model: string) => void;
-}> = ({ toolKey, onAssetSelect, readinessScore, modelValue, modelOptions, onModelChange }) => {
+}> = ({ toolKey, onAssetSelect, modelValue, modelOptions, onModelChange }) => {
   let workspace;
   try {
     // useWorkspace throws if not inside WorkspaceProvider
@@ -1214,7 +1212,6 @@ const AssetKnowledgePanelWrapper: React.FC<{
         projectId={workspace.id}
         onAssetSelect={onAssetSelect ?? (() => {})}
         onCreateAssetAction={handleCreateAssetAction}
-        {...(readinessScore !== undefined ? { readinessScore } : {})}
         {...(modelValue !== undefined ? { modelValue } : {})}
         {...(modelOptions !== undefined ? { modelOptions } : {})}
         {...(onModelChange !== undefined ? { onModelChange } : {})}

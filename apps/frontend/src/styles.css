@@ -2259,6 +2259,10 @@ button:not(.MuiButton-root):not([class]):disabled,
   grid-template-columns: 1fr;
 }
 
+.ui-tool-form-row--double {
+  grid-template-columns: 1fr 1fr;
+}
+
 .ui-tool-form-row--full {
   grid-template-columns: 1fr;
 }
@@ -2857,6 +2861,10 @@ ul {
 
   .ui-tool-form-row--triple {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ui-tool-form-row--double {
+    grid-template-columns: 1fr 1fr;
   }
 
   .ui-tool-form-row--full {

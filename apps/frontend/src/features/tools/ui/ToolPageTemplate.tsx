@@ -703,7 +703,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isMetaAdsTool ? (
-                <div className="ui-tool-form-row">
+                <div className="ui-tool-form-row ui-tool-form-row--double">
                   <Controller
                     name="campaignObjective"
                     control={control}
@@ -728,11 +728,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       </TextField>
                     )}
                   />
-                </div>
-              ) : null}
-
-              {isMetaAdsTool ? (
-                <div className="ui-tool-form-row">
                   <Controller
                     name="copyLengthFormat"
                     control={control}

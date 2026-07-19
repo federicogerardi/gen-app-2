@@ -5,31 +5,10 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 
 const setFormState = vi.fn();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'user-1' } },
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'user-1' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-1' });
+});
 
 vi.mock('../../../app/runtime/queries/useModelsQuery', () => ({
   useModelsQuery: () => ({

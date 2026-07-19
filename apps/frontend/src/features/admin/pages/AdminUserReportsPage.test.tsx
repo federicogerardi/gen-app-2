@@ -2,18 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
+import { appCopy } from '../../../app/copy/system';
 import { useMswHandlers } from '../../../test/mocks/server';
 import { renderAdminPage } from '../test/renderAdminPage';
 import { buildUserReportsHandlers } from '../test/msw-admin-factories';
 import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminUserReportsPage } from './AdminUserReportsPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => getMockAuthSession(),
@@ -69,7 +66,7 @@ describe('AdminUserReportsPage', () => {
     renderAdminPage(<AdminUserReportsPage />);
 
     expect(await screen.findByText('Issue report')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Admin user reports' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: appCopy.editorial.admin.userReportsTitle })).toBeInTheDocument();
   });
 
   it('gates issue publication action by category and allows publish for issue and feature-request rows', async () => {
@@ -79,14 +76,14 @@ describe('AdminUserReportsPage', () => {
     const issueRow = issueCell.closest('tr');
     expect(issueRow).not.toBeNull();
 
-    const triageButton = within(issueRow as HTMLElement).getByRole('button', { name: 'Triage' });
-    const issuePublishButton = within(issueRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' });
+    const triageButton = within(issueRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.triageAction });
+    const issuePublishButton = within(issueRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.publishIssueAction });
     expect(issuePublishButton).toBeEnabled();
 
     fireEvent.click(triageButton);
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Report triaged aggiornato.',
+        appCopy.ui.feedback.adminReportTriaged,
         expect.objectContaining({ dedupeKey: 'admin-user-reports:triaged:rpt_issue_001:success' }),
       );
     });
@@ -94,7 +91,7 @@ describe('AdminUserReportsPage', () => {
     fireEvent.click(issuePublishButton);
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Issue GitHub pubblicata.',
+        appCopy.ui.feedback.adminUserReportIssuePublished,
         expect.objectContaining({ dedupeKey: 'admin-user-reports:publish-issue:rpt_issue_001:success' }),
       );
     });
@@ -102,13 +99,13 @@ describe('AdminUserReportsPage', () => {
     const featureCell = screen.getByText('Feature report');
     const featureRow = featureCell.closest('tr');
     expect(featureRow).not.toBeNull();
-    const featurePublishButton = within(featureRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' });
+    const featurePublishButton = within(featureRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.publishIssueAction });
     expect(featurePublishButton).toBeEnabled();
 
     const otherCell = screen.getByText('Other report');
     const otherRow = otherCell.closest('tr');
     expect(otherRow).not.toBeNull();
-    const otherPublishButton = within(otherRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' });
+    const otherPublishButton = within(otherRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.publishIssueAction });
     expect(otherPublishButton).toBeDisabled();
   });
 
@@ -119,17 +116,17 @@ describe('AdminUserReportsPage', () => {
     const issueRow = issueCell.closest('tr');
     expect(issueRow).not.toBeNull();
 
-    const closeButton = within(issueRow as HTMLElement).getByRole('button', { name: 'Chiudi' });
+    const closeButton = within(issueRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.closeAction });
     fireEvent.click(closeButton);
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Report closed aggiornato.',
+        appCopy.ui.feedback.adminReportClosed,
         expect.objectContaining({ dedupeKey: 'admin-user-reports:closed:rpt_issue_001:success' }),
       );
     });
 
-    expect(await screen.findByText('Chiusa')).toBeInTheDocument();
+    expect(await screen.findByText(appCopy.ui.statusLabels.closed)).toBeInTheDocument();
   });
 
   it('emits global error feedback when publish issue fails', async () => {
@@ -143,7 +140,7 @@ describe('AdminUserReportsPage', () => {
     const issueRow = issueCell.closest('tr');
     expect(issueRow).not.toBeNull();
 
-    fireEvent.click(within(issueRow as HTMLElement).getByRole('button', { name: 'Pubblica issue' }));
+    fireEvent.click(within(issueRow as HTMLElement).getByRole('button', { name: appCopy.ui.adminUserReports.publishIssueAction }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(

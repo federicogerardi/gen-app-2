@@ -8,12 +8,8 @@ import { renderAdminPage } from '../test/renderAdminPage';
 import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminApiServicesPage } from './AdminApiServicesPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 type TestApiService = {
   id: string;

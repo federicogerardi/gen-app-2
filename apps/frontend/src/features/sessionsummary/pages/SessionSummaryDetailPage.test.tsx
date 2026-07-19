@@ -7,20 +7,6 @@ import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import type { SessionArtifactGroup } from '../../tools/runtime/session-client';
 
 const mocks = vi.hoisted(() => ({
-  authSession: {
-    session: null,
-    loading: false,
-    error: null,
-    apiBaseUrl: '',
-    capabilities: {
-      projects: false,
-      models: false,
-      artifacts: false,
-      sessionsList: false,
-      sessionsDetail: false,
-      toolsUpload: false,
-    },
-  },
   sessionGroup: {
     sessionId: 'sess_demo',
     toolKey: 'funnel-pages',
@@ -78,27 +64,10 @@ const mocks = vi.hoisted(() => ({
   getSessionArtifacts: vi.fn(async () => mocks.sessionGroup),
 }));
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => mocks.authSession,
-  useAuthState: () => ({
-    session: mocks.authSession.session,
-    loading: mocks.authSession.loading,
-    hasError: mocks.authSession.error,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: mocks.authSession.apiBaseUrl,
-    capabilities: mocks.authSession.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ session: null, capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false } });
+});
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
   useProjectsQuery: () => ({

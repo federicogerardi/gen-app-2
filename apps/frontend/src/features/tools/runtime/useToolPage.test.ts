@@ -83,12 +83,6 @@ const mocks = vi.hoisted(() => {
     resetRun: vi.fn(),
   };
 
-  const auth = {
-    apiBaseUrl: '',
-    capabilities: { artifacts: true, toolsUpload: true } as Record<string, unknown>,
-    session: { user: { id: 'user-001' } },
-  };
-
   const formState = {
     projectId: 'project-001',
     model: 'openrouter/auto',
@@ -131,9 +125,8 @@ const mocks = vi.hoisted(() => {
     setFormState,
     machineSnapshot,
     briefingSnapshot,
-generation,
+    generation,
     generationRun,
-    auth,
     formState,
     toolConfig,
     availableSteps,
@@ -150,27 +143,10 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => mocks.auth,
-  useAuthState: () => ({
-    session: mocks.auth.session,
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: mocks.auth.apiBaseUrl,
-    capabilities: mocks.auth.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-001', capabilities: { artifacts: true, toolsUpload: true } });
+});
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => mocks.generation,

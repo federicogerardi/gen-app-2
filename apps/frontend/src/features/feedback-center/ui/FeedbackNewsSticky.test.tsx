@@ -2,60 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { useMswHandler } from '../../../test/mocks/server';
+import { createMockAuthSessionProvider } from '../../../test/mocks/auth-session-provider.mock';
 import { FeedbackNewsSticky } from './FeedbackNewsSticky';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
+vi.mock('../../../app/providers/AuthSessionProvider', () => createMockAuthSessionProvider({
+  role: 'member',
+  userId: 'member_001',
+  email: 'member@test.com',
+  capabilities: {
+    changelogList: true,
+    userReportsCreate: true,
+    adminChangelogCreate: true,
+    adminUserReportsList: true,
+    adminUserReportsUpdate: true,
+    adminUserReportsPublishIssue: true,
+  },
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({

@@ -35,38 +35,10 @@ const workspaceBag = {
   ],
 };
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ role: 'member', userId: 'u1', email: 'u@test.com', capabilities: { projects: true, models: false, artifacts: false, sessionsList: true, sessionsDetail: true, toolsUpload: false } });
+});
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => workspaceBag,

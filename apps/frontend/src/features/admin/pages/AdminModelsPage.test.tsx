@@ -7,12 +7,8 @@ import { renderAdminPage } from '../test/renderAdminPage';
 import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminModelsPage } from './AdminModelsPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 type TestModel = {
   id: string;
@@ -151,7 +147,7 @@ describe('AdminModelsPage', () => {
       );
     });
 
-    expect(screen.queryByText('Modello creato.')).not.toBeInTheDocument();
+    expect(screen.queryByText(appCopy.ui.feedback.adminModelsCreated)).not.toBeInTheDocument();
   });
 
   it('publishes global error for failed mutation', async () => {

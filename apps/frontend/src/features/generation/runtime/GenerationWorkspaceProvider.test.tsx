@@ -13,31 +13,10 @@ vi.mock('../../artifacts/runtime/artifacts-client', () => ({
   listArtifactsPaginated: (...args: unknown[]) => mockListArtifactsPaginated(...args),
 }));
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'user-001' } },
-    apiBaseUrl: '',
-    capabilities: { artifacts: true },
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'user-001' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: { artifacts: true },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-001', capabilities: { artifacts: true } });
+});
 
 vi.mock('@xstate/react', () => ({
   useMachine: (...args: unknown[]) => mockUseMachine(...args),

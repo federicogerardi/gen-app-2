@@ -9,12 +9,8 @@ import { AdminUsersPage } from './AdminUsersPage';
 import { AdminGuard } from '../routing/admin-guard';
 import { getMockAuthSession, resetMockAdminSession, setMockAdminSession } from '../test/mockAdminSession';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 type TestAdminUser = {
   id: string;
@@ -200,22 +196,22 @@ describe('AdminUsersPage', () => {
     fireEvent.change(container.querySelector('input[type="email"]')!, { target: { value: 'new-member@test.com' } });
     fireEvent.change(container.querySelector('input[type="password"]')!, { target: { value: 'Secret-123' } });
     fireEvent.change(container.querySelector('input[name="monthlyQuota"]')!, { target: { value: '200' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crea utente' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminUsers.createSubmitLabel }));
 
     expect(await screen.findByText('new-member@test.com')).toBeInTheDocument();
     expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
       appCopy.ui.feedback.adminUsersCreated,
       expect.objectContaining({ dedupeKey: 'admin-users:create:success' }),
     );
-    expect(screen.queryByText('Utente creato.')).not.toBeInTheDocument();
+    expect(screen.queryByText(appCopy.ui.feedback.adminUsersCreated)).not.toBeInTheDocument();
   });
 
   it('updates an existing user inline', async () => {
     renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifica' }));
-    const editForm = screen.getByRole('heading', { name: 'Modifica utente' }).closest('form');
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.edit }));
+    const editForm = screen.getByRole('heading', { name: appCopy.ui.adminUsers.editFormTitle }).closest('form');
     expect(editForm).not.toBeNull();
     if (!editForm) {
       throw new Error('Edit form not found');
@@ -223,7 +219,7 @@ describe('AdminUsersPage', () => {
 
     fireEvent.change(editForm.querySelector('input[type="email"]')!, { target: { value: 'alice-admin@test.com' } });
     fireEvent.change(editForm.querySelector('input[name="role"]')!, { target: { value: 'admin' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminUsers.editSubmitLabel }));
 
     expect(await screen.findByText('alice-admin@test.com')).toBeInTheDocument();
     expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
@@ -250,7 +246,7 @@ describe('AdminUsersPage', () => {
     }
 
     fireEvent.change(editForm.querySelector('input[type="email"]')!, { target: { value: 'alice-fail@test.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Salva' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminUsers.editSubmitLabel }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
@@ -264,10 +260,10 @@ describe('AdminUsersPage', () => {
     renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.disable }));
 
     await waitFor(() => {
-      expect(screen.getByText('Disabilitato')).toBeInTheDocument();
+      expect(screen.getByText(appCopy.ui.statusLabels.disabled)).toBeInTheDocument();
     });
     expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
       appCopy.ui.feedback.adminUsersDisabled,
@@ -283,7 +279,7 @@ describe('AdminUsersPage', () => {
     renderAdminPage(<AdminUsersPage />);
 
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Disabilita' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.actions.disable }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
@@ -320,7 +316,7 @@ describe('AdminUsersPage', () => {
       { initialEntries: ['/start'] },
     );
 
-    fireEvent.click(screen.getByRole('link', { name: 'Apri admin' }));
+    fireEvent.click(screen.getByRole('link', { name: appCopy.ui.adminNavigation.openAdminLink }));
     expect(await screen.findByText('admin-1@test.com')).toBeInTheDocument();
     await waitFor(() => {
       expect(requestCount).toBe(1);

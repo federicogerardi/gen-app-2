@@ -89,6 +89,12 @@ The DDD-corrected Sprint 2 specifically addresses this through Infrastructure La
 | [feature-tool-output-personalization-1](./feature-tool-output-personalization-1.md) | TBD | Tool output personalization (multi-variant, HITL, feedback) |
 | [backend-logging-unification](./backend-logging-unification-plan.md) | TBD | Backend logging unification |
 
+## Maintenance Plans
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| [test-suite-optimization](./test-suite-optimization-plan.md) | 📝 **DRAFT** | Riduzione attrito di sviluppo: eliminazione test fragili, overengineered e AI slop (~3,500 righe removibili) |
+
 ## Next Steps
 
 ### **Sprint 2 Execution**

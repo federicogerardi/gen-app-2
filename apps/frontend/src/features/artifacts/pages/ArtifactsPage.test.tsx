@@ -6,9 +6,9 @@ import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
 import { ArtifactsPage } from './ArtifactsPage';
 
-const authBag = {
+const authBag = vi.hoisted(() => ({
   capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false, adminModels: false },
-};
+}));
 
 const workspaceBag = {
   artifacts: [
@@ -38,38 +38,15 @@ const workspaceBag = {
   ],
 };
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: authBag.capabilities,
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: authBag.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  const impl = createMockAuthSessionProvider({ role: 'member', userId: 'u1', email: 'u@test.com', capabilities: authBag.capabilities });
+  return {
+    ...impl,
+    useAuthSession: () => ({ ...impl.useAuthSession(), capabilities: authBag.capabilities }),
+    useApiConfig: () => ({ apiBaseUrl: '', capabilities: authBag.capabilities }),
+  };
+});
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => workspaceBag,

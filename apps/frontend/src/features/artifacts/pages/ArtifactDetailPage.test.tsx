@@ -5,38 +5,10 @@ import { appCopy } from '../../../app/copy/system';
 import { ArtifactDetailPage, isSessionSummaryRouteId } from './ArtifactDetailPage';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: null,
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: null,
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ session: null, capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false } });
+});
 
 const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
   artifactId: 'art-1',

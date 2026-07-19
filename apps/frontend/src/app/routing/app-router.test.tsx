@@ -5,46 +5,13 @@ import { Link, Outlet, RouterProvider, useNavigate } from 'react-router-dom';
 import { createAppRouter } from './app-router';
 
 // Minimal stubs for route smoke tests
-vi.mock('../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: {
-      user: {
-        role: 'admin',
-      },
-    },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: {
-      user: {
-        role: 'admin',
-      },
-    },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-  AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../test/mocks/auth-session-provider.mock');
+  return {
+    ...createMockAuthSessionProvider({ role: 'admin' }),
+    AuthSessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 vi.mock('../../app/providers/FeedbackMessageProvider', () => ({
   useFeedbackMessage: () => ({

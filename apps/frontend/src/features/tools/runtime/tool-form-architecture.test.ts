@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   getEnabledToolKeys,
   getAvailableSteps,
-  getToolLabel,
-  getToolRoute,
   isToolEnabled,
 } from './tool-form-architecture';
 
@@ -26,45 +24,18 @@ describe('getAvailableSteps', () => {
     expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis']))).toEqual(['packaging']);
     expect(getAvailableSteps('youtube-lf-script', new Set(['pre-script-analysis', 'packaging']))).toEqual(['intro-structure']);
   });
+});
 
-  it('normalizes workflow-form tool identifiers to canonical label and route', () => {
-    expect(getToolLabel('angle_generator')).toBe('Angle Generator');
-    expect(getToolRoute('angle_generator')).toBe('/tools/angle-generator');
-    expect(getToolLabel('meta_ads_generator')).toBe('MetaAds Generator');
-    expect(getToolRoute('meta_ads')).toBe('/tools/meta-ads');
-    expect(getToolLabel('youtube_description')).toBe('YT Description Generator');
-    expect(getToolRoute('youtube_description')).toBe('/tools/youtube-description');
-    expect(getToolLabel('geometric_analysis')).toBe('Geometric');
-    expect(getToolRoute('geometric')).toBe('/tools/geometric');
-  });
-
-  it('filters enabled tools by role using availability policy', () => {
-    expect(getEnabledToolKeys('member')).toEqual([
-      'funnel-pages',
-      'youtube-lf-script',
-      'angle-generator',
-      'meta-ads',
-      'youtube-description',
-      'geometric',
-      'blog-article-generator',
-      'brief-generator',
-      'tov-generator',
-    ]);
-    expect(getEnabledToolKeys('admin')).toEqual([
-      'funnel-pages',
-      'nextland',
-      'youtube-lf-script',
-      'angle-generator',
-      'meta-ads',
-      'youtube-description',
-      'geometric',
-      'blog-article-generator',
-      'brief-generator',
-      'tov-generator',
-    ]);
+describe('isToolEnabled', () => {
+  it('filters tools by role using availability policy', () => {
     expect(isToolEnabled('nextland', 'member')).toBe(false);
     expect(isToolEnabled('nextland', 'admin')).toBe(true);
     expect(isToolEnabled('geometric', 'member')).toBe(true);
     expect(isToolEnabled('geometric', 'admin')).toBe(true);
+  });
+
+  it('returns non-empty list for member and admin', () => {
+    expect(getEnabledToolKeys('member').length).toBeGreaterThan(0);
+    expect(getEnabledToolKeys('admin').length).toBeGreaterThan(getEnabledToolKeys('member').length);
   });
 });

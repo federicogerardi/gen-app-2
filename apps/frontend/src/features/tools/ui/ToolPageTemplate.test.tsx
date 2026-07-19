@@ -31,102 +31,12 @@ const briefingMachineSeed = vi.hoisted(() => ({
   },
 }));
 
-// Phase 4: briefingUploadMachine mockato per partire in 'ready' con contesto estrazione.
-// Consente a deriveHasExtractionContext di restituire true dal primo render,
-// e al fallback di startGenerationStep (briefingSnapshot.context) di funzionare.
 vi.mock('../machines/briefing-upload.machine', async () => {
-  const { setup } = await import('xstate');
-  const { isExtractionContextValidForTool } = await import('../machines/extraction-context-validity');
-  const briefingUploadMachine = setup({
-    types: {
-      context: {} as {
-        projectId: string;
-        toolKey: string;
-        apiBaseUrl: string;
-        capabilities: Record<string, unknown>;
-        userId: string | null;
-        file: File | null;
-        fileName: string | null;
-        angleDetectorFile: File | null;
-        angleDetectorFileName: string | null;
-        briefingId: string | null;
-        extractionArtifactId: string | null;
-        extractionPayload: Record<string, unknown> | null;
-        normalizedText: string | null;
-        parsedFormat: 'txt' | 'md' | 'docx' | null;
-        angleDetectorNormalizedText: string | null;
-        angleDetectorParsedFormat: 'txt' | 'md' | 'docx' | null;
-        error: string | null;
-      },
-      events: {} as
-        | { type: 'FILE_SELECTED'; file: File; sourceKey?: string }
-        | { type: 'RESET' }
-        | { type: 'INPUT_SYNCED'; projectId: string; apiBaseUrl: string; capabilities: Record<string, unknown>; userId: string | null }
-        | {
-            type: 'EXTRACTION_RECOVERED';
-            artifactId: string;
-            payload: Record<string, unknown>;
-            briefingId?: string | null;
-            fileName?: string | null;
-            normalizedText?: string | null;
-            parsedFormat?: 'txt' | 'md' | 'docx' | null;
-          },
-      input: {} as {
-        toolKey: string;
-        projectId: string;
-        apiBaseUrl: string;
-        capabilities: Record<string, unknown>;
-        userId: string | null;
-      },
-    },
-  }).createMachine({
-    id: 'briefingUploadMachine',
-    // Parte in 'ready' con contesto estrazione pre-popolato.
-    // Serve al fallback briefingSnapshot.context in startGenerationStep.
-    // fileName: null → effectiveBriefingFileName scende alla prop/sourceArtifact fallback.
-    context: () => ({
-      ...briefingMachineSeed.context,
-    }),
-    initial: briefingMachineSeed.initialState,
-    states: {
-      idle: {
-        on: {
-          FILE_SELECTED: { target: 'ready' },
-          RESET: { target: 'idle' },
-          INPUT_SYNCED: { target: 'idle' },
-          EXTRACTION_RECOVERED: { target: 'ready' },
-        },
-      },
-      ready: {
-        on: {
-          RESET: { target: 'idle' },
-          INPUT_SYNCED: { target: 'ready' },
-          EXTRACTION_RECOVERED: { target: 'ready' },
-        },
-      },
-    },
+  const { createBriefingUploadMachineMock } = await import('../../../test/mocks/briefing-upload-machine.mock');
+  return createBriefingUploadMachineMock({
+    initialState: briefingMachineSeed.initialState,
+    contextOverrides: briefingMachineSeed.context,
   });
-  const hasReadyBriefingExtractionContext = (
-    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script',
-    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
-      extractionArtifactId: string | null;
-      extractionPayload: Record<string, unknown> | null;
-      briefingId: string | null;
-      normalizedText: string | null;
-    } } } | null,
-  ) => {
-    const snapshot = briefingActorRef?.getSnapshot?.();
-    return snapshot?.matches('ready')
-      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
-      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
-      && isExtractionContextValidForTool(
-        toolKey,
-        snapshot.context.extractionPayload,
-        snapshot.context.normalizedText,
-      );
-  };
-
-  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
 });
 
 // Phase 4: la hydration avviene in macchina via artifacts-client locale.

@@ -3,37 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToolsHubPage } from './ToolsHubPage';
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: {
-      user: {
-        role: 'member',
-      },
-    },
-  }),
-  useAuthState: () => ({
-    session: {
-      user: {
-        role: 'member',
-      },
-    },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ role: 'member' });
+});
 
 vi.mock('../runtime/tool-form-architecture', () => ({
   getEnabledToolNavigationItems: (_role: 'member' | 'admin') => ([

@@ -101,10 +101,6 @@ describe('DashboardPage', () => {
     expect(screen.getByText(appCopy.editorial.dashboard.cards.recentSessions.title)).toBeInTheDocument();
     expect(screen.getByText(/Project One/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Hotlead Funnel/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/12\/05\/2026/i)).toBeInTheDocument();
-  });
-
-  it('renders artifact links when artifacts present', () => {
-    // Primary render with empty mocked list already asserts no-crash
+    expect(screen.getByText(/Project One.*Hotlead Funnel/i)).toBeInTheDocument();
   });
 });

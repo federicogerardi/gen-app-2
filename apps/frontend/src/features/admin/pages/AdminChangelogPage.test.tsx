@@ -2,18 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
+import { appCopy } from '../../../app/copy/system';
 import { useMswHandlers } from '../../../test/mocks/server';
 import { renderAdminPage } from '../test/renderAdminPage';
 import { buildChangelogHandlers } from '../test/msw-admin-factories';
 import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminChangelogPage } from './AdminChangelogPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
   useAuthSession: () => getMockAuthSession(),
@@ -70,7 +67,7 @@ describe('AdminChangelogPage', () => {
     renderAdminPage(<AdminChangelogPage />);
 
     expect(await screen.findByText('Release 1.0')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Admin changelog' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: appCopy.editorial.admin.changelogTitle })).toBeInTheDocument();
   });
 
   it('publishes changelog and emits global success feedback', async () => {
@@ -80,11 +77,11 @@ describe('AdminChangelogPage', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Release 1.1' } });
     fireEvent.change(screen.getByRole('textbox', { name: /contenuto/i }), { target: { value: 'Patch release' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Pubblica changelog' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminChangelog.submitLabel }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Voce changelog pubblicata.',
+        appCopy.ui.feedback.adminChangelogPublished,
         expect.objectContaining({ dedupeKey: 'admin-changelog:publish:success' }),
       );
     });
@@ -101,7 +98,7 @@ describe('AdminChangelogPage', () => {
 
     fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Release failure' } });
     fireEvent.change(screen.getByRole('textbox', { name: /contenuto/i }), { target: { value: 'Broken publish' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Pubblica changelog' }));
+    fireEvent.click(screen.getByRole('button', { name: appCopy.ui.adminChangelog.submitLabel }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
@@ -125,7 +122,7 @@ describe('AdminChangelogPage', () => {
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Voce changelog archiviata.',
+        appCopy.ui.feedback.adminChangelogArchived,
         expect.objectContaining({ dedupeKey: 'admin-changelog:archive:chg_001:success' }),
       );
     });

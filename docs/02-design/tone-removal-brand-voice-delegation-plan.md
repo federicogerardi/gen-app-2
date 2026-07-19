@@ -1,0 +1,288 @@
+---
+status: approved
+version: 1.0.0
+last-reviewed: 2026-07-19
+next-review-date: 2026-10-17
+owner: Generation Team
+type: implementation-plan
+tags:
+  - tone
+  - brand-voice
+  - asset-injection
+  - generation
+  - refactoring
+  - frontend-readiness
+  - ddd-aligned
+goal: Rimuovere il parametro `tone` standalone dalla generazione e delegare la specifica del tono all'iniezione di asset Brand Voice tramite AssetFieldMapping (DDD-207).
+---
+
+# Piano: Rimozione di `tone` come parametro di generazione e delega a Brand Voice asset
+
+## Obiettivo
+
+Rimuovere la proprietà `tone` (ToneProfile: Professional/Casual/Formal/Technical) da tutti i livelli dell'architettura di generazione (BE e FE) e delegare la specifica del tono all'uso di asset `Brand Voice` tramite il meccanismo esistente di `AssetFieldMapping` (DDD-207).
+
+## Razionale
+
+- Il tono di voce è una proprietà del brand, non un parametro discreto selezionabile per ogni generazione.
+- Il sistema dispone già di un meccanismo completo di asset injection (`generation-actor.ts`, `asset-injection-resolver.ts`, `ASSET_FIELD_MAPPINGS`).
+- Il `tov-generator` (DDD-211/212) produce asset `brand-voice` che contengono già il campo `tone`.
+- Separare il tono come parametro standalone crea ridondanza e incoerenza con il contenuto del Brand Voice asset.
+
+## Analisi impatto FE: readiness e form validation
+
+### Sistema a due gate indipendenti
+
+Il sistema ha **due gate indipendenti** per l'abilitazione della generazione:
+
+| Layer | Cosa controlla | Controlla `tone`? | Effetto se fallisce |
+|-------|---------------|--------------------|---------------------|
+| **Form validation** (Zod, `ToolPageTemplate.tsx:324`) | Tutti i campi form incluso tone | **SÌ — `REQUIRED`** | `handleSubmit` non chiama mai `executePrimaryActionFromForm` |
+| **Machine readiness** (XState, `tool-page-readiness.ts`) | projectId, extractionContext, primaryTargetStep, requiredAssets | **NO** | CTA disabilitato con tooltip |
+
+### Blocker critico: Zod validation
+
+A `ToolPageTemplate.tsx:324`, il campo `tone` è **required** nello schema Zod:
+
+```typescript
+tone: z.string().min(1, copy.form.validation.toneRequired),
+```
+
+Rimuovendo il campo `tone` dal form MA lasciandolo nello schema Zod, il `useForm` resolver marchia il form come invalido e `handleSubmit` **non scatta mai** — dead-lock permanente su tutti gli 11 tool.
+
+**La macchina XState non ha alcuna dipendenza da `tone`**: i guard `canStartGeneration` in `tool-page.machine.ts` e `buildReadinessSnapshot` in `tool-page-readiness.ts` controllano solo `projectId`, `extractionContext`, `primaryTargetStep`, `requiredAssets`. Rimuovere `tone` non rompe il readiness a livello macchina.
+
+### Il dropdown tone è incondizionato
+
+Il `<Controller name="tone">` a `ToolPageTemplate.tsx:734-758` è renderizzato **senza guard condizionali** — appare su tutti gli 11 tool. Non esiste alcun `{isFooTool && ...}` che lo protegge. Il campo è sempre visibile e sempre required.
+
+### Ordine critico di rimozione FE
+
+L'ordine è vincolante perché la rimozione del campo dal form state prima della rimozione dallo schema Zod causa errori di compilazione, e viceversa. Seguendo quest'ordine si evita il dead-lock del form:
+
+```
+1. Rimuovere tone da Zod schema            (ToolPageTemplate.tsx:324)  ← SBLOCCA IL GATE
+2. Rimuovere UI Controller + dropdown      (ToolPageTemplate.tsx:734-758)
+3. Rimuovere sync effect formState → RHF   (ToolPageTemplate.tsx:586-588)
+4. Rimuovere defaultValues.tone            (ToolPageTemplate.tsx:541)
+5. Rimuovere executePrimaryActionFromForm  (ToolPageTemplate.tsx:490)
+6. Rimuovere da ToolFormState              (tool-form-architecture.ts:100)
+7. Rimuovere default init                  (useToolForm.ts:22)
+8. Rimuovere prefill logic                 (tool-page-context.ts:203-216)
+9. Rimuovere da selectors (pick + input)   (tool-page-selectors.ts:447,470)
+10. Rimuovere URL params                    (tool-entry-params.ts)
+11. Rimuovere normalizer                    (tool-page-runtime-utils.ts)
+12. Rimuovere copy labels                   (system.ts)
+13. Rimuovere artifact-history tone param   (artifact-history.ts:141-143)
+14. Aggiornare 14+ file di test
+```
+
+---
+
+## Perimetro completo (file-by-file)
+
+### CONTRACTS (`packages/contracts/src/`)
+
+1. **`index.ts:140,142,199`** — RIMUOVERE: esportazione `ToneProfile`, esportazione `RequestTone`, campo `tone` da `GenerationRequestInput`.
+
+2. **`extraction-fields.ts`** — MANTENERE tutto: `tone` resta `ExtractionFieldKey` per brief/tov generator.
+
+3. **`asset.ts:305-316`** — ESPANDERE: aggiungere mapping `brand-voice→{toolKey}` per TUTTI i tool che consumano brand-voice (`funnel-pages`, `nextland`, `youtube-lf-script`, `youtube-description`, `blog-article-generator`), oltre al già esistente `meta-ads`. Ogni mapping replica la struttura esistente: `{ tone: { sourcePath: 'tone', injectionTemplate: '## Brand Tone: {{tone}}', required: true }, guidelines: { sourcePath: 'guidelines', injectionTemplate: '### Voice Guidelines: {{guidelines}}', required: false } }`.
+
+### BACKEND — Canonicalization e Prompt Injection
+
+4. **`apps/backend/src/lib/runtime/request-contract.ts:96-148,158,184,209`** — RIMUOVERE: `TONE_PROFILE_ALLOWED`, `toCanonicalToneProfile()`, `toCanonicalRequestTone()`, uso di `canonicalTone` in `buildRequestReceivedEvent`. Rimuovere anche la destrutturazione `tone: _rawTone` e l'enrichment `...(canonicalTone ? { tone: canonicalTone } : {})`.
+
+5. **`apps/backend/src/lib/machines/generation-system.actions.ts:461-465`** — RIMUOVERE: replace `{{tone}}` da `requestInput.tone`.
+
+6. **`apps/backend/src/lib/machines/generation-actor.ts`** — NESSUNA MODIFICA: asset injection già funzionante, costruisce `fieldMappingKey` dinamicamente come `${asset.assetType}→${toolKey}` (linea 72).
+
+### PROMPT TEMPLATES
+
+7. **`apps/backend/src/lib/runtime/tool-prompts/extraction/prompt_generation.md:24`** — RIMUOVERE riga `- Tono richiesto: {{tone}}`.
+
+8. **`apps/backend/src/lib/runtime/tool-prompts/blog-article-generator/prompt_blog_article.md:22`** — RISCRIVERE: rimuovere riferimento a `{{tone}}`, aggiungere nota che il tono deriva dal Brand Voice asset.
+
+### BACKEND — Extraction
+
+9. **`apps/backend/src/lib/machines/generation/extraction-parsers.ts:20`** — MANTENERE: `tone: 'tone'` in `YOUTUBE_EXTRACTION_SECTION_BY_HEADING` (mapping heading markdown → extraction field key).
+
+10. **`apps/backend/src/lib/machines/generation/extraction-parsers.ts:348`** — RIMUOVERE: `primary_tone` reference a `requestInput.tone`. Sostituire con `null` o rimuovere il campo.
+
+11. **`apps/backend/src/lib/runtime/tool-prompts/brief-generator/prompt_extraction.md`**, **`apps/backend/src/lib/runtime/tool-prompts/tov-generator/prompt_extraction.md`** — MANTENERE: `tone` come extraction field (linea 19 e 17 rispettivamente).
+
+### BACKEND — Observability e Session
+
+12. **`apps/backend/src/lib/runtime/generation-stream-observability.ts:68-75,79,93,118,156`** — RIMUOVERE/ADATTARE: `readTone()`, campo `tone` in `GenerationDebugInfo`. Rimuovere i log che referenziano `info.tone`.
+
+13. **`apps/backend/src/lib/runtime/backend-session.ts:49-52,65,236`** — RIMUOVERE/ADATTARE: `requestedTone` e i log che lo utilizzano.
+
+### FRONTEND — Form Architecture (ordine vincolante)
+
+**⚠️ L'ordine di esecuzione in questa sezione è vincolante.** Lo schema Zod è il gate critico: va rimosso per primo per sbloccare il form, poi a cascata tutti i consumer.
+
+14. **`apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`** — 5 punti di intervento in ordine:
+    - **Linea 324**: RIMUOVERE `tone: z.string().min(1, copy.form.validation.toneRequired),` dallo schema Zod — **CRITICO: sblocca il gate di submit del form**
+    - **Linee 734-758**: RIMUOVERE l'intero blocco `<Controller name="tone" ...>` con `<TextField select>` e `<MenuItem>` del dropdown tone
+    - **Linee 586-588**: RIMUOVERE `useEffect` che sync `formState.tone` → `setValue('tone', ...)`
+    - **Linea 541**: RIMUOVERE `tone: formState.tone` da `defaultValues` di `useForm`
+    - **Linea 490**: RIMUOVERE `tone: formState.tone` da `executePrimaryActionFromForm` (sync formState → RHF prima del submit)
+    - **Linea 33**: RIMUOVERE costante `toneProfileOptions` (diventa dead code dopo rimozione dropdown)
+
+15. **`apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`** — 2 punti:
+    - **Linea 100**: RIMUOVERE `tone: string` da `ToolFormState`
+    - **Linea 335**: RIMUOVERE nota `'The brief tone does not replace the generation ToneProfile.'` dall'array `notes` di `youtube-lf-script`
+
+16. **`apps/frontend/src/features/tools/runtime/useToolForm.ts:22`** — RIMUOVERE: `tone: 'Professional'` default nell'inizializzazione del form state.
+
+17. **`apps/frontend/src/features/tools/runtime/tool-page-context.ts`** — 3 punti:
+    - **Linea 70**: RIMUOVERE `tonePrefillDoneRef` e suo import `useRef` se non più utilizzato
+    - **Linee 203-216**: RIMUOVERE intero blocco `useEffect` che fa prefill tone da `relaunchTone` o `sourceArtifact`
+    - **Linea di import**: RIMUOVERE import di `normalizeToneProfile` se non più utilizzato
+
+18. **`apps/frontend/src/features/tools/runtime/tool-page-selectors.ts`** — 3 punti:
+    - **Linea 447**: RIMUOVERE `'tone'` dal Pick type di `buildBaseGenerationRequest` (`Pick<ToolFormState, 'model' | 'tone' | ...>`)
+    - **Linea 470**: RIMUOVERE `tone: normalizeToneProfile(formState.tone),` dall'oggetto `input` restituito
+    - **Linea 32**: RIMUOVERE import di `normalizeToneProfile` se non più utilizzato
+
+19. **`apps/frontend/src/features/tools/runtime/tool-page-runtime-utils.ts`** — rimozione completa:
+    - **Linea 2**: RIMUOVERE import di `ToneProfile` da `@gen-app-2/contracts`
+    - **Linee 4-5**: RIMUOVERE `TONE_PROFILE_DEFAULT` e `TONE_PROFILE_ALLOWED`
+    - **Linee 27-38**: RIMUOVERE intera funzione `normalizeToneProfile()`
+
+20. **`apps/frontend/src/features/tools/runtime/tool-entry-params.ts:7,37`** — RIMUOVERE: `relaunchTone: string | null` dal type `ToolEntryParams` e `relaunchTone: parseOptionalString(searchParams.get('tone'))` da `parseToolEntryParams`.
+
+21. **`apps/frontend/src/features/tools/runtime/tools-client.ts:90`** — RIMUOVERE: `tone?: string` da `RunExtractionInput` type. L'hardcode `tone: 'analitico'` a linea 292 resta invariato per extraction workflow.
+
+22. **`apps/frontend/src/features/generation/ui/artifact-history.ts:141-143`** — RIMUOVERE: `const tone = readInputField(artifact.sourceRequest, 'tone'); if (tone) { params.set('tone', tone); }` dal builder URL di relaunch.
+
+### FRONTEND — Copy System
+
+23. **`apps/frontend/src/app/copy/system.ts`** — 5 punti:
+    - **Linea 139**: RIMUOVERE `toneOptional: 'Tone (optional)'`
+    - **Linee 185-190**: RIMUOVERE array `toneProfiles` (4 opzioni: Professional, Casual, Formal, Technical)
+    - **Linea 206**: RIMUOVERE `toneLabel: 'Tone'`
+    - **Linea 232**: RIMUOVERE `toneRequired: 'Tone required'`
+    - Verificare che nessun consumer referenzi ancora queste chiavi dopo la rimozione
+
+### FRONTEND — Artifact Detail (metadata display)
+
+24. **`apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.tsx:179-263`** — VERIFICARE: il componente potrebbe renderizzare `tone` come metadato dell'artifact. Se il campo tone non è più presente nel payload, la riga semplicemente non verrà renderizzata. Rimuovere il blocco condizionale `{metadata.tone && ...}` per pulizia.
+
+### FRONTEND — Estrazione (nessuna modifica)
+
+25. **`apps/frontend/src/features/tools/runtime/extraction-field-matrix.ts:53`** — MANTENERE: `tone: 'Tone'` label per extraction display. Il campo resta un `ExtractionFieldKey`.
+
+### TEST FILES — Backend
+
+27. Aggiornare/rimuovere test che usano `tone` in fixture di `GenerationRequestInput` nei seguenti file:
+    - `apps/backend/src/lib/tests/runtime.tool-prompts.test.ts` (linee 174, 196, 218, 239: `input.tone` assertions)
+    - `apps/backend/src/lib/tests/runtime.tool-prompts-parametrized.test.ts` (linee 25, 35: `extractionFields` config; linea 60: `{{tone}}` contentPattern)
+    - `apps/backend/src/lib/tests/generation.extraction-parsers.test.ts` (linea 38: `fromYoutube.tone`)
+    - `apps/backend/src/lib/tests/runtime.generation-entry-guards.test.ts` (linea 49: `tone: 'Professional'` fixture)
+    - `apps/backend/src/lib/tests/generation-system.runtime.test.ts` (linea 232: `tone: 'analitico'` input)
+    - `apps/backend/src/lib/tests/runtime.auth-http.test.ts` (linea 2871: `tone: 'Consultative'` fixture)
+
+### TEST FILES — Frontend (14 file)
+
+28. Aggiornare/rimuovere test che usano `tone` in `ToolFormState`, `GenerationRequest.input`, `ToolEntryParams`, artifact metadata:
+
+    **Tool Page Template tests:**
+    - `apps/frontend/src/features/tools/ui/ToolPageTemplate.test.tsx` (linea 222: `tone: 'Professional'` in mock formState)
+    - `apps/frontend/src/features/tools/ui/ToolPageTemplate.meta-ads-flow.e2e.test.tsx` (linea 17: `tone: 'Professional'`)
+    - `apps/frontend/src/features/tools/ui/ToolPageTemplate.meta-ads-objective.test.tsx` (linea 52: `tone: 'Professional'`)
+    - `apps/frontend/src/features/tools/ui/ToolPageTemplate.geometric-direct-input.test.tsx` (linea 68: `tone: 'Professional'`)
+    - `apps/frontend/src/features/tools/ui/ToolPageTemplate.youtube-description-direct-input.test.tsx` (linea 68: `tone: 'Professional'`)
+
+    **Tool Page runtime tests:**
+    - `apps/frontend/src/features/tools/runtime/useToolPage.test.ts` (linee 89, 217, 389: mock formState; linee 410-468: test specifico normalizzazione e fallback tone)
+    - `apps/frontend/src/features/tools/runtime/tool-page-selectors.test.ts` (linee 174, 214: `tone: 'Professional'` in formState)
+    - `apps/frontend/src/features/tools/runtime/tools-client.test.ts` (linee 107-135: test `runExtraction` hardcoded `'analitico'`; linee 322-337: extraction payload con tone)
+    - `apps/frontend/src/features/tools/runtime/tool-entry-params.test.ts` (linea 40: `tone: ' direct '`)
+
+    **Artifact tests:**
+    - `apps/frontend/src/features/generation/ui/artifact-history.test.ts` (linee 82, 96, 110, 127, 182: tone in relaunch URL e fixture)
+    - `apps/frontend/src/features/artifacts/pages/ArtifactDetailPage.test.tsx` (linee 141-218: test rendering tone metadata)
+
+    **Session summary tests:**
+    - `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.tsx` (linee 55, 164, 232, 313, 380, 450: `tone: 'Formal'` in multiple fixtures)
+
+**Nota sui test di extraction:** I test in `tools-client.test.ts` che verificano `tone: 'analitico'` per extraction (linee 107-135) possono rimanere invariati — l'hardcode `'analitico'` in `tools-client.ts:292` non viene rimosso.
+
+## Cosa NON cambia
+
+- **`tone` come `ExtractionFieldKey`** — resta campo di estrazione per brief/tov generator.
+- **Asset injection pipeline** (`generation-actor.ts`, `asset-injection-resolver.ts`) — già funzionante, nessuna modifica.
+- **`tone` in `ASSET_FIELD_MAPPINGS['brand-voice→meta-ads']`** — resta e viene espanso ad altri tool.
+- **`tone` extraction prompts e parser** — restano invariati (`brief-generator/prompt_extraction.md`, `tov-generator/prompt_extraction.md`, `extraction-parsers.ts:20`).
+- **Hardcode `tone: 'analitico'` in `tools-client.ts:292`** — invariato per extraction workflow.
+
+## Ordine di esecuzione raccomandato
+
+1. **Contracts**: rimuovere `ToneProfile`/`RequestTone`/`tone` da `GenerationRequestInput` + espandere `ASSET_FIELD_MAPPINGS` con le 5 nuove entry `brand-voice→{toolKey}`.
+
+2. **Backend**: rimuovere canonicalization tone, `{{tone}}` replacement, tone da observability/session. Nota: dopo la rimozione del campo `tone` da `GenerationRequestInput`, il compilatore segnalerà tutti i consumer da aggiornare.
+
+3. **Prompt templates**: rimuovere `{{tone}}` placeholder.
+
+4. **Frontend** (ordine vincolante — vedi sezione "Analisi impatto FE"):
+   - **Step 4.1** — Rimuovere tone da Zod schema (`ToolPageTemplate.tsx:324`) ← **sblocca il gate**
+   - **Step 4.2** — Rimuovere UI Controller + dropdown (`ToolPageTemplate.tsx:734-758`)
+   - **Step 4.3** — Rimuovere sync effect + defaultValues + executePrimaryActionFromForm (`ToolPageTemplate.tsx:490,541,586-588`)
+   - **Step 4.4** — Rimuovere da `ToolFormState` (`tool-form-architecture.ts:100`)
+   - **Step 4.5** — Rimuovere default init (`useToolForm.ts:22`)
+   - **Step 4.6** — Rimuovere prefill logic (`tool-page-context.ts`)
+   - **Step 4.7** — Rimuovere da selectors (`tool-page-selectors.ts`)
+   - **Step 4.8** — Rimuovere URL params (`tool-entry-params.ts`)
+   - **Step 4.9** — Rimuovere normalizer (`tool-page-runtime-utils.ts`)
+   - **Step 4.10** — Rimuovere copy labels (`system.ts`)
+   - **Step 4.11** — Rimuovere artifact-history tone param (`artifact-history.ts:141-143`)
+   - **Step 4.12** — Verificare `ArtifactDetailPage.tsx` per rimozione metadata tone display
+
+5. **Test**: aggiornare tutti i test backend (6 file) + frontend (14 file).
+
+6. **Validazione**: `npm run typecheck && npm run test` su tutti i workspace.
+
+## Validazione
+
+Al completamento, eseguire in ordine:
+1. `npm run typecheck` — deve passare senza errori, confermando che tutti i riferimenti a `ToneProfile`, `RequestTone`, `normalizeToneProfile` e campi `tone` rimossi sono stati eliminati.
+2. `npm run test` — tutti i test aggiornati (20 file totali) devono passare.
+3. **Verifica FE critica**: il form di ogni tool page deve essere valido e submit-enabled senza il campo tone (conferma che lo Zod schema non blocca più).
+4. Verifica funzionale: generare con un progetto che ha un asset Brand Voice → il prompt generato deve includere la sezione `## Brand Tone: ...` iniettata via asset.
+5. Verifica funzionale: generare con un progetto senza asset Brand Voice → la generazione deve funzionare senza errori (nessun `{{tone}}` unresolved).
+6. Verifica UI: il dropdown Tone non deve più apparire nella ToolPage; il layout form deve adattarsi correttamente alla rimozione del campo.
+
+---
+
+## DDD Governance Status (2026-07-19)
+
+**Gate status: CLOSED** — entrambi i blocker risolti.
+
+| # | Blocker | Risoluzione |
+|---|---------|-------------|
+| **B1** | `analitico` senza replacement | **Opzione (c) scelta**: il tono operativo `analitico` per extraction è eliminato. L'LLM extraction engine decide il tono in autonomia, guidato dal prompt di step. Il replace `{{tone}}` in `extraction/prompt_generation.md:24` viene rimosso; l'hardcode in `tools-client.ts:292` e `toCanonicalRequestTone()` in `request-contract.ts` vengono eliminati. Vedi DDD-217. |
+| **B2** | Nessuna entry DDD | **DDD-216 e DDD-217 creati**. Decision Log (v4.11), Glossary (v2.20), e BCM (v3.11) aggiornati con: (a) retirement di `ToneProfile` e `RequestTone`, (b) delega tone a Brand Voice asset injection via `AssetFieldMapping`, (c) eliminazione extraction operational tone `analitico`, (d) nuovo integration constraint `AssetFieldMapping['brand-voice→{toolKey}']` tone injection. |
+
+### Decisioni DDD allineate
+
+| Entry | Documento | Versione | Contenuto |
+|-------|-----------|----------|-----------|
+| DDD-216 | Decision Log | v4.11 | Retirement di `ToneProfile` (DDD-039) e `RequestTone` (DDD-076). Delega tone a Brand Voice asset injection. Perimetro completo di rimozione. |
+| DDD-217 | Decision Log | v4.11 | Eliminazione extraction operational tone `analitico`. LLM self-determina tono da step prompt. |
+| Glossary | UL Glossary | v2.20 | `ToneProfile` e `RequestTone` marcati `deprecated`. `GenerationRequest` aggiornato senza riferimenti a tone. |
+| BCM | Bounded Context Map | v3.11 | Integration constraints deprecati. Nuovo constraint `AssetFieldMapping` tone injection. |
+
+---
+
+## Momus Review Notes (2026-07-19, updated v0.2.0)
+
+**Verdetto: [OKAY]** — Il piano è eseguibile. Tutti i riferimenti a file e linee sono verificati e corretti. La v0.2.0 aggiunge l'analisi di impatto FE con l'ordine critico di rimozione e la verifica del sistema a due gate (Zod vs XState).
+
+### Riepilogo della verifica (v0.2.0)
+
+- **Reference verification**: 30+ file referenziati esistono. I numeri di linea corrispondono al contenuto dichiarato. ✅
+- **Executability**: Ogni task ha file path, range di linee e azione specifica (RIMUOVERE/MANTENERE/ESPANDERE). L'ordine FE è vincolante per evitare dead-lock del form. ✅
+- **Copertura FE estesa**: Aggiunta analisi del sistema a due gate (Zod + XState), ordine critico di rimozione in 14 step, 5 punti di intervento in `ToolPageTemplate.tsx`, 14 file di test frontend. ✅
+- **DDD governance**: 2 blocker aperti (B1: `analitico` replacement, B2: entry DDD-216). Documentati nella sezione Governance Status. ⚠️
+- **Readiness blocker risolto**: La rimozione di `tone` rompe solo il gate Zod (non XState). L'ordine di esecuzione mette la rimozione dello schema Zod come primo step FE. ✅

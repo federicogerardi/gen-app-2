@@ -360,22 +360,10 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
   },
   'meta-ads': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Upload a mandatory BriefingFile and, if available, an AngleDetectorFile with additional insights.',
-    inputFiles: [
-      {
-        key: 'briefing-file',
-        label: 'UPLOAD FILE',
-        accept: '.docx,.txt,.md',
-        requiredness: 'always-required',
-      },
-      {
-        key: 'angle-detector-file',
-        label: 'AngleDetectorFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'optional-by-tool-setting',
-      },
-    ],
-    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    summary: 'Context is built from workspace assets (angle, persona, brand-voice, hook, brief) and direct-input fields (campaign objective, copy length).',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
     requiredFieldKeys: [
       'product_or_service',
       'target_audience',
@@ -400,7 +388,7 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'Campaign objective: qualified lead acquisition with sustainable CPL target.',
       'Primary offer: consulting + free audit to activate the strategic call.',
     ],
-    notes: ['The extraction format is markdown with canonical sections and unavailable fields explicitly indicated.', 'AngleDetectorFile remains optional: if absent, the pipeline remains operational.'],
+    notes: ['Context is composed from workspace assets and direct-input fields — no file upload required.'],
     stepConstraints: ['The canonical sequence is context-generation -> ads-generation.'],
   },
   'youtube-description': {

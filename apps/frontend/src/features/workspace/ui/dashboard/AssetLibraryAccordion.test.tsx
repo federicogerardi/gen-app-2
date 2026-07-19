@@ -54,7 +54,7 @@ describe('AssetLibraryAccordion', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {
-        angle: [{ id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false }],
+        angle: [{ id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false, createdAt: '2025-01-01T00:00:00Z' }],
         persona: [],
       }, foundationTools: [],
       loading: false, error: null, refetch: vi.fn(),
@@ -72,7 +72,7 @@ describe('AssetLibraryAccordion', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {
-        angle: [{ id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false }],
+        angle: [{ id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false, createdAt: '2025-01-01T00:00:00Z' }],
       }, foundationTools: [],
       loading: false, error: null, refetch: vi.fn(),
     } as ReturnType<typeof useWorkspaceContext>);

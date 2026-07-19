@@ -11,6 +11,7 @@ export interface WorkspaceAsset {
   qualityScore: number;
   status: string;
   staleUpstream: boolean;
+  createdAt: string;
   sourceToolKey?: string;
   sourceArtifactId?: string | null;
 }
@@ -55,6 +56,7 @@ const mapAssetDto = (a: AssetDto): WorkspaceAsset => ({
   qualityScore: a.staleUpstream ? 50 : 100,
   status: a.status,
   staleUpstream: a.staleUpstream,
+  createdAt: a.createdAt,
   sourceArtifactId: a.sourceArtifactId,
 });
 

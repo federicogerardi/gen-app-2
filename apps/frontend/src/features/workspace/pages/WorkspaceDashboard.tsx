@@ -5,8 +5,8 @@ import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
 import { useWorkspaceProject } from '../runtime/WorkspaceProjectContext';
 import { ContextualToolsPanel } from '../ui/dashboard/ContextualToolsPanel';
 import { FoundationToolsPanel } from '../ui/dashboard/FoundationToolsPanel';
-import { AssetLibraryAccordion } from '../ui/dashboard/AssetLibraryAccordion';
-import { RecentArtifactsPanel } from '../ui/dashboard/RecentArtifactsPanel';
+import { RecentSessionsPanel } from '../ui/dashboard/RecentSessionsPanel';
+import { RecentAssetsPanel } from '../ui/dashboard/RecentAssetsPanel';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
 import '../ui/dashboard/dashboard-panels.css';
 
@@ -52,8 +52,10 @@ export const WorkspaceDashboard: React.FC = () => {
         </div>
       </div>
 
-      <RecentArtifactsPanel workspaceId={workspaceId} />
-      <AssetLibraryAccordion workspaceId={workspaceId} />
+      <div className="dashboard-grid">
+        <RecentSessionsPanel workspaceId={workspaceId} />
+        <RecentAssetsPanel workspaceId={workspaceId} />
+      </div>
       <div id="available-tools">
         <ContextualToolsPanel workspaceId={workspaceId} />
       </div>

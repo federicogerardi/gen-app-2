@@ -108,7 +108,7 @@ describe('FoundationToolsPanel', () => {
           toolKey: 'brief-generator',
           producedAssetType: 'brief',
           existingAssets: [
-            { id: 'a1', assetType: 'brief', label: 'Brief 1', qualityScore: 100, status: 'active', staleUpstream: false },
+            { id: 'a1', assetType: 'brief', label: 'Brief 1', qualityScore: 100, status: 'active', staleUpstream: false, createdAt: '2025-01-01T00:00:00Z' },
           ],
           hasAssets: true,
         },

@@ -109,7 +109,7 @@ describe('RecentArtifactsPanel', () => {
   it('shows promoted chip for already-promoted artifacts', () => {
     mockUseWorkspaceContext.mockReturnValue({
       id: 'w1', assets: [
-        { id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false, sourceArtifactId: 'art-1' },
+        { id: 'a1', assetType: 'angle', label: 'A1', qualityScore: 100, status: 'active', staleUpstream: false, sourceArtifactId: 'art-1', createdAt: '2025-01-01T00:00:00Z' },
       ], qualityGateStatus: 'healthy', gaps: [],
       overallQualityScore: 0, groupedByType: {}, foundationTools: [],
       loading: false, error: null, refetch: vi.fn(),

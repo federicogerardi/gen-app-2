@@ -551,6 +551,48 @@
   border-top: 1px solid var(--mui-palette-divider);
 }
 
+/* ── Dashboard Item Row (unified layout for Recent Sessions + Recent Assets) ── */
+.dashboard-item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.06));
+  transition: background-color 0.1s ease;
+}
+.dashboard-item-row:last-child {
+  border-bottom: none;
+}
+.dashboard-item-row:hover,
+.dashboard-item-row:focus-within {
+  background-color: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
+}
+
+.dashboard-item-row__primary {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--mui-palette-text-primary, rgba(0,0,0,0.87));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-item-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--mui-palette-text-secondary, rgba(0,0,0,0.6));
+  white-space: nowrap;
+}
+
+.dashboard-item-row__badge {
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .foundation-tools__grid { grid-template-columns: 1fr; }
 }

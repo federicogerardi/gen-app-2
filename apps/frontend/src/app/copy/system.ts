@@ -792,6 +792,8 @@ export const appCopy = {
         availableToolsTitle: 'Available Tools',
         assetLibraryTitle: 'Asset Library',
         recentActivityTitle: 'Recent Activity',
+        recentSessionsTitle: 'Recent Sessions',
+        recentSessionsEmpty: 'No sessions yet. Run a tool to generate content.',
         recentArtifactsTitle: 'Recent Artifacts',
         recentArtifactsEmpty: 'No recent artifacts. Run a tool to generate content.',
         recentArtifactsNoContent: '(no content)',

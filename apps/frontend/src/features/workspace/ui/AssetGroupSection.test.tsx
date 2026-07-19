@@ -49,8 +49,8 @@ const baseProps = {
   label: 'Angle',
   requiredness: 'optional-by-tool-setting' as const,
   assets: [
-    { id: 'a1', assetType: 'angle', label: 'Angle 1', qualityScore: 100, status: 'active', staleUpstream: false },
-    { id: 'a2', assetType: 'angle', label: 'Angle 2', qualityScore: 80, status: 'active', staleUpstream: true },
+    { id: 'a1', assetType: 'angle', label: 'Angle 1', qualityScore: 100, status: 'active', staleUpstream: false, createdAt: '2025-01-01T00:00:00Z' },
+    { id: 'a2', assetType: 'angle', label: 'Angle 2', qualityScore: 80, status: 'active', staleUpstream: true, createdAt: '2025-01-01T00:00:00Z' },
   ],
   isExpanded: true,
   selectedAssetIds: [],

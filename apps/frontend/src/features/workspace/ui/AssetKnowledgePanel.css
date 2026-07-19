@@ -26,6 +26,10 @@
   flex-wrap: wrap;
 }
 
+.asset-knowledge-panel__model-selector {
+  min-width: 200px;
+}
+
 .asset-knowledge-panel__groups {
   padding: 16px 20px;
 }

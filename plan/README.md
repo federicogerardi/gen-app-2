@@ -84,6 +84,7 @@ The DDD-corrected Sprint 2 specifically addresses this through Infrastructure La
 | [blog-article-generator](./blog-article-generator-implementation-plan.md) | TBD | Blog Article Generator tool (3-step workflow) |
 | [brief-generator](./brief-generator-implementation-plan.md) | ✅ **COMPLETE** | Brief Generator — primitive tool for structured briefs |
 | [tov-generator](./tov-generator-implementation-plan.md) | ✅ **COMPLETE** | TOV Generator — primitive tool for brand-voice assets |
+| [model-selector-knowledge-section](./model-selector-knowledge-section-plan.md) | 📝 **DRAFT** | `LlmModelSelector` nella Knowledge Section per tool asset-capable; hardcoding per tool non-asset |
 | [workspace-dashboard-ux-restyling](./workspace-dashboard-ux-restyling-implementation-plan.md) | 📝 **DRAFT** | Dashboard restyling: asset accordion, foundation tools, inline artifact promotion |
 | [workspace-centric-ux-transformation](./workspace-centric-ux-transformation-implementation-plan.md) | TBD | Workspace-centric UX transformation |
 | [feature-tool-output-personalization-1](./feature-tool-output-personalization-1.md) | TBD | Tool output personalization (multi-variant, HITL, feedback) |

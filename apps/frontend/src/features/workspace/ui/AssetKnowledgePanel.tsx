@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { Chip, Typography } from '@mui/material';
+import { Chip, FormControl, InputLabel, MenuItem, Select, Typography } from '@mui/material';
 import { Database } from 'lucide-react';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import type { AssetType } from '@gen-app-2/contracts';
@@ -19,6 +19,14 @@ interface AssetKnowledgePanelProps {
   onAssetSelect: (assetIds: string[]) => void;
   onCreateAssetAction: (assetType: string, sourceToolKey?: SupportedTool) => void;
   readinessScore?: number;
+  /** LlmModelId correntemente selezionato (dal form state) */
+  modelValue?: string;
+  /** Opzioni disponibili da LlmModelCatalog */
+  modelOptions?: Array<{ key: string; label: string; isDefault: boolean }>;
+  /** Callback quando l'utente cambia modello */
+  onModelChange?: (model: string) => void;
+  /** Se false, il model selector non viene renderizzato (tool non-asset-capable) */
+  showModelSelector?: boolean;
 }
 
 const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Record<string, T[]> => {
@@ -39,6 +47,10 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   onAssetSelect,
   onCreateAssetAction,
   readinessScore,
+  modelValue,
+  modelOptions,
+  onModelChange,
+  showModelSelector,
 }) => {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
@@ -129,6 +141,23 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
         </div>
 
         <div className="asset-knowledge-panel__metrics">
+          {showModelSelector && modelOptions && modelOptions.length > 0 && (
+            <FormControl size="small" className="asset-knowledge-panel__model-selector">
+              <InputLabel id="knowledge-model-label">
+                {appCopy.ui.toolPage.form.modelLabel}
+              </InputLabel>
+              <Select
+                labelId="knowledge-model-label"
+                value={modelValue ?? ''}
+                label={appCopy.ui.toolPage.form.modelLabel}
+                onChange={(e) => onModelChange?.(e.target.value)}
+              >
+                {modelOptions.map((o) => (
+                  <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <Chip
             label={`${workspaceAssets.length} ${appCopy.ui.workspace?.assetPanel?.metricsAssets || 'assets'}`}
             size="small"

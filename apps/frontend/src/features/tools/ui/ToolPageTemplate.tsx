@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,7 +73,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const isBlogArticleGeneratorTool = props.toolKey === 'blog-article-generator';
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
+  const { data: modelOptions } = useModelsQuery({
     apiBaseUrl,
     capabilities,
   });
@@ -554,19 +554,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     mode: 'onChange',
   });
 
-  // Auto-select the catalog default model quando la lista si popola
-  const defaultAppliedRef = useRef(false);
-  useEffect(() => {
-    if (defaultAppliedRef.current || modelOptions.length === 0) return;
-    const catalogDefault = modelOptions.find((o) => o.isDefault);
-    if (catalogDefault && formState.model !== catalogDefault.key) {
-      setFormState((prev) => ({ ...prev, model: catalogDefault.key }));
-      setValue('model', catalogDefault.key);
-    }
-    defaultAppliedRef.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelOptions]);
-
   // Sync external formState changes (e.g. route prefills from useToolPage) into RHF
   // so that handleSubmit always sees up-to-date values.
   useEffect(() => {
@@ -688,38 +675,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
                 {/* Project is auto-resolved from workspace context — no selector needed */}
-
-                {isBlogArticleGeneratorTool ? null : (
-                  <Controller
-                    name="model"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        select
-                        label={copy.form.modelLabel}
-                        disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setFormState((prev) => ({ ...prev, model: e.target.value }));
-                        }}
-                        value={field.value}
-                        error={!!errors.model}
-                        helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
-                        fullWidth
-                      >
-                        {modelsError ? (
-                          <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
-                        ) : modelOptions.length === 0 ? (
-                          <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
-                        ) : (
-                          modelOptions.map((o) => (
-                            <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
-                          ))
-                        )}
-                      </TextField>
-                    )}
-                  />
-                )}
               </div>
 
               {isBlogArticleGeneratorTool ? (
@@ -1160,7 +1115,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {/* ── Knowledge Section (workspace assets) ── */}
-              <AssetKnowledgePanelWrapper toolKey={props.toolKey} onAssetSelect={setSelectedAssetIds} readinessScore={toolReadinessScore} />
+              <AssetKnowledgePanelWrapper
+                toolKey={props.toolKey}
+                onAssetSelect={setSelectedAssetIds}
+                readinessScore={toolReadinessScore}
+                modelValue={formState.model}
+                modelOptions={modelOptions}
+                onModelChange={(newModel: string) => {
+                  setValue('model', newModel);
+                  setFormState((prev) => ({ ...prev, model: newModel }));
+                }}
+              />
 
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
@@ -1212,7 +1177,14 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   );
 };
 
-const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSelect?: (ids: string[]) => void; readinessScore?: number }> = ({ toolKey, onAssetSelect, readinessScore }) => {
+const AssetKnowledgePanelWrapper: React.FC<{
+  toolKey: SupportedTool;
+  onAssetSelect?: (ids: string[]) => void;
+  readinessScore?: number;
+  modelValue?: string;
+  modelOptions?: Array<{ key: string; label: string; isDefault: boolean }>;
+  onModelChange?: (model: string) => void;
+}> = ({ toolKey, onAssetSelect, readinessScore, modelValue, modelOptions, onModelChange }) => {
   let workspace;
   try {
     // useWorkspace throws if not inside WorkspaceProvider
@@ -1243,6 +1215,10 @@ const AssetKnowledgePanelWrapper: React.FC<{ toolKey: SupportedTool; onAssetSele
         onAssetSelect={onAssetSelect ?? (() => {})}
         onCreateAssetAction={handleCreateAssetAction}
         {...(readinessScore !== undefined ? { readinessScore } : {})}
+        {...(modelValue !== undefined ? { modelValue } : {})}
+        {...(modelOptions !== undefined ? { modelOptions } : {})}
+        {...(onModelChange !== undefined ? { onModelChange } : {})}
+        showModelSelector={assetInputs.length > 0}
       />
     </div>
   );

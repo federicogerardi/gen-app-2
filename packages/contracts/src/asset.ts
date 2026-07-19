@@ -138,7 +138,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   },
   'blog-article-generator': {
     produces: ['article-outline', 'article'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'creative-brief'],
+    consumes: [],
   },
   'brief-generator': {
     produces: ['brief'],
@@ -351,18 +351,6 @@ export const ASSET_FIELD_MAPPINGS: Record<string, AssetFieldMapping> = {
     },
   },
   'brand-voice→youtube-description': {
-    tone: {
-      sourcePath: 'tone',
-      injectionTemplate: '## Brand Tone: {{tone}}',
-      required: true,
-    },
-    guidelines: {
-      sourcePath: 'guidelines',
-      injectionTemplate: '### Voice Guidelines: {{guidelines}}',
-      required: false,
-    },
-  },
-  'brand-voice→blog-article-generator': {
     tone: {
       sourcePath: 'tone',
       injectionTemplate: '## Brand Tone: {{tone}}',

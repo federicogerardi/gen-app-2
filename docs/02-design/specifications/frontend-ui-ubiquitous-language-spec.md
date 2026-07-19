@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.5
+version: 1.6
 date_created: 2026-05-08
-last-reviewed: 2026-07-17
-next-review-date: 2026-08-17
+last-reviewed: 2026-07-19
+next-review-date: 2026-10-19
 owner: Frontend Platform Team
 type: ui-governance-spec
 ---
@@ -37,7 +37,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | --- | --- | --- | --- |
 | Tool Workspace Page | The canonical two-column tool execution page built from `ToolPageTemplate` with setup panel and workflow panel. | Tool pages under `apps/frontend/src/features/tools/` | Wizard page, generator page, flow page |
 | Tool Availability Policy | Role-aware tri-state exposure policy for tools: `enabled-for-all`, `disabled-for-all`, `enabled-for-admin-only`. Applies to discovery (Tools hub, navigation shortcuts) and route access. | Tool discovery and routing surfaces | Binary enabled/disabled flag without role semantics |
-| Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. Canonical composition includes: Configuration Section (form fields), Resources Section (file uploads + file instructions accordion), Knowledge Section (workspace assets, optional), Dispatch Error slot, and Primary CTA. Sections use compact typographic headers with subtle dividers; no nested cards. | `ToolPageTemplate` form area with section headers | Left column form, input area |
+| Setup Panel | Left panel in Tool Workspace Page for project selection, file upload, asset context, and primary action setup. Canonical composition includes: Configuration Section (form fields), Resources Section (file uploads + file instructions accordion), Knowledge Section (workspace assets + `LlmModelSelector` for asset-capable tools, optional), Dispatch Error slot, and Primary CTA. Sections use compact typographic headers with subtle dividers; no nested cards. | `ToolPageTemplate` form area with section headers | Left column form, input area |
 | Workflow Panel | Right panel in Tool Workspace Page for status, payload visibility, and unified process feedback. | `ToolGenerationFlowVertical` (payload + monitoring + feedback sections) | Progress column, steps area |
 | Status Card | Summary card exposing run status and actionable context. | Shared tool UI cards | Header card, info block |
 | Step Card | Visual representation of a single step state in sequence. | Shared tool UI cards | Task card, stage card |
@@ -59,9 +59,9 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Missing Optional Files Advisory | Non-blocking informational recommendation shown when optional files are missing but required files are complete. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Warning/error feedback that blocks CTA |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
 | Setup Panel Section | Canonical grouping container in the Setup Panel. Uses a compact typographic header (uppercase, small font, muted color) with a thin bottom border divider. Three canonical sections defined: Configuration (form fields), Resources (file uploads + instructions accordion), Knowledge (workspace assets, optional). Sections replace nested card groupings — spacing and dividers provide structure, not card surfaces. | `ui-tool-setup-section` + `ui-tool-setup-section__label` | Nested cards, separate card panels per input source |
-| Configuration Section | Setup Panel section for form fields: project selector, model selector, tone selector, and tool-specific fields (campaign objective, copy length, etc.). Rendered first in the form. | `ui-tool-setup-section` inside Setup Panel form | Top form section |
+| Configuration Section | Setup Panel section for form fields: project selector and tool-specific fields (campaign objective, copy length, etc.). `LlmModelSelector` (DDD-057) has been repositioned to the Knowledge Section for asset-capable tools (DDD-220, 2026-07-19). Rendered first in the form. | `ui-tool-setup-section` inside Setup Panel form | Top form section |
 | Resources Section | Setup Panel section for file uploads and the Tool File Instructions accordion. Rendered after Configuration, before Knowledge. Absent when the tool has no input files. | `ui-tool-setup-section` with `ToolFileInstructionsSection` | File upload area |
-| Knowledge Section | Setup Panel section for workspace asset selection (`AssetKnowledgePanel`). Workspace-oriented — shows compatible project Assets for the current Tool. Absent when the tool has no compatible Asset types or when not inside a WorkspaceProvider. Rendered after Resources. Flattened styling: card borders removed to avoid nested-card violation. | `ui-tool-setup-section--knowledge` with `AssetKnowledgePanel` | Asset panel card, workspace knowledge card |
+| Knowledge Section | Setup Panel section for workspace asset selection (`AssetKnowledgePanel`). Workspace-oriented — shows compatible project Assets for the current Tool. **For asset-capable tools (DDD-219):** the Knowledge Section includes `LlmModelSelector` (DDD-057) as `<FormControl size="small">` with `<Select>` in the panel header, adjacent to chip metrics (assets count, quality score, readiness). **For non-asset-capable tools:** the Knowledge Section is absent and `LlmModelSelector` is not rendered — the model is determined solely by `defaultModel` (DDD-218). Absent when not inside a WorkspaceProvider. Rendered after Resources. Flattened styling: card borders removed to avoid nested-card violation. | `ui-tool-setup-section--knowledge` with `AssetKnowledgePanel` | Asset panel card, workspace knowledge card |
 
 Tri-state policy rule:
 Tool discovery and tool route access must evaluate the same policy from shared contracts. `enabled-for-admin-only` tools are hidden for `member` users and accessible for `admin` users only.

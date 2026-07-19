@@ -12,6 +12,7 @@ vi.mock('../../runtime/toolAssetRegistry', () => ({
     angle: 'Angle',
     persona: 'Persona',
     'brand-voice': 'Brand Voice',
+    hook: 'Hook',
   },
   getProducerToolsForAsset: vi.fn(() => []),
 }));

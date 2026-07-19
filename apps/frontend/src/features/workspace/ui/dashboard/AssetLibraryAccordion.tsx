@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
-import { ASSET_TYPE_LABELS, getProducerToolsForAsset } from '../../runtime/toolAssetRegistry';
-import { AssetGroupSection } from '../AssetGroupSection';
+import { getProducerToolsForAsset } from '../../runtime/toolAssetRegistry';
+import { AssetLibraryView } from '../AssetLibraryView';
 import { DashboardPanel } from './DashboardPanel';
 import { appCopy } from '../../../../app/copy/system';
 import type { AssetType } from '@gen-app-2/contracts';
@@ -15,66 +15,49 @@ export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ wo
   const ctx = useWorkspaceContext(workspaceId);
   const navigate = useNavigate();
 
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() =>
-    new Set(
-      Object.entries(ctx.groupedByType)
-        .filter(([, assets]) => assets.length > 0)
-        .map(([type]) => type),
-    ),
-  );
-
-  // Collect all asset types: those with assets + those with gaps
-  const allAssetTypes = useMemo(() => {
-    const types = new Set(Object.keys(ctx.groupedByType));
-    for (const gap of ctx.gaps) types.add(gap.assetType);
-    return Array.from(types);
+  const isEmpty = useMemo(() => {
+    const totalAssets = Object.values(ctx.groupedByType).reduce(
+      (sum, assets) => sum + assets.length,
+      0,
+    );
+    return totalAssets === 0 && ctx.gaps.length === 0;
   }, [ctx.groupedByType, ctx.gaps]);
 
-  const getProducerTool = (assetType: string): string | null =>
-    (getProducerToolsForAsset(assetType as AssetType) as string[])[0] ?? null;
-
-  const handleCreateAction = useCallback((assetType: string) => {
-    const toolKey = getProducerTool(assetType);
-    if (toolKey) {
-      navigate(`/workspaces/${workspaceId}/tools/${toolKey}`);
-    }
-  }, [navigate, workspaceId]);
+  const handleCreateAction = useCallback(
+    (assetType: string) => {
+      const producerTools = getProducerToolsForAsset(assetType as AssetType);
+      const toolKey = producerTools[0] ?? null;
+      if (toolKey) {
+        navigate(`/workspaces/${workspaceId}/tools/${toolKey}`);
+      } else {
+        ctx.refetch();
+      }
+    },
+    [navigate, workspaceId, ctx],
+  );
 
   return (
     <DashboardPanel
       title={appCopy.ui.workspace.dashboard.assetLibraryTitle}
-      empty={allAssetTypes.length === 0 ? appCopy.ui.workspace.dashboard.recentAssetsEmpty : undefined}
+      empty={
+        isEmpty
+          ? appCopy.ui.workspace.dashboard.recentAssetsEmpty
+          : undefined
+      }
       footer={
-        <Link to={`/workspaces/${workspaceId}/assets`} className="ui-inline-link">
+        <Link
+          to={`/workspaces/${workspaceId}/assets`}
+          className="ui-inline-link"
+        >
           View all assets →
         </Link>
       }
     >
-      <div style={{ padding: 0 }}>
-        {allAssetTypes.map(assetType => (
-          <AssetGroupSection
-            key={assetType}
-            assetType={assetType}
-            label={ASSET_TYPE_LABELS[assetType as AssetType] ?? assetType}
-            requiredness="optional-by-tool-setting"
-            assets={ctx.groupedByType[assetType] ?? []}
-            isExpanded={expandedGroups.has(assetType)}
-            selectedAssetIds={[]}
-            producerTool={getProducerTool(assetType)}
-            projectId={workspaceId}
-            mode="browse"
-            onToggleExpanded={(expanded) => {
-              setExpandedGroups(prev => {
-                const next = new Set(prev);
-                expanded ? next.add(assetType) : next.delete(assetType);
-                return next;
-              });
-            }}
-            onAssetToggle={() => {}}
-            onCreateAction={() => handleCreateAction(assetType)}
-          />
-        ))}
-      </div>
+      <AssetLibraryView
+        workspaceId={workspaceId}
+        groupedByType={ctx.groupedByType}
+        onCreateAction={handleCreateAction}
+      />
     </DashboardPanel>
   );
 };

@@ -451,20 +451,25 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       disabled: true,
     }
     : undefined;
-  // ── Soft validation: asset-only missing → warning tooltip, CTA stays clickable ──
-  const nonAssetMissingRequired = inputRequirementMatrix.missingRequiredEntries.filter(
-    (e) => e.sourceFamily !== 'project-asset',
-  );
-  const isOnlyAssetBlocked = inputRequirementMatrix.missingRequiredAssets.length > 0
-    && nonAssetMissingRequired.length === 0;
+  // ── DDD-213: Asset hard-block policy ──
+  // Hard-block: any required entry missing (always-required / required-by-tool-setting) across
+  // ALL source families including project-asset → CTA disabled, label "Completa il form per iniziare".
+  // Soft-block: only optional entries missing (optional-by-tool-setting, any family) → CTA enabled,
+  // label "Avvia la generazione" with warning tooltip.
+  const hasHardBlockingMissing = inputRequirementMatrix.missingRequiredEntries.length > 0;
+  const hasOnlyOptionalMissing = !hasHardBlockingMissing
+    && (inputRequirementMatrix.missingOptionalAssets.length > 0
+        || inputRequirementMatrix.missingOptionalEntries.length > 0);
 
   const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
-    !inputRequirementMatrix.requiredEntriesSatisfied
+    (hasHardBlockingMissing || hasOnlyOptionalMissing)
       && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
       ? {
-        label: isOnlyAssetBlocked ? copy.primaryActionPolicy.startGenerationLabel : copy.primaryActionPolicy.disabledLabel,
-        disabled: !isOnlyAssetBlocked,
-        tooltip: isOnlyAssetBlocked
+        label: hasHardBlockingMissing
+          ? copy.primaryActionPolicy.disabledLabel
+          : copy.primaryActionPolicy.startGenerationLabel,
+        disabled: hasHardBlockingMissing,
+        tooltip: hasOnlyOptionalMissing
           ? `${copy.primaryActionPolicy.missingAssetsWarningTooltip} (readiness ${toolReadinessScore}%)`
           : copy.primaryActionPolicy.disabledTooltip,
       }

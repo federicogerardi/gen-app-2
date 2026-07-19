@@ -1,8 +1,8 @@
 ---
 status: active
-version: 3.8
-last-reviewed: 2026-07-18
-next-review-date: 2026-10-18
+version: 3.9
+last-reviewed: 2026-07-19
+next-review-date: 2026-10-19
 owner: Domain Architecture
 ---
 
@@ -65,7 +65,7 @@ owner: Domain Architecture
 - Tests: `apps/backend/src/lib/tests/asset-injection.integration.test.ts`
 - Frontend: `apps/frontend/src/features/workspace/ui/AssetKnowledgePanel.tsx`, `apps/frontend/src/features/workspace/runtime/toolAssetRegistry.ts`
 - Setup Panel: `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`, `apps/frontend/src/styles.css`
-- Gatekeeping: `apps/frontend/src/features/tools/machines/tool-page-readiness.ts` (`hasRequiredAssets` field, `missing_required_assets` reason code)
+- Gatekeeping: `apps/frontend/src/features/tools/machines/tool-page-readiness.ts` (`hasRequiredAssets` field, `missing_required_assets` reason code — hard-block via DDD-213); `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (`matrixBlockingPrimaryOverride` with per-entry `requiredness` evaluation)
 - Extraction override: `apps/frontend/src/features/tools/runtime/useToolPage.ts` (`effectiveReadinessSnapshot` with asset-based context)
 - Guard: `apps/frontend/src/features/tools/machines/tool-page.machine.ts` (`canStartGeneration` allows when only `missing_extraction_context`)
 - Stale closure fix: `apps/frontend/src/features/tools/runtime/useToolPageRunController.ts` (`selectedAssetIds` in volatileRef)
@@ -249,7 +249,7 @@ The SerpApi channel is configured via `SERP_API_SERVICE_ID` and `SERP_API_KEY` e
 | `angle-generator` dual-source extraction composition | Frontend/UI → Generation | For `ToolKey = angle-generator`, extraction input composition requires two uploaded knowledge files: `BriefingFile` (existing source) and `AngleDetectorFile` (market-analysis source). The extraction phase must execute as a single LLM job over merged context assembled from both files. Execution as two independent extraction jobs is not compliant. | DDD-078 |
 | Tool input-source composition policy | Frontend/UI → Generation | Tool input composition may combine typed form fields, `ToolInputFile` uploads, and API-backed retrieval from `ApiService` definitions. API-backed sources extend the current hybrid input model and must remain explicit in tool-level configuration; they do not weaken existing file-requiredness rules or replace `ExtractionContext` as the downstream structured payload concept. | DDD-086, DDD-087 |
 | Context generation umbrella contract | Frontend/UI → Generation | Pre-step FE orchestration is modeled as one `ContextGenerationPhase` umbrella. In current runtime the visible CTA is unified under `Avvia la generazione`; when context is missing, that same click must start the full configured context pipeline (extraction, API acquisition, direct-input merge) and auto-dispatch step-1 generation after readiness is recomputed. | DDD-089, DDD-091 |
-| Unified requiredness matrix across input families | Frontend/UI → Generation | Start eligibility for context generation must use one `ToolInputRequirementMatrix` across `direct-input`, `tool-input-file`, and `api-acquisition` entries. Required entries (`always-required`, `required-by-tool-setting`) are blocking; optional entries (`optional-by-tool-setting`) are non-blocking. Canonical status confirmed by DDD-105. | DDD-090, DDD-105 |
+| Unified requiredness matrix across input families | Frontend/UI → Generation | Start eligibility for context generation must use one `ToolInputRequirementMatrix` across `direct-input`, `tool-input-file`, `api-acquisition`, and `project-asset` entries. Required entries (`always-required`, `required-by-tool-setting`) are blocking across all source families including assets (DDD-213); optional entries (`optional-by-tool-setting`) are non-blocking — asset optional entries show a warning tooltip but keep the CTA enabled. Canonical status confirmed by DDD-105; asset hard-block revision by DDD-213. | DDD-090, DDD-105, DDD-192, DDD-213 |
 | `HydrationResult` completeness before readiness | Frontend/UI | Artifact-driven relaunch must not set `ReadinessSnapshot.hasExtractionContext = true` solely because a `HydrationResult` object exists. The hydrated context is complete only when it recovers `extractionArtifactId`, `briefingId`, and non-empty normalized briefing text from artifact sources. `extractionPayload` is optional passthrough and is not part of the readiness predicate. Local FE hydration and `/api/tools/hydrate` must follow the same semantic contract. | DDD-038 |
 | `ReadinessSnapshot` required keys by tool (map-driven) | Frontend/UI | Readiness extraction requirements are governed by `ReadinessRequiredExtractionFieldKeysByTool` (per-tool, map-driven, extensible). Current baseline for `youtube-lf-script` requires non-null values for `knowledge_content`, `avatar`, `pain_point`, `offer`, `proof`; `meta-ads` keeps context-not-empty gating with empty required-key set; remaining canonical extraction fields can be `null` without blocking generation start. | DDD-043, DDD-080 |
 | `ToneProfile` dispatch handling | Frontend/UI → Generation | `GenerationRequest.input.tone` is interpreted by step type. For `WorkflowStepType = 'generation'`, the value belongs to canonical `ToneProfile` governance and the source of truth is the user-selected Tool Workspace Page selector. For `WorkflowStepType = 'extraction'`, execution tone is fixed to `analitico` for job consistency and is not user-configurable. | DDD-039 |

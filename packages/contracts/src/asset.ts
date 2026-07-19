@@ -110,7 +110,7 @@ export type ToolAssetContract = {
 export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   'funnel-pages': {
     produces: ['landing-page'],
-    consumes: ['persona', 'brand-voice', 'brief'],
+    consumes: ['persona', 'brand-voice', 'brief', 'angle'],
   },
   nextland: {
     produces: ['landing-page'],

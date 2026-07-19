@@ -5,8 +5,8 @@ describe('toolAssetRegistry', () => {
   describe('getToolAssetInputs', () => {
     it('returns consumes for funnel-pages', () => {
       const result = getToolAssetInputs('funnel-pages');
-      expect(result).toHaveLength(3);
-      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['persona', 'brand-voice', 'brief']));
+      expect(result).toHaveLength(4);
+      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['persona', 'brand-voice', 'brief', 'angle']));
       // brief is always-required (replaces file extraction), others are optional-by-tool-setting
       expect(result.find(e => e.assetType === 'brief')?.requiredness).toBe('always-required');
       expect(result.filter(e => e.assetType !== 'brief').every(e => e.requiredness === 'optional-by-tool-setting')).toBe(true);

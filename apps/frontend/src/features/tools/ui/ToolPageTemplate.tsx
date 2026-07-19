@@ -71,6 +71,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
   const isGeometricTool = props.toolKey === 'geometric';
   const isBlogArticleGeneratorTool = props.toolKey === 'blog-article-generator';
+  const hasConfigurationFields = isMetaAdsTool || isYoutubeDescriptionTool || isGeometricTool || isBlogArticleGeneratorTool;
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const { apiBaseUrl, capabilities } = useApiConfig();
   const { data: modelOptions } = useModelsQuery({
@@ -670,6 +671,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             })}>
 
               {/* ── Configuration Section ── */}
+              {hasConfigurationFields ? (
               <div className="ui-tool-setup-section">
                 <p className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
 
@@ -1071,7 +1073,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                  </>
                 ) : null}
 
-              </div>{/* end configuration section */}
+              </div>
+              ) : null}{/* end configuration section */}
 
               {/* ── Resources Section (briefing file upload) ── */}
               {visibleInputFiles.length > 0 ? (

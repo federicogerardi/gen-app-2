@@ -63,6 +63,10 @@ type BuildToolPageViewModelInput = {
   errorMessage: string | null;
   configuringSubstate?: 'clean' | 'hydrationFailed' | 'generationFailed';
   runRequestPrefix?: string | null;
+  /** When true, the toolPageMachine has reached its 'completed' state.
+   *  Used to short-circuit the view model when progress.completedSteps is
+   *  stale (async gap between STEP_DONE and PROGRESS_SYNCED). */
+  isMachineCompleted?: boolean;
 };
 
 export const buildToolPageViewModel = ({
@@ -73,6 +77,7 @@ export const buildToolPageViewModel = ({
   errorMessage,
   configuringSubstate = 'clean',
   runRequestPrefix = null,
+  isMachineCompleted = false,
 }: BuildToolPageViewModelInput): ToolPageViewModel => {
   const defaultModel = buildDefaultViewModel(toolKey, readiness);
   const totalSteps = toolStepOrder[toolKey].length;
@@ -86,6 +91,28 @@ export const buildToolPageViewModel = ({
 
   for (const step of progress.completedSteps) {
     stepStatuses[step] = 'done';
+  }
+
+  // Short-circuit: machine reached 'completed' state. Progress may be stale
+  // (async gap between STEP_DONE lifecycle transition and PROGRESS_SYNCED
+  // artifact reload). Return 'open-last-artifact' immediately to prevent a
+  // flash of 'start-generation' CTA.
+  if (isMachineCompleted) {
+    return {
+      ...defaultModel,
+      canonicalState: 'completed',
+      primaryActionPolicy: 'open-last-artifact',
+      secondaryActionFlags: {
+        ...defaultModel.secondaryActionFlags,
+        canRetry: true,
+        canOpenPreviousArtifact: hasCompletedAtLeastOneStep,
+      },
+      stepStatuses,
+      messages: {
+        status: 'Tutti gli artefatti sono stati generati',
+        error: null,
+      },
+    };
   }
 
   if (hasError && errorMessage) {
@@ -182,6 +209,7 @@ export type ReactiveViewModelInput = {
   errorMessage: string | null;
   intent: 'new' | 'resume' | 'regenerate';
   runRequestPrefix: string | null;
+  isMachineCompleted?: boolean;
 };
 
 export const buildReactiveViewModel = (
@@ -195,6 +223,7 @@ export const buildReactiveViewModel = (
   errorMessage: context.errorMessage,
   configuringSubstate,
   runRequestPrefix: context.runRequestPrefix,
+  isMachineCompleted: context.isMachineCompleted ?? false,
 });
 
 export const canStartFromPolicy = (policy: PrimaryActionPolicy): boolean => {

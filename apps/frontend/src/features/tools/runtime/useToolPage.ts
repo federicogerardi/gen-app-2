@@ -115,7 +115,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const configuringSubstate = typeof toolPageSnapshot.value === 'object' && toolPageSnapshot.value !== null && 'configuring' in toolPageSnapshot.value
     ? (toolPageSnapshot.value as { configuring: string }).configuring as 'clean' | 'hydrationFailed' | 'generationFailed'
     : 'clean' as const;
-  const machineViewModel = buildReactiveViewModel(toolPageSnapshot.context, configuringSubstate);
+  const isMachineCompleted = toolPageSnapshot.matches('completed');
+  const machineViewModel = buildReactiveViewModel(
+    { ...toolPageSnapshot.context, isMachineCompleted },
+    configuringSubstate,
+  );
 
   // ── Effective view model: when assets provide extraction context, rebuild the
   //     view model with the patched readiness so primaryActionPolicy reflects the
@@ -125,10 +129,10 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       return machineViewModel;
     }
     return buildReactiveViewModel(
-      { ...toolPageSnapshot.context, readiness: effectiveReadinessSnapshot },
+      { ...toolPageSnapshot.context, readiness: effectiveReadinessSnapshot, isMachineCompleted },
       configuringSubstate,
     );
-  }, [effectiveReadinessSnapshot, readinessSnapshot, machineViewModel, toolPageSnapshot.context, configuringSubstate]);
+  }, [effectiveReadinessSnapshot, readinessSnapshot, machineViewModel, toolPageSnapshot.context, configuringSubstate, isMachineCompleted]);
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;

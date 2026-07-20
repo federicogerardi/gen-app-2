@@ -7,6 +7,8 @@ import type { BackendCapabilities } from '../../../app/runtime/backend-capabilit
 
 import './dashboard/dashboard-panels.css';
 
+const FOCUSABLE_SELECTORS = 'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 interface CreateWorkspaceDialogProps {
   open: boolean;
   onClose: () => void;
@@ -29,21 +31,49 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
   const { publishSuccess } = useFeedbackMessage();
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<Element | null>(null);
 
-  // Auto-focus the name input when dialog opens
+  // Capture the previously-focused element when dialog opens
   useEffect(() => {
     if (open) {
+      triggerRef.current = document.activeElement;
       const timer = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(timer);
     }
+    // Return focus to trigger when dialog closes
+    return () => {
+      if (triggerRef.current instanceof HTMLElement) {
+        triggerRef.current.focus();
+      }
+    };
   }, [open]);
 
-  // Close on Escape
+  // Focus trap: cycle Tab / Shift+Tab within the dialog
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !loading) {
         handleClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+
+      const focusable = dialogRef.current.querySelectorAll(FOCUSABLE_SELECTORS);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0] as HTMLElement;
+      const last = focusable[focusable.length - 1] as HTMLElement;
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -107,7 +137,7 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
       aria-modal="true"
       aria-label={appCopy.ui.workspace.createDialog.title}
     >
-      <div className="workspace-hub-dialog workspace-hub-card" ref={dialogRef}>
+      <div className="workspace-hub-dialog" ref={dialogRef}>
         <h5 className="workspace-hub-dialog__title">{appCopy.ui.workspace.createDialog.title}</h5>
 
         <form onSubmit={handleSubmitForm} className="workspace-hub-dialog__form">

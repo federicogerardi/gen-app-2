@@ -45,7 +45,7 @@ export const RecentAssetsPanel: React.FC<RecentAssetsPanelProps> = ({ workspaceI
         footer={footer}
       >
         {Array.from({ length: 3 }, (_, i) => (
-          <Skeleton key={i} variant="rounded" height={52} sx={{ mb: 1 }} />
+          <Skeleton key={i} variant="rounded" height={52} className="dashboard-skeleton-row" />
         ))}
       </DashboardPanel>
     );

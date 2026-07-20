@@ -35,7 +35,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
     return (
       <DashboardPanel title={appCopy.ui.workspace.dashboard.recentArtifactsTitle} loading>
         {[1, 2, 3].map(i => (
-          <Skeleton key={i} variant="rounded" height={52} sx={{ mb: 1 }} />
+          <Skeleton key={i} variant="rounded" height={52} className="dashboard-skeleton-row" />
         ))}
       </DashboardPanel>
     );

@@ -7,6 +7,7 @@ import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery'
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { updateProject } from '../../projects/runtime/projects-client';
 import { useFeedbackMessage } from '../../../app/providers/FeedbackMessageProvider';
+import { formatRelativeTime } from '../../../app/ui/format-utils';
 import { appCopy } from '../../../app/copy/system';
 import { ErrorStateMessage } from '../../../app/ui/primitives';
 import type { ProjectSummary } from '../../projects/runtime/projects-client';
@@ -29,22 +30,6 @@ const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {
   'brief-generator': <FileText size={16} />,
   'tov-generator': <Mic size={16} />,
   'personas-generator': <Users size={16} />,
-};
-
-/** Format a date string as a relative time label for activity display. */
-const formatRelativeTime = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHr / 24);
-
-  if (diffMin < 1) return 'just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
 };
 
 const renderFoundationItem = (
@@ -101,9 +86,9 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
     try {
       await updateProject(project.id, { status: newStatus });
       onStatusChange();
-      publishSuccess(isArchived ? 'Workspace reactivated.' : 'Workspace archived.');
+      publishSuccess(isArchived ? appCopy.ui.workspace.contextHeader.reactivateSuccess : appCopy.ui.workspace.contextHeader.archiveSuccess);
     } catch (err) {
-      publishError(err instanceof Error ? err.message : 'Failed to update workspace status.');
+      publishError(err instanceof Error ? err.message : appCopy.ui.workspace.contextHeader.archiveFailed);
     }
   }, [project.id, isArchived, onStatusChange, publishSuccess, publishError]);
 

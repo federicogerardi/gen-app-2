@@ -80,7 +80,7 @@ export const WorkspacesListPage: React.FC = () => {
             {appCopy.ui.navigation.workspaces}
           </h4>
           <p className="workspace-hub__subtitle">
-            {projects.length} {projects.length === 1 ? 'workspace' : 'workspaces'} available
+            {appCopy.ui.workspace.dashboard.workspaceSubtitle(projects.length)}
           </p>
         </div>
         <button

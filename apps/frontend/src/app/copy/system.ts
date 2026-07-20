@@ -797,6 +797,9 @@ export const appCopy = {
         reactivateAction: 'Reactivate',
         reactivateAriaLabel: 'Reactivate workspace',
         archiveAriaLabel: 'Archive workspace',
+        archiveSuccess: 'Workspace archived.',
+        reactivateSuccess: 'Workspace reactivated.',
+        archiveFailed: 'Failed to update workspace status.',
         unableToLoadData: 'Unable to load workspace data',
       },
       sectionNav: {
@@ -851,6 +854,7 @@ export const appCopy = {
         loadingGeneric: 'Loading...',
         noSessionsYet: 'No sessions yet',
         noSessionsStartTool: 'No sessions yet \u2014 start by selecting a tool.',
+        workspaceSubtitle: (count: number) => `${count} workspace${count === 1 ? '' : 's'} available`,
         workspaceSessions: 'Workspace Sessions',
         artifactCountLabel: (count: number) => `${count} artifact${count === 1 ? '' : 's'}`,
       },

@@ -30,7 +30,6 @@ Thumbs.db
 # Codespaces / dev containers
 .devcontainer/.cache/
 .copilot-tracking/
-.agents/
 .claude/
 .copilot-repo-memory.md
 skills-lock.json

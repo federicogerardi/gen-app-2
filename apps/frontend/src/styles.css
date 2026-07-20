@@ -1681,6 +1681,8 @@ button:not(.MuiButton-root):not([class]):disabled,
   border-radius: 0;
   background: transparent;
   padding: 0;
+  min-width: 0;
+  overflow-x: auto;
 }
 
 /* Artifact content toolbar */

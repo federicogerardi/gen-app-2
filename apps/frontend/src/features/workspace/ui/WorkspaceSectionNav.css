@@ -23,8 +23,8 @@
   color: var(--mui-palette-text-primary, rgba(0,0,0,0.87));
 }
 .workspace-section-nav__pill--active {
-  color: var(--mui-palette-primary-main, #1976d2);
-  background: var(--mui-palette-primary-light, rgba(25,118,210,0.08));
+  color: var(--mui-palette-primary-contrastText, #fff);
+  background: var(--mui-palette-primary-main, #1976d2);
   border-color: var(--mui-palette-primary-main, #1976d2);
   font-weight: 600;
 }

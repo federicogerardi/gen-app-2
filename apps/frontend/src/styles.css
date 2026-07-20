@@ -532,6 +532,8 @@ textarea {
 
 button:not(.MuiButton-root):not([class]),
 .ui-button {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid transparent;
   border-radius: var(--radius-button);
   padding: var(--space-1-5) var(--space-2);

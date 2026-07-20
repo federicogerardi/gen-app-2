@@ -328,11 +328,23 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     //     non-streaming generation status, forwarding lifecycle events to XState.
     //     Runs BEFORE auto-chain (c) so completedStepsForFlow is fresh when
     //     auto-chain evaluates the next available step.
+    //
+    //     Guard: generationStatus === 'completed' requires currentRunPrefixRef
+    //     to be set. The shared generation machines (GenerationWorkspaceProvider
+    //     singleton) retain 'completed' state across tool switches. Without this
+    //     guard, a 'completed' status from the previous tool's run would trigger
+    //     STEP_DONE for the new tool's first step on mount, skipping its
+    //     generation entirely. Stream failures and wasStreamActiveRef transitions
+    //     are always processed regardless of run prefix.
     if (generationStream.isStreamActive) {
       wasStreamActiveRef.current = true;
     } else if (generationRun.isGenerationActive) {
       // Generation still running — nothing to resolve yet.
-    } else if (wasStreamActiveRef.current || generationStatus === 'completed' || generationStatus === 'failed') {
+    } else if (
+      wasStreamActiveRef.current
+      || (generationStatus === 'completed' && currentRunPrefixRef.current !== null)
+      || generationStatus === 'failed'
+    ) {
       wasStreamActiveRef.current = false;
 
       if (generationStatus === 'completed') {

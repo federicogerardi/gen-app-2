@@ -153,6 +153,10 @@ export const appCopy = {
       user: 'User',
       period: 'Period',
       page: 'Page',
+      tool: 'Tool',
+      output: 'Output',
+      showPreviousPagesBlock: (count: number): string => `Show previous ${count} pages`,
+      showNextPagesBlock: (count: number): string => `Show next ${count} pages`,
     },
     toolPage: {
       headingMetaSuffix: 'configuration and generation',

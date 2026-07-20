@@ -83,10 +83,10 @@ export const SessionsListingSection = ({
     [allItems, page],
   );
   const columns = useMemo<ListingTableColumn[]>(() => [
-    { key: 'tool', header: 'Tool' },
+    { key: 'tool', header: appCopy.ui.labels.tool },
     { key: 'status', header: appCopy.ui.labels.status },
     { key: 'project', header: appCopy.ui.labels.project },
-    { key: 'output', header: 'Output' },
+    { key: 'output', header: appCopy.ui.labels.output },
     { key: 'updated', header: appCopy.ui.meta.updated },
     { key: 'openDetail', header: appCopy.ui.actions.openDetail },
   ], []);

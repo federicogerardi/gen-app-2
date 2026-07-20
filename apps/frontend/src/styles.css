@@ -12,6 +12,7 @@
 
   --workspace-blue: #2563eb;
   --workspace-blue-soft: rgba(37, 99, 235, 0.14);
+  --workspace-blue-border: rgba(37, 99, 235, 0.28);
   --success-pine: #15803d;
   --warning-amber: #b7791f;
 
@@ -194,6 +195,7 @@
 
   --interactive-soft: rgba(59, 130, 246, 0.16);
   --interactive-hover: rgba(59, 130, 246, 0.22);
+  --workspace-blue-border: rgba(59, 130, 246, 0.36);
 
   --nav-active-fg: #eff6ff;
   --nav-active-border: rgba(59, 130, 246, 0.46);
@@ -644,7 +646,7 @@ button:not(.MuiButton-root):not([class]):disabled,
 .inline-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-micro);
   white-space: nowrap;
   color: var(--link-fg);
   font-family: var(--font-family-ui);
@@ -673,8 +675,8 @@ button:not(.MuiButton-root):not([class]):disabled,
 .inline-link:hover {
   color: var(--link-fg);
   background: var(--workspace-blue-soft);
-  border-color: rgba(37, 99, 235, 0.28);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+  border-color: var(--workspace-blue-border);
+  box-shadow: 0 2px 8px var(--workspace-blue-soft);
 }
 
 .ui-inline-link:hover::after,
@@ -772,7 +774,7 @@ button:not(.MuiButton-root):not([class]):disabled,
   display: inline-flex;
   align-items: center;
   border-radius: var(--radius-chip);
-  padding: 2px 8px;
+  padding: var(--space-hairline) var(--space-1);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;

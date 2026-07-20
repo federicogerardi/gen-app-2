@@ -104,6 +104,8 @@
   --border-strong: rgba(15, 23, 42, 0.24);
   --border-focus: rgba(37, 99, 235, 0.72);
 
+  --overlay-backdrop: rgba(2, 6, 23, 0.36);
+
   --radius-card: 12px;
   --radius-button: 8px;
   --radius-chip: 999px;
@@ -214,6 +216,8 @@
   --border-subtle: rgba(148, 163, 184, 0.2);
   --border-strong: rgba(148, 163, 184, 0.32);
   --border-focus: rgba(96, 165, 250, 0.78);
+
+  --overlay-backdrop: rgba(2, 6, 23, 0.56);
 
   --shadow-soft: 0 18px 42px rgba(2, 6, 23, 0.36);
   --shadow-strong: 0 24px 60px rgba(2, 6, 23, 0.5);

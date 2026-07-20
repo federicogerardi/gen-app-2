@@ -7,6 +7,7 @@ import { useProjectDetailQuery } from '../../../app/runtime/queries/useProjectDe
 import { WorkspaceProjectProvider } from '../runtime/WorkspaceProjectContext';
 import { WorkspaceSectionNav } from '../ui/WorkspaceSectionNav';
 import { updateProject } from '../../../features/projects/runtime/projects-client';
+import { appCopy } from '../../../app/copy/system';
 import '../ui/WorkspaceSectionNav.css';
 
 export const WorkspaceLayout: React.FC = () => {
@@ -41,14 +42,14 @@ export const WorkspaceLayout: React.FC = () => {
     }}>
       <div className="workspace-layout">
         {isArchived && (
-          <Alert severity="warning" sx={{ borderRadius: 0 }}
+          <Alert severity="warning" className="workspace-layout__archive-alert"
             action={
               <Button color="inherit" size="small" startIcon={<RefreshCw size={16} />}
                 onClick={handleReactivate}>
-                Reactivate
+                {appCopy.ui.workspace.contextHeader.reactivateAction}
               </Button>
             }>
-            This workspace is archived. Content is read-only until reactivated.
+            {appCopy.ui.workspace.contextHeader.archiveAlertMessage}
           </Alert>
         )}
 

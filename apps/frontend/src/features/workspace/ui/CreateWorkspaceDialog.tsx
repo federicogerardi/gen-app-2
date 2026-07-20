@@ -52,7 +52,7 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
 
   const handleSubmit = useCallback(async () => {
     if (!name.trim()) {
-      setError('Name is required');
+      setError(appCopy.ui.workspace.createDialog.nameRequired);
       return;
     }
 
@@ -70,7 +70,7 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
       onCreated();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create workspace');
+      setError(err instanceof Error ? err.message : appCopy.ui.workspace.createDialog.failedCreate);
     } finally {
       setLoading(false);
     }
@@ -105,15 +105,15 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
-      aria-label="Create New Workspace"
+      aria-label={appCopy.ui.workspace.createDialog.title}
     >
       <div className="workspace-hub-dialog workspace-hub-card" ref={dialogRef}>
-        <h5 className="workspace-hub-dialog__title">Create New Workspace</h5>
+        <h5 className="workspace-hub-dialog__title">{appCopy.ui.workspace.createDialog.title}</h5>
 
-        <form onSubmit={handleSubmitForm} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form onSubmit={handleSubmitForm} className="workspace-hub-dialog__form">
           <div className="workspace-hub-dialog__field">
             <label htmlFor="ws-dialog-name" className="workspace-hub-dialog__label">
-              Workspace Name
+              {appCopy.ui.workspace.createDialog.nameLabel}
             </label>
             <input
               ref={inputRef}
@@ -128,7 +128,7 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
           </div>
           <div className="workspace-hub-dialog__field">
             <label htmlFor="ws-dialog-desc" className="workspace-hub-dialog__label">
-              Description (optional)
+              {appCopy.ui.workspace.createDialog.descriptionLabel}
             </label>
             <textarea
               id="ws-dialog-desc"
@@ -147,7 +147,7 @@ export const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
               {appCopy.ui.actions.cancel}
             </Button>
             <Button type="submit" disabled={loading || !name.trim()}>
-              {loading ? 'Creating...' : 'Create'}
+              {loading ? appCopy.ui.workspace.createDialog.creating : appCopy.ui.workspace.createDialog.create}
             </Button>
           </div>
         </form>

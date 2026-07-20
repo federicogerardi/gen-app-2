@@ -10,7 +10,7 @@
 }
 .workspace-section-nav__pill {
   display: inline-flex; align-items: center;
-  padding: 6px var(--space-2); border-radius: var(--radius-chip);
+  padding: var(--space-1-5) var(--space-2); border-radius: var(--radius-chip);
   font-size: 0.8125rem; font-weight: 500;
   text-decoration: none; white-space: nowrap;
   scroll-snap-align: start;

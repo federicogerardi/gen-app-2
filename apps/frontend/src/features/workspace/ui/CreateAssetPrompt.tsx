@@ -89,7 +89,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
 
   if (showForm) {
     return (
-      <div className="create-asset-prompt" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="create-asset-prompt create-asset-prompt__form">
         <TextField
           size="small"
           label={copy.nameLabel(label)}
@@ -111,7 +111,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
         {error && (
           <Typography variant="caption" color="error">{error}</Typography>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="create-asset-prompt__form-actions">
           <Button
             variant="contained"
             size="small"
@@ -151,7 +151,7 @@ export const CreateAssetPrompt: React.FC<CreateAssetPromptProps> = ({
         disabled={loading}
       />
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+      <div className="create-asset-prompt__actions">
         {producerTool ? (
           <Button
             variant="contained"

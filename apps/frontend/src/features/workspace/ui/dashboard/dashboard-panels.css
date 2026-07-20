@@ -11,6 +11,9 @@
   flex-direction: column;
   min-height: 100%;
 }
+.workspace-layout__archive-alert {
+  border-radius: 0;
+}
 .workspace-layout__content {
   flex: 1;
   padding: var(--space-3);
@@ -26,6 +29,19 @@
 }
 
 /* ── Asset Page Items ── */
+.workspace-assets-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.01em;
+}
+
+.asset-library-view {
+  display: flex;
+  flex-direction: column;
+}
+
 .asset-page__item {
   display: flex;
   justify-content: space-between;
@@ -51,7 +67,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
+  padding: var(--space-1-5) var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -62,11 +78,11 @@
 }
 
 .dashboard-panel__content {
-  padding: var(--space-2) 20px;
+  padding: var(--space-2) var(--space-3);
 }
 
 .dashboard-panel__footer {
-  padding: 10px var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   text-align: center;
   border-top: 1px solid var(--border-subtle);
 }
@@ -127,7 +143,7 @@
 .knowledge-overview__progress {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   min-width: 200px;
 }
 
@@ -147,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1-5);
-  padding: 10px 14px;
+  padding: var(--space-1-5) var(--space-2);
   border-radius: var(--radius-button);
   border: 1px solid var(--border-subtle);
   transition: background-color 0.15s ease;
@@ -182,8 +198,8 @@
 .tool-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
+  gap: var(--space-1);
+  padding: var(--space-2);
   border-radius: var(--radius-button);
   border: 1px solid var(--border-subtle);
   text-decoration: none;
@@ -226,15 +242,15 @@
 .asset-quick-access__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: var(--space-1-5);
 }
 
 .asset-mini-card {
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) 10px;
-  border-radius: 6px;
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-button);
   border: 1px solid var(--border-subtle);
   font-size: 0.8rem;
   min-width: 0;
@@ -257,13 +273,13 @@
 .recent-activity__list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
 }
 
 .activity-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-1-5);
   padding: var(--space-1) 0;
   border-bottom: 1px solid var(--border-subtle);
 }
@@ -298,7 +314,7 @@
 /* ── Workspace Overview Card ── */
 .workspace-overview {
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: var(--surface-base);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
@@ -308,7 +324,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3) 28px 20px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
   gap: var(--space-3);
 }
 
@@ -328,7 +344,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0 28px var(--space-2);
+  padding: 0 var(--space-4) var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -350,13 +366,13 @@
 }
 
 .workspace-overview__divider {
-  margin: 0 28px;
+  margin: 0 var(--space-4);
   border: none;
   border-top: 1px solid var(--border-subtle);
 }
 
 .workspace-overview__foundation {
-  padding: var(--space-2) 28px;
+  padding: var(--space-2) var(--space-4);
 }
 
 .workspace-overview__foundation-label {
@@ -365,7 +381,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-1-5);
 }
 
 .workspace-overview__foundation-row {
@@ -406,7 +422,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-2);
-    padding: 20px;
+    padding: var(--space-3);
   }
 
 }
@@ -453,10 +469,10 @@
 }
 
 /* ── Asset Group Section — Browse Mode ── */
-.asset-group-section__browse-list { display: flex; flex-direction: column; gap: 2px; }
+.asset-group-section__browse-list { display: flex; flex-direction: column; gap: var(--space-hairline); }
 .asset-group-section__browse-item {
-  display: flex; align-items: center; gap: var(--space-1); padding: 6px var(--space-1);
-  border-radius: 6px;
+  display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-1);
+  border-radius: var(--radius-button);
   transition: background-color 0.1s ease;
 }
 .asset-group-section__browse-item:hover {
@@ -469,7 +485,7 @@
 
 /* ── Asset Accordion Footer ── */
 .asset-accordion__footer {
-  padding: 10px var(--space-2); text-align: center;
+  padding: var(--space-1-5) var(--space-2); text-align: center;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -492,7 +508,7 @@
   font-size: 0.75rem; color: var(--text-muted);
 }
 .recent-artifacts__footer {
-  padding: 10px var(--space-2); text-align: center;
+  padding: var(--space-1-5) var(--space-2); text-align: center;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -527,7 +543,7 @@
 .dashboard-item-row__meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1);
   flex-shrink: 0;
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -592,7 +608,7 @@
   gap: var(--space-3);
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 980px) {
   .workspace-hub-grid {
     grid-template-columns: 1fr;
   }
@@ -614,7 +630,7 @@
 }
 
 .workspace-hub-card__header {
-  padding: 20px var(--space-3) var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
 }
 
 .workspace-hub-card__name-row {
@@ -636,12 +652,12 @@
 .workspace-hub-card__archived-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px var(--space-1);
+  padding: var(--space-hairline) var(--space-1);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-radius: var(--space-micro);
+  border-radius: var(--radius-chip);
   background: var(--surface-steel);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
@@ -666,7 +682,7 @@
 
 /* Foundation section — reuses .foundation-status__item etc. from existing CSS */
 .workspace-hub-card__foundation {
-  padding: 14px var(--space-3);
+  padding: var(--space-2) var(--space-3);
 }
 
 .workspace-hub-card__foundation-label {
@@ -713,7 +729,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 10px var(--space-3);
+  padding: var(--space-1-5) var(--space-3);
 }
 
 .workspace-hub-card__activity-label {
@@ -743,7 +759,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
-  padding: 14px var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-top: 1px solid var(--border-subtle);
   margin-top: auto;
 }
@@ -754,7 +770,7 @@
   justify-content: center;
   width: var(--space-4);
   height: var(--space-4);
-  border-radius: 6px;
+  border-radius: var(--radius-button);
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
@@ -777,7 +793,7 @@
 .workspace-hub-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.36);
+  background: var(--overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -836,6 +852,12 @@
   justify-content: flex-end;
   gap: var(--space-1);
   margin-top: var(--space-1);
+}
+
+.workspace-hub-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 /* ── Zero State ── */

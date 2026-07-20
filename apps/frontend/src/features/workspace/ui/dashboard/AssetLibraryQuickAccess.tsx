@@ -3,6 +3,7 @@ import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { QualityScoreBadge } from '../QualityScoreBadge';
 import { AssetTypeIcon } from '../AssetTypeIcon';
 import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage, uiPrimitives } from '../../../../app/ui/primitives';
+import { appCopy } from '../../../../app/copy/system';
 
 interface AssetLibraryQuickAccessProps {
   workspaceId: string;
@@ -10,8 +11,9 @@ interface AssetLibraryQuickAccessProps {
 
 export const AssetLibraryQuickAccess: React.FC<AssetLibraryQuickAccessProps> = ({ workspaceId }) => {
   const ctx = useWorkspaceContext(workspaceId);
+  const copy = appCopy.ui.workspace.dashboard;
 
-  if (ctx.loading) return <LoadingStateMessage>Loading assets...</LoadingStateMessage>;
+  if (ctx.loading) return <LoadingStateMessage>{copy.loadingAssets}</LoadingStateMessage>;
   if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
 
   const recentAssets = ctx.assets.slice(0, 6);
@@ -20,10 +22,10 @@ export const AssetLibraryQuickAccess: React.FC<AssetLibraryQuickAccessProps> = (
     return (
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Assets</span>
+          <span className="dashboard-panel__title">{copy.recentAssetsTitle}</span>
         </div>
         <div className="dashboard-panel__content">
-          <EmptyStateMessage>No assets yet — start by using a tool.</EmptyStateMessage>
+          <EmptyStateMessage>{copy.recentAssetsEmpty}</EmptyStateMessage>
         </div>
       </div>
     );
@@ -32,7 +34,7 @@ export const AssetLibraryQuickAccess: React.FC<AssetLibraryQuickAccessProps> = (
   return (
     <div className="dashboard-panel">
       <div className="dashboard-panel__header">
-        <span className="dashboard-panel__title">Recent Assets</span>
+        <span className="dashboard-panel__title">{copy.recentAssetsTitle}</span>
       </div>
       <div className="dashboard-panel__content">
         <div className="asset-quick-access__grid">
@@ -46,7 +48,7 @@ export const AssetLibraryQuickAccess: React.FC<AssetLibraryQuickAccessProps> = (
         </div>
         <div className="asset-quick-access__footer">
           <Link to={`/workspaces/${workspaceId}/assets`} className={uiPrimitives.inlineLink}>
-            View all assets →
+            {copy.viewAllAssetsArrow}
           </Link>
         </div>
       </div>

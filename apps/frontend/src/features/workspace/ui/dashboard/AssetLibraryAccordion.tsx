@@ -49,7 +49,7 @@ export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ wo
           to={`/workspaces/${workspaceId}/assets`}
           className="ui-inline-link"
         >
-          View all assets →
+          {appCopy.ui.workspace.dashboard.viewAllAssetsArrow}
         </Link>
       }
     >

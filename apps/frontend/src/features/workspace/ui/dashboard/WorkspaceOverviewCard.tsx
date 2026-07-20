@@ -11,9 +11,9 @@ interface WorkspaceOverviewCardProps {
 }
 
 const FOUNDATION_TOOL_LABELS: Record<string, string> = {
-  'brief-generator': 'Brief',
-  'tov-generator': 'Brand Voice',
-  'personas-generator': 'Personas',
+  'brief-generator': appCopy.ui.workspace.dashboard.foundationLabelBrief,
+  'tov-generator': appCopy.ui.workspace.dashboard.foundationLabelBrandVoice,
+  'personas-generator': appCopy.ui.workspace.dashboard.foundationLabelPersonas,
 };
 
 const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {

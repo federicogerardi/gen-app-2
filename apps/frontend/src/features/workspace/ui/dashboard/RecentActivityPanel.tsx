@@ -5,15 +5,16 @@ import { useApiConfig } from '../../../../app/providers/AuthSessionProvider';
 import { toolFormRegistry } from '../../../tools/runtime/tool-form-architecture';
 import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
 import { formatRelativeTime } from '../../../../app/ui/format-utils';
+import { appCopy } from '../../../../app/copy/system';
 
 interface RecentActivityPanelProps {
   workspaceId: string;
 }
 
 const STATUS_CONFIG = {
-  completed: { color: 'success' as const, label: 'Done' },
-  generating: { color: 'primary' as const, label: 'Running' },
-  failed: { color: 'error' as const, label: 'Failed' },
+  completed: { color: 'success' as const, label: appCopy.ui.statusLabels.completed },
+  generating: { color: 'primary' as const, label: appCopy.ui.statusLabels.generating },
+  failed: { color: 'error' as const, label: appCopy.ui.statusLabels.failed },
 };
 
 export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ workspaceId }) => {
@@ -23,8 +24,9 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
     apiBaseUrl,
     capabilities,
   });
+  const copy = appCopy.ui.workspace.dashboard;
 
-  if (sessionsQuery.loading) return <LoadingStateMessage>Loading activity...</LoadingStateMessage>;
+  if (sessionsQuery.loading) return <LoadingStateMessage>{copy.loadingActivity}</LoadingStateMessage>;
   if (sessionsQuery.error) return <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage>;
 
   const sessions = (sessionsQuery.data ?? []).slice(0, 5);
@@ -33,10 +35,10 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
     return (
       <div className="dashboard-panel">
         <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">Recent Activity</span>
+          <span className="dashboard-panel__title">{copy.recentActivityTitle}</span>
         </div>
         <div className="dashboard-panel__content">
-          <EmptyStateMessage>No sessions yet — start by selecting a tool.</EmptyStateMessage>
+          <EmptyStateMessage>{copy.noSessionsStartTool}</EmptyStateMessage>
         </div>
       </div>
     );
@@ -45,7 +47,7 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
   return (
     <div className="dashboard-panel">
       <div className="dashboard-panel__header">
-        <span className="dashboard-panel__title">Recent Activity</span>
+        <span className="dashboard-panel__title">{copy.recentActivityTitle}</span>
       </div>
       <div className="dashboard-panel__content">
         <div className="recent-activity__list">
@@ -60,7 +62,7 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
                 <div className="activity-item__meta">
                   <Chip label={statusCfg.label} color={statusCfg.color} size="small" variant="outlined" />
                   <Typography variant="caption" className="activity-item__time">
-                    {session.artifactCount} {session.artifactCount === 1 ? 'artifact' : 'artifacts'}
+                    {copy.artifactCountLabel(session.artifactCount)}
                   </Typography>
                   <Typography variant="caption" className="activity-item__time">
                     {formatRelativeTime(session.updatedAt)}
@@ -70,9 +72,9 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
             );
           })}
         </div>
-        <div className="dashboard-panel__footer" style={{ marginTop: 12, paddingLeft: 16 }}>
-          <Link to={`/workspaces/${workspaceId}/sessions`} style={{ textDecoration: 'none', color: '#1976d2', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            View all sessions →
+        <div className="recent-artifacts__footer">
+          <Link to={`/workspaces/${workspaceId}/sessions`} className="ui-inline-link">
+            {copy.viewAllSessionsArrow}
           </Link>
         </div>
       </div>

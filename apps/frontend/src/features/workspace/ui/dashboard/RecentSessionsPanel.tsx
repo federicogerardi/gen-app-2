@@ -37,7 +37,7 @@ export const RecentSessionsPanel: React.FC<RecentSessionsPanelProps> = ({
       to={`/workspaces/${workspaceId}/sessions`}
       className="ui-inline-link"
     >
-      View all sessions →
+      {appCopy.ui.workspace.dashboard.viewAllSessionsArrow}
     </Link>
   );
 
@@ -87,8 +87,7 @@ export const RecentSessionsPanel: React.FC<RecentSessionsPanelProps> = ({
           <div key={session.sessionId} className="dashboard-item-row">
             <span className="dashboard-item-row__primary">{toolLabel}</span>
             <span className="dashboard-item-row__meta">
-              {session.artifactCount}{' '}
-              {session.artifactCount === 1 ? 'artifact' : 'artifacts'}
+              {appCopy.ui.workspace.dashboard.artifactCountLabel(session.artifactCount)}
               {' · '}
               {formatRelativeTime(session.updatedAt)}
             </span>

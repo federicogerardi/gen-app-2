@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography } from '@mui/material';
 import { useCallback } from 'react';
 import { useWorkspaceContext } from '../runtime/useWorkspaceContext';
 import { useWorkspaceProject } from '../runtime/WorkspaceProjectContext';
 import { getProducerToolsForAsset } from '../runtime/toolAssetRegistry';
 import { AssetLibraryView } from '../ui/AssetLibraryView';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
+import { appCopy } from '../../../app/copy/system';
 import type { AssetType } from '@gen-app-2/contracts';
 import '../ui/dashboard/dashboard-panels.css';
 
@@ -14,6 +14,8 @@ export const ProjectAssetsPage: React.FC = () => {
   const navigate = useNavigate();
   const ctx = useWorkspaceContext(workspaceId);
   const { isProjectLoading, projectError } = useWorkspaceProject();
+
+  const copy = appCopy.ui.workspace;
 
   const handleCreateAction = useCallback(
     (assetType: string) => {
@@ -30,18 +32,18 @@ export const ProjectAssetsPage: React.FC = () => {
     [navigate, workspaceId, ctx],
   );
 
-  if (isProjectLoading) return <LoadingStateMessage>Loading workspace...</LoadingStateMessage>;
+  if (isProjectLoading) return <LoadingStateMessage>{copy.dashboard.loadingAssets ?? 'Loading workspace...'}</LoadingStateMessage>;
   if (projectError) return <ErrorStateMessage>{projectError}</ErrorStateMessage>;
   if (!workspaceId) return null;
 
   return (
     <section className="workspace-assets-page">
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Asset Library
-      </Typography>
+      <h1 className="workspace-assets-page__title">
+        {copy.dashboard.assetLibraryTitle}
+      </h1>
 
       {ctx.loading ? (
-        <LoadingStateMessage>Loading assets...</LoadingStateMessage>
+        <LoadingStateMessage>{copy.dashboard.loadingAssets ?? 'Loading assets...'}</LoadingStateMessage>
       ) : ctx.error ? (
         <ErrorStateMessage>{ctx.error}</ErrorStateMessage>
       ) : (

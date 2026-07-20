@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.6
+version: 1.7
 date_created: 2026-05-08
-last-reviewed: 2026-07-19
-next-review-date: 2026-10-19
+last-reviewed: 2026-07-21
+next-review-date: 2026-10-21
 owner: Frontend Platform Team
 type: ui-governance-spec
 ---
@@ -400,6 +400,12 @@ The following runtime paths are the canonical implementation contract for channe
 | Emitting `Dispatch Error` both inline and global | Duplicates signal and confuses priority | Keep `Dispatch Error` only in `inline-action` slot |
 | Using `LoadingStateMessage` for mutation success copy | Semantic mismatch (`loading` vs `success`) | Route to `Global Feedback Message` (provisional) |
 | Keeping ad-hoc page-local success variable names as governance terms | Creates terminology drift across docs/PRs | Use canonical UL terms in docs/PRs (`Global Feedback Message`, `Feedback Channel`) |
+| `var(--mui-palette-*)` in custom CSS files | MUI palette vars are runtime-injected and not theme-synced; breaks dark mode | Use app `--*` tokens from `styles.css` |
+| Hardcoded colors (`#fff`, `rgba(0,0,0,0.12)`, etc.) in CSS | Bypasses dark mode token overrides | Use `--*` tokens |
+| Hardcoded pixel values (`8px`, `16px`, etc.) for spacing | Bypasses spacing token system; inconsistent rhythm | Use `--space-*` tokens |
+| Tab controls without WAI-ARIA tab pattern | Screen readers cannot associate tabs with panels | Implement `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"` |
+| Mobile overlay without focus trap | Keyboard users can tab into obscured content | Add focus trap, Escape handler, `inert` on background |
+| Hardcoded Italian in `aria-label` | Violates i18n contract; breaks if app copy changes | Use `appCopy` reference |
 
 ## 9. Acceptance Gates
 
@@ -413,6 +419,13 @@ A PR touching frontend UI is acceptable only if:
 6. feedback mapping is explicit and channel-consistent (`inline-action` vs `page-state` vs `global`) with no channel overlap for the same event
 7. every new feedback event is mapped to a row in Section 7 (or explicitly justified as temporary exception)
 8. anti-patterns in Section 8 are not introduced in the touched pages
+9. new CSS classes verify dark mode correctness (light + dark tokens)
+10. no `var(--mui-palette-*)` references in custom CSS files
+11. no hardcoded colors, spacing, or shadows in CSS files
+12. interactive overlays (mobile nav, modals) implement focus trap + Escape key
+13. tab-like UI implements full WAI-ARIA tab pattern
+14. `aria-label` and other ARIA text attributes use `appCopy` keys, not hardcoded strings
+15. dynamic state changes are announced via `aria-live` or `role="status"`
 
 ## 10. Rollout Priority
 
@@ -427,6 +440,117 @@ Priority order for convergence:
 - Owner: Frontend Platform Team
 - Design review support: UX/UI
 - Update cadence: monthly or when a new page archetype is introduced
+
+## 12. Design Token Governance
+
+All visual styling in the frontend must be driven by the design token system defined in `styles.css`. This section establishes the single-source-of-truth contract for CSS custom properties, prohibiting ad-hoc or third-party token injection.
+
+### 12.1 Single token source
+
+All CSS custom properties must be defined in `styles.css` `:root` (and `:root[data-theme='dark']` for dark mode). No component-level CSS file may define its own `:root` variables.
+
+### 12.2 No MUI palette fallbacks in custom CSS
+
+Workspace and feature CSS files must NOT use `var(--mui-palette-*)` as primary values or fallbacks. MUI palette CSS variables are runtime-injected by MUI's `ThemeProvider` and are not guaranteed to exist or to follow the app's `data-theme` attribute. Use the app's own design tokens instead:
+
+| MUI palette variable | App token replacement |
+| --- | --- |
+| `--mui-palette-divider` | `--border-subtle` |
+| `--mui-palette-background-paper` | `--surface-base` |
+| `--mui-palette-text-primary` | `--text-primary` |
+| `--mui-palette-text-secondary` | `--text-muted` |
+| `--mui-palette-action-hover` | `--interactive-hover` |
+| `--mui-palette-primary-main` | `--workspace-blue` |
+| `--mui-palette-success-main` | `--success-pine` |
+| `--mui-palette-warning-main` | `--warning-amber` |
+
+### 12.3 No hardcoded colors
+
+CSS files must not use hardcoded color values (`#fff`, `#000`, `rgba(...)`, `#1976d2`, etc.) for borders, backgrounds, text colors, or shadows. Always use the corresponding `--*` token from `styles.css`.
+
+### 12.4 No hardcoded spacing
+
+CSS files must not use raw pixel values (`4px`, `8px`, `12px`, `16px`, `24px`, `32px`) for padding, margin, or gap. Use the canonical spacing tokens:
+
+| Token | Value |
+| --- | --- |
+| `--space-micro` | 4px |
+| `--space-1` | 8px |
+| `--space-1-5` | 12px |
+| `--space-2` | 16px |
+| `--space-3` | 24px |
+| `--space-4` | 32px |
+
+### 12.5 No hardcoded border-radius
+
+Use the canonical radius tokens:
+
+| Token | Value |
+| --- | --- |
+| `--radius-button` | 8px |
+| `--radius-card` | 12px |
+| `--radius-chip` | 999px |
+
+### 12.6 No hardcoded shadows
+
+Use `--shadow-soft` or `--shadow-strong`. Never write raw `box-shadow` values.
+
+### 12.7 Token hygiene
+
+Unused tokens must be removed from `styles.css` within one sprint. Unused CSS class selectors must be removed within one sprint of becoming dead code. A quarterly token audit is recommended.
+
+### 12.8 Dark mode completeness
+
+Every new CSS class that sets `background`, `color`, `border-color`, or `box-shadow` must work correctly in both light and dark themes. Verify by checking that the property uses a `--*` token that has a corresponding override in `:root[data-theme='dark']`.
+
+## 13. Accessibility Contract
+
+This section establishes mandatory accessibility patterns for interactive UI components. These rules complement the general accessibility baseline in Section 9 gate 5.
+
+### 13.1 Tab pattern (WAI-ARIA)
+
+Any UI that renders a set of tab-like controls must implement the full WAI-ARIA tabs pattern:
+
+- **Tab buttons**: `role="tab"`, `aria-selected`, `aria-controls` pointing to panel `id`, `id` on each tab
+- **Tab panels**: `role="tabpanel"`, `id` matching tab's `aria-controls`, `aria-labelledby` pointing to selected tab's `id`
+- **Tab container**: `role="tablist"`
+
+### 13.2 Mobile overlay focus trap
+
+Any mobile overlay (nav drawer, modal, sheet) must:
+
+- Trap focus within the overlay when open
+- Close on Escape key press
+- Return focus to the trigger element on close
+- Apply `inert` to background content or use a backdrop
+
+### 13.3 Dynamic empty states
+
+`EmptyStateMessage` and similar primitives that render dynamically must use `role="status"` and `aria-live="polite"` so screen readers announce the change.
+
+### 13.4 Form section labels
+
+Groups of form controls that share a visual section label must be programmatically associated via `aria-labelledby` on the container or by using `<fieldset>`/`<legend>`.
+
+### 13.5 No hardcoded locale in ARIA attributes
+
+All `aria-label`, `aria-description`, and `title` attributes must reference `appCopy` keys. No hardcoded Italian or other non-English strings in ARIA attributes.
+
+### 13.6 Live region feedback
+
+Any user-action feedback that changes dynamically (e.g., "Copied!", format selection confirmation) must be announced via `aria-live` or `role="status"`.
+
+## 14. Responsive Breakpoint Standardization
+
+The application uses exactly three canonical breakpoint values. No other breakpoint values are permitted in CSS files.
+
+| Breakpoint | Transition | Usage |
+| --- | --- | --- |
+| `980px` | desktop ↔ tablet | Navigation collapse, workbench grid transition |
+| `760px` | tablet ↔ mobile | Shell padding, panel stacking, mobile nav |
+| `1080px` | wide layout only | Admin grids |
+
+The value `768px` is deprecated — use `760px` instead.
 
 ---
 
@@ -484,3 +608,11 @@ Key source files referenced by this specification:
 - `apps/frontend/src/app/runtime/queries/useProjectsQuery.ts`
 - `apps/frontend/src/app/runtime/queries/useAdminModelsQuery.ts`
 - `apps/frontend/src/app/runtime/queries/useAdminUsersQuery.ts`
+- `apps/frontend/src/features/workspace/ui/AssetKnowledgePanel.css`
+- `apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.css`
+- `apps/frontend/src/features/workspace/ui/dashboard/dashboard-panels.css`
+- `apps/frontend/src/features/workspace/ui/AssetGroupSection.css`
+- `apps/frontend/src/features/workspace/ui/WorkspaceContextHeader.css`
+- `apps/frontend/src/features/workspace/ui/WorkspaceSectionNav.css`
+- `apps/frontend/src/features/workspace/ui/asset-components.css`
+- `apps/frontend/src/app/layouts/MainNavigation.css`

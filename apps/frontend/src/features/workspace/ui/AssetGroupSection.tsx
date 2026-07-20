@@ -81,6 +81,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
         onClick={handleHeaderClick}
         role="button"
         tabIndex={0}
+        aria-expanded={isExpanded}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -109,7 +110,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
 
           {isRequired && (
             <Chip
-              label={appCopy.ui.workspace?.assetPanel?.groupRequiredLabel || 'Required'}
+              label={appCopy.ui.workspace.assetPanel.groupRequiredLabel}
               size="small"
               color="error"
               variant="outlined"
@@ -123,7 +124,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
               <QualityScoreBadge score={groupQualityScore} size="small" />
               {selectedAssetsInGroup > 0 && (
                 <Chip
-                  label={`${selectedAssetsInGroup} ${appCopy.ui.workspace?.assetPanel?.selectedCount || 'selected'}`}
+                  label={`${selectedAssetsInGroup} ${appCopy.ui.workspace.assetPanel.selectedCount}`}
                   size="small"
                   color="primary"
                 />
@@ -132,8 +133,8 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
           ) : (
             <Chip
               label={isRequired
-                ? (appCopy.ui.workspace?.assetPanel?.groupMissingRequired || 'Missing (Required)')
-                : (appCopy.ui.workspace?.assetPanel?.groupMissingOptional || 'Missing (Optional)')
+                ? appCopy.ui.workspace.assetPanel.groupMissingRequired
+                : appCopy.ui.workspace.assetPanel.groupMissingOptional
               }
               size="small"
               color={isRequired ? 'error' : 'default'}
@@ -200,7 +201,7 @@ export const AssetGroupSection: React.FC<AssetGroupSectionProps> = ({
                 onClick={onCreateAction}
                 className="asset-group-section__generate-more-button"
               >
-                {appCopy.ui.workspace?.assetPanel?.generateMoreAction || 'Generate More'} {label}
+                {appCopy.ui.workspace.assetPanel.generateMoreAction} {label}
               </Button>
             </div>
           )}

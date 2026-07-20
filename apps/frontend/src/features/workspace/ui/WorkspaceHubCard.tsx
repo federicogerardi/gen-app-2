@@ -20,9 +20,9 @@ interface WorkspaceHubCardProps {
 }
 
 const FOUNDATION_TOOL_LABELS: Record<string, string> = {
-  'brief-generator': 'Brief',
-  'tov-generator': 'Brand Voice',
-  'personas-generator': 'Personas',
+  'brief-generator': appCopy.ui.workspace.dashboard.foundationLabelBrief,
+  'tov-generator': appCopy.ui.workspace.dashboard.foundationLabelBrandVoice,
+  'personas-generator': appCopy.ui.workspace.dashboard.foundationLabelPersonas,
 };
 
 const FOUNDATION_TOOL_ICONS: Record<string, React.ReactNode> = {
@@ -121,12 +121,12 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
           <div className="workspace-hub-card__name-row">
             <span className="workspace-hub-card__name">{project.name}</span>
             {isArchived && (
-              <span className="workspace-hub-card__archived-badge">Archived</span>
+              <span className="workspace-hub-card__archived-badge">{appCopy.ui.workspace.contextHeader.archivedBadge}</span>
             )}
           </div>
         </div>
         <div className="workspace-hub-card__stats">
-          <ErrorStateMessage>Unable to load workspace data</ErrorStateMessage>
+          <ErrorStateMessage>{appCopy.ui.workspace.contextHeader.unableToLoadData}</ErrorStateMessage>
         </div>
         <div className="workspace-hub-card__actions">
           <Link to={`/workspaces/${project.id}`} className="ui-button">
@@ -136,7 +136,7 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
             type="button"
             className="workspace-hub-card__menu-btn"
             onClick={handleToggleStatus}
-            aria-label={isArchived ? 'Reactivate workspace' : 'Archive workspace'}
+            aria-label={isArchived ? appCopy.ui.workspace.contextHeader.reactivateAriaLabel : appCopy.ui.workspace.contextHeader.archiveAriaLabel}
           >
             {isArchived ? <RefreshCw size={16} /> : <Archive size={16} />}
           </button>
@@ -152,8 +152,8 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
         <div className="workspace-hub-card__name-row">
           <span className="workspace-hub-card__name">{project.name}</span>
           {isArchived && (
-            <span className="workspace-hub-card__archived-badge">Archived</span>
-          )}
+              <span className="workspace-hub-card__archived-badge">{appCopy.ui.workspace.contextHeader.archivedBadge}</span>
+            )}
         </div>
         {project.description && (
           <p className="workspace-hub-card__description">{project.description}</p>
@@ -213,19 +213,19 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
 
       {/* Activity hint: most recent session */}
       <div className="workspace-hub-card__activity">
-        <span className="workspace-hub-card__activity-label">Last activity</span>
+        <span className="workspace-hub-card__activity-label">{copy.lastActivity}</span>
         {sessionsLoading ? (
-          <span className="workspace-hub-card__activity-detail">Loading...</span>
+          <span className="workspace-hub-card__activity-detail">{copy.loadingGeneric}</span>
         ) : lastSession ? (
           <span className="workspace-hub-card__activity-detail">
             {getToolLabel(lastSession.toolKey)}
             &nbsp;&middot;&nbsp;
             {formatRelativeTime(lastSession.updatedAt)}
             &nbsp;&middot;&nbsp;
-            {lastSession.artifactCount} artifact{lastSession.artifactCount !== 1 ? 's' : ''}
+            {copy.artifactCountLabel(lastSession.artifactCount)}
           </span>
         ) : (
-          <span className="workspace-hub-card__activity-none">No sessions yet</span>
+          <span className="workspace-hub-card__activity-none">{copy.noSessionsYet}</span>
         )}
       </div>
 
@@ -240,7 +240,7 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
           type="button"
           className="workspace-hub-card__menu-btn"
           onClick={handleToggleStatus}
-          aria-label={isArchived ? 'Reactivate workspace' : 'Archive workspace'}
+          aria-label={isArchived ? appCopy.ui.workspace.contextHeader.reactivateAriaLabel : appCopy.ui.workspace.contextHeader.archiveAriaLabel}
         >
           {isArchived ? <RefreshCw size={16} /> : <Archive size={16} />}
         </button>

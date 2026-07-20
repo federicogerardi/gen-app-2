@@ -2,6 +2,7 @@ import { Checkbox, List, ListItem, ListItemButton, ListItemIcon, ListItemText } 
 import type { WorkspaceAsset } from '../runtime/useWorkspaceContext';
 import { AssetTypeIcon } from './AssetTypeIcon';
 import { QualityScoreBadge } from './QualityScoreBadge';
+import { appCopy } from '../../../app/copy/system';
 
 interface AssetSelectionListProps {
   assets: WorkspaceAsset[];
@@ -41,11 +42,11 @@ export const AssetSelectionList: React.FC<AssetSelectionListProps> = ({
               <ListItemText
                 primary={asset.label}
               />
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+              <span className="asset-selection-list__meta">
                 <QualityScoreBadge score={asset.qualityScore} size="small" />
                 {asset.staleUpstream && (
-                  <span style={{ fontSize: '0.75rem', color: 'orange' }}>
-                    Needs Update
+                  <span className="asset-selection-list__stale">
+                    {appCopy.ui.workspace.assetPanel.staleLabel}
                   </span>
                 )}
               </span>

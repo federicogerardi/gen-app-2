@@ -33,7 +33,7 @@ export const RecentAssetsPanel: React.FC<RecentAssetsPanelProps> = ({ workspaceI
       to={`/workspaces/${workspaceId}/assets`}
       className="ui-inline-link"
     >
-      View all assets →
+      {appCopy.ui.workspace.dashboard.viewAllAssetsArrow}
     </Link>
   );
 

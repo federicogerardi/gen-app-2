@@ -107,13 +107,13 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
         <div className="asset-knowledge-panel__title">
           <Database size={20} />
           <Typography variant="h6">
-            {appCopy.ui.workspace?.assetPanel?.title || 'Workspace Knowledge'}
+            {appCopy.ui.workspace.assetPanel.title}
           </Typography>
         </div>
 
         <div className="asset-knowledge-panel__metrics">
           <Chip
-            label={`${workspaceAssets.length} ${appCopy.ui.workspace?.assetPanel?.metricsAssets || 'assets'}`}
+            label={`${workspaceAssets.length} ${appCopy.ui.workspace.assetPanel.metricsAssets}`}
             size="small"
             color={workspaceAssets.length > 0 ? 'primary' : 'default'}
           />
@@ -160,7 +160,7 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
       {selectedAssetIds.length > 0 && (
         <div className="asset-knowledge-panel__selection-summary">
           <Typography variant="body2" color="text.secondary">
-            {selectedAssetIds.length} asset{selectedAssetIds.length === 1 ? '' : 's'} selected for generation
+            {appCopy.ui.workspace.assetPanel.selectedForGeneration(selectedAssetIds.length)}
           </Typography>
         </div>
       )}

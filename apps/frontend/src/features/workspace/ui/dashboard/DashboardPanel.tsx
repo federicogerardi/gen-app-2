@@ -24,7 +24,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <span className="dashboard-panel__title">{title}</span>
       </div>
       <div className="dashboard-panel__content">
-        {loading && <LoadingStateMessage>Loading {title.toLowerCase()}...</LoadingStateMessage>}
+        {loading && <LoadingStateMessage>Loading…</LoadingStateMessage>}
         {error && <ErrorStateMessage>{error}</ErrorStateMessage>}
         {!loading && !error && empty && <EmptyStateMessage>{empty}</EmptyStateMessage>}
         {!loading && !error && !empty && children}

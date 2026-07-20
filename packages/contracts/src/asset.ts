@@ -109,7 +109,7 @@ export type ToolAssetContract = {
  */
 export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   'funnel-pages': {
-    produces: ['landing-page'],
+    produces: [],
     consumes: ['persona', 'brand-voice', 'brief', 'angle'],
   },
   nextland: {
@@ -125,7 +125,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
     consumes: ['brief', 'persona?', 'competitor-analysis?'],
   },
   'meta-ads': {
-    produces: ['ad-copy', 'hook'],
+    produces: ['ad-copy'],
     consumes: ['angle', 'persona', 'brand-voice', 'hook', 'brief'],
   },
   'youtube-description': {
@@ -137,7 +137,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
     consumes: [],
   },
   'blog-article-generator': {
-    produces: ['article-outline', 'article'],
+    produces: ['article'],
     consumes: [],
   },
   'brief-generator': {

@@ -84,9 +84,9 @@ test('angle-generator produces angle and consumes optional types', () => {
   assert.ok(!contract.consumes.includes('brand-voice'));
 });
 
-test('meta-ads produces ad-copy and hook, consumes angle', () => {
+test('meta-ads produces ad-copy, consumes angle', () => {
   const contract = TOOL_ASSET_CONTRACTS['meta-ads'];
-  assert.deepEqual(contract.produces, ['ad-copy', 'hook']);
+  assert.deepEqual(contract.produces, ['ad-copy']);
   assert.ok(contract.consumes.includes('angle'));
   assert.ok(contract.consumes.includes('persona'));
 });
@@ -130,9 +130,9 @@ test('getCompatibleAssetTypes returns empty for geometric (no consumes)', () => 
 
 test('getProducedAssetTypes returns correct types for each tool', () => {
   assert.deepEqual(getProducedAssetTypes('angle-generator'), ['angle']);
-  assert.deepEqual(getProducedAssetTypes('meta-ads'), ['ad-copy', 'hook']);
+  assert.deepEqual(getProducedAssetTypes('meta-ads'), ['ad-copy']);
   assert.deepEqual(getProducedAssetTypes('geometric'), ['competitor-analysis']);
-  assert.deepEqual(getProducedAssetTypes('blog-article-generator'), ['article-outline', 'article']);
+  assert.deepEqual(getProducedAssetTypes('blog-article-generator'), ['article']);
 });
 
 test('getToolProductionChain returns connecting types', () => {

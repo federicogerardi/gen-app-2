@@ -1,6 +1,6 @@
 ---
 status: active
-version: 4.14
+version: 4.15
 last-reviewed: 2026-07-20
 next-review-date: 2026-10-20
 owner: Domain Architecture
@@ -418,4 +418,13 @@ Artifact (DDD-001)                     Asset (DDD-188)
   │  New Artifact produced → promote     │
   │  → Asset v1 (chain: angle→meta-ads)  │
   └──────────────────────────────────────┘
+
+---
+
+### ToolAssetContract Corrections & Promote-to-Asset Deterministic Mapping (DDD-228 through DDD-231)
+
+| DDD-228 | 2026-07-20 | ToolAssetContract single-produce principle | **Ogni Tool produce al massimo un AssetType.** Il contratto `ToolAssetContract.produces` deve contenere esattamente 0 o 1 entry. La produzione multi-tipo è un errore architetturale: se in futuro un tool deve produrre due tipi distinti, si estende il contratto con granularità step-level (`producesByStep`), non con array piatti. **Correzione immediata**: `blog-article-generator` passa da `produces: ['article-outline', 'article']` a `produces: ['article']`. `article-outline` diventa dormant — resta dichiarato in `ASSET_TYPES` ma con zero producer e zero consumer. `blog-article-generator` è l'unico tool che violava il principio; tutti gli altri tool avevano già 0 o 1 entry. | Un tool produce semanticamente un solo tipo di contenuto. La multi-produzione su `blog-article-generator` era un errore: `article-outline` non è mai stato effettivamente usato come output distinto. Correggere il contratto allinea la dichiarazione alla realtà del dominio e stabilisce il principio per tool futuri. | all contexts |
+| DDD-229 | 2026-07-20 | Promote-to-Asset deterministic mapping | **Rimuovere la select `AssetType` dal dialog `PromoteAssetDialog` e applicare una mappatura deterministica 1:1 da tool key ad asset type.** L'`AssetType` è risolto lato FE chiamando `getProducedAssetTypes(toolKey)` e passato direttamente a `promoteArtifactToAsset`. L'utente inserisce solo il label. Il dialog riceve una nuova prop `toolKey: ToolKey`. **Gating**: se `getProducedAssetTypes(toolKey)` restituisce array vuoto OPPURE `toolKey` è `null`, il pulsante "Promote to Asset" non viene renderizzato — nessun percorso per aprire il dialog senza candidato valido. Il backend `tools-asset-handlers.ts` e il tipo `PromoteArtifactInput` restano invariati: il FE invia l'`assetType` risolto. La key copy `assetTypeLabel` viene rimossa da `system.ts`. | La select manuale introduceva libertà di scelta che contraddice il contratto dichiarato (`ToolAssetContract.produces`): un artifact di `angle-generator` non dovrebbe mai diventare un `brand-voice`. La mappatura deterministica deriva dal contratto e previene errori di classificazione. Il gating lato caller (pulsante nascosto) rispetta il principio DDD-228: se il tool non produce asset, la promote non è un'operazione valida. | Frontend, Generation |
+| DDD-230 | 2026-07-20 | funnel-pages: rimozione produzione landing-page | **`funnel-pages` non produce più `landing-page`.** Il contratto `TOOL_ASSET_CONTRACTS['funnel-pages'].produces` passa da `['landing-page']` a `[]`. Unico producer di `landing-page` rimane `nextland`. `funnel-pages` resta consumatore di `persona`, `brand-voice`, `brief`, `angle`. | `funnel-pages` produce pagine HTML (optin, quiz, VSL) che non sono semanticamente `landing-page` nel dominio Asset — gli artifact di funnel-pages sono output di generazione consumati solo nel flusso del tool, non candidati riutilizzabili come Asset workspace. | all contexts |
+| DDD-231 | 2026-07-20 | meta-ads: rimozione produzione hook | **`meta-ads` produce solo `ad-copy`, non più `hook`.** Il contratto `TOOL_ASSET_CONTRACTS['meta-ads'].produces` passa da `['ad-copy', 'hook']` a `['ad-copy']`. `hook` diventa un AssetType senza producer — resta consumato da `meta-ads` (required) ma nessun tool lo produce. | `hook` come tipo prodotto da `meta-ads` non è mai stato effettivamente usato: gli hook sono incorporati nell'ad-copy, non estratti o archiviati separatamente. Rimuovere la produzione allinea il contratto alla realtà del dominio. L'AssetType `hook` rimane dichiarato per uso futuro (es. un tool dedicato "Hook Generator"). | all contexts |
 ```

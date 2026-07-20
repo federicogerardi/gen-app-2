@@ -1,0 +1,14 @@
+asset_type,consumers,producers
+angle,"funnel-pages, meta-ads",angle-generator
+persona,"funnel-pages, nextland, youtube-lf-script, angle-generator (opt), meta-ads",personas-generator
+brand-voice,"funnel-pages, nextland, youtube-lf-script, meta-ads, youtube-description",tov-generator
+hook,meta-ads,
+competitor-analysis,"nextland, youtube-lf-script, angle-generator (opt), personas-generator (opt)",geometric
+creative-brief,,
+ad-copy,,meta-ads
+landing-page,,nextland
+article-outline,,
+article,,blog-article-generator
+script,,youtube-lf-script
+description,,youtube-description
+brief,"funnel-pages, nextland, youtube-lf-script, angle-generator, meta-ads, personas-generator",brief-generator

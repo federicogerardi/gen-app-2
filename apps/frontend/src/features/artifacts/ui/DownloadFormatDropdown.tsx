@@ -95,8 +95,8 @@ export const DownloadFormatDropdown = ({
             <span
               className="ui-download-split-trigger"
               data-download-format-trigger="true"
-              aria-label="Seleziona formato download"
-              title="Seleziona formato download"
+              aria-label={appCopy.ui.actions.selectDownloadFormat}
+              title={appCopy.ui.actions.selectDownloadFormat}
             >
               <span className="ui-download-split-arrow" aria-hidden="true">
                 <ChevronDown size={13} />

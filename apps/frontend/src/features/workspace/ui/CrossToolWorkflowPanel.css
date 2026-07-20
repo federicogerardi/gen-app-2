@@ -1,13 +1,13 @@
 .cross-tool-workflow-panel {
-  border: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
-  border-radius: 12px;
-  background: var(--mui-palette-background-paper, #fff);
-  padding: 16px 20px;
-  margin-bottom: 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-base);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .cross-tool-workflow-panel__title {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-1-5);
 }
 
 .cross-tool-workflow-panel__pipeline {
@@ -15,7 +15,7 @@
   align-items: center;
   overflow-x: auto;
   gap: 0;
-  padding: 8px 0;
+  padding: var(--space-1) 0;
 }
 
 .cross-tool-workflow-panel__step-wrapper {
@@ -24,22 +24,22 @@
 }
 
 .cross-tool-workflow-panel__connector {
-  width: 24px;
+  width: var(--space-3);
   height: 2px;
-  background: var(--mui-palette-divider, rgba(0,0,0,0.12));
+  background: var(--border-subtle);
 }
 
 .cross-tool-workflow-panel__connector--completed {
-  background: var(--mui-palette-success-main, #2e7d32);
+  background: var(--success-pine);
 }
 
 .cross-tool-workflow-panel__step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  gap: var(--space-micro);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-button);
   text-decoration: none;
   color: inherit;
   min-width: 64px;
@@ -47,23 +47,23 @@
 }
 
 .cross-tool-workflow-panel__step:hover {
-  background: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
+  background: var(--interactive-hover);
 }
 
 .cross-tool-workflow-panel__step--completed {
-  color: var(--mui-palette-success-main, #2e7d32);
+  color: var(--success-pine);
 }
 
 .cross-tool-workflow-panel__step--suggested {
-  color: var(--mui-palette-warning-main, #ed6c02);
+  color: var(--warning-amber);
 }
 
 .cross-tool-workflow-panel__step--available {
-  color: var(--mui-palette-text-secondary, rgba(0,0,0,0.6));
+  color: var(--text-muted);
 }
 
 .cross-tool-workflow-panel__step--current {
-  outline: 2px solid var(--mui-palette-primary-main, #1976d2);
+  outline: 2px solid var(--workspace-blue);
   outline-offset: 2px;
 }
 
@@ -73,12 +73,12 @@
 }
 
 .cross-tool-workflow-panel__suggestions {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
+  margin-top: var(--space-1-5);
+  padding-top: var(--space-1-5);
+  border-top: 1px solid var(--border-subtle);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 760px) {
   .cross-tool-workflow-panel__pipeline {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

@@ -157,8 +157,10 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
               <Button
                 key={artifact.artifactId}
                 type="button"
+                id={`tab-${artifact.artifactId}`}
                 role="tab"
                 aria-selected={isActive}
+                aria-controls={`panel-${artifact.artifactId}`}
                 className={`ui-session-step-control ui-session-step-tab${isActive ? ' is-active' : ''}`}
                 onClick={() => setSelectedArtifactId(artifact.artifactId)}
                 variant="text"
@@ -210,11 +212,13 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
         </div>
       )}
 
-      <ArtifactContentPreview
-        content={selected.content}
-        toolbarLabel={appCopy.ui.artifactPreview.toolbarLabel}
-        panelLabel="Selected session artifact"
-      />
+      <div role="tabpanel" id={`panel-${selected.artifactId}`} aria-labelledby={`tab-${selected.artifactId}`}>
+        <ArtifactContentPreview
+          content={selected.content}
+          toolbarLabel={appCopy.ui.artifactPreview.toolbarLabel}
+          panelLabel="Selected session artifact"
+        />
+      </div>
     </section>
   );
 };

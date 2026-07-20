@@ -81,14 +81,22 @@ export const ArtifactContentPreview = ({
         <div className="ui-artifact-toolbar-tabs" role="tablist" aria-label={toolbarLabel}>
           <button
             type="button"
+            id="tab-markdown"
             className={`ui-view-tab${viewMode === 'markdown' ? ' is-active' : ''}`}
+            role="tab"
+            aria-selected={viewMode === 'markdown'}
+            aria-controls="panel-markdown"
             onClick={() => setViewMode('markdown')}
           >
             {appCopy.ui.actions.viewMarkdown}
           </button>
           <button
             type="button"
+            id="tab-raw"
             className={`ui-view-tab${viewMode === 'raw' ? ' is-active' : ''}`}
+            role="tab"
+            aria-selected={viewMode === 'raw'}
+            aria-controls="panel-raw"
             onClick={() => setViewMode('raw')}
           >
             {appCopy.ui.actions.viewRaw}
@@ -114,13 +122,13 @@ export const ArtifactContentPreview = ({
       </div>
 
       {viewMode === 'markdown' ? (
-        <div className="ui-artifact-markdown" ref={markdownRef} role="tabpanel" aria-label={panelLabel}>
+        <div className="ui-artifact-markdown" ref={markdownRef} role="tabpanel" id="panel-markdown" aria-labelledby="tab-markdown" aria-label={panelLabel}>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {resolvedContent}
           </ReactMarkdown>
         </div>
       ) : (
-        <pre className={uiPrimitives.artifactContent} role="tabpanel" aria-label={panelLabel}>
+        <pre className={uiPrimitives.artifactContent} role="tabpanel" id="panel-raw" aria-labelledby="tab-raw" aria-label={panelLabel}>
           {resolvedContent || emptyContentLabel}
         </pre>
       )}

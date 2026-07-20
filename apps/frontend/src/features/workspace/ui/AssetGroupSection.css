@@ -1,5 +1,5 @@
 .asset-group-section {
-  border: 1px solid var(--mui-palette-divider, rgba(0,0,0,0.12));
+  border: 1px solid var(--border-subtle);
   border-radius: var(--space-1);
   margin-bottom: var(--space-1);
   overflow: hidden;
@@ -10,13 +10,13 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-1-5) var(--space-2);
-  background-color: var(--mui-palette-action-hover, rgba(0,0,0,0.04));
+  background-color: var(--interactive-hover);
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
 .asset-group-section__header:hover {
-  background-color: var(--mui-palette-action-selected, rgba(0,0,0,0.08));
+  background-color: var(--interactive-soft);
 }
 
 .asset-group-section__header-left {

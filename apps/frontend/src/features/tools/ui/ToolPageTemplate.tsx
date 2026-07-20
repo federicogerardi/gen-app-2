@@ -640,8 +640,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               {/* ── Configuration Section ── */}
               {hasConfigurationFields ? (
-              <div className="ui-tool-setup-section">
-                <p className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
+              <div className="ui-tool-setup-section" aria-labelledby="setup-section-configuration">
+                <p id="setup-section-configuration" className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
 
               <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
                 {/* Project is auto-resolved from workspace context — no selector needed */}
@@ -1041,8 +1041,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
               {/* ── Resources Section (briefing file upload) ── */}
               {visibleInputFiles.length > 0 ? (
-                <div className="ui-tool-setup-section">
-                  <p className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.resources}</p>
+                <div className="ui-tool-setup-section" aria-labelledby="setup-section-resources">
+                  <p id="setup-section-resources" className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.resources}</p>
 
                   {visibleInputFiles.map((fileEntry) => (
                     <Controller
@@ -1167,8 +1167,8 @@ const AssetKnowledgePanelWrapper: React.FC<{
   if (assetInputs.length === 0) return null;
 
   return (
-    <div className="ui-tool-setup-section ui-tool-setup-section--knowledge">
-      <p className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.knowledge}</p>
+    <div className="ui-tool-setup-section ui-tool-setup-section--knowledge" aria-labelledby="setup-section-knowledge">
+      <p id="setup-section-knowledge" className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.knowledge}</p>
       <AssetKnowledgePanel
         workspaceAssets={workspace.assets}
         toolAssetInputs={assetInputs}

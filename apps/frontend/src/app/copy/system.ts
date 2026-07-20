@@ -107,6 +107,7 @@ export const appCopy = {
       copied: 'Copied!',
       copyFailed: 'Copy failed',
       download: 'Download',
+      selectDownloadFormat: 'Select download format',
       downloadAsMarkdown: 'Download as .md',
       downloadAsTxt: 'Download as text',
       downloadAsDocx: 'Download as .docx',

@@ -57,6 +57,12 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const lastRequestedStepRef = useRef<ToolStep | null>(null);
   const inFlightStepsRef = useRef(new Set<ToolStep>());
   const wasStreamActiveRef = useRef(false);
+  // Tracks whether the current tool instance has called startGenerationStep.
+  // Set to true when startRun() is called, cleared when generation completes
+  // (branch (b) processes terminal) or on cancel/reset. Used to guard branch
+  // (b) against stale 'completed' state from the previous tool's run in the
+  // shared GenerationWorkspaceProvider singleton machines.
+  const hasStartedGenerationRef = useRef(false);
   // Sprint 4 Session 2: idempotency for bridge branch (a). The consolidated bridge
   // re-runs on every dep change; without this guard, branch (a) would re-dispatch
   // the same pendingStepStart promise multiple times while it is in flight.
@@ -259,6 +265,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
             : 0,
         });
       }
+      hasStartedGenerationRef.current = true;
       v.generationRun.startRun(request);
       return true;
     } catch (err) {
@@ -336,18 +343,25 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     //     STEP_DONE for the new tool's first step on mount, skipping its
     //     generation entirely. Stream failures and wasStreamActiveRef transitions
     //     are always processed regardless of run prefix.
+    //
+    //     hasStartedGenerationRef tracks whether startGenerationStep was called
+    //     by the current tool instance. It's set just before startRun() and
+    //     cleared here after terminal processing. This handles the race where
+    //     startRun() is called but the generation machine is still in 'completed'
+    //     from the previous tool — branch (b) would otherwise fire immediately.
     if (generationStream.isStreamActive) {
       wasStreamActiveRef.current = true;
     } else if (generationRun.isGenerationActive) {
       // Generation still running — nothing to resolve yet.
     } else if (
       wasStreamActiveRef.current
-      || (generationStatus === 'completed' && currentRunPrefixRef.current !== null)
+      || (generationStatus === 'completed' && hasStartedGenerationRef.current)
       || generationStatus === 'failed'
     ) {
       wasStreamActiveRef.current = false;
 
       if (generationStatus === 'completed') {
+        hasStartedGenerationRef.current = false;
         const step = readRequestedStep(generationRun.snapshot.context.lastRequest, toolConfig.steps);
         const resolved = step ?? nextAvailableStep ?? lastRequestedStepRef.current;
         // STEP_DONE: only if not already in-flight (prevents duplicate XState events).
@@ -479,6 +493,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
     const runPrefix = generateRequestId();
     currentRunPrefixRef.current = runPrefix;
     inFlightStepsRef.current = new Set();
+    hasStartedGenerationRef.current = false;
     setDispatchError(null);
     setPausedCheckpointStep(null);
     setIsAutoChainEnabled(true);
@@ -488,6 +503,7 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   const handleCancelGeneration = useCallback(() => {
     setIsAutoChainEnabled(false);
     inFlightStepsRef.current = new Set();
+    hasStartedGenerationRef.current = false;
     const interruptedStep = selectInterruptedStep(currentRunningStep, lastRequestedStepRef.current);
     if (interruptedStep) setPausedCheckpointStep(interruptedStep);
     currentRunPrefixRef.current = null;

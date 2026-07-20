@@ -4,9 +4,7 @@ import { Button } from '@mui/material';
 import { Package } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
-import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -16,8 +14,6 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import {
   getSessionArtifacts,
   type SessionArtifactGroup,
@@ -46,25 +42,6 @@ const toHumanReadableDate = (isoLike: string): string => {
   }).format(date);
 };
 
-const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
-  const finalizedArtifacts = group.artifacts.filter((artifact) => artifact.artifactRole === 'final');
-  const steppedArtifacts = group.artifacts.filter((artifact) => {
-    const stepKey = artifact.stepKey?.trim();
-    return typeof stepKey === 'string' && stepKey.length > 0;
-  });
-  const candidateArtifacts = finalizedArtifacts.length > 0
-    ? finalizedArtifacts
-    : steppedArtifacts.length > 0
-      ? steppedArtifacts
-      : group.artifacts;
-
-  const latestArtifact = [...candidateArtifacts].sort(
-    (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
-  )[0];
-
-  return latestArtifact?.artifactId ?? null;
-};
-
 type PageState =
   | { phase: 'loading' }
   | { phase: 'session'; group: SessionArtifactGroup }
@@ -75,7 +52,6 @@ export const SessionSummaryDetailPage = () => {
   const { workspaceId = '', sessionId = '' } = useParams();
   const navigate = useNavigate();
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
   const sessionsBackPath = workspaceId ? `/workspaces/${workspaceId}/sessions` : '/workspaces';
   const projectsQuery = useProjectsQuery({
     apiBaseUrl,
@@ -84,22 +60,6 @@ export const SessionSummaryDetailPage = () => {
   });
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
   const sessionGroup = pageState.phase === 'session' ? pageState.group : null;
-  const relaunchSourceArtifactId = useMemo(
-    () => (sessionGroup ? resolveRelaunchSourceArtifactId(sessionGroup) : null),
-    [sessionGroup],
-  );
-  const relaunchArtifactQuery = useArtifactDetailQuery({
-    artifactId: relaunchSourceArtifactId ?? '',
-    apiBaseUrl,
-    capabilities,
-    localArtifacts: generation.artifacts,
-    enabled: sessionGroup !== null && relaunchSourceArtifactId !== null,
-  });
-  const relaunchPath = useMemo(
-    () => (relaunchArtifactQuery.data ? buildToolEntryPathFromArtifact(relaunchArtifactQuery.data, 'regenerate') : null),
-    [relaunchArtifactQuery.data],
-  );
-  const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
 
   const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
   const lastArtifact = useMemo(() => {
@@ -236,9 +196,6 @@ export const SessionSummaryDetailPage = () => {
         <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
           <section className="ui-artifact-overview" aria-label={appCopy.ui.sessions.detail.overviewAriaLabel}>
             <div className="ui-artifact-overview-actions">
-              <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
-                {appCopy.ui.actions.relaunchPrimary}
-              </SecondaryCtaButton>
               {capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}

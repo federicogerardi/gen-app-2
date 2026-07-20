@@ -2,7 +2,7 @@ import { useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
-import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
+import { PrimaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -12,10 +12,8 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { normalizeToolKeyCandidate } from '@gen-app-2/contracts';
@@ -74,7 +72,6 @@ export const ArtifactDetailPage = () => {
   const { artifactId = '' } = useParams();
   const navigate = useNavigate();
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
 
   useEffect(() => {
     if (isSessionSummaryRouteId(artifactId)) {
@@ -86,7 +83,7 @@ export const ArtifactDetailPage = () => {
     artifactId,
     apiBaseUrl,
     capabilities,
-    localArtifacts: generation.artifacts,
+    localArtifacts: [],
     enabled: artifactId.length > 0,
   });
 
@@ -131,10 +128,10 @@ export const ArtifactDetailPage = () => {
     );
   }
 
-  return <LegacyArtifactView artifact={artifact} projectName={projectName} />;
+  return <ArtifactView artifact={artifact} projectName={projectName} />;
 };
 
-const LegacyArtifactView = ({
+const ArtifactView = ({
   artifact,
   projectName,
 }: {
@@ -142,15 +139,6 @@ const LegacyArtifactView = ({
   projectName: string | null;
 }) => {
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
-  const restartPath = useMemo(
-    () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
-    [artifact],
-  );
-  const relaunchDisabled = useMemo(
-    () => generation.isStreamActive || !restartPath,
-    [generation.isStreamActive, restartPath],
-  );
   const stepTitle = useMemo(() => {
     const normalized = artifact.stepKey?.trim();
     if (!normalized) {
@@ -226,13 +214,6 @@ const LegacyArtifactView = ({
                   {appCopy.ui.session.unavailable}
                 </PrimaryCtaButton>
               )}
-              <SecondaryCtaButton
-                component={Link}
-                to={restartPath ?? '#'}
-                disabled={relaunchDisabled}
-              >
-                {appCopy.ui.actions.relaunchPrimary}
-              </SecondaryCtaButton>
               {capabilities.artifactDownload ? (
                 <DownloadFormatDropdown onDownload={handleDownload} />
               ) : null}

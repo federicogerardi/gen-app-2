@@ -22,10 +22,11 @@ vi.mock('../../../tools/runtime/tool-form-architecture', () => ({
 }));
 
 vi.mock('../../../sessionsummary/ui/PromoteAssetDialog', () => ({
-  PromoteAssetDialog: ({ open, artifactId, onClose }: { open: boolean; artifactId: string; onClose: () => void }) => (
+  PromoteAssetDialog: ({ open, artifactId, toolKey, onClose }: { open: boolean; artifactId: string; toolKey: string; onClose: () => void }) => (
     open ? (
       <div data-testid="promote-dialog">
         <span>Promote dialog for {artifactId}</span>
+        <span data-testid="promote-dialog-toolkey">{toolKey}</span>
         <button onClick={onClose}>Close</button>
       </div>
     ) : null

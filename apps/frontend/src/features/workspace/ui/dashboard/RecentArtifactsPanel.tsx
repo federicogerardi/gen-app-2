@@ -8,6 +8,7 @@ import { PromoteAssetDialog } from '../../../sessionsummary/ui/PromoteAssetDialo
 import { DashboardPanel } from './DashboardPanel';
 import { formatRelativeTime } from '../../../../app/ui/format-utils';
 import { appCopy } from '../../../../app/copy/system';
+import { getProducedAssetTypes, isToolKey, type ToolKey } from '@gen-app-2/contracts';
 
 interface RecentArtifactsPanelProps {
   workspaceId: string;
@@ -20,6 +21,7 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
   const artifactsQuery = useProjectArtifacts(workspaceId);
   const workspaceCtx = useWorkspaceContext(workspaceId);
   const [promoteDialogArtifactId, setPromoteDialogArtifactId] = useState<string | null>(null);
+  const [promoteDialogToolKey, setPromoteDialogToolKey] = useState<ToolKey | null>(null);
 
   const promotedArtifactIds = useMemo(() => {
     const ids = new Set<string>();
@@ -68,30 +70,38 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
                 </span>
                 {isPromoted ? (
                   <Chip label={appCopy.ui.workspace.dashboard.recentArtifactsPromotedChip} size="small" color="success" variant="outlined" />
-                ) : (
+                ) : artifact.toolKey && isToolKey(artifact.toolKey) && getProducedAssetTypes(artifact.toolKey).length === 1 ? (
                   <Button
                     size="small"
                     variant="text"
                     endIcon={<ArrowUpRight size={12} />}
-                    onClick={() => setPromoteDialogArtifactId(artifact.artifactId)}
+                    onClick={() => {
+                      setPromoteDialogArtifactId(artifact.artifactId);
+                      setPromoteDialogToolKey(artifact.toolKey as ToolKey);
+                    }}
                   >
                     {appCopy.ui.workspace.dashboard.recentArtifactsPromoteAction}
                   </Button>
-                )}
+                ) : null}
               </div>
             </div>
           );
         })}
       </DashboardPanel>
 
-      {promoteDialogArtifactId && (
+      {promoteDialogArtifactId && promoteDialogToolKey && (
         <PromoteAssetDialog
           open
           artifactId={promoteDialogArtifactId}
           projectId={workspaceId}
-          onClose={() => setPromoteDialogArtifactId(null)}
+          toolKey={promoteDialogToolKey}
+          onClose={() => {
+            setPromoteDialogArtifactId(null);
+            setPromoteDialogToolKey(null);
+          }}
           onPromoted={() => {
             setPromoteDialogArtifactId(null);
+            setPromoteDialogToolKey(null);
             artifactsQuery.refetch();
             workspaceCtx.refetch();
           }}

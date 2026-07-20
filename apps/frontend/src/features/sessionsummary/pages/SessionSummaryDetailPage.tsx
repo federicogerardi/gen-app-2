@@ -30,6 +30,7 @@ import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdow
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { PromoteAssetDialog } from '../ui/PromoteAssetDialog';
 import { FeedbackButtons } from '../ui/FeedbackButtons';
+import { getProducedAssetTypes, isToolKey } from '@gen-app-2/contracts';
 
 const formatToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
@@ -241,7 +242,7 @@ export const SessionSummaryDetailPage = () => {
               {capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}
-              {lastArtifact && projectId && (
+              {lastArtifact && projectId && group.toolKey && isToolKey(group.toolKey) && getProducedAssetTypes(group.toolKey).length === 1 && (
                 <Button
                   variant="outlined"
                   size="small"
@@ -281,11 +282,12 @@ export const SessionSummaryDetailPage = () => {
         </aside>
       </div>
 
-      {lastArtifact && projectId && (
+      {lastArtifact && projectId && group.toolKey && isToolKey(group.toolKey) && getProducedAssetTypes(group.toolKey).length === 1 && (
         <PromoteAssetDialog
           open={promoteDialogOpen}
           artifactId={lastArtifact.artifactId}
           projectId={projectId}
+          toolKey={group.toolKey}
           defaultLabel={`${formatToolName(group.toolKey)} - ${lastArtifact.stepKey ?? 'output'}`}
           onClose={() => setPromoteDialogOpen(false)}
           onPromoted={() => setPromoteDialogOpen(false)}

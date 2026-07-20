@@ -33,7 +33,7 @@ describe('toolAssetRegistry', () => {
   describe('getProducerToolsForAsset', () => {
     it('returns tools that produce landing-page', () => {
       const producers = getProducerToolsForAsset('landing-page');
-      expect(producers).toEqual(expect.arrayContaining(['funnel-pages', 'nextland']));
+      expect(producers).toEqual(['nextland']);
     });
 
     it('returns tools that produce angle', () => {

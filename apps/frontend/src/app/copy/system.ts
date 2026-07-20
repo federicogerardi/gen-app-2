@@ -886,7 +886,6 @@ export const appCopy = {
       title: 'Promote to Asset',
       successMessage: 'Asset created successfully! Available in the workspace.',
       description: 'Convert this generated artifact into a reusable asset in your workspace.',
-      assetTypeLabel: 'Asset Type',
       labelField: 'Label',
       labelHelper: 'A descriptive name for this asset',
       close: 'Close',

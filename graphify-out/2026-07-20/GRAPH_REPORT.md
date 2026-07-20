@@ -1,16 +1,16 @@
-# Graph Report - gen-app-2  (2026-07-20)
+# Graph Report - gen-app-2  (2026-07-18)
 
 ## Corpus Check
-- 749 files · ~612,810 words
+- 736 files · ~572,748 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7804 nodes · 13654 edges · 569 communities (412 shown, 157 thin omitted)
+- 7373 nodes · 13159 edges · 529 communities (374 shown, 155 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 57 edges (avg confidence: 0.74)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f7d03645`
+- Built from commit: `8897f8b6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -185,7 +185,6 @@
 - [[_COMMUNITY_Domain Ubiquitous Language (gen-app-2)|Domain Ubiquitous Language (gen-app-2)]]
 - [[_COMMUNITY_Railway Private Network Execution Determinism|Railway Private Network Execution Determinism]]
 - [[_COMMUNITY_tools-handlers.ts|tools-handlers.ts]]
-- [[_COMMUNITY_idempotency-coordinator.machine.ts|idempotency-coordinator.machine.ts]]
 - [[_COMMUNITY_MockServerResponse|MockServerResponse]]
 - [[_COMMUNITY_Phase 5 Execution Notes|Phase 5 Execution Notes]]
 - [[_COMMUNITY_Wave 2 Execution Notes|Wave 2 Execution Notes]]
@@ -222,51 +221,18 @@
 - [[_COMMUNITY_ADR — Architectural Split SERP API for Geometric, Puppeteer for Future Web Tools|ADR — Architectural Split: SERP API for Geometric, Puppeteer for Future Web Tools]]
 - [[_COMMUNITY_ToolGenerationFlowVertical.status-naming.guard.test.ts|ToolGenerationFlowVertical.status-naming.guard.test.ts]]
 - [[_COMMUNITY_Phase 2 Generation Integration (2-3 days)|Phase 2: Generation Integration (2-3 days)]]
-- [[_COMMUNITY_3. Track C — Frontend Tool Workspace|3. Track C — Frontend Tool Workspace]]
-- [[_COMMUNITY_MainNavigation.tsx|MainNavigation.tsx]]
-- [[_COMMUNITY_Detailed Design|Detailed Design]]
-- [[_COMMUNITY_Category A Preserved Invariants|Category A: Preserved Invariants]]
-- [[_COMMUNITY_10. Acceptance Checklist|10. Acceptance Checklist]]
-- [[_COMMUNITY_Personas Generator Implementation Plan|Personas Generator Implementation Plan]]
-- [[_COMMUNITY_StreamLogger|StreamLogger]]
-- [[_COMMUNITY_ToolPageTemplate.meta-ads-flow.e2e.test.tsx|ToolPageTemplate.meta-ads-flow.e2e.test.tsx]]
 - [[_COMMUNITY_admin-a11y-smoke.mjs|admin-a11y-smoke.mjs]]
-- [[_COMMUNITY_Workspace Hub Restyling Proposal|Workspace Hub Restyling Proposal]]
-- [[_COMMUNITY_11. Architectural Patterns Reference|11. Architectural Patterns Reference]]
 - [[_COMMUNITY_tool-api-binding-status-adapter.ts|tool-api-binding-status-adapter.ts]]
-- [[_COMMUNITY_App.tsx|App.tsx]]
-- [[_COMMUNITY_Frontend No-Regression Gates|Frontend No-Regression Gates]]
-- [[_COMMUNITY_PROMPT PERSONAS GENERATOR - EXTRACTION|PROMPT PERSONAS GENERATOR - EXTRACTION]]
-- [[_COMMUNITY_monitoring.ts|monitoring.ts]]
-- [[_COMMUNITY_Category D New Test Specifications|Category D: New Test Specifications]]
-- [[_COMMUNITY_2. Track B — Backend Runtime|2. Track B — Backend Runtime]]
 - [[_COMMUNITY_logger.ts|logger.ts]]
 - [[_COMMUNITY_ToolGenerationFlow.guard.test.ts|ToolGenerationFlow.guard.test.ts]]
 - [[_COMMUNITY_vite.config.ts|vite.config.ts]]
-- [[_COMMUNITY_crawling-queue.ts|crawling-queue.ts]]
-- [[_COMMUNITY_MockServerResponse|MockServerResponse]]
-- [[_COMMUNITY_Category B Rewrite Plan|Category B: Rewrite Plan]]
-- [[_COMMUNITY_High|High]]
 - [[_COMMUNITY_stream-handlers.ts|stream-handlers.ts]]
-- [[_COMMUNITY_2. Current State Analysis (Problems)|2. Current State Analysis (Problems)]]
-- [[_COMMUNITY_5. Data Sources & Query Strategy|5. Data Sources & Query Strategy]]
-- [[_COMMUNITY_Phase 1 — Critical Observability (session boundary + HTTP lifecycle)|Phase 1 — Critical Observability (session boundary + HTTP lifecycle)]]
-- [[_COMMUNITY_0. Tool Classification|0. Tool Classification]]
-- [[_COMMUNITY_1. Track A — Contracts & Canonical Identity|1. Track A — Contracts & Canonical Identity]]
 - [[_COMMUNITY_Main PR Gate CI Workflow|Main PR Gate CI Workflow]]
-- [[_COMMUNITY_code-reviewer|code-reviewer.md]]
 - [[_COMMUNITY_vite-env.d.ts|vite-env.d.ts]]
-- [[_COMMUNITY_logger.ts|logger.ts]]
 - [[_COMMUNITY_dependencies|dependencies]]
 - [[_COMMUNITY_graphify.js|graphify.js]]
 - [[_COMMUNITY_20260424_000002_minimal_redis_idempotency_example.ts|20260424_000002_minimal_redis_idempotency_example.ts]]
-- [[_COMMUNITY_MockServerResponse|MockServerResponse]]
-- [[_COMMUNITY_MockServerResponse|MockServerResponse]]
-- [[_COMMUNITY_feedback-channel-map.ts|feedback-channel-map.ts]]
-- [[_COMMUNITY_7. State Handling (Loading  Empty  Error  Ready)|7. State Handling (Loading / Empty / Error / Ready)]]
 - [[_COMMUNITY_Backend Gate CI Workflow|Backend Gate CI Workflow]]
-- [[_COMMUNITY_FeedbackCenterDbStub|FeedbackCenterDbStub]]
-- [[_COMMUNITY_Implementation Strategy|Implementation Strategy]]
 - [[_COMMUNITY_Dependency Lockfile Determinism Gate|Dependency Lockfile Determinism Gate]]
 - [[_COMMUNITY_Mandatory Pre-Work Gate|Mandatory Pre-Work Gate]]
 - [[_COMMUNITY_Documentation Index Overview|Documentation Index Overview]]
@@ -349,9 +315,6 @@
 - [[_COMMUNITY_Unified Frontend Data Access Layer|Unified Frontend Data Access Layer]]
 - [[_COMMUNITY_XState Explicit Error States Pattern|XState Explicit Error States Pattern]]
 - [[_COMMUNITY_Geometric Admin Debug & Monitoring|Geometric Admin Debug & Monitoring]]
-- [[_COMMUNITY_11. Implementation Plan|11. Implementation Plan]]
-- [[_COMMUNITY_3. Proposed Layout Structure|3. Proposed Layout Structure]]
-- [[_COMMUNITY_6. CSS & Token Alignment|6. CSS & Token Alignment]]
 - [[_COMMUNITY_Error Logging And UX Feedback Improvements Proposal|Error Logging And UX Feedback Improvements Proposal]]
 - [[_COMMUNITY_normalizeSerpApiResponse (Normalizer)|normalizeSerpApiResponse (Normalizer)]]
 - [[_COMMUNITY_ApiServiceAccessMode = 'query-param' (BLOCKER-001 resolved)|ApiServiceAccessMode = 'query-param' (BLOCKER-001 resolved)]]
@@ -382,7 +345,6 @@
 - [[_COMMUNITY_useToolPage (Orchestration Hook)|useToolPage (Orchestration Hook)]]
 - [[_COMMUNITY_excludeSteps (Query Parameter)|excludeSteps (Query Parameter)]]
 - [[_COMMUNITY_StepDisplayConfig (Value Object)|StepDisplayConfig (Value Object)]]
-- [[_COMMUNITY_4. Component Tree (Concrete)|4. Component Tree (Concrete)]]
 - [[_COMMUNITY_StreamLogger (Debug Utility)|StreamLogger (Debug Utility)]]
 - [[_COMMUNITY_Documentation DDD-First Governance Model|Documentation DDD-First Governance Model]]
 - [[_COMMUNITY_FeedbackChannel Three-Channel Model|FeedbackChannel Three-Channel Model]]
@@ -390,9 +352,6 @@
 - [[_COMMUNITY_GEOMETRIC Tool Identity|GEOMETRIC Tool Identity]]
 - [[_COMMUNITY_GeoScore and CompetitorTier Internal Types|GeoScore and CompetitorTier Internal Types]]
 - [[_COMMUNITY_OrchestrateArtifactCache Redis Cache Strategy|OrchestrateArtifactCache Redis Cache Strategy]]
-- [[_COMMUNITY_8. CTA Governance Alignment|8. CTA Governance Alignment]]
-- [[_COMMUNITY_⚠️ Enhanced Risk Management|⚠️ **Enhanced Risk Management**]]
-- [[_COMMUNITY_11. DDD Governance Notes|11. DDD Governance Notes]]
 - [[_COMMUNITY_postgres-redis.usage-repository.test.ts|postgres-redis.usage-repository.test.ts]]
 - [[_COMMUNITY_⚠️ SUPERSEDED DOCUMENT|⚠️ SUPERSEDED DOCUMENT]]
 - [[_COMMUNITY_Testing|Testing]]
@@ -437,6 +396,7 @@
 - [[_COMMUNITY_Dependency Unification Proposal|Dependency Unification Proposal]]
 - [[_COMMUNITY_package.json|package.json]]
 - [[_COMMUNITY_AGENTS|AGENTS]]
+- [[_COMMUNITY_BRIEF EXTRACTION CONTEXT|BRIEF EXTRACTION CONTEXT]]
 - [[_COMMUNITY_compilerOptions|compilerOptions]]
 - [[_COMMUNITY_compilerOptions|compilerOptions]]
 - [[_COMMUNITY_Unified Architectural Vulnerabilities Review - Implementation Branch|Unified Architectural Vulnerabilities Review - Implementation Branch]]
@@ -496,7 +456,6 @@
 - [[_COMMUNITY_Minimal Redis Seed For IdempotencyCoordinator Smoke Tests|Minimal Redis Seed For IdempotencyCoordinator Smoke Tests]]
 - [[_COMMUNITY_Architettura Proposta|Architettura Proposta]]
 - [[_COMMUNITY_2. Implementation Steps|2. Implementation Steps]]
-- [[_COMMUNITY_graph-structural-analysis-review|graph-structural-analysis-review.md]]
 - [[_COMMUNITY_High Priority Risks|High Priority Risks]]
 - [[_COMMUNITY_Fix Attempts & Evidence|Fix Attempts & Evidence]]
 - [[_COMMUNITY_appsbackend|apps/backend]]
@@ -513,6 +472,7 @@
 - [[_COMMUNITY_React + XState + DDD Guardrails (FrontendUI)|React + XState + DDD Guardrails (Frontend/UI)]]
 - [[_COMMUNITY_Session Queryable Schema Migration (20260507_000004)|Session Queryable Schema Migration (20260507_000004)]]
 - [[_COMMUNITY_Sprint 2 Implementation Plan - Evolutionary Infrastructure (DDD-Balanced)|Sprint 2 Implementation Plan - Evolutionary Infrastructure (DDD-Balanced)]]
+- [[_COMMUNITY_ToolPageTemplate.extraction-cta.single-file.test.tsx|ToolPageTemplate.extraction-cta.single-file.test.tsx]]
 - [[_COMMUNITY_Unified Success Metrics & Validation Gates|Unified Success Metrics & Validation Gates]]
 - [[_COMMUNITY_9. Implementation Checklist|9. Implementation Checklist]]
 - [[_COMMUNITY_ADR-001 Unified Frontend Data Access Layer|ADR-001: Unified Frontend Data Access Layer]]
@@ -581,12 +541,12 @@
 - [[_COMMUNITY_validate-sprint-5-context-migration.sh|validate-sprint-5-context-migration.sh]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `appCopy` - 121 edges
+1. `appCopy` - 107 edges
 2. `joinApiPath()` - 72 edges
-3. `ToolKey` - 57 edges
-4. `uiPrimitives` - 55 edges
-5. `cx()` - 54 edges
-6. `useApiConfig()` - 53 edges
+3. `ToolKey` - 58 edges
+4. `cx()` - 54 edges
+5. `useApiConfig()` - 53 edges
+6. `uiPrimitives` - 53 edges
 7. `resolveBackendCapabilities()` - 51 edges
 8. `createComponentLogger()` - 46 edges
 9. `buildApiPaths()` - 44 edges
@@ -595,123 +555,123 @@
 ## Surprising Connections (you probably didn't know these)
 - `buildDefaultRecord()` --references--> `TOOL_KEYS`  [EXTRACTED]
   apps/frontend/src/features/tools/machines/tool-flow.machine.ts → packages/contracts/src/tool-workflows.ts
-- `UseToolPageProps` --references--> `ToolKey`  [EXTRACTED]
-  apps/frontend/src/features/tools/runtime/useToolPage.ts → packages/contracts/src/tool-workflows.ts
-- `WorkflowPosition` --references--> `ToolKey`  [EXTRACTED]
-  apps/frontend/src/features/workspace/ui/WorkspaceContextHeader.tsx → packages/contracts/src/tool-workflows.ts
-- `WorkspaceContextHeaderProps` --references--> `ToolKey`  [EXTRACTED]
-  apps/frontend/src/features/workspace/ui/WorkspaceContextHeader.tsx → packages/contracts/src/tool-workflows.ts
-- `WorkspaceToolWrapperProps` --references--> `ToolKey`  [EXTRACTED]
-  apps/frontend/src/features/workspace/ui/WorkspaceToolWrapper.tsx → packages/contracts/src/tool-workflows.ts
+- `canPrincipalRoleAccessToolKey()` --calls--> `normalizeToolKeyCandidate()`  [EXTRACTED]
+  apps/backend/src/lib/runtime/auth-http/tool-availability-policy.ts → packages/contracts/src/tool-workflows.ts
+- `createToolsAssetHandlers()` --calls--> `getCompatibleAssetTypes()`  [EXTRACTED]
+  apps/backend/src/lib/runtime/auth-http/tools/tools-asset-handlers.ts → packages/contracts/src/asset.ts
+- `buildToolsOrchestrateIdempotencyInput()` --calls--> `resolveToolWorkflowType()`  [EXTRACTED]
+  apps/backend/src/lib/runtime/request-contract.ts → packages/contracts/src/tool-workflows.ts
+- `normalizeToolWorkflowKey()` --calls--> `isToolWorkflowType()`  [EXTRACTED]
+  apps/backend/src/lib/runtime/workflow-normalizers.ts → packages/contracts/src/tool-workflows.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (569 total, 157 thin omitted)
+## Communities (529 total, 155 thin omitted)
 
 ### Community 0 - "auth.ts"
-Cohesion: 0.05
-Nodes (46): AuthProductionOptions, AuthSessionRepository, AuthUserRepository, OAuthStateRepository, AuthProductionClients, AuthSessionJoinRow, AuthUserRow, mapAuthSessionPrincipalRow() (+38 more)
+Cohesion: 0.06
+Nodes (45): AuthProductionOptions, AuthRepositoryBundle, AuthSessionRepository, AuthUserRepository, OAuthStateRepository, AuthProductionClients, AuthSessionJoinRow, AuthUserRow (+37 more)
 
 ### Community 1 - "node-server.ts"
-Cohesion: 0.12
-Nodes (32): parseJsonBody(), readRequestBody(), writeError(), writeSuccess(), applyModelAvailabilityGuard(), applyOwnershipGuard(), handleGenerationRequestAsJson(), buildGenerationDebugInfo() (+24 more)
+Cohesion: 0.09
+Nodes (42): parseJsonBody(), readRequestBody(), writeError(), writeSuccess(), applyModelAvailabilityGuard(), applyOwnershipGuard(), applyRequestContractGuard(), ModelAvailabilityCheck (+34 more)
 
 ### Community 2 - "index.ts"
-Cohesion: 0.15
-Nodes (13): PostgresProjectQueryRepository, ProjectQueryRepository, requiredEnv(), run(), createRandomId(), ProjectQueryRepositoryStub, CreateProjectInput, mapProjectRowToDetail() (+5 more)
+Cohesion: 0.06
+Nodes (36): createSyntheticLlmStreamAdapter(), LlmGenerateAdapter, LlmStreamAdapter, OwnershipDecision, StreamAdapter, PostgresProjectQueryRepository, PostgresRedisAdapterDependencies, ProductionAdapterRuntime (+28 more)
 
 ### Community 3 - "index.ts"
-Cohesion: 0.06
-Nodes (39): extractionChainMachine, ExtractionChainMachineContext, ExtractionChainMachineEvent, ExtractionChainMachineInput, GatewayMachineContext, GatewayMachineEvent, GatewayMachineInput, requestGatewayMachine (+31 more)
+Cohesion: 0.03
+Nodes (91): createInMemoryGenerationAdapters(), extractionChainMachine, ExtractionChainMachineContext, ExtractionChainMachineEvent, ExtractionChainMachineInput, AcquisitionChainContext, AcquisitionChainInput, acquisitionChainMachine (+83 more)
 
 ### Community 4 - "admin-client.ts"
-Cohesion: 0.08
-Nodes (42): AdminApiServicesPage(), toBindingInput(), toCreateInput(), toUpdateInput(), adminApiServiceBindingFormSchema, AdminApiServiceBindingFormValues, createEditAdminApiServiceBindingForm(), createEmptyAdminApiServiceBindingForm() (+34 more)
+Cohesion: 0.06
+Nodes (70): AdminApiServicesPage(), toBindingInput(), toCreateInput(), toUpdateInput(), adminApiServiceBindingFormSchema, AdminApiServiceBindingFormValues, createEditAdminApiServiceBindingForm(), createEmptyAdminApiServiceBindingForm() (+62 more)
 
 ### Community 5 - "PROMPT OPTIN GENERATOR"
 Cohesion: 0.20
 Nodes (10): **2A. Route Capabilities Evolution** (A3 📋), **2B. Generation System Internal Enhancement** (A2 📋), **6A. Error-Actors Wiring** ✅, **6B. Legacy Cleanup** ✅, **7A. Backend — V7 Persistence Path Unification** ✅, **7B. Frontend — V6 Race Condition Elimination** ✅, 🏗️ **SPRINT 2: Evolutionary Infrastructure** ✅ (1 session), 🔧 **SPRINT 6: Error-Actors Wiring & Legacy Cleanup** ✅ (+2 more)
 
 ### Community 6 - "postgres-kysely.types.ts"
-Cohesion: 0.16
-Nodes (9): OwnershipDecision, extractToolWorkflowColumns(), PostgresArtifactRepository, createKyselyDb(), DB, PostgresProjectOwnershipRepository, ProjectOwnershipRepository, ArtifactRow (+1 more)
+Cohesion: 0.10
+Nodes (19): PersistenceAdapter, extractToolWorkflowColumns(), normalizeToolWorkflowInputJson(), PostgresArtifactRepository, createKyselyDb(), DB, PostgresProjectOwnershipRepository, PostgresArtifactRepository (+11 more)
 
 ### Community 7 - "tool-page.machine.ts"
-Cohesion: 0.04
-Nodes (48): author, bugs, url, dependencies, ioredis, mammoth, pg, typescript (+40 more)
+Cohesion: 0.07
+Nodes (25): STREAM_CONFIG, ExtractionContext, FrontendStreamContext, FrontendStreamEvent, FrontendStreamInput, frontendStreamMachine, FrontendStreamStatus, createStreamLogger() (+17 more)
 
 ### Community 8 - "generation-system.events.ts"
-Cohesion: 0.07
-Nodes (51): GenerationActionArgs, GenerationAssignment, GenerationCollectActions, GenerationSystemActionObject, GenerationSystemGuardObject, getAcquisitionDoneOutput(), getAcquisitionResultParams(), getCrawlingDoneOutput() (+43 more)
+Cohesion: 0.11
+Nodes (30): GenerationActionArgs, GenerationAssignment, GenerationCollectActions, GenerationSystemActionObject, GenerationSystemGuardObject, getGenerateDoneOutput(), getGenerateResultParams(), getIdempotencyDoneOutput() (+22 more)
 
 ### Community 9 - "GenerationWorkspaceProvider.tsx"
-Cohesion: 0.07
-Nodes (45): ApiConfigValue, AuthStateValue, generateSessionId(), readInputField(), listArtifactsPaginated(), FrontendGenerationSnapshot, FrontendStreamEvent, FrontendStreamSend (+37 more)
+Cohesion: 0.09
+Nodes (27): ApiConfigValue, listArtifactsPaginated(), FrontendGenerationStatus, FrontendGenerationSnapshot, FrontendStreamEvent, FrontendStreamSend, FrontendStreamSnapshot, GenerationArtifactsWorkspaceContext (+19 more)
 
 ### Community 10 - "runtime.ts"
 Cohesion: 0.08
-Nodes (24): ArtifactRecord, IdempotencyRecord, LlmGenerateInput, LlmGenerateResult, LlmStreamEvent, LlmStreamInput, OwnershipAdapter, QuotaBucket (+16 more)
+Nodes (34): ResolvedApiServiceForAcquisition, ApiServiceAdapter, ArtifactRecord, createSyntheticLlmGenerateAdapter(), IdempotencyRecord, LlmGenerateInput, LlmGenerateResult, LlmStreamEvent (+26 more)
 
 ### Community 11 - "tools-client.ts"
 Cohesion: 0.04
 Nodes (46): 0. Phase 0 - Initial DDD Analysis for Meta Ads Evolution, 10. Dependencies, 11. Files Modified/Created, 12.1 Week 1-2: Launch Monitoring, 12.2 Month 1: Performance Analysis, 12.3 Month 3: Optimization & Iteration, 12. Post-Launch Monitoring, 13. Related Specifications (+38 more)
 
 ### Community 12 - "tool-flow.machine.ts"
-Cohesion: 0.12
-Nodes (21): SessionArtifactEntry, SessionArtifactGroup, group, mockedIsStepVisible, toolStepOrder, ToolStepStatus, DEFAULT_STEP_CONFIG, getIncludedSteps() (+13 more)
+Cohesion: 0.09
+Nodes (23): SessionArtifactEntry, SessionArtifactGroup, sortByCanonicalStepOrder(), StreamLogger, isSupportedTool(), SessionArtifactTabs(), SessionArtifactTabsProps, group (+15 more)
 
 ### Community 13 - "auth-client.ts"
 Cohesion: 0.04
 Nodes (46): 10.1 Monitoraggio Continuo, 10.2 Manutenzione, 10.3 Evoluzione, 10. Post-Rollout, 1.1 Approccio Graduale, 1.2 Timeline, 1. Strategia di Rollout, 2. Stato del Sistema (+38 more)
 
 ### Community 14 - "backend-capabilities.ts"
-Cohesion: 0.07
-Nodes (30): AcquisitionChainContext, AcquisitionChainInput, acquisitionChainMachine, AcquisitionChainOutput, generationSystemMachine, createPersistenceFlushCommittedEvent(), nowIso(), persistenceBatchMachine (+22 more)
+Cohesion: 0.08
+Nodes (33): AuthSessionProvider(), AdminCapabilities, ArtifactCapabilities, defaultBackendCapabilities, FeedbackCapabilities, ProjectCapabilities, readBackendCapabilities(), readFlag() (+25 more)
 
 ### Community 15 - "generation-system.actors.ts"
-Cohesion: 0.13
-Nodes (18): GenerateDoneOutput, generationActor, GenerationSystemProvidedActor, glog, isPlainRecord(), resolveAcquisitionInput(), toStringRecord(), toUnknownRecord() (+10 more)
+Cohesion: 0.12
+Nodes (19): GenerateDoneOutput, generationActor, generationSystemActors, GenerationSystemProvidedActor, glog, isPlainRecord(), resolveAcquisitionInput(), toStringRecord() (+11 more)
 
 ### Community 16 - "api-service.adapter.ts"
-Cohesion: 0.05
-Nodes (71): createApiService(), CreateApiServiceInput, deleteApiService(), deleteApiServiceBinding(), getApiServiceById(), getDb(), _kyselyDbCache, listApiServiceBindings() (+63 more)
+Cohesion: 0.16
+Nodes (25): createApiService(), deleteApiService(), deleteApiServiceBinding(), getApiServiceById(), getDb(), listApiServiceBindings(), listApiServices(), resolveApiServiceById (+17 more)
 
 ### Community 17 - "app-router.tsx"
-Cohesion: 0.18
-Nodes (16): getEnabledToolNavigationItems(), WorkspaceDashboard(), getToolAssetInputs(), mockUseWorkspaceContext, ToolRecommendation, useToolRecommendations(), useWorkspaceContext(), CrossToolWorkflowPanel() (+8 more)
+Cohesion: 0.04
+Nodes (78): formatRelativeTime(), ErrorStateMessage(), updateProject(), DialogState, PromoteAssetDialog(), PromoteAssetDialogProps, getToolLabel(), toolFormRegistry (+70 more)
 
 ### Community 18 - "system.ts"
 Cohesion: 0.04
 Nodes (46): Benchmark di qualita, Best use case, Blocco credibilita alta qualita, Bullets, Bullets, Bullets alta qualita, Checklist interna obbligatoria, Conversion rate previsto (+38 more)
 
 ### Community 19 - "feedback-center-contract.ts"
-Cohesion: 0.05
-Nodes (76): UI_CONFIG, useApiConfig(), useFeedbackMessage(), useArtifactsQuery(), useProjectsQuery(), useSessionsQuery(), formatRelativeTime(), HeadingLevel (+68 more)
+Cohesion: 0.07
+Nodes (36): UI_CONFIG, formatMeta(), useApiConfig(), useProjectDetailQuery(), UseProjectDetailQueryOptions, useProjectsQuery(), UseProjectsQueryOptions, useSessionsQuery() (+28 more)
 
 ### Community 20 - "server.mjs"
-Cohesion: 0.05
-Nodes (43): 0. Prerequisiti DDD (COMPLETED 2026-07-19, revised 2026-07-19), 10. Ordine di esecuzione raccomandato, 1. Analisi impatto FE, 2.1 `AssetKnowledgePanel.tsx` — Nuove props, 2.2 `AssetKnowledgePanel.css` — Stili model selector inline, 2.3 `ToolPageTemplate.tsx` — Rimozione da Configuration Section, 2.4 `tool-form-architecture.ts` — Hardcoding `defaultModel`, 2.5 `copy/system.ts` — Label model nella Knowledge Section (+35 more)
+Cohesion: 0.04
+Nodes (46): author, bugs, url, dependencies, ioredis, mammoth, pg, typescript (+38 more)
 
 ### Community 21 - "createAuthHttpRuntime"
 Cohesion: 0.04
-Nodes (61): createAuthStubRepositories(), createInMemoryGenerationAdapters(), AuthIdGenerator, AuthRuntimeContracts, CookieSameSite, createDefaultAuthIdGenerator(), createDefaultPasswordHashRuntime(), createDefaultSessionCookieRuntime() (+53 more)
+Nodes (37): createAuthStubRepositories(), createDefaultPasswordHashRuntime(), createDefaultSessionCookieRuntime(), createAuthHttpRuntime(), MockIncomingMessage, MockServerResponse, createAdminRuntimeWithCookie(), FeedbackCenterDbStub (+29 more)
 
 ### Community 22 - "Piano di Rollout Graduale - Sistema Cluster Meta Ads"
-Cohesion: 0.13
-Nodes (15): buildDefaultRecord(), initialRetries, initialStatus, ToolFlowContext, ToolFlowEvent, ToolFlowInput, toolFlowMachine, ToolPageViewModel (+7 more)
+Cohesion: 0.09
+Nodes (33): useGenerationArtifactsWorkspace(), useGenerationGenerationWorkspace(), useGenerationProjectWorkspace(), useGenerationStreamWorkspace(), useRequiredContext(), buildDefaultRecord(), initialRetries, initialStatus (+25 more)
 
 ### Community 23 - "primitives.tsx"
 Cohesion: 0.05
-Nodes (38): 1. Target Architecture — Two Context Layers + Route-Aware Rendering, 2. Implementation Plan (7 Tracks), 3. Routing Final, 4. Implementation Order, 5.1 — Remove `WorkspaceKnowledgeOverview` as-is, 5.2 — Reorder Dashboard Panels by Utility, 5.3 — `FoundationToolsPanel` Conditional Rendering, 5.4 — `SuggestedActionsPanel` — Remove Fake Empty State (+30 more)
+Nodes (51): CopyOption, HeadingLevel, ListingTableColumn, ListingTableSection(), ListingTableSectionProps, PaginationBlockControls(), PaginationBlockControlsProps, uiPrimitives (+43 more)
 
 ### Community 24 - "index.ts"
 Cohesion: 0.07
-Nodes (49): ExtractionFieldLabelByKey, mapExtractionFieldKeysToLabels(), mapExtractionFieldKeyToLabel(), ApiAcquisitionRequest, ApiAcquisitionResult, ApiServiceAccessMode, ApiServiceBindingRequiredness, ApiServiceBindingStatus (+41 more)
+Nodes (50): ExtractionFieldLabelByKey, mapExtractionFieldKeysToLabels(), mapExtractionFieldKeyToLabel(), ApiAcquisitionRequest, ApiAcquisitionResult, ApiServiceAccessMode, ApiServiceBindingRequiredness, ApiServiceBindingStatus (+42 more)
 
 ### Community 25 - "normalizeToolWorkflowKey"
-Cohesion: 0.06
-Nodes (33): isAllowedBriefingExtension(), GenerationTransportError, BriefingUploadContext, BriefingUploadInput, mockedRunExtraction, mockedUploadBrief, getEnabledToolKeys(), getRequiredToolInputFiles() (+25 more)
+Cohesion: 0.08
+Nodes (31): isAllowedBriefingExtension(), GenerationTransportError, BriefingUploadContext, BriefingUploadInput, mockedRunExtraction, mockedUploadBrief, ExtractionContextValidityOptions, hasActionableExtractionPayload() (+23 more)
 
 ### Community 26 - "step-hydration.ts"
 Cohesion: 0.04
@@ -719,46 +679,46 @@ Nodes (44): Decisione: rimozione completa, Fase 8 — Validazione, Introduction,
 
 ### Community 27 - "AdminRoutesA11ySmoke.test.tsx"
 Cohesion: 0.07
-Nodes (44): fetchAdminModels(), useAdminModelsQuery(), apiServicesDb, bindingsDb, feedbackApiSpy, readJsonBody(), TestApiService, TestBinding (+36 more)
+Nodes (41): apiServicesDb, bindingsDb, feedbackApiSpy, TestApiService, TestBinding, AdminChangelogPage(), feedbackApiSpy, AdminModelsPage() (+33 more)
 
 ### Community 28 - "download-serializers.ts"
-Cohesion: 0.10
-Nodes (37): DOCX_VISUAL_THEME_CLASSIC, DOCX_VISUAL_THEME_GOOGLE_DOCS, docxThemeFromPreset(), DocxThemePreset, getDefaultDocxVisualTheme(), parseDocxThemePresetFromEnv(), DOCX_VISUAL_THEME_NONE, DocxParagraphKind (+29 more)
+Cohesion: 0.09
+Nodes (38): SessionArtifactEntry, DOCX_VISUAL_THEME_CLASSIC, DOCX_VISUAL_THEME_GOOGLE_DOCS, docxThemeFromPreset(), DocxThemePreset, getDefaultDocxVisualTheme(), parseDocxThemePresetFromEnv(), DOCX_VISUAL_THEME_NONE (+30 more)
 
 ### Community 29 - "scripts"
-Cohesion: 0.09
-Nodes (48): addAssetToGroup(), archiveAsset(), countAssets(), createAsset(), createAssetGroup(), createAssetVersion(), createDerivationLink(), detectAssetGaps() (+40 more)
+Cohesion: 0.10
+Nodes (46): addAssetToGroup(), archiveAsset(), countAssets(), createAsset(), createAssetGroup(), createAssetVersion(), createDerivationLink(), getArtifactFeedbackScore() (+38 more)
 
 ### Community 30 - "feedback-center.machine.ts"
 Cohesion: 0.04
 Nodes (44): dependencies, bullmq, docx, @gen-app-2/contracts, @gen-app-2/domain, ioredis, kysely, mammoth (+36 more)
 
 ### Community 31 - "ArtifactReadProjection"
-Cohesion: 0.11
-Nodes (16): deriveGroupStatus(), deriveToolKeyFromWorkflowType(), ModelResolutionMetadata, readArtifactRole(), readModelResolution(), readRunMode(), readString(), readToolWorkflow() (+8 more)
+Cohesion: 0.13
+Nodes (14): deriveGroupStatus(), deriveToolKeyFromWorkflowType(), ModelResolutionMetadata, readArtifactRole(), readModelResolution(), readRunMode(), readString(), readToolWorkflow() (+6 more)
 
 ### Community 32 - "crawling.adapter.ts"
-Cohesion: 0.18
-Nodes (13): AdminLlmModelRow, LLMTable(), LLMTableProps, adminModelFormSchema, AdminModelFormValues, AdminModelsBusyAction, UseAdminModelsMutationsOptions, AdminModelCreateForm() (+5 more)
+Cohesion: 0.29
+Nodes (7): adminModelFormSchema, AdminModelFormValues, AdminModelsBusyAction, AdminModelCreateForm(), AdminModelCreateFormProps, AdminModelFormShell(), AdminModelFormShellProps
 
 ### Community 33 - "ToolPageTemplate.test.tsx"
-Cohesion: 0.16
-Nodes (16): buildMessage(), FeedbackMessageAction, FeedbackMessageContext, FeedbackMessageContextValue, FeedbackMessageProvider(), feedbackMessageReducer(), FeedbackMessageState, FeedbackSeverity (+8 more)
+Cohesion: 0.06
+Nodes (41): App(), buildMessage(), FeedbackMessageAction, FeedbackMessageContext, FeedbackMessageContextValue, FeedbackMessageProvider(), feedbackMessageReducer(), FeedbackMessageState (+33 more)
 
 ### Community 34 - "admin-api-service-handlers.ts"
 Cohesion: 0.04
 Nodes (46): 10.1 Asset-Based Extraction Context (Implemented — 2026-07-18), 10.2 TOV Generator — First `brand-voice` Producer (Implemented — 2026-07-18), 10. Implementation Log, 11.1 funnel-pages (DDD-184) — ❌ Rejected, 11.2 nextland (DDD-185) — ❌ Rejected, 11.3 youtube-lf-script (DDD-186) — ❌ Rejected, 11.4 youtube-description (DDD-187) — ❌ Rejected, 11. Rejected Items (+38 more)
 
 ### Community 35 - "generation-routing.ts"
-Cohesion: 0.10
-Nodes (38): buildExtractionStructuredPayload(), BuildExtractionStructuredPayloadContext, countWords(), isRecord(), META_ADS_EXTRACTION_SECTION_BY_HEADING, MISSING_EXTRACTION_VALUE_MARKERS, normalizeExtractionFieldKeysForTool(), normalizeExtractionPayload() (+30 more)
+Cohesion: 0.16
+Nodes (23): buildPersistenceBatchInput(), GenerationPersistenceContext, toPersistenceArtifactType(), toPersistenceInputJson(), toPersistenceWorkflowType(), normalizeValue(), toOptionalString(), toStringArray() (+15 more)
 
 ### Community 36 - "Variant B — Private-Network Same-Origin via `frontend/server.mjs`"
 Cohesion: 0.12
-Nodes (26): addAssetToGroup(), ApiResponse, archiveAsset(), assetFetch(), AssetGroupListResponse, AssetListResponse, AssetVersionsResponse, CompatibleAssetsResponse (+18 more)
+Nodes (33): joinApiPath(), addAssetToGroup(), ApiResponse, archiveAsset(), assetFetch(), AssetGapsResponse, AssetGroupListResponse, AssetListResponse (+25 more)
 
 ### Community 37 - "artifact.ts"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (32): ARTIFACT_FAILURE_REASONS, ARTIFACT_STATUS_TRANSITIONS, ArtifactFailureReason, canTransitionArtifactStatus(), CONTRACT_TOOL_WORKFLOWS, isArtifactFailureReason(), isArtifactStatus(), isArtifactType() (+24 more)
 
 ### Community 38 - "Introduction"
@@ -767,51 +727,51 @@ Nodes (35): Architecture Overview, Asset Domain Model Implementation Plan, Conte
 
 ### Community 39 - "AdminUsersPage.tsx"
 Cohesion: 0.13
-Nodes (26): useAdminUsersQuery(), AdminUsersPage(), AdminUser, ADMIN_USER_ROLE_OPTIONS, ADMIN_USER_STATUS_OPTIONS, adminUserFormSchema, AdminUserFormValues, createEditUserForm() (+18 more)
+Nodes (28): appCopy, AdminUsersPage(), AdminUser, ADMIN_USER_ROLE_OPTIONS, ADMIN_USER_STATUS_OPTIONS, adminUserFormSchema, AdminUserFormValues, createEditUserForm() (+20 more)
 
 ### Community 40 - "artifact-history.ts"
 Cohesion: 0.06
 Nodes (30): 🤖 **AI Execution Overview**, **Completed**: Phases 1, 2A, 2B, 3, 4, 5, 8 (48 tasks) ✅ — 2026-07-17, **Critical Path**, **Execution Rules**, 📋 **EXECUTION SUMMARY**, 📋 **PHASE 1: Foundation Infrastructure (8 Tasks)** ✅ COMPLETED 2026-07-17, 📋 **PHASE 2A: Workspace Context (4 Tasks)** ✅ COMPLETED 2026-07-17, 📋 **PHASE 2B: Asset Knowledge Panel (6 Tasks)** ✅ COMPLETED 2026-07-17 (+22 more)
 
 ### Community 41 - "ArtifactsListingSection.tsx"
-Cohesion: 0.05
-Nodes (56): AuthenticatedShell(), PublicShell(), AuthSessionContext, AuthSessionEvent, AuthSessionInput, authSessionMachine, LoginInput, LogoutInput (+48 more)
+Cohesion: 0.10
+Nodes (24): AuthSessionContext, AuthSessionEvent, AuthSessionInput, authSessionMachine, LoginInput, LogoutInput, ReadSessionInput, FAKE_SESSION (+16 more)
 
 ### Community 42 - "scripts"
-Cohesion: 0.06
-Nodes (32): 0. Problem Statement, 10.1 "Foundation Tool" — UI Classification, 10.2 Artifact ↔ Asset Matching, 10.3 `ASSET_TYPE_LABELS` Export, 10.4 Promote Dialog Reuse, 10. Entity Decisions, 11. Acceptance Gates, 12. Implementation Order (+24 more)
+Cohesion: 0.07
+Nodes (28): 0. Problem Statement, 10.1 "Foundation Tool" — UI Classification, 10.2 Artifact ↔ Asset Matching, 10.3 `ASSET_TYPE_LABELS` Export, 10.4 Promote Dialog Reuse, 10. Entity Decisions, 11. Acceptance Gates, 12. Implementation Order (+20 more)
 
 ### Community 43 - "index.ts"
-Cohesion: 0.12
-Nodes (16): BackendJsonSessionResult, BriefParseError, countWords(), inferFormat(), normalizeText(), ParseBriefInput, ParseBriefOutput, SupportedBriefFormat (+8 more)
+Cohesion: 0.07
+Nodes (40): AuthIdGenerator, AuthRuntimeContracts, CookieSameSite, createDefaultAuthIdGenerator(), createGoogleOAuthRuntime(), createGoogleOAuthRuntimeFromEnv(), GoogleOAuthIdentity, GoogleOAuthRuntime (+32 more)
 
 ### Community 44 - "Context Boundaries — Detail"
-Cohesion: 0.08
-Nodes (28): allQuery, mockFetch, GenerationStreamWorkspaceValue, ArtifactFilters, ArtifactLifecycleStatus, ArtifactPeriodFilter, buildArtifactEntryQuery(), buildToolEntryPathFromArtifact() (+20 more)
+Cohesion: 0.10
+Nodes (26): generateRequestId(), generateSessionId(), normalizeIdentifier(), readInputField(), readJsonBody(), allQuery, mockFetch, ArtifactFilters (+18 more)
 
 ### Community 45 - "tool-workflow-registry.ts"
-Cohesion: 0.09
-Nodes (30): canPrincipalRoleAccessToolKey(), resolveToolAccessRole(), createToolsOrchestrateHandlers(), CreateToolsOrchestrateHandlersDependencies, ToolOrchestrationRequestBody, ToolsOrchestrateHandlers, assertGenerationRouteDeadline(), createGenerationRouteDeadline() (+22 more)
+Cohesion: 0.08
+Nodes (28): canPrincipalRoleAccessToolKey(), resolveToolAccessRole(), createToolsOrchestrateHandlers(), CreateToolsOrchestrateHandlersDependencies, ToolOrchestrationRequestBody, ToolsOrchestrateHandlers, assertGenerationRouteDeadline(), createGenerationRouteDeadline() (+20 more)
 
 ### Community 46 - "backend-session.ts"
 Cohesion: 0.09
 Nodes (22): A. Evidence — Sessioni Bloccate, B1. `inFlightStepsRef` sopprime `STEP_DONE` (linea 348), B2. `readRequestedStep()` restituisce `null` (linea 346), B3. `PROGRESS_SYNCED` con `runRequestPrefix === null` (linea 173), B. Root Cause Analysis — Auto-Chain Bridge, C1. Log del bridge — stato dell'auto-chain a ogni ciclo, C2. Log di `STEP_DONE` e `STEP_FAILED`, C3. Log di `PROGRESS_SYNCED` — input e output (+14 more)
 
 ### Community 47 - "OrchestrateArtifactCache"
-Cohesion: 0.24
-Nodes (13): defaultMapGenerationRequest(), parseGenerationRequest(), readRequestBody(), requireObjectField(), requireStringField(), extractRequestStepContext(), extractStepKeyFromRequest(), extractToolKeyFromRequest() (+5 more)
+Cohesion: 0.12
+Nodes (27): defaultMapGenerationRequest(), parseGenerationRequest(), readRequestBody(), requireObjectField(), requireStringField(), buildRequestReceivedEvent(), buildToolsOrchestrateIdempotencyInput(), COPY_LENGTH_FORMAT_ALLOWED (+19 more)
 
 ### Community 48 - "admin-llm-model-handlers.ts"
-Cohesion: 0.14
-Nodes (21): createModel(), deleteModel(), getDb(), _kyselyDbCache, listAllModels(), listEnabledModels(), updateModel(), AdminLlmModelHandlers (+13 more)
+Cohesion: 0.07
+Nodes (44): createAuthProductionRepositories(), createModel(), deleteModel(), getDb(), _kyselyDbCache, listAllModels(), listEnabledModels(), updateModel() (+36 more)
 
 ### Community 49 - "tool-page-selectors.ts"
-Cohesion: 0.09
-Nodes (44): generateRequestId(), getToolApiAcquisitionPolicy(), ToolApiAcquisitionPolicyEntry, ToolFileInstructionsConfig, ToolInputFilePolicyEntry, ToolInputFileRequiredness, ToolInputSourceFamily, createStepRequest() (+36 more)
+Cohesion: 0.08
+Nodes (45): AuthStateValue, getArtifactById(), getToolApiAcquisitionPolicy(), ToolFileInstructionsConfig, ToolInputFilePolicyEntry, ToolInputSourceFamily, createStepRequest(), DispatchErrorReasonCode (+37 more)
 
 ### Community 50 - "AdminApiServiceBindingsPanel.tsx"
-Cohesion: 0.20
-Nodes (8): ResolvedApiServiceForAcquisition, ApiServiceAdapter, CrawlingChainContext, CrawlingChainInput, crawlingChainMachine, CrawlingChainOutput, glog, resolveSerpApiService()
+Cohesion: 0.17
+Nodes (18): CrawlingChainContext, CrawlingChainInput, crawlingChainMachine, CrawlingChainOutput, glog, CrawlingResult, crawlSerp(), crawlSerpViaApi() (+10 more)
 
 ### Community 51 - "Tool Page Frontend Runtime Specification"
 Cohesion: 0.22
@@ -822,60 +782,60 @@ Cohesion: 0.05
 Nodes (42): 1. Requirements & Constraints, 2. Implementation Steps, 3. Alternatives, 4. Dependencies, 5. Files, 6. Testing, 7. Risks & Assumptions, 8. Related Specifications / Further Reading (+34 more)
 
 ### Community 53 - "Introduction"
-Cohesion: 0.19
-Nodes (23): normalizeIdentifier(), ArtifactFilterCriteria, belongsToTool(), buildExtractionContextFromArtifact(), buildLatestArtifactByStep(), collectCompletedRunSteps(), collectCompletedStepsBySession(), collectCompletedStepsByTool() (+15 more)
+Cohesion: 0.18
+Nodes (23): ArtifactFilterCriteria, belongsToTool(), buildExtractionContextFromArtifact(), buildLatestArtifactByStep(), collectCompletedRunSteps(), collectCompletedStepsBySession(), collectCompletedStepsByTool(), extractArtifactStep() (+15 more)
 
 ### Community 54 - "PROPOSAL: Evoluzione Formato Output Tool Meta-Ads"
-Cohesion: 0.07
-Nodes (29): Analisi impatto FE: readiness e form validation, BACKEND — Canonicalization e Prompt Injection, BACKEND — Extraction, BACKEND — Observability e Session, Blocker critico: Zod validation, CONTRACTS (`packages/contracts/src/`), Cosa NON cambia, DDD Governance Status (2026-07-19) (+21 more)
+Cohesion: 0.13
+Nodes (13): OrchestrateArtifactCacheStub, distDir, handleProxy(), HOP_BY_HOP, indexPath, isProxyPath(), logReq(), logStructured() (+5 more)
 
 ### Community 55 - "ToolPageTemplate.meta-ads-flow.e2e.test.tsx"
-Cohesion: 0.06
-Nodes (31): 0. Phase 0 - Initial DDD Analysis, 10. Implementation Order Summary, 12. References, 1. Deterministic Inputs, 2. Track A - Contracts and Canonical Identity, 3. Track B - Backend Runtime, 4. Track C - Frontend Tool Workspace, 5. Track D - Test Cases (+23 more)
+Cohesion: 0.05
+Nodes (40): 0. Phase 0 - Initial DDD Analysis, 10. Implementation Order Summary, 11. Architectural Patterns Reference, 12. References, 1. Deterministic Inputs, 2. Track A - Contracts and Canonical Identity, 3. Track B - Backend Runtime, 4. Track C - Frontend Tool Workspace (+32 more)
 
 ### Community 56 - "2. Implementation Steps"
-Cohesion: 0.11
-Nodes (16): createSyntheticLlmGenerateAdapter(), createSyntheticLlmStreamAdapter(), PersistenceAdapter, PostgresArtifactRepository, createPostgresRedisProductionDependencies(), createPostgresRedisStubDependencies(), createPostgresRedisStubGenerationAdapters(), PostgresArtifactRepositoryStub (+8 more)
+Cohesion: 0.24
+Nodes (12): HttpClientError, HttpClientRequestError, isHttpDebugEnabled(), isRetryableStatus(), logHttpDebug(), parseJsonSafely(), requestJson(), RequestJsonOptions (+4 more)
 
 ### Community 57 - "Frontend UI Ubiquitous Language Specification"
 Cohesion: 0.10
-Nodes (20): Architecture After Unification, Backend Logging Unification Plan, Non-Goals, Overview, Phase 3 — Server Startup & Infrastructure, Phase 4 — Integrations, Phase 6 — Smoke Cleanup, Phase Summary (+12 more)
+Nodes (20): Architecture After Unification, Backend Logging Unification Plan, Non-Goals, Overview, Phase 1 — Critical Observability (session boundary + HTTP lifecycle), Phase 3 — Server Startup & Infrastructure, Phase 6 — Smoke Cleanup, Phase Summary (+12 more)
 
 ### Community 58 - "admin-feedback-center-handlers.ts"
-Cohesion: 0.11
-Nodes (38): archiveProductChangelog(), createProductChangelog(), getDb(), _kyselyDbCache, listProductChangelogs(), listPublishedProductChangelogs(), publishProductChangelog(), SmokeCleanup (+30 more)
+Cohesion: 0.07
+Nodes (54): archiveProductChangelog(), createProductChangelog(), getDb(), _kyselyDbCache, listProductChangelogs(), listPublishedProductChangelogs(), publishProductChangelog(), createUserReport() (+46 more)
 
 ### Community 59 - "Analysis Plan: Documentation Linking"
 Cohesion: 0.10
 Nodes (20): 0. Tool Classification, 2. Track B — Backend Runtime, 4. Track D — Test Cases, 5. Track E — XState Runtime, 6. Risks and Controls, 7. Validation Gates, 8. Implementation Order Summary, 9. File Summary (+12 more)
 
 ### Community 60 - "tool-form-architecture.ts"
-Cohesion: 0.07
-Nodes (26): 🚀 Advanced Capabilities, Component Library Architecture, Craft Pixel-Perfect Interfaces, Create Comprehensive Design Systems, 🚨 Critical Rules You Must Follow, Design System First Approach, Design System Mastery, Developer Collaboration (+18 more)
+Cohesion: 0.09
+Nodes (24): ToolRouteGuard(), isUserAdmin(), USER_ROLES, UserRole, ToolStepStatus, ToolsHubPage(), getEnabledToolKeys(), getEnabledToolNavigationItems() (+16 more)
 
 ### Community 61 - "generation-system.request.states.ts"
-Cohesion: 0.13
-Nodes (18): generationSystemActions, generationSystemActors, generationSystemGuards, AuthArgs, ContextArgs, generationSystemRequestStates, RequestArgs, UnknownEventArgs (+10 more)
+Cohesion: 0.15
+Nodes (16): generationSystemActions, AuthArgs, ContextArgs, generationSystemRequestStates, RequestArgs, UnknownEventArgs, ValidationFailArgs, ValidationOkArgs (+8 more)
 
 ### Community 62 - "AdminApiServicesPage.tsx"
-Cohesion: 0.04
-Nodes (66): appCopy, CopyOption, formatMeta(), AdminCapabilities, ArtifactCapabilities, BackendCapabilities, defaultBackendCapabilities, FeedbackCapabilities (+58 more)
+Cohesion: 0.08
+Nodes (32): fetchAdminModels(), useAdminModelsQuery(), UseAdminModelsQueryOptions, useAdminUsersQuery(), UseAdminUsersQueryOptions, UseArtifactDetailQueryOptions, useArtifactsQuery(), UseArtifactsQueryOptions (+24 more)
 
 ### Community 63 - "artifacts-client.ts"
-Cohesion: 0.16
-Nodes (20): buildToolsOrchestrateIdempotencyInput(), toNonEmptyString(), applyQuery(), ArtifactsClientOptions, ArtifactsResponse, BackendArtifact, ListArtifactsResult, normalizeModelId() (+12 more)
+Cohesion: 0.24
+Nodes (15): ArtifactsClientOptions, ArtifactsResponse, BackendArtifact, ListArtifactsResult, normalizeModelId(), normalizeWorkflowTypeCandidate(), readDiagnosticString(), readNormalizedToolKey() (+7 more)
 
 ### Community 64 - "ArtifactDetailPage.tsx"
-Cohesion: 0.07
-Nodes (42): useArtifactDetailQuery(), CtaButtonProps, PrimaryCtaButton(), SecondaryCtaButton(), SoftCtaButton(), ArtifactDetailPage(), isSessionSummaryRouteId(), LegacyArtifactView() (+34 more)
+Cohesion: 0.06
+Nodes (55): useArtifactDetailQuery(), CtaButtonProps, PrimaryCtaButton(), SecondaryCtaButton(), SoftCtaButton(), Button(), ButtonProps, cx() (+47 more)
 
 ### Community 65 - "projects.ts"
-Cohesion: 0.26
-Nodes (13): requiredEnv(), resolveRedisUrl(), run(), requiredEnv(), run(), createPostgresRedisProductionGenerationAdapters(), buildIdempotencyRedisLockKey(), requiredEnv() (+5 more)
+Cohesion: 0.19
+Nodes (17): requiredEnv(), resolveRedisUrl(), run(), requiredEnv(), run(), createPostgresRedisProductionGenerationAdapters(), requiredEnv(), run() (+9 more)
 
 ### Community 66 - "generation-entry-guards.ts"
-Cohesion: 0.07
-Nodes (27): 0. Tool Classification, 1. Track A — Contracts & Canonical Identity, 2. Track B — Backend Runtime, 4. Track D — Test Cases, 5. Track E — XState Runtime, 6. Risks and Controls, 7. Validation Gates, 8. Implementation Order Summary (+19 more)
+Cohesion: 0.10
+Nodes (20): 0. Tool Classification, 1. Track A — Contracts & Canonical Identity, 4. Track D — Test Cases, 5. Track E — XState Runtime, 6. Risks and Controls, 7. Validation Gates, 8. Implementation Order Summary, 9. File Summary (+12 more)
 
 ### Community 67 - "ToolPageTemplate.extraction-cta.single-file.test.tsx"
 Cohesion: 0.10
@@ -895,27 +855,27 @@ Nodes (21): downloadExport(), exportAngle(), exportAwarenessLevel(), exportClust
 
 ### Community 71 - "ToolPageTemplate.extraction-cta.test.tsx"
 Cohesion: 0.09
-Nodes (31): AssetAwareRequestInput, AssetInjectionLogger, AssetSnapshotResolver, checkAssetStaleness(), createAssetInjectionLogger(), getSourceValue(), InjectionDirectiveInput, resolveAssetContent() (+23 more)
+Nodes (33): detectAssetGaps(), listCompatibleAssets(), AssetAwareRequestInput, AssetInjectionLogger, AssetSnapshotResolver, checkAssetStaleness(), createAssetInjectionLogger(), getSourceValue() (+25 more)
 
 ### Community 72 - "ResolvedApiServiceForAcquisition"
 Cohesion: 0.11
 Nodes (19): 🎯 **Conclusion**, **Critical Path Analysis**, **Current State vs Target State**, **During Implementation**, 🎯 **Executive Summary**, **Feature Flag Strategy**, **High-Risk Areas & Mitigations**, 📝 **Implementation Checklist** (+11 more)
 
 ### Community 73 - "xstate.ts"
-Cohesion: 0.11
-Nodes (18): assembleStrategicReportingInput(), assembleUnifiedReportInput(), glog, mergeAcquisitionIntoGenerationInput(), mergeCrawlingIntoGenerationInput(), selectGeometricAssembly(), glog, isPlainRecord() (+10 more)
+Cohesion: 0.36
+Nodes (6): assembleStrategicReportingInput(), assembleUnifiedReportInput(), glog, mergeAcquisitionIntoGenerationInput(), mergeCrawlingIntoGenerationInput(), selectGeometricAssembly()
 
 ### Community 74 - "api-acquisition.adapter.ts"
-Cohesion: 0.06
-Nodes (51): ApiAcquisitionExecutionInput, ApiAcquisitionExecutionResult, ApiAcquisitionHttpError, applyResponseMapping(), buildLegacyEnvelope(), buildProfileEnvelope(), buildUrl(), computeRetryDelayMs() (+43 more)
+Cohesion: 0.15
+Nodes (25): ApiAcquisitionExecutionInput, ApiAcquisitionExecutionResult, ApiAcquisitionHttpError, applyResponseMapping(), buildLegacyEnvelope(), buildProfileEnvelope(), buildUrl(), computeRetryDelayMs() (+17 more)
 
 ### Community 75 - "postgres-redis.usage-repository.test.ts"
-Cohesion: 0.11
-Nodes (13): ConsumeCreditsInput, RecordArtifactSuccessInput, UsageDecision, RedisQuotaRepository, resolveClaimUsageDecision(), ResolveClaimUsageDecisionInput, UsageRepositoryOptions, RedisQuotaRepositoryStub (+5 more)
+Cohesion: 0.10
+Nodes (13): ConsumeCreditsInput, RecordArtifactSuccessInput, UsageAdapter, UsageDecision, RedisQuotaRepository, resolveClaimUsageDecision(), ResolveClaimUsageDecisionInput, RedisQuotaRepositoryStub (+5 more)
 
 ### Community 76 - "feature-geometric-screenshot-archival-1.md"
-Cohesion: 0.12
-Nodes (8): PostgresArtifactQueryRepository, ArtifactQueryRepository, ArtifactQueryRepositoryStub, ArtifactDetail, ArtifactListFilters, ArtifactReadProjection, ArtifactSummary, mapArtifactRowToDetail()
+Cohesion: 0.26
+Nodes (3): PostgresArtifactQueryRepository, mapArtifactRowToDetail(), mapArtifactRowToSummary()
 
 ### Community 77 - "VANTAGGI STRATEGICI"
 Cohesion: 0.11
@@ -926,28 +886,28 @@ Cohesion: 0.05
 Nodes (42): 1. **Maggiore Precisione di Target**, 2. **Flessibilità Operativa**, 3. **Performance Meta Ads Superiore**, 4. **Scalabilità Organizzativa**, 5. **ROI Misurabile**, APPENDICE: NUOVI PROMPT DI SOSTITUZIONE, Architettura Tecnica Attuale, Backend Prompt Integration (+34 more)
 
 ### Community 79 - "scoring-engine.ts"
-Cohesion: 0.18
-Nodes (15): ScoringChainInput, scoringChainMachine, ScoringChainOutput, assignTier(), computeCompetitorRanking(), computeDomainScores(), computeRawScores(), DomainScore (+7 more)
+Cohesion: 0.16
+Nodes (16): ScoringChainInput, scoringChainMachine, ScoringChainOutput, assignTier(), CompetitorRanking, computeCompetitorRanking(), computeDomainScores(), computeRawScores() (+8 more)
 
 ### Community 80 - "generation-handler.ts"
-Cohesion: 0.11
-Nodes (29): GenerationAdapters, BackendSessionResult, runBackendGenerationSession(), runBackendGenerationSessionAsJson(), RunBackendGenerationSessionOptions, BackendError, BackendErrorCode, mapFailureReasonToBackendError() (+21 more)
+Cohesion: 0.07
+Nodes (34): BackendSessionResult, runBackendGenerationSession(), runBackendGenerationSessionAsJson(), RunBackendGenerationSessionOptions, BackendError, BackendErrorCode, mapFailureReasonToBackendError(), handleGenerationRequest() (+26 more)
 
 ### Community 81 - "Timeout e Limiti Proxy (TASK-021)"
-Cohesion: 0.07
-Nodes (37): FrontendGenerationContext, FrontendGenerationEvent, FrontendGenerationInput, frontendGenerationMachine, FrontendGenerationStatus, ExtractionContext, FrontendStreamContext, FrontendStreamEvent (+29 more)
+Cohesion: 0.13
+Nodes (20): FrontendGenerationContext, FrontendGenerationEvent, FrontendGenerationInput, frontendGenerationMachine, createSseFrameParser(), ensureNullableString(), ensureString(), parseBackendStreamEvent() (+12 more)
 
 ### Community 82 - "Rollback a Cross-Origin (TASK-022)"
-Cohesion: 0.10
-Nodes (21): toolFormRegistry, WorkspaceSessionsPage(), WorkspaceContextData, useWorkspaceProject(), WorkspaceProjectContext, WorkspaceProjectData, WorkspaceProjectProvider(), WorkspaceContext (+13 more)
+Cohesion: 0.18
+Nodes (15): CreateApiServiceInput, _kyselyDbCache, UpdateApiServiceInput, UpsertApiServiceBindingInput, ApiServiceAccessMode, ApiServiceBindingRequiredness, ApiServiceBindingStatus, ApiServiceRedactedDto (+7 more)
 
 ### Community 83 - "4. Implementation Steps"
-Cohesion: 0.18
-Nodes (21): createProjectRequestSchema, createProjectsHandlers(), CreateProjectsHandlersDependencies, parseArtifactReadProjection(), parseBooleanQueryFlag(), updateProjectRequestSchema, WriteError, WriteSuccess (+13 more)
+Cohesion: 0.23
+Nodes (15): ApiServiceValidationInput, isPlainRecord(), MAPPING_RULE_RESERVED_RUNTIME_KEYS, toApiServiceRedactedDto(), ToolStepBindingValidationInput, validateApiServiceInput(), validateErrorMappingRules(), validatePath() (+7 more)
 
 ### Community 84 - "Frontend UX Determinism and Unification Code Review"
-Cohesion: 0.09
-Nodes (21): Advanced Capabilities You Know, Code Examples, Common Scenarios You Excel At, Context Without Provider (React 19), Custom Hook with TypeScript Generics, Document Metadata in Components (React 19), Error Boundary with TypeScript, Expert React Frontend Engineer (+13 more)
+Cohesion: 0.10
+Nodes (26): createAdminHandlers(), CreateAdminHandlersDependencies, AdminLlmModelHandlers, AdminUserHandlers, createAdminUserHandlers(), CreateAdminUserHandlersDependencies, AdminCreateChangelogRequestBody, AdminCreateUserRequestBody (+18 more)
 
 ### Community 85 - "7. Testing Strategy"
 Cohesion: 0.12
@@ -958,8 +918,8 @@ Cohesion: 0.05
 Nodes (40): 10. Related Specifications / Further Reading, 11. Post-Implementation Exceptions, 1. Requirements & Constraints, 2. Decision Log Entries (da registrare prima dell'implementazione), 3. Implementation Steps, 4. Alternatives, 5. Dependencies, 6. Files (+32 more)
 
 ### Community 87 - "Deployment Architecture Guide"
-Cohesion: 0.10
-Nodes (14): StubArtifactQueryRecord, ANGLE_CONTEXT_AND_MATRIX_ARTIFACT, ANGLE_EXTRACTION_ARTIFACT, ANGLE_PRIORITIZATION_ARTIFACT, createAndLoginUser(), ensureOwnedProject(), FIXED_NOW, MockIncomingMessage (+6 more)
+Cohesion: 0.34
+Nodes (4): ArtifactQueryRepository, ArtifactQueryRepositoryStub, ArtifactDetail, ArtifactReadProjection
 
 ### Community 88 - "Implementazione Prompt"
 Cohesion: 0.12
@@ -978,16 +938,16 @@ Cohesion: 0.10
 Nodes (20): ArtifactTypeFromIndex, ArtifactTypeSnapshot, AssertEqual, BackendStreamEventFromIndex, CreateProductChangelogCommandFromIndex, CreateUserReportCommandFromIndex, GenerationRequestFromIndex, GitHubIssueLinkDtoFromIndex (+12 more)
 
 ### Community 92 - "admin-api-service-binding-handlers.ts"
-Cohesion: 0.06
-Nodes (32): AdminActivityPage, AdminApiServicesPage, AdminChangelogPage, AdminDashboardPage, AdminModelsPage, AdminUserReportsPage, AdminUsersPage, AngleGeneratorToolPage (+24 more)
+Cohesion: 0.04
+Nodes (62): AuthenticatedShell(), MainNavigation(), MainNavigationProps, NavIcon, navIcons, PublicShell(), AuthActionsValue, AuthSessionContext (+54 more)
 
 ### Community 93 - "IdempotencyCoordinatorInput"
 Cohesion: 0.20
-Nodes (5): IdempotencyAdapter, PostgresRedisIdempotencyRepository, RedisIdempotencyRepository, RedisIdempotencyRepositoryStub, IdempotencyCoordinatorInput
+Nodes (6): IdempotencyAdapter, IdempotencyDecision, PostgresRedisIdempotencyRepository, RedisIdempotencyRepository, RedisIdempotencyRepositoryStub, IdempotencyCoordinatorInput
 
 ### Community 94 - "12. Post-Launch Monitoring"
-Cohesion: 0.10
-Nodes (20): Impatto Stimato, Ordine di Esecuzione Consigliato, Overview, Phase 1 — Rimozioni Immediate (basso rischio, alto impatto), Phase 2 — Consolida duplicazioni (medio impatto), Phase 3 — Semplificazione stub backend (medio rischio), Phase 4 — Affinamento finale (basso rischio), Riepilogo per Fase (+12 more)
+Cohesion: 0.11
+Nodes (21): getAcquisitionDoneOutput(), getAcquisitionResultParams(), getCrawlingDoneOutput(), getCrawlingResultParams(), getExtractionDoneOutput(), getExtractionResultParams(), getInvokeFailureReason(), getOwnershipDoneOutput() (+13 more)
 
 ### Community 95 - "3. End-to-End Flow Under Plan"
 Cohesion: 0.10
@@ -998,24 +958,20 @@ Cohesion: 0.14
 Nodes (13): Adattamento per Canale, Esempi, Identità del Brand, Input, Linguaggio, Objective, Output rules, PROMPT TOV GENERATOR - TOV GENERATION (+5 more)
 
 ### Community 97 - "8. Success Metrics"
-Cohesion: 0.15
-Nodes (15): AssetGapsResponse, detectAssetGaps(), listCompatibleAssets(), useAssetSuggestions(), UseAssetSuggestionsResult, AssetGap, FoundationToolStatus, mapAssetDto() (+7 more)
+Cohesion: 0.14
+Nodes (16): AdminApiServiceCreateBody, adminApiServiceCreateSchema, AdminApiServiceHandlers, AdminApiServiceUpdateBody, adminApiServiceUpdateSchema, apiServiceAccessModeSchema, apiServiceRequestMethodSchema, apiServiceStatusSchema (+8 more)
 
 ### Community 98 - "ToolPageTemplate.tsx"
-Cohesion: 0.06
-Nodes (49): ListingTableSection(), ActivityLogTable(), ActivityLogTableProps, CHANGELOG_COLUMNS, ChangelogTable(), ChangelogTableProps, AdminUserReportsPage(), ReportsTable() (+41 more)
+Cohesion: 0.13
+Nodes (14): canPublishUserReportIssue(), AdminUserReportsTableActions(), AdminUserReportsTableActionsProps, FeedbackCenterActorFailure, FeedbackCenterActorResult, FeedbackCenterActorSuccess, FeedbackCenterContext, FeedbackCenterEvent (+6 more)
 
 ### Community 99 - "feedback-center-client.ts"
-Cohesion: 0.06
-Nodes (95): ApiPaths, buildApiPaths(), resolveBackendCapabilities(), HttpClientError, HttpClientRequestError, isHttpClientError(), isHttpDebugEnabled(), isRetryableStatus() (+87 more)
+Cohesion: 0.10
+Nodes (42): ApiPaths, buildApiPaths(), BackendCapabilities, USER_REPORT_CATEGORY_FILTER_OPTIONS, USER_REPORT_STATUS_FILTER_OPTIONS, useAdminChangelogMutations(), UseAdminChangelogMutationsOptions, useAdminChangelogQuery() (+34 more)
 
 ### Community 100 - "projects-handlers.ts"
 Cohesion: 0.05
 Nodes (39): 1. Obiettivo, 2.1 Minimal Implementation Dependencies, 2.2 Rationale Dependencies, 2. Dependencies Requirements, 3.1 Backend (XState Machines + Adapters), 3.2 Frontend (useToolPage + Proxy + Client), 3.3 DDD Alignment, 3. Analisi del Perimetro (+31 more)
-
-### Community 101 - "joinApiPath"
-Cohesion: 0.23
-Nodes (12): ProjectAssetsPage(), ASSET_TYPE_LABELS, getProducerToolsForAsset(), ToolProjectAssetPolicyEntry, AssetKnowledgePanel(), AssetKnowledgePanelProps, groupBy(), AssetLibraryView() (+4 more)
 
 ### Community 102 - "http-client.ts"
 Cohesion: 0.05
@@ -1026,12 +982,12 @@ Cohesion: 0.17
 Nodes (12): **P1.1.1 - Update app-router.tsx**, **P1.1.2 - Update tool-form-architecture.ts**, **P1.1.3 - Create LegacyToolRedirect component**, **P1.1 - Routing Architecture** ⏱️ 3-4 days | **Priority: CRITICAL**, **P1.2.1 - Update system.ts navigation copy**, **P1.2 - Copy & Constants Update** ⏱️ 1-2 days | **Priority: HIGH**, **P1.3.1 - Create useWorkspaceContext hook**, **P1.3.2 - Create WorkspaceToolWrapper** (+4 more)
 
 ### Community 104 - "route-table.ts"
-Cohesion: 0.10
-Nodes (27): AdminHandlers, buildAdminRoutes(), AuthHandlers, buildAuthRoutes(), CreatePublicHandlersDependencies, createUserReportRequestSchema, PublicHandlers, buildPublicRoutes() (+19 more)
+Cohesion: 0.12
+Nodes (24): AdminHandlers, buildAdminRoutes(), AuthHandlers, buildAuthRoutes(), buildPublicRoutes(), ProjectsHandlers, buildProjectsRoutes(), dispatchRequest() (+16 more)
 
 ### Community 105 - "Guida Utente - Sistema Cluster Meta Ads"
-Cohesion: 0.20
-Nodes (16): selectDecomposedContext(), selectDomainContext(), selectErrorContext(), selectInfraContext(), selectMetricsContext(), selectRuntimeContext(), DecomposedGenerationContext, GenerationDomainContext (+8 more)
+Cohesion: 0.17
+Nodes (18): selectDecomposedContext(), selectDomainContext(), selectErrorContext(), selectInfraContext(), selectMetricsContext(), selectRuntimeContext(), DecomposedGenerationContext, GenerationDomainContext (+10 more)
 
 ### Community 111 - "DDD-144"
 Cohesion: 0.17
@@ -1042,8 +998,8 @@ Cohesion: 0.17
 Nodes (12): **P4.1.1 - Create toolAssetRegistry.ts**, **P4.1 - Per-Tool Asset Registry** ⏱️ 1 day | **Priority: HIGH**, **P4.2.1 - Implement useToolRecommendations**, **P4.2 - useToolRecommendations Hook** ⏱️ 1-2 days | **Priority: HIGH**, **P4.3.1 - Implement CrossToolWorkflowPanel**, **P4.3 - CrossToolWorkflowPanel** ⏱️ 1-2 days | **Priority: MEDIUM**, **P4.4.1 - Add CrossToolWorkflowPanel to ToolPageTemplate**, **P4.4 - Integrate into ToolPageTemplate** ⏱️ 0.5 day | **Priority: HIGH** (+4 more)
 
 ### Community 113 - "buildIdempotencyRedisLockKey"
-Cohesion: 0.11
-Nodes (17): 1. Reference Verification (Critical), 2. Executability Check (Practical), 3. Critical Blockers Only, 4. QA Scenario Executability, Agent Configuration, Anti-Patterns, Decision Framework, Input Validation (+9 more)
+Cohesion: 0.18
+Nodes (15): assertCompleteHydrationResult(), hydrateExtractionContext(), hydrationMachine, HydrationMachineInput, HydrationMachineOutput, PendingHydration, readNormalizedBriefingText(), toCanonicalBriefingId() (+7 more)
 
 ### Community 114 - "DDD-146"
 Cohesion: 0.18
@@ -1074,16 +1030,16 @@ Cohesion: 0.08
 Nodes (25): 10. Known Architecture Constraints and Open Issues, 11. Regression Test Reference, 12. Changelog, 1. File Map, 2.1 `toolPageMachine` (page orchestrator), 2.2 `briefingUploadMachine` (spawned actor), 2.3 `toolFlowMachine` (spawned actor), 2.3b API Fetch Integration On XState (BE/FE contract) (+17 more)
 
 ### Community 121 - "ToolGenerationFlowVertical.tsx"
-Cohesion: 0.05
-Nodes (50): useModelsQuery(), UploadFieldButton(), UploadFieldButtonProps, CanonicalToolUiState, derivePrimaryActionLabel(), PrimaryActionPolicy, SecondaryActionFlags, isToolApiBindingStatusAdapterEnabled() (+42 more)
+Cohesion: 0.04
+Nodes (61): UploadFieldButton(), UploadFieldButtonProps, CanonicalToolUiState, derivePrimaryActionLabel(), PrimaryActionPolicy, SecondaryActionFlags, selectToolFileInstructions(), ToolActionButtons() (+53 more)
 
 ### Community 122 - "Refactoring Plan: God Nodes Decomposition"
 Cohesion: 0.08
 Nodes (24): Current State (verified via codebase analysis), Current State (verified via codebase analysis), DDD Gate-First Workflow ✅ COMPLETED, DDD Requirements, DDD Requirements, **Phase 1 Complete When**: ≤2 `useEffect` hooks, 0 race conditions, XState authority restored, consumer hooks integrated, PHASE 1: Frontend Reactive Spaghetti Resolution (Task 4A - V2), PHASE 2: GenerationSystem Context Decomposition (Task 4B - V1) (+16 more)
 
 ### Community 123 - "extraction-field-matrix.ts"
-Cohesion: 0.08
-Nodes (21): IdempotencyDecision, LlmGenerateAdapter, LlmStreamAdapter, OrchestrateArtifactCache, PostgresRedisAdapterDependencies, ProductionAdapterRuntime, RedisStreamSessionRepository, IdempotencyRepositoryOptions (+13 more)
+Cohesion: 0.17
+Nodes (4): GenerationAdapters, OrchestrateArtifactCache, RedisOrchestrateArtifactCache, MockRedis
 
 ### Community 124 - "PostgresAuthSessionRepository"
 Cohesion: 0.06
@@ -1102,12 +1058,12 @@ Cohesion: 0.22
 Nodes (9): Phase 5 — Adapters & HTTP Handlers, Task 5.1: `openrouter.adapter.ts` (lines 111, 167), Task 5.2: `user-report.adapter.ts` (lines 48, 66, 69), Task 5.3: `user-report-github-link.adapter.ts` (lines 70, 92, 109, 114), Task 5.4: `auth-http/runtime.ts` (line 266), Task 5.5: `tools-orchestrate-handlers.ts` (lines 246, 289-298), Task 5.6: `tools-hydrate-handlers.ts` (line 58), Task 5.7: `admin-feedback-center-handlers.ts` (line 98 debug, line 448 error) (+1 more)
 
 ### Community 128 - "createToolPage.tsx"
-Cohesion: 0.10
-Nodes (17): AngleGeneratorToolPage, BlogArticleGeneratorToolPage, BriefGeneratorToolPage, FunnelPagesToolPage, GeometricToolPage, MetaAdsToolPage, NextlandToolPage, PersonasGeneratorToolPage (+9 more)
+Cohesion: 0.11
+Nodes (16): AngleGeneratorToolPage, BlogArticleGeneratorToolPage, BriefGeneratorToolPage, FunnelPagesToolPage, GeometricToolPage, MetaAdsToolPage, NextlandToolPage, parseOptionalString() (+8 more)
 
 ### Community 129 - "ToolKey"
-Cohesion: 0.14
-Nodes (20): createAuthProductionRepositories(), getAllOverrides(), getStepOverride(), STEP_LLM_MODEL_OVERRIDES, createStepLlmModelResolver(), StepLlmModelResolverImpl, ArtifactModelMetadata, createOverrideKey() (+12 more)
+Cohesion: 0.22
+Nodes (9): getStepOverride(), STEP_LLM_MODEL_OVERRIDES, StepLlmModelResolver, StepLlmModelResolverImpl, ArtifactModelMetadata, createOverrideKey(), EffectiveModelResolution, StepLlmModelOverrideConfig (+1 more)
 
 ### Community 130 - "Gen App 2"
 Cohesion: 0.25
@@ -1166,24 +1122,24 @@ Cohesion: 0.29
 Nodes (7): Execution Summary (2026-07-15), Files Created (2), Files Deleted (2), Files Edited (22), Known Deviation, Remaining `console.*` in Non-Test Files, Verification Results
 
 ### Community 145 - "Delivery Plan"
-Cohesion: 0.19
-Nodes (13): WorkspaceAsset, AssetGroupSection(), AssetGroupSectionProps, baseProps, AssetLibraryViewProps, AssetSelectionList(), AssetSelectionListProps, ASSET_TYPE_ICONS (+5 more)
+Cohesion: 0.29
+Nodes (7): 2. Track B — Backend Runtime, Acceptance, B-001: `apps/backend/src/lib/runtime/workflow-normalizers.ts`, B-002: `apps/backend/src/lib/runtime/tool-prompts/index.ts`, B-003: Extraction Prompt (NEW), B-004: Generation Prompt (NEW), Prompt Template Variable Notes
 
 ### Community 146 - "PROMPT QUIZ GENERATOR"
 Cohesion: 0.29
 Nodes (7): 📋 **Implementation Phases**, **PHASE 1: Foundation Infrastructure (8-10 days)** ✅ COMPLETED 2026-07-17, **PHASE 2A: Workspace Context (4-5 days) [PARALLEL]** ✅ COMPLETED 2026-07-17, **PHASE 2B: Asset Knowledge (4-5 days) [PARALLEL]** ✅ COMPLETED 2026-07-17, **PHASE 3: Dashboard & Navigation (6-8 days)** ✅ COMPLETED 2026-07-17, **PHASE 4: Cross-Tool Integration (4-6 days)** ✅ COMPLETED 2026-07-17, **PHASE 5: Integration & Polish (2-3 days)** ✅ COMPLETED 2026-07-17
 
 ### Community 147 - "Tool Generation Flow Source Of Truth (Frontend)"
-Cohesion: 0.07
-Nodes (45): STREAM_CONFIG, BriefingUploadEvent, briefingUploadMachine, hasReadyBriefingExtractionContext(), GenerationLifecycleContext, GenerationLifecycleEvent, GenerationLifecycleInput, generationLifecycleMachine (+37 more)
+Cohesion: 0.10
+Nodes (29): briefingUploadMachine, hasReadyBriefingExtractionContext(), HydrationResult, buildEmptyProgressState(), buildResetConfigState(), buildSetProjectState(), buildSyncProgressState(), activeActors (+21 more)
 
 ### Community 148 - "DETTAGLIO IMPLEMENTAZIONE CONTROLLO LUNGHEZZA"
 Cohesion: 0.29
 Nodes (7): **P6.1.1 - Add promote button to SessionSummary detail page**, **P6.1 - Artifact→Asset Promotion UI** ⏱️ 1.5 days | **Priority: HIGH**, **P6.2.1 - Add manual asset creation form**, **P6.2 - Manual Asset Creation** ⏱️ 1 day | **Priority: HIGH**, **P6.3 - Phase 6 Integration Test** ⏱️ 0.5 day | **Priority: HIGH**, **P6 Acceptance Criteria**, 📦 **PHASE 6: Artifact Promotion & Manual Asset Creation** ✅ COMPLETED 2026-07-17
 
 ### Community 149 - "MockServerResponse"
-Cohesion: 0.12
-Nodes (16): Belief Context, BRIEF EXTRACTION CONTEXT, Business Context, Contesto, Funnel Goal Context, Metadati input, Missing / Unclear, Obiettivo (+8 more)
+Cohesion: 0.25
+Nodes (14): buildExtractionStructuredPayload(), BuildExtractionStructuredPayloadContext, countWords(), isRecord(), META_ADS_EXTRACTION_SECTION_BY_HEADING, MISSING_EXTRACTION_VALUE_MARKERS, normalizeExtractionFieldKeysForTool(), normalizeExtractionPayload() (+6 more)
 
 ### Community 150 - "1. Requirements & Constraints"
 Cohesion: 0.33
@@ -1210,20 +1166,20 @@ Cohesion: 0.33
 Nodes (6): ✅ **DDD-Compliant Success Gates**, **Gate 0: DDD Governance** ✅ (BLOCKING — Passed), **Gate 1A: Artifact Resolution Performance** ✅ (Passed), **Gate 1B: Infrastructure Foundation** ✅ (Passed — Cancelled), **Gate 1C: Frontend Domain Boundary Compliance** ✅ (Passed), **Gate Overall: DDD Sprint Success** ✅ (Passed)
 
 ### Community 157 - "Test Categories"
-Cohesion: 0.12
-Nodes (16): Comportamenti e Abitudini, Dati Demografici, Input, Messaggistica Efficace, Nome Persona, Nota sull'Input, Obiettivi e Motivazioni, Obiezioni e Barriere (+8 more)
+Cohesion: 0.21
+Nodes (13): isHttpClientError(), createAdminUser(), deleteAdminUser(), getAdminUserById(), readAdminUser(), readAdminUsers(), mockFetch, updateAdminUser() (+5 more)
 
 ### Community 158 - "9. Completion Summary"
-Cohesion: 0.14
-Nodes (8): activeActors, buildDefaultStepStatuses(), buildDefaultViewModel(), buildToolPageViewModel(), BuildToolPageViewModelInput, canStartFromPolicy(), ReactiveViewModelInput, TOOL_PAGE_MESSAGES
+Cohesion: 0.33
+Nodes (6): Phase 4 — Integrations, Task 4.1: `crawling-queue.ts` (lines 48, 52), Task 4.2: `github-issues.ts` (lines 85, 163, 177, 186), Task 4.3: `serpapi-service-resolver.ts` (lines 28, 33, 47), Task 4.4: `github-config.ts` (lines 33, 53), Verify Phase 4
 
 ### Community 159 - "Phase 2: Generation Integration (2-3 days)"
 Cohesion: 0.33
 Nodes (6): 1. Track A — Contracts & Canonical Identity, A-001: `packages/contracts/src/tool-workflows.ts`, A-002: `packages/contracts/src/extraction-fields.ts`, A-003: `packages/contracts/src/asset.ts`, Acceptance, Auto-Derived (No Manual Changes Needed)
 
 ### Community 160 - "Introduction"
-Cohesion: 0.17
-Nodes (10): createUserReportGithubLink(), getDb(), _kyselyDbCache, publishUserReportIssueTransaction(), PoolConnectStub, QueryCall, TransactionClientStub, rowToUserReportGithubLink() (+2 more)
+Cohesion: 0.22
+Nodes (9): PHASE 1: Error-Actors Wiring, Step 1.1: Export ErrorActorOutput + ErrorActorInput types, Step 1.2: Add applyRouteErrorOutput action, Step 1.3: Register 3 route-specific error actors, Step 1.4: Restructure resolvingFallbackPolicy into compound state, Step 1.5: Remove invokeFallbackPolicy + generationFallbackActor, Step 1.6: Fix GenerationSystemProvidedActor union + archive orphaned file, Step 1.7: Route-specific error recovery tests (5 new → 345 total) (+1 more)
 
 ### Community 161 - "feedback-center-contract.ts"
 Cohesion: 0.18
@@ -1232,10 +1188,6 @@ Nodes (10): CreateProductChangelogCommand, CreateUserReportCommand, GitHubIssueL
 ### Community 162 - "index-overview.md"
 Cohesion: 0.07
 Nodes (28): 0. Phase 0 - Graphify Query Strategy, 1. Categorization Framework, 2. Investigation Phases, 3. Execution Commands, 4. Expected Outputs, 5. Success Criteria, 5b. Investigation Results (2026-07-07), 6. Risk Mitigation (+20 more)
-
-### Community 163 - "User Acceptance Testing - Meta Ads Cluster System"
-Cohesion: 0.20
-Nodes (11): DialogState, PromoteAssetDialog(), PromoteAssetDialogProps, promoteArtifactToAsset(), mockListArtifacts, useProjectArtifacts(), RecentArtifactsPanel(), RecentArtifactsPanelProps (+3 more)
 
 ### Community 164 - "Phase 3: Frontend Integration (1-2 days)"
 Cohesion: 0.40
@@ -1250,12 +1202,8 @@ Cohesion: 0.40
 Nodes (5): **6A. Error-Actors Wiring** ✅, **6B. Legacy Cleanup** ✅, ✅ SPRINT 6: Error-Actors Wiring & Legacy Cleanup (Status: ✅ Completed), Sprint 6 Gates, Sprint 6 Tasks
 
 ### Community 169 - "tools-handlers.ts"
-Cohesion: 0.07
-Nodes (60): resolveApiServiceForAcquisition(), AuthRepositoryBundle, UserQueryRepositoryBundle, PasswordHashRuntime, createAdminApiServiceHandlers(), createAdminHandlers(), CreateAdminHandlersDependencies, createAdminLlmModelHandlers() (+52 more)
-
-### Community 170 - "idempotency-coordinator.machine.ts"
-Cohesion: 0.16
-Nodes (10): idempotencyCoordinatorMachine, IdempotencyMachineContext, IdempotencyMachineEvent, IdempotencyMachineInput, IdempotencyResult, ReplayPayloadParams, IdempotencyClaimedEvent, IdempotencyConflictEvent (+2 more)
+Cohesion: 0.08
+Nodes (51): UserQueryRepositoryBundle, createProjectRequestSchema, createProjectsHandlers(), CreateProjectsHandlersDependencies, parseArtifactReadProjection(), parseBooleanQueryFlag(), updateProjectRequestSchema, WriteError (+43 more)
 
 ### Community 171 - "MockServerResponse"
 Cohesion: 0.40
@@ -1278,12 +1226,12 @@ Cohesion: 0.40
 Nodes (5): **Buffer Phase: Risk Mitigation - Days 11-12**, 🔄 **DDD-Compliant Sprint Sequencing**, **Phase 0: DDD Governance (MANDATORY) - Days 1-2** ✅, **Phase 1: Foundation (Parallel) - Days 3-5** ✅, **Phase 2: Domain Boundary Compliance - Days 6-10** ✅
 
 ### Community 176 - "Decision Evidence Appendix (Agent-Optimized)"
-Cohesion: 0.08
-Nodes (25): Approved Naming Decisions, Asset Domain — Project Workspace Evolution (DDD-188 through DDD-207), Base Asset Model (DDD-188 through DDD-195), Blog Article Generator Reclassification — Non-Asset-Capable (DDD-222 through DDD-225), DDD-096, DDD-097, DDD-098, DDD-099 (+17 more)
+Cohesion: 0.10
+Nodes (21): Approved Naming Decisions, Asset Domain — Project Workspace Evolution (DDD-188 through DDD-207), Base Asset Model (DDD-188 through DDD-195), DDD-096, DDD-097, DDD-098, DDD-099, DDD-129 (+13 more)
 
 ### Community 177 - "Wave 4 Execution Notes"
-Cohesion: 0.26
-Nodes (11): ExtractionContextValidityOptions, hasActionableExtractionPayload(), hasNonEmptyString(), hasRequiredExtractionFields(), isExtractionContextValidForTool(), shouldLogExtractionContextWarnings(), normalizeExtractionFieldKeysForTool(), assertExtractionResultIsValid() (+3 more)
+Cohesion: 0.40
+Nodes (5): **Gate 1A: Performance Foundation** ✅, **Gate 1B: Infrastructure Foundation** ✅, **Gate 1C: DDD Compliance Foundation** ✅ (CRITICAL), **Gate Overall: Sprint Success** ✅, ✅ **Revised Sprint 1 Gates - Operational Criteria**
 
 ### Community 178 - "Wave 5 Execution Notes"
 Cohesion: 0.40
@@ -1304,10 +1252,6 @@ Nodes (4): **Immediate** (This Week), **Medium Term** (Next Month), Next Actions
 ### Community 182 - "generation-fallback.actor.ts"
 Cohesion: 0.50
 Nodes (4): 1. Requirements & Constraints, Core Requirements, DDD Compliance, Technical Constraints
-
-### Community 183 - "StreamLogger"
-Cohesion: 0.14
-Nodes (13): Acceptance Criteria, Context, Context7 Verification Notes, Current Architecture: FE-Driven Step-by-Step, DDD Governance Verification Notes, Decision, Impact Assessment, Infrastruttura Gia' Disponibile (+5 more)
 
 ### Community 184 - "PROMPT VSL GENERATOR"
 Cohesion: 0.50
@@ -1334,12 +1278,12 @@ Cohesion: 0.33
 Nodes (6): Phase 0 — Infrastructure, Task 0.1: Create `log-components.ts`, Task 0.2: Create Pino serializers (replaces geometric-logger sanitization), Task 0.3: Wire serializers into `logger.ts`, Task 0.4: Update `generation-route-pipeline.ts` defaultLogger, Verify Phase 0
 
 ### Community 191 - "Readiness Checklist"
-Cohesion: 0.12
-Nodes (16): Current Active Plans, Current Sprint 2 Plan Features, Feature & Tool Plans, **For Sprint 2 Execution**, **Future Sprint Planning**, Implementation Requirements, Maintenance Plans, Next Steps (+8 more)
+Cohesion: 0.13
+Nodes (15): Current Active Plans, Current Sprint 2 Plan Features, Feature & Tool Plans, **For Sprint 2 Execution**, **Future Sprint Planning**, Implementation Requirements, Next Steps, Plan Evolution History (+7 more)
 
 ### Community 192 - "10. Configuration Examples"
-Cohesion: 0.15
-Nodes (13): CRIT-01 — Idempotency key collide tra step nello stesso `ToolWorkflowJob` — **RISOLTO**, CRIT-02 — Nessuna cancellazione server-side — **RISOLTO**, CRIT-03 — Il processore pseudocodice ignora step non-generativi (crawling/scoring) — **RISOLTO**, Critical, Low, LOW-01 — Retention/PII dei payload `ToolWorkflowJob` in Redis, LOW-02 — `feedbackEnabled` e' dead code, potenzialmente strutturalmente piu' difficile da riattivare col nuovo modello, MED-01 — Pattern `crawling-queue.ts` citato come "riutilizzabile" ma con difetti noti non segnalati (+5 more)
+Cohesion: 0.50
+Nodes (4): Governance Notes, Source Evidence, Tool Governance Matrix, Tool Matrix
 
 ### Community 193 - "11. Debug Status Summary"
 Cohesion: 0.50
@@ -1370,8 +1314,8 @@ Cohesion: 0.50
 Nodes (4): **Phase 1 Complete → Phase 2 Start**, **Phase 2 Complete → Sprint 2 Complete**, Sequential Validation Strategy, **Sprint 2 Gate Validation**
 
 ### Community 200 - "ADR: CSRF Fail-Closed Startup Invariant"
-Cohesion: 0.24
-Nodes (10): debugLog(), mapStatusToErrorCode(), parseIssueErrorMessage(), publishGitHubIssue(), PublishGitHubIssueError, PublishGitHubIssueErrorCode, PublishGitHubIssueInput, PublishGitHubIssueResult (+2 more)
+Cohesion: 0.50
+Nodes (4): 6. Track C — Layout Wiring, C-001: `WorkspaceDashboard.tsx` — New 5-Section Layout, C-002: `ContextualToolsPanel.tsx` — Exclude Foundation Tools, C-003: Old Components — Keep on Disk
 
 ### Community 201 - "Geometric Admin Debug & Monitoring Proposal"
 Cohesion: 0.67
@@ -1386,176 +1330,40 @@ Cohesion: 0.67
 Nodes (3): 4.1 Hook Composition, 4.2 Sub-Hooks, 4. Composite Hook: useToolForm
 
 ### Community 205 - "ToolGenerationFlowVertical.status-naming.guard.test.ts"
-Cohesion: 0.17
-Nodes (12): Backend No-Regression Gates, BE-B01 — `generation-system.runtime.test.ts` invocazioni multi-sessione, BE-GATE-D01 — `tool-workflow-job-processor.test.ts` — idempotency key per-step (CRIT-01), BE-GATE-D02 — `tool-workflow-job-processor.test.ts` — routing per WorkflowStepType (CRIT-03), BE-GATE-D03 — `tools-job-handlers.test.ts` — cancellazione (CRIT-02), BE-GATE-D04 — `tool-workflow-job-queue.test.ts` — single-flight guard (HIGH-01), Category A: Preserved Invariants (sintesi), Category B: Rewrite Plan (+4 more)
+Cohesion: 0.29
+Nodes (4): FLOW_COMPONENT_PATH, FLOW_STYLE_PATH, FLOW_TEST_PATH, FRONTEND_SRC_ROOT
 
 ### Community 206 - "Phase 2: Generation Integration (2-3 days)"
 Cohesion: 0.50
 Nodes (4): 2.1 Artifact Metadata Enhancement (1.5 days), 2.2 Generation Request Processing (1 day), 2.3 Step Key Extraction (0.5 days), Phase 2: Generation Integration (2-3 days)
 
-### Community 207 - "3. Track C — Frontend Tool Workspace"
-Cohesion: 0.17
-Nodes (12): 3. Track C — Frontend Tool Workspace, Acceptance, C-001: `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts`, C-002: `apps/frontend/src/features/tools/runtime/tool-step-display-config.ts`, C-003: `apps/frontend/src/features/generation/ui/SessionArtifactTabs.tsx`, C-004: `apps/frontend/src/features/tools/personas-generator/pages/PersonasGeneratorToolPage.tsx` (NEW), C-005: `apps/frontend/src/app/routing/app-router.tsx`, C-006: `apps/frontend/src/features/workspace/ui/dashboard/FoundationToolsPanel.tsx` (+4 more)
-
-### Community 208 - "MainNavigation.tsx"
-Cohesion: 0.25
-Nodes (8): MainNavigation(), MainNavigationProps, NavIcon, navIcons, getMainNavigationItems(), NAVIGATION_ITEMS, NavigationIconKey, NavigationItem
-
-### Community 209 - "Detailed Design"
-Cohesion: 0.18
-Nodes (11): 10. Cancellazione ToolWorkflowJob (CRIT-02), 1. Nuovo Endpoint: Submit ToolWorkflowJob, 2. ToolWorkflowJob Status / Stream, 3. Worker: `apps/backend/src/worker.ts`, 4. Processore: `tool-workflow-job-processor.ts`, 5. Modifiche a `generation-system`, 6. ToolWorkflowJob Status Storage, 7. SSE ToolWorkflowJob Stream (+3 more)
-
-### Community 210 - "Category A: Preserved Invariants"
-Cohesion: 0.20
-Nodes (10): Category A: Preserved Invariants, FE-GATE-A01 — Readiness snapshot is deterministic and reason-code-driven, FE-GATE-A02 — Extraction context validity per tool is unchanged, FE-GATE-A03 — Hydration protocol is unchanged, FE-GATE-A04 — Briefing upload lifecycle is unchanged, FE-GATE-A05 — ToolPageViewModel shape is identical, FE-GATE-A06 — UI components render identically from view-model props, FE-GATE-A07 — Form architecture and tool registry are unchanged (+2 more)
-
-### Community 211 - "10. Acceptance Checklist"
-Cohesion: 0.20
-Nodes (10): 10. Acceptance Checklist, Gate 1: Archetype Declared, Gate 2: Canonical UI Terms, Gate 3: Table/List Rules (Section 4), Gate 4: No New Local Visual Pattern, Gate 5: Accessibility Baseline, Gate 6: Feedback Channel Consistency, Gate 7: Feedback Event Registry (+2 more)
-
-### Community 212 - "Personas Generator Implementation Plan"
-Cohesion: 0.20
-Nodes (9): 10. Extraction Field Definitions (Domain Reference), 12. Foundation Tool Registration Summary, 5. Track E — XState Runtime, 6. Risks and Controls, 7. Validation Gates, 8. Implementation Order Summary, 9. File Summary, Acceptance (+1 more)
-
-### Community 214 - "ToolPageTemplate.meta-ads-flow.e2e.test.tsx"
-Cohesion: 0.22
-Nodes (8): formState, handleAngleDetectorFileSelected, handleBriefingFileSelected, handleBriefingReset, handleCancelGeneration, handleExtractionStart, handlePrimaryAction, setFormState
-
-### Community 216 - "Workspace Hub Restyling Proposal"
-Cohesion: 0.22
-Nodes (8): 12. Open Questions, 1.1 Canonical Archetype: Data Table View (card-variant), 1.2 Naming Convention, 1. Archetype Classification, 9.1 Copy Key Map, 9.2 New Copy Keys (if needed), 9. Copy & i18n Strategy, Workspace Hub Restyling Proposal
-
-### Community 217 - "11. Architectural Patterns Reference"
-Cohesion: 0.22
-Nodes (9): 11. Architectural Patterns Reference, Pattern 1: Template Variable Replacement (XState Action), Pattern 2: Direct-Input Extraction Info, Pattern 3: Step Display Configuration, Pattern 4: Prompt File Creation, Pattern 5: LLM Model Overrides (Optional), Pattern 6: Artifact Role Mapping, Pattern 7: Form Field Registration for Template Variables (+1 more)
-
 ### Community 218 - "tool-api-binding-status-adapter.ts"
 Cohesion: 0.05
 Nodes (42): 1) Service frontend, 2) Networking frontend, 3) Runtime frontend, API namespace determinism gate (DDD-052), Backend, Baseline Pre-Migrazione, Checklist Deploy/Re-Deploy, Come leggere i log su Railway (+34 more)
-
-### Community 219 - "App.tsx"
-Cohesion: 0.36
-Nodes (4): App(), createAppRouter(), rootElement, theme
-
-### Community 220 - "Frontend No-Regression Gates"
-Cohesion: 0.25
-Nodes (8): C01 — `useToolPageRunController.ts` auto-chain bridge (no dedicated test file; logic inlined into other tests), C02 — `tool-flow.machine.test.ts`, C03 — `orchestrateToolStep` in `tools-client.test.ts`, C04 — Auto-chain tests in `ToolPageTemplate.test.tsx`, Category C: Removal Justification, Frontend No-Regression Gates, Gate Categories Summary, No-Regression Gate
-
-### Community 221 - "PROMPT PERSONAS GENERATOR - EXTRACTION"
-Cohesion: 0.29
-Nodes (6): Extraction Fields, Output format, PROMPT PERSONAS GENERATOR - EXTRACTION, Root prompt, Step Key, Task
-
-### Community 222 - "monitoring.ts"
-Cohesion: 0.48
-Nodes (6): initializeMonitoring(), MonitoringProvider, normalizeProvider(), postTelemetry(), registerWindowTelemetry(), resolveTelemetryEndpoint()
-
-### Community 223 - "Category D: New Test Specifications"
-Cohesion: 0.29
-Nodes (7): Category D: New Test Specifications, D01 — `FE-GATE-D01` — `useJobStream` hook, D02 — `FE-GATE-D02` — `useToolPageSubmitController` hook, D03 — `FE-GATE-D03` — `toolPageMachine` new transitions, D04 — `FE-GATE-D04` — `submitJob` client function, D05 — `FE-GATE-D05` — SSE-to-machine event bridge, D06 — `FE-GATE-D06` — `ToolPageViewModel` accepts SSE-populated progress
-
-### Community 224 - "2. Track B — Backend Runtime"
-Cohesion: 0.29
-Nodes (7): 2. Track B — Backend Runtime, Acceptance, B-001: `apps/backend/src/lib/runtime/workflow-normalizers.ts`, B-002: `apps/backend/src/lib/runtime/tool-prompts/index.ts`, B-003: Extraction Prompt (NEW), B-004: Generation Prompt (NEW), Prompt Template Variable Notes
 
 ### Community 225 - "logger.ts"
 Cohesion: 0.40
 Nodes (3): LogContext, logger, LogLevel
 
 ### Community 226 - "ToolGenerationFlow.guard.test.ts"
-Cohesion: 0.29
-Nodes (7): 4. Track D — Test Cases, Acceptance, D-001: Parametrized Test Entries (New), D-002: Workflow Normalizer Test, D-003: Step Display Config Test, D-004: Form Architecture Test, D-005: Foundation Tools Panel Test
+Cohesion: 0.50
+Nodes (3): FRONTEND_SRC_ROOT, SKIP_DIRS, walkFiles()
 
 ### Community 227 - "vite.config.ts"
 Cohesion: 0.60
 Nodes (3): configureServer(), isAdminUsersPath(), isDocumentNavigation()
 
-### Community 228 - "crawling-queue.ts"
-Cohesion: 0.60
-Nodes (5): addCrawlingJob(), getCrawlingQueue(), getRedisConnection(), startCrawlingWorker(), waitForJob()
-
-### Community 230 - "Category B: Rewrite Plan"
-Cohesion: 0.33
-Nodes (6): B01 — `tool-page.machine.test.ts` transition tests, B02 — `ToolPageTemplate.test.tsx` dispatch tests, B03 — `useToolPage.test.ts` dispatch tests, B04 — `tool-page-selectors.test.ts` generation request builder, B05 — `tools-client.test.ts` remove orchestrate, add submitJob, Category B: Rewrite Plan
-
-### Community 231 - "High"
-Cohesion: 0.33
-Nodes (6): High, HIGH-01 — Nessun single-flight guard su (userId, projectId, toolKey) — **RISOLTO (con incertezza dichiarata)**, HIGH-02 — Nessun endpoint per riscoprire un `ToolWorkflowJob` in corso dopo reload pagina, HIGH-03 — Nessuna aggregazione di costo/token a livello `ToolWorkflowJob`, HIGH-04 — Conflitto non risolto tra "regenerate step N" e "retry-skip-completati" — **RISOLTO**, HIGH-05 — Nessun BE No-Regression Gate equivalente al FE — **RISOLTO**
-
-### Community 233 - "2. Current State Analysis (Problems)"
-Cohesion: 0.33
-Nodes (6): 2.1 Layout Drift, 2.2 Component Inconsistency, 2.3 N+1 Query Problem, 2.4 Information Poverty, 2.5 CTA Governance Violations, 2. Current State Analysis (Problems)
-
-### Community 234 - "5. Data Sources & Query Strategy"
-Cohesion: 0.33
-Nodes (6): 5.1 Data Dependency Map, 5.2 Addressing the N+1 Concern, 5.3 Per-Component Data Requirements, 5.4 Mutation Flow, 5.5 Archive/Reactivate Flow, 5. Data Sources & Query Strategy
-
-### Community 235 - "Phase 1 — Critical Observability (session boundary + HTTP lifecycle)"
-Cohesion: 0.33
-Nodes (6): Phase 1 — Critical Observability (session boundary + HTTP lifecycle), Task 1.1: Migrate `backend-session.ts`, Task 1.2: Migrate `node-server.ts`, Task 1.3: Migrate `generation-handler.ts`, Task 1.4: Migrate `generation-stream-observability.ts`, Verify Phase 1
-
-### Community 236 - "0. Tool Classification"
-Cohesion: 0.33
-Nodes (6): 0. Tool Classification, Asset Contract, Foundation Tool Auto-Derivation, User Flow, Why `personas` (Plural) as ToolKey, Why Primitive (Not Workspace-Knowledge)
-
-### Community 237 - "1. Track A — Contracts & Canonical Identity"
-Cohesion: 0.33
-Nodes (6): 1. Track A — Contracts & Canonical Identity, A-001: `packages/contracts/src/tool-workflows.ts`, A-002: `packages/contracts/src/extraction-fields.ts`, A-003: `packages/contracts/src/asset.ts`, Acceptance, Auto-Derived (No Manual Changes Needed)
-
 ### Community 238 - "Main PR Gate CI Workflow"
 Cohesion: 0.67
 Nodes (3): Frontend/UI Bounded Context, Main PR Gate CI Workflow, Sync Dev After Release CI Workflow
-
-### Community 239 - "code-reviewer.md"
-Cohesion: 0.40
-Nodes (4): Core Review Responsibilities, Issue Confidence Scoring, Output Format, Review Scope
-
-### Community 247 - "feedback-channel-map.ts"
-Cohesion: 0.40
-Nodes (3): FeedbackChannel, feedbackChannelByEventType, FeedbackEventType
-
-### Community 248 - "7. State Handling (Loading / Empty / Error / Ready)"
-Cohesion: 0.40
-Nodes (5): 7.1 Channel Mapping (per Section 7 of UI Spec), 7.2 Page-Level States, 7.3 Card-Level States, 7.4 Archived Workspace Treatment, 7. State Handling (Loading / Empty / Error / Ready)
-
-### Community 251 - "Implementation Strategy"
-Cohesion: 0.50
-Nodes (4): Fase 1 — Minimum Viable (2 settimane), Fase 2 — Ottimizzazione (1 settimana, opzionale), Fase 3 — Multi-step nativo in XState (1 settimana, opzionale), Implementation Strategy
-
-### Community 334 - "11. Implementation Plan"
-Cohesion: 0.50
-Nodes (4): 11. Implementation Plan, Phase 1: Component Creation (non-breaking), Phase 2: Page Refactor, Phase 3: Cleanup
-
-### Community 335 - "3. Proposed Layout Structure"
-Cohesion: 0.50
-Nodes (4): 3.1 Page-Level Layout, 3.2 Layout Rationale, 3.3 Responsive Behavior, 3. Proposed Layout Structure
-
-### Community 336 - "6. CSS & Token Alignment"
-Cohesion: 0.50
-Nodes (4): 6.1 New CSS Classes (added to `dashboard-panels.css`), 6.2 Token Alignment, 6.3 Removal of Old CSS Classes, 6. CSS & Token Alignment
-
-### Community 367 - "4. Component Tree (Concrete)"
-Cohesion: 0.67
-Nodes (3): 4.1 Page Component: `WorkspacesListPage`, 4.2 Component File Map, 4. Component Tree (Concrete)
-
-### Community 375 - "8. CTA Governance Alignment"
-Cohesion: 0.67
-Nodes (3): 8.1 CTA Inventory, 8.2 Anti-Pattern Check, 8. CTA Governance Alignment
-
-### Community 376 - "⚠️ **Enhanced Risk Management**"
-Cohesion: 0.67
-Nodes (3): ⚠️ **Enhanced Risk Management**, **Quality Gates Enforcement**, **Risk Mitigation by Task**
-
-### Community 377 - "11. DDD Governance Notes"
-Cohesion: 0.67
-Nodes (3): 11. DDD Governance Notes, Existing Terms Used (No New DDD Needed), Required Before PR
 
 ### Community 384 - "postgres-redis.usage-repository.test.ts"
 Cohesion: 0.07
 Nodes (27): 1. Requirements & Constraints, 2. Implementation Steps, 3. Alternatives, 4. Dependencies, 5. Files, 6. Testing, 7. Risks & Assumptions, 8. Related Specifications / Further Reading (+19 more)
 
 ### Community 387 - "⚠️ SUPERSEDED DOCUMENT"
-Cohesion: 0.07
-Nodes (28): Actors registration (current), Current State (verified via codebase analysis 2026-07-12), DDD Compliance Requirements, DDD Gate ✅ INHERITED, Error-actors file (defined, NOT wired), Events file (dead code after restructure), Execution: Single Continuous Session, Out-of-Scope (Explicitly Deferred to Sprint 7+) (+20 more)
+Cohesion: 0.11
+Nodes (19): Actors registration (current), Current State (verified via codebase analysis 2026-07-12), DDD Compliance Requirements, DDD Gate ✅ INHERITED, Error-actors file (defined, NOT wired), Events file (dead code after restructure), Execution: Single Continuous Session, Out-of-Scope (Explicitly Deferred to Sprint 7+) (+11 more)
 
 ### Community 402 - "Testing"
 Cohesion: 0.08
@@ -1614,8 +1422,8 @@ Cohesion: 0.09
 Nodes (21): Angolo 1 — [Nome Angolo], Angolo 2 — [Nome Angolo], CLUSTER 1 — [Nome Cluster dal context-generation], CLUSTER 2 — [Nome Cluster dal context-generation], Copy Length Specifications, Input, Libreria Copy Meta Ads ({{copy_length_format}} format), LONG FORM (1200+ caratteri) (+13 more)
 
 ### Community 446 - "Original Plan Content (Superseded)"
-Cohesion: 0.11
-Nodes (19): **Business Value Delivered**, **Critical Path Management**, 📊 **Enhanced Success Metrics**, **Gate 1A: Performance Foundation** ✅, **Gate 1B: Infrastructure Foundation** ✅, **Gate 1C: DDD Compliance Foundation** ✅ (CRITICAL), **Gate Overall: Sprint Success** ✅, 🚀 **Implementation Readiness Checklist** (+11 more)
+Cohesion: 0.12
+Nodes (17): **Business Value Delivered**, **Critical Path Management**, ⚠️ **Enhanced Risk Management**, 📊 **Enhanced Success Metrics**, 🚀 **Implementation Readiness Checklist**, **Key Improvements in Revised Plan**, Original Plan Content (Superseded), 📋 **Plan Validation Summary** (+9 more)
 
 ### Community 447 - "Introduction"
 Cohesion: 0.10
@@ -1630,8 +1438,8 @@ Cohesion: 0.10
 Nodes (21): dependencies, @emotion/react, @emotion/styled, @gen-app-2/contracts, @hookform/resolvers, lucide-react, @mui/material, react (+13 more)
 
 ### Community 450 - "normalizeToolWorkflowKey"
-Cohesion: 0.15
-Nodes (24): normalizeToolWorkflowInputJson(), buildRequestReceivedEvent(), COPY_LENGTH_FORMAT_ALLOWED, normalizeModelId(), toCanonicalRequestStep(), toCopyLengthFormat(), toDependencyArtifactIds(), toOptionalId() (+16 more)
+Cohesion: 0.20
+Nodes (14): PROMPT_FILE_BY_KEY, promptCache, readPromptFile(), ResolvedToolPrompt, resolvePromptFilePath(), resolveToolPrompt(), FINAL_STEP_BY_TOOL, isStepMappedToolKey() (+6 more)
 
 ### Community 451 - "GEO Analyst & Report Generator"
 Cohesion: 0.10
@@ -1692,6 +1500,10 @@ Nodes (17): dependencies, ioredis, pg, description, devDependencies, tsx, @types
 ### Community 473 - "AGENTS"
 Cohesion: 0.08
 Nodes (24): Accessibility, AGENTS, Architecture, Backend Test Runner Quirks, CI Workflows, Commands, DDD Governance, Dependency & Lockfile Safety (+16 more)
+
+### Community 474 - "BRIEF EXTRACTION CONTEXT"
+Cohesion: 0.12
+Nodes (16): Belief Context, BRIEF EXTRACTION CONTEXT, Business Context, Contesto, Funnel Goal Context, Metadati input, Missing / Unclear, Obiettivo (+8 more)
 
 ### Community 475 - "compilerOptions"
 Cohesion: 0.12
@@ -1774,7 +1586,7 @@ Cohesion: 0.14
 Nodes (13): dependencies, @gen-app-2/domain, description, devDependencies, typescript, exports, ./parity.guard, main (+5 more)
 
 ### Community 500 - "Enterprise-Grade Tool Output Personalization Implementation Plan"
-Cohesion: 0.10
+Cohesion: 0.14
 Nodes (13): 1. Phase 1: Foundations & Registry (P0), 2. Phase 2: Project Brand Persona (P0), 3. Phase 4: Variant N-Sequential Fan-Out (P1), 4. Phase 3: HITL Interactive Steps (P1), 5. Phase 5: Feedback & RAG-lite (P2), Conclusion & Governance Check, Enterprise-Grade Tool Output Personalization Implementation Plan, Introduction (+5 more)
 
 ### Community 501 - "Context Boundaries — Detail"
@@ -1929,10 +1741,6 @@ Nodes (8): Architettura Proposta, Configurazione Statica, `EffectiveModelResolut
 Cohesion: 0.25
 Nodes (8): 2. Implementation Steps, Implementation Phase 0, Implementation Phase 1, Implementation Phase 2, Implementation Phase 3, Implementation Phase 4, Implementation Phase 4B, Implementation Phase 5
 
-### Community 548 - "graph-structural-analysis-review.md"
-Cohesion: 0.31
-Nodes (4): Governance Notes, Source Evidence, Tool Governance Matrix, Tool Matrix
-
 ### Community 549 - "High Priority Risks"
 Cohesion: 0.25
 Nodes (8): 6. Risk Assessment, High Priority Risks, Medium Priority Risks, Risk: Configuration Errors, Risk: Frontend Display Issues, Risk: Metadata Schema Changes, Risk: Model Availability Changes, Risk: Performance Impact
@@ -1982,8 +1790,8 @@ Cohesion: 0.25
 Nodes (8): **Cross-Context Type Integration Clarity** 📋 (ONGOING), **SPRINT 1: Foundation Preparation** (1-2 settimane), **SPRINT 1A: Frontend Domain Logic Realignment** 🔥 (BLOCKING PRIORITY), **SPRINT 1B: Infrastructure Layer Organization** ⚠️ (ENABLING), **SPRINT 2: Evolutionary Infrastructure** (1-2 settimane), **SPRINT 2A: Route Capabilities Evolution Strategy** 📋 (ENABLING), **SPRINT 2B: Generation System Internal Enhancement** 📋 (COMPLEMENTARY), **UNIFIED IMPLEMENTATION ROADMAP**
 
 ### Community 563 - "Canonical Terms"
-Cohesion: 0.09
-Nodes (22): Aliases And Deprecated Terms, Asset Domain — Project Workspace, Auth Context, Base Asset Model, Blog Article Generator Context, Brief Generator Context, Canonical Terms, Competitor Analysis Context (+14 more)
+Cohesion: 0.10
+Nodes (21): Aliases And Deprecated Terms, Asset Domain — Project Workspace, Auth Context, Base Asset Model, Blog Article Generator Context, Brief Generator Context, Canonical Terms, Competitor Analysis Context (+13 more)
 
 ### Community 564 - "React + XState + DDD Guardrails (Frontend/UI)"
 Cohesion: 0.25
@@ -1996,6 +1804,10 @@ Nodes (7): Added Columns, Backfill Behavior, Compatibility, Indexes, Session Que
 ### Community 566 - "Sprint 2 Implementation Plan - Evolutionary Infrastructure (DDD-Balanced)"
 Cohesion: 0.25
 Nodes (8): **DDD Compliance Verified**:, DDD Requirements, PHASE 1: HTTP Route Capability Organization (Task 2A), PHASE 2: Generation System Context Builders (Task 2B), **Sprint 2 Complete When**:, Sprint 2 Implementation Plan - Evolutionary Infrastructure (DDD-Balanced), Sprint Objective, Validation & Success Criteria
+
+### Community 568 - "ToolPageTemplate.extraction-cta.single-file.test.tsx"
+Cohesion: 0.29
+Nodes (6): handleAngleDetectorFileSelected, handleBriefingFileSelected, handleBriefingReset, handleCancelGeneration, handleExtractionStart, handlePrimaryAction
 
 ### Community 570 - "Unified Success Metrics & Validation Gates"
 Cohesion: 0.25
@@ -2028,10 +1840,6 @@ Nodes (6): Current Status, DDD References, Package Commands, packages/domain, Ru
 ### Community 577 - "packages/infra-db"
 Cohesion: 0.29
 Nodes (6): DDD References, Layout, Notes, Package Commands, packages/infra-db, Scope
-
-### Community 578 - "MockServerResponse"
-Cohesion: 0.17
-Nodes (10): applyRequestContractGuard(), ModelAvailabilityCheck, OwnershipCheck, readArray(), readNonEmptyString(), readRecord(), readYoutubeDescriptionField(), validateYoutubeDescriptionRequest() (+2 more)
 
 ### Community 580 - "DDD Compliance"
 Cohesion: 0.33
@@ -2238,24 +2046,24 @@ Cohesion: 0.67
 Nodes (3): Configuration, Database Setup, Environment Variables
 
 ## Knowledge Gaps
-- **4186 isolated node(s):** `validate-docs-frontmatter.sh script`, `$schema`, `plugin`, `@opencode-ai/plugin`, `name` (+4181 more)
+- **3850 isolated node(s):** `validate-docs-frontmatter.sh script`, `$schema`, `plugin`, `@opencode-ai/plugin`, `name` (+3845 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **157 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **155 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ToolKey` connect `ToolKey` to `createToolPage.tsx`, `GenerationWorkspaceProvider.tsx`, `tool-flow.machine.ts`, `app-router.tsx`, `Tool Generation Flow Source Of Truth (Frontend)`, `feedback-center-contract.ts`, `Piano di Rollout Graduale - Sistema Cluster Meta Ads`, `index.ts`, `normalizeToolWorkflowKey`, `9. Completion Summary`, `generation-routing.ts`, `tool-workflow-registry.ts`, `OrchestrateArtifactCache`, `Wave 4 Execution Notes`, `tool-page-selectors.ts`, `Introduction`, `artifacts-client.ts`, `ArtifactDetailPage.tsx`, `normalizeToolWorkflowKey`, `ToolPageTemplate.extraction-cta.test.tsx`, `Rollback a Cross-Origin (TASK-022)`, `admin-api-service-binding-handlers.ts`, `8. Success Metrics`, `joinApiPath`, `ToolGenerationFlowVertical.tsx`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Why does `appCopy` connect `AdminApiServicesPage.tsx` to `admin-client.ts`, `GenerationWorkspaceProvider.tsx`, `tool-flow.machine.ts`, `Delivery Plan`, `app-router.tsx`, `feedback-center-contract.ts`, `normalizeToolWorkflowKey`, `AdminRoutesA11ySmoke.test.tsx`, `9. Completion Summary`, `crawling.adapter.ts`, `User Acceptance Testing - Meta Ads Cluster System`, `Variant B — Private-Network Same-Origin via `frontend/server.mjs``, `AdminUsersPage.tsx`, `ArtifactsListingSection.tsx`, `tool-page-selectors.ts`, `ArtifactDetailPage.tsx`, `cluster-system-export.ts`, `MainNavigation.tsx`, `Rollback a Cross-Origin (TASK-022)`, `admin-api-service-binding-handlers.ts`, `8. Success Metrics`, `ToolPageTemplate.tsx`, `feedback-center-client.ts`, `joinApiPath`, `ToolGenerationFlowVertical.tsx`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Why does `ArtifactType` connect `artifact.ts` to `index.ts`, `index.ts`, `4. Implementation Steps`, `Context Boundaries — Detail`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `ToolKey` connect `app-router.tsx` to `createToolPage.tsx`, `ToolKey`, `tool-page.machine.ts`, `tool-flow.machine.ts`, `Tool Generation Flow Source Of Truth (Frontend)`, `MockServerResponse`, `Piano di Rollout Graduale - Sistema Cluster Meta Ads`, `index.ts`, `normalizeToolWorkflowKey`, `Context Boundaries — Detail`, `tool-workflow-registry.ts`, `OrchestrateArtifactCache`, `tool-page-selectors.ts`, `Introduction`, `tool-form-architecture.ts`, `artifacts-client.ts`, `ArtifactDetailPage.tsx`, `ToolPageTemplate.extraction-cta.test.tsx`, `Timeout e Limiti Proxy (TASK-021)`, `admin-api-service-binding-handlers.ts`, `ToolGenerationFlowVertical.tsx`?**
+  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `appCopy` connect `AdminUsersPage.tsx` to `ArtifactDetailPage.tsx`, `crawling.adapter.ts`, `feedback-center-client.ts`, `admin-client.ts`, `Variant B — Private-Network Same-Origin via `frontend/server.mjs``, `tool-flow.machine.ts`, `Context Boundaries — Detail`, `tool-form-architecture.ts`, `app-router.tsx`, `tool-page-selectors.ts`, `feedback-center-contract.ts`, `normalizeToolWorkflowKey`, `primitives.tsx`, `2. Implementation Steps`, `ToolGenerationFlowVertical.tsx`, `AdminRoutesA11ySmoke.test.tsx`, `admin-api-service-binding-handlers.ts`, `AdminApiServicesPage.tsx`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `xstate` connect `dependencies` to `index.ts`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **What connects `validate-docs-frontmatter.sh script`, `$schema`, `plugin` to the rest of the system?**
-  _4214 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _3878 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `auth.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05390835579514825 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.055523199378761406 - nodes in this community are weakly interconnected._
 - **Should `node-server.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.12380952380952381 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09268707482993198 - nodes in this community are weakly interconnected._
 - **Should `index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05673758865248227 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.061569416498993966 - nodes in this community are weakly interconnected._

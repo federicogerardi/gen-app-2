@@ -156,7 +156,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     machineViewModel,
     isGenerating,
     effectiveCanonicalState,
-    currentProject,
     isStreamActive,
     completedStepsForFlow,
     currentRunningStep,
@@ -213,42 +212,11 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
     selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });
-  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = visibleInputFiles.map((fileEntry) => {
-    const fileName = fileEntry.key === 'briefing-file'
-      ? effectiveBriefingFileName ?? null
-      : fileEntry.key === 'angle-detector-file'
-        ? angleDetectorFileName ?? null
-        : null;
-    const isBriefingFile = fileEntry.key === 'briefing-file';
-    const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
-    const status: 'done' | 'todo' = fileName ? 'done' : 'todo';
-
-    return {
-      key: fileEntry.key,
-      label: isBriefingFile
-        ? copy.filePayloadLabel.briefing
-        : isAngleDetectorFile
-          ? copy.filePayloadLabel.angleDetector
-          : fileEntry.label,
-      requiredness: fileEntry.requiredness,
-      status,
-      fileName,
-    };
-  });
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-
-  const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
-    .filter((entry) => entry.sourceFamily === 'api-acquisition')
-    .map((entry) => ({
-      key: entry.key,
-      label: entry.label,
-      requiredness: entry.requiredness,
-      status: entry.satisfied ? 'done' : 'todo',
-    }));
 
   const stepItems = toolConfig.steps.map((stepKey) => {
     const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
@@ -1160,10 +1128,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
-              projectName={currentProject?.name ?? null}
               errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-              inputFilePayload={inputFilePayload}
-              apiAcquisitionPayload={apiAcquisitionPayload}
               generationProgress={generationProgress}
               primaryActionCta={unifiedPrimaryActionCta}
             />

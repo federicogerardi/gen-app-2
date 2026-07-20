@@ -8,7 +8,6 @@ import {
 
 const baseProps: ToolGenerationFlowVerticalProps = {
   canonicalState: 'draft-empty',
-  projectName: null,
   errorMessage: null,
 };
 
@@ -24,16 +23,6 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(bar).toHaveClass('is-idle');
     expect(bar).toHaveAttribute('role', 'progressbar');
     expect(bar).toHaveAttribute('aria-label', 'Context generation waiting');
-  });
-
-  it('renders the project shell in draft-empty state', () => {
-    render(<ToolGenerationFlowVertical {...baseProps} />);
-    expect(screen.getByText('No workspace selected')).toBeInTheDocument();
-    expect(screen.getByText('Phase: Context generation')).toBeInTheDocument();
-    expect(screen.getByText('Current step: Preparing context')).toBeInTheDocument();
-    expect(screen.getByText('Context generation waiting')).toBeInTheDocument();
-    expect(screen.queryByText('Select a project to view context files')).toBeNull();
-    expect(screen.queryByText('Elaborazione briefing…')).toBeNull();
   });
 
   it('renders idle bar for draft-ready state', () => {
@@ -155,30 +144,13 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(screen.queryByRole('link', { name: 'Open session' })).toBeNull();
   });
 
-  it('renders payload, progress metrics, and unified primary CTA for completed runs', () => {
+  it('renders progress metrics and unified primary CTA for completed runs', () => {
     const onPrimaryAction = vi.fn();
-    const { container } = render(
+    render(
       <MemoryRouter>
         <ToolGenerationFlowVertical
           {...baseProps}
           canonicalState="completed"
-          projectName="Acme S.r.l."
-          inputFilePayload={[
-            {
-              key: 'briefing-file',
-              label: 'BriefingFile',
-              requiredness: 'always-required',
-              status: 'done',
-              fileName: 'brief.md',
-            },
-            {
-              key: 'angle-detector-file',
-              label: 'AngleDetectorFile',
-              requiredness: 'optional-by-tool-setting',
-              status: 'done',
-              fileName: 'angle-detector.md',
-            },
-          ]}
           generationProgress={{
             completedCount: 3,
             totalCount: 3,
@@ -194,14 +166,6 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Context information')).toBeInTheDocument();
-    expect(screen.getByText('Workspace')).toBeInTheDocument();
-    const projectIndicator = container.querySelector('.ui-fv-context-project');
-    expect(projectIndicator?.classList.contains('is-done')).toBe(true);
-    expect(screen.getByText('BriefingFile')).toBeInTheDocument();
-    expect(screen.getByText('AngleDetectorFile')).toBeInTheDocument();
-    expect(screen.getByText('required')).toBeInTheDocument();
-    expect(screen.getByText('optional')).toBeInTheDocument();
     expect(screen.getByText('3 / 3 steps completed')).toBeInTheDocument();
     expect(screen.getByText('Current step: Landing Page')).toBeInTheDocument();
     const actionButton = screen.getByRole('button', { name: 'Open session' });
@@ -209,26 +173,5 @@ describe('ToolGenerationFlowVertical — DDD-084 single-bar model', () => {
     expect(actionButton).toHaveClass('ui-button');
   });
 
-  it('renders api acquisition payload when configured by tool policy', () => {
-    render(
-      <ToolGenerationFlowVertical
-        {...baseProps}
-        canonicalState="draft-ready"
-        projectName="Acme S.r.l."
-        apiAcquisitionPayload={[
-          {
-            key: 'market-intel-service',
-            label: 'MarketIntelService',
-            requiredness: 'required-by-tool-setting',
-            status: 'done',
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText('API acquisition')).toBeInTheDocument();
-    expect(screen.getByText('MarketIntelService')).toBeInTheDocument();
-    expect(screen.getByText('Connected')).toBeInTheDocument();
-  });
 });
 

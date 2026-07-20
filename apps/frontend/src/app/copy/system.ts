@@ -242,7 +242,6 @@ export const appCopy = {
       },
       flow: {
         ariaRegionLabel: 'Generation flow',
-        ariaContextFilesLabel: 'Context files',
         progressAria: {
           extractionInProgress: 'Context generation in progress',
           generationInProgress: 'Generation in progress',
@@ -266,24 +265,8 @@ export const appCopy = {
         },
         currentStepPrefix: 'Current step: ',
         stepsCompletedSuffix: 'steps completed',
-        contextLoadedTitle: 'Context information',
-        projectLabel: 'Workspace',
-        noProjectSelected: 'No workspace selected',
-        notUploaded: 'Not uploaded',
-        noFilesUploaded: 'No files uploaded',
-        apiAcquisitionTitle: 'API acquisition',
-        apiAcquisitionConnected: 'Connected',
-        apiAcquisitionNotConnected: 'Not connected',
         defaultExtractionStepLabel: 'Preparing context',
         loadingActionLabel: 'Processing...',
-        requirednessLabel: {
-          required: 'required',
-          optional: 'optional',
-        },
-      },
-      filePayloadLabel: {
-        briefing: 'BriefingFile',
-        angleDetector: 'AngleDetectorFile',
       },
       openSessionLabel: 'Open session',
     },

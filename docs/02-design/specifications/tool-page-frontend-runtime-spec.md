@@ -573,7 +573,7 @@ Canonical UX convergence for Tool Workspace Page feedback is documented in:
 - Process-feedback channel ownership remains centralized and deterministic; `DispatchError` remains Setup Panel ownership (DDD-061).
 - `DispatchError` remains the only inline process feedback in Setup Panel, adjacent to primary CTA (DDD-061).
 - Input-file RHF display errors below upload controls are removed; validation remains active for submit blocking.
-- Requirement checklist (old `ReqItem` sub-component) is replaced by persistent `InputFilePayloadStatus[]` section visible in all phases.
+- Requirement checklist (old `ReqItem` sub-component) was replaced by persistent `InputFilePayloadStatus[]` section (now removed — context card eliminated from Workflow Panel).
 - Step-list (old `StepRow` sub-component + step progress bar) is replaced by indeterminate progress bar for `running`/`paused-with-checkpoint` states.
 
 Execution-ready canonical note:
@@ -585,10 +585,9 @@ Execution-ready canonical note:
 | Prop | Type | Description |
 |---|---|---|
 | `canonicalState` | `CanonicalToolUiState` | Visual phase driver |
-| `projectName` | `string \| null` | Context label |
-| `inputFilePayload` | `InputFilePayloadStatus[]` | File status rows — persistent across all phases (DDD-082) |
-| `apiAcquisitionPayload` | `ApiAcquisitionPayloadStatus[]` | Optional ApiService acquisition rows for binding-enabled tools |
 | `errorMessage` | `string \| null` | Machine-level error banner |
+
+**Removed props (context card — DDD-084 simplified):** `projectName`, `inputFilePayload`, `apiAcquisitionPayload`.
 
 **Removed props (old contract):** `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`.
 

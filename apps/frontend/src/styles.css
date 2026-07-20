@@ -63,8 +63,6 @@
   --badge-success-bg-start: rgba(21, 128, 61, 0.2);
   --badge-success-bg-end: rgba(21, 128, 61, 0.08);
   --badge-success-border: rgba(21, 128, 61, 0.3);
-  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.34);
-  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.1);
 
   --badge-error-fg: #7f1d1d;
   --badge-error-bg: rgba(180, 35, 24, 0.12);
@@ -185,8 +183,6 @@
   --badge-success-bg-start: rgba(21, 128, 61, 0.34);
   --badge-success-bg-end: rgba(21, 128, 61, 0.16);
   --badge-success-border: rgba(21, 128, 61, 0.38);
-  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.44);
-  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.28);
 
   --badge-error-fg: #fecaca;
   --badge-error-bg: rgba(180, 35, 24, 0.22);
@@ -232,11 +228,6 @@
   --shadow-soft: 0 18px 42px rgba(2, 6, 23, 0.36);
   --shadow-strong: 0 24px 60px rgba(2, 6, 23, 0.5);
   --mobile-nav-shadow: 4px 0 18px rgba(2, 6, 23, 0.45);
-}
-
-[data-theme='dark'] {
-  --workflow-context-check-ok-border: rgba(21, 128, 61, 0.44);
-  --workflow-context-check-ok-bg: rgba(21, 128, 61, 0.28);
 }
 
 * {
@@ -3056,94 +3047,6 @@ ul {
   gap: 0.2rem;
 }
 
-.ui-fv-context-project {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.55rem 0.6rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.62);
-  transition: border-color 0.18s ease, background-color 0.18s ease;
-}
-
-:root[data-theme='dark'] .ui-fv-context-project {
-  background: rgba(15, 23, 42, 0.78);
-}
-
-.ui-fv-context-project.is-done {
-  border-color: var(--workflow-context-check-ok-border);
-  background: var(--workflow-context-check-ok-bg);
-}
-
-:root[data-theme='dark'] .ui-fv-context-project.is-done,
-[data-theme='dark'] .ui-fv-context-project.is-done {
-  border-color: var(--workflow-context-check-ok-border);
-  background: var(--workflow-context-check-ok-bg);
-}
-
-.ui-fv-project-title {
-  font-family: var(--font-family-ui);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.ui-fv-payload-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.ui-fv-payload-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-  min-width: 0;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.72);
-}
-
-:root[data-theme='dark'] .ui-fv-payload-item {
-  background: rgba(15, 23, 42, 0.82);
-}
-
-.ui-fv-payload-item.is-active {
-  border-color: rgba(37, 99, 235, 0.4);
-  background: rgba(37, 99, 235, 0.08);
-}
-
-.ui-fv-payload-item.is-done {
-  border-color: var(--workflow-context-check-ok-border);
-  background: var(--workflow-context-check-ok-bg);
-}
-
-:root[data-theme='dark'] .ui-fv-payload-item.is-done,
-[data-theme='dark'] .ui-fv-payload-item.is-done {
-  border-color: var(--workflow-context-check-ok-border);
-  background: var(--workflow-context-check-ok-bg);
-}
-
-.ui-fv-payload-item.is-error {
-  border-color: rgba(180, 35, 24, 0.36);
-  background: rgba(180, 35, 24, 0.08);
-}
-
-.ui-fv-payload-item-main {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.ui-fv-payload-label,
 .ui-fv-step-label {
   font-family: var(--font-family-ui);
   font-size: 0.85rem;
@@ -3151,32 +3054,11 @@ ul {
   color: var(--text-primary);
 }
 
-.ui-fv-payload-filename,
 .ui-fv-step-status,
-.ui-fv-payload-pill,
 .ui-fv-progress-metric {
   font-family: var(--font-family-body);
   font-size: 0.78rem;
   color: var(--text-muted);
-}
-
-.ui-fv-payload-filename {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ui-fv-payload-pill {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-size: 0.68rem;
 }
 
 .ui-fv-session-button {
@@ -3191,13 +3073,6 @@ ul {
 
 .ui-fv-progress-metric {
   margin: 0;
-}
-
-.ui-fv-empty-state {
-  margin: 0;
-  font-family: var(--font-family-body);
-  color: var(--text-muted);
-  font-size: 0.82rem;
 }
 
 /* ── preload bar (DDD-084) ── */
@@ -3256,15 +3131,6 @@ ul {
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
-}
-
-.ui-fv-project-name {
-  margin: 0;
-  font-family: var(--font-family-ui);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.25;
 }
 
 /* ── reduced motion ── */

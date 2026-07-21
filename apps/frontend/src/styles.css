@@ -5,6 +5,8 @@
   --font-family-body: 'Source Sans 3', 'Segoe UI', sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Cascadia Mono', monospace;
 
+  --font-size-xs: 0.75rem;
+
   --canvas-light: #f6f8fb;
   --surface-base: #ffffff;
   --surface-steel: #e6ebf2;
@@ -2346,7 +2348,25 @@ button:not(.MuiButton-root):not([class]):disabled,
   text-decoration: none;
 }
 
-@media (max-width: 720px) {
+.ui-dashboard-session-link {
+  display: block;
+  text-decoration: none;
+  color: var(--text-primary);
+  padding: var(--space-1) 0;
+  transition: color var(--transition-fast, 150ms ease);
+}
+
+.ui-dashboard-session-link:hover {
+  color: var(--workspace-blue);
+}
+
+.ui-dashboard-session-link:focus-visible {
+  outline: 2px solid var(--workspace-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-button);
+}
+
+@media (max-width: 760px) {
   .ui-dashboard-kpi-topbar {
     flex-direction: column;
     align-items: stretch;
@@ -2786,17 +2806,17 @@ ul {
 
 .ui-fv-dashboard {
   display: grid;
-  gap: 0.75rem;
+  gap: var(--space-1-5);
 }
 
 .ui-fv-card {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.875rem 0.9rem;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-2);
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-button);
+  background: var(--surface-glass);
   min-width: 0;
 }
 
@@ -2805,18 +2825,18 @@ ul {
 }
 
 :root[data-theme='dark'] .ui-fv-card {
-  background: rgba(15, 23, 42, 0.72);
+  background: var(--surface-glass);
 }
 
 .ui-fv-card-header {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: var(--space-micro);
 }
 
 .ui-fv-progress-metric {
   font-family: var(--font-family-body);
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
 }
 
@@ -2826,7 +2846,7 @@ ul {
   align-self: stretch;
   align-items: center;
   justify-content: center;
-  margin-top: 0.1rem;
+  margin-top: var(--space-micro);
   text-decoration: none;
 }
 

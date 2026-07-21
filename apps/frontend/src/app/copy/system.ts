@@ -120,6 +120,7 @@ export const appCopy = {
       closeNavigationMenu: 'Close navigation menu',
       expandNavigation: 'Expand navigation',
       collapseNavigation: 'Collapse navigation',
+      unknownTool: 'Unknown tool',
     },
     labels: {
       email: 'Email',

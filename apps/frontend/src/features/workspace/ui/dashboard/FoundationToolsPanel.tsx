@@ -3,6 +3,7 @@ import { Skeleton, IconButton, Tooltip } from '@mui/material';
 import { FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { appCopy } from '../../../../app/copy/system';
+import { DashboardPanel } from './DashboardPanel';
 import type { FoundationToolStatus } from '../../runtime/useWorkspaceContext';
 
 interface FoundationToolsPanelProps {
@@ -26,23 +27,18 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
 
   if (ctx.loading) {
     return (
-      <div className="dashboard-panel">
-        <div className="dashboard-panel__header">
-          <Skeleton variant="text" width={100} />
+      <DashboardPanel title={appCopy.ui.workspace.dashboard.foundationToolsTitle} loading>
+        <div className="foundation-status">
+          {[0, 1].map(i => (
+            <div key={i} className="foundation-status__item">
+              <Skeleton variant="circular" width={24} height={24} />
+              <Skeleton variant="text" width={80} />
+              <Skeleton variant="text" width={140} />
+              <Skeleton variant="circular" width={32} height={32} />
+            </div>
+          ))}
         </div>
-        <div className="dashboard-panel__content">
-          <div className="foundation-status">
-            {[0, 1].map(i => (
-              <div key={i} className="foundation-status__item">
-                <Skeleton variant="circular" width={24} height={24} />
-                <Skeleton variant="text" width={80} />
-                <Skeleton variant="text" width={140} />
-                <Skeleton variant="circular" width={32} height={32} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      </DashboardPanel>
     );
   }
 
@@ -92,17 +88,10 @@ export const FoundationToolsPanel: React.FC<FoundationToolsPanelProps> = ({ work
   };
 
   return (
-    <div className="dashboard-panel">
-      <div className="dashboard-panel__header">
-        <span className="dashboard-panel__title">
-          {appCopy.ui.workspace.dashboard.foundationToolsTitle}
-        </span>
+    <DashboardPanel title={appCopy.ui.workspace.dashboard.foundationToolsTitle}>
+      <div className="foundation-status">
+        {ctx.foundationTools.map(renderStatus)}
       </div>
-      <div className="dashboard-panel__content">
-        <div className="foundation-status">
-          {ctx.foundationTools.map(renderStatus)}
-        </div>
-      </div>
-    </div>
+    </DashboardPanel>
   );
 };

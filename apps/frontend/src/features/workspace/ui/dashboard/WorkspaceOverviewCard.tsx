@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Button, IconButton, Tooltip } from '@mui/material';
-import { ArrowRight, Play, FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
+import { IconButton, Tooltip } from '@mui/material';
+import { Play, FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { useWorkspaceProject } from '../../runtime/WorkspaceProjectContext';
 import { appCopy } from '../../../../app/copy/system';
+import { uiPrimitives } from '../../../../app/ui/primitives';
 import type { FoundationToolStatus } from '../../runtime/useWorkspaceContext';
 
 interface WorkspaceOverviewCardProps {
@@ -84,17 +85,19 @@ export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ wo
       <div className="workspace-overview__header">
         <h4 className="workspace-overview__title">{projectName}</h4>
         <div className="workspace-overview__cta">
-          <Button
-            component={Link}
+          <Link
             to={firstSuggestedTool
               ? `/workspaces/${workspaceId}/tools/${firstSuggestedTool}`
               : '#available-tools'}
-            variant="contained" size="large"
-            startIcon={firstSuggestedTool ? <Play size={18} /> : <ArrowRight size={18} />}
-            disabled={isArchived}
+            className={uiPrimitives.button}
+            aria-disabled={isArchived || undefined}
           >
-            {firstSuggestedTool ? copy.heroStartGenerating : copy.heroChooseTool}
-          </Button>
+            {firstSuggestedTool ? (
+              <><Play size={18} /> {copy.heroStartGenerating}</>
+            ) : (
+              copy.heroChooseTool
+            )}
+          </Link>
         </div>
       </div>
 

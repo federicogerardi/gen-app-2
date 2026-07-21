@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Chip, Skeleton } from '@mui/material';
+import { Chip, Skeleton } from '@mui/material';
 import { ArrowUpRight } from 'lucide-react';
 import { useProjectArtifacts } from '../../runtime/useProjectArtifacts';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
@@ -71,17 +71,17 @@ export const RecentArtifactsPanel: React.FC<RecentArtifactsPanelProps> = ({ work
                 {isPromoted ? (
                   <Chip label={appCopy.ui.workspace.dashboard.recentArtifactsPromotedChip} size="small" color="success" variant="outlined" />
                 ) : artifact.toolKey && isToolKey(artifact.toolKey) && getProducedAssetTypes(artifact.toolKey).length === 1 ? (
-                  <Button
-                    size="small"
-                    variant="text"
-                    endIcon={<ArrowUpRight size={12} />}
+                  <button
+                    type="button"
+                    className="ui-inline-link"
                     onClick={() => {
                       setPromoteDialogArtifactId(artifact.artifactId);
                       setPromoteDialogToolKey(artifact.toolKey as ToolKey);
                     }}
                   >
                     {appCopy.ui.workspace.dashboard.recentArtifactsPromoteAction}
-                  </Button>
+                    {' '}<ArrowUpRight size={12} />
+                  </button>
                 ) : null}
               </div>
             </div>

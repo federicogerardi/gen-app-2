@@ -1,13 +1,13 @@
 
 import { Link, useSearchParams } from 'react-router-dom';
-import { Button, Card, CardContent, CardHeader } from '@mui/material';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
 import { useSessionsQuery } from '../../../app/runtime/queries/useSessionsQuery';
-import { ErrorStateMessage, LoadingStateMessage, Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
+import { Surface, TopBar, uiPrimitives } from '../../../app/ui/primitives';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { UI_CONFIG } from '../../../app/config/ui-config';
+import { DashboardPanel } from '../../workspace/ui/dashboard/DashboardPanel';
 
 const formatSessionToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
@@ -38,9 +38,9 @@ export const DashboardPage = () => {
           <p className={uiPrimitives.metaLine}>{appCopy.editorial.dashboard.zeroState.eyebrow}</p>
           <h2>{appCopy.editorial.dashboard.zeroState.headline}</h2>
           <p>{appCopy.editorial.dashboard.zeroState.body}</p>
-          <Button component={Link} to="/workspaces" variant="contained" color="primary">
+          <Link to="/workspaces" className={uiPrimitives.button}>
             {appCopy.editorial.dashboard.zeroState.cta}
-          </Button>
+          </Link>
         </div>
       </Surface>
     );
@@ -51,7 +51,12 @@ export const DashboardPage = () => {
       <h2>{appCopy.editorial.dashboard.headline}</h2>
       <p>{appCopy.editorial.dashboard.body}</p>
 
-      <TopBar as="section" className={`${uiPrimitives.surface} ui-dashboard-kpi-topbar`}>
+      <TopBar
+        as="section"
+        className={`${uiPrimitives.surface} ui-dashboard-kpi-topbar`}
+        role="region"
+        aria-label={appCopy.editorial.dashboard.headline}
+      >
         <div className="ui-dashboard-kpi-item">
           <h3 className="ui-kpi-value">
             {projectsCount}
@@ -71,59 +76,52 @@ export const DashboardPage = () => {
       </TopBar>
 
       <section className={uiPrimitives.dashboardGrid}>
-        <Card className="ui-dashboard-card-with-cta">
-          <CardHeader title={appCopy.editorial.dashboard.cards.projects.title} />
-          <CardContent>
-          <div className="ui-dashboard-card-cta-content">
-            <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.projects.body}</p>
-            <Link to="/workspaces" className="ui-dashboard-card-cta-link ui-button">
+        <DashboardPanel
+          title={appCopy.editorial.dashboard.cards.projects.title}
+          footer={
+            <Link to="/workspaces" className={uiPrimitives.inlineLink}>
               {appCopy.ui.actions.openProjects}
             </Link>
-          </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <p>{appCopy.editorial.dashboard.cards.projects.body}</p>
+        </DashboardPanel>
 
-        <Card className="ui-dashboard-card-with-cta">
-          <CardHeader title={appCopy.editorial.dashboard.cards.tools.title} />
-          <CardContent>
-          <div className="ui-dashboard-card-cta-content">
-            <p className="ui-dashboard-card-cta-body">{appCopy.editorial.dashboard.cards.tools.body}</p>
-            <Link to="/workspaces" className="ui-dashboard-card-cta-link ui-button">
+        <DashboardPanel
+          title={appCopy.editorial.dashboard.cards.tools.title}
+          footer={
+            <Link to="/workspaces" className={uiPrimitives.inlineLink}>
               {appCopy.ui.navigation.tools}
             </Link>
-          </div>
-          </CardContent>
-        </Card>
+          }
+        >
+          <p>{appCopy.editorial.dashboard.cards.tools.body}</p>
+        </DashboardPanel>
 
-        <Card>
-          <CardHeader title={appCopy.editorial.dashboard.cards.recentSessions.title} />
-          <CardContent>
-          {sessionsQuery.loading ? (
-            <LoadingStateMessage>Caricamento sessioni...</LoadingStateMessage>
-          ) : sessionsQuery.error ? (
-            <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage>
-          ) : recentSessions.length === 0 ? (
-            <p className={uiPrimitives.metaLine}>{appCopy.editorial.sessions.emptyState}</p>
-          ) : (
-            <ul className={uiPrimitives.listClean}>
-              {recentSessions.map((session) => {
-                const projectName = projectNameById.get(session.projectId) ?? `Project ${session.projectId}`;
-                const createdAt = new Date(session.createdAt ?? session.updatedAt).toLocaleDateString('it-IT');
+        <DashboardPanel
+          title={appCopy.editorial.dashboard.cards.recentSessions.title}
+          loading={sessionsQuery.loading}
+          error={sessionsQuery.error}
+          empty={recentSessions.length === 0 && !sessionsQuery.loading && !sessionsQuery.error ? appCopy.editorial.sessions.emptyState : undefined}
+        >
+          <ul className={uiPrimitives.listClean}>
+            {recentSessions.map((session) => {
+              const projectName = projectNameById.get(session.projectId) ?? `Project ${session.projectId}`;
+              const createdAt = new Date(session.createdAt ?? session.updatedAt).toLocaleDateString('it-IT');
 
-                return (
-                  <li key={session.sessionId}>
-                    <Link to={`/workspaces/${session.projectId}/sessions/${session.sessionId}`} style={{ textDecoration: 'none' }}>
-                    <Button color="inherit" size="small" variant="text">
-                        {projectName} · {formatSessionToolName(session.toolKey)} · {createdAt}
-                    </Button>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          </CardContent>
-        </Card>
+              return (
+                <li key={session.sessionId}>
+                  <Link
+                    to={`/workspaces/${session.projectId}/sessions/${session.sessionId}`}
+                    className="ui-dashboard-session-link"
+                  >
+                    {projectName} · {formatSessionToolName(session.toolKey)} · {createdAt}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </DashboardPanel>
       </section>
     </Surface>
   );

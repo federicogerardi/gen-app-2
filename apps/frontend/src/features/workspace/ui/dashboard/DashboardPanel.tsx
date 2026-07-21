@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
+import { appCopy } from '../../../../app/copy/system';
 
 interface DashboardPanelProps {
   title: string;
@@ -24,7 +25,7 @@ export const DashboardPanel: React.FC<DashboardPanelProps> = ({
         <span className="dashboard-panel__title">{title}</span>
       </div>
       <div className="dashboard-panel__content">
-        {loading && <LoadingStateMessage>Loading…</LoadingStateMessage>}
+        {loading && <LoadingStateMessage>{appCopy.ui.workspace.dashboard.loadingGeneric}</LoadingStateMessage>}
         {error && <ErrorStateMessage>{error}</ErrorStateMessage>}
         {!loading && !error && empty && <EmptyStateMessage>{empty}</EmptyStateMessage>}
         {!loading && !error && !empty && children}

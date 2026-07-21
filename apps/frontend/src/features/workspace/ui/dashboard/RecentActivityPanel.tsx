@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSessionsQuery } from '../../../../app/runtime/queries/useSessionsQuery';
 import { useApiConfig } from '../../../../app/providers/AuthSessionProvider';
 import { toolFormRegistry } from '../../../tools/runtime/tool-form-architecture';
-import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage } from '../../../../app/ui/primitives';
+import { DashboardPanel } from './DashboardPanel';
 import { formatRelativeTime } from '../../../../app/ui/format-utils';
 import { appCopy } from '../../../../app/copy/system';
 
@@ -26,58 +26,60 @@ export const RecentActivityPanel: React.FC<RecentActivityPanelProps> = ({ worksp
   });
   const copy = appCopy.ui.workspace.dashboard;
 
-  if (sessionsQuery.loading) return <LoadingStateMessage>{copy.loadingActivity}</LoadingStateMessage>;
-  if (sessionsQuery.error) return <ErrorStateMessage>{sessionsQuery.error}</ErrorStateMessage>;
+  const footer = (
+    <Link to={`/workspaces/${workspaceId}/sessions`} className="ui-inline-link">
+      {copy.viewAllSessionsArrow}
+    </Link>
+  );
+
+  if (sessionsQuery.loading) {
+    return (
+      <DashboardPanel title={copy.recentActivityTitle} loading footer={footer} />
+    );
+  }
+
+  if (sessionsQuery.error) {
+    return (
+      <DashboardPanel title={copy.recentActivityTitle} error={sessionsQuery.error} footer={footer} />
+    );
+  }
 
   const sessions = (sessionsQuery.data ?? []).slice(0, 5);
 
   if (sessions.length === 0) {
     return (
-      <div className="dashboard-panel">
-        <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">{copy.recentActivityTitle}</span>
-        </div>
-        <div className="dashboard-panel__content">
-          <EmptyStateMessage>{copy.noSessionsStartTool}</EmptyStateMessage>
-        </div>
-      </div>
+      <DashboardPanel
+        title={copy.recentActivityTitle}
+        empty={copy.noSessionsStartTool}
+        footer={footer}
+      />
     );
   }
 
   return (
-    <div className="dashboard-panel">
-      <div className="dashboard-panel__header">
-        <span className="dashboard-panel__title">{copy.recentActivityTitle}</span>
-      </div>
-      <div className="dashboard-panel__content">
-        <div className="recent-activity__list">
-          {sessions.map(session => {
-            const toolLabel = session.toolKey
-              ? toolFormRegistry[session.toolKey as keyof typeof toolFormRegistry]?.displayName || session.toolKey
-              : 'Unknown tool';
-            const statusCfg = STATUS_CONFIG[session.status] ?? STATUS_CONFIG.completed;
-            return (
-              <div key={session.sessionId} className="activity-item">
-                <span className="activity-item__tool-name">{toolLabel}</span>
-                <div className="activity-item__meta">
-                  <Chip label={statusCfg.label} color={statusCfg.color} size="small" variant="outlined" />
-                  <Typography variant="caption" className="activity-item__time">
-                    {copy.artifactCountLabel(session.artifactCount)}
-                  </Typography>
-                  <Typography variant="caption" className="activity-item__time">
-                    {formatRelativeTime(session.updatedAt)}
-                  </Typography>
-                </div>
+    <DashboardPanel title={copy.recentActivityTitle} footer={footer}>
+      <div className="recent-activity__list">
+        {sessions.map(session => {
+          const toolLabel = session.toolKey
+            ? toolFormRegistry[session.toolKey as keyof typeof toolFormRegistry]?.displayName || session.toolKey
+            : appCopy.ui.actions.unknownTool;
+          const statusCfg = STATUS_CONFIG[session.status] ?? STATUS_CONFIG.completed;
+          return (
+            <div key={session.sessionId} className="activity-item">
+              <span className="activity-item__tool-name">{toolLabel}</span>
+              <div className="activity-item__meta">
+                <Chip label={statusCfg.label} color={statusCfg.color} size="small" variant="outlined" />
+                <Typography variant="caption" className="activity-item__time">
+                  {copy.artifactCountLabel(session.artifactCount)}
+                </Typography>
+                <Typography variant="caption" className="activity-item__time">
+                  {formatRelativeTime(session.updatedAt)}
+                </Typography>
               </div>
-            );
-          })}
-        </div>
-        <div className="recent-artifacts__footer">
-          <Link to={`/workspaces/${workspaceId}/sessions`} className="ui-inline-link">
-            {copy.viewAllSessionsArrow}
-          </Link>
-        </div>
+            </div>
+          );
+        })}
       </div>
-    </div>
+    </DashboardPanel>
   );
 };

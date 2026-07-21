@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
 import { QualityScoreBadge } from '../QualityScoreBadge';
 import { AssetTypeIcon } from '../AssetTypeIcon';
-import { LoadingStateMessage, EmptyStateMessage, ErrorStateMessage, uiPrimitives } from '../../../../app/ui/primitives';
+import { DashboardPanel } from './DashboardPanel';
+import { uiPrimitives } from '../../../../app/ui/primitives';
 import { appCopy } from '../../../../app/copy/system';
 
 interface AssetLibraryQuickAccessProps {
@@ -13,45 +14,47 @@ export const AssetLibraryQuickAccess: React.FC<AssetLibraryQuickAccessProps> = (
   const ctx = useWorkspaceContext(workspaceId);
   const copy = appCopy.ui.workspace.dashboard;
 
-  if (ctx.loading) return <LoadingStateMessage>{copy.loadingAssets}</LoadingStateMessage>;
-  if (ctx.error) return <ErrorStateMessage>{ctx.error}</ErrorStateMessage>;
+  const footer = (
+    <Link to={`/workspaces/${workspaceId}/assets`} className={uiPrimitives.inlineLink}>
+      {copy.viewAllAssetsArrow}
+    </Link>
+  );
+
+  if (ctx.loading) {
+    return (
+      <DashboardPanel title={copy.recentAssetsTitle} loading footer={footer} />
+    );
+  }
+
+  if (ctx.error) {
+    return (
+      <DashboardPanel title={copy.recentAssetsTitle} error={ctx.error} footer={footer} />
+    );
+  }
 
   const recentAssets = ctx.assets.slice(0, 6);
 
   if (recentAssets.length === 0) {
     return (
-      <div className="dashboard-panel">
-        <div className="dashboard-panel__header">
-          <span className="dashboard-panel__title">{copy.recentAssetsTitle}</span>
-        </div>
-        <div className="dashboard-panel__content">
-          <EmptyStateMessage>{copy.recentAssetsEmpty}</EmptyStateMessage>
-        </div>
-      </div>
+      <DashboardPanel
+        title={copy.recentAssetsTitle}
+        empty={copy.recentAssetsEmpty}
+        footer={footer}
+      />
     );
   }
 
   return (
-    <div className="dashboard-panel">
-      <div className="dashboard-panel__header">
-        <span className="dashboard-panel__title">{copy.recentAssetsTitle}</span>
+    <DashboardPanel title={copy.recentAssetsTitle} footer={footer}>
+      <div className="asset-quick-access__grid">
+        {recentAssets.map(asset => (
+          <div key={asset.id} className="asset-mini-card">
+            <AssetTypeIcon type={asset.assetType} size={16} />
+            <span className="asset-mini-card__label" title={asset.label}>{asset.label}</span>
+            <QualityScoreBadge score={asset.qualityScore} size="small" />
+          </div>
+        ))}
       </div>
-      <div className="dashboard-panel__content">
-        <div className="asset-quick-access__grid">
-          {recentAssets.map(asset => (
-            <div key={asset.id} className="asset-mini-card">
-              <AssetTypeIcon type={asset.assetType} size={16} />
-              <span className="asset-mini-card__label" title={asset.label}>{asset.label}</span>
-              <QualityScoreBadge score={asset.qualityScore} size="small" />
-            </div>
-          ))}
-        </div>
-        <div className="asset-quick-access__footer">
-          <Link to={`/workspaces/${workspaceId}/assets`} className={uiPrimitives.inlineLink}>
-            {copy.viewAllAssetsArrow}
-          </Link>
-        </div>
-      </div>
-    </div>
+    </DashboardPanel>
   );
 };

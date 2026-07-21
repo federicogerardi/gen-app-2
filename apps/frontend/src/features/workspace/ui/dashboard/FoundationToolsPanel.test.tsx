@@ -31,11 +31,10 @@ describe('FoundationToolsPanel', () => {
       loading: true, error: null, refetch: vi.fn(),
     } as ReturnType<typeof useWorkspaceContext>);
 
-    const { container } = render(
+    render(
       <MemoryRouter><FoundationToolsPanel workspaceId="w1" /></MemoryRouter>,
     );
-    expect(container.querySelector('.foundation-status')).toBeInTheDocument();
-    expect(container.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders nothing when no foundation tools', () => {

@@ -20,8 +20,8 @@ export const WorkspaceDashboard: React.FC = () => {
     <section className="workspace-dashboard">
       <WorkspaceOverviewCard workspaceId={workspaceId} />
       <div className="dashboard-grid">
-        <RecentSessionsPanel workspaceId={workspaceId} />
         <RecentAssetsPanel workspaceId={workspaceId} />
+        <RecentSessionsPanel workspaceId={workspaceId} />
       </div>
       <div id="available-tools">
         <ContextualToolsPanel workspaceId={workspaceId} />

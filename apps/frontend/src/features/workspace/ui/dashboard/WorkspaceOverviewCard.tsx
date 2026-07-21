@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useCallback } from 'react';
 import { IconButton, Tooltip } from '@mui/material';
 import { Play, FileText, Mic, Users, Plus, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
@@ -40,6 +41,11 @@ export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ wo
     .filter(k => (ctx.groupedByType[k]?.length ?? 0) > 0).length;
 
   const copy = appCopy.ui.workspace.dashboard;
+
+  const handleScrollToTools = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    document.getElementById('available-tools')?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const renderFoundationItem = (tool: FoundationToolStatus) => {
     const toolRoute = `/workspaces/${workspaceId}/tools/${tool.toolKey}`;
@@ -85,19 +91,24 @@ export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ wo
       <div className="workspace-overview__header">
         <h4 className="workspace-overview__title">{projectName}</h4>
         <div className="workspace-overview__cta">
-          <Link
-            to={firstSuggestedTool
-              ? `/workspaces/${workspaceId}/tools/${firstSuggestedTool}`
-              : '#available-tools'}
-            className={uiPrimitives.button}
-            aria-disabled={isArchived || undefined}
-          >
-            {firstSuggestedTool ? (
-              <><Play size={18} /> {copy.heroStartGenerating}</>
-            ) : (
-              copy.heroChooseTool
-            )}
-          </Link>
+          {firstSuggestedTool ? (
+            <Link
+              to={`/workspaces/${workspaceId}/tools/${firstSuggestedTool}`}
+              className={uiPrimitives.button}
+              aria-disabled={isArchived || undefined}
+            >
+              <Play size={18} /> {copy.heroStartGenerating}
+            </Link>
+          ) : (
+            <a
+              href="#available-tools"
+              className={uiPrimitives.button}
+              onClick={handleScrollToTools}
+              aria-disabled={isArchived || undefined}
+            >
+              {copy.heroChooseTool}
+            </a>
+          )}
         </div>
       </div>
 

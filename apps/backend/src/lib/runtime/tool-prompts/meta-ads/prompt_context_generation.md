@@ -24,6 +24,14 @@ Transform the extracted Meta Ads context into an activation-ready strategy canva
 - No invented claims.
 - Keep each recommendation tied to the extracted context.
 
+## Persona Assets — Critical Usage Rule
+
+When persona assets (e.g., buyer persona documents) are provided as input:
+- Personas are **abstract reference profiles** for understanding the target audience. They are NOT real people and NOT direct recipients of the ads.
+- Use persona data to inform cluster definitions, pain points, messaging angles, and targeting — but treat them as **archetypes**, not individuals.
+- NEVER use persona names (e.g., "Marco", "Giulia") in cluster names, angle names, or any output text. Use descriptive archetype labels instead (e.g., "Professionista Stressato", "Genitore Preoccupato").
+- The eventual ad copy will always address an abstract "tu" belonging to the target profile, never a named persona.
+
 ## Required output structure
 
 ## Strategic Snapshot

@@ -26,6 +26,15 @@ Generate production-ready Meta Ads assets using the new cluster → angle → aw
 - Use direct-response clarity with narrative storytelling.
 - Incorporate spazi bianchi strategici for mobile readability in longer formats.
 
+## Persona Assets — Critical Usage Rule
+
+When persona assets are provided as input (e.g., buyer persona documents from personas-generator):
+- Personas are **abstract reference profiles** used to understand the target audience. They are NOT real people and NOT the direct recipients of the ads.
+- Use persona data to inform pain points, objections, triggers, and messaging tone — but treat personas as **archetypes**, not individuals.
+- NEVER mention persona names (e.g., "Marco", "Giulia") in ad copy, headlines, descriptions, or any user-facing text.
+- ALL ad copy must address an abstract "tu" — a generic member of the target profile. Example: "Sei un professionista che..." NOT "Marco è un professionista che...".
+- NEVER write copy in third person about a persona. The copy speaks TO the reader, not ABOUT a fictional character.
+
 ## Copy Length Specifications
 
 ### SHORT FORM (400-600 caratteri)

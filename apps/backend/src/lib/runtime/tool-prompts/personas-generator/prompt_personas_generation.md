@@ -23,6 +23,11 @@ Extraction Payload with 5 core fields (see below).
 - Italian only (`it-IT`).
 - No JSON. No invented claims.
 - Every section must be present.
+- Output ONLY the buyer persona document. Nothing else.
+- No preamble, greetings, introductions, or phrases like "Ecco il persona", "Di seguito", "Ho generato".
+- No closing remarks, sign-offs, summaries, or meta-commentary after the last section.
+- No inline commentary, editorial notes, or explanations of what you are doing.
+- Any text outside the mandatory output structure is a violation and will cause the output to be rejected.
 
 ## Required output structure
 

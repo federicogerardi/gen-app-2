@@ -2,11 +2,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { orchestrateToolStep, runExtraction, uploadBrief } from './tools-client';
 import { GenerationTransportError } from '../../generation/runtime/generation-client';
 
-const streamGenerationMock = vi.fn();
+const runGenerationMock = vi.fn();
 const getArtifactByIdMock = vi.fn();
 
 vi.mock('../../generation/runtime/generation-client', () => ({
-  streamGeneration: (...args: unknown[]) => streamGenerationMock(...args),
+  runGeneration: (...args: unknown[]) => runGenerationMock(...args),
   GenerationTransportError: class GenerationTransportError extends Error {
     code: string;
     retryable: boolean;
@@ -81,12 +81,11 @@ describe('tools-client', () => {
     expect(result.parsedFormat).toBe('md');
   });
 
-  it('runExtraction consumes stream events and returns artifact payload', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-001', chunk: '{"ok":', sequence: 1 } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-001', chunk: 'true}', sequence: 2 } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+  it('runExtraction calls runGeneration and returns artifact payload', async () => {
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '{"ok":true}',
+      status: 'completed',
     });
 
     const result = await runExtraction({
@@ -98,24 +97,17 @@ describe('tools-client', () => {
       briefingText: 'brief text',
     });
 
-    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+    expect(runGenerationMock).toHaveBeenCalledTimes(1);
     expect(result.artifactId).toBe('artifact-001');
     expect(result.content).toBe('{"ok":true}');
     expect(result.payload).toEqual({ ok: true });
   });
 
   it('runExtraction sends extraction request for extraction jobs', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({
-        event: 'chunk',
-        data: {
-          artifactId: 'artifact-001',
-          chunk: '{"schemaVersion":"extraction.v1"}',
-          sequence: 1,
-        },
-      });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '{"schemaVersion":"extraction.v1"}',
+      status: 'completed',
     });
 
     await runExtraction({
@@ -127,13 +119,14 @@ describe('tools-client', () => {
       briefingText: 'brief text',
     });
 
-    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+    expect(runGenerationMock).toHaveBeenCalledTimes(1);
   });
 
-  it('runExtraction recovers payload from artifact detail when stream has no chunks', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+  it('runExtraction recovers payload from artifact detail when content has empty payload', async () => {
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: 'plain text without json',
+      status: 'completed',
     });
 
     getArtifactByIdMock.mockResolvedValue({
@@ -152,23 +145,16 @@ describe('tools-client', () => {
     });
 
     expect(result.artifactId).toBe('artifact-001');
-    expect(result.content).toBe('{"fromDetail":true}');
+    expect(result.content).toBe('plain text without json');
     expect(result.payload).toEqual({ fromDetail: true });
     expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
   });
 
   it('runExtraction parses fenced json chunk output into extraction payload', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({
-        event: 'chunk',
-        data: {
-          artifactId: 'artifact-001',
-          chunk: '```json\n{"payload":{"offer":"test","audience":"cold"}}\n```',
-          sequence: 1,
-        },
-      });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '```json\n{"payload":{"offer":"test","audience":"cold"}}\n```',
+      status: 'completed',
     });
 
     const result = await runExtraction({
@@ -184,23 +170,16 @@ describe('tools-client', () => {
   });
 
   it('runExtraction normalizes known legacy aliases to canonical extraction keys', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({
-        event: 'chunk',
-        data: {
-          artifactId: 'artifact-001',
-          chunk: JSON.stringify({
-            'Obiettivo del funnel': 'Lead generation',
-            Target: 'Founder',
-            Offerta: 'Audit',
-            'Proof o testimonianze': 'Case study',
-            'CTA principale': 'Prenota call',
-          }),
-          sequence: 1,
-        },
-      });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: JSON.stringify({
+        'Obiettivo del funnel': 'Lead generation',
+        Target: 'Founder',
+        Offerta: 'Audit',
+        'Proof o testimonianze': 'Case study',
+        'CTA principale': 'Prenota call',
+      }),
+      status: 'completed',
     });
 
     const result = await runExtraction({
@@ -222,17 +201,10 @@ describe('tools-client', () => {
   });
 
   it('runExtraction rejects top-level array payloads as insufficient extraction context', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({
-        event: 'chunk',
-        data: {
-          artifactId: 'artifact-001',
-          chunk: '[{"offer":"test"}]',
-          sequence: 1,
-        },
-      });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '[{"offer":"test"}]',
+      status: 'completed',
     });
 
     getArtifactByIdMock.mockResolvedValue(null);
@@ -249,18 +221,11 @@ describe('tools-client', () => {
     expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
   });
 
-  it('runExtraction recovers payload from artifact detail when streamed extraction content is markdown', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({
-        event: 'chunk',
-        data: {
-          artifactId: 'artifact-001',
-          chunk: '## Knowledge Content\n- Offer strategy\n\n## Avatar\n- Founder',
-          sequence: 1,
-        },
-      });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+  it('runExtraction recovers payload from artifact detail when extraction content is markdown', async () => {
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: '## Knowledge Content\n- Offer strategy\n\n## Avatar\n- Founder',
+      status: 'completed',
     });
 
     getArtifactByIdMock.mockResolvedValue({
@@ -302,9 +267,10 @@ describe('tools-client', () => {
   });
 
   it('runExtraction falls back to sourceRequest.input.extractionPayload when artifact content is non-json', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-001',
+      content: 'extraction completed',
+      status: 'completed',
     });
 
     getArtifactByIdMock.mockResolvedValue({
@@ -332,196 +298,26 @@ describe('tools-client', () => {
     expect(result.payload).toEqual({ audience: 'warm', tone: 'direct' });
   });
 
-  describe('runExtraction — stream interruption recovery', () => {
-    const makeTransportError = (code: 'transport_mid_stream' | 'terminal_failed', message: string) =>
-      new GenerationTransportError(code, message, code === 'transport_mid_stream');
-
-    it('recovers when stream drops mid-transport and artifact exists on server', async () => {
-      streamGenerationMock.mockImplementation(async (_request, options) => {
-        options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-        throw makeTransportError('transport_mid_stream', 'Connection closed before terminal event');
-      });
-
-      getArtifactByIdMock.mockResolvedValue({
-        artifactId: 'artifact-001',
-        content: '{"recovered":true}',
-        status: 'completed',
-      });
-
-      const result = await runExtraction({
-        userId: 'user-001',
-        projectId: 'project-001',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        briefingId: 'brief-001',
-        briefingText: 'brief text',
-      });
-
-      expect(result.artifactId).toBe('artifact-001');
-      expect(result.content).toBe('{"recovered":true}');
-      expect(result.payload).toEqual({ recovered: true });
-      expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('throws original error when stream drops mid-transport but artifact not found', async () => {
-      streamGenerationMock.mockImplementation(async (_request, options) => {
-        options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-        throw makeTransportError('transport_mid_stream', 'Connection closed before terminal event');
-      });
-
-      getArtifactByIdMock.mockResolvedValue(null);
-
-      await expect(runExtraction({
-        userId: 'user-001',
-        projectId: 'project-001',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        briefingId: 'brief-001',
-        briefingText: 'brief text',
-      })).rejects.toThrow('Connection closed before terminal event');
-
-      expect(getArtifactByIdMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('throws original error when stream drops before start event (no artifact ID)', async () => {
-      streamGenerationMock.mockRejectedValue(
-        makeTransportError('transport_mid_stream', 'Connection closed before terminal event'),
-      );      await expect(runExtraction({
-        userId: 'user-001',
-        projectId: 'project-001',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        briefingId: 'brief-001',
-        briefingText: 'brief text',
-      })).rejects.toThrow('Connection closed before terminal event');
-
-      // No recovery attempt without a known artifact ID
-      expect(getArtifactByIdMock).not.toHaveBeenCalled();
-    });
-
-    it('does not attempt recovery on terminal_failed (server explicitly failed)', async () => {
-      streamGenerationMock.mockImplementation(async (_request, options) => {
-        options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-        throw makeTransportError('terminal_failed', 'Extraction failed on server');
-      });
-
-      await expect(runExtraction({
-        userId: 'user-001',
-        projectId: 'project-001',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        briefingId: 'brief-001',
-        briefingText: 'brief text',
-      })).rejects.toThrow('Extraction failed on server');
-
-      expect(getArtifactByIdMock).not.toHaveBeenCalled();
-    });
-
-    it('throws original error when recovery fetch itself fails', async () => {
-      streamGenerationMock.mockImplementation(async (_request, options) => {
-        options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-        throw makeTransportError('transport_mid_stream', 'Connection closed before terminal event');
-      });
-
-      getArtifactByIdMock.mockRejectedValue(new Error('Network error during recovery'));
-
-      await expect(runExtraction({
-        userId: 'user-001',
-        projectId: 'project-001',
-        model: 'openrouter/auto',
-        toolKey: 'funnel-pages',
-        briefingId: 'brief-001',
-        briefingText: 'brief text',
-      })).rejects.toThrow('Connection closed before terminal event');
-    });
-  });
-});
-
-describe('tools-client', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('uploadBrief throws when tools capability is disabled', async () => {
-    await expect(uploadBrief(
-      {
-        projectId: 'project-001',
-        toolKey: 'funnel-pages',
-        file: new File(['brief'], 'brief.md', { type: 'text/markdown' }),
-      },
-      {
-        capabilities: { toolsUpload: false },
-      },
-    )).rejects.toThrow(/capability is disabled/i);
-  });
-
-  it('uploadBrief posts payload and returns briefing metadata', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ok: true,
-        data: {
-          briefing: {
-            briefingId: 'brief-001',
-            projectId: 'project-001',
-            toolKey: 'funnel-pages',
-            fileName: 'brief.md',
-            mimeType: 'text/markdown',
-            size: 42,
-            parsedFormat: 'md',
-            normalizedText: 'brief text',
-            charCount: 10,
-            wordCount: 2,
-          },
-        },
-      }),
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    const result = await uploadBrief(
-      {
-        projectId: 'project-001',
-        toolKey: 'funnel-pages',
-        file: new File(['brief text'], 'brief.md', { type: 'text/markdown' }),
-      },
-      {
-        capabilities: { toolsUpload: true },
-      },
+  it('runExtraction throws on terminal_failed error', async () => {
+    runGenerationMock.mockRejectedValue(
+      new GenerationTransportError('terminal_failed', 'Extraction failed on server', false),
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.briefingId).toBe('brief-001');
-    expect(result.parsedFormat).toBe('md');
-  });
-
-  it('runExtraction consumes stream events and returns artifact payload', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-001', artifactId: 'artifact-001' } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-001', chunk: '{"ok":', sequence: 1 } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-001', chunk: 'true}', sequence: 2 } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-001', status: 'completed', reason: null } });
-    });
-
-    const result = await runExtraction({
+    await expect(runExtraction({
       userId: 'user-001',
       projectId: 'project-001',
       model: 'openrouter/auto',
       toolKey: 'funnel-pages',
       briefingId: 'brief-001',
       briefingText: 'brief text',
-    });
-
-    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
-    expect(result.artifactId).toBe('artifact-001');
-    expect(result.content).toBe('{"ok":true}');
-    expect(result.payload).toEqual({ ok: true });
+    })).rejects.toThrow('Extraction failed on server');
   });
 
   it('runExtraction includes knowledgeSources extraction payload for angle-generator', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-angle-001', artifactId: 'artifact-angle-001' } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-001', chunk: '{"ok":true}', sequence: 1 } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-001', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-angle-001',
+      content: '{"ok":true}',
+      status: 'completed',
     });
 
     await runExtraction({
@@ -539,8 +335,8 @@ describe('tools-client', () => {
       },
     });
 
-    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
-    const request = streamGenerationMock.mock.calls[0]?.[0] as {
+    expect(runGenerationMock).toHaveBeenCalledTimes(1);
+    const request = runGenerationMock.mock.calls[0]?.[0] as {
       input: { extractionPayload?: { knowledgeSources?: unknown[] } };
       toolKey: string;
       workflowType: string;
@@ -552,10 +348,10 @@ describe('tools-client', () => {
   });
 
   it('runExtraction keeps single dispatch for angle-generator extraction request', async () => {
-    streamGenerationMock.mockImplementation(async (_request, options) => {
-      options.onEvent({ event: 'start', data: { requestId: 'req-angle-002', artifactId: 'artifact-angle-002' } });
-      options.onEvent({ event: 'chunk', data: { artifactId: 'artifact-angle-002', chunk: '{"ok":true}', sequence: 1 } });
-      options.onEvent({ event: 'terminal', data: { artifactId: 'artifact-angle-002', status: 'completed', reason: null } });
+    runGenerationMock.mockResolvedValue({
+      artifactId: 'artifact-angle-002',
+      content: '{"ok":true}',
+      status: 'completed',
     });
 
     await runExtraction({
@@ -573,7 +369,7 @@ describe('tools-client', () => {
       },
     });
 
-    expect(streamGenerationMock).toHaveBeenCalledTimes(1);
+    expect(runGenerationMock).toHaveBeenCalledTimes(1);
   });
 });
 

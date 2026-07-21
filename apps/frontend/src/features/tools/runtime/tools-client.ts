@@ -2,7 +2,7 @@ import { buildApiPaths } from '../../../app/runtime/api-paths';
 import { resolveBackendCapabilities, type BackendCapabilities } from '../../../app/runtime/backend-capabilities';
 import type { ToolKey, ToolStep } from '@gen-app-2/contracts';
 import {
-  streamGeneration,
+  runGeneration,
   GenerationTransportError,
 } from '../../generation/runtime/generation-client';
 import { isExtractionContextValidForTool } from '../machines/extraction-context-validity';
@@ -304,95 +304,29 @@ export const runExtraction = async (
     request.idempotencyKey = input.idempotencyKey;
   }
 
-  let startedArtifactId: string | null = null;
-  let terminalArtifactId: string | null = null;
-  let content = '';
-
+  let result;
   try {
-    await streamGeneration(request, {
+    result = await runGeneration(request, {
       ...(options.apiBaseUrl ? { apiBaseUrl: options.apiBaseUrl } : {}),
-      onEvent: (event) => {
-        if (event.event === 'start') {
-          startedArtifactId = event.data.artifactId;
-          return;
-        }
-
-        if (event.event === 'chunk') {
-          content += event.data.chunk;
-          return;
-        }
-
-        if (event.event === 'terminal') {
-          terminalArtifactId = event.data.artifactId;
-        }
-      },
     });
   } catch (error) {
-    // Recovery: if the stream dropped mid-transport (e.g. proxy restart, Railway disconnect)
-    // but we already received the `start` event, the backend may have completed and persisted
-    // the artifact. Attempt to fetch it before surfacing the error to the user.
-    // Not applied to `terminal_failed` (server explicitly reported failure) or errors
-    // without a known artifact ID (stream dropped before `start`).
-    if (
-      error instanceof GenerationTransportError &&
-      error.code === 'transport_mid_stream' &&
-      startedArtifactId
-    ) {
-      const recovered = await getExtractionArtifact(startedArtifactId, options).catch(() => null);
-      if (recovered?.content) {
-        return {
-          artifactId: recovered.artifactId,
-          content: recovered.content,
-          payload: resolveExtractionPayloadFromArtifact(recovered),
-        };
-      }
-    }
-
     if (error instanceof GenerationTransportError) {
       if (error.code === 'terminal_failed') {
         const mappedCode = mapExtractionFailureReasonToCode(error.message);
-        if (mappedCode !== error.message) {
-          console.debug('[tools-client] mapped extraction terminal reason', {
-            rawReason: error.message,
-            mappedReason: mappedCode,
-          });
-        }
         throw new Error(mappedCode);
       }
-
       throw new Error(error.message);
     }
     throw error;
   }
 
-  const artifactId = terminalArtifactId ?? startedArtifactId;
-  if (!artifactId) {
-    throw new Error('Extraction finished without artifact id');
-  }
-
-  // Some environments can complete extraction with start+terminal events only,
-  // without chunk payloads. In that case recover payload from persisted artifact.
-  if (content.trim().length === 0) {
-    const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
-    if (recovered) {
-      const payload = assertExtractionResultIsValid(
-        input.toolKey,
-        resolveExtractionPayloadFromArtifact(recovered),
-        input.briefingText,
-      );
-      return {
-        artifactId: recovered.artifactId,
-        content: recovered.content,
-        payload,
-      };
-    }
-
+  if (result.content.trim().length === 0) {
     throw new Error('extraction_context_insufficient');
   }
 
-  const parsedPayload = parseExtractionArtifactContent(content);
+  const parsedPayload = parseExtractionArtifactContent(result.content);
   if (Object.keys(parsedPayload).length === 0) {
-    const recovered = await getExtractionArtifact(artifactId, options).catch(() => null);
+    const recovered = await getExtractionArtifact(result.artifactId, options).catch(() => null);
     if (recovered) {
       const payload = assertExtractionResultIsValid(
         input.toolKey,
@@ -401,7 +335,7 @@ export const runExtraction = async (
       );
       return {
         artifactId: recovered.artifactId,
-        content,
+        content: result.content,
         payload,
       };
     }
@@ -416,8 +350,8 @@ export const runExtraction = async (
   );
 
   return {
-    artifactId,
-    content,
+    artifactId: result.artifactId,
+    content: result.content,
     payload: normalizedPayload,
   };
 };

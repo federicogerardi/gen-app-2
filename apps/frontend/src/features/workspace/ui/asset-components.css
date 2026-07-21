@@ -23,6 +23,7 @@
 
 .create-asset-prompt__actions {
   display: flex;
+  justify-content: center;
   gap: var(--space-1);
   margin-top: var(--space-micro);
 }

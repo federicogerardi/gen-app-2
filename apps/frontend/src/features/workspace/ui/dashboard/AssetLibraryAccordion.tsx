@@ -1,11 +1,10 @@
-import { useMemo, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useWorkspaceContext } from '../../runtime/useWorkspaceContext';
-import { getProducerToolsForAsset } from '../../runtime/toolAssetRegistry';
+import { useAssetCreateNavigation } from '../../runtime/useAssetCreateNavigation';
 import { AssetLibraryView } from '../AssetLibraryView';
 import { DashboardPanel } from './DashboardPanel';
 import { appCopy } from '../../../../app/copy/system';
-import type { AssetType } from '@gen-app-2/contracts';
 
 interface AssetLibraryAccordionProps {
   workspaceId: string;
@@ -13,7 +12,6 @@ interface AssetLibraryAccordionProps {
 
 export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ workspaceId }) => {
   const ctx = useWorkspaceContext(workspaceId);
-  const navigate = useNavigate();
 
   const isEmpty = useMemo(() => {
     const totalAssets = Object.values(ctx.groupedByType).reduce(
@@ -23,18 +21,7 @@ export const AssetLibraryAccordion: React.FC<AssetLibraryAccordionProps> = ({ wo
     return totalAssets === 0 && ctx.gaps.length === 0;
   }, [ctx.groupedByType, ctx.gaps]);
 
-  const handleCreateAction = useCallback(
-    (assetType: string) => {
-      const producerTools = getProducerToolsForAsset(assetType as AssetType);
-      const toolKey = producerTools[0] ?? null;
-      if (toolKey) {
-        navigate(`/workspaces/${workspaceId}/tools/${toolKey}`);
-      } else {
-        ctx.refetch();
-      }
-    },
-    [navigate, workspaceId, ctx],
-  );
+  const handleCreateAction = useAssetCreateNavigation(workspaceId, ctx.refetch);
 
   return (
     <DashboardPanel

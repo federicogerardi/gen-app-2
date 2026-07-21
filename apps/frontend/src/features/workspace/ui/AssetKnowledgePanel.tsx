@@ -4,8 +4,8 @@ import { Database } from 'lucide-react';
 import type { SupportedTool } from '../../tools/machines/tool-flow.machine';
 import type { AssetType } from '@gen-app-2/contracts';
 import type { WorkspaceAsset } from '../runtime/useWorkspaceContext';
-import { AssetGroupSection } from './AssetGroupSection';
 import { getProducerToolsForAsset, type ToolProjectAssetPolicyEntry } from '../runtime/toolAssetRegistry';
+import { AssetGroupList, type AssetGroupSpec } from './AssetGroupList';
 import { appCopy } from '../../../app/copy/system';
 import './AssetKnowledgePanel.css';
 import './AssetGroupSection.css';
@@ -27,17 +27,14 @@ interface AssetKnowledgePanelProps {
   showModelSelector?: boolean;
 }
 
-const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Record<string, T[]> => {
-  return array.reduce((groups, item) => {
-    const groupKey = String(item[key]);
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
-};
-
+/**
+ * Workspace Knowledge panel — thin adapter over {@link AssetGroupList}.
+ *
+ * Computes `AssetGroupSpec[]` from the tool-specific `toolAssetInputs` policy
+ * (filtered & sorted: required-first), then delegates group rendering to
+ * {@link AssetGroupList} in "select" mode.  Panel chrome (header, model
+ * selector, selection summary) stays here.
+ */
 export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   workspaceAssets,
   toolAssetInputs,
@@ -50,15 +47,11 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
   showModelSelector,
 }) => {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    () => new Set(toolAssetInputs.filter(input =>
-      input.requiredness === 'always-required',
-    ).map(input => input.assetType)),
-  );
 
-  const groupedAssets = useMemo(() => {
-    return groupBy(workspaceAssets, 'assetType');
-  }, [workspaceAssets]);
+  const groupedAssets = useMemo(
+    () => groupBy(workspaceAssets, 'assetType'),
+    [workspaceAssets],
+  );
 
   const handleAssetToggle = useCallback((assetId: string, checked: boolean) => {
     setSelectedAssetIds(prev => {
@@ -74,32 +67,30 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
     onAssetSelect(selectedAssetIds);
   }, [selectedAssetIds, onAssetSelect]);
 
-  const handleGroupToggle = useCallback((assetType: string, expanded: boolean) => {
-    setExpandedGroups(prev => {
-      const newSet = new Set(prev);
-      if (expanded) {
-        newSet.add(assetType);
-      } else {
-        newSet.delete(assetType);
-      }
-      return newSet;
-    });
-  }, []);
+  // Compute ordered specs: required-first per tool policy, then optional.
+  const specs: AssetGroupSpec[] = useMemo(
+    () =>
+      toolAssetInputs.map(input => {
+        const producerTools = getProducerToolsForAsset(input.assetType as AssetType);
+        return {
+          assetType: input.assetType,
+          label: input.label,
+          requiredness: input.requiredness,
+          assets: groupedAssets[input.assetType] ?? [],
+          producerTool: (producerTools[0] ?? null),
+        };
+      }),
+    [toolAssetInputs, groupedAssets],
+  );
 
-  const getProducerTool = useCallback((assetType: string): SupportedTool | null => {
-    return (getProducerToolsForAsset(assetType as AssetType) as SupportedTool[])[0] ?? null;
-  }, []);
-
-  useEffect(() => {
-    const requiredMissingTypes = toolAssetInputs
-      .filter(input => input.requiredness === 'always-required')
-      .filter(input => (groupedAssets[input.assetType] || []).length === 0)
-      .map(input => input.assetType);
-
-    if (requiredMissingTypes.length > 0) {
-      setExpandedGroups(prev => new Set([...prev, ...requiredMissingTypes]));
-    }
-  }, [toolAssetInputs, groupedAssets]);
+  const handleCreateAction = useCallback(
+    (assetType: string) => {
+      const producerTools = getProducerToolsForAsset(assetType as AssetType);
+      const producerTool = (producerTools[0] ?? null) as SupportedTool | null;
+      onCreateAssetAction(assetType, producerTool ?? undefined);
+    },
+    [onCreateAssetAction],
+  );
 
   return (
     <div className="asset-knowledge-panel">
@@ -133,28 +124,14 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
       </div>
 
       <div className="asset-knowledge-panel__groups">
-        {toolAssetInputs.map(input => {
-          const assets = groupedAssets[input.assetType] || [];
-          const isExpanded = expandedGroups.has(input.assetType);
-          const producerTool = getProducerTool(input.assetType);
-
-          return (
-            <AssetGroupSection
-              key={input.assetType}
-              assetType={input.assetType}
-              label={input.label}
-              requiredness={input.requiredness}
-              assets={assets}
-              isExpanded={isExpanded}
-              selectedAssetIds={selectedAssetIds}
-              {...(producerTool !== null ? { producerTool } : {})}
-              {...(projectId !== undefined ? { projectId } : {})}
-              onToggleExpanded={(expanded) => handleGroupToggle(input.assetType, expanded)}
-              onAssetToggle={handleAssetToggle}
-              onCreateAction={() => onCreateAssetAction(input.assetType, producerTool ?? undefined)}
-            />
-          );
-        })}
+        <AssetGroupList
+          specs={specs}
+          mode="select"
+          selectedAssetIds={selectedAssetIds}
+          workspaceId={projectId ?? ''}
+          onAssetToggle={handleAssetToggle}
+          onCreateAction={handleCreateAction}
+        />
       </div>
 
       {selectedAssetIds.length > 0 && (
@@ -166,4 +143,15 @@ export const AssetKnowledgePanel: React.FC<AssetKnowledgePanelProps> = ({
       )}
     </div>
   );
+};
+
+const groupBy = <T extends { assetType: string }>(array: T[], key: keyof T): Record<string, T[]> => {
+  return array.reduce((groups, item) => {
+    const groupKey = String(item[key]);
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
+    }
+    groups[groupKey].push(item);
+    return groups;
+  }, {} as Record<string, T[]>);
 };

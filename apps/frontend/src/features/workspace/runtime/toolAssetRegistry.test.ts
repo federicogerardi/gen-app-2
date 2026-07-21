@@ -3,19 +3,34 @@ import { getToolAssetInputs, getProducerToolsForAsset } from './toolAssetRegistr
 
 describe('toolAssetRegistry', () => {
   describe('getToolAssetInputs', () => {
-    it('returns consumes for funnel-pages', () => {
+    it('sorts required-first for funnel-pages (brief required, rest optional)', () => {
       const result = getToolAssetInputs('funnel-pages');
       expect(result).toHaveLength(4);
-      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['persona', 'brand-voice', 'brief', 'angle']));
-      // brief is always-required (replaces file extraction), others are optional-by-tool-setting
-      expect(result.find(e => e.assetType === 'brief')?.requiredness).toBe('always-required');
-      expect(result.filter(e => e.assetType !== 'brief').every(e => e.requiredness === 'optional-by-tool-setting')).toBe(true);
+      // brief has no '?' → always-required → first
+      expect(result[0]!.assetType).toBe('brief');
+      expect(result[0]!.requiredness).toBe('always-required');
+      // persona?, brand-voice?, angle? have '?' → optional-by-tool-setting
+      expect(result.slice(1).every(e => e.requiredness === 'optional-by-tool-setting')).toBe(true);
     });
 
-    it('returns consumes for meta-ads', () => {
+    it('sorts required-first for mixed required/optional consumes (angle-generator)', () => {
+      const result = getToolAssetInputs('angle-generator');
+      expect(result).toHaveLength(3);
+      // brief has no '?' → always-required → first
+      expect(result[0]!.assetType).toBe('brief');
+      expect(result[0]!.requiredness).toBe('always-required');
+      // persona? and competitor-analysis? have '?' → optional-by-tool-setting
+      expect(result.slice(1).every(e => e.requiredness === 'optional-by-tool-setting')).toBe(true);
+    });
+
+    it('sorts required-first for meta-ads (brief required, rest optional)', () => {
       const result = getToolAssetInputs('meta-ads');
-      expect(result.length).toBeGreaterThanOrEqual(3);
-      expect(result.map(e => e.assetType)).toEqual(expect.arrayContaining(['angle', 'persona', 'brand-voice']));
+      expect(result).toHaveLength(5);
+      // brief has no '?' → always-required → first
+      expect(result[0]!.assetType).toBe('brief');
+      expect(result[0]!.requiredness).toBe('always-required');
+      // angle?, persona?, brand-voice?, hook? have '?' → optional-by-tool-setting
+      expect(result.slice(1).every(e => e.requiredness === 'optional-by-tool-setting')).toBe(true);
     });
 
     it('returns empty array for geometric (no consumes)', () => {

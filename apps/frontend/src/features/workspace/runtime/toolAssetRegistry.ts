@@ -26,15 +26,26 @@ export const getToolAssetInputs = (toolKey: ToolKey): ToolProjectAssetPolicyEntr
   const contract = TOOL_ASSET_CONTRACTS[toolKey];
   if (!contract) return [];
 
-  return contract.consumes.map(entry => {
-    // Strip the '?' optional suffix so the UI renders the canonical asset label
-    const assetType = entry.replace(/\?$/, '') as AssetType;
-    return {
-      assetType,
-      label: ASSET_TYPE_LABELS[assetType] || assetType,
-      requiredness: assetType === 'brief' ? 'always-required' as const : 'optional-by-tool-setting' as const,
-    };
+  const entries: ToolProjectAssetPolicyEntry[] = contract.consumes.map(entry => {
+    // The '?' suffix in the contract marks optional consumes.
+    // No '?' → required for generation; '?' → optional.
+    const isOptional = entry.endsWith('?');
+    const assetType = (isOptional ? entry.slice(0, -1) : entry) as AssetType;
+    const requiredness: ToolProjectAssetPolicyEntry['requiredness'] = isOptional
+      ? 'optional-by-tool-setting'
+      : 'always-required';
+    return { assetType, label: ASSET_TYPE_LABELS[assetType] || assetType, requiredness };
   });
+
+  // Sort: always-required asset types first, then optional-by-tool-setting.
+  // Stable order within each group preserves the contract's consumes array order.
+  const REQUIRED_ORDER: Record<ToolProjectAssetPolicyEntry['requiredness'], number> = {
+    'always-required': 0,
+    'optional-by-tool-setting': 1,
+    'never-required': 2,
+  };
+
+  return entries.sort((a, b) => REQUIRED_ORDER[a.requiredness] - REQUIRED_ORDER[b.requiredness]);
 };
 
 export const getProducerToolsForAsset = (assetType: AssetType): ToolKey[] => {

@@ -84,11 +84,12 @@ test('angle-generator produces angle and consumes optional types', () => {
   assert.ok(!contract.consumes.includes('brand-voice'));
 });
 
-test('meta-ads produces ad-copy, consumes angle', () => {
+test('meta-ads produces ad-copy, consumes angle (optional) and persona (optional)', () => {
   const contract = TOOL_ASSET_CONTRACTS['meta-ads'];
   assert.deepEqual(contract.produces, ['ad-copy']);
-  assert.ok(contract.consumes.includes('angle'));
-  assert.ok(contract.consumes.includes('persona'));
+  // With '?' suffix: angle and persona are optional for meta-ads
+  assert.ok(contract.consumes.includes('angle?'));
+  assert.ok(contract.consumes.includes('persona?'));
 });
 
 // =====================================================================
@@ -114,12 +115,11 @@ test('getCompatibleConsumerTools returns empty for unsupported type', () => {
   assert.ok(Array.isArray(consumers));
 });
 
-test('getCompatibleAssetTypes returns required and optional for meta-ads', () => {
-  const { required } = getCompatibleAssetTypes('meta-ads');
-  assert.ok(required.includes('angle'), 'angle should be required for meta-ads');
-  assert.ok(required.includes('persona'), 'persona should be required for meta-ads');
-  assert.ok(required.includes('brand-voice'), 'brand-voice should be required for meta-ads');
-  assert.ok(required.includes('hook'), 'hook should be required for meta-ads');
+test('getCompatibleAssetTypes returns required (brief) and optional (rest) for meta-ads', () => {
+  const { required, optional } = getCompatibleAssetTypes('meta-ads');
+  // Only 'brief' is required (no '?' suffix); the rest are optional.
+  assert.deepEqual(required, ['brief'], 'only brief should be required for meta-ads');
+  assert.deepEqual(optional, ['angle', 'persona', 'brand-voice', 'hook'], 'angle, persona, brand-voice, hook should be optional');
 });
 
 test('getCompatibleAssetTypes returns empty for geometric (no consumes)', () => {

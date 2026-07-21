@@ -110,7 +110,7 @@ export type ToolAssetContract = {
 export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   'funnel-pages': {
     produces: [],
-    consumes: ['persona', 'brand-voice', 'brief', 'angle'],
+    consumes: ['persona?', 'brand-voice?', 'brief', 'angle?'],
   },
   nextland: {
     produces: ['landing-page'],
@@ -118,7 +118,7 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   },
   'youtube-lf-script': {
     produces: ['script'],
-    consumes: ['persona', 'brand-voice', 'competitor-analysis', 'brief'],
+    consumes: ['persona?', 'brand-voice?', 'competitor-analysis?', 'brief'],
   },
   'angle-generator': {
     produces: ['angle'],
@@ -126,11 +126,11 @@ export const TOOL_ASSET_CONTRACTS: Record<ToolKey, ToolAssetContract> = {
   },
   'meta-ads': {
     produces: ['ad-copy'],
-    consumes: ['angle', 'persona', 'brand-voice', 'hook', 'brief'],
+    consumes: ['angle?', 'persona?', 'brand-voice?', 'hook?', 'brief'],
   },
   'youtube-description': {
     produces: ['description'],
-    consumes: ['brand-voice'],
+    consumes: ['brand-voice?'],
   },
   geometric: {
     produces: ['competitor-analysis'],

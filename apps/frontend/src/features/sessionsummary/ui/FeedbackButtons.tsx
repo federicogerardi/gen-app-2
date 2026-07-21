@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { IconButton, Tooltip, Typography } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useAuthState } from '../../../app/providers/AuthSessionProvider';
@@ -75,7 +75,7 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
   if (!session) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div className="ui-feedback-buttons">
       <Tooltip title={userVote === 'positive' ? appCopy.ui.feedbackButtons.alreadyVotedPositive : appCopy.ui.feedbackButtons.goodExample}>
         <span>
           <IconButton
@@ -89,9 +89,7 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
           </IconButton>
         </span>
       </Tooltip>
-      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'center' }}>
-        {positive}
-      </Typography>
+      <span className="ui-feedback-score">{positive}</span>
 
       <Tooltip title={userVote === 'negative' ? appCopy.ui.feedbackButtons.alreadyVotedNegative : appCopy.ui.feedbackButtons.poorExample}>
         <span>
@@ -106,18 +104,14 @@ export const FeedbackButtons: React.FC<FeedbackButtonsProps> = ({
           </IconButton>
         </span>
       </Tooltip>
-      <Typography variant="caption" color="text.secondary" sx={{ minWidth: 16, textAlign: 'center' }}>
-        {negative}
-      </Typography>
+      <span className="ui-feedback-score">{negative}</span>
 
       {netScore !== 0 && (
-        <Typography
-          variant="caption"
-          color={netScore > 0 ? 'success.main' : 'error.main'}
-          sx={{ ml: 0.5, fontWeight: 500 }}
+        <span
+          className={`ui-feedback-score ${netScore > 0 ? 'ui-feedback-score--positive' : 'ui-feedback-score--negative'}`}
         >
           {netScore > 0 ? '+' : ''}{netScore}
-        </Typography>
+        </span>
       )}
     </div>
   );

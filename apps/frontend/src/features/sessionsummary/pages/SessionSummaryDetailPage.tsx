@@ -189,11 +189,11 @@ export const SessionSummaryDetailPage = () => {
       </TopBar>
 
       <div className="ui-artifact-page-layout">
-        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.primaryPanelAriaLabel}>
           <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.secondaryPanelAriaLabel}>
           <section className="ui-artifact-overview" aria-label={appCopy.ui.sessions.detail.overviewAriaLabel}>
             <div className="ui-artifact-overview-actions">
               {capabilities.sessionDownload ? (
@@ -206,13 +206,13 @@ export const SessionSummaryDetailPage = () => {
                   startIcon={<Package size={14} />}
                   onClick={() => setPromoteDialogOpen(true)}
                 >
-                  Promote to Asset
+                  {appCopy.ui.sessions.detail.promoteToAsset}
                 </Button>
               )}
             </div>
 
             {lastArtifact && (
-              <div style={{ marginTop: 8 }}>
+              <div className="ui-session-feedback-wrap">
                 <FeedbackButtons
                   artifactId={lastArtifact.artifactId}
                   disabled={group.status !== 'completed'}

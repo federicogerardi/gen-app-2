@@ -155,7 +155,8 @@ describe('SessionSummaryDetailPage', () => {
 
     expect(await screen.findByTestId('session-artifact-tabs')).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { name: 'Project One - Hotlead Funnel' })).toHaveLength(1);
-    expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.panelAriaLabel)).toHaveLength(2);
+    expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.primaryPanelAriaLabel)).toHaveLength(1);
+    expect(screen.getAllByLabelText(appCopy.ui.sessions.detail.secondaryPanelAriaLabel)).toHaveLength(1);
     expect(screen.getByLabelText(appCopy.ui.sessions.detail.overviewAriaLabel)).toBeInTheDocument();
     expect(screen.getByText('Completed')).toBeInTheDocument();
     expect(screen.getByText('Project One')).toBeInTheDocument();

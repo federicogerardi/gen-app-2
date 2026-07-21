@@ -1769,6 +1769,57 @@ button:not(.MuiButton-root):not([class]):disabled,
   text-underline-offset: 3px;
 }
 
+.ui-session-model-info {
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ui-session-model-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ui-session-model-override {
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  font-size: 0.65rem;
+  background: var(--badge-info-bg);
+  color: var(--badge-info-fg);
+  border-radius: var(--radius-chip);
+  vertical-align: middle;
+}
+
+.ui-session-model-reason {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.ui-feedback-buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.ui-feedback-score {
+  min-width: var(--space-2);
+  text-align: center;
+}
+
+.ui-feedback-score--positive {
+  color: var(--success-pine);
+  font-weight: 500;
+}
+
+.ui-feedback-score--negative {
+  color: var(--error-fg);
+  font-weight: 500;
+}
+
+.ui-session-feedback-wrap {
+  margin-top: var(--space-1);
+}
+
 /* Markdown prose render */
 .ui-artifact-markdown {
   min-height: 180px;

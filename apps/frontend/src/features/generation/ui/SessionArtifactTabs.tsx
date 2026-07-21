@@ -121,11 +121,11 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
   if (visibleArtifacts.length === 0) {
     return (
       <section className="ui-session-artifact-panel">
-        <p className={uiPrimitives.metaLine}>Session: {group.sessionId}</p>
+        <p className={uiPrimitives.metaLine}>{appCopy.ui.sessions.detail.sessionPrefix}{group.sessionId}</p>
         <p className={uiPrimitives.metaLine}>
           {sortedArtifacts.length > 0
-            ? 'All steps are hidden by configuration.'
-            : 'No step artifacts found for this session.'}
+            ? appCopy.ui.sessions.detail.allStepsHidden
+            : appCopy.ui.sessions.detail.noStepArtifacts}
         </p>
       </section>
     );
@@ -140,7 +140,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
       <div className="ui-session-step-tabs-shell">
         <IconButton
           className="ui-session-step-control ui-session-step-scroll"
-          aria-label="Scroll session steps left"
+          aria-label={appCopy.ui.sessions.detail.scrollStepsLeft}
           onClick={() => {
             tabsScrollerRef.current?.scrollBy({ left: -220, behavior: 'smooth' });
           }}
@@ -150,7 +150,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
           &lt;
         </IconButton>
 
-        <div ref={tabsScrollerRef} className="ui-session-step-tabs" role="tablist" aria-label="Session steps">
+        <div ref={tabsScrollerRef} className="ui-session-step-tabs" role="tablist" aria-label={appCopy.ui.sessions.detail.sessionStepsAria}>
           {visibleArtifacts.map((artifact) => {
             const isActive = artifact.artifactId === selected.artifactId;
             return (
@@ -173,7 +173,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
 
         <IconButton
           className="ui-session-step-control ui-session-step-scroll"
-          aria-label="Scroll session steps right"
+          aria-label={appCopy.ui.sessions.detail.scrollStepsRight}
           onClick={() => {
             tabsScrollerRef.current?.scrollBy({ left: 220, behavior: 'smooth' });
           }}
@@ -185,28 +185,18 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
       </div>
 
       {selected.model && (
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
-          <span style={{ fontSize: '0.75rem', color: '#666' }}>
-            Modello: {selected.model}
+        <div className="ui-session-model-info">
+          <span className="ui-session-model-label">
+            {appCopy.ui.sessions.detail.modelLabel}{selected.model}
             {selected.modelSource === 'step-override' && (
-              <span
-                style={{
-                  marginLeft: '4px',
-                  padding: '0 4px',
-                  fontSize: '0.65rem',
-                  backgroundColor: '#e3f2fd',
-                  color: '#1976d2',
-                  borderRadius: '2px',
-                  verticalAlign: 'middle',
-                }}
-              >
-                Override
+              <span className="ui-session-model-override">
+                {appCopy.ui.sessions.detail.modelOverride}
               </span>
             )}
           </span>
           {selected.overrideReason && (
-            <span style={{ display: 'block', fontSize: '0.7rem', color: '#888' }}>
-              Reason: {selected.overrideReason}
+            <span className="ui-session-model-reason">
+              {appCopy.ui.sessions.detail.modelOverrideReason}{selected.overrideReason}
             </span>
           )}
         </div>
@@ -216,7 +206,7 @@ export const SessionArtifactTabs = ({ group, fallbackToolKey }: SessionArtifactT
         <ArtifactContentPreview
           content={selected.content}
           toolbarLabel={appCopy.ui.artifactPreview.toolbarLabel}
-          panelLabel="Selected session artifact"
+          panelLabel={appCopy.ui.sessions.detail.selectedArtifactPanel}
         />
       </div>
     </section>

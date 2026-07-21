@@ -3,6 +3,7 @@ import { useWorkspaceProject } from '../runtime/WorkspaceProjectContext';
 import { SessionsListingSection } from '../../artifacts/ui/SessionsListingSection';
 import { LoadingStateMessage, ErrorStateMessage } from '../../../app/ui/primitives';
 import { appCopy } from '../../../app/copy/system';
+import '../ui/dashboard/dashboard-panels.css';
 
 export const WorkspaceSessionsPage: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();

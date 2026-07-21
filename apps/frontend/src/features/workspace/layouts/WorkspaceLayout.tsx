@@ -9,6 +9,7 @@ import { WorkspaceSectionNav } from '../ui/WorkspaceSectionNav';
 import { updateProject } from '../../../features/projects/runtime/projects-client';
 import { appCopy } from '../../../app/copy/system';
 import '../ui/WorkspaceSectionNav.css';
+import '../ui/dashboard/dashboard-panels.css';
 
 export const WorkspaceLayout: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();

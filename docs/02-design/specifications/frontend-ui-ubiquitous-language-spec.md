@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.7
+version: 1.8
 date_created: 2026-05-08
 last-reviewed: 2026-07-21
 next-review-date: 2026-10-21
@@ -406,6 +406,9 @@ The following runtime paths are the canonical implementation contract for channe
 | Tab controls without WAI-ARIA tab pattern | Screen readers cannot associate tabs with panels | Implement `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"` |
 | Mobile overlay without focus trap | Keyboard users can tab into obscured content | Add focus trap, Escape handler, `inert` on background |
 | Hardcoded Italian in `aria-label` | Violates i18n contract; breaks if app copy changes | Use `appCopy` reference |
+| Conditional UI logic based on `.includes()` or `.indexOf()` against user-facing copy strings | Creates invisible coupling between component logic and localized text; breaks when copy changes; mixes languages | Use typed state codes, boolean flags, or reason-code enums to drive conditional UI. Map reason codes to copy separately. |
+| MUI `color="success.main"`, `color="error.main"`, `color="text.secondary"` or similar palette props on MUI components | Injects MUI palette CSS variables at runtime; bypasses app token system; breaks dark mode consistency | Use CSS classes with `var(--success-pine)`, `var(--error-fg)`, `var(--text-muted)` tokens. Replace MUI `Typography` with semantic `<span>` elements when only styling is needed. |
+| Multiple landmark regions with identical `aria-label` values | Screen readers cannot distinguish between landmarks; defeats landmark navigation | Each landmark must have a unique `aria-label` that describes its specific role (e.g., "Session artifact content" vs "Session context sidebar") |
 
 ## 9. Acceptance Gates
 
@@ -426,6 +429,7 @@ A PR touching frontend UI is acceptable only if:
 13. tab-like UI implements full WAI-ARIA tab pattern
 14. `aria-label` and other ARIA text attributes use `appCopy` keys, not hardcoded strings
 15. dynamic state changes are announced via `aria-live` or `role="status"`
+16. no conditional UI logic (show/hide, enable/disable) based on `.includes()` or string matching against user-facing copy — use typed state codes or boolean flags instead
 
 ## 10. Rollout Priority
 
@@ -540,6 +544,10 @@ All `aria-label`, `aria-description`, and `title` attributes must reference `app
 
 Any user-action feedback that changes dynamically (e.g., "Copied!", format selection confirmation) must be announced via `aria-live` or `role="status"`.
 
+### 13.7 Unique landmark labels
+
+Every landmark region (`<section>`, `<aside>`, `<nav>`, `<main>`, `<header>`, `<footer>`) with an `aria-label` must have a unique label within the page. When multiple landmarks of the same type exist, each must describe its specific role (e.g., "Session artifact content" for the primary panel, "Session context sidebar" for the secondary panel). Generic shared labels like "Session context" on multiple landmarks are prohibited.
+
 ## 14. Responsive Breakpoint Standardization
 
 The application uses exactly three canonical breakpoint values. No other breakpoint values are permitted in CSS files.
@@ -616,3 +624,5 @@ Key source files referenced by this specification:
 - `apps/frontend/src/features/workspace/ui/WorkspaceSectionNav.css`
 - `apps/frontend/src/features/workspace/ui/asset-components.css`
 - `apps/frontend/src/app/layouts/MainNavigation.css`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+- `apps/frontend/src/features/sessionsummary/ui/FeedbackButtons.tsx`

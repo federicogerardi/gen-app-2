@@ -2218,41 +2218,6 @@ button:not(.MuiButton-root):not([class]):disabled,
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
-.ui-dashboard-kpi-topbar {
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.ui-dashboard-kpi-item {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: var(--space-1) var(--space-2);
-  position: relative;
-}
-
-.ui-dashboard-kpi-item + .ui-dashboard-kpi-item::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--space-2) * -1);
-  top: 15%;
-  width: 1px;
-  height: 70%;
-  background: var(--border-subtle);
-}
-
-.ui-kpi-label {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
 .ui-admin-user-form {
   display: grid;
   gap: var(--space-2);
@@ -2403,39 +2368,7 @@ button:not(.MuiButton-root):not([class]):disabled,
   text-decoration: none;
 }
 
-.ui-dashboard-session-link {
-  display: block;
-  text-decoration: none;
-  color: var(--text-primary);
-  padding: var(--space-1) 0;
-  transition: color var(--transition-fast, 150ms ease);
-}
-
-.ui-dashboard-session-link:hover {
-  color: var(--workspace-blue);
-}
-
-.ui-dashboard-session-link:focus-visible {
-  outline: 2px solid var(--workspace-blue);
-  outline-offset: 2px;
-  border-radius: var(--radius-button);
-}
-
 @media (max-width: 760px) {
-  .ui-dashboard-kpi-topbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .ui-dashboard-kpi-item {
-    width: 100%;
-    padding: var(--space-1-5);
-  }
-
-  .ui-dashboard-kpi-item + .ui-dashboard-kpi-item::before {
-    display: none;
-  }
-
   .ui-kpi-value {
     font-size: clamp(1.8rem, 8vw, 2.2rem);
   }

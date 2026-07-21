@@ -383,6 +383,7 @@ export const appCopy = {
     },
     states: {
       loadingProjects: 'Loading workspaces...',
+      loadingDashboard: 'Loading dashboard...',
       noToolsAvailable: 'No tools available.',
       loadingUsers: 'Loading users...',
       loadingModels: 'Loading models...',
@@ -944,6 +945,17 @@ export const appCopy = {
       promote: 'Promote',
       failedPromote: 'Failed to promote artifact',
     },
+    dashboard: {
+      foundationSummaryTitle: 'Foundation across workspaces',
+      foundationSummaryFraction: (present: number, total: number) => `${present}/${total} workspaces`,
+      foundationSummaryFooterLink: 'Complete Foundation \u2192',
+      recommendedActionsTitle: 'Recommended next actions',
+      recommendedActionsEmpty: 'All caught up \u2014 every recent workspace has what it needs.',
+      recommendedActionUseLabel: 'Use \u2192',
+      recommendedActionWorkspaceLabel: (name: string) => `in ${name}`,
+      activeWorkspacesTitle: 'Your workspaces',
+      activeWorkspacesFooterLink: 'View all workspaces',
+    },
   },
   editorial: {
     publicShell: {
@@ -961,31 +973,19 @@ export const appCopy = {
       headline: 'Stratego Flow',
     },
     dashboard: {
-      headline: 'Your growth strategy, protected.',
-      body: 'Every workspace is treated as if the budget were our own. From strategy definition to execution, we protect every euro and deliver concrete results.',
+      eyebrow: 'Welcome back',
+      heroHeadlineResume: (toolLabel: string) => `Continue with ${toolLabel}`,
+      heroHeadlineChoose: 'Choose a workspace to continue',
+      heroSubtitleResume: (workspaceName: string) => `Pick up where you left off in ${workspaceName}.`,
+      heroSubtitleChoose: 'Select a workspace to start generating or complete its Foundation.',
+      heroCtaResume: (toolLabel: string) => `Resume ${toolLabel}`,
+      heroCtaChoose: 'Choose a workspace',
+      recentActivityTitle: 'Recent activity',
       zeroState: {
         eyebrow: 'Welcome',
         headline: 'Everything starts with a workspace.',
         body: 'A workspace is the context where you organize briefs, generations, and output. Create one now to start working with generation tools.',
         cta: 'Create your first workspace',
-      },
-      stats: [
-        'Protected strategies',
-        'Completed sessions',
-        'Available credits',
-      ],
-      cards: {
-        projects: {
-          title: 'Your strategies',
-          body: 'Every workspace is a space where you define your strategy and protect your investment. Strategies designed to multiply your results.',
-        },
-        tools: {
-          title: 'Generation for your strategy',
-          body: 'Open Tools as the central hub for guided paths and canonical generation orchestration.',
-        },
-        recentSessions: {
-          title: 'Your history of results',
-        },
       },
     },
     projects: {

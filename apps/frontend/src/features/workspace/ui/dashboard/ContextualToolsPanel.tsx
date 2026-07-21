@@ -5,7 +5,7 @@ import { getEnabledToolNavigationItems } from '../../../tools/runtime/tool-form-
 import { DashboardPanel } from './DashboardPanel';
 import { appCopy } from '../../../../app/copy/system';
 
-// Foundation tools are shown in FoundationToolsPanel, not here
+// Foundation tools are shown in WorkspaceOverviewCard, not here
 const FOUNDATION_TOOL_KEYS = new Set<string>(['brief-generator', 'tov-generator', 'personas-generator']);
 
 interface ContextualToolsPanelProps {

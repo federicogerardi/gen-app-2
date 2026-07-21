@@ -1,5 +1,5 @@
 
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
@@ -13,12 +13,14 @@ import { DashboardActiveWorkspacesPanel } from '../ui/DashboardActiveWorkspacesP
 
 export const DashboardPage = () => {
   const { apiBaseUrl, capabilities } = useApiConfig();
+  const [searchParams] = useSearchParams();
   const projectsQuery = useProjectsQuery({ apiBaseUrl, capabilities });
   const overview = useDashboardOverview();
 
   const hasNoProjects = !projectsQuery.loading && !projectsQuery.error && projectsQuery.data.length === 0;
+  const previewZeroState = searchParams.get('preview') === 'zero-state';
 
-  if (hasNoProjects) {
+  if (hasNoProjects || previewZeroState) {
     return (
       <Surface as="section" className="ui-dashboard-zero-state">
         <div className="ui-dashboard-zero-state-inner">

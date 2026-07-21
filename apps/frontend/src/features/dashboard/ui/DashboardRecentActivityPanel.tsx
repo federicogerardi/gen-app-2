@@ -1,10 +1,8 @@
-import { Link } from 'react-router-dom';
 import { DashboardPanel } from '../../workspace/ui/dashboard/DashboardPanel';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { formatRelativeTime } from '../../../app/ui/format-utils';
 import { appCopy } from '../../../app/copy/system';
-import { uiPrimitives } from '../../../app/ui/primitives';
 import type { SessionSummary } from '../../tools/runtime/session-client';
 
 interface DashboardRecentActivityPanelProps {
@@ -20,18 +18,11 @@ export const DashboardRecentActivityPanel: React.FC<DashboardRecentActivityPanel
   loading,
   error,
 }) => {
-  const footer = (
-    <Link to="/workspaces" className={uiPrimitives.inlineLink}>
-      {appCopy.ui.workspace.dashboard.viewAllSessionsArrow}
-    </Link>
-  );
-
   if (loading) {
     return (
       <DashboardPanel
         title={appCopy.editorial.dashboard.recentActivityTitle}
         loading
-        footer={footer}
       />
     );
   }
@@ -41,7 +32,6 @@ export const DashboardRecentActivityPanel: React.FC<DashboardRecentActivityPanel
       <DashboardPanel
         title={appCopy.editorial.dashboard.recentActivityTitle}
         error={error}
-        footer={footer}
       />
     );
   }
@@ -51,16 +41,12 @@ export const DashboardRecentActivityPanel: React.FC<DashboardRecentActivityPanel
       <DashboardPanel
         title={appCopy.editorial.dashboard.recentActivityTitle}
         empty={appCopy.editorial.sessions.emptyState}
-        footer={footer}
       />
     );
   }
 
   return (
-    <DashboardPanel
-      title={appCopy.editorial.dashboard.recentActivityTitle}
-      footer={footer}
-    >
+    <DashboardPanel title={appCopy.editorial.dashboard.recentActivityTitle}>
       {sessions.map(session => {
         const projectName = projectNameById.get(session.projectId) ?? session.projectId;
         return (

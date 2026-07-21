@@ -10,6 +10,7 @@ import { DashboardFoundationSummaryPanel } from '../ui/DashboardFoundationSummar
 import { DashboardRecommendedActionsPanel } from '../ui/DashboardRecommendedActionsPanel';
 import { DashboardRecentActivityPanel } from '../ui/DashboardRecentActivityPanel';
 import { DashboardActiveWorkspacesPanel } from '../ui/DashboardActiveWorkspacesPanel';
+import '../../workspace/ui/dashboard/dashboard-panels.css';
 
 export const DashboardPage = () => {
   const { apiBaseUrl, capabilities } = useApiConfig();

@@ -7,42 +7,10 @@ import { useMswHandler } from '../../../test/mocks/server';
 import { renderProjectPage } from '../test/renderProjectPage';
 import { ProjectsListPage } from './ProjectsListPage';
 
-const authBag = {
-  capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false },
-};
-
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: authBag.capabilities,
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'u1', email: 'u@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: authBag.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ role: 'member', userId: 'u1', email: 'u@test.com', capabilities: { projects: true, models: false, artifacts: false, toolsUpload: false } });
+});
 
 beforeEach(() => {
   useMswHandler(
@@ -96,7 +64,7 @@ describe('ProjectsListPage', () => {
       <Routes>
         <Route
           path="/start"
-          element={<Link to="/dashboard/projects">Apri projects</Link>}
+          element={<Link to="/dashboard/projects">Open projects</Link>}
         />
         <Route
           path="/dashboard/projects"
@@ -106,7 +74,7 @@ describe('ProjectsListPage', () => {
       { initialEntries: ['/start'] },
     );
 
-    fireEvent.click(screen.getByRole('link', { name: 'Apri projects' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Open projects' }));
     expect(await screen.findByText('Project 1')).toBeInTheDocument();
     await waitFor(() => {
       expect(requestCount).toBe(1);

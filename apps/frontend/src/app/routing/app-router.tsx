@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import type { FC, LazyExoticComponent, ReactElement } from 'react';
 import { AuthenticatedShell } from '../layouts/AuthenticatedShell';
@@ -13,10 +13,6 @@ import { PageLoader } from '../ui/PageLoader';
 
 // Lazy load page components for code splitting
 const DashboardPage = lazy(() => import('../../features/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const ProjectsListPage = lazy(() => import('../../features/projects/pages/ProjectsListPage').then(m => ({ default: m.ProjectsListPage })));
-const NewProjectPage = lazy(() => import('../../features/projects/pages/NewProjectPage').then(m => ({ default: m.NewProjectPage })));
-const ProjectDetailPage = lazy(() => import('../../features/projects/pages/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
-const ToolsHubPage = lazy(() => import('../../features/tools/pages/ToolsHubPage').then(m => ({ default: m.ToolsHubPage })));
 const FunnelPagesToolPage = lazy(() => import('../../features/tools/funnel-pages/pages/FunnelPagesToolPage').then(m => ({ default: m.FunnelPagesToolPage })));
 const NextlandToolPage = lazy(() => import('../../features/tools/nextland/pages/NextlandToolPage').then(m => ({ default: m.NextlandToolPage })));
 const YoutubeLfScriptToolPage = lazy(() => import('../../features/tools/youtube-lf-script/pages/YoutubeLfScriptToolPage').then(m => ({ default: m.YoutubeLfScriptToolPage })));
@@ -25,9 +21,11 @@ const MetaAdsToolPage = lazy(() => import('../../features/tools/meta-ads/pages/M
 const YoutubeDescriptionToolPage = lazy(() => import('../../features/tools/youtube-description/pages/YoutubeDescriptionToolPage').then(m => ({ default: m.YoutubeDescriptionToolPage })));
 const GeometricToolPage = lazy(() => import('../../features/tools/geometric/pages/GeometricToolPage').then(m => ({ default: m.GeometricToolPage })));
 const BlogArticleGeneratorToolPage = lazy(() => import('../../features/tools/blog-article-generator/pages/BlogArticleGeneratorToolPage').then(m => ({ default: m.BlogArticleGeneratorToolPage })));
+const BriefGeneratorToolPage = lazy(() => import('../../features/tools/brief-generator/pages/BriefGeneratorToolPage').then(m => ({ default: m.BriefGeneratorToolPage })));
+const TovGeneratorToolPage = lazy(() => import('../../features/tools/tov-generator/pages/TovGeneratorToolPage').then(m => ({ default: m.TovGeneratorToolPage })));
+const PersonasGeneratorToolPage = lazy(() => import('../../features/tools/personas-generator/pages/PersonasGeneratorToolPage').then(m => ({ default: m.PersonasGeneratorToolPage })));
 const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
 const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
-const SessionSummaryListPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryListPage').then(m => ({ default: m.SessionSummaryListPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
 const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
@@ -36,6 +34,13 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
+const WorkspacesListPage = lazy(() => import('../../features/workspace/pages/WorkspacesListPage').then(m => ({ default: m.WorkspacesListPage })));
+const WorkspaceDashboard = lazy(() => import('../../features/workspace/pages/WorkspaceDashboard').then(m => ({ default: m.WorkspaceDashboard })));
+const ProjectAssetsPage = lazy(() => import('../../features/workspace/pages/ProjectAssetsPage').then(m => ({ default: m.ProjectAssetsPage })));
+const WorkspaceToolWrapper = lazy(() => import('../../features/workspace/ui/WorkspaceToolWrapper').then(m => ({ default: m.WorkspaceToolWrapper })));
+const LegacyToolRedirect = lazy(() => import('../../features/workspace/ui/LegacyToolRedirect').then(m => ({ default: m.LegacyToolRedirect })));
+const WorkspaceSessionsPage = lazy(() => import('../../features/workspace/pages/WorkspaceSessionsPage').then(m => ({ default: m.WorkspaceSessionsPage })));
+const WorkspaceLayout = lazy(() => import('../../features/workspace/layouts/WorkspaceLayout').then(m => ({ default: m.WorkspaceLayout })));
 // Lazy-loaded tool page components indexed by toolKey — used by TOOL_ROUTES below.
 const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'funnel-pages': FunnelPagesToolPage,
@@ -46,6 +51,9 @@ const toolPageComponents: Record<SupportedTool, LazyExoticComponent<FC>> = {
   'youtube-description': YoutubeDescriptionToolPage,
   'geometric': GeometricToolPage,
   'blog-article-generator': BlogArticleGeneratorToolPage,
+  'brief-generator': BriefGeneratorToolPage,
+  'tov-generator': TovGeneratorToolPage,
+  'personas-generator': PersonasGeneratorToolPage,
 };
 
 const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; children: ReactElement }) => {
@@ -57,6 +65,11 @@ const ToolRouteGuard = ({ toolKey, children }: { toolKey: SupportedTool; childre
   }
 
   return children;
+};
+
+const ProjectRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/workspaces/${id}`} replace />;
 };
 const lighthouseAdminRouteTargets: Record<string, string> = {
   users: '/admin/users',
@@ -116,19 +129,70 @@ export const createAppRouter = () => createBrowserRouter([
       },
       {
         path: '/dashboard/projects',
-        element: <Suspense fallback={<PageLoader />}><ProjectsListPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/dashboard/projects/new',
-        element: <Suspense fallback={<PageLoader />}><NewProjectPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/dashboard/projects/:id',
-        element: <Suspense fallback={<PageLoader />}><ProjectDetailPage /></Suspense>,
+        element: <ProjectRedirect />,
       },
       {
-        path: '/tools',
-        element: <Suspense fallback={<PageLoader />}><ToolsHubPage /></Suspense>,
+        path: '/workspaces',
+        children: [
+          {
+            index: true,
+            element: <Suspense fallback={<PageLoader />}><WorkspacesListPage /></Suspense>,
+          },
+          {
+            path: ':workspaceId',
+            element: <Suspense fallback={<PageLoader />}><WorkspaceLayout /></Suspense>,
+            children: [
+              {
+                index: true,
+                element: <Suspense fallback={<PageLoader />}><WorkspaceDashboard /></Suspense>,
+              },
+              {
+                path: 'assets',
+                element: <Suspense fallback={<PageLoader />}><ProjectAssetsPage /></Suspense>,
+              },
+              {
+                path: 'sessions',
+                children: [
+                  {
+                    index: true,
+                    element: <Suspense fallback={<PageLoader />}><WorkspaceSessionsPage /></Suspense>,
+                  },
+                  {
+                    path: ':sessionId',
+                    element: <Suspense fallback={<PageLoader />}><SessionSummaryDetailPage /></Suspense>,
+                  },
+                ],
+              },
+              {
+                path: 'tools',
+                children: Object.entries(toolPageComponents).map(([toolKey, Component]) => ({
+                  path: toolKey,
+                  element: (
+                    <ToolRouteGuard toolKey={toolKey as SupportedTool}>
+                      <Suspense fallback={<PageLoader />}>
+                        <WorkspaceToolWrapper toolKey={toolKey as SupportedTool}>
+                          <Component />
+                        </WorkspaceToolWrapper>
+                      </Suspense>
+                    </ToolRouteGuard>
+                  ),
+                })),
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: '/tools/:toolKey',
+        element: <Suspense fallback={<PageLoader />}><LegacyToolRedirect /></Suspense>,
       },
       ...Object.keys(toolPageComponents).map((toolKey) => {
         const typedToolKey = toolKey as SupportedTool;
@@ -145,20 +209,12 @@ export const createAppRouter = () => createBrowserRouter([
         };
       }),
       {
-        path: '/artifacts',
-        element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense>,
-      },
-      {
-        path: '/artifacts/:artifactId',
-        element: <Suspense fallback={<PageLoader />}><ArtifactDetailPage /></Suspense>,
-      },
-      {
         path: '/sessionsummary',
-        element: <Suspense fallback={<PageLoader />}><SessionSummaryListPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/sessionsummary/:sessionId',
-        element: <Suspense fallback={<PageLoader />}><SessionSummaryDetailPage /></Suspense>,
+        element: <Navigate to="/workspaces" replace />,
       },
       {
         path: '/admin',
@@ -192,11 +248,18 @@ export const createAppRouter = () => createBrowserRouter([
             path: 'user-reports',
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
           },
+          {
+            path: 'artifacts',
+            children: [
+              { index: true, element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense> },
+              { path: ':artifactId', element: <Suspense fallback={<PageLoader />}><ArtifactDetailPage /></Suspense> },
+            ],
+          },
         ],
       },
       {
         path: '*',
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to="/workspaces" replace />,
       },
     ],
   },

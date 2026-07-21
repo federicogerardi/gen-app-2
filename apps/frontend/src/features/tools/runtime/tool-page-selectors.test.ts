@@ -3,24 +3,11 @@ import {
   buildBaseGenerationRequest,
   buildGeometricDirectInputExtractionInfo,
   buildYoutubeDescriptionDirectInputExtractionInfo,
-  deriveToolInputFileCompletion,
   deriveToolInputRequirementMatrix,
   selectToolFileInstructions,
 } from './tool-page-selectors';
 
 describe('selectToolFileInstructions', () => {
-  it('returns canonical angle-generator instructions with optional second file policy', () => {
-    const instructions = selectToolFileInstructions('angle-generator');
-
-    expect(instructions).not.toBeNull();
-    expect(instructions?.alwaysRequiredFiles.map((file) => file.label)).toEqual(['BriefingFile']);
-    expect(instructions?.requiredBySettingFiles).toEqual([]);
-    expect(instructions?.optionalBySettingFiles.map((file) => file.label)).toEqual(['AngleDetectorFile']);
-    expect(instructions?.stepConstraints).toEqual([
-      'La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.',
-    ]);
-  });
-
   it('returns canonical youtube-lf-script instructions with the full extraction schema', () => {
     const instructions = selectToolFileInstructions('youtube-lf-script');
 
@@ -30,7 +17,7 @@ describe('selectToolFileInstructions', () => {
       'Avatar',
       'Pain point',
       'Purchase process type',
-      'Offerta',
+      'Offer',
       'Proof',
       'Target duration (minutes)',
       'Proprietary methodology disclosure',
@@ -38,7 +25,7 @@ describe('selectToolFileInstructions', () => {
     expect(instructions?.requiredFields).not.toContain('knowledge_content');
     expect(instructions?.requiredFields).not.toContain('target_duration_minutes');
     expect(instructions?.stepConstraints).toEqual([
-      'La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.',
+      'The canonical sequence is pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.',
     ]);
   });
 
@@ -47,50 +34,14 @@ describe('selectToolFileInstructions', () => {
 
     expect(instructions).not.toBeNull();
     expect(instructions?.requiredFields).toEqual([
-      'Obiettivo del funnel',
+      'Funnel goal',
       'Target',
-      'Offerta',
+      'Offer',
       'Proof',
-      'CTA principale',
+      'Primary CTA',
     ]);
     expect(instructions?.requiredFields).not.toContain('funnel_goal');
     expect(instructions?.requiredFields).not.toContain('primary_cta');
-  });
-
-  it('derives required and optional completion deterministically from policy keys', () => {
-    const angleMissingSecondOptional = deriveToolInputFileCompletion({
-      toolKey: 'angle-generator',
-      completedFileKeys: ['briefing-file'],
-    });
-
-    expect(angleMissingSecondOptional.requiredFilesComplete).toBe(true);
-    expect(angleMissingSecondOptional.missingRequiredFiles).toEqual([]);
-    expect(angleMissingSecondOptional.missingOptionalFiles.map((file) => file.key)).toEqual(['angle-detector-file']);
-
-    const angleAllRequiredComplete = deriveToolInputFileCompletion({
-      toolKey: 'angle-generator',
-      completedFileKeys: ['briefing-file', 'angle-detector-file'],
-    });
-
-    expect(angleAllRequiredComplete.requiredFilesComplete).toBe(true);
-    expect(angleAllRequiredComplete.missingRequiredFiles).toEqual([]);
-  });
-
-  it('builds the canonical input requirement matrix with direct-input and file entries', () => {
-    const matrix = deriveToolInputRequirementMatrix({
-      toolKey: 'angle-generator',
-      hasProjectSelected: false,
-      completedFileKeys: [],
-    });
-
-    expect(matrix.requiredEntriesSatisfied).toBe(false);
-    expect(matrix.missingRequiredEntries.map((entry) => entry.key)).toEqual([
-      'project-selection',
-      'briefing-file',
-    ]);
-    expect(matrix.missingOptionalEntries.map((entry) => entry.key)).toEqual([
-      'angle-detector-file',
-    ]);
   });
 
   it('keeps api-acquisition entries empty for current tools without bindings', () => {
@@ -220,7 +171,6 @@ describe('buildBaseGenerationRequest', () => {
       runtimeIntent: 'new',
       formState: {
         model: 'openrouter/auto',
-        tone: 'Professional',
         campaignObjective: 'Leads',
         registrySnapshotRef: 'snapshot:default',
         titolo: '',
@@ -243,6 +193,7 @@ describe('buildBaseGenerationRequest', () => {
         briefingText: 'brief text',
       },
       runPrefix: 'run-1',
+      selectedAssetIds: [],
     });
 
     expect(request.input.extractionPayload).toMatchObject({
@@ -259,7 +210,6 @@ describe('buildBaseGenerationRequest', () => {
       runtimeIntent: 'new',
       formState: {
         model: 'openrouter/auto',
-        tone: 'Professional',
         campaignObjective: 'Traffic',
         registrySnapshotRef: 'snapshot:default',
         titolo: '',
@@ -281,6 +231,7 @@ describe('buildBaseGenerationRequest', () => {
         briefingText: 'brief text',
       },
       runPrefix: 'run-1',
+      selectedAssetIds: [],
     });
 
     expect(request.input.extractionPayload).toMatchObject({

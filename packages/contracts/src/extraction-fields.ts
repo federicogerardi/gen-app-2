@@ -35,6 +35,9 @@ export const EXTRACTION_FIELD_KEYS = [
   'base_query',
   'language',
   'country',
+  'demographics',
+  'goals',
+  'behaviors',
 ] as const;
 
 export type ExtractionFieldKey = (typeof EXTRACTION_FIELD_KEYS)[number];
@@ -96,6 +99,27 @@ export const InstructionRequiredExtractionFieldKeysByTool: Readonly<Record<ToolK
   'youtube-description': [],
   'geometric': [],
   'blog-article-generator': [],
+  'brief-generator': [
+    'product_or_service',
+    'target_audience',
+    'campaign_objective',
+    'primary_offer',
+    'tone',
+  ],
+  'tov-generator': [
+    'brand_or_company',
+    'target_audience',
+    'tone',
+    'product_or_service',
+    'market',
+  ],
+  'personas-generator': [
+    'demographics',
+    'goals',
+    'pain_point',
+    'behaviors',
+    'objections',
+  ],
 } as const;
 
 export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey, readonly ExtractionFieldKey[]>> = {
@@ -113,6 +137,9 @@ export const ReadinessRequiredExtractionFieldKeysByTool: Readonly<Record<ToolKey
   'youtube-description': [],
   'geometric': [],
   'blog-article-generator': [],
+  'brief-generator': [],
+  'tov-generator': [],
+  'personas-generator': [],
 } as const;
 
 export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly<Record<string, ExtractionFieldKey>>>> = {
@@ -169,6 +196,9 @@ export const LegacyExtractionFieldAliasByTool: Readonly<Record<ToolKey, Readonly
   'youtube-description': {},
   'geometric': {},
   'blog-article-generator': {},
+  'brief-generator': {},
+  'tov-generator': {},
+  'personas-generator': {},
 } as const;
 
 const normalizeAliasCandidate = (value: string): string => value.trim().toLowerCase();

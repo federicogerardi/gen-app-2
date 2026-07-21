@@ -5,6 +5,7 @@
  * - GenerationRequest: command to initiate a generation
  * - BackendStreamEvent: SSE events during generation
  * - Value Objects: ArtifactType, OutputFormat
+ * - Asset Domain Model (DDD-188 through DDD-207)
  *
  * Both frontend and backend import exclusively from this package.
  * Structural parity is enforced via compile-time guards.
@@ -14,6 +15,10 @@
  *   - BackendStreamEvent (DDD-009)
  *   - ArtifactType (DDD-001 scope)
  *   - OutputFormat (DDD-022 scope)
+ *   - AssetType (DDD-199)
+ *   - ToolAssetContract (DDD-200)
+ *   - AssetCompatibilityMatrix (DDD-201)
+ *   - AssetFieldMapping (DDD-207)
  *
  * References:
  *   - DDD-023: @gen-app-2/contracts is the single authoritative FE source
@@ -30,6 +35,40 @@ export {
   ReadinessRequiredExtractionFieldKeysByTool,
 } from './extraction-fields';
 export type { ExtractionFieldKey } from './extraction-fields';
+
+// =====================================================================
+// Asset Domain Model (DDD-188 through DDD-207)
+// =====================================================================
+
+export {
+  ASSET_TYPES,
+  isAssetType,
+  TOOL_ASSET_CONTRACTS,
+  getCompatibleConsumerTools,
+  getCompatibleAssetTypes,
+  getProducedAssetTypes,
+  getToolProductionChain,
+  ASSET_FIELD_MAPPINGS,
+  resolveFieldMapping,
+  isValidAssetReference,
+} from './asset';
+export type {
+  AssetType,
+  AssetSource,
+  AssetStatus,
+  AssetGroupUsage,
+  ToolAssetContract,
+  AssetFieldMappingEntry,
+  AssetFieldMapping,
+  AssetReference,
+  AssetInjectionDirective,
+  AssetToolInputSourceFamily,
+  AssetDto,
+  AssetGroupDto,
+  AssetVersionDto,
+  AssetDerivationChainDto,
+  CompatibleAssetsResponse,
+} from './asset';
 
 export {
   canRoleAccessToolKey,
@@ -98,9 +137,7 @@ import type {
   ToolWorkflowType,
 } from './tool-workflows';
 
-export type ToneProfile = 'Professional' | 'Casual' | 'Formal' | 'Technical';
 export type LlmModelId = `${string}/${string}`;
-export type RequestTone = ToneProfile | 'analitico';
 
 /**
  * SessionArtifactModelInfo — DDD-152 projection
@@ -120,6 +157,7 @@ export type SessionArtifactModelInfo = {
 
 // Import for local use in GenerationRequest type definitions
 import type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
+import type { AssetReference } from './asset';
 export type { ArtifactType, OutputFormat, WorkflowRunMode } from '@gen-app-2/domain';
 
 // =====================================================================
@@ -156,7 +194,6 @@ export type GenerationRequestInput = {
   prompt?: string;
   step?: ToolStep;
   intent?: WorkflowRunMode;
-  tone?: RequestTone;
   notes?: string;
   toolKey?: ToolKey;
   briefingId?: string | null;
@@ -173,6 +210,9 @@ export type GenerationRequestInput = {
   normalizedText?: string;
   parsedFormat?: 'txt' | 'md' | 'docx';
   copyLengthFormat?: CopyLengthFormat;
+
+  // DDD-189: Asset references for prompt injection during generation
+  assetReferences?: AssetReference[];
 
   // Canonical extraction envelope persisted by backend adapters.
   extraction?: {

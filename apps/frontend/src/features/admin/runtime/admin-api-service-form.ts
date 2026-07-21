@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { appCopy } from '../../../app/copy/system';
 import type { ApiService, ApiServiceAccessMode, ApiServiceRequestMethod, ApiServiceStatus } from './admin-client';
 
 export const ADMIN_API_SERVICE_ACCESS_MODE_OPTIONS = [
@@ -33,10 +34,10 @@ const stringJson = (message: string) => z.string().refine((value) => isValidJson
 const HEADER_NAME_REGEX = /^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/;
 
 export const adminApiServiceFormSchema = z.object({
-  key: z.string().min(1, 'Key richiesto'),
-  label: z.string().min(1, 'Label richiesta'),
-  baseUrl: z.string().min(1, 'Base URL richiesta'),
-  resourcePath: z.string().min(1, 'Resource path richiesta'),
+  key: z.string().min(1, appCopy.ui.adminApiServices.validation.keyRequired),
+  label: z.string().min(1, appCopy.ui.adminApiServices.validation.labelRequired),
+  baseUrl: z.string().min(1, appCopy.ui.adminApiServices.validation.baseUrlRequired),
+  resourcePath: z.string().min(1, appCopy.ui.adminApiServices.validation.resourcePathRequired),
   accessMode: z.enum(['public', 'token']),
   requestMethod: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   tokenHeaderName: z.string().optional().refine((value) => {

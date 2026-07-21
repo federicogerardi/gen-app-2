@@ -87,7 +87,6 @@ export type RunExtractionInput = {
   projectId: string;
   model: string;
   toolKey: ToolKey;
-  tone?: string;
   notes?: string;
   briefingId: string;
   briefingText: string;
@@ -219,7 +218,7 @@ export const uploadBrief = async (
   const contentBase64 = await toBase64(input.file);
   const requiredInputFiles = getRequiredToolInputFiles(input.toolKey);
   const hasRequiredAngleDetector = requiredInputFiles.some((entry) => entry.key === 'angle-detector-file');
-  const isDualSourceTool = input.toolKey === 'angle-generator' || input.toolKey === 'meta-ads';
+  const isDualSourceTool = input.toolKey === 'meta-ads';
   const angleDetectorFile = input.angleDetectorFile;
 
   if (hasRequiredAngleDetector && !angleDetectorFile) {
@@ -289,7 +288,6 @@ export const runExtraction = async (
     toolKey: 'extraction',
     workflowType: 'extraction',
     input: {
-      tone: 'analitico',
       notes: input.notes ?? '',
       toolKey: input.toolKey,
       briefingId: input.briefingId,

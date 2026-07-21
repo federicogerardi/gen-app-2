@@ -21,7 +21,6 @@ export const createToolPage = (toolKey: SupportedTool): FC => {
         intent={params.intent}
         sourceArtifactId={params.sourceArtifactId}
         initialProjectId={params.initialProjectId}
-        relaunchTone={params.relaunchTone}
         relaunchNotes={params.relaunchNotes}
         relaunchFromArtifactId={params.relaunchFromArtifactId}
         briefingId={params.briefingId}

@@ -1,0 +1,41 @@
+.create-asset-prompt {
+  padding: var(--space-2);
+  text-align: center;
+  background-color: var(--interactive-hover);
+  border-radius: var(--radius-button);
+  margin: var(--space-1) 0;
+}
+
+.create-asset-prompt__button {
+  margin-top: var(--space-1);
+}
+
+.create-asset-prompt__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.create-asset-prompt__form-actions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.create-asset-prompt__actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-micro);
+}
+
+/* ── Asset Selection List ── */
+.asset-selection-list__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-micro);
+  margin-left: auto;
+}
+
+.asset-selection-list__stale {
+  font-size: 0.75rem;
+  color: var(--warning-amber);
+}

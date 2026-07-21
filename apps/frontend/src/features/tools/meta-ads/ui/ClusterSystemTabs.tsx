@@ -5,6 +5,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@mui/material';
+import { appCopy } from '../../../../app/copy/system';
 import { uiPrimitives } from '../../../../app/ui/primitives';
 import { ArtifactContentPreview } from '../../../artifacts/ui/ArtifactContentPreview';
 import {
@@ -222,7 +223,7 @@ export const ClusterSystemTabs = ({ content }: ClusterSystemTabsProps) => {
           </div>
           <ArtifactContentPreview
             content={selectedVersion.primaryText}
-            toolbarLabel="Modalita visualizzazione contenuto cluster"
+            toolbarLabel={appCopy.ui.artifactPreview.toolbarLabel}
             panelLabel="Selected cluster content"
           />
         </div>

@@ -7,31 +7,10 @@ const handlePrimaryAction = vi.fn();
 const handleExtractionStart = vi.fn();
 const setFormState = vi.fn();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'user-1' } },
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'user-1' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-1' });
+});
 
 vi.mock('../../../app/runtime/queries/useModelsQuery', () => ({
   useModelsQuery: () => ({
@@ -72,6 +51,8 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingOptionalFiles: [],
     missingRequiredApiAcquisition: [],
     missingOptionalApiAcquisition: [],
+    missingRequiredAssets: [],
+    missingOptionalAssets: [],
   }),
 }));
 
@@ -84,7 +65,6 @@ vi.mock('../runtime/useToolPage', () => ({
     formState: {
       projectId: 'project-1',
       model: 'openrouter/auto',
-      tone: 'Professional',
       campaignObjective: '',
       videoTitle: '',
       topic: '',
@@ -200,7 +180,7 @@ describe('ToolPageTemplate geometric direct input gating', () => {
     fireEvent.change(screen.getByLabelText('Base query'), { target: { value: 'protein supplements' } });
 
     fireEvent.mouseDown(screen.getByLabelText('Language'));
-    const languageOptions = screen.getAllByText('Italiano (it)');
+    const languageOptions = screen.getAllByText('Italian (it)');
     fireEvent.click(languageOptions[languageOptions.length - 1]!);
 
     fireEvent.mouseDown(screen.getByLabelText('Country / Google Domain'));

@@ -57,7 +57,7 @@ export const AuthenticatedShell = () => {
         tabIndex={isMobileNavOpen ? 0 : -1}
       />
 
-      <section className={cx(uiPrimitives.workbench, isNavCollapsed && 'is-nav-collapsed')}>
+      <section className={cx(uiPrimitives.workbench, isNavCollapsed && 'is-nav-collapsed')} {...(isMobileNavOpen ? { inert: true } : {})}>
         <MainNavigation
           isCollapsed={isNavCollapsed}
           isMobileOpen={isMobileNavOpen}

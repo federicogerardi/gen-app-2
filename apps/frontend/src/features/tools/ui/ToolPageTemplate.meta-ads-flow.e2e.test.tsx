@@ -14,38 +14,16 @@ let mockedEffectiveBriefingStatus: 'idle' | 'uploading' | 'extracting' | 'ready'
 const formState = {
   projectId: 'project-1',
   model: 'openrouter/auto',
-  tone: 'Professional',
   campaignObjective: '',
 };
 const setFormState = vi.fn((updater: (prev: typeof formState) => typeof formState) => {
   Object.assign(formState, updater(formState));
 });
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'user-1' } },
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'user-1' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-1' });
+});
 
 vi.mock('../../../app/runtime/queries/useModelsQuery', () => ({
   useModelsQuery: () => ({
@@ -72,6 +50,8 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingOptionalFiles: [],
     missingRequiredApiAcquisition: [],
     missingOptionalApiAcquisition: [],
+    missingRequiredAssets: [],
+    missingOptionalAssets: [],
   }),
 }));
 
@@ -168,13 +148,13 @@ describe('ToolPageTemplate meta-ads e2e flow', () => {
       </MemoryRouter>,
     );
 
-    const objectiveSelect = screen.getByRole('combobox', { name: /obiettivo campagna/i });
+    const objectiveSelect = screen.getByRole('combobox', { name: /campaign objective/i });
     fireEvent.mouseDown(objectiveSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Leads' }));
 
     expect(formState.campaignObjective).toBe('Leads');
 
-    fireEvent.click(screen.getByRole('button', { name: /avvia la generazione/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start generation/i }));
 
     await waitFor(() => {
       expect(handleExtractionStart).toHaveBeenCalledTimes(1);

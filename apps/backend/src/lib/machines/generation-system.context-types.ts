@@ -10,6 +10,7 @@ import type {
 import type { GenerationAdapters } from '../adapters/generation.adapters';
 import type { EffectiveModelResolution } from '../types/step-llm-model-override';
 import type { RouteType } from './generation-routing';
+import type { AssetReferenceInput } from '../runtime/asset-injection-resolver';
 
 export type GenerationDomainContext = {
   readonly requestId: string;
@@ -33,6 +34,7 @@ export type GenerationRuntimeContext = {
   readonly routeType: RouteType;
   readonly effectiveModelResolution: EffectiveModelResolution | null;
   readonly mode: 'generate' | 'stream';
+  readonly assetReferences?: readonly AssetReferenceInput[];
 };
 
 export type GenerationMetricsContext = {

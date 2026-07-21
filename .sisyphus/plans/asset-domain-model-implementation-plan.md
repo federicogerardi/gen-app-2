@@ -1,6 +1,6 @@
 ---
-status: draft
-version: 1.0.0
+status: in-progress
+version: 1.1.0
 last-reviewed: 2026-07-16
 next-review-date: 2026-07-23
 owner: federico
@@ -8,6 +8,18 @@ type: implementation-plan
 goal: Integrate Asset domain model (DDD-188→207) into codebase
 tags: [ddd, asset-domain, cross-tool-integration]
 ---
+
+## Execution Progress
+
+| Phase | Track | Status | Notes |
+|-------|-------|--------|-------|
+| 1 | A — Contracts | ✅ Complete | `packages/contracts/src/asset.ts` created, all types exported |
+| 1 | B — Database | ✅ Complete | 4 migrations created (000023–000026) |
+| 2 | C — Backend Types & Adapters | ✅ Complete | `types/asset.ts` + `adapters/asset.adapter.ts` created |
+| 2 | D — Prompt Injection | ✅ Complete | `runtime/asset-injection-resolver.ts` created |
+| 3 | E — HTTP Handlers | ✅ Complete | `tools-asset-handlers.ts` + routes registered |
+| 4 | F — Frontend | ✅ Complete | `asset-client.ts`, `useAssetSuggestions.ts`, types updated |
+| 5 | G — Testing & Governance | ✅ Complete | 35 tests passing, all typechecks pass |
 
 # Asset Domain Model Implementation Plan
 
@@ -227,5 +239,163 @@ Phase 5: G → 5h total
 
 ---
 
-*Plan Status: Draft - Ready for Review*
-*Next: Execute Phase 1 (Contracts + Database) after plan approval*
+## Phase 1 Completion Log (2026-07-16)
+
+**Branch**: `feat/asset-domain-model-implementation` (from `dev`)
+
+### Track A: Contracts & Domain Primitives ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| A-001 | 199 | `packages/contracts/src/asset.ts` | ✅ `AssetType` = 12 const values + derived type |
+| A-002 | 190,191,195 | `packages/contracts/src/asset.ts` | ✅ `AssetSource`, `AssetStatus`, `AssetGroupUsage` union types |
+| A-003 | 200 | `packages/contracts/src/asset.ts` | ✅ `TOOL_ASSET_CONTRACTS` maps all 8 tools |
+| A-004 | 201 | `packages/contracts/src/asset.ts` | ✅ `getCompatibleConsumerTools`, `getCompatibleAssetTypes`, `getToolProductionChain` |
+| A-005 | 207 | `packages/contracts/src/asset.ts` | ✅ `AssetFieldMapping` type + 3 placeholder mappings |
+| A-006 | 189,193 | `packages/contracts/src/asset.ts` | ✅ `AssetReference`, `AssetInjectionDirective` + validation |
+| A-007 | 192 | `packages/contracts/src/index.ts` | ✅ All asset types re-exported |
+
+**Verification**: `npm --workspace packages/contracts run typecheck` — ✅ PASS
+
+### Track B: Database Schema ✅
+
+| Task | DDD | Migration | Status |
+|------|-----|-----------|--------|
+| B-001 | 188,190,191 | `20260716_000023_asset_core.sql` | ✅ `assets` table with CHECK constraints |
+| B-002 | 194,195 | `20260716_000024_asset_groups.sql` | ✅ `asset_groups` + `asset_group_members` tables |
+| B-003 | 196 | `20260716_000025_asset_versions.sql` | ✅ `asset_versions` with unique constraint |
+| B-004 | 197 | `20260716_000026_asset_derivation_and_feedback.sql` | ✅ `asset_derivation_chains` table |
+| B-005 | 178 | `20260716_000026_asset_derivation_and_feedback.sql` | ✅ `generation_feedback` table |
+
+**Verification**: `npm run typecheck` (all workspaces) — ✅ PASS
+
+---
+
+## Phase 2 Completion Log (2026-07-16)
+
+### Track C: Backend Types & Adapters ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| C-001 | 188 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetRow`, `rowToAsset` mapper |
+| C-002 | 194 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetGroupRow`, `rowToAssetGroup` mapper |
+| C-003 | 196 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetVersionRow`, `rowToAssetVersion` mapper |
+| C-004 | 197 | `apps/backend/src/lib/types/asset.ts` | ✅ `AssetDerivationChainRow`, `rowToDerivationChain` mapper |
+| C-005 | 188 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ Asset CRUD (create, get, update, archive, list) |
+| C-006 | 194 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ AssetGroup CRUD (create, get, update, add/remove members) |
+| C-007 | 196 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `createAssetVersion` with transaction |
+| C-008 | 197 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `createDerivationLink` + query functions |
+| C-009 | 202 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `listCompatibleAssets` combining contracts + DB |
+| C-010 | 203 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `detectAssetGaps` comparing contract vs existing |
+| C-011 | 205 | `apps/backend/src/lib/adapters/asset.adapter.ts` | ✅ `recordFeedback`, `getArtifactFeedbackScore` |
+| C-012 | — | `apps/backend/src/lib/adapters/generation/index.ts` | ✅ All asset adapters re-exported |
+
+**Additional**: Added Asset tables to Kysely DB interface (`postgres-kysely.types.ts`)
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+### Track D: Backend Runtime — Prompt Injection ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| D-001 | 189 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `AssetReferenceInput` type + validation |
+| D-002 | 193,207 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `resolveAssetContent` with field mapping |
+| D-003 | 193 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `resolveAssetInjectedPrompt` (prepend/append/replace) |
+| D-004 | 196 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `AssetSnapshotResolver` with version snapshot semantics |
+| D-005 | 198 | `apps/backend/src/lib/runtime/asset-injection-resolver.ts` | ✅ `checkAssetStaleness` + structured logger |
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+---
+
+## Phase 3 Completion Log (2026-07-16)
+
+### Track E: HTTP Handlers & Routes ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| E-001 | — | `tools-asset-handlers.ts` | ✅ Factory function following existing patterns |
+| E-002 | — | `tools-asset-handlers.ts` | ✅ `handlePromoteArtifactToAsset` with artifact validation |
+| E-003 | — | `tools-asset-handlers.ts` | ✅ Asset group CRUD (list, get, create, update, add/remove members) |
+| E-004 | — | `tools-asset-handlers.ts` | ✅ `handleCreateAssetVersion` with transaction + current_version update |
+| E-005 | — | `tools-handlers.ts` | ✅ `ToolsAssetHandlers` composed into `ToolsHandlers` |
+| E-006 | — | `tools-routes.ts` | ✅ 17 asset routes registered (CRUD, promote, groups, versions, discovery) |
+| E-007 | — | `route-table.ts` | ✅ `tools.assets` and `tools.asset-groups` capabilities declared |
+
+**Routes registered**:
+- `GET/POST /api/tools/assets` — list/create assets
+- `GET/PUT /api/tools/assets/:id` — get/update asset
+- `POST /api/tools/assets/promote` — promote artifact to asset
+- `POST /api/tools/assets/:id/archive` — archive asset
+- `POST /api/tools/assets/:id/reactivate` — reactivate asset
+- `GET/POST /api/tools/assets/:id/versions` — list/create versions
+- `GET /api/tools/assets/compatible` — list compatible assets
+- `GET /api/tools/assets/gaps` — detect asset gaps
+- `GET/POST /api/tools/asset-groups` — list/create groups
+- `GET/PUT /api/tools/asset-groups/:id` — get/update group
+- `POST /api/tools/asset-groups/:id/assets` — add asset to group
+- `DELETE /api/tools/asset-groups/:id/assets/:assetId` — remove asset from group
+
+**Verification**: `npm --workspace apps/backend run typecheck` — ✅ PASS
+
+---
+
+## Phase 4 Completion Log (2026-07-16)
+
+### Track F: Frontend Integration ✅
+
+| Task | DDD | File | Status |
+|------|-----|------|--------|
+| F-001 | 192 | `tool-form-architecture.ts` | ✅ `project-asset` added to `ToolInputSourceFamily` + `ToolProjectAssetPolicyEntry` type |
+| F-003 | — | `asset-client.ts` | ✅ Full HTTP client with CRUD, groups, versions, discovery |
+| F-004 | — | `useAssetSuggestions.ts` | ✅ Hook returning `{ compatibleAssets, gaps, loading, error, refresh }` |
+
+**Files created**:
+- `apps/frontend/src/features/tools/runtime/asset-client.ts` — HTTP functions
+- `apps/frontend/src/features/tools/runtime/useAssetSuggestions.ts` — React hook
+
+**Files modified**:
+- `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts` — Added `project-asset` to `ToolInputSourceFamily` + `ToolProjectAssetPolicyEntry` type
+
+**Verification**: `npm --workspace apps/frontend run typecheck` — ✅ PASS
+
+---
+
+*Plan Status: In Progress — Phases 1, 2, 3 & 4 Complete*
+---
+
+## Phase 5 Completion Log (2026-07-16)
+
+### Track G: Integration, Testing & Governance ✅
+
+| Task | Description | Status |
+|------|-------------|--------|
+| G-001 | Unit tests for AssetCompatibilityMatrix (contracts) | ✅ 20 tests passing |
+| G-002 | Unit tests for asset injection resolver | ✅ 15 tests passing |
+| G-003 | All workspace typechecks pass | ✅ `npm run typecheck` passes |
+
+**Test files created**:
+- `apps/backend/src/lib/tests/runtime.asset-contracts.test.ts` — 20 tests
+- `apps/backend/src/lib/tests/runtime.asset-injection-resolver.test.ts` — 15 tests
+
+**Test coverage**:
+- `ASSET_TYPES` validation (12 values)
+- `ToolAssetContract` structure validation
+- `AssetCompatibilityMatrix` queries (consumer tools, compatible types, production chains)
+- `AssetReference` xor validation
+- `AssetFieldMapping` resolution
+- `validateAssetReferences` (valid/invalid references)
+- `resolveAssetContent` (raw content, field mapping, fallback)
+- `resolveAssetInjectedPrompt` (prepend/append/replace modes)
+- `checkAssetStaleness` (fresh/stale assets)
+- `createAssetInjectionLogger` (custom logger support)
+
+**Verification**:
+- `npm run typecheck` — ✅ PASS (all workspaces)
+- `node --import tsx --test apps/backend/src/lib/tests/runtime.asset-contracts.test.ts` — ✅ 20/20 pass
+- `node --import tsx --test apps/backend/src/lib/tests/runtime.asset-injection-resolver.test.ts` — ✅ 15/15 pass
+
+---
+
+*Plan Status: ✅ COMPLETE — All Phases Executed*
+*Total: 4 commits, 35 tests, all typechecks passing*

@@ -1,42 +1,14 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { ArtifactDetailPage, isSessionSummaryRouteId } from './ArtifactDetailPage';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: null,
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: null,
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ session: null, capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false } });
+});
 
 const makeArtifact = (overrides: Partial<GenerationArtifact> = {}): GenerationArtifact => ({
   artifactId: 'art-1',
@@ -86,15 +58,6 @@ vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
   }),
 }));
 
-vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
-  useGenerationWorkspace: () => ({ artifacts: [makeArtifact()], isStreamActive: false }),
-}));
-
-const LocationEcho = () => {
-  const location = useLocation();
-  return <div data-testid="location-echo">{`${location.pathname}${location.search}`}</div>;
-};
-
 const renderPage = (artifactId = 'art-1') =>
   render(
       <MemoryRouter initialEntries={[`/artifacts/${artifactId}`]}>
@@ -122,7 +85,6 @@ describe('ArtifactDetailPage', () => {
 
   it('renders artifact content when found', () => {
     renderPage('art-1');
-    // May be async – check heading at minimum
     expect(screen.getByRole('heading', { name: appCopy.editorial.artifacts.detailTitle })).toBeInTheDocument();
   });
 
@@ -166,32 +128,13 @@ describe('ArtifactDetailPage', () => {
     expect(screen.getByText(/Hotlead Funnel - Project Apollo/)).toBeInTheDocument();
   });
 
-  it('shows tone metadata in technical details when tone is present', () => {
-    artifactDetailBag.artifact = makeArtifact({
-      sourceRequest: {
-        requestId: 'req-1',
-        userId: 'user-1',
-        projectId: 'proj-1',
-        artifactType: 'content',
-        model: 'openrouter/gpt-4',
-        input: { tone: 'Professional' },
-        toolKey: 'funnel-pages',
-        workflowType: 'funnel_pages',
-      },
-    });
-
-    renderPage('art-1');
-    expect(screen.getByText(appCopy.ui.labels.toneOptional)).toBeInTheDocument();
-    expect(screen.getByText('Professional')).toBeInTheDocument();
-  });
-
   it('links to session detail when artifact has a sessionId', () => {
     artifactDetailBag.artifact = makeArtifact({
       sessionId: 'sess_demo',
     });
 
     renderPage('art-1');
-    expect(screen.getByRole('link', { name: 'Apri sessione' })).toHaveAttribute('href', '/sessionsummary/sess_demo');
+    expect(screen.getByRole('link', { name: 'Open session' })).toHaveAttribute('href', '/workspaces/proj-1/sessions/sess_demo');
   });
 
   it('shows a disabled session CTA with explicit copy when sessionId is missing', () => {
@@ -203,61 +146,21 @@ describe('ArtifactDetailPage', () => {
     expect(screen.getByRole('button', { name: appCopy.ui.session.unavailable })).toBeDisabled();
   });
 
-  it('navigates with deterministic relaunch query when clicking "Avvia di nuovo"', async () => {
-    artifactDetailBag.artifact = makeArtifact({
-      toolKey: 'funnel-pages',
-      workflowType: 'funnel_pages',
-      sourceRequest: {
-        requestId: 'req-1',
-        userId: 'user-1',
-        projectId: 'proj-1',
-        artifactType: 'content',
-        model: 'openrouter/gpt-4',
-        input: {
-          tone: 'Formal',
-          notes: 'old-note',
-          briefingId: 'brief-legacy',
-          briefingFileName: 'brief-legacy.md',
-        },
-        toolKey: 'funnel-pages',
-        workflowType: 'funnel_pages',
-        registrySnapshotRef: 'snapshot:default',
-      },
-    });
-
-    render(
-      <MemoryRouter initialEntries={['/artifacts/art-1']}>
-        <Routes>
-          <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
-          <Route path="/tools/funnel-pages" element={<LocationEcho />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-
-    fireEvent.click(screen.getByRole('link', { name: appCopy.ui.actions.relaunchPrimary }));
-
-    const location = await screen.findByTestId('location-echo');
-    expect(location).toHaveTextContent('/tools/funnel-pages?');
-    expect(location).toHaveTextContent('intent=regenerate');
-    expect(location).toHaveTextContent('projectId=proj-1');
-    expect(location).toHaveTextContent('sourceArtifactId=art-1');
-    expect(location).toHaveTextContent('briefingId=brief-legacy');
-    expect(location).toHaveTextContent('relaunchFromArtifactId=art-1');
-    expect(location).toHaveTextContent('tone=Formal');
-    expect(location).toHaveTextContent('notes=old-note');
-    expect(location).toHaveTextContent('briefingFileName=brief-legacy.md');
+  it('does not render a relaunch CTA', () => {
+    renderPage('art-1');
+    expect(screen.queryByRole('link', { name: appCopy.ui.actions.relaunchPrimary })).not.toBeInTheDocument();
   });
 
-  it('redirects legacy session-style artifact ids to /sessionsummary/:sessionId', async () => {
+  it('redirects legacy session-style artifact ids to /workspaces', async () => {
     render(
       <MemoryRouter initialEntries={['/artifacts/sess_demo']}>
         <Routes>
           <Route path="/artifacts/:artifactId" element={<ArtifactDetailPage />} />
-          <Route path="/sessionsummary/:sessionId" element={<LocationEcho />} />
+          <Route path="/workspaces" element={<div data-testid="workspace-echo">workspace</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId('location-echo')).toHaveTextContent('/sessionsummary/sess_demo');
+    expect(await screen.findByTestId('workspace-echo')).toBeInTheDocument();
   });
 });

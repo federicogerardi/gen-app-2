@@ -64,8 +64,8 @@ export const PaginationBlockControls = ({
           }}
           disabled={previousBlockDisabled}
           aria-disabled={previousBlockDisabled}
-          aria-label={`Mostra le ${maxVisiblePages} pagine precedenti`}
-          title={`Mostra le ${maxVisiblePages} pagine precedenti`}
+          aria-label={appCopy.ui.labels.showPreviousPagesBlock(maxVisiblePages)}
+          title={appCopy.ui.labels.showPreviousPagesBlock(maxVisiblePages)}
         >
           -{maxVisiblePages}
         </button>
@@ -97,8 +97,8 @@ export const PaginationBlockControls = ({
           }}
           disabled={nextBlockDisabled}
           aria-disabled={nextBlockDisabled}
-          aria-label={`Mostra le ${maxVisiblePages} pagine successive`}
-          title={`Mostra le ${maxVisiblePages} pagine successive`}
+          aria-label={appCopy.ui.labels.showNextPagesBlock(maxVisiblePages)}
+          title={appCopy.ui.labels.showNextPagesBlock(maxVisiblePages)}
         >
           +{maxVisiblePages}
         </button>

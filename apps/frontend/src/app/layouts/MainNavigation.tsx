@@ -1,9 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import type { ComponentType } from 'react';
+import { useCallback, useEffect, useRef, type ComponentType } from 'react';
 import {
   LayoutDashboard,
   FolderOpen,
-  Zap,
   Archive,
   Settings,
   ChevronLeft,
@@ -30,7 +29,7 @@ type MainNavigationProps = {
 const navIcons: Record<NavigationIconKey, NavIcon> = {
   dashboard: LayoutDashboard,
   projects: FolderOpen,
-  tools: Zap,
+  workspaces: FolderOpen,
   sessions: Archive,
   artifacts: Archive,
   admin: Settings,
@@ -45,12 +44,39 @@ export const MainNavigation = ({
   onLogout,
 }: MainNavigationProps) => {
   const visibleItems = getMainNavigationItems(isAdmin);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Focus trap: when mobile nav opens, focus first nav item; save previous focus
+  useEffect(() => {
+    if (isMobileOpen) {
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      const navElement = document.getElementById('main-navigation');
+      const firstFocusable = navElement?.querySelector<HTMLElement>(
+        'a, button:not([disabled])',
+      );
+      firstFocusable?.focus();
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus();
+      previousFocusRef.current = null;
+    }
+  }, [isMobileOpen]);
+
+  // Escape key handler to close mobile nav
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === 'Escape' && isMobileOpen) {
+        onCloseMobile();
+      }
+    },
+    [isMobileOpen, onCloseMobile],
+  );
 
   return (
     <Surface
       as="nav"
       id="main-navigation"
       className={cx(uiPrimitives.mainNav, isCollapsed && !isMobileOpen && 'is-collapsed', isMobileOpen && uiPrimitives.mainNavOpen)}
+      onKeyDown={handleKeyDown}
     >
       <button
         type="button"

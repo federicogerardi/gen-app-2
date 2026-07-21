@@ -4,16 +4,51 @@ import { MemoryRouter } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { DashboardPage } from './DashboardPage';
 
-const sessionsQueryState = vi.hoisted(() => ({
-  data: [] as Array<{ sessionId: string; projectId: string; toolKey: string | null; createdAt?: string; updatedAt: string }>,
-  loading: false,
-  error: null as string | null,
-}));
-
 const projectsQueryState = vi.hoisted(() => ({
   data: [{ id: 'p1', name: 'Project One', description: '', updatedAt: '2026-05-12T10:00:00.000Z' }],
   loading: false,
   error: null as string | null,
+}));
+
+const dashboardOverviewState = vi.hoisted(() => ({
+  loading: false,
+  error: null as string | null,
+  resumeCandidate: null as {
+    workspaceId: string;
+    workspaceName: string;
+    toolKey: string;
+    toolLabel: string;
+    sessionId: string;
+  } | null,
+  foundationSummary: [] as Array<{
+    toolKey: string;
+    label: string;
+    workspacesWithAsset: number;
+    totalWorkspaces: number;
+  }>,
+  recommendations: [] as Array<{
+    toolKey: string;
+    label: string;
+    to: string;
+    reason: string;
+    workspaceId: string;
+    workspaceName: string;
+    priorityScore: number;
+  }>,
+  recentSessions: [] as Array<{
+    sessionId: string;
+    projectId: string;
+    toolKey: string | null;
+    status: string;
+    artifactCount: number;
+    updatedAt: string;
+  }>,
+  activeWorkspaces: [] as Array<{
+    id: string;
+    name: string;
+    qualityGateStatus: 'healthy' | 'needs-attention' | 'blocked';
+  }>,
+  mostGappedWorkspaceId: null as string | null,
 }));
 
 vi.mock('../../../app/providers/AuthSessionProvider', () => ({
@@ -52,59 +87,85 @@ vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
   useProjectsQuery: () => projectsQueryState,
 }));
 
-vi.mock('../../../app/runtime/queries/useSessionsQuery', () => ({
-  useSessionsQuery: () => sessionsQueryState,
+vi.mock('../runtime/useDashboardOverview', () => ({
+  useDashboardOverview: () => dashboardOverviewState,
 }));
 
 describe('DashboardPage', () => {
   beforeEach(() => {
-    sessionsQueryState.data = [];
-    sessionsQueryState.loading = false;
-    sessionsQueryState.error = null;
     projectsQueryState.data = [{ id: 'p1', name: 'Project One', description: '', updatedAt: '2026-05-12T10:00:00.000Z' }];
     projectsQueryState.loading = false;
     projectsQueryState.error = null;
+    dashboardOverviewState.loading = false;
+    dashboardOverviewState.error = null;
+    dashboardOverviewState.resumeCandidate = null;
+    dashboardOverviewState.foundationSummary = [];
+    dashboardOverviewState.recommendations = [];
+    dashboardOverviewState.recentSessions = [];
+    dashboardOverviewState.activeWorkspaces = [];
+    dashboardOverviewState.mostGappedWorkspaceId = null;
   });
 
-  it('renders dashboard heading', () => {
+  it('shows zero state when no projects', () => {
+    projectsQueryState.data = [];
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: appCopy.editorial.dashboard.headline })).toBeInTheDocument();
+    expect(screen.getByText(appCopy.editorial.dashboard.zeroState.headline)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: appCopy.editorial.dashboard.zeroState.cta })).toBeInTheDocument();
   });
 
-  it('renders shortcut links to tools', () => {
+  it('shows loading state', () => {
+    dashboardOverviewState.loading = true;
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    const toolsLinks = screen.getAllByRole('link', { name: appCopy.ui.navigation.tools });
-
-    expect(toolsLinks.length).toBeGreaterThan(0);
-    expect(toolsLinks[0]).toHaveAttribute('href', '/tools');
+    expect(screen.getByText(appCopy.ui.states.loadingDashboard)).toBeInTheDocument();
   });
 
-  it('shows empty state when no recent sessions', () => {
-    sessionsQueryState.data = [];
+  it('shows hero with choose-a-workspace CTA when no resume candidate', () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-    expect(screen.getByText(appCopy.editorial.sessions.emptyState)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.editorial.dashboard.heroHeadlineChoose)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: appCopy.editorial.dashboard.heroCtaChoose })).toHaveAttribute('href', '/workspaces');
   });
 
-  it('renders recent sessions with project, tool, and creation date', () => {
-    sessionsQueryState.data = [
-      {
-        sessionId: 'sess-1',
-        projectId: 'p1',
-        toolKey: 'funnel-pages',
-        createdAt: '2026-05-12T10:00:00.000Z',
-        updatedAt: '2026-05-12T10:00:00.000Z',
-      },
+  it('shows hero with resume CTA when resumeCandidate is present', () => {
+    dashboardOverviewState.resumeCandidate = {
+      workspaceId: 'p1',
+      workspaceName: 'Project One',
+      toolKey: 'funnel-pages',
+      toolLabel: 'Hotlead Funnel',
+      sessionId: 'sess-1',
+    };
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(screen.getByText(appCopy.editorial.dashboard.heroHeadlineResume('Hotlead Funnel'))).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: appCopy.editorial.dashboard.heroCtaResume('Hotlead Funnel') })).toHaveAttribute('href', '/workspaces/p1/tools/funnel-pages');
+  });
+
+  it('shows foundation summary with fractions', () => {
+    dashboardOverviewState.foundationSummary = [
+      { toolKey: 'brief-generator', label: 'Brief', workspacesWithAsset: 1, totalWorkspaces: 1 },
+      { toolKey: 'tov-generator', label: 'Brand Voice', workspacesWithAsset: 0, totalWorkspaces: 1 },
+      { toolKey: 'personas-generator', label: 'Personas', workspacesWithAsset: 0, totalWorkspaces: 1 },
     ];
-
+    dashboardOverviewState.mostGappedWorkspaceId = 'p1';
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-
-    expect(screen.getByText(appCopy.editorial.dashboard.cards.recentSessions.title)).toBeInTheDocument();
-    expect(screen.getByText(/Project One/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Hotlead Funnel/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/12\/05\/2026/i)).toBeInTheDocument();
+    expect(screen.getByText(appCopy.ui.dashboard.foundationSummaryTitle)).toBeInTheDocument();
+    expect(screen.getByText('1/1 workspaces')).toBeInTheDocument();
+    expect(screen.getAllByText('0/1 workspaces').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders artifact links when artifacts present', () => {
-    // Primary render with empty mocked list already asserts no-crash
+  it('shows recommended actions', () => {
+    dashboardOverviewState.recommendations = [
+      { toolKey: 'funnel-pages', label: 'Hotlead Funnel', to: '/workspaces/p1/tools/funnel-pages', reason: 'Ready', workspaceId: 'p1', workspaceName: 'Project One', priorityScore: 80 },
+    ];
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(screen.getByText(appCopy.ui.dashboard.recommendedActionsTitle)).toBeInTheDocument();
+    expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
+  });
+
+  it('shows active workspaces', () => {
+    dashboardOverviewState.activeWorkspaces = [
+      { id: 'p1', name: 'Project One', qualityGateStatus: 'healthy' },
+    ];
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+    expect(screen.getByText(appCopy.ui.dashboard.activeWorkspacesTitle)).toBeInTheDocument();
+    expect(screen.getByText(/Project One/)).toBeInTheDocument();
   });
 });

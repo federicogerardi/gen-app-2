@@ -7,12 +7,8 @@ import { renderAdminPage } from '../test/renderAdminPage';
 import { getMockAuthSession, resetMockAdminSession } from '../test/mockAdminSession';
 import { AdminModelsPage } from './AdminModelsPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
 type TestModel = {
   id: string;
@@ -140,9 +136,9 @@ describe('AdminModelsPage', () => {
 
     expect(await screen.findByText('OpenRouter Auto')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText('es. openrouter/auto'), { target: { value: 'gpt-4.1-mini' } });
-    fireEvent.change(screen.getByPlaceholderText('Nome visualizzato'), { target: { value: 'GPT 4.1 Mini' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crea modello' }));
+    fireEvent.change(screen.getByPlaceholderText('e.g. openrouter/auto'), { target: { value: 'gpt-4.1-mini' } });
+    fireEvent.change(screen.getByPlaceholderText('Display name'), { target: { value: 'GPT 4.1 Mini' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create model' }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
@@ -151,7 +147,7 @@ describe('AdminModelsPage', () => {
       );
     });
 
-    expect(screen.queryByText('Modello creato.')).not.toBeInTheDocument();
+    expect(screen.queryByText(appCopy.ui.feedback.adminModelsCreated)).not.toBeInTheDocument();
   });
 
   it('publishes global error for failed mutation', async () => {
@@ -163,9 +159,9 @@ describe('AdminModelsPage', () => {
 
     await screen.findByText('OpenRouter Auto');
 
-    fireEvent.change(screen.getByPlaceholderText('es. openrouter/auto'), { target: { value: 'gpt-fail' } });
-    fireEvent.change(screen.getByPlaceholderText('Nome visualizzato'), { target: { value: 'GPT Fail' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Crea modello' }));
+    fireEvent.change(screen.getByPlaceholderText('e.g. openrouter/auto'), { target: { value: 'gpt-fail' } });
+    fireEvent.change(screen.getByPlaceholderText('Display name'), { target: { value: 'GPT Fail' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create model' }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(
@@ -196,7 +192,7 @@ describe('AdminModelsPage', () => {
 
     const rowScope = within(row as HTMLElement);
 
-    fireEvent.click(rowScope.getByRole('button', { name: 'Abilita' }));
+    fireEvent.click(rowScope.getByRole('button', { name: 'Enable' }));
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
         appCopy.ui.feedback.adminModelsStatusUpdated,
@@ -204,7 +200,7 @@ describe('AdminModelsPage', () => {
       );
     });
 
-    fireEvent.click(rowScope.getByRole('button', { name: 'Predefinito' }));
+    fireEvent.click(rowScope.getByRole('button', { name: 'Default' }));
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
         appCopy.ui.feedback.adminModelsDefaultUpdated,
@@ -236,7 +232,7 @@ describe('AdminModelsPage', () => {
     const row = modelCell.closest('tr');
     expect(row).not.toBeNull();
 
-    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Abilita' }));
+    fireEvent.click(within(row as HTMLElement).getByRole('button', { name: 'Enable' }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishError).toHaveBeenCalledWith(

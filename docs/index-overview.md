@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 3.8
-last-reviewed: 2026-07-16
-next-review-date: 2026-10-16
+version: 4.0
+last-reviewed: 2026-07-18
+next-review-date: 2026-10-17
 owner: Documentation Archivist
 ---
 
@@ -20,7 +20,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 >
 > 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico su 4 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-095), termini deprecati e alias backward-compat
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-212), termini deprecati e alias backward-compat. Asset Domain Model: DDD-188–DDD-212.
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
@@ -137,6 +137,8 @@ Validation path manifest (orphan-check canonical set):
 - [serp-api-integration-proposal](./02-design/serp-api-integration-proposal.md) — **Implemented 2026-07-16: SerpAPI replaces Puppeteer for Geometric crawling**
 - [proposal-error-logging-and-ux-feedback](./02-design/proposal-error-logging-and-ux-feedback.md) — **Implemented 2026-07-16: structured logging for idempotency/proxy errors, proxy request correlation, UX feedback for timeout/conflict scenarios**
 - [tool-proposal-blog-article-generator](./07-governance/tool-proposal-blog-article-generator.md) — **Implemented 2026-07-16: Blog Article Generator tool (3-step workflow, DDD-155/156/157)**
+- **brief-generator** — **Implemented 2026-07-18: Brief Generator tool (DDD-208/209/210). Primitive tool producing `brief` assets from uploaded files. 14 files across contracts, backend, frontend.**
+- **tov-generator** — **Implemented 2026-07-18: TOV Generator tool (DDD-211/212). Primitive tool producing `brand-voice` assets from uploaded files. First producer of `brand-voice` assets. 14 files across contracts, backend, frontend.**
 
 ### Open Findings — UX Determinism Review (for future implementation)
 

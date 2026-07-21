@@ -4,7 +4,6 @@
  */
 
 import { Surface, uiPrimitives } from '../../../app/ui/primitives';
-import { Button } from '@mui/material';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
 import type { ToolStep, ToolStepStatus, SupportedTool } from '../machines/tool-flow.machine';
 import { mapToolStepToCardConfig } from '../runtime/tool-form-architecture';
@@ -66,14 +65,14 @@ export const ToolStepCard = ({
       {/* Actions */}
       <div className="ui-tool-step-actions">
         {artifactId && onViewArtifact && status === 'done' && (
-          <Button
+          <button
             type="button"
-            variant="outlined"
+            className={uiPrimitives.button}
             onClick={onViewArtifact}
             title={appCopy.ui.toolStep.viewArtifactTitle}
           >
             {appCopy.ui.actions.viewArtifact}
-          </Button>
+          </button>
         )}
         {status === 'error' && (
           <p className={uiPrimitives.error} role="alert">{appCopy.ui.toolStep.stepGenerationFailed}</p>

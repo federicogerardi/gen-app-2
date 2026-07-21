@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.4
+version: 1.8
 date_created: 2026-05-08
-last-reviewed: 2026-05-26
-next-review-date: 2026-06-08
+last-reviewed: 2026-07-21
+next-review-date: 2026-10-21
 owner: Frontend Platform Team
 type: ui-governance-spec
 ---
@@ -37,7 +37,7 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | --- | --- | --- | --- |
 | Tool Workspace Page | The canonical two-column tool execution page built from `ToolPageTemplate` with setup panel and workflow panel. | Tool pages under `apps/frontend/src/features/tools/` | Wizard page, generator page, flow page |
 | Tool Availability Policy | Role-aware tri-state exposure policy for tools: `enabled-for-all`, `disabled-for-all`, `enabled-for-admin-only`. Applies to discovery (Tools hub, navigation shortcuts) and route access. | Tool discovery and routing surfaces | Binary enabled/disabled flag without role semantics |
-| Setup Panel | Left panel in Tool Workspace Page for project/model/briefing/primary action setup. | `ToolPageTemplate` form area | Left column form, input area |
+| Setup Panel | Left panel in Tool Workspace Page for project selection, file upload, asset context, and primary action setup. Canonical composition includes: Configuration Section (form fields), Resources Section (file uploads + file instructions accordion), Knowledge Section (workspace assets + `LlmModelSelector` for asset-capable tools, optional), Dispatch Error slot, and Primary CTA. Sections use compact typographic headers with subtle dividers; no nested cards. | `ToolPageTemplate` form area with section headers | Left column form, input area |
 | Workflow Panel | Right panel in Tool Workspace Page for status, payload visibility, and unified process feedback. | `ToolGenerationFlowVertical` (payload + monitoring + feedback sections) | Progress column, steps area |
 | Status Card | Summary card exposing run status and actionable context. | Shared tool UI cards | Header card, info block |
 | Step Card | Visual representation of a single step state in sequence. | Shared tool UI cards | Task card, stage card |
@@ -58,6 +58,10 @@ Use these names in code, docs, PR descriptions, and design reviews.
 | Missing Required Files Message | Blocking process feedback listing policy-required files that must be uploaded to enable primary generation action. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Generic upload warning without required list |
 | Missing Optional Files Advisory | Non-blocking informational recommendation shown when optional files are missing but required files are complete. | Tool Workspace Workflow Panel, Feedback section (`inline-action`) | Warning/error feedback that blocks CTA |
 | Extraction Context Bridge | The invisible synchronization mechanism that writes a ready briefing actor's `ExtractionContext` into `GenerationWorkspace` before generation dispatch. Not rendered in UI; manifests as idempotent workspace state. If absent or broken, the primary CTA triggers a `Dispatch Error` despite readiness being true. See DDD-070. | `useToolPage` effect #2b | — |
+| Setup Panel Section | Canonical grouping container in the Setup Panel. Uses a compact typographic header (uppercase, small font, muted color) with a thin bottom border divider. Three canonical sections defined: Configuration (form fields), Resources (file uploads + instructions accordion), Knowledge (workspace assets, optional). Sections replace nested card groupings — spacing and dividers provide structure, not card surfaces. | `ui-tool-setup-section` + `ui-tool-setup-section__label` | Nested cards, separate card panels per input source |
+| Configuration Section | Setup Panel section for form fields: tool-specific fields (campaign objective, copy length, article title, SERP query, etc.). `LlmModelSelector` (DDD-057) has been repositioned to the Knowledge Section for asset-capable tools (DDD-220, 2026-07-19). **Not rendered** when the tool has no configuration fields (e.g., `funnel-pages`, `nextland`, `youtube-lf-script`, `angle-generator`, `brief-generator`, `tov-generator`, `personas-generator`). Rendered first in the form when present. | `ui-tool-setup-section` inside Setup Panel form | Top form section |
+| Resources Section | Setup Panel section for file uploads and the Tool File Instructions accordion. Rendered after Configuration, before Knowledge. Absent when the tool has no input files. | `ui-tool-setup-section` with `ToolFileInstructionsSection` | File upload area |
+| Knowledge Section | Setup Panel section for workspace asset selection (`AssetKnowledgePanel`). Workspace-oriented — shows compatible project Assets for the current Tool. **For asset-capable tools (DDD-219):** the Knowledge Section includes `LlmModelSelector` (DDD-057) as a compact `<Select size="small">` in the panel header, adjacent to the asset count chip. **For non-asset-capable tools:** the Knowledge Section is absent and `LlmModelSelector` is not rendered — the model is determined solely by `defaultModel` (DDD-218). Absent when not inside a WorkspaceProvider. Rendered after Resources. Flattened styling: card borders removed to avoid nested-card violation. | `ui-tool-setup-section--knowledge` with `AssetKnowledgePanel` | Asset panel card, workspace knowledge card |
 
 Tri-state policy rule:
 Tool discovery and tool route access must evaluate the same policy from shared contracts. `enabled-for-admin-only` tools are hidden for `member` users and accessible for `admin` users only.
@@ -142,6 +146,11 @@ Composition:
 - secondary actions rendered only through policy flags
 - no extra wrapper containers that dilute panel hierarchy
 - component convergence from `ToolGenerationFlow` to `ToolGenerationFlowVertical` is classified as a technical refactor inside the same archetype and must not be treated as a vocabulary or archetype change
+- **Setup Panel Section layout (canonical)**: Setup Panel content is grouped into compact sections using typographic headers with subtle dividers, not nested cards. Three canonical sections defined:
+  - **Configuration Section**: tool-specific form fields — present only when the tool has configuration fields (campaign objective, copy length, article title, SERP query, etc.)
+  - **Resources Section**: file uploads + Tool File Instructions accordion — present when the tool has input files
+  - **Knowledge Section**: workspace asset selection (`AssetKnowledgePanel`) + `LlmModelSelector` for asset-capable tools — present when the tool has compatible Asset types and a WorkspaceProvider is active
+  - **Cross-tool workflow panel is explicitly removed from the canonical Setup Panel composition** (2026-07-17) — it was fragmenting the input collection area. Cross-tool workflow state is displayed in the Dashboard, not in individual Tool pages.
 - **Dispatch Error slot**: a `<p className={uiPrimitives.error}>` element is rendered adjacent to the primary CTA when `dispatchError` is non-null; it is absent (not empty) when `dispatchError` is null. This slot is part of the canonical Setup Panel composition (see `Dispatch Error` in Section 2). The slot is used both for dispatch-time failures and for terminal stream failures that must be surfaced while the page is forced back to `configuring`.
 - **Workflow Panel feedback centralization**: process-feedback messages are centralized in Workflow Panel `inline-action` feedback section. This includes `briefingError`, missing required files, readiness feedback, `artifactsReloadError`, `briefingGuidance`, missing optional files advisory, and extraction-start hint. Setup Panel remains interaction-only for these process messages.
 - **Tool File Instructions Section**: a deterministic inline guidance accordion is rendered directly below the upload/form controls when registry metadata exists. The accordion is closed by default; the section title is fixed and the body shows only the required fields list; no optional groups, examples, notes, or tone guidance are rendered in the card body.
@@ -391,6 +400,15 @@ The following runtime paths are the canonical implementation contract for channe
 | Emitting `Dispatch Error` both inline and global | Duplicates signal and confuses priority | Keep `Dispatch Error` only in `inline-action` slot |
 | Using `LoadingStateMessage` for mutation success copy | Semantic mismatch (`loading` vs `success`) | Route to `Global Feedback Message` (provisional) |
 | Keeping ad-hoc page-local success variable names as governance terms | Creates terminology drift across docs/PRs | Use canonical UL terms in docs/PRs (`Global Feedback Message`, `Feedback Channel`) |
+| `var(--mui-palette-*)` in custom CSS files | MUI palette vars are runtime-injected and not theme-synced; breaks dark mode | Use app `--*` tokens from `styles.css` |
+| Hardcoded colors (`#fff`, `rgba(0,0,0,0.12)`, etc.) in CSS | Bypasses dark mode token overrides | Use `--*` tokens |
+| Hardcoded pixel values (`8px`, `16px`, etc.) for spacing | Bypasses spacing token system; inconsistent rhythm | Use `--space-*` tokens |
+| Tab controls without WAI-ARIA tab pattern | Screen readers cannot associate tabs with panels | Implement `role="tab"`, `aria-selected`, `aria-controls`, `role="tabpanel"` |
+| Mobile overlay without focus trap | Keyboard users can tab into obscured content | Add focus trap, Escape handler, `inert` on background |
+| Hardcoded Italian in `aria-label` | Violates i18n contract; breaks if app copy changes | Use `appCopy` reference |
+| Conditional UI logic based on `.includes()` or `.indexOf()` against user-facing copy strings | Creates invisible coupling between component logic and localized text; breaks when copy changes; mixes languages | Use typed state codes, boolean flags, or reason-code enums to drive conditional UI. Map reason codes to copy separately. |
+| MUI `color="success.main"`, `color="error.main"`, `color="text.secondary"` or similar palette props on MUI components | Injects MUI palette CSS variables at runtime; bypasses app token system; breaks dark mode consistency | Use CSS classes with `var(--success-pine)`, `var(--error-fg)`, `var(--text-muted)` tokens. Replace MUI `Typography` with semantic `<span>` elements when only styling is needed. |
+| Multiple landmark regions with identical `aria-label` values | Screen readers cannot distinguish between landmarks; defeats landmark navigation | Each landmark must have a unique `aria-label` that describes its specific role (e.g., "Session artifact content" vs "Session context sidebar") |
 
 ## 9. Acceptance Gates
 
@@ -404,6 +422,14 @@ A PR touching frontend UI is acceptable only if:
 6. feedback mapping is explicit and channel-consistent (`inline-action` vs `page-state` vs `global`) with no channel overlap for the same event
 7. every new feedback event is mapped to a row in Section 7 (or explicitly justified as temporary exception)
 8. anti-patterns in Section 8 are not introduced in the touched pages
+9. new CSS classes verify dark mode correctness (light + dark tokens)
+10. no `var(--mui-palette-*)` references in custom CSS files
+11. no hardcoded colors, spacing, or shadows in CSS files
+12. interactive overlays (mobile nav, modals) implement focus trap + Escape key
+13. tab-like UI implements full WAI-ARIA tab pattern
+14. `aria-label` and other ARIA text attributes use `appCopy` keys, not hardcoded strings
+15. dynamic state changes are announced via `aria-live` or `role="status"`
+16. no conditional UI logic (show/hide, enable/disable) based on `.includes()` or string matching against user-facing copy — use typed state codes or boolean flags instead
 
 ## 10. Rollout Priority
 
@@ -419,13 +445,130 @@ Priority order for convergence:
 - Design review support: UX/UI
 - Update cadence: monthly or when a new page archetype is introduced
 
+## 12. Design Token Governance
+
+All visual styling in the frontend must be driven by the design token system defined in `styles.css`. This section establishes the single-source-of-truth contract for CSS custom properties, prohibiting ad-hoc or third-party token injection.
+
+### 12.1 Single token source
+
+All CSS custom properties must be defined in `styles.css` `:root` (and `:root[data-theme='dark']` for dark mode). No component-level CSS file may define its own `:root` variables.
+
+### 12.2 No MUI palette fallbacks in custom CSS
+
+Workspace and feature CSS files must NOT use `var(--mui-palette-*)` as primary values or fallbacks. MUI palette CSS variables are runtime-injected by MUI's `ThemeProvider` and are not guaranteed to exist or to follow the app's `data-theme` attribute. Use the app's own design tokens instead:
+
+| MUI palette variable | App token replacement |
+| --- | --- |
+| `--mui-palette-divider` | `--border-subtle` |
+| `--mui-palette-background-paper` | `--surface-base` |
+| `--mui-palette-text-primary` | `--text-primary` |
+| `--mui-palette-text-secondary` | `--text-muted` |
+| `--mui-palette-action-hover` | `--interactive-hover` |
+| `--mui-palette-primary-main` | `--workspace-blue` |
+| `--mui-palette-success-main` | `--success-pine` |
+| `--mui-palette-warning-main` | `--warning-amber` |
+
+### 12.3 No hardcoded colors
+
+CSS files must not use hardcoded color values (`#fff`, `#000`, `rgba(...)`, `#1976d2`, etc.) for borders, backgrounds, text colors, or shadows. Always use the corresponding `--*` token from `styles.css`.
+
+### 12.4 No hardcoded spacing
+
+CSS files must not use raw pixel values (`4px`, `8px`, `12px`, `16px`, `24px`, `32px`) for padding, margin, or gap. Use the canonical spacing tokens:
+
+| Token | Value |
+| --- | --- |
+| `--space-micro` | 4px |
+| `--space-1` | 8px |
+| `--space-1-5` | 12px |
+| `--space-2` | 16px |
+| `--space-3` | 24px |
+| `--space-4` | 32px |
+
+### 12.5 No hardcoded border-radius
+
+Use the canonical radius tokens:
+
+| Token | Value |
+| --- | --- |
+| `--radius-button` | 8px |
+| `--radius-card` | 12px |
+| `--radius-chip` | 999px |
+
+### 12.6 No hardcoded shadows
+
+Use `--shadow-soft` or `--shadow-strong`. Never write raw `box-shadow` values.
+
+### 12.7 Token hygiene
+
+Unused tokens must be removed from `styles.css` within one sprint. Unused CSS class selectors must be removed within one sprint of becoming dead code. A quarterly token audit is recommended.
+
+### 12.8 Dark mode completeness
+
+Every new CSS class that sets `background`, `color`, `border-color`, or `box-shadow` must work correctly in both light and dark themes. Verify by checking that the property uses a `--*` token that has a corresponding override in `:root[data-theme='dark']`.
+
+## 13. Accessibility Contract
+
+This section establishes mandatory accessibility patterns for interactive UI components. These rules complement the general accessibility baseline in Section 9 gate 5.
+
+### 13.1 Tab pattern (WAI-ARIA)
+
+Any UI that renders a set of tab-like controls must implement the full WAI-ARIA tabs pattern:
+
+- **Tab buttons**: `role="tab"`, `aria-selected`, `aria-controls` pointing to panel `id`, `id` on each tab
+- **Tab panels**: `role="tabpanel"`, `id` matching tab's `aria-controls`, `aria-labelledby` pointing to selected tab's `id`
+- **Tab container**: `role="tablist"`
+
+### 13.2 Mobile overlay focus trap
+
+Any mobile overlay (nav drawer, modal, sheet) must:
+
+- Trap focus within the overlay when open
+- Close on Escape key press
+- Return focus to the trigger element on close
+- Apply `inert` to background content or use a backdrop
+
+### 13.3 Dynamic empty states
+
+`EmptyStateMessage` and similar primitives that render dynamically must use `role="status"` and `aria-live="polite"` so screen readers announce the change.
+
+### 13.4 Form section labels
+
+Groups of form controls that share a visual section label must be programmatically associated via `aria-labelledby` on the container or by using `<fieldset>`/`<legend>`.
+
+### 13.5 No hardcoded locale in ARIA attributes
+
+All `aria-label`, `aria-description`, and `title` attributes must reference `appCopy` keys. No hardcoded Italian or other non-English strings in ARIA attributes.
+
+### 13.6 Live region feedback
+
+Any user-action feedback that changes dynamically (e.g., "Copied!", format selection confirmation) must be announced via `aria-live` or `role="status"`.
+
+### 13.7 Unique landmark labels
+
+Every landmark region (`<section>`, `<aside>`, `<nav>`, `<main>`, `<header>`, `<footer>`) with an `aria-label` must have a unique label within the page. When multiple landmarks of the same type exist, each must describe its specific role (e.g., "Session artifact content" for the primary panel, "Session context sidebar" for the secondary panel). Generic shared labels like "Session context" on multiple landmarks are prohibited.
+
+## 14. Responsive Breakpoint Standardization
+
+The application uses exactly three canonical breakpoint values. No other breakpoint values are permitted in CSS files.
+
+| Breakpoint | Transition | Usage |
+| --- | --- | --- |
+| `980px` | desktop ↔ tablet | Navigation collapse, workbench grid transition |
+| `760px` | tablet ↔ mobile | Shell padding, panel stacking, mobile nav |
+| `1080px` | wide layout only | Admin grids |
+
+The value `768px` is deprecated — use `760px` instead.
+
 ---
 
 ## Evidence Anchors
 
 Key source files referenced by this specification:
 
-- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx`
+- `apps/frontend/src/features/tools/ui/ToolPageTemplate.tsx` (Target: Section headers pattern)
+- `apps/frontend/src/styles.css` (Target: `.ui-tool-setup-section`, `.ui-tool-setup-section__label`, `.ui-tool-setup-section--knowledge`)
+- `apps/frontend/src/app/copy/system.ts` (Target: `toolPage.sections` keys)
 - `apps/frontend/src/features/tools/ui/ToolGenerationFlowVertical.tsx`
 - `apps/frontend/src/features/tools/ui/ToolFormComponents.tsx`
 - `apps/frontend/src/features/tools/ui/ToolStepCard.tsx`
@@ -473,3 +616,13 @@ Key source files referenced by this specification:
 - `apps/frontend/src/app/runtime/queries/useProjectsQuery.ts`
 - `apps/frontend/src/app/runtime/queries/useAdminModelsQuery.ts`
 - `apps/frontend/src/app/runtime/queries/useAdminUsersQuery.ts`
+- `apps/frontend/src/features/workspace/ui/AssetKnowledgePanel.css`
+- `apps/frontend/src/features/workspace/ui/CrossToolWorkflowPanel.css`
+- `apps/frontend/src/features/workspace/ui/dashboard/dashboard-panels.css`
+- `apps/frontend/src/features/workspace/ui/AssetGroupSection.css`
+- `apps/frontend/src/features/workspace/ui/WorkspaceContextHeader.css`
+- `apps/frontend/src/features/workspace/ui/WorkspaceSectionNav.css`
+- `apps/frontend/src/features/workspace/ui/asset-components.css`
+- `apps/frontend/src/app/layouts/MainNavigation.css`
+- `apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.tsx`
+- `apps/frontend/src/features/sessionsummary/ui/FeedbackButtons.tsx`

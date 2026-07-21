@@ -345,7 +345,6 @@ export const buildExtractionStructuredPayload = (
 
   const fields: Record<string, string | null> = {
     briefing_summary: summary,
-    primary_tone: toOptionalString(input.requestInput.tone),
     target_tool: input.toolKey,
   };
 

@@ -1,4 +1,5 @@
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { appCopy } from '../../../app/copy/system';
 import type { UserReportDto, UserReportStatus } from '../../feedback-center/contracts/feedback-center-contract';
 import { canPublishUserReportIssue } from '../runtime/admin-user-reports-policy';
 
@@ -34,7 +35,7 @@ export const AdminUserReportsTableActions = ({
         onClick={() => onStatusTransition(row.id, 'closed')}
         disabled={busyAction !== null || row.status === 'closed'}
       >
-        Chiudi
+        {appCopy.ui.adminUserReports.closeAction}
       </button>
 
       {(row.githubIssueUrl ?? publishedIssueUrl) ? (
@@ -44,7 +45,7 @@ export const AdminUserReportsTableActions = ({
           rel="noopener noreferrer"
           className={cx(uiPrimitives.inlineLink, uiPrimitives.artifactTableActionLink)}
         >
-          Apri su GitHub
+          Open on GitHub
         </a>
       ) : (
         <button
@@ -53,7 +54,7 @@ export const AdminUserReportsTableActions = ({
           onClick={() => onPublishIssue(row.id)}
           disabled={busyAction !== null || !canPublishUserReportIssue(row)}
         >
-          Pubblica issue
+          {appCopy.ui.adminUserReports.publishIssueAction}
         </button>
       )}
     </div>

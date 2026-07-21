@@ -2,60 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { useMswHandler } from '../../../test/mocks/server';
+import { createMockAuthSessionProvider } from '../../../test/mocks/auth-session-provider.mock';
 import { FeedbackNewsSticky } from './FeedbackNewsSticky';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
+vi.mock('../../../app/providers/AuthSessionProvider', () => createMockAuthSessionProvider({
+  role: 'member',
+  userId: 'member_001',
+  email: 'member@test.com',
+  capabilities: {
+    changelogList: true,
+    userReportsCreate: true,
+    adminChangelogCreate: true,
+    adminUserReportsList: true,
+    adminUserReportsUpdate: true,
+    adminUserReportsPublishIssue: true,
+  },
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -75,7 +39,7 @@ beforeEach(() => {
       changelog: [
         {
           id: 'chg_001',
-          title: 'Nuovo runtime changelog',
+          title: 'New runtime changelog',
           body: 'E stato pubblicato un nuovo aggiornamento.',
           status: 'published',
           createdBy: 'admin_001',
@@ -120,27 +84,27 @@ describe('FeedbackNewsSticky', () => {
   it('loads published changelog and submits a report from sticky panel', async () => {
     render(<FeedbackNewsSticky />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Apri news' }));
-    expect(await screen.findByText('Nuovo runtime changelog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open news' }));
+    expect(await screen.findByText('New runtime changelog')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Invia segnalazione' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit report' }));
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Titolo' }), {
-      target: { value: 'Errore nel salvataggio' },
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), {
+      target: { value: 'Save error' },
     });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Descrizione' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Description' }), {
       target: { value: 'Il salvataggio non completa la richiesta.' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Invia' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Segnalazione inviata con successo.',
+        'Report submitted successfully.',
         expect.objectContaining({ dedupeKey: 'news-sticky:user-report:success' }),
       );
     });
 
-    expect(screen.queryByRole('button', { name: 'Invia' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Submit' })).toBeNull();
   });
 });

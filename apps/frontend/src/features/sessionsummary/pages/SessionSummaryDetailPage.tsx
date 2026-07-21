@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Button } from '@mui/material';
+import { Package } from 'lucide-react';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
-import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { SecondaryCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -14,8 +14,6 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
-import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import {
   getSessionArtifacts,
   type SessionArtifactGroup,
@@ -26,6 +24,9 @@ import { asSupportedTool } from '../runtime/session-summary-domain';
 import { downloadSessionFile, type DownloadFormat } from '../../artifacts/runtime/download-client';
 import { DownloadFormatDropdown } from '../../artifacts/ui/DownloadFormatDropdown';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
+import { PromoteAssetDialog } from '../ui/PromoteAssetDialog';
+import { FeedbackButtons } from '../ui/FeedbackButtons';
+import { getProducedAssetTypes, isToolKey } from '@gen-app-2/contracts';
 
 const formatToolName = (toolKey: string | null): string => getToolLabel(toolKey);
 
@@ -41,25 +42,6 @@ const toHumanReadableDate = (isoLike: string): string => {
   }).format(date);
 };
 
-const resolveRelaunchSourceArtifactId = (group: SessionArtifactGroup): string | null => {
-  const finalizedArtifacts = group.artifacts.filter((artifact) => artifact.artifactRole === 'final');
-  const steppedArtifacts = group.artifacts.filter((artifact) => {
-    const stepKey = artifact.stepKey?.trim();
-    return typeof stepKey === 'string' && stepKey.length > 0;
-  });
-  const candidateArtifacts = finalizedArtifacts.length > 0
-    ? finalizedArtifacts
-    : steppedArtifacts.length > 0
-      ? steppedArtifacts
-      : group.artifacts;
-
-  const latestArtifact = [...candidateArtifacts].sort(
-    (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
-  )[0];
-
-  return latestArtifact?.artifactId ?? null;
-};
-
 type PageState =
   | { phase: 'loading' }
   | { phase: 'session'; group: SessionArtifactGroup }
@@ -67,10 +49,10 @@ type PageState =
   | { phase: 'not-found' };
 
 export const SessionSummaryDetailPage = () => {
-  const { sessionId = '' } = useParams();
+  const { workspaceId = '', sessionId = '' } = useParams();
   const navigate = useNavigate();
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
+  const sessionsBackPath = workspaceId ? `/workspaces/${workspaceId}/sessions` : '/workspaces';
   const projectsQuery = useProjectsQuery({
     apiBaseUrl,
     capabilities,
@@ -78,22 +60,13 @@ export const SessionSummaryDetailPage = () => {
   });
   const [pageState, setPageState] = useState<PageState>({ phase: 'loading' });
   const sessionGroup = pageState.phase === 'session' ? pageState.group : null;
-  const relaunchSourceArtifactId = useMemo(
-    () => (sessionGroup ? resolveRelaunchSourceArtifactId(sessionGroup) : null),
-    [sessionGroup],
-  );
-  const relaunchArtifactQuery = useArtifactDetailQuery({
-    artifactId: relaunchSourceArtifactId ?? '',
-    apiBaseUrl,
-    capabilities,
-    localArtifacts: generation.artifacts,
-    enabled: sessionGroup !== null && relaunchSourceArtifactId !== null,
-  });
-  const relaunchPath = useMemo(
-    () => (relaunchArtifactQuery.data ? buildToolEntryPathFromArtifact(relaunchArtifactQuery.data, 'regenerate') : null),
-    [relaunchArtifactQuery.data],
-  );
-  const relaunchDisabled = generation.isStreamActive || relaunchArtifactQuery.loading || !relaunchPath;
+
+  const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
+  const lastArtifact = useMemo(() => {
+    if (!sessionGroup) return null;
+    const completed = sessionGroup.artifacts.filter((a) => a.status === 'completed');
+    return completed.length > 0 ? completed[completed.length - 1] : null;
+  }, [sessionGroup]);
 
   const handleSessionDownload = useCallback(
     (format: DownloadFormat) => {
@@ -171,7 +144,7 @@ export const SessionSummaryDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.sessions.detailTitle}</h2>
         <EmptyStateMessage>{appCopy.editorial.sessions.notFound}</EmptyStateMessage>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </Surface>
@@ -183,7 +156,7 @@ export const SessionSummaryDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.sessions.detailTitle}</h2>
         <ErrorStateMessage>{pageState.message}</ErrorStateMessage>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </Surface>
@@ -210,26 +183,42 @@ export const SessionSummaryDetailPage = () => {
           <h2>{detailTitle}</h2>
           <StatusBadge status={group.status} />
         </div>
-        <Link to="/sessionsummary" className={uiPrimitives.inlineLink}>
+        <Link to={sessionsBackPath} className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openSessionArchive}
         </Link>
       </TopBar>
 
       <div className="ui-artifact-page-layout">
-        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.sessions.detail.primaryPanelAriaLabel}>
           <SessionArtifactTabs group={group} fallbackToolKey={effectiveToolKey} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.panelAriaLabel}>
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.sessions.detail.secondaryPanelAriaLabel}>
           <section className="ui-artifact-overview" aria-label={appCopy.ui.sessions.detail.overviewAriaLabel}>
             <div className="ui-artifact-overview-actions">
-              <SecondaryCtaButton component={Link} to={relaunchPath ?? '#'} disabled={relaunchDisabled}>
-                {appCopy.ui.actions.relaunchPrimary}
-              </SecondaryCtaButton>
               {capabilities.sessionDownload ? (
                 <DownloadFormatDropdown onDownload={handleSessionDownload} />
               ) : null}
+              {lastArtifact && projectId && group.toolKey && isToolKey(group.toolKey) && getProducedAssetTypes(group.toolKey).length === 1 && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Package size={14} />}
+                  onClick={() => setPromoteDialogOpen(true)}
+                >
+                  {appCopy.ui.sessions.detail.promoteToAsset}
+                </Button>
+              )}
             </div>
+
+            {lastArtifact && (
+              <div className="ui-session-feedback-wrap">
+                <FeedbackButtons
+                  artifactId={lastArtifact.artifactId}
+                  disabled={group.status !== 'completed'}
+                />
+              </div>
+            )}
 
             <details className="ui-artifact-accessory">
               <summary>{appCopy.ui.sessions.detail.detailsSummaryLabel}</summary>
@@ -249,6 +238,18 @@ export const SessionSummaryDetailPage = () => {
           </section>
         </aside>
       </div>
+
+      {lastArtifact && projectId && group.toolKey && isToolKey(group.toolKey) && getProducedAssetTypes(group.toolKey).length === 1 && (
+        <PromoteAssetDialog
+          open={promoteDialogOpen}
+          artifactId={lastArtifact.artifactId}
+          projectId={projectId}
+          toolKey={group.toolKey}
+          defaultLabel={`${formatToolName(group.toolKey)} - ${lastArtifact.stepKey ?? 'output'}`}
+          onClose={() => setPromoteDialogOpen(false)}
+          onPromoted={() => setPromoteDialogOpen(false)}
+        />
+      )}
     </Surface>
   );
 };

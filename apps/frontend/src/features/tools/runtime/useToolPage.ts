@@ -21,15 +21,16 @@ export interface UseToolPageProps {
   sourceArtifactId?: string | null;
   intent?: 'new' | 'regenerate' | 'resume';
   initialProjectId?: string | null;
-  relaunchTone?: string | null;
   relaunchNotes?: string | null;
   relaunchFromArtifactId?: string | null;
   briefingId?: string | null;
   extractionArtifactId?: string | null;
   briefingFileName?: string | null;
+  selectedAssetIds?: string[];
+  hasAssetBasedExtractionContext?: boolean;
 }
 
-export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchTone, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName }: UseToolPageProps) => {
+export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initialProjectId, relaunchNotes, relaunchFromArtifactId, briefingId, extractionArtifactId, briefingFileName, selectedAssetIds, hasAssetBasedExtractionContext = false }: UseToolPageProps) => {
   const autoStartGenerationAfterExtractionRef = useRef(false);
   const navigate = useNavigate();
   const authState = useAuthState();
@@ -76,7 +77,6 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     sourceArtifactId,
     intent,
     initialProjectId,
-    relaunchTone,
     briefingId,
     extractionArtifactId,
     briefingFileName,
@@ -91,10 +91,48 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   const progressState = toolPageSnapshot.context.progress;
   const readinessSnapshot = toolPageSnapshot.context.readiness;
+
+  // ── Asset-based extraction context override (Step H):
+  //     When all always-required asset types are satisfied, the tool has enough
+  //     context from workspace assets even without a briefing file extraction.
+  //     Patch the readiness snapshot to remove missing_extraction_context so
+  //     the CTA can start generation directly. ──
+  const effectiveReadinessSnapshot = useMemo(() => {
+    if (!hasAssetBasedExtractionContext || readinessSnapshot.hasExtractionContext) {
+      return readinessSnapshot;
+    }
+    const filteredCodes = readinessSnapshot.reasonCodes.filter(
+      (c) => c !== 'missing_extraction_context',
+    );
+    return {
+      ...readinessSnapshot,
+      hasExtractionContext: true,
+      canStartFlow: filteredCodes.length === 0,
+      reasonCodes: filteredCodes,
+    };
+  }, [hasAssetBasedExtractionContext, readinessSnapshot]);
+
   const configuringSubstate = typeof toolPageSnapshot.value === 'object' && toolPageSnapshot.value !== null && 'configuring' in toolPageSnapshot.value
     ? (toolPageSnapshot.value as { configuring: string }).configuring as 'clean' | 'hydrationFailed' | 'generationFailed'
     : 'clean' as const;
-  const machineViewModel = buildReactiveViewModel(toolPageSnapshot.context, configuringSubstate);
+  const isMachineCompleted = toolPageSnapshot.matches('completed');
+  const machineViewModel = buildReactiveViewModel(
+    { ...toolPageSnapshot.context, isMachineCompleted },
+    configuringSubstate,
+  );
+
+  // ── Effective view model: when assets provide extraction context, rebuild the
+  //     view model with the patched readiness so primaryActionPolicy reflects the
+  //     asset-based override (e.g. 'start-generation' instead of 'disabled'). ──
+  const effectiveMachineViewModel = useMemo(() => {
+    if (effectiveReadinessSnapshot === readinessSnapshot) {
+      return machineViewModel;
+    }
+    return buildReactiveViewModel(
+      { ...toolPageSnapshot.context, readiness: effectiveReadinessSnapshot, isMachineCompleted },
+      configuringSubstate,
+    );
+  }, [effectiveReadinessSnapshot, readinessSnapshot, machineViewModel, toolPageSnapshot.context, configuringSubstate, isMachineCompleted]);
   const isGenerating = toolPageSnapshot.matches('generating');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
@@ -112,7 +150,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     ? 'processing-briefing'
     : isGenerating || streamEvents.isStreamActive
       ? 'running'
-      : machineViewModel.canonicalState;
+      : effectiveMachineViewModel.canonicalState;
 
   const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact as GenerationArtifact | null, 'notes') ?? '';
   const resolvedRelaunchSource = relaunchFromArtifactId ?? sourceArtifactId ?? sourceArtifact?.artifactId ?? null;
@@ -137,12 +175,14 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     resolvedRelaunchSource,
     nextAvailableStep,
     sourceStep: null,
-    machineViewModel,
-    readinessSnapshot,
+    machineViewModel: effectiveMachineViewModel,
+    readinessSnapshot: effectiveReadinessSnapshot,
     completedStepsForFlow,
     pendingStepStart: toolPageSnapshot.context.pendingStepStart,
     toolPageSend,
     sessionId,
+    selectedAssetIds: selectedAssetIds ?? [],
+    hasAssetBasedExtractionContext,
   });
   const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
   const handleRunControllerPrimaryAction = runController.handlePrimaryAction;
@@ -158,12 +198,13 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
 
   const handlePrimaryAction = useCallback(() => {
     autoStartGenerationAfterExtractionRef.current = false;
-    if (machineViewModel.primaryActionPolicy === 'open-last-artifact') {
-      void navigate(`/sessionsummary/${sessionId}`);
+    if (effectiveMachineViewModel.primaryActionPolicy === 'open-last-artifact') {
+      const projectId = formState.projectId;
+      void navigate(projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : `/workspaces`);
       return;
     }
     handleRunControllerPrimaryAction();
-  }, [handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, navigate, sessionId]);
+  }, [handleRunControllerPrimaryAction, effectiveMachineViewModel.primaryActionPolicy, navigate, sessionId]);
   const handleBriefingFileSelected = useCallback((file: File) => toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file }), [toolPageSend]);
   const handleAngleDetectorFileSelected = useCallback((file: File) => toolPageSend({
     type: 'BRIEFING_FILE_SELECTED',
@@ -185,7 +226,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     }
 
     if (effectiveBriefingStatus === 'ready') {
-      if (!readinessSnapshot.canStartFlow || machineViewModel.primaryActionPolicy === 'disabled') {
+      if (!readinessSnapshot.canStartFlow || effectiveMachineViewModel.primaryActionPolicy === 'disabled') {
         return;
       }
 
@@ -197,7 +238,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     if (effectiveBriefingStatus !== 'uploading' && effectiveBriefingStatus !== 'extracting') {
       autoStartGenerationAfterExtractionRef.current = false;
     }
-  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, machineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
+  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, effectiveMachineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
   // DDD-158: ToolPageStateConsumer — UI-only state via downstream consumer pattern.
   // The consumer returns a memoized { pageState, formState, navigationState } view
@@ -216,7 +257,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     effectiveBriefingStatus,
     effectiveBriefingFileName,
     angleDetectorFileName: briefingSnapshot.context.angleDetectorFileName,
-    machineViewModel,
+    machineViewModel: effectiveMachineViewModel,
     isGenerating,
     readinessSnapshot,
     completedStepsForFlow,

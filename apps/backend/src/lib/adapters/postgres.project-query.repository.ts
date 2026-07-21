@@ -43,7 +43,7 @@ export class PostgresProjectQueryRepository implements ProjectQueryRepository {
   async listProjectsByUser(userId: string): Promise<ProjectSummary[]> {
     const rows = await this.getDb()
       .selectFrom('projects')
-      .select(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .select(['id', 'user_id', 'name', 'status', 'created_at', 'updated_at'])
       .where('user_id', '=', userId)
       .orderBy('updated_at', 'desc')
       .orderBy('id', 'desc')
@@ -55,7 +55,7 @@ export class PostgresProjectQueryRepository implements ProjectQueryRepository {
   async getProjectByIdForUser(userId: string, projectId: string): Promise<ProjectDetail | null> {
     const row = await this.getDb()
       .selectFrom('projects')
-      .select(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .select(['id', 'user_id', 'name', 'status', 'created_at', 'updated_at'])
       .where('user_id', '=', userId)
       .where('id', '=', projectId)
       .limit(1)
@@ -72,12 +72,33 @@ export class PostgresProjectQueryRepository implements ProjectQueryRepository {
         id: projectId,
         user_id: userId,
         name: input.name,
+        status: 'active',
         created_at: dbNow,
         updated_at: dbNow,
       })
-      .returning(['id', 'user_id', 'name', 'created_at', 'updated_at'])
+      .returning(['id', 'user_id', 'name', 'status', 'created_at', 'updated_at'])
       .executeTakeFirstOrThrow();
 
     return mapProjectRowToDetail(row);
+  }
+
+  async updateProjectForUser(
+    userId: string,
+    projectId: string,
+    input: { name?: string; status?: 'active' | 'archived' }
+  ): Promise<ProjectDetail | null> {
+    const updates: Record<string, unknown> = { updated_at: dbNow };
+    if (input.name !== undefined) updates.name = input.name;
+    if (input.status !== undefined) updates.status = input.status;
+
+    const row = await this.getDb()
+      .updateTable('projects')
+      .set(updates)
+      .where('user_id', '=', userId)
+      .where('id', '=', projectId)
+      .returning(['id', 'user_id', 'name', 'status', 'created_at', 'updated_at'])
+      .executeTakeFirst();
+
+    return row ? mapProjectRowToDetail(row) : null;
   }
 }

@@ -83,12 +83,6 @@ const mocks = vi.hoisted(() => {
     resetRun: vi.fn(),
   };
 
-  const auth = {
-    apiBaseUrl: '',
-    capabilities: { artifacts: true, toolsUpload: true } as Record<string, unknown>,
-    session: { user: { id: 'user-001' } },
-  };
-
   const formState = {
     projectId: 'project-001',
     model: 'openrouter/auto',
@@ -131,9 +125,8 @@ const mocks = vi.hoisted(() => {
     setFormState,
     machineSnapshot,
     briefingSnapshot,
-generation,
+    generation,
     generationRun,
-    auth,
     formState,
     toolConfig,
     availableSteps,
@@ -150,27 +143,10 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => mocks.auth,
-  useAuthState: () => ({
-    session: mocks.auth.session,
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: mocks.auth.apiBaseUrl,
-    capabilities: mocks.auth.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-001', capabilities: { artifacts: true, toolsUpload: true } });
+});
 
 vi.mock('../../generation/runtime/GenerationWorkspaceProvider', () => ({
   useGenerationWorkspace: () => mocks.generation,
@@ -238,7 +214,6 @@ beforeEach(() => {
 
   mocks.formState.projectId = 'project-001';
   mocks.formState.model = 'openrouter/auto';
-  mocks.formState.tone = 'Professional';
   mocks.formState.campaignObjective = '';
   mocks.formState.videoTitle = '';
   mocks.formState.topic = '';
@@ -410,7 +385,6 @@ describe('useToolPage', () => {
 
   it('normalizes model legacy provider format before dispatch', async () => {
     mocks.formState.model = 'openrouter:auto';
-    mocks.formState.tone = 'Professional';
     mocks.machineSnapshot.context.hydrationResult = {
       extractionArtifactId: 'artifact-extract-001',
       extractionPayload: { schemaVersion: 'extraction.v1' },
@@ -431,7 +405,6 @@ describe('useToolPage', () => {
 
     const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
       model: string;
-      input: { tone: string };
     };
 
     expect(mocks.send).toHaveBeenCalledWith(
@@ -441,37 +414,6 @@ describe('useToolPage', () => {
       }),
     );
     expect(request.model).toBe('openrouter/auto');
-    expect(request.input.tone).toBe('Professional');
-  });
-
-  it('falls back to canonical defaults for empty model and non-canonical tone', async () => {
-    mocks.formState.model = '   ';
-    mocks.formState.tone = 'warm and playful';
-    mocks.machineSnapshot.context.hydrationResult = {
-      extractionArtifactId: 'artifact-extract-001',
-      extractionPayload: { schemaVersion: 'extraction.v1' },
-      briefingId: 'brief-001',
-      normalizedText: 'brief text',
-      parsedFormat: 'md',
-    };
-    mocks.machineSnapshot.context.pendingStepStart = {
-      step: 'optin',
-      runRequestPrefix: 'run-002',
-    };
-
-    renderHook(() => useToolPage({ toolKey: 'funnel-pages' }));
-
-    await waitFor(() => {
-      expect(mocks.generationRun.startRun).toHaveBeenCalledTimes(1);
-    });
-
-    const request = mocks.generationRun.startRun.mock.calls[0]?.[0] as {
-      model: string;
-      input: { tone: string };
-    };
-
-    expect(request.model).toBe('openrouter/auto');
-    expect(request.input.tone).toBe('Professional');
   });
 
   it('dispatches youtube-description with direct-input extraction payload after CTA flow', async () => {
@@ -489,7 +431,6 @@ describe('useToolPage', () => {
     });
 
     mocks.formState.model = 'openrouter/auto';
-    mocks.formState.tone = 'Professional';
     mocks.formState.projectId = 'project-001';
     mocks.formState.videoTitle = 'Strategia YouTube 2026';
     mocks.formState.topic = 'Growth organica';
@@ -572,7 +513,7 @@ describe('useToolPage', () => {
         step: 'optin',
       }),
     );
-    expect(result.current.dispatchError).toBe('La generazione non è andata a buon fine. Riprova tra pochi istanti.');
+    expect(result.current.dispatchError).toBe('Generation was unsuccessful. Try again shortly.');
   });
 
   it('surfaces stream_empty_output as inline dispatch feedback on terminal failure', async () => {
@@ -601,10 +542,10 @@ describe('useToolPage', () => {
       expect.objectContaining({
         type: 'STEP_FAILED',
         step: 'optin',
-        message: 'Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.',
+        message: 'The briefing does not contain enough data for generation. Upload a new, more detailed brief.',
       }),
     );
-    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+    expect(result.current.dispatchError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
   });
 
   it('keeps primary action disabled after invalid extraction and surfaces inline dispatch error', async () => {
@@ -640,8 +581,8 @@ describe('useToolPage', () => {
 
     expect(result.current.machineViewModel.primaryActionPolicy).toBe('disabled');
     expect(result.current.readinessSnapshot.canStartFlow).toBe(false);
-    expect(result.current.briefingError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
-    expect(result.current.dispatchError).toBe('Il briefing non contiene dati sufficienti per la generazione. Carica un nuovo brief più dettagliato.');
+    expect(result.current.briefingError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
+    expect(result.current.dispatchError).toBe('The briefing does not contain enough data for generation. Upload a new, more detailed brief.');
   });
 
   it('re-upload recovery: keeps disabled on invalid context and re-enables only after valid context', async () => {

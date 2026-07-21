@@ -111,7 +111,7 @@ export const LoadingStateMessage = ({ children }: PageStateMessageProps): JSX.El
 );
 
 export const EmptyStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (
-  <p className={uiPrimitives.metaLine}>{children}</p>
+  <p className={uiPrimitives.metaLine} role="status" aria-live="polite">{children}</p>
 );
 
 export const ErrorStateMessage = ({ children }: PageStateMessageProps): JSX.Element => (

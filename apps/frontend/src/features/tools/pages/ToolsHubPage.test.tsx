@@ -3,37 +3,10 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToolsHubPage } from './ToolsHubPage';
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: {
-      user: {
-        role: 'member',
-      },
-    },
-  }),
-  useAuthState: () => ({
-    session: {
-      user: {
-        role: 'member',
-      },
-    },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ role: 'member' });
+});
 
 vi.mock('../runtime/tool-form-architecture', () => ({
   getEnabledToolNavigationItems: (_role: 'member' | 'admin') => ([
@@ -52,7 +25,7 @@ describe('ToolsHubPage', () => {
   it('renders one card per enabled tool', () => {
     renderPage();
 
-    expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Open workspace' })).toHaveLength(2);
     expect(screen.getByText('Hotlead Funnel')).toBeInTheDocument();
     expect(screen.getByText('YouTube LF Script')).toBeInTheDocument();
     expect(screen.queryByText('Nextland')).toBeNull();
@@ -67,7 +40,7 @@ describe('ToolsHubPage', () => {
   it('renders keyboard-focusable workspace actions', () => {
     renderPage();
 
-    const workspaceLinks = screen.getAllByRole('link', { name: 'Apri workspace' });
+    const workspaceLinks = screen.getAllByRole('link', { name: 'Open workspace' });
     const firstWorkspaceLink = workspaceLinks[0];
 
     if (!firstWorkspaceLink) {
@@ -85,6 +58,6 @@ describe('ToolsHubPage', () => {
 
     renderPage();
 
-    expect(screen.getAllByRole('link', { name: 'Apri workspace' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Open workspace' })).toHaveLength(2);
   });
 });

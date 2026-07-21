@@ -4,21 +4,6 @@ import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 // ─── DDD-084: simplified Workflow Panel contract (supersedes DDD-082, DDD-083) ─
 
-type InputFilePayloadStatus = {
-  key: string;
-  label: string;
-  requiredness: 'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting';
-  status: 'todo' | 'active' | 'done' | 'error';
-  fileName: string | null;
-};
-
-type ApiAcquisitionPayloadStatus = {
-  key: string;
-  label: string;
-  requiredness: 'always-required' | 'required-by-tool-setting' | 'optional-by-tool-setting';
-  status: 'todo' | 'active' | 'done' | 'error';
-};
-
 type GenerationProgressSnapshot = {
   completedCount: number;
   totalCount: number;
@@ -34,10 +19,7 @@ type GenerationProgressSnapshot = {
 
 export interface ToolGenerationFlowVerticalProps {
   canonicalState: CanonicalToolUiState;
-  projectName: string | null;
   errorMessage: string | null;
-  inputFilePayload?: InputFilePayloadStatus[];
-  apiAcquisitionPayload?: ApiAcquisitionPayloadStatus[];
   generationProgress?: GenerationProgressSnapshot;
   primaryActionCta?: {
     label: string;
@@ -69,12 +51,6 @@ type ProgressBarModel = {
   phase: ProgressPhase;
   variant: BarVariant;
   ariaLabel: string;
-};
-
-const REQUIREDNESS_LABEL: Record<InputFilePayloadStatus['requiredness'], string> = {
-  'always-required': appCopy.ui.toolPage.flow.requirednessLabel.required,
-  'required-by-tool-setting': appCopy.ui.toolPage.flow.requirednessLabel.required,
-  'optional-by-tool-setting': appCopy.ui.toolPage.flow.requirednessLabel.optional,
 };
 
 const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
@@ -137,10 +113,7 @@ const deriveProgressBarModel = (s: CanonicalToolUiState): ProgressBarModel => {
 
 export const ToolGenerationFlowVertical = ({
   canonicalState,
-  projectName,
   errorMessage,
-  inputFilePayload = [],
-  apiAcquisitionPayload = [],
   generationProgress,
   primaryActionCta,
 }: ToolGenerationFlowVerticalProps) => {
@@ -148,9 +121,6 @@ export const ToolGenerationFlowVertical = ({
   const progressBarModel = deriveProgressBarModel(canonicalState);
   const barVariant = progressBarModel.variant;
   const isCompleted = barVariant === 'completed';
-  const payloadItems = inputFilePayload;
-  const apiAcquisitionItems = apiAcquisitionPayload;
-  const hasProjectSelected = Boolean(projectName && projectName.trim().length > 0);
   const phaseTitle = progressBarModel.phase === 'extraction'
     ? appCopy.ui.toolPage.flow.phaseExtractionLabel
     : appCopy.ui.toolPage.flow.phaseGenerationLabel;
@@ -231,53 +201,6 @@ export const ToolGenerationFlowVertical = ({
               {primaryActionCta.isLoading ? appCopy.ui.toolPage.flow.loadingActionLabel : primaryActionCta.label}
             </button>
           ) : null}
-        </section>
-
-        <section className="ui-fv-card" aria-labelledby="workflow-context-title">
-          <div className="ui-fv-card-header">
-            <span className="ui-fv-label" id="workflow-context-title">{appCopy.ui.toolPage.flow.contextLoadedTitle}</span>
-          </div>
-
-          <div className={`ui-fv-context-project ${hasProjectSelected ? 'is-done' : ''}`.trim()}>
-            <span className="ui-fv-project-title">{appCopy.ui.toolPage.flow.projectLabel}</span>
-            <p className="ui-fv-project-name">{projectName ?? appCopy.ui.toolPage.flow.noProjectSelected}</p>
-          </div>
-
-          <div className="ui-fv-payload-list" aria-label={appCopy.ui.toolPage.flow.ariaContextFilesLabel}>
-            {hasProjectSelected && payloadItems.length > 0 ? payloadItems.map((item) => (
-              <div className={`ui-fv-payload-item is-${item.status}`} key={item.key} data-status={item.status}>
-                <div className="ui-fv-payload-item-main">
-                  <span className="ui-fv-payload-label">{item.label}</span>
-                  <span className="ui-fv-payload-filename">{item.fileName ?? appCopy.ui.toolPage.flow.notUploaded}</span>
-                </div>
-                <span className="ui-fv-payload-pill">{REQUIREDNESS_LABEL[item.requiredness]}</span>
-              </div>
-            )) : hasProjectSelected ? (
-              <p className="ui-fv-empty-state">
-                {appCopy.ui.toolPage.flow.noFilesUploaded}
-              </p>
-            ) : null}
-          </div>
-
-          {hasProjectSelected && apiAcquisitionItems.length > 0 ? (
-            <div className="ui-fv-payload-list" aria-label={appCopy.ui.toolPage.flow.apiAcquisitionTitle}>
-              <h4 className="ui-fv-project-title">{appCopy.ui.toolPage.flow.apiAcquisitionTitle}</h4>
-              {apiAcquisitionItems.map((item) => (
-                <div className={`ui-fv-payload-item is-${item.status}`} key={item.key} data-status={item.status}>
-                  <div className="ui-fv-payload-item-main">
-                    <span className="ui-fv-payload-label">{item.label}</span>
-                    <span className="ui-fv-payload-filename">
-                      {item.status === 'done'
-                        ? appCopy.ui.toolPage.flow.apiAcquisitionConnected
-                        : appCopy.ui.toolPage.flow.apiAcquisitionNotConnected}
-                    </span>
-                  </div>
-                  <span className="ui-fv-payload-pill">{REQUIREDNESS_LABEL[item.requiredness]}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
         </section>
       </div>
       {errorMessage && <p className={uiPrimitives.error} role="alert">{errorMessage}</p>}

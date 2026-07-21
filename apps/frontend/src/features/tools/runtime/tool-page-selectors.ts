@@ -1,4 +1,5 @@
 import { resolveToolWorkflowType } from '@gen-app-2/contracts';
+import type { AssetReference } from '@gen-app-2/contracts';
 import type {
   GenerationProjectWorkspaceValue,
   GenerationStreamWorkspaceValue,
@@ -18,6 +19,7 @@ import {
   toolFileInstructionsRegistry,
   type ToolApiAcquisitionPolicyEntry,
   type ToolInputFilePolicyEntry,
+  type ToolInputFileRequiredness,
   type ToolFileInstructionsConfig,
   type ToolFormConfig,
   type ToolFormState,
@@ -27,7 +29,6 @@ import {
   isEmptyPayload,
   mapInlineDispatchError,
   normalizeModelForPayload,
-  normalizeToneProfile,
 } from './tool-page-runtime-utils';
 
 export const buildGeometricDirectInputExtractionInfo = ({
@@ -196,7 +197,7 @@ export const buildBlogArticleGeneratorDirectInputExtractionInfo = ({
   return {
     extractionArtifactId: 'direct-input:blog-article-generator',
     briefingId: 'direct-input:blog-article-generator',
-    briefingText: `Titolo: ${normalizedTitolo}`,
+    briefingText: `Title: ${normalizedTitolo}`,
     extractionPayload: {
       titolo: normalizedTitolo,
     },
@@ -435,13 +436,14 @@ export const buildBaseGenerationRequest = ({
   effectiveBriefingFileName,
   extractionInfo,
   runPrefix,
+  selectedAssetIds,
 }: {
   userId: string;
   projectId: string;
   sessionId: string;
   toolKey: SupportedTool;
   runtimeIntent: RuntimeIntent;
-  formState: Pick<ToolFormState, 'model' | 'tone' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
+  formState: Pick<ToolFormState, 'model' | 'campaignObjective' | 'registrySnapshotRef' | 'titolo'>;
   toolConfig: Pick<ToolFormConfig, 'defaultModel'>;
   resolvedNotes: string;
   resolvedRelaunchSource: string | null;
@@ -450,6 +452,7 @@ export const buildBaseGenerationRequest = ({
   effectiveBriefingFileName: string | null | undefined;
   extractionInfo: SelectedExtractionInfo;
   runPrefix: string;
+  selectedAssetIds: string[];
 }): GenerationRequest => ({
   requestId: runPrefix,
   userId,
@@ -463,7 +466,6 @@ export const buildBaseGenerationRequest = ({
   registrySnapshotRef: formState.registrySnapshotRef,
   input: {
     intent: runtimeIntent,
-    tone: normalizeToneProfile(formState.tone),
     notes: resolvedNotes,
     relaunchFromArtifactId: resolvedRelaunchSource,
     sourceArtifactId: sourceArtifactId ?? null,
@@ -488,6 +490,16 @@ export const buildBaseGenerationRequest = ({
     // Include titolo directly in input for blog-article-generator template variable replacement
     ...(toolKey === 'blog-article-generator' && typeof formState.titolo === 'string' && formState.titolo.trim().length > 0
       ? { titolo: formState.titolo.trim() }
+      : {}),
+    // DDD-189: Asset references for prompt injection during generation
+    ...(selectedAssetIds.length > 0
+      ? {
+          assetReferences: selectedAssetIds.map((assetId) => ({
+            assetId,
+            sourceToolKey: toolKey as AssetReference['sourceToolKey'],
+            usageIntent: 'injection' as const,
+          })),
+        }
       : {}),
   },
 });
@@ -601,6 +613,8 @@ export type ToolInputRequirementMatrix = {
   missingOptionalFiles: ToolInputFilePolicyEntry[];
   missingRequiredApiAcquisition: ToolApiAcquisitionPolicyEntry[];
   missingOptionalApiAcquisition: ToolApiAcquisitionPolicyEntry[];
+  missingRequiredAssets: ToolInputRequirementMatrixEntry[];
+  missingOptionalAssets: ToolInputRequirementMatrixEntry[];
 };
 
 export const deriveToolInputRequirementMatrix = ({
@@ -609,12 +623,18 @@ export const deriveToolInputRequirementMatrix = ({
   completedFileKeys,
   apiAcquisitionStatus = [],
   includeApiAcquisition = true,
+  toolAssetInputs = [],
+  selectedAssetTypes,
 }: {
   toolKey: SupportedTool;
   hasProjectSelected: boolean;
   completedFileKeys: readonly string[];
   apiAcquisitionStatus?: readonly ToolApiAcquisitionStatus[];
   includeApiAcquisition?: boolean;
+  toolAssetInputs?: readonly { assetType: string; label: string; requiredness: 'always-required' | 'optional-by-tool-setting' | 'never-required' }[];
+  /** Pre-computed set of asset types that have at least one selected asset in the workspace.
+   *  When not provided, all asset entries are unsatisfied (caller must supply type info). */
+  selectedAssetTypes?: Set<string> | null;
 }): ToolInputRequirementMatrix => {
   const instructions = toolFileInstructionsRegistry[toolKey];
   const completedKeys = new Set(completedFileKeys.filter((key) => key.trim().length > 0));
@@ -649,7 +669,20 @@ export const deriveToolInputRequirementMatrix = ({
     satisfied: apiStatusByKey.get(apiInput.key) ?? false,
   }));
 
-  const entries = [...directEntries, ...fileEntries, ...apiEntries];
+  // ── Workspace knowledge asset entries (DDD-192: project-asset source family) ──
+  const assetEntries: ToolInputRequirementMatrixEntry[] = toolAssetInputs
+    .filter((a) => a.requiredness !== 'never-required')
+    .map((a) => ({
+      key: `asset:${a.assetType}`,
+      label: a.label,
+      sourceFamily: 'project-asset',
+      requiredness: a.requiredness as ToolInputFileRequiredness,
+      // Per-type: satisfied when at least one asset of this specific type is selected.
+      // When selectedAssetTypes is not provided, all entries are unsatisfied.
+      satisfied: selectedAssetTypes?.has(a.assetType) ?? false,
+    }));
+
+  const entries = [...directEntries, ...fileEntries, ...apiEntries, ...assetEntries];
   const missingRequiredEntries = entries.filter((entry) => (
     (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
     && !entry.satisfied
@@ -678,6 +711,14 @@ export const deriveToolInputRequirementMatrix = ({
     && !(apiStatusByKey.get(apiInput.key) ?? false)
   ));
 
+  const missingRequiredAssets = assetEntries.filter((entry) => (
+    (entry.requiredness === 'always-required' || entry.requiredness === 'required-by-tool-setting')
+    && !entry.satisfied
+  ));
+  const missingOptionalAssets = assetEntries.filter((entry) => (
+    entry.requiredness === 'optional-by-tool-setting' && !entry.satisfied
+  ));
+
   return {
     entries,
     requiredEntriesSatisfied: missingRequiredEntries.length === 0,
@@ -687,6 +728,8 @@ export const deriveToolInputRequirementMatrix = ({
     missingOptionalFiles,
     missingRequiredApiAcquisition,
     missingOptionalApiAcquisition,
+    missingRequiredAssets,
+    missingOptionalAssets,
   };
 };
 

@@ -1,6 +1,6 @@
 import { appCopy } from '../copy/system';
 
-export type NavigationIconKey = 'dashboard' | 'projects' | 'tools' | 'sessions' | 'artifacts' | 'admin';
+export type NavigationIconKey = 'dashboard' | 'projects' | 'workspaces' | 'sessions' | 'artifacts' | 'admin';
 
 export type NavigationItem = {
   to: string;
@@ -12,10 +12,8 @@ export type NavigationItem = {
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
   { to: '/dashboard', label: appCopy.ui.navigation.dashboard, end: true, iconKey: 'dashboard' },
-  { to: '/tools', label: appCopy.ui.navigation.tools, end: false, iconKey: 'tools' },
-  { to: '/dashboard/projects', label: appCopy.ui.navigation.projects, end: true, iconKey: 'projects' },
-  { to: '/sessionsummary', label: appCopy.ui.navigation.sessionSummary, end: false, iconKey: 'sessions' },
-  { to: '/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true, iconKey: 'artifacts' },
+  { to: '/workspaces', label: appCopy.ui.navigation.workspaces, end: false, iconKey: 'workspaces' },
+  { to: '/admin/artifacts', label: appCopy.ui.navigation.artifacts, end: false, adminOnly: true, iconKey: 'artifacts' },
   { to: '/admin', label: appCopy.ui.navigation.admin, end: false, adminOnly: true, iconKey: 'admin' },
 ];
 

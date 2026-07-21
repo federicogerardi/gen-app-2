@@ -1,8 +1,5 @@
 import { appCopy } from '../../../app/copy/system';
-import type { LlmModelId, ToneProfile } from '@gen-app-2/contracts';
-
-const TONE_PROFILE_DEFAULT = 'Professional';
-const TONE_PROFILE_ALLOWED = ['Professional', 'Casual', 'Formal', 'Technical'] as const;
+import type { LlmModelId } from '@gen-app-2/contracts';
 
 export const normalizeModelForPayload = (model: string, fallbackModel: string): LlmModelId => {
   const normalized = model.trim();
@@ -22,19 +19,6 @@ export const normalizeModelForPayload = (model: string, fallbackModel: string): 
   }
 
   return `openrouter/${normalized}` as LlmModelId;
-};
-
-export const normalizeToneProfile = (
-  tone: string,
-  fallbackTone: ToneProfile = TONE_PROFILE_DEFAULT,
-): ToneProfile => {
-  const normalized = tone.trim().toLowerCase();
-  if (normalized.length === 0) {
-    return fallbackTone;
-  }
-
-  const match = TONE_PROFILE_ALLOWED.find((candidate) => candidate.toLowerCase() === normalized);
-  return match ?? fallbackTone;
 };
 
 export type DispatchErrorReasonCode =
@@ -89,16 +73,16 @@ const normalizeToDispatchErrorReasonCode = (reason: string): DispatchErrorReason
 const mapReasonCodeToMessage = (code: DispatchErrorReasonCode): string => {
   switch (code) {
     case 'idempotency_conflict':
-      return 'Generazione già in corso. Attendi il completamento.';
+      return appCopy.ui.toolPage.runtimeErrors.idempotencyConflict;
     case 'extraction_context_insufficient':
     case 'stream_empty_output':
       return appCopy.ui.toolPage.runtimeErrors.briefingContextInsufficient;
     case 'terminal_failed':
       return appCopy.ui.toolPage.runtimeErrors.streamFailed;
     case 'timeout':
-      return 'La generazione ha impiegato troppo tempo. Riprova o contatta il supporto.';
+      return appCopy.ui.toolPage.runtimeErrors.timeout;
     case 'connection_lost':
-      return 'Connessione persa. Controlla la tua connessione e riprova.';
+      return appCopy.ui.toolPage.runtimeErrors.connectionLost;
   }
 };
 

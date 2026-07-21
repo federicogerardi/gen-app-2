@@ -15,6 +15,7 @@ export type ProjectsHandlers = {
   handleProjectsList(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleProjectsCreate(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleProjectById(request: IncomingMessage, response: ServerResponse, projectId: string): Promise<void>;
+  handleProjectUpdate(request: IncomingMessage, response: ServerResponse, projectId: string): Promise<void>;
   handleArtifactsList(request: IncomingMessage, response: ServerResponse): Promise<void>;
   handleArtifactById(request: IncomingMessage, response: ServerResponse, artifactId: string): Promise<void>;
   handleArtifactDownload(
@@ -78,6 +79,14 @@ const createProjectRequestSchema = z.object({
     (value) => typeof value === 'string' ? value : undefined,
     optionalTrimmedString(),
   ),
+});
+
+const updateProjectRequestSchema = z.object({
+  name: z.preprocess(
+    (value) => typeof value === 'string' ? value : undefined,
+    optionalTrimmedString(),
+  ),
+  status: z.enum(['active', 'archived']).optional(),
 });
 
 export const createProjectsHandlers = (deps: CreateProjectsHandlersDependencies): ProjectsHandlers => {
@@ -180,6 +189,50 @@ export const createProjectsHandlers = (deps: CreateProjectsHandlersDependencies)
     }
 
     const project = await queries.projects.getProjectByIdForUser(principal.user.id, projectId);
+    if (!project) {
+      writeError(response, 404, 'not_found', 'Project not found');
+      return;
+    }
+
+    await repositories.sessions.touchSession(principal.session.id, now());
+    writeSuccess(response, 200, { project });
+  };
+
+  const handleProjectUpdate = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+    projectId: string,
+  ): Promise<void> => {
+    if (request.method !== 'PUT') {
+      writeError(response, 405, 'method_not_allowed', 'Use PUT for project update');
+      return;
+    }
+
+    const principal = await requireSessionPrincipal(request, response);
+    if (!principal) {
+      return;
+    }
+
+    const queries = requireQueryRepositories(response);
+    if (!queries) {
+      return;
+    }
+
+    let rawBody: unknown;
+    try {
+      rawBody = await parseJsonBody<unknown>(request);
+    } catch {
+      writeError(response, 400, 'bad_request', 'Invalid JSON body');
+      return;
+    }
+
+    const parsedBody = updateProjectRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      writeError(response, 400, 'bad_request', formatZodIssuesForBadRequest(parsedBody.error.issues));
+      return;
+    }
+
+    const project = await queries.projects.updateProjectForUser(principal.user.id, projectId, parsedBody.data as { name?: string; status?: 'active' | 'archived' });
     if (!project) {
       writeError(response, 404, 'not_found', 'Project not found');
       return;
@@ -381,6 +434,7 @@ export const createProjectsHandlers = (deps: CreateProjectsHandlersDependencies)
     handleProjectsList,
     handleProjectsCreate,
     handleProjectById,
+    handleProjectUpdate,
     handleArtifactsList,
     handleArtifactById,
     handleArtifactDownload,

@@ -58,10 +58,10 @@ describe('SessionArtifactTabs', () => {
     render(<SessionArtifactTabs group={group} fallbackToolKey="funnel-pages" />);
 
     expect(screen.getByRole('tablist', { name: 'Session steps' })).toBeInTheDocument();
-    expect(screen.getByRole('tablist', { name: 'Modalita visualizzazione contenuto artifact di sessione' })).toBeInTheDocument();
+    expect(screen.getByRole('tablist', { name: 'Content view mode' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'optin' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: appCopy.ui.actions.viewMarkdown })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: appCopy.ui.actions.viewRaw })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: appCopy.ui.actions.viewMarkdown })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: appCopy.ui.actions.viewRaw })).toBeInTheDocument();
   });
 
   it('switches selected artifact when a step tab is clicked', () => {

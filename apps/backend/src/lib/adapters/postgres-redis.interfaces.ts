@@ -67,6 +67,11 @@ export interface ProjectQueryRepository {
   listProjectsByUser(userId: string): Promise<ProjectSummary[]>;
   getProjectByIdForUser(userId: string, projectId: string): Promise<ProjectDetail | null>;
   createProjectForUser(userId: string, input: CreateProjectInput): Promise<ProjectDetail>;
+  updateProjectForUser(
+    userId: string,
+    projectId: string,
+    input: { name?: string; status?: 'active' | 'archived' }
+  ): Promise<ProjectDetail | null>;
 }
 
 export interface ArtifactQueryRepository {

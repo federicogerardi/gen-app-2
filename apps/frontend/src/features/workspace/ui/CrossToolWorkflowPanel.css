@@ -1,0 +1,86 @@
+.cross-tool-workflow-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-base);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.cross-tool-workflow-panel__title {
+  margin-bottom: var(--space-1-5);
+}
+
+.cross-tool-workflow-panel__pipeline {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  gap: 0;
+  padding: var(--space-1) 0;
+}
+
+.cross-tool-workflow-panel__step-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.cross-tool-workflow-panel__connector {
+  width: var(--space-3);
+  height: 2px;
+  background: var(--border-subtle);
+}
+
+.cross-tool-workflow-panel__connector--completed {
+  background: var(--success-pine);
+}
+
+.cross-tool-workflow-panel__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-micro);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-button);
+  text-decoration: none;
+  color: inherit;
+  min-width: 64px;
+  transition: background 0.2s;
+}
+
+.cross-tool-workflow-panel__step:hover {
+  background: var(--interactive-hover);
+}
+
+.cross-tool-workflow-panel__step--completed {
+  color: var(--success-pine);
+}
+
+.cross-tool-workflow-panel__step--suggested {
+  color: var(--warning-amber);
+}
+
+.cross-tool-workflow-panel__step--available {
+  color: var(--text-muted);
+}
+
+.cross-tool-workflow-panel__step--current {
+  outline: 2px solid var(--workspace-blue);
+  outline-offset: 2px;
+}
+
+.cross-tool-workflow-panel__step-label {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.cross-tool-workflow-panel__suggestions {
+  margin-top: var(--space-1-5);
+  padding-top: var(--space-1-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 760px) {
+  .cross-tool-workflow-panel__pipeline {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

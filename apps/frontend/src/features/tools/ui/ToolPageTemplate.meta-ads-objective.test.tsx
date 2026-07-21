@@ -5,31 +5,10 @@ import { ToolPageTemplate } from './ToolPageTemplate';
 
 const setFormState = vi.fn();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'user-1' } },
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'user-1' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {},
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ userId: 'user-1' });
+});
 
 vi.mock('../../../app/runtime/queries/useModelsQuery', () => ({
   useModelsQuery: () => ({
@@ -56,6 +35,8 @@ vi.mock('../runtime/tool-page-selectors', () => ({
     missingOptionalFiles: [],
     missingRequiredApiAcquisition: [],
     missingOptionalApiAcquisition: [],
+    missingRequiredAssets: [],
+    missingOptionalAssets: [],
   }),
 }));
 
@@ -68,7 +49,6 @@ vi.mock('../runtime/useToolPage', () => ({
     formState: {
       projectId: 'project-1',
       model: 'openrouter/auto',
-      tone: 'Professional',
       campaignObjective: '',
     },
     setFormState,
@@ -146,7 +126,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('combobox', { name: /obiettivo campagna/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /campaign objective/i })).toBeInTheDocument();
 
     rerender(
       <MemoryRouter>
@@ -154,7 +134,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByRole('combobox', { name: /obiettivo campagna/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: /campaign objective/i })).not.toBeInTheDocument();
   });
 
   it('updates form state when campaign objective changes', () => {
@@ -164,7 +144,7 @@ describe('ToolPageTemplate meta-ads campaign objective', () => {
       </MemoryRouter>,
     );
 
-    const objectiveSelect = screen.getByRole('combobox', { name: /obiettivo campagna/i });
+    const objectiveSelect = screen.getByRole('combobox', { name: /campaign objective/i });
     fireEvent.mouseDown(objectiveSelect);
     fireEvent.click(screen.getByRole('option', { name: 'Leads' }));
 

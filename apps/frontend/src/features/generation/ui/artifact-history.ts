@@ -138,11 +138,6 @@ export const buildArtifactEntryQuery = (
   params.set('sourceArtifactId', artifact.artifactId);
   params.set('relaunchFromArtifactId', artifact.artifactId);
 
-  const tone = readInputField(artifact.sourceRequest, 'tone');
-  if (tone) {
-    params.set('tone', tone);
-  }
-
   const notes = readInputField(artifact.sourceRequest, 'notes');
   if (notes) {
     params.set('notes', notes);

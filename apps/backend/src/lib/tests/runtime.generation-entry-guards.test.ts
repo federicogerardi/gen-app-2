@@ -46,7 +46,6 @@ const createYoutubeDescriptionRequest = (
   workflowType: 'youtube_description',
   input: {
     step: 'youtube-description-generation',
-    tone: 'Professional',
     briefingId: 'direct-input:youtube-description',
     extractionArtifactId: 'direct-input:youtube-description',
     briefingText: 'Video title: Demo',

@@ -14,6 +14,7 @@ describe('tool-page-readiness', () => {
       hasProject: true,
       hasExtractionContext: true,
       hasPrimaryTargetStep: true,
+      hasRequiredAssets: true,
       reasonCodes: [],
     });
 
@@ -22,6 +23,7 @@ describe('tool-page-readiness', () => {
       hasProject: false,
       hasExtractionContext: false,
       hasPrimaryTargetStep: false,
+      hasRequiredAssets: true,
       reasonCodes: [
         'missing_project',
         'missing_extraction_context',
@@ -31,6 +33,11 @@ describe('tool-page-readiness', () => {
 
     expect(buildReadinessSnapshot('project-1', false, true).reasonCodes).toEqual([
       'missing_extraction_context',
+    ]);
+
+    // Explicit missing_required_assets
+    expect(buildReadinessSnapshot('project-1', true, true, false).reasonCodes).toEqual([
+      'missing_required_assets',
     ]);
   });
 

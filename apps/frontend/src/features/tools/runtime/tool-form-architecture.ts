@@ -64,7 +64,8 @@ export type ToolInputFileRequiredness =
 export type ToolInputSourceFamily =
   | 'direct-input'
   | 'tool-input-file'
-  | 'api-acquisition';
+  | 'api-acquisition'
+  | 'project-asset';
 
 export type ToolInputFilePolicyEntry = {
   key: string;
@@ -80,12 +81,22 @@ export type ToolApiAcquisitionPolicyEntry = {
 };
 
 /**
+ * F-001: Policy entry for project-asset input family (DDD-192).
+ * Declares which AssetTypes a tool can consume as input.
+ */
+export type ToolProjectAssetPolicyEntry = {
+  key: string;
+  label: string;
+  assetType: string;
+  requiredness: ToolInputFileRequiredness;
+};
+
+/**
  * Tool form state that maps to step dependencies and generation
  */
 export type ToolFormState = {
   projectId: string;
   model: string;
-  tone: string;
   titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
@@ -120,7 +131,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'funnel-pages',
     availabilityPolicy: getToolAvailabilityPolicy('funnel-pages'),
     displayName: 'Hotlead Funnel',
-    defaultPrompt: 'Genera lo step Funnel richiesto con coerenza al brief estratto.',
+    defaultPrompt: 'Generate the requested Funnel step consistent with the extracted brief.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['funnel-pages'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['funnel-pages'],
@@ -132,7 +143,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'nextland',
     availabilityPolicy: getToolAvailabilityPolicy('nextland'),
     displayName: 'Nextland',
-    defaultPrompt: 'Genera lo step Nextland richiesto con coerenza al brief estratto.',
+    defaultPrompt: 'Generate the requested Nextland step consistent with the extracted brief.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER.nextland,
     stepDependencies: TOOL_STEP_DEPENDENCIES.nextland,
@@ -144,7 +155,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'youtube-lf-script',
     availabilityPolicy: getToolAvailabilityPolicy('youtube-lf-script'),
     displayName: 'YouTube LF Script',
-    defaultPrompt: 'Genera lo step YouTube LF Script richiesto con coerenza al brief estratto.',
+    defaultPrompt: 'Generate the requested YouTube LF Script step consistent with the extracted brief.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['youtube-lf-script'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-lf-script'],
@@ -156,7 +167,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'angle-generator',
     availabilityPolicy: getToolAvailabilityPolicy('angle-generator'),
     displayName: 'Angle Generator',
-    defaultPrompt: 'Genera angoli marketing prioritizzati e attivabili a partire dal contesto estratto.',
+    defaultPrompt: 'Generate prioritized and actionable marketing angles from the extracted context.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['angle-generator'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['angle-generator'],
@@ -168,7 +179,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'meta-ads',
     availabilityPolicy: getToolAvailabilityPolicy('meta-ads'),
     displayName: 'MetaAds Generator',
-    defaultPrompt: 'Genera copy Meta Ads ad alta chiarezza strategica a partire dal contesto estratto.',
+    defaultPrompt: 'Generate Meta Ads copy with high strategic clarity from the extracted context.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['meta-ads'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['meta-ads'],
@@ -180,7 +191,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'youtube-description',
     availabilityPolicy: getToolAvailabilityPolicy('youtube-description'),
     displayName: 'YT Description Generator',
-    defaultPrompt: 'Genera una descrizione YouTube ad alta leggibilita con CTA above-the-fold e struttura SEO completa.',
+    defaultPrompt: 'Generate a highly readable YouTube description with an above-the-fold CTA and complete SEO structure.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER['youtube-description'],
     stepDependencies: TOOL_STEP_DEPENDENCIES['youtube-description'],
@@ -192,7 +203,7 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
     toolKey: 'geometric',
     availabilityPolicy: getToolAvailabilityPolicy('geometric'),
     displayName: 'Geometric',
-    defaultPrompt: 'Analizza SERP e competitor. Genera report strategico e report unificato in italiano.',
+    defaultPrompt: 'Analyze SERP and competitors. Generate strategic report and unified report.',
     defaultModel: 'openrouter/auto',
     steps: TOOL_STEP_ORDER.geometric,
     stepDependencies: TOOL_STEP_DEPENDENCIES.geometric,
@@ -212,58 +223,94 @@ export const toolFormRegistry: Record<SupportedTool, ToolFormConfig> = {
       registrySnapshotRef: 'snapshot:default',
     },
   },
+  'brief-generator': {
+    toolKey: 'brief-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('brief-generator'),
+    displayName: 'Brief Generator',
+    defaultPrompt: 'Generate a complete structured brief from the data extracted from the document.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['brief-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['brief-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  'tov-generator': {
+    toolKey: 'tov-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('tov-generator'),
+    displayName: 'TOV Generator',
+    defaultPrompt: 'Generate a structured Tone of Voice from the data extracted from the document.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['tov-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['tov-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
+  'personas-generator': {
+    toolKey: 'personas-generator',
+    availabilityPolicy: getToolAvailabilityPolicy('personas-generator'),
+    displayName: 'Personas Generator',
+    defaultPrompt: 'Genera una buyer persona strutturata a partire dai dati estratti dal documento.',
+    defaultModel: 'openrouter/auto',
+    steps: TOOL_STEP_ORDER['personas-generator'],
+    stepDependencies: TOOL_STEP_DEPENDENCIES['personas-generator'],
+    defaults: {
+      registrySnapshotRef: 'snapshot:default',
+    },
+  },
 };
 
 export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstructionsConfig> = {
   'funnel-pages': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Carica un solo BriefingFile completo: il funnel viene costruito a partire da obiettivo, target e offerta.',
+    summary: 'Upload a single complete BriefingFile: the funnel is built from objective, target, and offer.',
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
     ],
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: ['funnel_goal', 'target_audience', 'offer', 'proof', 'primary_cta'],
-    optionalFields: ['Vincoli di tono', 'Riferimenti visual', 'Esempi di competitor', 'Note sul funnel attuale'],
+    optionalFields: ['Tone constraints', 'Visual references', 'Competitor examples', 'Notes on current funnel'],
     examples: [
-      'Obiettivo: generare lead qualificati per il prodotto principale.',
-      'Target: imprenditori e marketer che cercano una landing ad alta conversione.',
+      'Goal: generate qualified leads for the main product.',
+      'Target: entrepreneurs and marketers looking for a high-conversion landing page.',
     ],
-    notes: ['Se un campo non è disponibile, scrivi "non disponibile" invece di ometterlo.'],
-    stepConstraints: ['Gli step optin, quiz e vsl devono restare coerenti con lo stesso brief.'],
+    notes: ['If a field is unavailable, write "unavailable" instead of omitting it.'],
+    stepConstraints: ['The optin, quiz, and vsl steps must remain consistent with the same brief.'],
   },
   nextland: {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Usa un BriefingFile ordinato e descrittivo per definire sito, sezioni e risultato atteso.',
+    summary: 'Use an organized and descriptive BriefingFile to define the site, sections, and expected outcome.',
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
     ],
     requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
     requiredFieldKeys: ['website_goal', 'brand_or_company', 'target_audience', 'offer_or_service', 'required_sections'],
-    optionalFields: ['Tone of voice', 'Referenze di stile', 'Vincoli di copy', 'Materiali già esistenti'],
+    optionalFields: ['Tone of voice', 'Style references', 'Copy constraints', 'Existing materials'],
     examples: [
-      'Obiettivo: presentare il brand e portare l’utente alla pagina contatto.',
-      'Sezioni richieste: hero, proof, servizi, CTA finale.',
+      'Goal: present the brand and drive users to the contact page.',
+      'Required sections: hero, proof, services, final CTA.',
     ],
-    notes: ['Indica chiaramente quali pagine o blocchi devono essere prodotti.', 'Evita richieste implicite: la pagina deve poter essere ricostruita solo dal brief.'],
-    stepConstraints: ['Gli step landing e thank_you devono usare la stessa base informativa del BriefingFile.'],
+    notes: ['Clearly indicate which pages or blocks must be produced.', 'Avoid implicit requests: the page must be reconstructable from the brief alone.'],
+    stepConstraints: ['The landing and thank_you steps must use the same information base from the BriefingFile.'],
   },
   'youtube-lf-script': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Compila il brief con i campi canonici richiesti per l’estrazione e la generazione dello script long-form.',
+    summary: 'Fill in the brief with the canonical fields required for extraction and long-form script generation.',
     inputFiles: [
       {
         key: 'briefing-file',
-        label: 'BriefingFile',
+        label: 'UPLOAD FILE',
         accept: '.docx,.txt,.md',
         requiredness: 'always-required',
       },
@@ -279,32 +326,20 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'target_duration_minutes',
       'proprietary_methodology_disclosure',
     ],
-    optionalFields: ['Link o riferimenti di supporto', 'Note sul posizionamento', 'Vincoli editoriali'],
+    optionalFields: ['Support links or references', 'Positioning notes', 'Editorial constraints'],
     examples: [
-      'knowledge_content: punti chiave della conoscenza da trasformare in script.',
+      'knowledge_content: key knowledge points to transform into script.',
       'target_duration_minutes: 12.',
     ],
-    notes: ['I campi mancanti devono essere espliciti e valorizzati a null nel payload estratto.', 'Il tone del brief non sostituisce il ToneProfile di generazione.'],
-    stepConstraints: ['La sequenza canonica è pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.'],
+    notes: ['Missing fields must be explicit and set to null in the extracted payload.'],
+    stepConstraints: ['The canonical sequence is pre-script-analysis -> packaging -> intro-structure -> body-structure -> native-cta-embeds -> outro-structure.'],
   },
   'angle-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Carica un BriefingFile obbligatorio e, se disponibile, un AngleDetectorFile complementare.',
-    inputFiles: [
-      {
-        key: 'briefing-file',
-        label: 'BriefingFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'always-required',
-      },
-      {
-        key: 'angle-detector-file',
-        label: 'AngleDetectorFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'optional-by-tool-setting',
-      },
-    ],
-    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    summary: 'Generate prioritized, actionable marketing angles from a workspace Brief (required) and optionally a Persona or Competitor Analysis. No file upload required.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
     requiredFieldKeys: [
       'goal',
       'product_or_service',
@@ -315,32 +350,20 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'proof',
       'creative_constraints',
     ],
-    optionalFields: ['Tone of voice', 'Esempi di angoli già usati', 'Benchmark o competitor', 'Note strategiche'],
+    optionalFields: ['Tone of voice', 'Examples of previously used angles', 'Benchmarks or competitors', 'Strategic notes'],
     examples: [
-      'Briefing: descrizione del brand e del prodotto da posizionare.',
-      'Angle detector: insight di mercato e segnali competitivi da confrontare con il brief.',
+      'A Brief describing the brand and product to position.',
+      'A Persona or Competitor Analysis to cross-reference with the brief.',
     ],
-    notes: ['Se carichi entrambi i file, devono descrivere lo stesso contesto di lavoro.', 'AngleDetectorFile arricchisce il contesto ma non blocca la generazione se assente.'],
-    stepConstraints: ['La sequenza canonica è context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
+    notes: ['Angles are compatible with meta-ads, funnel-pages, and other downstream tools.'],
+    stepConstraints: ['The canonical sequence is context-and-angle-matrix -> angle-prioritization -> creative-activation.'],
   },
   'meta-ads': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Carica un BriefingFile obbligatorio e, se disponibile, un AngleDetectorFile con insight aggiuntivi.',
-    inputFiles: [
-      {
-        key: 'briefing-file',
-        label: 'BriefingFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'always-required',
-      },
-      {
-        key: 'angle-detector-file',
-        label: 'AngleDetectorFile',
-        accept: '.docx,.txt,.md',
-        requiredness: 'optional-by-tool-setting',
-      },
-    ],
-    requiredFiles: ['BriefingFile (.docx, .txt, .md)'],
+    summary: 'Context is built from workspace assets (angle, persona, brand-voice, hook, brief) and direct-input fields (campaign objective, copy length).',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
     requiredFieldKeys: [
       'product_or_service',
       'target_audience',
@@ -351,26 +374,26 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'objections',
     ],
     optionalFields: [
-      'Contesto budget',
+      'Budget context',
       'Awareness priority',
-      'Priorita LF8',
-      'Meccanismo unico',
+      'LF8 priority',
+      'Unique mechanism',
       'Angle candidates',
-      'Hook varianti',
-      'Vincoli legali o compliance',
-      'Blacklist claim',
-      'Learned insights da campagne precedenti',
+      'Hook variants',
+      'Legal or compliance constraints',
+      'Blacklist claims',
+      'Learned insights from previous campaigns',
     ],
     examples: [
-      'Campaign objective: acquisizione lead qualificati con CPL target sostenibile.',
-      'Primary offer: consulenza + audit gratuito per attivare la call strategica.',
+      'Campaign objective: qualified lead acquisition with sustainable CPL target.',
+      'Primary offer: consulting + free audit to activate the strategic call.',
     ],
-    notes: ['Il formato estrazione è markdown con sezioni canoniche e campi non disponibili esplicitati.', 'AngleDetectorFile resta opzionale: se assente la pipeline resta operativa.'],
-    stepConstraints: ['La sequenza canonica è context-generation -> ads-generation.'],
+    notes: ['Context is composed from workspace assets and direct-input fields — no file upload required.'],
+    stepConstraints: ['The canonical sequence is context-generation -> ads-generation.'],
   },
   'youtube-description': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Inserisci i campi diretti del video: il contesto viene costruito senza upload file.',
+    summary: 'Enter direct video fields: the context is built without file upload.',
     inputFiles: [],
     allowNoFiles: true,
     requiredFiles: [],
@@ -384,51 +407,115 @@ export const toolFileInstructionsRegistry: Record<SupportedTool, ToolFileInstruc
       'Credentials or proof',
       'Chapters with timestamps',
     ],
-    optionalFields: ['Social links', 'Hashtags', 'Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
+    optionalFields: ['Social links', 'Hashtags', 'Contextual notes', 'Lexical constraints', 'Audience nuance'],
     examples: [
-      'Keywords: youtube seo, descrizione youtube, aumento watch time.',
-      'Chapters with timestamps: 0:00 Hook, 1:35 Metodo, 3:40 CTA.',
+      'Keywords: youtube seo, youtube description, increase watch time.',
+      'Chapters with timestamps: 0:00 Hook, 1:35 Method, 3:40 CTA.',
     ],
     notes: [
-      'Questo tool usa solo direct-input: nessun BriefingFile richiesto.',
-      'Timestamps ammessi: m:ss, mm:ss, h:mm:ss.',
+      'This tool uses direct-input only: no BriefingFile required.',
+      'Accepted timestamps: m:ss, mm:ss, h:mm:ss.',
     ],
-    stepConstraints: ['La sequenza canonica è youtube-description-generation.'],
+    stepConstraints: ['The canonical sequence is youtube-description-generation.'],
   },
   geometric: {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Inserisci query, lingua e paese per l\'analisi SERP e il report competitivo.',
+    summary: 'Enter query, language, and country for SERP analysis and competitive reporting.',
     inputFiles: [],
     allowNoFiles: true,
     requiredFiles: [],
     requiredFieldKeys: [],
     requiredFields: ['Base query', 'Language', 'Country'],
-    optionalFields: ['Note contestuali', 'Vincoli lessicali', 'Audience nuance'],
+    optionalFields: ['Contextual notes', 'Lexical constraints', 'Audience nuance'],
     examples: [
-      'Base query: supplementi proteici migliori per massa muscolare',
-      'Language: it-IT',
-      'Country: google.it',
+      'Base query: best protein supplements for muscle mass',
+      'Language: en-US',
+      'Country: google.com',
     ],
     notes: [
-      'Questo tool usa solo direct-input: nessun BriefingFile richiesto.',
-      'I dati SERP vengono raccolti in tempo reale tramite crawling.',
+      'This tool uses direct-input only: no BriefingFile required.',
+      'SERP data is collected in real-time via crawling.',
     ],
-    stepConstraints: ['La sequenza canonica è serp-crawling -> competitor-scoring -> strategic-reporting -> unified-report.'],
+    stepConstraints: ['The canonical sequence is serp-crawling -> competitor-scoring -> strategic-reporting -> unified-report.'],
   },
   'blog-article-generator': {
     title: appCopy.ui.toolInstructions.title,
-    summary: 'Inserisci il titolo dell\'articolo da generare.',
+    summary: 'Enter the article title to generate.',
     inputFiles: [],
     allowNoFiles: true,
     requiredFiles: [],
     requiredFieldKeys: [],
-    requiredFields: ['Titolo'],
+    requiredFields: ['Title'],
     optionalFields: [],
     examples: [
-      'Titolo: Advanced React patterns for performance optimization',
+      'Title: Advanced React patterns for performance optimization',
     ],
-    notes: ['Il titolo è l\'unico campo obbligatorio per avviare la generazione.'],
-    stepConstraints: ['La sequenza canonica è blog_seo_structure -> blog_research -> blog_article.'],
+    notes: ['The title is the only required field to start generation.'],
+    stepConstraints: ['The canonical sequence is blog_seo_structure -> blog_research -> blog_article.'],
+  },
+  'brief-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Upload a document with notes, bullet points, or descriptions. Brief Generator extracts relevant data and produces a structured brief ready for other tools.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'UPLOAD FILE',
+        accept: '.txt,.md,.docx',
+        requiredness: 'always-required',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    requiredFieldKeys: ['product_or_service', 'target_audience', 'campaign_objective', 'primary_offer', 'tone'],
+    optionalFields: [],
+    examples: [
+      'Scattered notes on product, target, and campaign objectives.',
+      'Transcript of a sales call to structure into a formal brief.',
+    ],
+    notes: [
+      'The output brief is compatible with funnel-pages, meta-ads, angle-generator, youtube-lf-script, and nextland.',
+    ],
+    stepConstraints: [],
+  },
+  'tov-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Upload a document with brand descriptions, company values, or existing communications. TOV Generator extracts relevant data and produces a structured Tone of Voice.',
+    inputFiles: [
+      {
+        key: 'briefing-file',
+        label: 'UPLOAD FILE',
+        accept: '.txt,.md,.docx',
+        requiredness: 'always-required',
+      },
+    ],
+    requiredFiles: ['BriefingFile (.txt, .md, .docx)'],
+    requiredFieldKeys: ['brand_or_company', 'target_audience', 'tone', 'product_or_service', 'market'],
+    optionalFields: [],
+    examples: [
+      'Document with company mission, values, and brand description.',
+      'Transcript of a brand positioning workshop.',
+    ],
+    notes: [
+      'The TOV output is compatible with funnel-pages, meta-ads, angle-generator, youtube-lf-script, and other tools.',
+    ],
+    stepConstraints: [],
+  },
+  'personas-generator': {
+    title: appCopy.ui.toolInstructions.title,
+    summary: 'Generate a structured buyer persona from a workspace Brief (required) and optionally a Competitor Analysis. Personas Generator derives demographics, goals, behaviors, pain points, and objections from the selected assets — no file upload required.',
+    inputFiles: [],
+    allowNoFiles: true,
+    requiredFiles: [],
+    requiredFieldKeys: ['demographics', 'goals', 'pain_point', 'behaviors', 'objections'],
+    optionalFields: [],
+    examples: [
+      'A Brief describing target market, offer, and positioning.',
+      'A Competitor Analysis with audience overlaps and differentiation.',
+    ],
+    notes: [
+      'The output persona is compatible with funnel-pages, nextland, youtube-lf-script, angle-generator, meta-ads and blog-article-generator.',
+      'If a field is not available in the inputs, extraction marks it as "unavailable" and the persona states it explicitly.',
+    ],
+    stepConstraints: [],
   },
 };
 
@@ -511,17 +598,23 @@ const toolNavigationLabelByKey: Record<SupportedTool, string> = {
   'youtube-description': appCopy.ui.navigation.youtubeDescription,
   'geometric': appCopy.ui.navigation.geometric,
   'blog-article-generator': 'Blog Article Generator',
+  'brief-generator': 'Brief Generator',
+  'tov-generator': 'TOV Generator',
+  'personas-generator': 'Personas Generator',
 };
 
 const toolNavigationDescriptionByKey: Record<SupportedTool, string> = {
-  'funnel-pages': 'Crea landing page, quiz e VSL per la tua pipeline di acquisizione.',
-  nextland: 'Genera le pagine del sito Nextland a partire dal tuo brief di progetto.',
-  'youtube-lf-script': 'Produci script video long-form guidato da una struttura passo passo.',
-  'angle-generator': 'Prioritizza gli angoli marketing attivabili a partire dal contesto estratto.',
-  'meta-ads': 'Produci asset Meta Ads coerenti con contesto, obiettivo campagna e priorita strategiche.',
-  'youtube-description': 'Genera descrizioni YouTube complete con CTA iniziale, capitoli e blocchi SEO in un singolo step.',
-  'geometric': 'Analizza SERP, scoring competitivo e report strategico unificato in italiano.',
-  'blog-article-generator': 'Generate Italian blog articles with SEO optimization and in-depth research.',
+  'funnel-pages': 'Create landing pages, quizzes, and VSLs for your acquisition pipeline.',
+  nextland: 'Generate Nextland site pages from your project brief.',
+  'youtube-lf-script': 'Produce long-form video scripts guided by a step-by-step structure.',
+  'angle-generator': 'Prioritize actionable marketing angles from the extracted context.',
+  'meta-ads': 'Produce Meta Ads assets consistent with context, campaign objective, and strategic priorities.',
+  'youtube-description': 'Generate complete YouTube descriptions with initial CTA, chapters, and SEO blocks in a single step.',
+  'geometric': 'Analyze SERP, competitive scoring, and unified strategic reporting.',
+  'blog-article-generator': 'Generate blog articles with SEO optimization and in-depth research.',
+  'brief-generator': 'Transform raw documents into structured briefs ready for generation with other tools.',
+  'tov-generator': 'Generate a structured Tone of Voice from brand documents.',
+  'personas-generator': 'Genera buyer personas strutturate a partire da documenti e ricerche di mercato.',
 };
 
 const toolRouteByKey: Record<SupportedTool, string> = {
@@ -533,6 +626,9 @@ const toolRouteByKey: Record<SupportedTool, string> = {
   'youtube-description': '/tools/youtube-description',
   'geometric': '/tools/geometric',
   'blog-article-generator': '/tools/blog-article-generator',
+  'brief-generator': '/tools/brief-generator',
+  'tov-generator': '/tools/tov-generator',
+  'personas-generator': '/tools/personas-generator',
 };
 
 export const getToolLabel = (toolKey: string | null): string => {
@@ -552,12 +648,18 @@ export const getToolLabel = (toolKey: string | null): string => {
   return toolKey;
 };
 
-export const getToolRoute = (toolKey: string | null): string | null => {
+export const getToolRoute = (toolKey: string | null, workspaceId?: string): string | null => {
   if (toolKey === null) {
     return null;
   }
 
   const normalizedToolKey = normalizeToolKeyCandidate(toolKey);
+
+  if (workspaceId) {
+    const key = normalizedToolKey || toolKey;
+    return `/workspaces/${workspaceId}/tools/${key}`;
+  }
+
   if (normalizedToolKey && normalizedToolKey in toolRouteByKey) {
     return toolRouteByKey[normalizedToolKey as SupportedTool];
   }
@@ -571,13 +673,16 @@ export const getToolRoute = (toolKey: string | null): string | null => {
 
 export const getEnabledToolNavigationItems = (
   role: ToolAccessRole = 'member',
+  workspaceId?: string,
 ): ToolNavigationItem[] => (
   getEnabledToolKeys(role).map((toolKey) => ({
     toolKey,
-    to: toolRouteByKey[toolKey],
+    to: workspaceId
+      ? `/workspaces/${workspaceId}/tools/${toolKey}`
+      : toolRouteByKey[toolKey],
     label: toolNavigationLabelByKey[toolKey],
     description: toolNavigationDescriptionByKey[toolKey],
-  }))
+  }  ))
 );
 
 /**
@@ -691,59 +796,59 @@ export const stepCardConfigRegistry: Record<
   'angle-generator': {
     'context-and-angle-matrix': {
       displayName: 'Context and Angle Matrix',
-      description: 'Mappa contesto e costruisce la matrice degli angle rilevanti',
-      expectedOutputFormat: 'Markdown con matrice angle strutturata',
+      description: 'Map context and build the relevant angle matrix',
+      expectedOutputFormat: 'Markdown with structured angle matrix',
     },
     'angle-prioritization': {
       displayName: 'Angle Prioritization',
-      description: 'Valuta e priorizza gli angle in base a impatto e differenziazione',
-      expectedOutputFormat: 'Markdown con ranking e motivazioni',
+      description: 'Evaluate and prioritize angles based on impact and differentiation',
+      expectedOutputFormat: 'Markdown with ranking and rationale',
     },
     'creative-activation': {
       displayName: 'Creative Activation',
-      description: 'Trasforma gli angle prioritari in asset creativi attivabili',
-      expectedOutputFormat: 'Markdown con headline e attivazioni creative',
+      description: 'Transform priority angles into actionable creative assets',
+      expectedOutputFormat: 'Markdown with headlines and creative activations',
     },
   },
   'meta-ads': {
     'context-generation': {
       displayName: 'Context Generation',
-      description: 'Consolida il contesto strategico utile alla produzione degli asset Meta Ads',
-      expectedOutputFormat: 'Markdown con strategia, messaggi e priorita di attivazione',
+      description: 'Consolidate strategic context for Meta Ads asset production',
+      expectedOutputFormat: 'Markdown with strategy, messaging, and activation priorities',
     },
     'ads-generation': {
       displayName: 'Ads Generation',
-      description: 'Genera i set creativi Meta Ads a partire dal contesto validato',
-      expectedOutputFormat: 'Markdown con ad set, varianti e piano di test',
+      description: 'Generate Meta Ads creative sets from the validated context',
+      expectedOutputFormat: 'Markdown with ad sets, variants, and test plan',
     },
   },
   'youtube-description': {
     'youtube-description-generation': {
       displayName: 'YouTube Description Generation',
-      description: 'Genera la descrizione finale con CTA above-the-fold, capitoli e blocchi SEO.',
-      expectedOutputFormat: 'Markdown con descrizione completa e quality report',
+      description: 'Generate the final description with above-the-fold CTA, chapters, and SEO blocks.',
+      expectedOutputFormat: 'Markdown with complete description and quality report',
     },
   },
   'geometric': {
     'serp-crawling': {
       displayName: 'SERP Crawling',
-      description: 'Raccolta dati dalla Search Engine Results Page per la query di base e PAA correlate.',
-      expectedOutputFormat: 'JSON con snippet AI Overview, sources e PAA queries',
+      description: 'Collect data from the Search Engine Results Page for the base query and related PAA.',
+      expectedOutputFormat: 'JSON with AI Overview snippets, sources, and PAA queries',
     },
     'competitor-scoring': {
       displayName: 'Competitor Scoring',
-      description: 'Analisi e scoring dei competitor su base domini e tipologia di fonti.',
-      expectedOutputFormat: 'JSON con ranking competitivo e tier assignment',
+      description: 'Analyze and score competitors based on domains and source types.',
+      expectedOutputFormat: 'JSON with competitive ranking and tier assignment',
     },
     'strategic-reporting': {
       displayName: 'Strategic Reporting',
-      description: 'Generazione report strategico qualitativo in italiano dal panorama SERP.',
-      expectedOutputFormat: 'Markdown con analisi strategica e raccomandazioni operative',
+      description: 'Generate qualitative strategic report from the SERP landscape.',
+      expectedOutputFormat: 'Markdown with strategic analysis and operational recommendations',
     },
     'unified-report': {
       displayName: 'Unified Report',
-      description: 'Report unificato che combina analisi strategica e scoring quantitativo.',
-      expectedOutputFormat: 'Markdown con tabelle competitor, analisi e raccomandazioni',
+      description: 'Unified report combining strategic analysis and quantitative scoring.',
+      expectedOutputFormat: 'Markdown with competitor tables, analysis, and recommendations',
     },
   },
   'blog-article-generator': {
@@ -759,8 +864,29 @@ export const stepCardConfigRegistry: Record<
     },
     'blog_article': {
       displayName: 'Article Writing',
-      description: 'Write the complete Italian blog article with professional copywriting.',
-      expectedOutputFormat: 'Full Italian article in Markdown (~800 words)',
+      description: 'Write the complete blog article with professional copywriting.',
+      expectedOutputFormat: 'Full article in Markdown (~800 words)',
+    },
+  },
+  'brief-generator': {
+    'brief-generation': {
+      displayName: 'Brief Generation',
+      description: 'Transform extracted data into a structured, standardized creative brief ready for consumption by other tools.',
+      expectedOutputFormat: 'Structured markdown with all canonical brief sections',
+    },
+  },
+  'tov-generator': {
+    'tov-generation': {
+      displayName: 'TOV Generation',
+      description: 'Transform extracted data into a complete, structured Tone of Voice ready for consumption by other tools.',
+      expectedOutputFormat: 'Structured markdown with identity, values, voice, language, channels, and examples',
+    },
+  },
+  'personas-generator': {
+    'personas-generation': {
+      displayName: 'Personas Generation',
+      description: 'Trasforma i dati estratti in una buyer persona strutturata e completa pronta per il consumo da parte degli altri tool.',
+      expectedOutputFormat: 'Markdown strutturato con demografia, obiettivi, pain point, comportamenti, obiezioni, messaggistica e trigger',
     },
   },
 };

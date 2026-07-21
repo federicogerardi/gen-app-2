@@ -21,7 +21,6 @@ Il briefing deve evidenziare in modo analitico: contesto business, offerta, crit
 - Lunghezza target: 220-420 parole.
 
 ## Metadati input
-- Tono richiesto: {{tone}}
 - Campi prioritari (required=true): {{requiredFields}}
 - Note: {{notes}}
 

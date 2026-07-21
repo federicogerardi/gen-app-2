@@ -19,7 +19,6 @@ export const useToolFormInit = (toolKey: SupportedTool, prefillProjectId?: strin
   const [formState, setFormState] = useState<ToolFormState>({
     projectId: prefillProjectId ?? '',
     model: config.defaultModel,
-    tone: 'Professional',
     titolo: '',
     campaignObjective: '',
     copyLengthFormat: 'medium-form',

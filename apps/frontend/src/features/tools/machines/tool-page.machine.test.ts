@@ -1,138 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assign, createActor, setup } from 'xstate';
+import { createActor } from 'xstate';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 
 vi.mock('./briefing-upload.machine', async () => {
-  const { isExtractionContextValidForTool } = await import('./extraction-context-validity');
-  const briefingUploadMachine = setup({
-    types: {
-      context: {} as {
-        extractionArtifactId: string | null;
-        extractionPayload: Record<string, unknown> | null;
-        briefingId: string | null;
-        fileName: string | null;
-        normalizedText: string | null;
-        parsedFormat: 'txt' | 'md' | 'docx' | null;
-      },
-      events: {} as
-        | { type: 'FILE_SELECTED'; file: File }
-        | { type: 'RESET' }
-        | {
-            type: 'EXTRACTION_RECOVERED';
-            artifactId: string;
-            payload: Record<string, unknown>;
-            briefingId?: string | null;
-            fileName?: string | null;
-            normalizedText?: string | null;
-            parsedFormat?: 'txt' | 'md' | 'docx' | null;
-          },
-      input: {} as {
-        toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script' | 'meta-ads';
-        projectId: string;
-        apiBaseUrl: string;
-        capabilities: Record<string, unknown>;
-        userId: string | null;
-      },
-    },
-  }).createMachine({
-    id: 'briefingUploadMachine',
-    context: {
-      extractionArtifactId: null,
-      extractionPayload: null,
-      briefingId: null,
-      fileName: null,
-      normalizedText: null,
-      parsedFormat: null,
-    },
-    initial: 'idle',
-    states: {
-      idle: {
-        on: {
-          FILE_SELECTED: {
-            target: 'ready',
-            actions: assign({
-              extractionArtifactId: () => 'mock-extraction-artifact',
-              extractionPayload: () => ({ topic: 'mock' }),
-              briefingId: () => 'mock-briefing-id',
-              fileName: ({ event }) => event.file.name,
-              normalizedText: () => 'mock brief text',
-              parsedFormat: () => 'md',
-            }),
-          },
-          RESET: {
-            target: 'idle',
-            actions: assign({
-              extractionArtifactId: () => null,
-              extractionPayload: () => null,
-              briefingId: () => null,
-              fileName: () => null,
-              normalizedText: () => null,
-              parsedFormat: () => null,
-            }),
-          },
-          EXTRACTION_RECOVERED: {
-            target: 'ready',
-            actions: assign({
-              extractionArtifactId: ({ event }) => event.artifactId,
-              extractionPayload: ({ event }) => event.payload,
-              briefingId: ({ event }) => event.briefingId ?? null,
-              fileName: ({ event }) => event.fileName ?? null,
-              normalizedText: ({ event }) => event.normalizedText ?? null,
-              parsedFormat: ({ event }) => event.parsedFormat ?? null,
-            }),
-          },
-        },
-      },
-      ready: {
-        on: {
-          RESET: {
-            target: 'idle',
-            actions: assign({
-              extractionArtifactId: () => null,
-              extractionPayload: () => null,
-              briefingId: () => null,
-              fileName: () => null,
-              normalizedText: () => null,
-              parsedFormat: () => null,
-            }),
-          },
-          EXTRACTION_RECOVERED: {
-            target: 'ready',
-            actions: assign({
-              extractionArtifactId: ({ context }) => context.extractionArtifactId,
-              extractionPayload: ({ context }) => context.extractionPayload,
-              briefingId: ({ context }) => context.briefingId,
-              fileName: ({ context }) => context.fileName,
-              normalizedText: ({ context }) => context.normalizedText,
-              parsedFormat: ({ context }) => context.parsedFormat,
-            }),
-          },
-        },
-      },
-    },
-  });
-
-  const hasReadyBriefingExtractionContext = (
-    toolKey: 'funnel-pages' | 'nextland' | 'youtube-lf-script' | 'meta-ads',
-    briefingActorRef: { getSnapshot?: () => { matches: (value: string) => boolean; context: {
-      extractionArtifactId: string | null;
-      extractionPayload: Record<string, unknown> | null;
-      briefingId: string | null;
-      normalizedText: string | null;
-    } } } | null,
-  ) => {
-    const snapshot = briefingActorRef?.getSnapshot?.();
-    return snapshot?.matches('ready')
-      && (snapshot.context.extractionArtifactId?.trim().length ?? 0) > 0
-      && (snapshot.context.briefingId?.trim().length ?? 0) > 0
-      && isExtractionContextValidForTool(
-        toolKey,
-        snapshot.context.extractionPayload,
-        snapshot.context.normalizedText,
-      );
-  };
-
-  return { briefingUploadMachine, hasReadyBriefingExtractionContext };
+  const { createBriefingUploadMachineMock } = await import('../../../test/mocks/briefing-upload-machine.mock');
+  return createBriefingUploadMachineMock({ initialState: 'idle' });
 });
 
 import { toolPageMachine } from './tool-page.machine';
@@ -526,6 +398,7 @@ describe('toolPageMachine', () => {
       hasProject: false,
       hasExtractionContext: false,
       hasPrimaryTargetStep: true,
+      hasRequiredAssets: true,
       reasonCodes: [
         'missing_project',
         'missing_extraction_context',

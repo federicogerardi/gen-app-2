@@ -4,25 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { SessionsListingSection } from './SessionsListingSection';
 
 const mocks = vi.hoisted(() => ({
-  authSession: {
-    session: null,
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: {
-      projects: false,
-      models: false,
-      artifacts: false,
-      sessionsList: false,
-      sessionsDetail: false,
-      toolsUpload: false,
-    },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  },
   sessions: [
     {
       sessionId: 'sess-angle',
@@ -35,27 +16,10 @@ const mocks = vi.hoisted(() => ({
   ],
 }));
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => mocks.authSession,
-  useAuthState: () => ({
-    session: mocks.authSession.session,
-    loading: mocks.authSession.loading,
-    hasError: mocks.authSession.hasError,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: mocks.authSession.apiBaseUrl,
-    capabilities: mocks.authSession.capabilities,
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: mocks.authSession.oauthStartUrl,
-  }),
-}));
+vi.mock('../../../app/providers/AuthSessionProvider', async () => {
+  const { createMockAuthSessionProvider } = await import('../../../test/mocks/auth-session-provider.mock');
+  return createMockAuthSessionProvider({ session: null, capabilities: { projects: false, models: false, artifacts: false, sessionsList: false, sessionsDetail: false, toolsUpload: false } });
+});
 
 vi.mock('../../../app/runtime/queries/useProjectsQuery', () => ({
   useProjectsQuery: () => ({

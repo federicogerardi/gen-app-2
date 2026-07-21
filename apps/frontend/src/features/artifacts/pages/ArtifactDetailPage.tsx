@@ -2,7 +2,7 @@ import { useEffect, useMemo, useCallback } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { useApiConfig } from '../../../app/providers/AuthSessionProvider';
-import { PrimaryCtaButton, SecondaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
+import { PrimaryCtaButton, SoftCtaButton } from '../../../app/ui/CtaButtons';
 import {
   EmptyStateMessage,
   ErrorStateMessage,
@@ -12,10 +12,8 @@ import {
   uiPrimitives,
 } from '../../../app/ui/primitives';
 import { StatusBadge } from '../../../app/ui/StatusBadge';
-import { useGenerationWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import { useArtifactDetailQuery } from '../../../app/runtime/queries/useArtifactDetailQuery';
 import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery';
-import { buildToolEntryPathFromArtifact } from '../../generation/ui/artifact-history';
 import { isSessionSummaryId } from '../../sessionsummary/runtime/session-summary-domain';
 import { getToolLabel } from '../../tools/runtime/tool-form-architecture';
 import { normalizeToolKeyCandidate } from '@gen-app-2/contracts';
@@ -74,11 +72,10 @@ export const ArtifactDetailPage = () => {
   const { artifactId = '' } = useParams();
   const navigate = useNavigate();
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
 
   useEffect(() => {
     if (isSessionSummaryRouteId(artifactId)) {
-      navigate(`/sessionsummary/${artifactId}`, { replace: true });
+      navigate('/workspaces', { replace: true });
     }
   }, [artifactId, navigate]);
 
@@ -86,7 +83,7 @@ export const ArtifactDetailPage = () => {
     artifactId,
     apiBaseUrl,
     capabilities,
-    localArtifacts: generation.artifacts,
+    localArtifacts: [],
     enabled: artifactId.length > 0,
   });
 
@@ -106,7 +103,7 @@ export const ArtifactDetailPage = () => {
       <Surface as="section" className={uiPrimitives.stack}>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
         <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </Surface>
@@ -124,17 +121,17 @@ export const ArtifactDetailPage = () => {
         {!artifactQuery.loading ? (
           <EmptyStateMessage>{appCopy.ui.states.noArtifactFound}</EmptyStateMessage>
         ) : null}
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </Surface>
     );
   }
 
-  return <LegacyArtifactView artifact={artifact} projectName={projectName} />;
+  return <ArtifactView artifact={artifact} projectName={projectName} />;
 };
 
-const LegacyArtifactView = ({
+const ArtifactView = ({
   artifact,
   projectName,
 }: {
@@ -142,19 +139,10 @@ const LegacyArtifactView = ({
   projectName: string | null;
 }) => {
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const generation = useGenerationWorkspace();
-  const restartPath = useMemo(
-    () => buildToolEntryPathFromArtifact(artifact, 'regenerate'),
-    [artifact],
-  );
-  const relaunchDisabled = useMemo(
-    () => generation.isStreamActive || !restartPath,
-    [generation.isStreamActive, restartPath],
-  );
   const stepTitle = useMemo(() => {
     const normalized = artifact.stepKey?.trim();
     if (!normalized) {
-      return 'Step non disponibile';
+      return appCopy.ui.artifactDetail.stepUnavailable;
     }
 
     return normalized
@@ -165,25 +153,17 @@ const LegacyArtifactView = ({
   const modelLabel = artifact.model.trim().length > 0 ? artifact.model : '-';
   const completedAtRaw = artifact.completedAt ?? artifact.updatedAt;
   const completedAtHumanReadable = useMemo(() => toHumanReadableDate(completedAtRaw), [completedAtRaw]);
-  const resolvedProjectName = projectName ?? `Progetto ${artifact.projectId}`;
+  const resolvedProjectName = projectName ?? `Project ${artifact.projectId}`;
   const sessionPath = useMemo(() => {
     const sessionId = artifact.sessionId?.trim();
-    return sessionId ? `/sessionsummary/${sessionId}` : null;
-  }, [artifact.sessionId]);
+    const projectId = artifact.projectId?.trim();
+    return sessionId && projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : null;
+  }, [artifact.sessionId, artifact.projectId]);
   const resolvedToolKey = useMemo(() => resolveArtifactToolKey(artifact), [artifact]);
   const toolName = useMemo(
-    () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : 'Tool non disponibile'),
+    () => (resolvedToolKey ? getToolLabel(resolvedToolKey) : appCopy.ui.artifactDetail.toolUnavailable),
     [resolvedToolKey],
   );
-  const toneLabel = useMemo(() => {
-    const tone = artifact.sourceRequest.input?.tone;
-    if (typeof tone !== 'string') {
-      return '-';
-    }
-
-    const normalized = tone.trim();
-    return normalized.length > 0 ? normalized : '-';
-  }, [artifact.sourceRequest.input]);
 
   const handleDownload = useCallback(
     (format: DownloadFormat) => {
@@ -203,18 +183,18 @@ const LegacyArtifactView = ({
     <Surface as="section" className={uiPrimitives.stack}>
       <TopBar>
         <h2>{appCopy.editorial.artifacts.detailTitle}</h2>
-        <Link to="/artifacts" className={uiPrimitives.inlineLink}>
+        <Link to="/admin/artifacts" className={uiPrimitives.inlineLink}>
           {appCopy.ui.actions.openArchive}
         </Link>
       </TopBar>
 
       <div className="ui-artifact-page-layout" itemScope itemType="https://schema.org/DigitalDocument">
-        <section className="ui-artifact-primary-panel" aria-label="Preview contenuto artifact">
+        <section className="ui-artifact-primary-panel" aria-label={appCopy.ui.artifactDetail.previewAriaLabel}>
           <ArtifactContentPreview content={artifact.content} />
         </section>
 
-        <aside className="ui-artifact-secondary-panel" aria-label="Contesto e azioni artifact">
-          <section className="ui-artifact-overview" aria-label="Panoramica artifact">
+        <aside className="ui-artifact-secondary-panel" aria-label={appCopy.ui.artifactDetail.contextAriaLabel}>
+          <section className="ui-artifact-overview" aria-label={appCopy.ui.artifactDetail.overviewAriaLabel}>
             <div className="ui-artifact-overview-main">
               <div className="ui-artifact-overview-heading-row">
                 <h3 className="ui-artifact-overview-title">{stepTitle}</h3>
@@ -227,20 +207,13 @@ const LegacyArtifactView = ({
             <div className="ui-artifact-overview-actions">
               {sessionPath ? (
                 <PrimaryCtaButton component={Link} to={sessionPath}>
-                  Apri sessione
+                  {appCopy.ui.toolPage.openSessionLabel}
                 </PrimaryCtaButton>
               ) : (
                 <PrimaryCtaButton type="button" disabled>
                   {appCopy.ui.session.unavailable}
                 </PrimaryCtaButton>
               )}
-              <SecondaryCtaButton
-                component={Link}
-                to={restartPath ?? '#'}
-                disabled={relaunchDisabled}
-              >
-                {appCopy.ui.actions.relaunchPrimary}
-              </SecondaryCtaButton>
               {capabilities.artifactDownload ? (
                 <DownloadFormatDropdown onDownload={handleDownload} />
               ) : null}
@@ -251,15 +224,12 @@ const LegacyArtifactView = ({
           </section>
 
           <details className="ui-artifact-accessory">
-            <summary>Dettagli tecnici</summary>
-            {toneLabel !== '-' ? <meta itemProp="keywords" content={`tone:${toneLabel}`} /> : null}
+            <summary>{appCopy.ui.artifactDetail.technicalDetails}</summary>
             <dl className="ui-artifact-metadata">
               <dt>{appCopy.ui.meta.artifactId}</dt>
               <dd itemProp="identifier">{artifact.artifactId}</dd>
               <dt>{appCopy.ui.labels.model}</dt>
               <dd>{modelLabel}</dd>
-              <dt>{appCopy.ui.labels.toneOptional}</dt>
-              <dd>{toneLabel}</dd>
             </dl>
           </details>
 

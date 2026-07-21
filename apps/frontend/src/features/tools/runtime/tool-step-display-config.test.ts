@@ -14,10 +14,13 @@ describe('tool-step-display-config', () => {
       expect(toolsWithConfig).toEqual([
         'angle-generator',
         'blog-article-generator',
+        'brief-generator',
         'funnel-pages',
         'geometric',
         'meta-ads',
         'nextland',
+        'personas-generator',
+        'tov-generator',
         'youtube-description',
         'youtube-lf-script',
       ]);

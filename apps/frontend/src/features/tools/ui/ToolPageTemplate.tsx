@@ -3,7 +3,7 @@
  * All orchestration logic (XState, side-effects, generation dispatch) lives in useToolPage.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,10 +24,12 @@ import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-stat
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
-import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
+import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
+import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
+import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
+import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
 
-const toneProfileOptions = appCopy.ui.toolPage.toneProfiles;
 const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
 
 interface ToolPageTemplateProps {
@@ -35,7 +37,6 @@ interface ToolPageTemplateProps {
   sourceArtifactId?: string | null;
   intent?: 'new' | 'regenerate' | 'resume';
   initialProjectId?: string | null;
-  relaunchTone?: string | null;
   relaunchNotes?: string | null;
   relaunchFromArtifactId?: string | null;
   briefingId?: string | null;
@@ -46,7 +47,6 @@ interface ToolPageTemplateProps {
 type ToolPageFormValues = {
   projectId: string;
   model: string;
-  tone: string;
   titolo: string;
   campaignObjective: string;
   copyLengthFormat: 'short-form' | 'medium-form' | 'long-form';
@@ -71,19 +71,83 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   const isYoutubeDescriptionTool = props.toolKey === 'youtube-description';
   const isGeometricTool = props.toolKey === 'geometric';
   const isBlogArticleGeneratorTool = props.toolKey === 'blog-article-generator';
+  const hasConfigurationFields = isMetaAdsTool || isYoutubeDescriptionTool || isGeometricTool || isBlogArticleGeneratorTool;
   const youtubeDescriptionSingleRowClassName = 'ui-tool-form-row ui-tool-form-row--full';
   const { apiBaseUrl, capabilities } = useApiConfig();
-  const { data: modelOptions, loading: modelsLoading, error: modelsError } = useModelsQuery({
+  const { data: modelOptions } = useModelsQuery({
     apiBaseUrl,
     capabilities,
   });
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+
+  // ── Workspace context (project auto-resolved from URL) ──
+  const workspaceContext = (() => {
+    try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      return useWorkspace();
+    } catch {
+      return null;
+    }
+  })();
+  const workspaceProjectId = workspaceContext?.workspace.id ?? '';
+
+  // ── Per-type asset satisfaction: map selected asset IDs to their types ──
+  const selectedAssetTypes = useMemo(() => {
+    if (!workspaceContext) return null;
+    const assets = workspaceContext.workspace.assets;
+    if (assets.length === 0) return new Set<string>();
+    const typeById = new Map(assets.map((a) => [a.id, a.assetType]));
+    return new Set(selectedAssetIds.map((id) => typeById.get(id) ?? null).filter((t): t is string => t !== null));
+  }, [workspaceContext, selectedAssetIds]);
+
+  // ── Asset-based extraction context: when all always-required asset types
+  //     are satisfied, the tool has enough context even without a briefing file ──
+  const hasAssetBasedExtractionContext = useMemo(() => {
+    if (!workspaceContext || !selectedAssetTypes) return false;
+    const toolAssets = getToolAssetInputs(props.toolKey);
+    const alwaysRequiredTypes = toolAssets
+      .filter((a) => a.requiredness === 'always-required')
+      .map((a) => a.assetType);
+    return alwaysRequiredTypes.length > 0
+      && alwaysRequiredTypes.every((type) => selectedAssetTypes.has(type));
+  }, [workspaceContext, props.toolKey, selectedAssetTypes]);
+
+  // ── Tool readiness score (0-100%): weighted average of asset type completion
+  //     Always-required types count 3×, others 1×; achievement uses avg quality ──
+  const toolReadinessScore = useMemo(() => {
+    if (!workspaceContext) return 0;
+    const assets = workspaceContext.workspace.assets;
+    const toolAssets = getToolAssetInputs(props.toolKey);
+    if (toolAssets.length === 0) return 0;
+
+    const groupedByType = new Map<string, typeof assets>();
+    for (const asset of assets) {
+      const list = groupedByType.get(asset.assetType) ?? [];
+      list.push(asset);
+      groupedByType.set(asset.assetType, list);
+    }
+
+    let totalWeight = 0;
+    let achievedWeight = 0;
+
+    for (const input of toolAssets) {
+      const weight = input.requiredness === 'always-required' ? 3 : 1;
+      totalWeight += weight;
+
+      const typeAssets = groupedByType.get(input.assetType) ?? [];
+      if (typeAssets.length > 0) {
+        const avgQuality = typeAssets.reduce((sum, a) => sum + a.qualityScore, 0) / typeAssets.length;
+        achievedWeight += (avgQuality / 100) * weight;
+      }
+    }
+
+    return totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : 0;
+  }, [workspaceContext, props.toolKey]);
 
   const {
     toolConfig,
     formState,
     setFormState,
-    projects,
-    projectsLoading,
     briefingError,
     dispatchError,
     artifactsReloadError,
@@ -92,7 +156,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     machineViewModel,
     isGenerating,
     effectiveCanonicalState,
-    currentProject,
     isStreamActive,
     completedStepsForFlow,
     currentRunningStep,
@@ -106,10 +169,27 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleExtractionStart,
     handleBriefingReset,
     angleDetectorFileName,
-  } = useToolPage(props);
+  } = useToolPage({ ...props, selectedAssetIds, hasAssetBasedExtractionContext });
+
+  // ── Auto-set projectId from workspace context (useLayoutEffect: sync before paint,
+  //     prevents race where user clicks CTA before RHF has the projectId value) ──
+  useLayoutEffect(() => {
+    if (workspaceProjectId && formState.projectId !== workspaceProjectId) {
+      setFormState((prev) => ({ ...prev, projectId: workspaceProjectId }));
+    }
+  }, [workspaceProjectId, formState.projectId, setFormState]);
+
   const [isFormLocked, setIsFormLocked] = useState(false);
   const toolFileInstructions = selectToolFileInstructions(props.toolKey);
   const inputFiles = toolFileInstructions?.inputFiles ?? [];
+  // Hide file upload when the corresponding workspace asset type replaces it.
+  // briefing-file → brief asset, angle-detector-file → (no direct asset equivalent yet)
+  const toolAssetInputsForFilter = getToolAssetInputs(props.toolKey);
+  const consumedAssetTypes = new Set(toolAssetInputsForFilter.map((a) => a.assetType));
+  const visibleInputFiles = inputFiles.filter((f) => {
+    if (f.key === 'briefing-file' && consumedAssetTypes.has('brief')) return false;
+    return true;
+  });
   const apiAcquisitionInputs = toolFileInstructions?.apiAcquisitionInputs ?? [];
   const apiBindingStatusAdapter = useToolApiBindingStatusAdapter({
     apiBaseUrl,
@@ -119,7 +199,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   });
   const hasProjectSelected = formState.projectId.trim().length > 0;
   const completedFileKeys = [
-    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready') ? ['briefing-file'] : []),
+    ...((effectiveBriefingFileName || effectiveBriefingStatus === 'ready' || hasAssetBasedExtractionContext) ? ['briefing-file'] : []),
     ...(angleDetectorFileName ? ['angle-detector-file'] : []),
   ];
   const inputRequirementMatrix = deriveToolInputRequirementMatrix({
@@ -128,46 +208,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     completedFileKeys,
     includeApiAcquisition: apiBindingStatusAdapter.enabled,
     apiAcquisitionStatus: apiBindingStatusAdapter.data,
+    // Only wire asset gatekeeping when inside a WorkspaceProvider (soft migration path)
+    toolAssetInputs: workspaceContext ? getToolAssetInputs(props.toolKey) : [],
+    selectedAssetTypes: workspaceContext ? selectedAssetTypes : null,
   });
-  const hasToolInputFiles = inputFiles.length > 0;
-  const hasContextGenerationStep = toolConfig.steps.includes('context-generation');
 
   const formatStepLabel = (stepKey: string) => stepKey
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-
-  const inputFilePayload: NonNullable<ToolGenerationFlowVerticalProps['inputFilePayload']> = inputFiles.map((fileEntry) => {
-    const fileName = fileEntry.key === 'briefing-file'
-      ? effectiveBriefingFileName ?? null
-      : fileEntry.key === 'angle-detector-file'
-        ? angleDetectorFileName ?? null
-        : null;
-    const isBriefingFile = fileEntry.key === 'briefing-file';
-    const isAngleDetectorFile = fileEntry.key === 'angle-detector-file';
-    const status: 'done' | 'todo' = fileName ? 'done' : 'todo';
-
-    return {
-      key: fileEntry.key,
-      label: isBriefingFile
-        ? copy.filePayloadLabel.briefing
-        : isAngleDetectorFile
-          ? copy.filePayloadLabel.angleDetector
-          : fileEntry.label,
-      requiredness: fileEntry.requiredness,
-      status,
-      fileName,
-    };
-  });
-
-  const apiAcquisitionPayload: NonNullable<ToolGenerationFlowVerticalProps['apiAcquisitionPayload']> = inputRequirementMatrix.entries
-    .filter((entry) => entry.sourceFamily === 'api-acquisition')
-    .map((entry) => ({
-      key: entry.key,
-      label: entry.label,
-      requiredness: entry.requiredness,
-      status: entry.satisfied ? 'done' : 'todo',
-    }));
 
   const stepItems = toolConfig.steps.map((stepKey) => {
     const isDone = completedStepsForFlow.has(stepKey) || effectiveCanonicalState === 'completed';
@@ -236,9 +285,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
 
   // Zod schema per validazione form tool page
   const toolFormSchema = z.object({
-    projectId: z.string().min(1, copy.form.validation.projectRequired),
+    projectId: z.string(),
     model: z.string().min(1, copy.form.validation.modelRequired),
-    tone: z.string().min(1, copy.form.validation.toneRequired),
     titolo: z.string(),
     campaignObjective: z.string(),
     copyLengthFormat: z.enum(['short-form', 'medium-form', 'long-form']),
@@ -257,16 +305,16 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     hashtags: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
-    if (isYoutubeDescriptionTool) {
-      const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
-        { key: 'videoTitle', label: 'Video title' },
-        { key: 'topic', label: 'Topic' },
-        { key: 'keywords', label: 'Keywords' },
-        { key: 'ctaText', label: 'CTA text' },
-        { key: 'ctaLink', label: 'CTA link' },
-        { key: 'credentialsOrProof', label: 'Credentials or proof' },
-        { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
-      ];
+      if (isYoutubeDescriptionTool) {
+        const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; message: string }> = [
+          { key: 'videoTitle', message: copy.form.validation.videoTitleRequired },
+          { key: 'topic', message: copy.form.validation.topicRequired },
+          { key: 'keywords', message: copy.form.validation.keywordsRequired },
+          { key: 'ctaText', message: copy.form.validation.ctaTextRequired },
+          { key: 'ctaLink', message: copy.form.validation.ctaLinkRequired },
+          { key: 'credentialsOrProof', message: copy.form.validation.credentialsRequired },
+          { key: 'chaptersWithTimestamps', message: copy.form.validation.chaptersRequired },
+        ];
 
           for (const field of requiredDirectFields) {
             const candidate = value[field.key];
@@ -274,17 +322,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               context.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: [field.key],
-                message: `${field.label} required`,
+                message: field.message,
               });
             }
           }
         }
 
         if (isGeometricTool) {
-          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
-            { key: 'baseQuery', label: 'Base query' },
-            { key: 'language', label: 'Language' },
-            { key: 'country', label: 'Country' },
+          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; message: string }> = [
+            { key: 'baseQuery', message: copy.form.validation.baseQueryRequired },
+            { key: 'language', message: copy.form.validation.languageRequired },
+            { key: 'country', message: copy.form.validation.countryRequired },
           ];
 
           for (const field of requiredDirectFields) {
@@ -293,7 +341,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               context.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: [field.key],
-                message: `${field.label} required`,
+                message: field.message,
               });
             }
           }
@@ -305,7 +353,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
             context.addIssue({
               code: z.ZodIssueCode.custom,
               path: ['titolo'],
-              message: 'Titolo articolo richiesto',
+              message: appCopy.ui.toolPage.form.validation.articleTitleRequired,
             });
           }
         }
@@ -322,20 +370,24 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         continue;
       }
 
-      const candidate = (value as Record<string, unknown>)[fileEntry.key];
-      if (!(candidate instanceof File)) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: [fileEntry.key],
-          message: `${copy.form.validation.uploadToContinuePrefix}${fileEntry.label}${copy.form.validation.uploadToContinueSuffix}`,
-        });
-      }
+      // SPRINT 4: DDD-192 removal — this validation was blocking extraction
+      // start because handleSubmit validates the form BEFORE executePrimaryActionFromForm
+      // can call handleExtractionStart. The inputRequirementMatrix and
+      // matrixBlockingPrimaryOverride already guard via completedFileKeys,
+      // so this duplicate check only prevented the extraction process from
+      // being initiated. File upload is handled by handleBriefingFileSelected,
+      // not by form submission.
     }
   });
 
   const extractionInProgress = effectiveBriefingStatus === 'uploading' || effectiveBriefingStatus === 'extracting';
   const extractionAlreadyReady = effectiveBriefingStatus === 'ready';
-  const canStartExtraction = (hasToolInputFiles || hasContextGenerationStep)
+  // Extraction only starts when there's a file awaiting extraction.
+  // If no file is uploaded but assets provide context → direct generation.
+  // If a file is uploaded AND assets are present → extract first, then generate with both.
+  const hasFileAwaitingExtraction = effectiveBriefingFileName !== null
+    && effectiveBriefingStatus !== 'ready';
+  const canStartExtraction = hasFileAwaitingExtraction
     && !isStreamActive
     && !extractionInProgress
     && !extractionAlreadyReady
@@ -364,13 +416,27 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       disabled: true,
     }
     : undefined;
+  // ── DDD-213: Asset hard-block policy ──
+  // Hard-block: any required entry missing (always-required / required-by-tool-setting) across
+  // ALL source families including project-asset → CTA disabled, label "Completa il form per iniziare".
+  // Soft-block: only optional entries missing (optional-by-tool-setting, any family) → CTA enabled,
+  // label "Avvia la generazione" with warning tooltip.
+  const hasHardBlockingMissing = inputRequirementMatrix.missingRequiredEntries.length > 0;
+  const hasOnlyOptionalMissing = !hasHardBlockingMissing
+    && (inputRequirementMatrix.missingOptionalAssets.length > 0
+        || inputRequirementMatrix.missingOptionalEntries.length > 0);
+
   const matrixBlockingPrimaryOverride: { label: string; disabled: boolean; tooltip?: string } | undefined =
-    !inputRequirementMatrix.requiredEntriesSatisfied
+    (hasHardBlockingMissing || hasOnlyOptionalMissing)
       && machineViewModel.primaryActionPolicy !== 'open-last-artifact'
       ? {
-        label: copy.primaryActionPolicy.disabledLabel,
-        disabled: true,
-        tooltip: copy.primaryActionPolicy.disabledTooltip,
+        label: hasHardBlockingMissing
+          ? copy.primaryActionPolicy.disabledLabel
+          : copy.primaryActionPolicy.startGenerationLabel,
+        disabled: hasHardBlockingMissing,
+        tooltip: hasOnlyOptionalMissing
+          ? `${copy.primaryActionPolicy.missingAssetsWarningTooltip} (readiness ${toolReadinessScore}%)`
+          : copy.primaryActionPolicy.disabledTooltip,
       }
       : undefined;
   const extractionPrimaryOverride = canStartExtraction
@@ -386,7 +452,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
       ...prev,
       projectId: data.projectId,
       model: data.model,
-      tone: data.tone,
       titolo: isBlogArticleGeneratorTool ? data.titolo : prev.titolo,
       campaignObjective: isMetaAdsTool ? data.campaignObjective : prev.campaignObjective,
       videoTitle: isYoutubeDescriptionTool ? data.videoTitle : prev.videoTitle,
@@ -437,7 +502,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     defaultValues: {
       projectId: formState.projectId,
       model: formState.model,
-      tone: formState.tone,
       titolo: formState.titolo ?? '',
       campaignObjective: formState.campaignObjective,
       copyLengthFormat: formState.copyLengthFormat ?? 'medium-form',
@@ -459,19 +523,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     mode: 'onChange',
   });
 
-  // Auto-select the catalog default model quando la lista si popola
-  const defaultAppliedRef = useRef(false);
-  useEffect(() => {
-    if (defaultAppliedRef.current || modelOptions.length === 0) return;
-    const catalogDefault = modelOptions.find((o) => o.isDefault);
-    if (catalogDefault && formState.model !== catalogDefault.key) {
-      setFormState((prev) => ({ ...prev, model: catalogDefault.key }));
-      setValue('model', catalogDefault.key);
-    }
-    defaultAppliedRef.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelOptions]);
-
   // Sync external formState changes (e.g. route prefills from useToolPage) into RHF
   // so that handleSubmit always sees up-to-date values.
   useEffect(() => {
@@ -481,10 +532,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
   useEffect(() => {
     setValue('model', formState.model);
   }, [formState.model, setValue]);
-
-  useEffect(() => {
-    setValue('tone', formState.tone);
-  }, [formState.tone, setValue]);
 
   useEffect(() => {
     setValue('titolo', formState.titolo ?? '');
@@ -591,91 +638,13 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               executePrimaryActionFromForm(data);
             })}>
 
+              {/* ── Configuration Section ── */}
+              {hasConfigurationFields ? (
+              <div className="ui-tool-setup-section" aria-labelledby="setup-section-configuration">
+                <p id="setup-section-configuration" className="ui-tool-setup-section__label">{copy.sections.configuration}</p>
+
               <div className={isBlogArticleGeneratorTool ? "ui-tool-form-row ui-tool-form-row--double" : "ui-tool-form-row ui-tool-form-row--triple"}>
-                <Controller
-                  name="projectId"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label={copy.form.projectLabel}
-                      disabled={projectsLoading || isGenerationLocked}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setFormState((prev) => ({ ...prev, projectId: e.target.value }));
-                      }}
-                      value={field.value}
-                      error={!!errors.projectId}
-                      helperText={errors.projectId?.message as string | undefined}
-                      fullWidth
-                    >
-                      <MenuItem value="">{projectsLoading ? copy.form.loadingProjects : copy.form.selectProject}</MenuItem>
-                      {projects.map((p) => (
-                        <MenuItem key={p.id} value={p.id}>
-                          {p.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
-
-                {isBlogArticleGeneratorTool ? null : (
-                  <Controller
-                    name="model"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        select
-                        label={copy.form.modelLabel}
-                        disabled={isGenerationLocked || modelsLoading || Boolean(modelsError)}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setFormState((prev) => ({ ...prev, model: e.target.value }));
-                        }}
-                        value={field.value}
-                        error={!!errors.model}
-                        helperText={(errors.model?.message as string | undefined) ?? (modelsError ?? undefined)}
-                        fullWidth
-                      >
-                        {modelsError ? (
-                          <MenuItem value={field.value || ''}>{field.value || copy.form.catalogUnavailable}</MenuItem>
-                        ) : modelOptions.length === 0 ? (
-                          <MenuItem value={field.value}>{field.value || copy.form.noModelsAvailable}</MenuItem>
-                        ) : (
-                          modelOptions.map((o) => (
-                            <MenuItem key={o.key} value={o.key}>{o.label}</MenuItem>
-                          ))
-                        )}
-                      </TextField>
-                    )}
-                  />
-                )}
-
-                <Controller
-                  name="tone"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      label={copy.form.toneLabel}
-                      disabled={isGenerationLocked}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setFormState((prev) => ({ ...prev, tone: e.target.value }));
-                      }}
-                      value={field.value}
-                      error={!!errors.tone}
-                      helperText={errors.tone?.message as string | undefined}
-                      fullWidth
-                    >
-                      {toneProfileOptions.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                />
+                {/* Project is auto-resolved from workspace context — no selector needed */}
               </div>
 
               {isBlogArticleGeneratorTool ? (
@@ -685,7 +654,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Titolo articolo"
+                        label={appCopy.ui.toolPageForm.articleTitleLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.titolo}
@@ -702,7 +671,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               ) : null}
 
               {isMetaAdsTool ? (
-                <div className="ui-tool-form-row">
+                <div className="ui-tool-form-row ui-tool-form-row--double">
                   <Controller
                     name="campaignObjective"
                     control={control}
@@ -727,11 +696,6 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       </TextField>
                     )}
                   />
-                </div>
-              ) : null}
-
-              {isMetaAdsTool ? (
-                <div className="ui-tool-form-row">
                   <Controller
                     name="copyLengthFormat"
                     control={control}
@@ -1070,41 +1034,63 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                      />
                    </div>
                  </>
-               ) : null}
+                ) : null}
 
-               {inputFiles.map((fileEntry) => (
-                <Controller
-                  key={fileEntry.key}
-                  name={fileEntry.key as never}
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <UploadFieldButton
-                        label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
-                        disabled={!formState.projectId.trim() || isGenerationLocked}
-                        icon={<Upload size={16} aria-hidden="true" />}
-                        accept={fileEntry.accept}
-                        onFileSelected={(file) => {
-                          field.onChange(file);
-                          if (!file) {
-                            handleBriefingReset();
-                            return;
-                          }
+              </div>
+              ) : null}{/* end configuration section */}
 
-                          if (fileEntry.key === 'angle-detector-file') {
-                            handleAngleDetectorFileSelected(file);
-                            return;
-                          }
+              {/* ── Resources Section (briefing file upload) ── */}
+              {visibleInputFiles.length > 0 ? (
+                <div className="ui-tool-setup-section" aria-labelledby="setup-section-resources">
+                  <p id="setup-section-resources" className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.resources}</p>
 
-                          handleBriefingFileSelected(file);
-                        }}
-                      />
-                    </div>
-                  )}
-                />
-              ))}
+                  {visibleInputFiles.map((fileEntry) => (
+                    <Controller
+                      key={fileEntry.key}
+                      name={fileEntry.key as never}
+                      control={control}
+                      render={({ field }) => (
+                        <div className="ui-tool-file-upload-slot">
+                          <UploadFieldButton
+                            label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
+                            disabled={!formState.projectId.trim() || isGenerationLocked}
+                            icon={<Upload size={16} aria-hidden="true" />}
+                            accept={fileEntry.accept}
+                            onFileSelected={(file) => {
+                              field.onChange(file);
+                              if (!file) {
+                                handleBriefingReset();
+                                return;
+                              }
 
-              <ToolFileInstructionsSection instructions={toolFileInstructions} />
+                              if (fileEntry.key === 'angle-detector-file') {
+                                handleAngleDetectorFileSelected(file);
+                                return;
+                              }
+
+                              handleBriefingFileSelected(file);
+                            }}
+                          />
+                        </div>
+                      )}
+                    />
+                  ))}
+
+                  <ToolFileInstructionsSection instructions={toolFileInstructions} />
+                </div>
+              ) : null}
+
+              {/* ── Knowledge Section (workspace assets) ── */}
+              <AssetKnowledgePanelWrapper
+                toolKey={props.toolKey}
+                onAssetSelect={setSelectedAssetIds}
+                modelValue={formState.model}
+                modelOptions={modelOptions}
+                onModelChange={(newModel: string) => {
+                  setValue('model', newModel);
+                  setFormState((prev) => ({ ...prev, model: newModel }));
+                }}
+              />
 
                 {/* DispatchError ownership contract (DDD-061):
                   This message is inline-action only (Setup Panel, adjacent to primary CTA).
@@ -1112,16 +1098,14 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {dispatchError ? (
                   <div className={uiPrimitives.error} role="alert">
                     <p>{dispatchError}</p>
-                    {(dispatchError.includes('tempo') || dispatchError.includes('Timeout') || dispatchError.includes('Connessione persa')) && (
-                      <button
-                        type="button"
-                        className={uiPrimitives.button}
-                        onClick={handlePrimaryAction}
-                        disabled={isFormLocked || isFormBusy}
-                      >
-                        Riprova
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className={uiPrimitives.button}
+                      onClick={handlePrimaryAction}
+                      disabled={isFormLocked || isFormBusy}
+                    >
+                      {appCopy.ui.actions.retry}
+                    </button>
                   </div>
                 ) : null}
 
@@ -1142,10 +1126,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           <section className="ui-tool-column ui-tool-column-status">
             <ToolGenerationFlowVertical
               canonicalState={effectiveCanonicalState}
-              projectName={currentProject?.name ?? null}
               errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-              inputFilePayload={inputFilePayload}
-              apiAcquisitionPayload={apiAcquisitionPayload}
               generationProgress={generationProgress}
               primaryActionCta={unifiedPrimaryActionCta}
             />
@@ -1153,5 +1134,50 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
         </div>
       </div>
     </section>
+  );
+};
+
+const AssetKnowledgePanelWrapper: React.FC<{
+  toolKey: SupportedTool;
+  onAssetSelect?: (ids: string[]) => void;
+  modelValue?: string;
+  modelOptions?: Array<{ key: string; label: string; isDefault: boolean }>;
+  onModelChange?: (model: string) => void;
+}> = ({ toolKey, onAssetSelect, modelValue, modelOptions, onModelChange }) => {
+  let workspace;
+  try {
+    // useWorkspace throws if not inside WorkspaceProvider
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const ctx = useWorkspace();
+    workspace = ctx.workspace;
+  } catch {
+    return null;
+  }
+
+  const assetInputs = useMemo(() => getToolAssetInputs(toolKey), [toolKey]);
+
+  const handleCreateAssetAction = useCallback((_assetType: string, sourceToolKey?: SupportedTool) => {
+    if (sourceToolKey && workspace.id) {
+      window.location.href = `/workspaces/${workspace.id}/tools/${sourceToolKey}`;
+    }
+  }, [workspace.id]);
+
+  if (assetInputs.length === 0) return null;
+
+  return (
+    <div className="ui-tool-setup-section ui-tool-setup-section--knowledge" aria-labelledby="setup-section-knowledge">
+      <p id="setup-section-knowledge" className="ui-tool-setup-section__label">{appCopy.ui.toolPage.sections.knowledge}</p>
+      <AssetKnowledgePanel
+        workspaceAssets={workspace.assets}
+        toolAssetInputs={assetInputs}
+        projectId={workspace.id}
+        onAssetSelect={onAssetSelect ?? (() => {})}
+        onCreateAssetAction={handleCreateAssetAction}
+        {...(modelValue !== undefined ? { modelValue } : {})}
+        {...(modelOptions !== undefined ? { modelOptions } : {})}
+        {...(onModelChange !== undefined ? { onModelChange } : {})}
+        showModelSelector={assetInputs.length > 0}
+      />
+    </div>
   );
 };

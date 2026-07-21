@@ -150,7 +150,7 @@ export const AdminDashboardPage = () => {
         </Link>
       )}
     >
-      <section className="ui-admin-kpi-placeholder-grid" aria-label="Widget KPI di sistema in preview">
+      <section className="ui-admin-kpi-placeholder-grid" aria-label="System KPI widgets preview">
         {dashboardWidgets.map((widget) => (
           <Surface key={widget.key} className="ui-admin-kpi-placeholder-card ui-admin-kpi-widget-card">
             <p className="ui-admin-kpi-placeholder-label">{appCopy.ui.adminDashboard.widgetPreviewLabel}</p>

@@ -3,61 +3,26 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 
+import { appCopy } from '../../../app/copy/system';
 import { useMswHandler } from '../../../test/mocks/server';
+import { createMockAuthSessionProvider } from '../../../test/mocks/auth-session-provider.mock';
 import { UserReportSubmissionPage } from './UserReportSubmissionPage';
 
-const feedbackApiSpy = vi.hoisted(() => ({
-  publishSuccess: vi.fn(),
-  publishError: vi.fn(),
-  dismiss: vi.fn(),
-  dismissAll: vi.fn(),
-}));
+import { createFeedbackApiSpy } from '../../../test/mocks/feedback-message-spy.mock';
+const feedbackApiSpy = createFeedbackApiSpy();
 
-vi.mock('../../../app/providers/AuthSessionProvider', () => ({
-  useAuthSession: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-    oauthStartUrl: '',
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useAuthState: () => ({
-    session: { user: { id: 'member_001', email: 'member@test.com', role: 'member' } },
-    loading: false,
-    hasError: false,
-  }),
-  useAuthActions: () => ({
-    login: vi.fn(),
-    logout: vi.fn(),
-    refresh: vi.fn(),
-    clearError: () => {},
-  }),
-  useApiConfig: () => ({
-    apiBaseUrl: '',
-    capabilities: {
-      changelogList: true,
-      userReportsCreate: true,
-      adminChangelogCreate: true,
-      adminUserReportsList: true,
-      adminUserReportsUpdate: true,
-      adminUserReportsPublishIssue: true,
-    },
-  }),
-  useOAuthUrl: () => ({
-    oauthStartUrl: '',
-  }),
+vi.mock('../../../app/providers/AuthSessionProvider', () => createMockAuthSessionProvider({
+  role: 'member',
+  userId: 'member_001',
+  email: 'member@test.com',
+  capabilities: {
+    changelogList: true,
+    userReportsCreate: true,
+    adminChangelogCreate: true,
+    adminUserReportsList: true,
+    adminUserReportsUpdate: true,
+    adminUserReportsPublishIssue: true,
+  },
 }));
 
 vi.mock('../../../app/providers/FeedbackMessageProvider', () => ({
@@ -109,21 +74,21 @@ describe('UserReportSubmissionPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Cannot save project' } });
-    fireEvent.change(screen.getByRole('textbox', { name: /descrizione/i }), { target: { value: 'Save fails with 500.' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Invia report' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /title/i }), { target: { value: 'Cannot save project' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /description/i }), { target: { value: 'Save fails with 500.' } });
+    fireEvent.click(screen.getByRole('button', { name: appCopy.editorial.feedback.userReportSubmitButton }));
 
-    expect(await screen.findByText('Segnalazione inviata con successo.')).toBeInTheDocument();
+    expect(await screen.findByText(appCopy.editorial.feedback.userReportSuccessMessage)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(feedbackApiSpy.publishSuccess).toHaveBeenCalledWith(
-        'Segnalazione inviata con successo.',
+        appCopy.editorial.feedback.userReportSuccessMessage,
         expect.objectContaining({ dedupeKey: 'feedback-center:user-report:submit:success' }),
       );
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back to form' }));
-    expect(screen.queryByText('Segnalazione inviata con successo.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: appCopy.editorial.feedback.userReportBackToForm }));
+    expect(screen.queryByText(appCopy.editorial.feedback.userReportSuccessMessage)).toBeNull();
   });
 
   it('shows inline-action error on submit failure and supports RESET_TO_IDLE', async () => {
@@ -143,9 +108,9 @@ describe('UserReportSubmissionPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: /titolo/i }), { target: { value: 'Bad report' } });
-    fireEvent.change(screen.getByRole('textbox', { name: /descrizione/i }), { target: { value: 'Bad desc' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Invia report' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /title/i }), { target: { value: 'Bad report' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /description/i }), { target: { value: 'Bad desc' } });
+    fireEvent.click(screen.getByRole('button', { name: appCopy.editorial.feedback.userReportSubmitButton }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('title is required');
 

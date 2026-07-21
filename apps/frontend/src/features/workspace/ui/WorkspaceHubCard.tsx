@@ -84,13 +84,13 @@ export const WorkspaceHubCard: React.FC<WorkspaceHubCardProps> = ({ project, onS
   const handleToggleStatus = useCallback(async () => {
     const newStatus = isArchived ? 'active' : 'archived';
     try {
-      await updateProject(project.id, { status: newStatus });
+      await updateProject(project.id, { status: newStatus }, { apiBaseUrl, capabilities });
       onStatusChange();
       publishSuccess(isArchived ? appCopy.ui.workspace.contextHeader.reactivateSuccess : appCopy.ui.workspace.contextHeader.archiveSuccess);
     } catch (err) {
       publishError(err instanceof Error ? err.message : appCopy.ui.workspace.contextHeader.archiveFailed);
     }
-  }, [project.id, isArchived, onStatusChange, publishSuccess, publishError]);
+  }, [project.id, isArchived, onStatusChange, publishSuccess, publishError, apiBaseUrl, capabilities]);
 
   const copy = appCopy.ui.workspace.dashboard;
 

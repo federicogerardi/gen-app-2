@@ -33,6 +33,6 @@
   outline-offset: 2px;
 }
 @media (max-width: 760px) {
-  .workspace-section-nav { padding: var(--space-1) var(--space-1-5); gap: 2px; }
-  .workspace-section-nav__pill { padding: 6px var(--space-1-5); font-size: 0.75rem; }
+  .workspace-section-nav { padding: var(--space-1) var(--space-1-5); gap: var(--space-micro); }
+  .workspace-section-nav__pill { padding: var(--space-1) var(--space-1-5); font-size: 0.75rem; }
 }

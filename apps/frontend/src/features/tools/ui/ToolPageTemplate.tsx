@@ -305,16 +305,16 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     hashtags: z.string(),
     ...fileFieldShape,
   }).superRefine((value, context) => {
-    if (isYoutubeDescriptionTool) {
-      const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
-        { key: 'videoTitle', label: 'Video title' },
-        { key: 'topic', label: 'Topic' },
-        { key: 'keywords', label: 'Keywords' },
-        { key: 'ctaText', label: 'CTA text' },
-        { key: 'ctaLink', label: 'CTA link' },
-        { key: 'credentialsOrProof', label: 'Credentials or proof' },
-        { key: 'chaptersWithTimestamps', label: 'Chapters with timestamps' },
-      ];
+      if (isYoutubeDescriptionTool) {
+        const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; message: string }> = [
+          { key: 'videoTitle', message: copy.form.validation.videoTitleRequired },
+          { key: 'topic', message: copy.form.validation.topicRequired },
+          { key: 'keywords', message: copy.form.validation.keywordsRequired },
+          { key: 'ctaText', message: copy.form.validation.ctaTextRequired },
+          { key: 'ctaLink', message: copy.form.validation.ctaLinkRequired },
+          { key: 'credentialsOrProof', message: copy.form.validation.credentialsRequired },
+          { key: 'chaptersWithTimestamps', message: copy.form.validation.chaptersRequired },
+        ];
 
           for (const field of requiredDirectFields) {
             const candidate = value[field.key];
@@ -322,17 +322,17 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               context.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: [field.key],
-                message: `${field.label} required`,
+                message: field.message,
               });
             }
           }
         }
 
         if (isGeometricTool) {
-          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; label: string }> = [
-            { key: 'baseQuery', label: 'Base query' },
-            { key: 'language', label: 'Language' },
-            { key: 'country', label: 'Country' },
+          const requiredDirectFields: Array<{ key: keyof ToolPageFormValues; message: string }> = [
+            { key: 'baseQuery', message: copy.form.validation.baseQueryRequired },
+            { key: 'language', message: copy.form.validation.languageRequired },
+            { key: 'country', message: copy.form.validation.countryRequired },
           ];
 
           for (const field of requiredDirectFields) {
@@ -341,7 +341,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               context.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: [field.key],
-                message: `${field.label} required`,
+                message: field.message,
               });
             }
           }
@@ -654,7 +654,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                     control={control}
                     render={({ field }) => (
                       <TextField
-                        label="Titolo articolo"
+                        label={appCopy.ui.toolPageForm.articleTitleLabel}
                         disabled={isGenerationLocked}
                         value={field.value}
                         error={!!errors.titolo}
@@ -1050,7 +1050,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                       name={fileEntry.key as never}
                       control={control}
                       render={({ field }) => (
-                        <div style={{ marginBottom: 8 }}>
+                        <div className="ui-tool-file-upload-slot">
                           <UploadFieldButton
                             label={fileEntry.label.replace(/([a-z])([A-Z])/g, '$1 $2')}
                             disabled={!formState.projectId.trim() || isGenerationLocked}
@@ -1098,16 +1098,14 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 {dispatchError ? (
                   <div className={uiPrimitives.error} role="alert">
                     <p>{dispatchError}</p>
-                    {(dispatchError.includes('tempo') || dispatchError.includes('Timeout') || dispatchError.includes('Connessione persa')) && (
-                      <button
-                        type="button"
-                        className={uiPrimitives.button}
-                        onClick={handlePrimaryAction}
-                        disabled={isFormLocked || isFormBusy}
-                      >
-                        Retry
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className={uiPrimitives.button}
+                      onClick={handlePrimaryAction}
+                      disabled={isFormLocked || isFormBusy}
+                    >
+                      {appCopy.ui.actions.retry}
+                    </button>
                   </div>
                 ) : null}
 

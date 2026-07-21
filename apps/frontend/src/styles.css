@@ -336,9 +336,9 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-1-5);
   margin-bottom: var(--space-2);
-  padding: 12px 16px;
+  padding: var(--space-1-5) var(--space-2);
   border-radius: 999px;
   background: var(--interactive-soft);
   border: 1px solid var(--border-subtle);
@@ -719,9 +719,9 @@ button:not(.MuiButton-root):not([class]):disabled,
   font-size: 11px;
   font-weight: 800;
   font-family: var(--font-family-ui);
-  color: #4285f4;
-  background: rgba(66, 133, 244, 0.1);
-  border: 1px solid rgba(66, 133, 244, 0.22);
+  color: var(--brand-bright);
+  background: var(--workspace-blue-soft);
+  border: 1px solid var(--workspace-blue-border);
   flex-shrink: 0;
 }
 
@@ -729,7 +729,7 @@ button:not(.MuiButton-root):not([class]):disabled,
 .oauth-link:hover {
   background: var(--surface-steel);
   border-color: var(--border-strong);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-soft);
 }
 
 .ui-shell-auth {
@@ -849,15 +849,15 @@ button:not(.MuiButton-root):not([class]):disabled,
 
 .menu-toggle.is-priority,
 .ui-menu-toggle.is-priority {
-  border-color: rgba(37, 99, 235, 0.38);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(14, 165, 233, 0.12));
+  border-color: var(--workspace-blue-border);
+  background: linear-gradient(135deg, var(--workspace-blue-soft), var(--brand-medium-soft));
   color: var(--brand-strong);
 }
 
 .menu-toggle.is-priority:hover,
 .ui-menu-toggle.is-priority:hover {
-  border-color: rgba(37, 99, 235, 0.52);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(14, 165, 233, 0.16));
+  border-color: var(--border-focus);
+  background: linear-gradient(135deg, var(--interactive-hover), var(--brand-medium-soft));
 }
 
 .menu-toggle.is-hidden,
@@ -1550,7 +1550,7 @@ button:not(.MuiButton-root):not([class]):disabled,
 .ui-view-tab.is-active {
   background: var(--brand-strong);
   border-color: var(--brand-strong);
-  color: #fff;
+  color: var(--button-primary-fg);
 }
 
 .ui-view-tab:disabled {
@@ -1657,11 +1657,11 @@ button:not(.MuiButton-root):not([class]):disabled,
 }
 
 .ui-download-format-menu .MuiMenuItem-root {
-  color: var(--mui-palette-primary-main);
+  color: var(--workspace-blue);
 }
 
 :root[data-theme='dark'] .ui-download-format-menu .MuiMenuItem-root {
-  color: var(--mui-palette-text-primary);
+  color: var(--text-primary);
 }
 
 .ui-session-artifact-panel {
@@ -2007,17 +2007,17 @@ button:not(.MuiButton-root):not([class]):disabled,
 
 .ui-tool-instructions-groups {
   display: grid;
-  gap: 10px;
+  gap: var(--space-1-5);
 }
 
 .ui-tool-instructions-accordion[open] .ui-tool-instructions-groups {
   border-top: 1px solid var(--border-subtle);
-  padding-top: 10px;
+  padding-top: var(--space-1-5);
 }
 
 .ui-tool-instructions-group {
   display: grid;
-  gap: 2px;
+  gap: var(--space-micro);
 }
 
 .ui-tool-instructions-group-title {
@@ -2124,6 +2124,10 @@ button:not(.MuiButton-root):not([class]):disabled,
   align-items: center;
   gap: var(--space-1);
   margin-top: var(--space-1);
+}
+
+.ui-tool-file-upload-slot {
+  margin-bottom: var(--space-1);
 }
 
 .ui-tool-secondary-actions {
@@ -2904,7 +2908,7 @@ ul {
 /* ── status text ── */
 .workflow-status-text {
   font-family: var(--font-family-body);
-  font-size: 0.8rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;

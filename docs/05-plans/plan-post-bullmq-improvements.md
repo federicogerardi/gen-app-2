@@ -899,10 +899,10 @@ Fase 4: RISK-6 — Actor Inspector (1-2 giorni)
 
 ### RISK-4 (Zod Validation)
 
-- [ ] SC-4.1: `generation-system.event-schemas.ts` contiene 10 schemi Zod, uno per ogni helper con cast `as`
-- [ ] SC-4.2: Ogni helper in `generation-system.events.ts` usa `safeParse` prima di ritornare; warning loggato su fallimento
-- [ ] SC-4.3: `npm --workspace apps/backend run test` passa invariato (nessuna regressione)
-- [ ] SC-4.4: Test dimostrano che output valido passa, output malformato viene rifiutato con `undefined` + warning
+- [x] SC-4.1: `generation-system.event-schemas.ts` contiene 10 schemi Zod, uno per ogni helper con cast `as`
+- [x] SC-4.2: Ogni helper in `generation-system.events.ts` usa `safeParse` prima di ritornare; warning loggato su fallimento
+- [x] SC-4.3: `npm --workspace apps/backend run test` passa invariato (nessuna regressione)
+- [x] SC-4.4: Test dimostrano che output valido passa, output malformato viene rifiutato con `undefined` + warning
 
 ### RISK-3 (Domain Decision Modules)
 

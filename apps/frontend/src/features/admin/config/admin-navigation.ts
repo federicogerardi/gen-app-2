@@ -1,8 +1,8 @@
 import { appCopy } from '../../../app/copy/system';
 
 export type AdminNavigationItem = {
-  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity';
-  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity';
+  key: 'overview' | 'users' | 'models' | 'api-services' | 'changelog' | 'user-reports' | 'activity' | 'sessions';
+  to: '/admin' | '/admin/users' | '/admin/models' | '/admin/api-services' | '/admin/changelog' | '/admin/user-reports' | '/admin/activity' | '/admin/sessions';
   label: string;
   description: string;
   end?: boolean;
@@ -15,6 +15,12 @@ export const adminNavigationItems: readonly AdminNavigationItem[] = [
     label: appCopy.ui.adminNavigation.overviewLabel,
     description: appCopy.ui.adminNavigation.overviewDescription,
     end: true,
+  },
+  {
+    key: 'sessions',
+    to: '/admin/sessions',
+    label: appCopy.ui.adminNavigation.sessionsLabel,
+    description: appCopy.ui.adminNavigation.sessionsDescription,
   },
   {
     key: 'users',

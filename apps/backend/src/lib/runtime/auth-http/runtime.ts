@@ -238,6 +238,7 @@ export const createAuthHttpRuntime = (
     githubApiConfig,
     requireAdminPrincipal,
     requireDb,
+    requireQueryRepositories,
     parseJsonBody,
     parseOptionalNonEmptyString,
     parseRequestUrl,

@@ -166,5 +166,32 @@ export const buildAdminRoutes = (
         );
       },
     },
+    {
+      method: 'GET',
+      pattern: '/api/admin/sessions',
+      handler: adminHandlers.handleAdminSessionsList,
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/admin\/sessions\/([^/]+)$/,
+      handler: async (request, response, sessionId) => {
+        await adminHandlers.handleAdminSessionArtifacts(
+          request,
+          response,
+          decodeURIComponent(sessionId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/admin\/sessions\/([^/]+)\/download$/,
+      handler: async (request, response, sessionId) => {
+        await adminHandlers.handleAdminSessionDownload(
+          request,
+          response,
+          decodeURIComponent(sessionId ?? ''),
+        );
+      },
+    },
   ];
 };

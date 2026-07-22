@@ -51,6 +51,12 @@ export type SessionListEntry = {
   updatedAt: string;
 };
 
+export type AdminSessionListEntry = SessionListEntry & {
+  userId: string | null;
+  userEmail: string | null;
+  projectName: string | null;
+};
+
 export type SessionListCursor = {
   updatedAt: string;
   sessionId: string;
@@ -58,6 +64,11 @@ export type SessionListCursor = {
 
 export type SessionListPage = {
   entries: SessionListEntry[];
+  nextCursor: SessionListCursor | null;
+};
+
+export type AdminSessionListPage = {
+  entries: AdminSessionListEntry[];
   nextCursor: SessionListCursor | null;
 };
 

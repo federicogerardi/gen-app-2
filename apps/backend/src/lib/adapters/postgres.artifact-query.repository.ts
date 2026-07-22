@@ -10,6 +10,8 @@ import {
   type SessionListCursor,
   type SessionListEntry,
   type SessionListPage,
+  type AdminSessionListEntry,
+  type AdminSessionListPage,
   type ArtifactSummary,
 } from '../types/artifacts';
 
@@ -481,5 +483,136 @@ export class PostgresArtifactQueryRepository implements ArtifactQueryRepository 
         ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
         : null,
     };
+  }
+
+  async listSessionSummariesAll(
+    projectId: string | null,
+    options: { limit?: number; cursor?: SessionListCursor | null } = {},
+  ): Promise<AdminSessionListPage> {
+    const limit = Number.isFinite(options.limit) && (options.limit ?? 0) > 0
+      ? Math.trunc(options.limit as number)
+      : 500;
+    const cursor = options.cursor ?? null;
+
+    const db = this.getArtifactDb();
+    const limitWithExtra = limit + 1;
+
+    let outerQuery = db
+      .with('grouped', (qb) => {
+        let q = qb
+          .selectFrom('artifacts')
+          .select([
+            'user_id',
+            'session_id',
+            'project_id',
+            sql<string>`count(*)`.as('artifact_count'),
+            sql<Date>`max(updated_at)`.as('updated_at'),
+            sql<string>`
+              CASE
+                WHEN BOOL_OR(${sql.ref('status')} = 'generating') THEN 'generating'
+                WHEN BOOL_OR(${sql.ref('status')} = 'failed') THEN 'failed'
+                ELSE 'completed'
+              END
+            `.as('status'),
+          ])
+          .where('session_id', 'is not', null)
+          .where(sql<boolean>`session_id <> ''`);
+
+        if (projectId) {
+          q = q.where('project_id', '=', projectId);
+        }
+
+        return q.groupBy(['user_id', 'session_id', 'project_id']);
+      })
+      .selectFrom('grouped')
+      .leftJoin('users as u', 'u.id', 'grouped.user_id')
+      .leftJoin('projects as p', 'p.id', 'grouped.project_id')
+      .leftJoinLateral(
+        (eb) => eb
+          .selectFrom('artifacts as a')
+          .select('a.workflow_type')
+          .whereRef('a.user_id', '=', 'grouped.user_id')
+          .whereRef('a.session_id', '=', 'grouped.session_id')
+          .whereRef('a.project_id', '=', 'grouped.project_id')
+          .orderBy('a.updated_at', 'desc')
+          .orderBy('a.id', 'desc')
+          .limit(1)
+          .as('latest'),
+        (join) => join.onTrue(),
+      )
+      .select([
+        'grouped.user_id',
+        'grouped.session_id',
+        'grouped.project_id',
+        'latest.workflow_type',
+        'grouped.artifact_count',
+        'grouped.updated_at',
+        'grouped.status',
+        'u.email as user_email',
+        'p.name as project_name',
+      ]);
+
+    if (cursor) {
+      outerQuery = outerQuery.where(sql<boolean>`
+        (grouped.updated_at < ${cursor.updatedAt}
+         OR (grouped.updated_at = ${cursor.updatedAt} AND grouped.session_id < ${cursor.sessionId}))
+      `);
+    }
+
+    outerQuery = outerQuery
+      .orderBy('grouped.updated_at', 'desc')
+      .orderBy('grouped.session_id', 'desc')
+      .limit(limitWithExtra);
+
+    const result = await outerQuery.execute();
+
+    const rows = result.slice(0, limit);
+    const hasMore = result.length > limit;
+
+    const entries: AdminSessionListEntry[] = rows.map((row) => {
+      if (row.session_id === null || row.session_id === '') {
+        throw new Error('Session summary row missing session_id after non-null session filter');
+      }
+
+      return {
+        sessionId: row.session_id,
+        userId: row.user_id ?? null,
+        userEmail: (row as any).user_email ?? null,
+        projectName: (row as any).project_name ?? null,
+        projectId: row.project_id ?? '',
+        toolKey: normalizeToolWorkflowKey(row.workflow_type),
+        status: row.status === 'generating' || row.status === 'failed' ? row.status : 'completed',
+        artifactCount: parseInt(row.artifact_count, 10),
+        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+      };
+    });
+
+    const last = entries[entries.length - 1];
+    return {
+      entries,
+      nextCursor: hasMore && last
+        ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
+        : null,
+    };
+  }
+
+  async listArtifactDetailsBySessionAny(
+    sessionId: string,
+    projection: ArtifactReadProjection = {
+      includeInput: true,
+      includeContent: true,
+    },
+  ): Promise<ArtifactDetail[]> {
+    const db = this.getArtifactDb();
+
+    const rows = await db
+      .selectFrom('artifacts')
+      .select(this.buildDetailSelection(projection))
+      .where('session_id', '=', sessionId)
+      .orderBy('updated_at', 'asc')
+      .orderBy('id', 'asc')
+      .execute() as unknown as ArtifactRow[];
+
+    return rows.map(mapArtifactRowToDetail);
   }
 }

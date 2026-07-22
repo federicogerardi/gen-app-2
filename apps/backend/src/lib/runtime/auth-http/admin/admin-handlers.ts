@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { AuthRepositoryBundle } from '../../../adapters';
+import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
 import type { AuthSessionPrincipal, AuthUserRole, AuthUserStatus } from '../../../types/auth';
 import type { PasswordHashRuntime } from '../../auth-contract';
 import type { GitHubApiConfig } from '../../integrations/github-config';
@@ -29,6 +29,10 @@ import {
   createAdminUserHandlers,
   type AdminUserHandlers,
 } from './admin-user-handlers';
+import {
+  createAdminSessionHandlers,
+  type AdminSessionHandlers,
+} from './admin-session-handlers';
 
 export type CreateAdminHandlersDependencies = {
   repositories: AuthRepositoryBundle;
@@ -40,6 +44,7 @@ export type CreateAdminHandlersDependencies = {
     response: ServerResponse,
   ) => Promise<AuthSessionPrincipal | null>;
   requireDb: (response: ServerResponse) => Pool | null;
+  requireQueryRepositories: (response: ServerResponse) => UserQueryRepositoryBundle | null;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   parseOptionalNonEmptyString: (value: unknown) => string | undefined;
   parseRequestUrl: (request: IncomingMessage) => URL;
@@ -55,7 +60,8 @@ export type AdminHandlers =
   & AdminApiServiceHandlers
   & AdminApiServiceBindingHandlers
   & AdminFeedbackCenterHandlers
-  & AdminUserHandlers;
+  & AdminUserHandlers
+  & AdminSessionHandlers;
 
 export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): AdminHandlers => {
   const {
@@ -65,6 +71,7 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
     githubApiConfig,
     requireAdminPrincipal,
     requireDb,
+    requireQueryRepositories,
     parseJsonBody,
     parseOptionalNonEmptyString,
     parseRequestUrl,
@@ -131,11 +138,22 @@ export const createAdminHandlers = (deps: CreateAdminHandlersDependencies): Admi
     writeSuccess,
   });
 
+  const sessionHandlers = createAdminSessionHandlers({
+    repositories,
+    now,
+    parseRequestUrl,
+    requireAdminPrincipal,
+    requireQueryRepositories,
+    writeError,
+    writeSuccess,
+  });
+
   return {
     ...llmModelHandlers,
     ...apiServiceHandlers,
     ...apiServiceBindingHandlers,
     ...feedbackCenterHandlers,
     ...userHandlers,
+    ...sessionHandlers,
   };
 };

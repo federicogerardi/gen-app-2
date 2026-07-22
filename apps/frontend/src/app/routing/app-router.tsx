@@ -24,8 +24,6 @@ const BlogArticleGeneratorToolPage = lazy(() => import('../../features/tools/blo
 const BriefGeneratorToolPage = lazy(() => import('../../features/tools/brief-generator/pages/BriefGeneratorToolPage').then(m => ({ default: m.BriefGeneratorToolPage })));
 const TovGeneratorToolPage = lazy(() => import('../../features/tools/tov-generator/pages/TovGeneratorToolPage').then(m => ({ default: m.TovGeneratorToolPage })));
 const PersonasGeneratorToolPage = lazy(() => import('../../features/tools/personas-generator/pages/PersonasGeneratorToolPage').then(m => ({ default: m.PersonasGeneratorToolPage })));
-const ArtifactsPage = lazy(() => import('../../features/artifacts/pages/ArtifactsPage').then(m => ({ default: m.ArtifactsPage })));
-const ArtifactDetailPage = lazy(() => import('../../features/artifacts/pages/ArtifactDetailPage').then(m => ({ default: m.ArtifactDetailPage })));
 const SessionSummaryDetailPage = lazy(() => import('../../features/sessionsummary/pages/SessionSummaryDetailPage').then(m => ({ default: m.SessionSummaryDetailPage })));
 const AdminDashboardPage = lazy(() => import('../../features/admin/pages/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminUsersPage = lazy(() => import('../../features/admin/pages/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
@@ -34,6 +32,8 @@ const AdminApiServicesPage = lazy(() => import('../../features/admin/pages/Admin
 const AdminActivityPage = lazy(() => import('../../features/admin/pages/AdminActivityPage').then(m => ({ default: m.AdminActivityPage })));
 const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminChangelogPage').then(m => ({ default: m.AdminChangelogPage })));
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
+const AdminSessionsPage = lazy(() => import('../../features/admin/pages/AdminSessionsPage').then(m => ({ default: m.AdminSessionsPage })));
+const AdminSessionDetailPage = lazy(() => import('../../features/admin/pages/AdminSessionDetailPage').then(m => ({ default: m.AdminSessionDetailPage })));
 const WorkspacesListPage = lazy(() => import('../../features/workspace/pages/WorkspacesListPage').then(m => ({ default: m.WorkspacesListPage })));
 const WorkspaceDashboard = lazy(() => import('../../features/workspace/pages/WorkspaceDashboard').then(m => ({ default: m.WorkspaceDashboard })));
 const ProjectAssetsPage = lazy(() => import('../../features/workspace/pages/ProjectAssetsPage').then(m => ({ default: m.ProjectAssetsPage })));
@@ -249,10 +249,10 @@ export const createAppRouter = () => createBrowserRouter([
             element: <Suspense fallback={<PageLoader />}><AdminUserReportsPage /></Suspense>,
           },
           {
-            path: 'artifacts',
+            path: 'sessions',
             children: [
-              { index: true, element: <Suspense fallback={<PageLoader />}><ArtifactsPage /></Suspense> },
-              { path: ':artifactId', element: <Suspense fallback={<PageLoader />}><ArtifactDetailPage /></Suspense> },
+              { index: true, element: <Suspense fallback={<PageLoader />}><AdminSessionsPage /></Suspense> },
+              { path: ':sessionId', element: <Suspense fallback={<PageLoader />}><AdminSessionDetailPage /></Suspense> },
             ],
           },
         ],

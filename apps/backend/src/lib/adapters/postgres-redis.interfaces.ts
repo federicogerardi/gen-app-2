@@ -4,6 +4,7 @@ import type {
   ArtifactReadProjection,
   SessionListCursor,
   SessionListPage,
+  AdminSessionListPage,
   ArtifactSummary,
 } from '../types/artifacts';
 import type {
@@ -110,6 +111,14 @@ export interface ArtifactQueryRepository {
     projectId: string | null,
     options?: { limit?: number; cursor?: SessionListCursor | null },
   ): Promise<SessionListPage>;
+  listSessionSummariesAll(
+    projectId: string | null,
+    options?: { limit?: number; cursor?: SessionListCursor | null },
+  ): Promise<AdminSessionListPage>;
+  listArtifactDetailsBySessionAny(
+    sessionId: string,
+    projection?: ArtifactReadProjection,
+  ): Promise<ArtifactDetail[]>;
 }
 
 export interface OrchestrateArtifactCache {

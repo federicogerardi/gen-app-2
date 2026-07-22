@@ -20,6 +20,7 @@ import type {
   ArtifactReadProjection,
   SessionListCursor,
   SessionListPage,
+  AdminSessionListPage,
   ArtifactSummary,
 } from '../types/artifacts';
 import type {
@@ -756,6 +757,108 @@ export class ArtifactQueryRepositoryStub implements ArtifactQueryRepository {
         ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
         : null,
     };
+  }
+
+  async listSessionSummariesAll(
+    projectId: string | null,
+    options: { limit?: number; cursor?: SessionListCursor | null } = {},
+  ): Promise<AdminSessionListPage> {
+    const limit = options.limit ?? 500;
+    const cursor = options.cursor ?? null;
+
+    const grouped = new Map<string, {
+      userId: string | null;
+      userEmail: string | null;
+      sessionId: string;
+      projectId: string;
+      workflowType: string | null;
+      count: number;
+      updatedAt: string;
+      statuses: Set<string>;
+    }>();
+
+    for (const artifact of this.artifacts.values()) {
+      if (!artifact.sessionId) continue;
+      if (projectId && artifact.projectId !== projectId) continue;
+
+      const key = `${artifact.userId ?? ''}:${artifact.sessionId}:${artifact.projectId}`;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.count++;
+        existing.statuses.add(artifact.status);
+        if (artifact.updatedAt > existing.updatedAt) {
+          existing.updatedAt = artifact.updatedAt;
+          existing.workflowType = artifact.workflowType;
+        }
+      } else {
+        grouped.set(key, {
+          userId: artifact.userId ?? null,
+          userEmail: (artifact as any).userEmail ?? null,
+          sessionId: artifact.sessionId,
+          projectId: artifact.projectId,
+          workflowType: artifact.workflowType,
+          count: 1,
+          updatedAt: artifact.updatedAt,
+          statuses: new Set([artifact.status]),
+        });
+      }
+    }
+
+    const entries = [...grouped.values()].map((g) => ({
+      sessionId: g.sessionId,
+      userId: g.userId,
+      userEmail: g.userEmail,
+      projectName: null,
+      projectId: g.projectId,
+      toolKey: normalizeToolWorkflowKey(g.workflowType),
+      status: g.statuses.has('generating') ? 'generating' as const
+        : g.statuses.has('failed') ? 'failed' as const
+        : 'completed' as const,
+      artifactCount: g.count,
+      updatedAt: g.updatedAt,
+    }));
+
+    const sorted = entries.sort((a, b) => {
+      const cmp = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+      return cmp !== 0 ? cmp : b.sessionId.localeCompare(a.sessionId);
+    });
+
+    const filtered = cursor
+      ? sorted.filter((entry) => {
+        const entryUpdatedAtMs = Date.parse(entry.updatedAt);
+        const cursorUpdatedAtMs = Date.parse(cursor.updatedAt);
+        if (entryUpdatedAtMs > cursorUpdatedAtMs) return false;
+        if (entryUpdatedAtMs === cursorUpdatedAtMs) return entry.sessionId < cursor.sessionId;
+        return true;
+      })
+      : sorted;
+
+    const pageSlice = filtered.slice(0, limit + 1);
+    const hasMore = pageSlice.length > limit;
+    const pageEntries = hasMore ? pageSlice.slice(0, limit) : pageSlice;
+    const last = pageEntries[pageEntries.length - 1];
+
+    return {
+      entries: pageEntries,
+      nextCursor: hasMore && last
+        ? { updatedAt: last.updatedAt, sessionId: last.sessionId }
+        : null,
+    };
+  }
+
+  async listArtifactDetailsBySessionAny(
+    sessionId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<ArtifactDetail[]> {
+    return [...this.artifacts.values()]
+      .filter((a) => a.sessionId === sessionId)
+      .sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt))
+      .map((a) => ({
+        ...a,
+        input: projection.includeInput ? a.input : {},
+        content: projection.includeContent ? a.content : '',
+        failureReason: a.failureReason ?? null,
+      }));
   }
 
   seed(records: StubArtifactQueryRecord[]): void {

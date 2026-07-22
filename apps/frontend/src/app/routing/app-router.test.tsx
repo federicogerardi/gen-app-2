@@ -73,24 +73,24 @@ vi.mock('../../features/tools/funnel-pages/pages/FunnelPagesToolPage', () => ({
     const navigate = useNavigate();
 
     return (
-      <button type="button" onClick={() => navigate('/admin/artifacts')}>
+      <button type="button" onClick={() => navigate('/admin/sessions')}>
         View results
       </button>
     );
   },
 }));
 
-vi.mock('../../features/artifacts/pages/ArtifactsPage', () => ({
-  ArtifactsPage: () => (
-    <div data-testid="artifacts-listing">
-      Artifacts listing loaded
-      <Link to="/admin/artifacts/art-1">Open artifact detail</Link>
+vi.mock('../../features/admin/pages/AdminSessionsPage', () => ({
+  AdminSessionsPage: () => (
+    <div data-testid="admin-sessions-listing">
+      Admin sessions listing loaded
+      <Link to="/admin/sessions/sess-1">Open session detail</Link>
     </div>
   ),
 }));
 
-vi.mock('../../features/artifacts/pages/ArtifactDetailPage', () => ({
-  ArtifactDetailPage: () => <div data-testid="artifact-detail-page">Artifact detail loaded</div>,
+vi.mock('../../features/admin/pages/AdminSessionDetailPage', () => ({
+  AdminSessionDetailPage: () => <div data-testid="admin-session-detail">Admin session detail loaded</div>,
 }));
 
 vi.mock('../../features/sessionsummary/pages/SessionSummaryDetailPage', () => ({
@@ -126,20 +126,20 @@ describe('app router – integration', () => {
     const cta = await screen.findByRole('button', { name: /view results/i });
     cta.click();
 
-    expect(await screen.findByTestId('artifacts-listing')).toBeInTheDocument();
+    expect(await screen.findByTestId('admin-sessions-listing')).toBeInTheDocument();
     router.dispose();
   });
 
-  it('navigates from /admin/artifacts listing item to /admin/artifacts/:id detail route', async () => {
-    window.history.pushState({}, '', '/admin/artifacts');
+  it('navigates from /admin/sessions listing item to /admin/sessions/:id detail route', async () => {
+    window.history.pushState({}, '', '/admin/sessions');
     const router = createAppRouter();
 
     render(<RouterProvider router={router} />);
 
-    const openDetailLink = await screen.findByRole('link', { name: /open artifact detail/i });
+    const openDetailLink = await screen.findByRole('link', { name: /open session detail/i });
     fireEvent.click(openDetailLink);
 
-    expect(await screen.findByTestId('artifact-detail-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('admin-session-detail')).toBeInTheDocument();
     router.dispose();
   });
 

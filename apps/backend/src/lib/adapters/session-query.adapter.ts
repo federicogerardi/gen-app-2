@@ -5,6 +5,7 @@ import type {
   ArtifactReadProjection,
   SessionListCursor,
   SessionListEntry,
+  AdminSessionListEntry,
 } from '../types/artifacts';
 
 export type SessionArtifactEntry = {
@@ -32,10 +33,20 @@ export type SessionArtifactGroup = {
   artifacts: SessionArtifactEntry[];
 };
 
-export type { SessionListEntry };
+export type AdminSessionArtifactGroup = SessionArtifactGroup & {
+  userId: string | null;
+  userEmail: string | null;
+};
+
+export type { SessionListEntry, AdminSessionListEntry };
 
 export type SessionListPage = {
   sessions: SessionListEntry[];
+  nextCursor: string | null;
+};
+
+export type AdminSessionListPage = {
+  sessions: AdminSessionListEntry[];
   nextCursor: string | null;
 };
 
@@ -249,5 +260,61 @@ export class SessionQueryAdapter {
     );
 
     return detail ? this.mapDetailToSessionArtifactEntry(detail) : null;
+  }
+
+  async fetchSessionsListAny(
+    projectId: string | null,
+    options: { limit?: number; cursor?: string | null } = {},
+  ): Promise<AdminSessionListPage> {
+    const decodedCursor = options.cursor
+      ? SessionQueryAdapter.decodeCursor(options.cursor)
+      : null;
+
+    const page = await this.artifactQueries.listSessionSummariesAll(projectId, {
+      ...(typeof options.limit === 'number' ? { limit: options.limit } : {}),
+      ...(decodedCursor ? { cursor: decodedCursor } : {}),
+    });
+
+    return {
+      sessions: page.entries,
+      nextCursor: page.nextCursor ? SessionQueryAdapter.encodeCursor(page.nextCursor) : null,
+    };
+  }
+
+  async fetchSessionArtifactsAny(
+    sessionId: string,
+    projection: ArtifactReadProjection = {},
+  ): Promise<AdminSessionArtifactGroup | null> {
+    const normalizedSessionId = sessionId.trim();
+    if (normalizedSessionId.length === 0) {
+      return null;
+    }
+
+    const details = await this.artifactQueries.listArtifactDetailsBySessionAny(
+      normalizedSessionId,
+      projection,
+    );
+
+    if (details.length === 0) {
+      return null;
+    }
+
+    const artifacts: SessionArtifactEntry[] = details
+      .map((artifact) => this.mapDetailToSessionArtifactEntry(artifact))
+      .sort((a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt));
+
+    if (artifacts.length === 0) {
+      return null;
+    }
+
+    const firstDetail = details[0];
+    return {
+      sessionId: normalizedSessionId,
+      toolKey: artifacts[0]?.toolKey ?? null,
+      status: deriveGroupStatus(artifacts),
+      artifacts,
+      userId: firstDetail?.userId ?? null,
+      userEmail: firstDetail?.userEmail ?? null,
+    };
   }
 }

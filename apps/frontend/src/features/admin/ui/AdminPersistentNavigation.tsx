@@ -5,6 +5,7 @@ import {
   Megaphone,
   MessageSquareWarning,
   type LucideIcon,
+  ScrollText,
   Settings2,
   Users,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import { Surface, cx } from '../../../app/ui/primitives';
 
 const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], LucideIcon> = {
   overview: LayoutDashboard,
+  sessions: ScrollText,
   users: Users,
   models: Settings2,
   'api-services': Settings2,

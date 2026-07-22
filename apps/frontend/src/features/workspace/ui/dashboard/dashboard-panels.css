@@ -23,7 +23,8 @@
   box-sizing: border-box;
 }
 
-/* ── Workspace Sessions Page ── */
+/* ── Workspace Page Section Wrappers ── */
+.workspace-assets-page,
 .workspace-sessions-page {
   display: flex;
   flex-direction: column;
@@ -37,14 +38,6 @@
 }
 
 /* ── Asset Page Items ── */
-.workspace-assets-page__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 var(--space-3);
-  letter-spacing: -0.01em;
-}
-
 .asset-library-view {
   display: flex;
   flex-direction: column;

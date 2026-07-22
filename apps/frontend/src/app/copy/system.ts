@@ -839,7 +839,7 @@ export const appCopy = {
       sectionNav: {
         label: 'Workspace sections',
         overview: 'Overview',
-        assets: 'Assets',
+        assets: 'Library',
         sessions: 'Sessions',
       },
       dashboard: {

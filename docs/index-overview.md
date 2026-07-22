@@ -1,8 +1,8 @@
 ---
 status: approved
-version: 4.0
-last-reviewed: 2026-07-18
-next-review-date: 2026-10-17
+version: 4.1
+last-reviewed: 2026-07-22
+next-review-date: 2026-10-22
 owner: Documentation Archivist
 ---
 
@@ -63,6 +63,8 @@ Usa questo set minimo come percorso primario. Tutto il resto e storico o approfo
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
 | [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | active | 2026-07-08 | 2026-10-08 |
+| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-22 | 2026-10-22 |
+| [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) | active | 2026-07-22 | 2026-10-22 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-07-16 | 2026-10-16 |
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-07-16 | 2026-10-16 |
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-07-16 | 2026-08-16 |
@@ -109,6 +111,8 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
+- [plan-bullmq-prerequisites](../plan/plan-bullmq-prerequisites.md) — **📝 DRAFT: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
+- [plan-post-bullmq-improvements](../plan/plan-post-bullmq-improvements.md) — **📝 DRAFT: Post-BullMQ Improvements (RISK-5,3,4,6)**
 - [sprint-4-core-architecture-resolution-implementation-plan](../plan/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione del contesto `GenerationSystem`
 - [sprint-5-context-migration-validation-implementation-plan](../plan/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e livello di validazione del contesto backend
 - [sprint-6-error-actors-wiring-implementation-plan](../plan/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori per gestione errori route-specific e pulizia codice legacy
@@ -124,10 +128,13 @@ Validation path manifest (orphan-check canonical set):
 
 - **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — ✅ COMPLETED: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (Sprints 1-7)**
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
+- [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) — **DDD implementation audit (2026-07-22): verifica bounded context, aggregate, value object, governance. Collegata alla Proposal BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227).**
+- [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) — **XState-as-Aggregate risk review (2026-07-22): 6 rischi architetturali del pattern XState v5 come Aggregate Root. Analisi di impatto per Proposal BullMQ.**
 - [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
 
 ### Active Proposals
 
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Piani collegati: [BullMQ Prerequisites](../plan/plan-bullmq-prerequisites.md), [Post-BullMQ](../plan/plan-post-bullmq-improvements.md).**
 - [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
 - [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
 

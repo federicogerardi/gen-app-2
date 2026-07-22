@@ -1,6 +1,15 @@
-# Sprint Implementation Plans
+# Implementation Plans
 
-This directory contains the implementation plans for the Unified Architectural Vulnerabilities Review.
+This directory contains implementation plans for architectural initiatives.
+
+## BullMQ Prerequisites & Post-BullMQ Improvements
+
+| Plan | Status | Effort | Description |
+|------|--------|--------|-------------|
+| [BullMQ Prerequisites](./plan-bullmq-prerequisites.md) | 📝 **DRAFT** | 5-8 giorni | Fase 1 — Redis pub/sub event bridge (RISK-2) + manual step serialization (RISK-1). Gate di go-live per `ToolWorkflowJob` BullMQ. |
+| [Post-BullMQ Improvements](./plan-post-bullmq-improvements.md) | 📝 **DRAFT** | 10-15 giorni | Fase 2 — Developer guide (RISK-5), Domain Decision Modules (RISK-3), Zod validation (RISK-4), Actor Inspector (RISK-6). |
+
+**Documento di riferimento**: [XState-as-Aggregate Architectural Review](../docs/07-governance/xstate-as-aggregate-architectural-review.md)
 
 ## Current Active Plans
 

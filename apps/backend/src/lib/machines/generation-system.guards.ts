@@ -24,6 +24,15 @@ type GenerationGuardArgs = {
   event: GenerationSystemEvent;
 };
 
+/**
+ * Business Invariants / Policy guards per GenerationSystem.
+ *
+ * Ogni guard è una funzione pura ({ context, event }) → boolean.
+ * Testabili in isolamento senza mock.
+ *
+ * @ddd BusinessInvariant GenerationRouting
+ * @ddd Related DDD-140 DDD-138 DDD-033
+ */
 export const generationSystemGuards = {
   hasRegistrySelector: ({ event }: GenerationGuardArgs) =>
     event.type !== 'REQUEST_RECEIVED'

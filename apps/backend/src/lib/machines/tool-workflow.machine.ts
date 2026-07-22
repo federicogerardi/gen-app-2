@@ -33,6 +33,16 @@ type ToolWorkflowMachineEvent =
 
 const nowIso = (): string => new Date().toISOString();
 
+/**
+ * Entity: ToolWorkflow (sub-entity di GenerationSystem)
+ *
+ * Orchestratore multi-step per i Tool workflow. Gestisce il ciclo di vita
+ * di ogni WorkflowStep: idle → running → done/error/skipped.
+ *
+ * @ddd Entity ToolWorkflow
+ * @ddd BoundedContext Generation
+ * @ddd Related DDD-037 DDD-035 DDD-036 DDD-034
+ */
 const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] => {
   const completedSet = new Set(
     input.bootstrap?.completedSteps?.map((s) => s.stepKey) ?? [],

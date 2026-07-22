@@ -18,6 +18,16 @@ import type {
   UsageDoneOutput,
 } from './generation-system.types';
 
+/**
+ * Domain Event output accessors.
+ *
+ * Helper che estraggono l'output dagli eventi XState onDone.
+ * Usano cast `as` per accedere al campo output — per runtime validation
+ * con Zod, vedi RISK-4 nel Post-BullMQ Improvements Plan.
+ *
+ * @ddd DomainEventAccessors GenerationEvents
+ * @ddd Related DDD-009 DDD-035 DDD-036
+ */
 export const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
   (event as { output: IdempotencyDoneOutput }).output;
 

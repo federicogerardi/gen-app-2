@@ -17,6 +17,16 @@ export type { ToolPageProgressState } from './tool-page-progress';
 export type { ToolPageViewModel } from './tool-page-view-model';
 export { resolveFlowProgressState, resolveRestoredCheckpointState } from './tool-page-progress';
 
+/**
+ * Aggregate Root: ToolPage (Frontend bounded context)
+ *
+ * Macchina a stati che gestisce il ciclo di vita della pagina tool nel FE.
+ * Coordina readiness, hydration, generation lifecycle, e briefing upload.
+ *
+ * @ddd AggregateRoot ToolPage
+ * @ddd BoundedContext Frontend
+ * @ddd Related DDD-020 DDD-006 DDD-010
+ */
 export const toolPageMachine = setup({
   types: {
     context: {} as ToolPageContext,

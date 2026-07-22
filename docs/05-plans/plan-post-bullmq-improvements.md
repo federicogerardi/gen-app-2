@@ -892,10 +892,10 @@ Fase 4: RISK-6 — Actor Inspector (1-2 giorni)
 
 ### RISK-5 (Developer Guide)
 
-- [ ] SC-5.1: `docs/02-design/specifications/xstate-as-aggregate-developer-guide.md` esiste con tutte le 8 sezioni
-- [ ] SC-5.2: Tutti i 6 file nella lista di annotazione contengono almeno un blocco `@ddd` JSDoc
-- [ ] SC-5.3: `grep -r '@ddd Related DDD-' apps/backend apps/frontend` non produce DDD-NNN inesistenti o archiviati
-- [ ] SC-5.4: Il diagramma di sequenza nella Sezione 3 della guida riflette accuratamente il flusso corrente (incluso BullMQ post-go-live)
+- [x] SC-5.1: `docs/02-design/specifications/xstate-as-aggregate-developer-guide.md` esiste con tutte le 8 sezioni
+- [x] SC-5.2: Tutti i 6 file nella lista di annotazione contengono almeno un blocco `@ddd` JSDoc
+- [x] SC-5.3: `grep -r '@ddd Related DDD-' apps/backend apps/frontend` non produce DDD-NNN inesistenti o archiviati
+- [x] SC-5.4: Il diagramma di sequenza nella Sezione 3 della guida riflette accuratamente il flusso corrente (incluso BullMQ post-go-live)
 
 ### RISK-4 (Zod Validation)
 

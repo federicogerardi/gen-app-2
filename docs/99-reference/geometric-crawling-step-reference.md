@@ -188,14 +188,14 @@ key: 'serpapi-google-ai-overview'
 label: 'SerpApi Google AI Overview'
 base_url: 'https://serpapi.com/search'
 access_mode: 'query-param'
-status: 'active'
+status: active
 token_param_name: 'api_key'
 
 -- api_service_tool_step_bindings record
 tool_key: 'geometric'
 step_key: 'serp-crawling'
 workflow_step_type: 'crawling'
-binding_status: 'active'
+binding_status: active
 requiredness: 'required-by-tool-setting'
 ```
 

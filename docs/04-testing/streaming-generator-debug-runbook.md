@@ -11,7 +11,7 @@ tags: [debug, streaming, generation, xstate, observability, pino]
 
 # Streaming Generator Debug Runbook
 
-> **Nota architetturale (v1.1)**: Questo runbook documenta il percorso **streaming** (SSE), che e stato reso dormiente a giugno 2026. Il percorso di default per i tool e ora il modello **non-streaming** (`POST /generation/run`, risposta JSON). Per la diagnostica del percorso non-streaming, consultare i log strutturati del server (prefisso `[gen][json-session-*]`) e i test di smoke in `postgres-redis.nonstreaming.smoke.ts`. Per i dettagli della migrazione, vedere [Non-Streaming Generation Migration Plan](../../plan/migrate-to-nonstreaming-generation.md).
+> **Nota architetturale (v1.1)**: Questo runbook documenta il percorso **streaming** (SSE), che e stato reso dormiente a giugno 2026. Il percorso di default per i tool e ora il modello **non-streaming** (`POST /generation/run`, risposta JSON). Per la diagnostica del percorso non-streaming, consultare i log strutturati del server (prefisso `[gen][json-session-*]`) e i test di smoke in `postgres-redis.nonstreaming.smoke.ts`. Per i dettagli della migrazione, vedere [Non-Streaming Generation Migration Plan](../99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md).
 
 > **Structured Logging (v1.2)**: Il sistema ora utilizza **pino** per structured logging con correlation IDs. Per dettagli completi su log patterns, query Railway, e debugging workflows, vedere [Production Observability Runbook](./production-observability-runbook.md).
 

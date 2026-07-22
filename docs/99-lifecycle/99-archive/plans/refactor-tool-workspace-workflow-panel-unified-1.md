@@ -1,10 +1,12 @@
 ---
 goal: Simplify Tool Workspace Workflow Panel to single preload bar and minimal status text
 version: 2.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-23
 last_updated: 2026-05-23
 owner: Frontend Platform Team
-status: Completed
+status: completed
 tags: [refactor, frontend, ddd, ux, tool-workspace, workflow-panel]
 ---
 
@@ -162,15 +164,15 @@ This plan supersedes the v1.0 multi-section approach (payload checklist + feedba
 
 ### UX Quick Links
 
-- [UX Proposal - Tool Workspace Workflow Panel Unificato](../docs/ux/tool-page-sidebar-unified-flow.md)
-- [Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-- [Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
-- [Frontend Tool Pages Architecture Spec](../docs/02-design/specifications/frontend-tool-pages-architecture-spec.md)
-- [Frontend Design System and UI Kit Guide](../docs/02-design/specifications/frontend-design-system-ui-kit-guide.md)
+- [UX Proposal - Tool Workspace Workflow Panel Unificato](../../../ux/tool-page-sidebar-unified-flow.md)
+- [Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+- [Tool Page Frontend Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)
+- [Frontend Tool Pages Architecture Spec](../../../02-design/specifications/frontend-tool-pages-architecture-spec.md)
+- [Frontend Design System and UI Kit Guide](../../../02-design/specifications/frontend-design-system-ui-kit-guide.md)
 
-- [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
+- [Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+- [Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+- [Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
 - [Related Plan - Tool Input Policy](./refactor-ddd-081-tool-input-policy-1.md)
 
 ## 9. Sub-Agent Delegation Guidance

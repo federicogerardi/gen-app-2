@@ -1,10 +1,12 @@
 ---
 goal: Refactor the Tool Workspace Workflow Panel into a monitoring dashboard
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-23
 last_updated: 2026-05-23
 owner: Frontend/UI
-status: 'Completed'
+status: completed
 tags: [refactor, frontend, ux, ddd]
 ---
 
@@ -109,10 +111,10 @@ This plan converts the current `ToolGenerationFlowVertical` Workflow Panel into 
 
 ## 8. Related Specifications / Further Reading
 
-- [docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md](../docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md)
-- [docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md](../docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
-- [docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
-- [docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
+- [docs/ux/tool-generation-flow-monitoring-dashboard-proposal.md](../../../ux/tool-generation-flow-monitoring-dashboard-proposal.md)
+- [docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md](../../../02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+- [docs/07-governance/domain-naming-decision-log.md](../../../07-governance/domain-naming-decision-log.md)
+- [docs/01-requirements/domain-ubiquitous-language-glossary.md](../../../01-requirements/domain-ubiquitous-language-glossary.md)
 
 ## 9. Post-Implementation Corrections Register
 

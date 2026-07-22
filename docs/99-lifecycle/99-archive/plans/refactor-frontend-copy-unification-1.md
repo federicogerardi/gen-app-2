@@ -1,10 +1,12 @@
 ---
 goal: Unify all frontend user-facing copy under the canonical app copy system with deterministic ownership and zero logic-coupled string comparisons
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-06-22
 owner: Frontend Platform Team
-status: 'Completed'
+status: completed
 tags: [refactor, frontend, copy, ddd, tool-workspace, ux]
 ---
 
@@ -178,9 +180,9 @@ This plan defines the full frontend copy unification required to make `apps/fron
 
 ## 8. Related Specifications / Further Reading
 
-[docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[docs/02-design/domain-bounded-context-map.md](../docs/02-design/domain-bounded-context-map.md)
-[docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
-[docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-[plan/refactor-tool-workspace-workflow-panel-unified-1.md](./refactor-tool-workspace-workflow-panel-unified-1.md)
-[plan/refactor-tool-generation-flow-monitoring-dashboard-1.md](./refactor-tool-generation-flow-monitoring-dashboard-1.md)
+[docs/01-requirements/domain-ubiquitous-language-glossary.md](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[docs/02-design/domain-bounded-context-map.md](../../../02-design/domain-bounded-context-map.md)
+[docs/07-governance/domain-naming-decision-log.md](../../../07-governance/domain-naming-decision-log.md)
+[docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+[../../../99-lifecycle/99-archive/plans/refactor-tool-workspace-workflow-panel-unified-1.md](./refactor-tool-workspace-workflow-panel-unified-1.md)
+[../../../99-lifecycle/99-archive/plans/refactor-tool-generation-flow-monitoring-dashboard-1.md](./refactor-tool-generation-flow-monitoring-dashboard-1.md)

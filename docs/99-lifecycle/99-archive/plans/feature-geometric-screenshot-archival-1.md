@@ -1,17 +1,17 @@
-> **Archived — feature removed in `remove-geometric-screenshot-archival.md`**
-
 ---
 status: archived
-version: 1.6
-last-reviewed: 2026-07-08
-next-review-date: 2027-01-08
-owner: Backend Runtime
+version: 1.7
 date_created: 2026-06-13
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
+owner: Backend Runtime
 title: Geometric SERP Screenshot Archival Implementation Plan
-type: feature-plan
-tags: [feature, geometric, screenshot, archival, admin, monitoring, crawling, puppeteer, postgres, railway, archived]
-goal: Implement persistent per-session screenshot archival for Geometric SERP crawling, enabling admin verification of crawling authenticity and AI Overview extraction confidence
+type: implementation-plan
+tags: [feature, geometric, screenshot, archival, admin, monitoring, crawling, archived]
+superseded-by: ../remove-geometric-screenshot-archival.md
 ---
+
+> **Archived — feature removed in `remove-geometric-screenshot-archival.md`**
 
 # Introduction
 
@@ -188,6 +188,6 @@ Il piano è un'estensione di Geometric — dal quale dipende — e non modifica 
 ## 8. Related Specifications / Further Reading
 
 - [Geometric Tool Plan](./feature-geometric-tool-1.md) — piano padre, v1.7
-- [Geometric Admin Debug & Monitoring Proposal](../docs/02-design/geometric-admin-debug-monitoring-proposal.md) — proposal che ha generato questo piano
-- [Geometric Crawling Step Reference](../docs/99-reference/geometric-crawling-step-reference.md) — dettaglio operazioni BE
-- [Deployment Architecture Guide](../docs/02-design/specifications/deployment-architecture-guide.md) — Railway Persistent Disk
+- [Geometric Admin Debug & Monitoring Proposal](../../../02-design/geometric-admin-debug-monitoring-proposal.md) — proposal che ha generato questo piano
+- [Geometric Crawling Step Reference](../../../99-reference/geometric-crawling-step-reference.md) — dettaglio operazioni BE
+- [Deployment Architecture Guide](../../../02-design/specifications/deployment-architecture-guide.md) — Railway Persistent Disk

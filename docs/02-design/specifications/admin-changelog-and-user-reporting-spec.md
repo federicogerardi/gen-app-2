@@ -1,9 +1,12 @@
 ---
 status: active
 version: 1.0
+date_created: 2026-05-16
 last-reviewed: 2026-05-16
 next-review-date: 2026-08-01
 owner: Frontend Platform Team
+type: specification
+tags: [admin, changelog, user-report, feedback, ddd]
 ---
 
 # Admin Changelog And User Reporting Feature Spec

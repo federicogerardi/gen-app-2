@@ -1,6 +1,8 @@
 ---
 goal: Refactoring sistema quota da request-count a crediti per Session Summary + gate invisibile per Artifact
 version: 1.1
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-06-26
 last_updated: 2026-06-28
 owner: Domain Architecture + Backend Runtime
@@ -350,8 +352,8 @@ Questo piano definisce il refactoring del sistema quota da modello request-count
 
 ## 10. Related Specifications / Further Reading
 
-- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-- [Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-- [Tool Generation Flow Source of Truth Spec](../docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
-- [Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
+- [Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+- [Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+- [Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+- [Tool Generation Flow Source of Truth Spec](../../../02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+- [Tool Page Frontend Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)

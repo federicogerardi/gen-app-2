@@ -31,7 +31,7 @@ Introduce one dependency slot focused on code unification and simplification, wi
 
 ### 1. Zod in Backend (✅ implemented)
 
-**Status: Complete** — shipped across 6 waves covering all auth-http handler surfaces (admin-api-service, admin-api-service-binding, projects, admin-feedback-center, public, admin-llm-model). See `plan/feature-zod-backend-unification-1.md` for execution detail.
+**Status: Complete** — shipped across 6 waves covering all auth-http handler surfaces (admin-api-service, admin-api-service-binding, projects, admin-feedback-center, public, admin-llm-model). See `../../99-lifecycle/99-archive/plans/feature-zod-backend-unification-1.md` for execution detail.
 
 Why:
 
@@ -95,7 +95,7 @@ Initial rollout scope:
 ## Delivery Plan
 
 ### ✅ Phase 1 (pilot) — Complete
-Add backend Zod schemas for one admin HTTP surface and replace manual parsing in that surface. Execution in `plan/feature-zod-backend-unification-1.md`.
+Add backend Zod schemas for one admin HTTP surface and replace manual parsing in that surface. Execution in `../../99-lifecycle/99-archive/plans/feature-zod-backend-unification-1.md`.
 
 ### ✅ Phase 2 (convergence) — Complete
 Extract reusable schema helpers and align shared contracts where relevant.

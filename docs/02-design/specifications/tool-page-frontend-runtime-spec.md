@@ -6,6 +6,7 @@ last-reviewed: 2026-07-18
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: ai-first-runtime-spec
+tags: [frontend, runtime, tool-page, xstate, ai-first]
 ---
 
 # Tool Page Frontend Runtime Specification
@@ -566,7 +567,7 @@ Policy-aware binding rule:
 
 Canonical UX convergence for Tool Workspace Page feedback is documented in:
 
-- `plan/refactor-tool-workspace-workflow-panel-unified-1.md`
+- `../../99-lifecycle/99-archive/plans/refactor-tool-workspace-workflow-panel-unified-1.md`
 
 **Convergence rule implemented:**
 
@@ -665,7 +666,7 @@ Deterministic outcomes:
 | 2026-06-02 | Updated Tool Workspace runtime contract to the current single-click behavior: visible primary CTA remains `Avvia la generazione`; when context is missing, the same click emits `BRIEFING_EXTRACTION_REQUESTED` and FE auto-dispatches generation after readiness recomputation, without a second user click. Updated §2.2, §2.3b, and §9 prop mapping accordingly. | AI-first doc session |
 | 2026-05-24 | Added minimal backend-driven `apiBindingStatusAdapter` runtime notes in §9/§9b: `VITE_FF_TOOLS_API_BINDING_STATUS` keeps `api-acquisition` gating OFF by default; when enabled, readiness uses backend resolve status for binding-connected checks. Added regression test reference for `tool-api-binding-status-adapter.test.ts`. | AI-first doc session |
 | 2026-05-24 | Registered DDD-088 CTA execution invariant for `open-last-artifact`: navigation handoff must bypass RHF/Zod validation wrappers. Added policy-aware binding notes in §7 and §9, plus new regression test reference for `ToolPageTemplate.open-session-cta.test.tsx`. | AI-first doc session |
-| 2026-05-27 | Workflow Panel unified feedback refactor complete (plan/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
+| 2026-05-27 | Workflow Panel unified feedback refactor complete (../../99-lifecycle/99-archive/plans/refactor-tool-workspace-workflow-panel-unified-1.md). Updated §9 prop table and §9.1 to reflect new `inputFilePayload`/`workflowPanelFeedback` props contract (DDD-082, DDD-063). Removed old props: `briefingFileName`, `briefingStatus`, `readinessReasonCodes`, `briefingError`, `briefingGuidance`, `steps`, `completedStepsCount`, `totalStepsCount`. Added ToolGenerationFlowVertical.test.tsx to regression table. | AI-first doc session |
 | 2026-05-21 | Added pre-implementation BE/FE payload contract for `angle-generator` dual-file extraction (`BriefingFile` + `AngleDetectorFile`) with single extraction-job invariant (DDD-078). | AI-first doc session |
 | 2026-05-11 | Initial document created. Documents state machines, 9 effects, ExtractionContext resolution chain, CANCEL_GENERATION recovery, ExtractionContextBridge pattern with idempotency guard, DispatchError UX pattern. All sections verified against live code. | AI-first doc session |
 

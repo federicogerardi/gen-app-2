@@ -1,3 +1,14 @@
+---
+status: active
+version: 1.0
+date_created: 2026-05-24
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
+owner: Backend Runtime
+type: reference
+tags: [api-service, function-naming, migration]
+---
+
 # API Service Function Naming Migration Plan
 
 ## Overview

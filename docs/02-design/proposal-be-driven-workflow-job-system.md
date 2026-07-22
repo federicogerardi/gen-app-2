@@ -357,7 +357,7 @@ export async function processToolWorkflowJob(
   }
 
   return {
-    status: 'completed',
+    status: completed,
     artifactIds,
     sessionId: extractionResult.sessionId,
   };
@@ -1020,7 +1020,7 @@ These concrete, verifiable gates ensure that behaviors independent of the step o
   - `progress` event with `{ step, status: 'running' }` → sets `currentRunningStep`
   - `progress` event with `{ step, status: 'done', artifactId }` → adds step to `completedSteps`, maps `artifactId` to `completedArtifactsByStep`
   - `chunk` event with `{ step, text }` → appends to streaming content buffer
-  - `terminal` event with `{ status: 'completed', artifacts, sessionId }` → sets `isComplete: true`
+  - `terminal` event with `{ status: completed, artifacts, sessionId }` → sets `isComplete: true`
   - `terminal` event with `{ status: 'failed', reason }` → sets `error`
   - On unmount, closes EventSource connection
   - On reconnect (connection lost), resumes from last known state

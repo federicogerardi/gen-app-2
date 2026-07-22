@@ -1,3 +1,14 @@
+---
+status: active
+version: 1.0
+date_created: 2026-05-24
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
+owner: Backend Runtime
+type: reference
+tags: [geometric, crawling, serp, schematic, operations]
+---
+
 # Geometric Tool — Sequence of Operations (Schematic)
 
 ## 1. User Input (Direct Input)

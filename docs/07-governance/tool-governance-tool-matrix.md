@@ -7,6 +7,7 @@ next-review-date: 2026-10-18
 owner: Documentation Archivist
 title: Tool Governance Matrix
 tags: [governance, tools, matrix, routing, ddd]
+type: reference
 ---
 
 # Tool Governance Matrix

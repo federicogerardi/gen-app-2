@@ -8,6 +8,7 @@ next-review-date: 2026-10-17
 owner: Platform
 status: active
 tags: [plan, tool-workspace, backend, frontend, ddd, validation, template, asset, workspace-knowledge]
+type: template
 ---
 
 # Tool Development Plan Template

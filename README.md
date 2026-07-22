@@ -1,87 +1,40 @@
 # Gen App 2
 
-Gen App 2 is a DDD-first monorepo for deterministic tool-driven artifact generation.
+AI-powered content generation, built around structured tool workflows.
 
-The product flow is centered on canonical terms:
+Each Tool takes your input — a briefing, a topic, a brand voice — and produces ready-to-use content through a deterministic, multi-step pipeline. No black boxes: every generation step is visible, replayable, and traceable.
 
-- `Tool` as user-facing capability
-- `GenerationRequest` as backend command
-- `Artifact` as persisted output
-- `GenerationSession` and `SessionSummary` as aggregate navigation model
+## What you can do
 
-## Bounded Contexts
+- Generate landing pages, funnel sequences, YouTube scripts, and full blog articles
+- Extract marketing angles and audience personas from your documents
+- Analyze SERP results and produce strategic reports
+- Build reusable brand assets that feed into every tool automatically
 
-| Context | Responsibility |
-| --- | --- |
-| Generation | Orchestration, streaming, persistence, extraction, idempotency |
-| Auth | Identity, roles, sessions, OAuth |
-| Usage/Quota | Quota claim and usage audit |
-| Frontend/UI | Tool Workspace flow, readiness, hydration, interaction |
+## How it works
 
-## Current Tool Surface (as-is)
+You bring the context. The system chains generation steps — extraction, research, writing, refinement — each handled by the right model for the job. Output is versioned, downloadable, and tied to your project workspace.
 
-- `funnel-pages`
-- `nextland`
-- `youtube-lf-script`
-- `angle-generator`
-- `meta-ads`
-- `youtube-description`
+## Architecture
 
-Tool visibility is governed by `ToolAvailabilityStatus` policy from shared contracts.
+Gen App 2 is built on two core engineering pillars:
 
-## Repository Structure
-
-- `apps/backend`: backend runtime (`GenerationSystem` + auth/quota/http layers)
-- `apps/frontend`: React + XState frontend runtime and same-origin proxy server
-- `packages/contracts`: FE/BE shared contract authority
-- `packages/domain`: cross-context domain primitives (DDD-074)
-- `packages/infra-db`: SQL migrations, seeds, and DB scripts
-- `docs`: canonical domain, architecture, and governance documentation
+- **Domain-Driven Design** — every concept in the system has a single canonical name and a well-defined boundary. No ambiguity, no drift.
+- **XState state machines** — the entire generation pipeline is modeled as explicit states and transitions. You can inspect, debug, and reason about every path the system can take.
 
 ## Quick Start
-
-From repository root:
 
 ```bash
 npm install --workspaces --include-workspace-root
 npm run dev
 ```
 
-`npm run dev` loads `.env.local`, starts backend server, and starts frontend Vite dev server.
-
-## Validation Commands
-
-From repository root:
-
 ```bash
-npm run typecheck
-npm run test
-npm run build
+npm run typecheck && npm run test && npm run build
 ```
 
-Frontend focused:
+## Learn more
 
-```bash
-npm --workspace apps/frontend run typecheck
-npm --workspace apps/frontend run test
-npm --workspace apps/frontend run build
-```
-
-Backend focused:
-
-```bash
-npm --workspace apps/backend run typecheck
-npm --workspace apps/backend run test
-npm --workspace apps/backend run go
-```
-
-## Canonical Docs (read first)
-
-1. `docs/01-requirements/domain-ubiquitous-language-glossary.md`
-2. `docs/02-design/domain-bounded-context-map.md`
-3. `docs/07-governance/domain-naming-decision-log.md`
-4. `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
-
-Index entrypoint:
-
-- `docs/index-overview.md`
+- [Documentation Index](docs/index-overview.md) — full docbase navigation
+- [Domain Glossary](docs/01-requirements/domain-ubiquitous-language-glossary.md) — canonical vocabulary
+- [Governance Rules](docs/07-governance/documentation-ddd-ul-governance.md) — how we keep the codebase coherent

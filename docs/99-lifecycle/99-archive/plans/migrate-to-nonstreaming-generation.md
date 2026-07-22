@@ -205,7 +205,7 @@ Add the cross-context response type (authoritative definition per DDD-023 and DD
 export type GenerationRunResponse = {
   artifactId: string;
   content: string;
-  status: 'completed' | 'failed';
+  status: completed | 'failed';
   reason?: string;
   metrics?: { inputTokens: number; outputTokens: number; costUsd: number };
 };

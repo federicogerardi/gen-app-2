@@ -1,9 +1,12 @@
 ---
 status: active
 version: 3.14
+date_created: 2026-05-03
 last-reviewed: 2026-07-20
 next-review-date: 2026-10-20
 owner: Domain Architecture
+type: bounded-context-map
+tags: [ddd, bounded-context, architecture, canonical, domain]
 ---
 
 # Domain Bounded Context Map

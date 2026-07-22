@@ -1,6 +1,7 @@
 ---
 status: active
 version: 1.1
+date_created: 2026-06-01
 last-reviewed: 2026-07-18
 next-review-date: 2026-10-18
 owner: Frontend Platform + Backend Runtime
@@ -11,7 +12,7 @@ tags: [step-display, visibility, download, configuration, ddd-132, ddd-133, ddd-
 
 # Tool Step Display Configuration Specification
 
-> DDD reference: canonical terms `StepDisplayConfig` (DDD-132), `ToolStepDisplayConfig` (DDD-133), `ToolStepDisplayConfigMap` (DDD-134), and `excludeSteps` (DDD-135) are defined in the [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md).
+> DDD reference: canonical terms `StepDisplayConfig` (DDD-132), `ToolStepDisplayConfig` (DDD-133), `ToolStepDisplayConfigMap` (DDD-134), and `excludeSteps` (DDD-135) are defined in the [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md).
 
 ## 1. Scope
 

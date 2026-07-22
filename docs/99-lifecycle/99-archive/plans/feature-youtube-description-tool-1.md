@@ -1,10 +1,12 @@
 ---
 goal: Implement the canonical YouTube Description Tool with direct-input context generation and single-step description output
 version: 1.2
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-26
 last_updated: 2026-06-22
 owner: Frontend Platform + Backend Runtime
-status: Completed
+status: completed
 tags: [feature, tool-workspace, backend, frontend, ddd, validation, youtube-description]
 ---
 
@@ -521,9 +523,9 @@ This section is normative for machine-level behavior and complements prompt/runt
 
 ## 8. Related Specifications / Further Reading
 
-[Tool Development Plan Template](../docs/99-reference/templates/tool-development-plan-template.md)
-[Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-[Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-[Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-[Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
+[Tool Development Plan Template](../../../99-reference/templates/tool-development-plan-template.md)
+[Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+[Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+[Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+[Tool Page Frontend Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)

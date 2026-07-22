@@ -14,7 +14,7 @@ tags: [refactoring, god-nodes, coupling, hooks, dependency-injection, frontend]
 
 ## Context
 
-From the [Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md), three nodes have been identified as "God Nodes" with exceptionally high connectivity:
+From the [Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md), three nodes have been identified as "God Nodes" with exceptionally high connectivity:
 
 1. **useAuthSession()** — 51 edges (AuthSessionProvider.tsx:107)
 2. **resolveBackendCapabilities()** — 45 edges (backend-capabilities.ts:74)  

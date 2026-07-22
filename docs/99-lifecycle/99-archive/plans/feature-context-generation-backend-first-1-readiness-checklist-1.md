@@ -1,10 +1,12 @@
 ---
 goal: Readiness checklist for feature-context-generation-backend-first-1
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Backend Platform Team
-status: Completed
+status: completed
 tags: [checklist, backend, readiness, context-generation]
 ---
 

@@ -499,12 +499,12 @@ Rimuovere le righe commentate (righe 79-80):
 
 ### STEP-024: Archiviare piano originale
 
-**File**: `plan/feature-geometric-screenshot-archival-1.md`
+**File**: `../../../99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md`
 
 Aggiornare frontmatter: `status: archived`, `version: 1.5`, `last-reviewed: 2026-06-28`. Aggiungere nota in testa: "Archived — feature removed in `remove-geometric-screenshot-archival.md`".
 
 **QA Scenario**: Verifica archiviazione piano
-- **Tool**: `grep -A5 "^status:" plan/feature-geometric-screenshot-archival-1.md`
+- **Tool**: `grep -A5 "^status:" ../../../99-lifecycle/99-archive/plans/feature-geometric-screenshot-archival-1.md`
 - **Steps**: Controlla il frontmatter del piano originale
 - **Expected result**: `status: archived` e presence nota "Archived — feature removed"
 
@@ -519,7 +519,7 @@ Documenti da aggiornare (rimuovere riferimenti screenshot):
 - `docs/02-design/geometric-admin-debug-monitoring-proposal.md` — rimuovere sezioni screenshot
 - `docs/02-design/serp-api-integration-proposal.md` — rimuovere note screenshot e `archiveScreenshot`
 - `docs/07-governance/frontend-ux-determinism-code-review.md` — rimuovere riferimenti `adminGeometricScreenshots`
-- `plan/feature-geometric-tool-1.md` — rimuovere riferimenti screenshot in req, task, test
+- `../../../99-lifecycle/99-archive/plans/feature-geometric-tool-1.md` — rimuovere riferimenti screenshot in req, task, test
 
 **QA Scenario**: Verifica documentazione aggiornata
 - **Tool**: `grep -r -l "screenshot\|Screenshot\|SCREENSHOT" docs/ plan/`

@@ -191,7 +191,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 **Objective**: Address fundamental complexity with solid foundation  
 **Risk Profile**: Alto - core architecture changes, mitigated by foundation  
 **Duration**: 3 sessions (2026-07-08 → 2026-07-12)  
-**Implementation Plan**: [Sprint 4 Core Architecture Resolution](../../plan/sprint-4-core-architecture-resolution-implementation-plan.md)
+**Implementation Plan**: [Sprint 4 Core Architecture Resolution](../05-plans/sprint-4-core-architecture-resolution-implementation-plan.md)
 **Sessions Completed**: 3 (Session 1: 2026-07-08, Session 2: 2026-07-12, Session 3/Sprint 5: 2026-07-12)
 
 ### Sprint 4 Tasks
@@ -245,7 +245,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 **Objective**: Close Sprint 4 Phase 2 residual (Step 3 actions migration + Step 6 validation layer)  
 **Risk Profile**: Basso — additive changes, backward-compatible  
 **Duration**: 1 session (2026-07-12)  
-**Implementation Plan**: [Sprint 5 Context Migration & Validation](../../plan/sprint-5-context-migration-validation-implementation-plan.md) v1.1-session-3-complete
+**Implementation Plan**: [Sprint 5 Context Migration & Validation](../99-lifecycle/99-archive/plans/sprint-5-context-migration-validation-implementation-plan.md) v1.1-session-3-complete
 **Note**: Repurposed from original "Technical Debt Elimination" scope. V6/V7 deferred to Sprint 6.
 
 ### Sprint 5 Tasks
@@ -285,7 +285,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 **Objective**: Wire route-specific error actors, replace universal fallback policy, remove legacy code  
 **Risk Profile**: Basso — additive changes, backward-compatible  
 **Duration**: 1 session (2026-07-12)  
-**Implementation Plan**: [Sprint 6 Error-Actors Wiring](../../plan/sprint-6-error-actors-wiring-implementation-plan.md) v1.1-complete
+**Implementation Plan**: [Sprint 6 Error-Actors Wiring](../99-lifecycle/99-archive/plans/sprint-6-error-actors-wiring-implementation-plan.md) v1.1-complete
 
 ### Sprint 6 Tasks
 
@@ -319,7 +319,7 @@ goal: Track implementation progress of Unified Architectural Vulnerabilities Rev
 **Objective**: Merge streaming/non-streaming persistence paths, eliminate progress state race condition  
 **Risk Profile**: Medio — persistence path changes, race condition elimination  
 **Duration**: 1 session (2026-07-12)  
-**Implementation Plan**: [Sprint 7 V7/V6](../../plan/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) v1.1-complete
+**Implementation Plan**: [Sprint 7 V7/V6](../99-lifecycle/99-archive/plans/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) v1.1-complete
 
 ### Sprint 7 Tasks
 

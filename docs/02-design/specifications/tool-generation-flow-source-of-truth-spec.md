@@ -4,16 +4,16 @@ version: 1.3
 date_created: 2026-05-02
 last-reviewed: 2026-06-04
 next-review-date: 2026-09-04
-status: Active
+status: active
 owner: Frontend Platform Team
 tags: [xstate, tool-generation, source-of-truth, frontend, state-machine, non-streaming]
+type: specification
 ---
 
 # Tool Generation Flow Source Of Truth (Frontend)
 
 > ⚑ **DDD Reference**: This document describes the ToolPage state machine and derived view model. For canonical domain terminology and flow, see:
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md#frontend--ui-context) — `ToolPage`, `ReadinessSnapshot`, `CanonicalToolUiState`, `HydrationResult`, `WorkflowRunMode`
-> - [Tool Generation Flow — Generation Context](../tool-generation-flow-generation-context.md) — complete cross-context visual flow
 > - [Domain Naming Decision Log](../../07-governance/domain-naming-decision-log.md) — decisions on UI state (DDD-006, DDD-013, DDD-014, DDD-020, DDD-084, DDD-085)
 
 ## 1. Scope
@@ -29,7 +29,7 @@ Out of scope:
 - dettagli visual design
 - contratti backend non necessari alla logica frontend
 
-> **Nota architetturale (v1.3)**: A partire da giugno 2026, il percorso di generazione per i tool e stato migrato al modello **non-streaming** (`POST /generation/run`, risposta JSON). Il percorso streaming (`POST /generation/stream`, SSE) resta intatto ma dormiente per futuri usi (es. chat con effetto typing). Il frontend utilizza `frontendGenerationMachine` come default per i tool, mentre `frontendStreamMachine` rimane disponibile. Per i dettagli tecnici completi della migrazione, vedere [Non-Streaming Generation Migration Plan](../../../plan/migrate-to-nonstreaming-generation.md).
+> **Nota architetturale (v1.3)**: A partire da giugno 2026, il percorso di generazione per i tool e stato migrato al modello **non-streaming** (`POST /generation/run`, risposta JSON). Il percorso streaming (`POST /generation/stream`, SSE) resta intatto ma dormiente per futuri usi (es. chat con effetto typing). Il frontend utilizza `frontendGenerationMachine` come default per i tool, mentre `frontendStreamMachine` rimane disponibile. Per i dettagli tecnici completi della migrazione, vedere [Non-Streaming Generation Migration Plan](../../99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md).
 
 ## 2. Bounded Context
 

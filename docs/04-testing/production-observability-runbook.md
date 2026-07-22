@@ -335,4 +335,4 @@ grep '"x-correlation-id":"uuid-xxx"' logs/*.json
 - **Decision Log:** `docs/07-governance/domain-naming-decision-log.md` (DDD-147, DDD-148, DDD-149)
 - **Bounded Context Map:** `docs/02-design/domain-bounded-context-map.md` (Error Translation Rules)
 - **Debug Runbook:** `docs/04-testing/streaming-generator-debug-runbook.md`
-- **Implementation Plan:** `plan/feature-error-logging-ux-feedback-improvements-1.md`
+- **Implementation Plan:** `../99-lifecycle/99-archive/plans/feature-error-logging-ux-feedback-improvements-1.md`

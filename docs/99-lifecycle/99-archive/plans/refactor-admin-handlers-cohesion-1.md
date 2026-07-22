@@ -14,7 +14,7 @@ tags: [refactoring, ddd, cohesion, auth-http, backend]
 
 ## Context
 
-From the [Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md), the `Admin Handlers` community has the lowest cohesion score (0.05) among all detected communities. This plan proposes a DDD-aligned refactoring to increase internal cohesion.
+From the [Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md), the `Admin Handlers` community has the lowest cohesion score (0.05) among all detected communities. This plan proposes a DDD-aligned refactoring to increase internal cohesion.
 
 ## Current State Analysis
 
@@ -157,7 +157,7 @@ Il piano è stato validato contro i tre documenti canonici DDD:
 
 ## References
 
-- [Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md)
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
+- [Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md)
+- [Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
 - `apps/backend/src/lib/runtime/auth-http/` (30 files)
 - `graphify-out/GRAPH_REPORT.md` — Community 1: "Admin Handlers Adminhandlers"

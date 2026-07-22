@@ -1,10 +1,12 @@
 ---
 goal: Implement the canonical Geometric Tool (Generative Engine Optimization Analysis) with multi-step crawling, competitor scoring, and LLM strategic reporting
 version: 1.7
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-06-12
 last_updated: 2026-06-12
 owner: Frontend Platform + Backend Runtime
-status: Completed
+status: completed
 tags: [feature, tool-workspace, backend, frontend, ddd, crawling, scoring, analysis, geometric, bullmq, puppeteer]
 ---
 
@@ -390,9 +392,9 @@ The `analysisSessionIdentifier` (DDD-127) ensures all dynamically discovered PAA
 
 ## 8. Related Specifications / Further Reading
 
-[Tool Development Plan Template](../docs/99-reference/templates/tool-development-plan-template.md)
-[Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-[Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-[Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-[Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
+[Tool Development Plan Template](../../../99-reference/templates/tool-development-plan-template.md)
+[Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+[Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+[Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+[Tool Page Frontend Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)

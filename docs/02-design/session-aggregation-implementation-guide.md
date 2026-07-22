@@ -1,8 +1,8 @@
 ---
 status: draft
 version: 1.1
-last-reviewed: 2026-05-16
-next-review-date: 2026-06-15
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Frontend + Backend Platform
 ---
 

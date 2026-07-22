@@ -1,10 +1,10 @@
 ---
-status: active
-version: 1.0
-last-reviewed: 2026-07-08
-next-review-date: 2026-10-08
-owner: Domain Architecture
+status: archived
+version: 2.0
 date_created: 2026-07-08
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
+owner: Domain Architecture
 title: Monolithic Elements Architectural Review
 type: code-review
 tags:
@@ -13,25 +13,8 @@ tags:
   - refactoring
   - technical-debt
   - ddd
-  - bounded-contexts
-goal: Identify remaining monolithic elements preventing true modular architecture and propose decomposition strategy
----
-
----
-status: archived
-version: 1.1
-last-reviewed: 2026-07-08
-next-review-date: 2027-01-08
-owner: Domain Architecture
-date_created: 2026-07-08
-title: Monolithic Elements Architectural Review (SUPERSEDED)
-type: code-review
-tags:
-  - architecture
-  - monolith
   - superseded
-  - ddd
-goal: "[SUPERSEDED] Use Unified Architectural Vulnerabilities Review instead"
+superseded-by: ./unified-architectural-vulnerabilities-review.md
 ---
 
 # ⚠️ SUPERSEDED DOCUMENT

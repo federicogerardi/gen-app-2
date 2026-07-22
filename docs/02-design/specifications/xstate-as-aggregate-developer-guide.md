@@ -438,7 +438,7 @@ Comportamento documentato di XState: gli `invoke` sono effimeri. Dopo un crash o
 
 ### 7.3 "Perché TS non inferisce il tipo?"
 
-Gli helper in `generation-system.events.ts` usano cast `as` per accedere all'output degli eventi. Se il tipo non corrisponde, il cast fallisce silenziosamente a runtime. Per runtime validation, vedi RISK-4 nel [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md).
+Gli helper in `generation-system.events.ts` usano cast `as` per accedere all'output degli eventi. Se il tipo non corrisponde, il cast fallisce silenziosamente a runtime. Per runtime validation con Zod, vedi `generation-system.event-schemas.ts` (RISK-4 implementato).
 
 ### 7.4 "Come debuggare uno stato runtime?"
 
@@ -449,7 +449,7 @@ console.log('Context:', JSON.stringify(snapshot.context, null, 2));
 console.log('Children:', Object.keys(snapshot.children ?? {}));
 ```
 
-Per una rappresentazione formattata, vedi RISK-6 nel [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md) (Actor Inspector).
+Per una rappresentazione formattata, vedi `actor-inspector.ts` (RISK-6 implementato):
 
 ---
 
@@ -478,7 +478,7 @@ Per una rappresentazione formattata, vedi RISK-6 nel [Post-BullMQ Improvements P
 | Documento | Relazione |
 |---|---|
 | [XState-as-Aggregate Architectural Review](../07-governance/xstate-as-aggregate-architectural-review.md) | Analisi dei rischi architetturali — questa guida ne è la controparte pratica |
-| [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) | Implementazione RISK-1 (serializzazione) e RISK-2 (event bridge) |
-| [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md) | RISK-3 (domain modules), RISK-4 (Zod), RISK-5 (questa guida), RISK-6 (inspector) |
+| [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) | ✅ Implementato — RISK-1 (serializzazione) e RISK-2 (event bridge) |
+| [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md) | ✅ Implementato — RISK-3 (domain modules), RISK-4 (Zod), RISK-5 (questa guida), RISK-6 (inspector) |
 | [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) | Terminologia canonica DDD |
 | [Domain Naming Decision Log](../domain-naming-decision-log.md) | DDD-NNN per annotazioni e riferimenti |

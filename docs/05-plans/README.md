@@ -16,8 +16,8 @@ Superseded plans are in [`docs/99-lifecycle/99-archive/superseded/`](../docs/99-
 
 | Plan | Status | Effort | Description |
 |------|--------|--------|-------------|
-| [BullMQ Prerequisites](./plan-bullmq-prerequisites.md) | 📝 **DRAFT** | 5-8 giorni | Fase 1 — Redis pub/sub event bridge (RISK-2) + manual step serialization (RISK-1) |
-| [Post-BullMQ Improvements](./plan-post-bullmq-improvements.md) | 📝 **DRAFT** | 10-15 giorni | Fase 2 — Developer guide, Domain Decision Modules, Zod validation, Actor Inspector |
+| [BullMQ Prerequisites](./plan-bullmq-prerequisites.md) | ✅ **IMPLEMENTED** | 2026-07-22 | Fase 1 — Redis pub/sub event bridge (RISK-2) + manual step serialization (RISK-1) |
+| [Post-BullMQ Improvements](./plan-post-bullmq-improvements.md) | ✅ **IMPLEMENTED** | 2026-07-22 | Fase 2 — Developer guide (RISK-5), Zod validation (RISK-4), Domain Decision Modules (RISK-3), Actor Inspector (RISK-6) |
 
 **Documento di riferimento**: [XState-as-Aggregate Architectural Review](../docs/07-governance/xstate-as-aggregate-architectural-review.md)
 

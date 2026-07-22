@@ -419,7 +419,7 @@ La Proposal BullMQ è il **primo vero stress test**. I rischi #1 e #2 sono reali
 | [DDD Implementation Audit](ddd-implementation-audit.md) | Audit completo DDD — questa review ne approfondisce la Sezione 7.1 |
 | [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) | Proposta che introduce `ToolWorkflowJob` BullMQ — stress test per questa architettura |
 | [Plan: BullMQ Prerequisites](../05-plans/plan-bullmq-prerequisites.md) | **✅ Implementato** — RISK-2 (event bridge) + RISK-1 (serializzazione) completati (2026-07-22) |
-| [Plan: Post-BullMQ Improvements](../05-plans/plan-post-bullmq-improvements.md) | **📝 Piano Fase 2** — implementazione RISK-5 (dev guide), RISK-3 (domain modules), RISK-4 (Zod), RISK-6 (inspector) |
+| [Plan: Post-BullMQ Improvements](../05-plans/plan-post-bullmq-improvements.md) | **✅ Implementato** — RISK-5 (dev guide), RISK-4 (Zod), RISK-3 (domain modules), RISK-6 (inspector) completati (2026-07-22) |
 | [Architecture Weaknesses Code Review](architecture-weaknesses-code-review.md) | Il finding MEDIUM "Generation flow completion remains partially dependent on Frontend/UI liveness signals" è direttamente affrontato da BullMQ |
 | [Critical Vulnerabilities Progressive Review](critical-vulnerabilities-progressive-review.md) | Review correlata — vulnerabilità architetturali sistemiche |
 | [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md) | Definisce `ToolWorkflowJob` come Satellite Aggregate Root provisional |

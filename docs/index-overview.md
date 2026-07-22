@@ -124,8 +124,8 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
-- [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **DRAFT: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
-- [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **DRAFT: Post-BullMQ Improvements (RISK-5,3,4,6)**
+- [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **IMPLEMENTED: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
+- [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **IMPLEMENTED: Post-BullMQ Improvements (RISK-5 dev guide, RISK-4 Zod, RISK-3 domain modules, RISK-6 inspector)**
 - [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione `GenerationSystem`
 - [sprint-5-context-migration-validation-implementation-plan](./99-lifecycle/99-archive/plans/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e validazione contesto backend
 - [sprint-6-error-actors-wiring-implementation-plan](./99-lifecycle/99-archive/plans/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori gestione errori route-specific
@@ -148,7 +148,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Proposals
 
-- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Piani collegati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md), [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md).**
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅.**
 - [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
 - [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
 

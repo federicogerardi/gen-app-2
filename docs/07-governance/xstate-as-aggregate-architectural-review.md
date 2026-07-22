@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-07-22
 last-reviewed: 2026-07-22
 next-review-date: 2026-10-22
@@ -355,45 +355,44 @@ La Proposal BE-Driven Workflow Job System è il **primo punto di stress test** p
 
 ### 4.1 Affrontare RISK-1 (serializzazione)
 
+**✅ IMPLEMENTATO** — `job-progress-serializer.ts` (2026-07-22)
+
 **Opzione A — Retry da zero (semplice, già deciso nella Proposal)**:
 - Pro: nessuna infrastruttura aggiuntiva
 - Contro: costo O(n) per workflow lunghi
 - Accettabile per: tool con ≤3 step, step veloci (<15s)
 
-**Opzione B — Serializzazione manuale dello stato step (robusta)**:
+**Opzione B — Serializzazione manuale dello stato step (robusta)** — **Implementata**:
 ```typescript
-// Serializzare SOLO lo stato degli step completati, non l'intera macchina
-const completedSteps = [
-  { stepKey: 'blog_seo_structure', artifactId: 'art-1', status: 'done' },
-  { stepKey: 'blog_outline', artifactId: 'art-2', status: 'done' },
-];
-await redis.set(`job:${jobId}:progress`, JSON.stringify(completedSteps));
+// apps/backend/src/lib/runtime/job-progress-serializer.ts
+// Serializza SOLO lo stato degli step completati in Redis con TTL 1h
+const serializer = createJobProgressSerializer(redis);
+await serializer.save(jobId, { completedSteps, currentStepIndex });
 
 // Al retry, il worker ricostruisce solo gli step mancanti
-const completed = JSON.parse(await redis.get(`job:${jobId}:progress`));
-const remainingSteps = allSteps.filter(s => !completed.find(c => c.stepKey === s.key));
+const saved = await serializer.load(jobId);
 // Inietta completed come bootstrap in ToolWorkflowInput
 ```
 
-**Raccomandazione**: iniziare con Opzione A, predisporre l'architettura per migrare a Opzione B se i costi di retry diventano significativi.
+**Raccomandazione originale**: iniziare con Opzione A, predisporre l'architettura per migrare a Opzione B.
+**Stato**: Opzione B implementata direttamente. Doppio meccanismo di difesa: Redis resume (happy path) → retry da zero con idempotency (fallback).
 
 ### 4.2 Affrontare RISK-2 (event bus)
 
-**Raccomandazione**: **Redis pub/sub** — già disponibile, minimo overhead:
+**✅ IMPLEMENTATO** — `job-event-bridge.ts` (2026-07-22)
 
+**Raccomandazione originale**: **Redis pub/sub** — già disponibile, minimo overhead.
+
+**Implementazione**:
 ```typescript
-// Worker BullMQ pubblica
-await redis.publish(`generation:${jobId}`, JSON.stringify({
-  type: 'step_completed',
-  stepKey: 'blog_outline',
-  artifactId: 'art-xyz',
-}));
+// apps/backend/src/lib/runtime/job-event-bridge.ts
+// Publisher (worker side)
+const publisher = createJobEventPublisher(redis);
+await publisher.publish({ type: 'step_completed', jobId, stepKey, artifactId });
 
-// Server HTTP si sottoscrive (già ha una connessione Redis)
-await redis.subscribe(`generation:${jobId}`);
-redis.on('message', (channel, message) => {
-  const sseConn = activeSSEConnections.get(jobId);
-  sseConn?.write(`data: ${message}\n\n`);
+// Subscriber (HTTP server side)
+const unsubscribe = await subscribeToJobEvents(subscriber, jobId, (event) => {
+  response.write(serializeSseEvent({ event: 'progress', data: event }));
 });
 ```
 
@@ -419,7 +418,7 @@ La Proposal BullMQ è il **primo vero stress test**. I rischi #1 e #2 sono reali
 |---|---|
 | [DDD Implementation Audit](ddd-implementation-audit.md) | Audit completo DDD — questa review ne approfondisce la Sezione 7.1 |
 | [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) | Proposta che introduce `ToolWorkflowJob` BullMQ — stress test per questa architettura |
-| [Plan: BullMQ Prerequisites](../05-plans/plan-bullmq-prerequisites.md) | **📝 Piano Fase 1** — implementazione RISK-2 (event bridge) + RISK-1 (serializzazione) |
+| [Plan: BullMQ Prerequisites](../05-plans/plan-bullmq-prerequisites.md) | **✅ Implementato** — RISK-2 (event bridge) + RISK-1 (serializzazione) completati (2026-07-22) |
 | [Plan: Post-BullMQ Improvements](../05-plans/plan-post-bullmq-improvements.md) | **📝 Piano Fase 2** — implementazione RISK-5 (dev guide), RISK-3 (domain modules), RISK-4 (Zod), RISK-6 (inspector) |
 | [Architecture Weaknesses Code Review](architecture-weaknesses-code-review.md) | Il finding MEDIUM "Generation flow completion remains partially dependent on Frontend/UI liveness signals" è direttamente affrontato da BullMQ |
 | [Critical Vulnerabilities Progressive Review](critical-vulnerabilities-progressive-review.md) | Review correlata — vulnerabilità architetturali sistemiche |

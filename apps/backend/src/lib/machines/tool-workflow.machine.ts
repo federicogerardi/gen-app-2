@@ -33,16 +33,22 @@ type ToolWorkflowMachineEvent =
 
 const nowIso = (): string => new Date().toISOString();
 
-const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] =>
-  input.steps.map((step) => ({
+const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] => {
+  const completedSet = new Set(
+    input.bootstrap?.completedSteps?.map((s) => s.stepKey) ?? [],
+  );
+
+  if (input.bootstrap?.stepKey) {
+    completedSet.add(input.bootstrap.stepKey);
+  }
+
+  return input.steps.map((step) => ({
     key: step.key,
-    status:
-      input.bootstrap?.stepKey === step.key
-        ? 'done'
-        : 'idle',
+    status: completedSet.has(step.key) ? 'done' : 'idle',
     retryCount: 0,
     errorMessage: null,
   }));
+};
 
 const findFirstNonTerminalStepIndex = (stepStates: WorkflowStepState[]): number =>
   stepStates.findIndex((step) => step.status === 'idle' || step.status === 'running' || step.status === 'error');

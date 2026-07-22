@@ -173,9 +173,16 @@ export type ToolWorkflowInput = RequestRegistrySelector & {
   dependencyGraph: Record<string, string[]>;
   requestInput?: Record<string, unknown>;
   bootstrap?: {
-    stepKey: string;
-    output: string;
-    artifactId: string;
+    /** Single step to resume from (backward compat). */
+    stepKey?: string;
+    output?: string;
+    artifactId?: string;
+    /** Multi-step resume: array of already-completed steps to skip. */
+    completedSteps?: Array<{
+      stepKey: string;
+      artifactId: string;
+      status?: WorkflowStepStatus;
+    }>;
   };
 };
 

@@ -906,11 +906,11 @@ Fase 4: RISK-6 — Actor Inspector (1-2 giorni)
 
 ### RISK-3 (Domain Decision Modules)
 
-- [ ] SC-3.1: 4 nuovi file in `apps/frontend/src/features/tools/runtime/domain-rules/` — uno per decisione
-- [ ] SC-3.2: Ogni modulo esporta esattamente UNA pure function
-- [ ] SC-3.3: I file originali (tool-page.machine.ts, tool-page-selectors.ts, generation-system.guards.ts, etc.) delegato ai nuovi moduli invece di contenere logica inline
-- [ ] SC-3.4: `npm --workspace apps/frontend run test` e `npm --workspace apps/backend run test` passano dopo ogni estrazione
-- [ ] SC-3.5: Nessun nuovo ciclo di import introdotto
+- [x] SC-3.1: 4 nuovi file in `apps/frontend/src/features/tools/runtime/domain-rules/` — uno per decisione
+- [x] SC-3.2: Ogni modulo esporta esattamente UNA pure function
+- [x] SC-3.3: I file originali (tool-page.machine.ts, tool-page-selectors.ts, generation-system.guards.ts, etc.) delegato ai nuovi moduli invece di contenere logica inline
+- [x] SC-3.4: `npm --workspace apps/frontend run test` e `npm --workspace apps/backend run test` passano dopo ogni estrazione
+- [x] SC-3.5: Nessun nuovo ciclo di import introdotto
 
 ### RISK-6 (Actor Inspector)
 

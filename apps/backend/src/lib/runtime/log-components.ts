@@ -23,6 +23,7 @@ export const LogComponent = {
   SMOKE_CLEANUP: 'smoke-cleanup',
   GEOMETRIC: 'geometric',
   IDEMPOTENCY_COORDINATOR: 'idempotency-coordinator',
+  JOB_EVENT_BRIDGE: 'job-event-bridge',
 } as const;
 
 /** Create a Pino child logger pre-tagged with a component name. */

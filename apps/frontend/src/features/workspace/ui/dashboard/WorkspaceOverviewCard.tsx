@@ -87,9 +87,36 @@ export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ wo
 
   return (
     <div className="workspace-overview">
-      {/* Header row */}
+      {/* Header row — title + inline subtitle stats + CTA */}
       <div className="workspace-overview__header">
-        <h4 className="workspace-overview__title">{projectName}</h4>
+        <div className="workspace-overview__header-left">
+          <h4 className="workspace-overview__title">{projectName}</h4>
+          <span className="workspace-overview__subtitle">
+            {ctx.assets.length > 0
+              ? copy.workspaceOverviewStatsAssets(ctx.assets.length)
+              : copy.workspaceOverviewStatsNone}
+            {ctx.assets.length > 0 && (
+              <>
+                <span className="workspace-overview__stat-sep">&middot;</span>
+                {copy.workspaceOverviewStatsTypes(assetTypesWithAssets)}
+                {staleCount > 0 && (
+                  <>
+                    <span className="workspace-overview__stat-sep">&middot;</span>
+                    <span className="workspace-overview__subtitle--warning">
+                      {copy.workspaceOverviewStatsStale(staleCount)}
+                    </span>
+                  </>
+                )}
+                {ctx.overallQualityScore > 0 && (
+                  <>
+                    <span className="workspace-overview__stat-sep">&middot;</span>
+                    {copy.workspaceOverviewQuality(ctx.overallQualityScore)}
+                  </>
+                )}
+              </>
+            )}
+          </span>
+        </div>
         <div className="workspace-overview__cta">
           {firstSuggestedTool ? (
             <Link
@@ -110,39 +137,6 @@ export const WorkspaceOverviewCard: React.FC<WorkspaceOverviewCardProps> = ({ wo
             </a>
           )}
         </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="workspace-overview__stats">
-        <span className="workspace-overview__stat">
-          {ctx.assets.length > 0
-            ? copy.workspaceOverviewStatsAssets(ctx.assets.length)
-            : copy.workspaceOverviewStatsNone}
-        </span>
-        {ctx.assets.length > 0 && (
-          <>
-            <span className="workspace-overview__stat-sep">&middot;</span>
-            <span className="workspace-overview__stat">
-              {copy.workspaceOverviewStatsTypes(assetTypesWithAssets)}
-            </span>
-            {staleCount > 0 && (
-              <>
-                <span className="workspace-overview__stat-sep">&middot;</span>
-                <span className="workspace-overview__stat workspace-overview__stat--warning">
-                  {copy.workspaceOverviewStatsStale(staleCount)}
-                </span>
-              </>
-            )}
-            {ctx.overallQualityScore > 0 && (
-              <>
-                <span className="workspace-overview__stat-sep">&middot;</span>
-                <span className="workspace-overview__stat">
-                  {copy.workspaceOverviewQuality(ctx.overallQualityScore)}
-                </span>
-              </>
-            )}
-          </>
-        )}
       </div>
 
       {/* Divider */}

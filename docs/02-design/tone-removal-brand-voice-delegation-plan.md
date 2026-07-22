@@ -1,6 +1,6 @@
 ---
 status: completed
-version: 1.1.0
+version: 1.1
 last-reviewed: 2026-07-19
 next-review-date: 2026-10-17
 owner: Generation Team

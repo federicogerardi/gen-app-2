@@ -523,7 +523,7 @@ const USE_CLUSTER_SYSTEM = process.env.VITE_FF_USE_CLUSTER_SYSTEM === 'true';
 
 ## 13. Related Specifications
 
-- [Meta Ads Output Format Evolution Proposal](../docs/02-design/meta-ads-output-format-evolution-proposal.md)
-- [DDD Naming Decisions](../docs/07-governance/domain-naming-decision-log.md)
-- [Tool Development Plan Template](../docs/99-reference/templates/tool-development-plan-template.md)
-- [Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+- [Meta Ads Output Format Evolution Proposal](../../../99-lifecycle/99-archive/superseded/02-design/meta-ads-output-format-evolution-proposal.md)
+- [DDD Naming Decisions](../../../07-governance/domain-naming-decision-log.md)
+- [Tool Development Plan Template](../../../99-reference/templates/tool-development-plan-template.md)
+- [Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)

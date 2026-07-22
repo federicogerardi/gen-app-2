@@ -1,10 +1,12 @@
 ---
 goal: Estendere la policy di disponibilita Tool con tre modalita deterministiche (enable for all, disable for all, enable only for admin)
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Frontend Platform + Backend Runtime
-status: Completed
+status: completed
 tags: [feature, architecture, ddd, frontend, backend, auth]
 ---
 
@@ -166,7 +168,7 @@ Questo piano definisce l'estensione della policy di disponibilita dei Tool da mo
 
 ## 8. Related Specifications / Further Reading
 
-[Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-[Domain Naming Decision Log](../docs/07-governance/domain-naming-decision-log.md)
-[Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+[Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+[Domain Naming Decision Log](../../../07-governance/domain-naming-decision-log.md)
+[Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)

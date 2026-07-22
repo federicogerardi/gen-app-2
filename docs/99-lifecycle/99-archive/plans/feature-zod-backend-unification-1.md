@@ -1,10 +1,12 @@
 ---
 goal: Implement Zod in backend-first HTTP parsing and align FE/BE validation semantics for admin and auth-http surfaces
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-06-02
 last_updated: 2026-06-02
 owner: Backend Platform
-status: 'Completed'
+status: completed
 tags: [feature, backend, zod, validation, contracts, ddd, frontend]
 ---
 
@@ -601,9 +603,9 @@ Wave 6 removes the final queued auth-http manual request-boundary surface. The r
 
 ## 8. Related Specifications / Further Reading
 
-[docs/02-design/specifications/dependency-unification-proposal.md](../docs/02-design/specifications/dependency-unification-proposal.md)
-[docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[docs/02-design/domain-bounded-context-map.md](../docs/02-design/domain-bounded-context-map.md)
-[docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
-[AGENTS.md](../AGENTS.md)
-[plan/feature-api-service-backend-contract-1.md](./feature-api-service-backend-contract-1.md)
+[docs/02-design/specifications/dependency-unification-proposal.md](../../../02-design/specifications/dependency-unification-proposal.md)
+[docs/01-requirements/domain-ubiquitous-language-glossary.md](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[docs/02-design/domain-bounded-context-map.md](../../../02-design/domain-bounded-context-map.md)
+[docs/07-governance/domain-naming-decision-log.md](../../../07-governance/domain-naming-decision-log.md)
+[AGENTS.md](../../../AGENTS.md)
+[../../../99-lifecycle/99-archive/plans/feature-api-service-backend-contract-1.md](./feature-api-service-backend-contract-1.md)

@@ -492,6 +492,6 @@ Il binding usa `workflowStepType: 'crawling'` come valore semanticamente corrett
 
 ## Related
 
-- [Geometric Tool Plan](./feature-geometric-tool-1.md)
+- [Geometric Tool Plan](../99-lifecycle/99-archive/plans/feature-geometric-tool-1.md)
 - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) — DDD-129
 - [Domain Bounded Context Map](./domain-bounded-context-map.md) — Crawling & Extraction Context

@@ -22,9 +22,7 @@ export const ProjectAssetsPage: React.FC = () => {
 
   return (
     <section className="workspace-assets-page">
-      <h1 className="workspace-assets-page__title">
-        {copy.dashboard.assetLibraryTitle}
-      </h1>
+      <h2>{copy.dashboard.assetLibraryTitle}</h2>
 
       {ctx.loading ? (
         <LoadingStateMessage>{copy.dashboard.loadingAssets ?? 'Loading assets...'}</LoadingStateMessage>

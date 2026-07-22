@@ -1,10 +1,12 @@
 ---
 goal: Backend-first alignment for ContextGenerationPhase and ApiService acquisition runtime
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Backend Platform Team
-status: 'Completed'
+status: completed
 tags: [feature, architecture, backend, ddd, context-generation]
 ---
 
@@ -46,7 +48,7 @@ Inter-phase execution is strictly sequential. A phase can start only when the pr
 | GATE-001 | Phase 1 -> Phase 2 | `TASK-001..TASK-005` all completed; migration applied; adapter/validation unit tests green | `npm --workspace apps/backend run db:migrate:minimal` and `npm --workspace apps/backend run test -- src/lib/tests/runtime.api-service-adapter.test.ts src/lib/tests/runtime.api-service-validation.test.ts` |
 | GATE-002 | Phase 2 -> Phase 3 | `TASK-006..TASK-010` all completed; admin routes registered; auth/route tests green | `npm --workspace apps/backend run test:integration` including route/auth suites |
 | GATE-003 | Phase 3 -> Phase 4 | `TASK-011..TASK-015` all completed; acquisition step orchestration tests green; no regression on non-acquisition tools | `npm --workspace apps/backend run test -- src/lib/tests/runtime.acquisition-workflow.machine.test.ts` and `npm --workspace apps/backend run test:integration` and `npm --workspace apps/backend run test:unit` |
-| GATE-004 | Phase 4 -> FE Enablement | `TASK-016..TASK-020` all completed; docs synced; workspace checks green; checklist contract file exists and is complete | `npm run typecheck` and `npm run test` and file `plan/feature-context-generation-backend-first-1-readiness-checklist-1.md` committed with `CHK-001..CHK-008` all marked ✅ |
+| GATE-004 | Phase 4 -> FE Enablement | `TASK-016..TASK-020` all completed; docs synced; workspace checks green; checklist contract file exists and is complete | `npm run typecheck` and `npm run test` and file `../../../99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1-readiness-checklist-1.md` committed with `CHK-001..CHK-008` all marked ✅ |
 
 Gate enforcement rules:
 1. No task from Phase N+1 may be started while Gate N is open.
@@ -60,7 +62,7 @@ Current gate status:
 4. `GATE-004`: CLOSED
 
 Readiness checklist artifact contract (`GATE-004`):
-1. Mandatory file path: `plan/feature-context-generation-backend-first-1-readiness-checklist-1.md`.
+1. Mandatory file path: `../../../99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1-readiness-checklist-1.md`.
 2. Mandatory checklist IDs in file body: `CHK-001`, `CHK-002`, `CHK-003`, `CHK-004`, `CHK-005`, `CHK-006`, `CHK-007`, `CHK-008`.
 3. `GATE-004` is closed only when all eight checklist items are present and marked `✅`.
 
@@ -114,7 +116,7 @@ Readiness checklist artifact contract (`GATE-004`):
 | TASK-017 | Update DDD docs with runtime evidence links: `docs/01-requirements/domain-ubiquitous-language-glossary.md`, `docs/02-design/domain-bounded-context-map.md`, `docs/07-governance/domain-naming-decision-log.md`. | ✅ | 2026-05-24 |
 | TASK-018 | Add backend integration tests for end-to-end orchestration path with acquisition in `apps/backend/src/lib/tests/runtime.tools-orchestrate.test.ts` covering extraction + acquisition + generation path. | ✅ | 2026-05-24 |
 | TASK-019 | Execute deterministic backend verification commands: `npm --workspace apps/backend run typecheck`, `npm --workspace apps/backend run test`, `npm run typecheck`, `npm run test`. | ✅ (root `npm run test` output retrieval failed once; equivalent deterministic suites executed and green: backend full test + frontend targeted runtime suites) | 2026-05-24 |
-| TASK-020 | Create `plan/feature-context-generation-backend-first-1-readiness-checklist-1.md` and mark `CHK-001..CHK-008` as complete only after all P0 backend tasks are complete, zero critical regression is verified, and docs are synced. | ✅ | 2026-05-24 |
+| TASK-020 | Create `../../../99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1-readiness-checklist-1.md` and mark `CHK-001..CHK-008` as complete only after all P0 backend tasks are complete, zero critical regression is verified, and docs are synced. | ✅ | 2026-05-24 |
 
 ## 3. Alternatives
 
@@ -175,4 +177,4 @@ Readiness checklist artifact contract (`GATE-004`):
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
 - `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
 - `docs/02-design/tool-generation-flow-generation-context.md`
-- `plan/refactor-ddd-081-tool-input-policy-1.md`
+- `../../../99-lifecycle/99-archive/plans/refactor-ddd-081-tool-input-policy-1.md`

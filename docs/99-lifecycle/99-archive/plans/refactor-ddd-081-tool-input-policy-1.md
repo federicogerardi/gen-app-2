@@ -2,9 +2,10 @@
 goal: Apply DDD-081 Tool Input File Requirement Policy alignment across Frontend Tool Workspace runtime, UI, and tests
 version: 1.0
 date_created: 2026-05-22
-last_updated: 2026-05-22
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 owner: Frontend Platform Team
-status: Completed
+status: completed
 tags: [refactor, frontend, ddd, policy-alignment, tools]
 ---
 
@@ -404,9 +405,9 @@ Execution note for implementers:
 
 ## 12. Related Specifications / Further Reading
 
-- [docs/07-governance/domain-naming-decision-log.md](../docs/07-governance/domain-naming-decision-log.md)
-- [docs/01-requirements/domain-ubiquitous-language-glossary.md](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-- [docs/02-design/domain-bounded-context-map.md](../docs/02-design/domain-bounded-context-map.md)
-- [docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-- [docs/02-design/specifications/frontend-tool-pages-architecture-spec.md](../docs/02-design/specifications/frontend-tool-pages-architecture-spec.md)
-- [docs/99-reference/templates/tool-development-plan-template.md](../docs/99-reference/templates/tool-development-plan-template.md)
+- [docs/07-governance/domain-naming-decision-log.md](../../../07-governance/domain-naming-decision-log.md)
+- [docs/01-requirements/domain-ubiquitous-language-glossary.md](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+- [docs/02-design/domain-bounded-context-map.md](../../../02-design/domain-bounded-context-map.md)
+- [docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+- [docs/02-design/specifications/frontend-tool-pages-architecture-spec.md](../../../02-design/specifications/frontend-tool-pages-architecture-spec.md)
+- [docs/99-reference/templates/tool-development-plan-template.md](../../../99-reference/templates/tool-development-plan-template.md)

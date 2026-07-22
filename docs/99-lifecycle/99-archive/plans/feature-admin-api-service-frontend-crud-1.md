@@ -182,7 +182,7 @@ Completion Criteria: create/edit forms are visually lighter in default state, ad
 
 ## 8. Related Specifications / Further Reading
 
-- `plan/feature-api-service-backend-contract-1.md`
+- `../../../99-lifecycle/99-archive/plans/feature-api-service-backend-contract-1.md`
 - `apps/frontend/src/app/runtime/api-paths.ts`
 - `apps/frontend/src/app/runtime/backend-capabilities.ts`
 - `apps/frontend/src/features/admin/runtime/admin-client.ts`

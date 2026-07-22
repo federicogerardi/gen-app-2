@@ -184,9 +184,9 @@ function getIncludedSteps(toolKey: ToolKey | null): ToolStep[];
 
 ## 9. Related Specifications / Further Reading
 
-[DDD Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[DDD Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-[Tool Page Frontend Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
-[Session Aggregation Implementation Guide](../docs/02-design/session-aggregation-implementation-guide.md)
-[Frontend UX Determinism Code Review](../docs/07-governance/frontend-ux-determinism-code-review.md)
-[Tool Development Plan Template](../docs/99-reference/templates/tool-development-plan-template.md)
+[DDD Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[DDD Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+[Tool Page Frontend Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)
+[Session Aggregation Implementation Guide](../../../02-design/session-aggregation-implementation-guide.md)
+[Frontend UX Determinism Code Review](../../../07-governance/frontend-ux-determinism-code-review.md)
+[Tool Development Plan Template](../../../99-reference/templates/tool-development-plan-template.md)

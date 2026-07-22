@@ -6,6 +6,7 @@ last-reviewed: 2026-06-26
 next-review-date: 2026-07-26
 owner: Frontend Platform Team
 type: code-review
+tags: [frontend, ux, determinism, code-review, unification]
 ---
 
 # Frontend UX Determinism and Unification Code Review

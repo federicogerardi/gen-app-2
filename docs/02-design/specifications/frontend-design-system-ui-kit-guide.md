@@ -6,6 +6,7 @@ last-reviewed: 2026-05-11
 next-review-date: 2026-08-11
 owner: Frontend Platform Team
 type: design-system-guide
+tags: [frontend, design-system, ui-kit, visual-language, tokens]
 ---
 
 # Frontend Design System e UI Kit Guide

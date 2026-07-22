@@ -1,10 +1,12 @@
 ---
 goal: Implement LLM Model Step Override System for per-step model configuration with metadata tracking and session visibility
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-07-07
 last_updated: 2026-07-07
 owner: Backend Runtime + Frontend Platform
-status: Completed
+status: completed
 tags: [feature, llm-models, tool-steps, generation, backend, frontend, ddd, metadata, session-summary]
 ---
 
@@ -320,7 +322,7 @@ apps/frontend/src/features/sessionsummary/pages/SessionSummaryDetailPage.test.ts
 
 **Documentation to Create:**
 ```
-docs/development/llm-model-override-configuration-guide.md
+docs/03-development/llm-model-override-configuration-guide.md
 ```
 
 **Content:**

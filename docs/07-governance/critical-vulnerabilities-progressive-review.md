@@ -1,10 +1,10 @@
 ---
-status: active
-version: 1.0
-last-reviewed: 2026-07-08
-next-review-date: 2026-10-08
-owner: Domain Architecture
+status: archived
+version: 2.0
 date_created: 2026-07-08
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
+owner: Domain Architecture
 title: Critical Vulnerabilities Progressive Review
 type: code-review
 tags:
@@ -12,24 +12,8 @@ tags:
   - vulnerabilities
   - monolith-decomposition
   - technical-debt
-  - progressive-execution
-goal: Identify and prioritize critical architectural vulnerabilities for progressive remediation in partially decomposed monolith
----
-
----
-status: archived
-version: 1.1
-last-reviewed: 2026-07-08
-next-review-date: 2027-01-08
-owner: Domain Architecture
-date_created: 2026-07-08
-title: Critical Vulnerabilities Progressive Review (SUPERSEDED)
-type: code-review
-tags:
-  - architecture
-  - vulnerabilities
   - superseded
-goal: "[SUPERSEDED] Use Unified Architectural Vulnerabilities Review instead"
+superseded-by: ./unified-architectural-vulnerabilities-review.md
 ---
 
 # ⚠️ SUPERSEDED DOCUMENT

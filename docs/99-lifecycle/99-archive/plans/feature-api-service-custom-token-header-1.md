@@ -1,10 +1,12 @@
 ---
 goal: Backward-compatible custom token header support for ApiService acquisition (Authorization default, tokenHeaderName override)
 version: 1.1
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Backend Platform + Frontend Platform
-status: 'Completed'
+status: completed
 tags: [feature, backend, frontend, contracts, api-service, acquisition, security, ddd]
 ---
 
@@ -121,7 +123,7 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 
 ## 5. Files
 
-- **FILE-001**: `plan/feature-api-service-custom-token-header-1.md` (this plan)
+- **FILE-001**: `../../../99-lifecycle/99-archive/plans/feature-api-service-custom-token-header-1.md` (this plan)
 - **FILE-002**: `packages/infra-db/migrations/20260524_000013_api_service_token_header_name.sql` (new)
 - **FILE-003**: `packages/contracts/src/api-service.ts`
 - **FILE-004**: `apps/backend/src/lib/types/api-service.ts`
@@ -172,7 +174,7 @@ This plan defines a deterministic BE+FE+contracts+test implementation to support
 - docs/07-governance/domain-naming-decision-log.md
 - docs/01-requirements/domain-ubiquitous-language-glossary.md
 - docs/02-design/domain-bounded-context-map.md
-- plan/feature-api-service-backend-contract-1.md
+- ../../../99-lifecycle/99-archive/plans/feature-api-service-backend-contract-1.md
 - apps/backend/src/lib/runtime/integrations/api-acquisition.adapter.ts
 - apps/backend/src/lib/runtime/integrations/api-service-validation.ts
 - packages/contracts/src/api-service.ts

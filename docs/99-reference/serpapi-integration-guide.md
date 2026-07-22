@@ -1,10 +1,12 @@
 ---
 status: active
 version: 2.0
+date_created: 2026-06-20
 last-reviewed: 2026-06-20
 next-review-date: 2026-09-20
 owner: Domain Architecture
 type: integration-guide
+tags: [serpapi, integration, geometric, crawling]
 ---
 
 # SerpApi Integration Guide 

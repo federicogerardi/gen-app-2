@@ -14,7 +14,7 @@ tags: [analysis, graphify, architecture, refactoring, technical-debt]
 
 ## Context
 
-From the [Knowledge Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md), we identified a critical structural issue: **1116 nodes are completely isolated** in a second massive component, separate from the main 3011-node connected component.
+From the [Knowledge Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md), we identified a critical structural issue: **1116 nodes are completely isolated** in a second massive component, separate from the main 3011-node connected component.
 
 This represents a significant architectural fragmentation that could indicate:
 - Business logic that's failing to use shared contracts
@@ -163,7 +163,7 @@ All commands run from repository root:
 - [x] Clear integration pathway identified for business logic orphans
 - [x] Dead code removal plan with safety verification
 - [x] Integration effort estimates within 2-week implementation window
-- [x] Results feed directly into [Graph Structural Analysis Review](../docs/07-governance/graph-structural-analysis-review.md) findings section
+- [x] Results feed directly into [Graph Structural Analysis Review](../../../07-governance/graph-structural-analysis-review.md) findings section
 
 ## 5b. Investigation Results (2026-07-07)
 
@@ -212,8 +212,8 @@ All commands run from repository root:
 
 ## 7. References
 
-- [Knowledge Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md)
-- [Domain Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-- [Domain Ubiquitous Language Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
+- [Knowledge Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md)
+- [Domain Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+- [Domain Ubiquitous Language Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
 - `graphify-out/GRAPH_REPORT.md`
 - `graphify-out/graph.json`

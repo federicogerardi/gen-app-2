@@ -1,73 +1,88 @@
 ---
 status: approved
-version: 4.0
-last-reviewed: 2026-07-18
-next-review-date: 2026-10-17
+version: 5.0
+date_created: 2026-05-07
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Documentation Archivist
+type: reference
+tags: [index, documentation, overview]
 ---
 
 # Documentation Index Overview
 
-Data: 2026-07-16  
-Stato: publication-ready  
-Versione indice: 3.8
-
 Indice operativo as-is: stato canonico della documentazione pubblica del repository.
+
+> Audit qualità documentale completato il 2026-07-23. 4 sprint di allineamento eseguiti:
+> - Sprint 1: frontmatter compliance, status normalization, broken links
+> - Sprint 2: versioni X.Y, date_created, type, tags, dev→03-development
+> - Sprint 3: migrazione plan/→05-plans/, ../docs/ fix, README sezioni
+> - Sprint 4: polish finale, tutte le sezioni allineate
+>
+> Stato finale: 115 documenti, 0 frontmatter issues, 0 broken links in active docs.
 
 > **⚑ DDD GATE — Leggere prima di qualsiasi analisi o intervento**
 >
-> Questi tre documenti sono il riferimento primario obbligatorio per ogni sviluppatore, contributore, o revisore — sia su codice che su documentazione:
+> Questi documenti sono il riferimento primario obbligatorio per ogni sviluppatore, contributore, o revisore:
 >
-> 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico su 4 bounded context
+> 1. [Domain Ubiquitous Language Glossary](./01-requirements/domain-ubiquitous-language-glossary.md) — vocabolario canonico su 6 bounded context
 > 2. [Domain Bounded Context Map](./02-design/domain-bounded-context-map.md) — responsabilità, confini e regole di traduzione cross-context
-> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — decisioni nomenclatura approvate (DDD-001–DDD-212), termini deprecati e alias backward-compat. Asset Domain Model: DDD-188–DDD-212.
+> 3. [Domain Naming Decision Log](./07-governance/domain-naming-decision-log.md) — 230+ DDD entry
+> 4. [Documentation Governance DDD and UL](./07-governance/documentation-ddd-ul-governance.md) — regole canoniche (v2.0)
 >
 > Regola invariante: nessun termine nuovo può entrare nel codice o nella documentazione senza una voce `DDD-NNN` nel decision log.
 
 ## Snapshot Operativo
 
 - Scope: as-is state — public repository
-- Root documentale: docs/
-- Last review date: 2026-05-21
-- Next review date: 2026-08-07
+- Root documentale: docs/ (115 documenti, 8 sezioni)
+- Last audit: 2026-07-23
+- Next review: 2026-10-23
 
 ## Core-First Navigation (Agent Optimized)
 
-Usa questo set minimo come percorso primario. Tutto il resto e storico o approfondimento.
+Usa questo set minimo come percorso primario. Tutto il resto è storico o approfondimento.
 
 1. [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md)
 2. [domain-bounded-context-map](./02-design/domain-bounded-context-map.md)
 3. [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md)
-4. [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-5. [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
-6. [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
-7. [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — **🔥 URGENT: critical architectural vulnerabilities with progressive execution plan**
-8. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
-9. [production-observability-runbook](./04-testing/production-observability-runbook.md)
-10. [tool-governance-tool-matrix](./07-governance/tool-governance-tool-matrix.md)
+4. [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md) — **governance documentale canonica (v2.0)**
+5. [frontend-ui-ubiquitous-language-spec](./02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+6. [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md)
+7. [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md)
+8. [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) — **architectural vulnerabilities + monolith decomposition (completed)**
+9. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
+10. [production-observability-runbook](./04-testing/production-observability-runbook.md)
 
 ## Section Map
 
-| Sezione | Entry point | Owner |
-| --- | --- | --- |
-| 00-overview | [index-overview](./index-overview.md) | Documentation Archivist |
-| 01-requirements | [01-requirements](./01-requirements/) | Product + Frontend Platform |
-| 02-design | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | Frontend Platform Team |
-| 04-testing | [04-testing](./04-testing/) | QA + Engineering Team |
-| 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist |
-| 99-reference | [99-reference](./99-reference/) | Documentation Archivist |
-| 99-lifecycle | [99-lifecycle](./99-lifecycle/) | Documentation Archivist |
+| Sezione | Entry point | Owner | Note |
+| --- | --- | --- | --- |
+| 00-overview | [index-overview](./index-overview.md) | Documentation Archivist | |
+| 01-requirements | [01-requirements](./01-requirements/) | Product + Frontend Platform | |
+| 02-design | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | Frontend Platform Team | |
+| 03-development | [llm-model-override-configuration-guide](./03-development/llm-model-override-configuration-guide.md) | Backend Runtime | Development guides, configuration how-tos |
+| 04-testing | [04-testing](./04-testing/) | QA + Engineering Team | |
+| 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist | |
+| 99-reference | [99-reference](./99-reference/) | Documentation Archivist | |
+| 99-lifecycle | [99-lifecycle](./99-lifecycle/) | Documentation Archivist | |
+
+> **Sezioni assenti intenzionalmente**: `05-` e `06-` non sono allocate — riservate per future espansioni (es. `05-operations/` per runbook deploy, `06-security/` per modelli di sicurezza). `08-`—`98-` non sono in uso; lo schema `NN-nome` usa numeri bassi per il core e `99-` per reference/archivio.
 
 ## Critical Documents Status
 
 | Documento | Stato | Last reviewed | Next review |
 | --- | --- | --- | --- |
-| [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | active | 2026-07-08 | 2026-10-08 |
+| [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | archived | 2026-07-23 | 2027-01-23 |
+| [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) | completed | 2026-07-13 | 2026-10-13 |
+| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-22 | 2026-10-22 |
+| [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) | active | 2026-07-22 | 2026-10-22 |
+| [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md) | active | 2026-07-23 | 2026-10-23 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-07-16 | 2026-10-16 |
 | [domain-bounded-context-map](./02-design/domain-bounded-context-map.md) | active | 2026-07-16 | 2026-10-16 |
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-07-16 | 2026-08-16 |
 | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | approved | 2026-05-27 | 2026-08-16 |
-| [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | approved | 2026-04-27 | 2026-07-27 |
+| [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | accepted | 2026-04-27 | 2026-07-27 |
 
 ## Active Registry
 
@@ -109,25 +124,31 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
-- [sprint-4-core-architecture-resolution-implementation-plan](../plan/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione del contesto `GenerationSystem`
-- [sprint-5-context-migration-validation-implementation-plan](../plan/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e livello di validazione del contesto backend
-- [sprint-6-error-actors-wiring-implementation-plan](../plan/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori per gestione errori route-specific e pulizia codice legacy
-- [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](../plan/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione percorsi streaming e non-streaming (V7) ed eliminazione race condition stato progresso (V6)
-- [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completato: migrazione del percorso di generazione tool da streaming (dormiente) a non-streaming (default); streaming SSE preservato per futuri usi
+- [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **DRAFT: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
+- [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **DRAFT: Post-BullMQ Improvements (RISK-5,3,4,6)**
+- [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione `GenerationSystem`
+- [sprint-5-context-migration-validation-implementation-plan](./99-lifecycle/99-archive/plans/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e validazione contesto backend
+- [sprint-6-error-actors-wiring-implementation-plan](./99-lifecycle/99-archive/plans/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori gestione errori route-specific
+- [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](./99-lifecycle/99-archive/plans/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione streaming/non-streaming
+- [migrate-to-nonstreaming-generation](./99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md) — completato: migrazione a non-streaming default
+- [asset-domain-model-implementation-plan](./05-plans/asset-domain-model-implementation-plan.md) — completato: Asset domain model DDD-188→207
 
 ### Active Runbooks
 
-- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md) — covers dormant streaming path; non-streaming is now the default for tools
-- [non-streaming-generation-migration-plan](../plan/migrate-to-nonstreaming-generation.md) — completed migration plan for coexistence of streaming (dormant) and non-streaming (default) generation paths
+- [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md) — dormant streaming path; non-streaming is now the default for tools
+- [production-observability-runbook](./04-testing/production-observability-runbook.md) — structured logging with pino, correlation IDs, Railway log queries
 
 ### Active Reviews
 
-- **[critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) — ✅ COMPLETED: systematic vulnerabilities in partially decomposed monolith with progressive remediation roadmap (Sprints 1-7)**
+- [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) — **COMPLETED: consolidated vulnerabilities + monolith decomposition (Sprints 1-7)**
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
-- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification and determinism review (2026-06-06)
+- [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) — **DDD implementation audit (2026-07-22)**
+- [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) — **XState-as-Aggregate risk review (2026-07-22)**
+- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06)
 
 ### Active Proposals
 
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Piani collegati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md), [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md).**
 - [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
 - [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
 
@@ -165,7 +186,7 @@ Archive lifecycle area currently has no active markdown snapshots indexed.
 
 ## Application State
 
-This documentation reflects the **as-is state** of the gen-app-2 application at the time of publication (2026-05-07). There are currently no active plans in scope for public documentation. Historical planning and design iterations are archived in [Archive Registry](#archive-registry).
+This documentation reflects the **as-is state** of the gen-app-2 application (last major refresh: 2026-07-23). Active implementation plans are in [05-plans/](./05-plans/). Historical planning and design iterations are archived in [99-lifecycle/](./99-lifecycle/).
 
 ### Key Invariants
 
@@ -173,13 +194,14 @@ This documentation reflects the **as-is state** of the gen-app-2 application at 
 - **npm workspaces monorepo**: `apps/backend`, `apps/frontend`, `packages/contracts`, `packages/infra-db`
 - **Railway deployment**: private-network same-origin topology (`frontend/server.mjs` proxy)
 - **Shared contract authority**: `packages/contracts/src/index.ts` with compile-time parity guard
-- **XState v5 orchestration**: `GenerationSystem` (backend aggregate root, dual-mode: `generate` default / `stream` dormant), `ToolPage` (frontend aggregate root)
+- **XState v5 orchestration**: `GenerationSystem` (backend aggregate root), `ToolPage` (frontend aggregate root)
 
 ---
 
 ## Governance Rules Applied
 
-- **DDD-First Model (2026-05-04)**: All active documentation must reference canonical UL (glossary, BCM, decision log). Technical specifications superseded by UL are archived according to lifecycle governance.
+- **DDD-First Model**: All active documentation must reference canonical UL (glossary, BCM, decision log)
+- **Documentation Governance v2.0** (2026-07-23): frontmatter integrity, language policy, link integrity, version format, document archetypes, lifecycle rules. See [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md).
 - Documenti attivi in aree operative; snapshot conclusi archiviati.
 - Naming markdown: lowercase kebab-case con topic + doc-type.
 - Rename/spostamenti: update link e indici nello stesso change set.

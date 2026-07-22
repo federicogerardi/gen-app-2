@@ -1,8 +1,12 @@
 ---
 status: accepted
-date: 2026-05-19
-decision-makers: [Backend Architecture]
-related-plan: plan/architecture-csrf-fail-open-closure-1.md
+version: 1.0
+date_created: 2026-05-19
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
+owner: Backend Architecture
+type: adr
+tags: [security, csrf, adr]
 ---
 
 # ADR: CSRF Fail-Closed Startup Invariant
@@ -65,7 +69,7 @@ To roll back: revert `apps/backend/src/lib/runtime/node-server.ts` to the prior 
 
 ## Related Documents
 
-- `plan/architecture-csrf-fail-open-closure-1.md` — implementation plan
+- `../../05-plans/architecture-csrf-fail-open-closure-1.md` — implementation plan
 - `docs/07-governance/architecture-weaknesses-code-review.md` — original weakness identification
 - `docs/04-testing/streaming-generator-debug-runbook.md` — pre-deploy CSRF configuration gate
 - `docs/02-design/adr/frontend-data-access-layer-adr.md` — ADR format reference

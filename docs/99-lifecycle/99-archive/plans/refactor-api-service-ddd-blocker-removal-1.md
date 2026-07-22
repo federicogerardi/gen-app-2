@@ -1,10 +1,12 @@
 ---
 goal: Remove SERP API integration blockers and DDD violations from ApiService infrastructure
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-06-14
 last_updated: 2026-06-15
 owner: Backend Platform
-status: Completed
+status: completed
 tags: [refactor, architecture, backend, ddd, api-service, blocker-removal, serp-integration]
 ---
 
@@ -195,4 +197,4 @@ After this plan is complete:
 
 - `docs/02-design/serp-api-integration-proposal.md` - Original proposal with blocker definitions
 - `docs/07-governance/domain-naming-decision-log.md` - DDD decision governance
-- `plan/feature-api-service-backend-contract-1.md` - Related ApiService infrastructure plan
+- `../../../99-lifecycle/99-archive/plans/feature-api-service-backend-contract-1.md` - Related ApiService infrastructure plan

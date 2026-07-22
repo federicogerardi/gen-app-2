@@ -1,9 +1,12 @@
 ---
 status: accepted
 version: 1.0
+date_created: 2026-04-27
 last-reviewed: 2026-04-27
 next-review-date: 2026-07-27
 owner: Frontend Platform Team
+type: adr
+tags: [adr, frontend, data-access, swr, query-hooks]
 ---
 
 # ADR-001: Unified Frontend Data Access Layer

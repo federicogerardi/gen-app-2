@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.0.0
+version: 1.0
 date_created: 2026-07-20
 last-reviewed: 2026-07-20
 next-review-date: 2026-08-03

@@ -1,10 +1,12 @@
 ---
 goal: Frontend Tool Page alignment to Context Generation bounded-context semantics (copy + state consumption)
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Frontend Platform Team
-status: 'Completed'
+status: completed
 tags: [feature, frontend, tool-workspace, context-generation, copy, xstate, ddd]
 ---
 
@@ -110,5 +112,5 @@ This plan defines a deterministic implementation path to align Frontend Tool Wor
 - `docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md`
 - `docs/02-design/specifications/tool-page-frontend-runtime-spec.md`
 - `docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md`
-- `plan/feature-context-generation-backend-first-1.md`
-- `plan/refactor-frontend-copy-unification-1.md`
+- `../../../99-lifecycle/99-archive/plans/feature-context-generation-backend-first-1.md`
+- `../../../99-lifecycle/99-archive/plans/refactor-frontend-copy-unification-1.md`

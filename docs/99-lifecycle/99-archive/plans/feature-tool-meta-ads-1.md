@@ -1,10 +1,12 @@
 ---
 goal: Implement the canonical Meta Ads Tool across contracts, backend runtime, frontend workspace, and session parity surfaces
 version: 1.1
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-25
 last_updated: 2026-05-25
 owner: Frontend Platform + Backend Runtime
-status: Completed
+status: completed
 tags: [feature, tool-workspace, backend, frontend, ddd, validation, meta-ads]
 ---
 
@@ -302,7 +304,7 @@ Return structured markdown blocks following this exact pattern:
 
 ## 5. Files
 
-- **FILE-001**: `plan/feature-tool-meta-ads-1.md` - this implementation plan.
+- **FILE-001**: `../../../99-lifecycle/99-archive/plans/feature-tool-meta-ads-1.md` - this implementation plan.
 - **FILE-002**: `packages/contracts/src/tool-workflows.ts` - ToolKey/ToolWorkflow and step-order authority.
 - **FILE-003**: `apps/backend/src/lib/runtime/request-contract.ts` - request normalization and validation.
 - **FILE-004**: `apps/backend/src/lib/runtime/tool-workflow-registry.ts` - orchestration registry integration.
@@ -342,9 +344,9 @@ Return structured markdown blocks following this exact pattern:
 
 ## 8. Related Specifications / Further Reading
 
-[DDD Naming Decisions](../docs/07-governance/domain-naming-decision-log.md)
-[DDD Glossary](../docs/01-requirements/domain-ubiquitous-language-glossary.md)
-[DDD Bounded Context Map](../docs/02-design/domain-bounded-context-map.md)
-[Tool Development Plan Template](../docs/99-reference/templates/tool-development-plan-template.md)
-[Frontend UI Ubiquitous Language Spec](../docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
-[Tool Workspace Runtime Spec](../docs/02-design/specifications/tool-page-frontend-runtime-spec.md)
+[DDD Naming Decisions](../../../07-governance/domain-naming-decision-log.md)
+[DDD Glossary](../../../01-requirements/domain-ubiquitous-language-glossary.md)
+[DDD Bounded Context Map](../../../02-design/domain-bounded-context-map.md)
+[Tool Development Plan Template](../../../99-reference/templates/tool-development-plan-template.md)
+[Frontend UI Ubiquitous Language Spec](../../../02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
+[Tool Workspace Runtime Spec](../../../02-design/specifications/tool-page-frontend-runtime-spec.md)

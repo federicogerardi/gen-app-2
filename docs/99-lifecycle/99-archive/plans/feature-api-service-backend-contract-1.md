@@ -1,10 +1,12 @@
 ---
 goal: Backend-only implementation plan for ApiService contract profiles, mapping rules, and admin orchestration
 version: 1.0
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 date_created: 2026-05-24
 last_updated: 2026-05-24
 owner: Backend Platform
-status: Completed
+status: completed
 tags: [feature, architecture, backend, ddd, contracts, migration]
 ---
 

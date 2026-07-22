@@ -12,24 +12,65 @@ If touching UI code: [Frontend UI Ubiquitous Language Spec](docs/02-design/speci
 
 Do not introduce non-canonical domain terms anywhere (code, tests, docs, PR notes, comments). New terms require a `DDD-NNN` entry in the decision log first.
 
-## Documentation Frontmatter
-Every file under `docs/` MUST start with a YAML frontmatter block delimited by `---` lines. No exceptions, including archived files (keep frontmatter valid for tooling even when content freezes).
+## Documentation Governance
+
+> Canonical governance document: [docs/07-governance/documentation-ddd-ul-governance.md](docs/07-governance/documentation-ddd-ul-governance.md). Rules here are the agent-facing summary.
+
+### Frontmatter (Mandatory)
+Every file under `docs/` MUST start with a YAML frontmatter block delimited by `---` lines. No exceptions, including archived files. Double frontmatter blocks (two `---`-delimited sections) are forbidden — use one block only.
 
 **Required fields** (all documents):
-- `status` — one of `active` | `approved` | `draft` | `archived`
-- `version` — semver-style document version
+- `status` — strictly lowercase, one of: `active` | `approved` | `draft` | `archived` | `implemented` | `completed` | `accepted`. Never quoted (`'active'`), never title-case (`Active`), never uppercase (`Completed`), never free-form (`Target (post-unification)`). If the document is superseded, use `archived` and add a `superseded-by` field pointing to the replacement.
+- `version` — `X.Y` format (major.minor, e.g. `1.0`, `2.3`, `4.15`). Do not use `X.Y.Z` unless the document explicitly governs a versioned artifact that requires three-segment semver.
 - `last-reviewed` — ISO date `YYYY-MM-DD`
-- `next-review-date` — ISO date `YYYY-MM-DD`
+- `next-review-date` — ISO date `YYYY-MM-DD`, at most 6 months in the future. Never leave expired without update.
 - `owner` — team or role responsible for the document
 
-**Common optional fields** (use when relevant):
+**Required for active non-archive documents only**:
 - `date_created` — ISO date, original creation date
+
+**Common optional fields** (use when relevant):
 - `title` — explicit display title (otherwise inferred from H1)
-- `type` — document kind (e.g. `code-review`, `ui-governance-spec`, `adr`)
+- `type` — document kind from the canonical set: `code-review` | `ui-governance-spec` | `adr` | `proposal` | `specification` | `debug-runbook` | `observability-runbook` | `development-guide` | `integration-guide` | `reference` | `template` | `briefing-note` | `project-tracker` | `product-presentation` | `design-review` | `tool-proposal` | `implementation-plan` | `design-proposal` | `ai-first-runtime-spec` | `design-system-guide` | `glossary` | `bounded-context-map` | `decision-log`
 - `tags` — YAML list of topical tags for search/indexing
 - `goal` — short statement of objective (for plans/templates)
+- `implementation_date` — ISO date (for `implemented` proposals)
+- `superseded-by` — relative path to replacement document (for `archived` docs)
 
-On any content change: bump `version`, refresh `last-reviewed`, push `next-review-date`, and update `owner` if ownership changed. Reference template: [docs/99-reference/templates/tool-development-plan-template.md](docs/99-reference/templates/tool-development-plan-template.md).
+On any content change: bump `version`, refresh `last-reviewed`, push `next-review-date` (max +6 months), and update `owner` if ownership changed. Reference template: [docs/99-reference/templates/tool-development-plan-template.md](docs/99-reference/templates/tool-development-plan-template.md).
+
+### Language Policy
+- **Technical documents** (glossary, BCM, decision log, ADR, specifications, runbooks, code reviews, architecture reviews, reference guides, integration guides, development guides): **English only**.
+- **Product documents** (PM briefings, user guides, product presentations): **Italian allowed**.
+- **Proposals and implementation plans**: **English preferred**; Italian tolerated if the primary audience is an Italian-speaking PM.
+- Never mix languages within the same document body. Document title and section headings must match the body language.
+- Frontmatter keys are always English.
+
+### Link Integrity
+- Every relative link in a document must resolve to an existing file within the same change set.
+- When moving or renaming a file, update all inbound links in the same commit.
+- Cross-directory links to `plan/` or other directories outside `docs/` are allowed but must be verified when the document is reviewed.
+- Use `../../` relative paths correctly for the document's depth from `docs/` root.
+
+### Document Lifecycle
+- **Active**: defines current behavior, contracts, or governance constraints; referenced by a current workflow.
+- **Archive** (`docs/99-lifecycle/99-archive/`): superseded, historical, or completed plans. Frontmatter stays valid after archival.
+- **Superseded** (`docs/99-lifecycle/99-archive/superseded/`): explicitly replaced by a newer document. Frontmatter must include `superseded-by` field.
+- Update `docs/index-overview.md` in the same change when a document status changes.
+
+### Creation Checklist
+Before committing a new document under `docs/`:
+1. Check canonical DDD terms against glossary + BCM + decision log
+2. Verify no existing document already covers the same scope
+3. Assign correct section (`01-requirements`, `02-design`, `04-testing`, `07-governance`, `99-reference`, `99-lifecycle`)
+4. Fill all required frontmatter fields with canonical values
+5. Add `date_created` (for active docs)
+6. Add `type` from the canonical set
+7. Add relevant `tags`
+8. Choose language per policy — stick to it throughout
+9. Verify all relative links resolve
+10. If applicable, add `> ⚑ DDD Reference` block with links to glossary, BCM, decision log
+11. Update `docs/index-overview.md` if the document is in the core navigation path
 
 ## Architecture
 - **Monorepo**: npm workspaces — `apps/backend`, `apps/frontend`, `packages/contracts`, `packages/domain`, `packages/infra-db`.

@@ -14,7 +14,7 @@ tags: [analysis, graphify, documentation, architecture]
 
 ## Context
 
-From the [Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md), the documentation graph is completely disconnected from the code graph. There are **0 edges** between documentation nodes and code nodes.
+From the [Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md), the documentation graph is completely disconnected from the code graph. There are **0 edges** between documentation nodes and code nodes.
 
 ## Current State
 
@@ -73,5 +73,5 @@ Add a structured `## Evidence Anchors` section to key documentation files that e
 
 ## References
 
-- [Graph Structural Analysis](../docs/07-governance/graph-structural-analysis-review.md)
+- [Graph Structural Analysis](../../../07-governance/graph-structural-analysis-review.md)
 - `graphify-out/GRAPH_REPORT.md`

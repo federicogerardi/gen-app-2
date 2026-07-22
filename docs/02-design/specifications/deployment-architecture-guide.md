@@ -1,9 +1,12 @@
 ---
 status: approved
 version: 2.4
+date_created: 2026-05-01
 last-reviewed: 2026-06-28
 next-review-date: 2026-09-28
 owner: Platform/DevOps
+type: reference
+tags: [deployment, railway, networking, proxy, operations]
 ---
 
 # Deployment Architecture Guide
@@ -437,7 +440,7 @@ Non aggiunto ora per evitare falsi positivi su SSE di generazione lunga.
 
 > **Decisione 2026-06-28**: Il tool Geometric utilizza esclusivamente SerpApi per dati strutturati. Il percorso Puppeteer con screenshot è stato rimosso. `aiOverviewConfidence` e `selectorUsed` erano concetti legati al CSS-selector scraping — anch'essi rimossi, poiché SerpApi non produce selettori e il confidence è implicito nella struttura dati.
 >
-> Questa sezione è mantenuta solo come riferimento storico fino al completamento della rimozione del codice (vedi `plan/remove-geometric-screenshot-archival.md`).
+> Questa sezione è mantenuta solo come riferimento storico fino al completamento della rimozione del codice (vedi `../../99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md`).
 >
 > **Variabili d'ambiente da rimuovere**: `SCREENSHOT_STORAGE_PATH`, `SCREENSHOT_RETENTION_DAYS`.
 > **Tabella Postgres da droppare**: `geometric_screenshot_metadata`.

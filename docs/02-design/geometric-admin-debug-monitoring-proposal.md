@@ -1,8 +1,8 @@
 ---
 status: draft
 version: 1.0
-last-reviewed: 2026-06-12
-next-review-date: 2026-07-12
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Backend Runtime + Admin Platform
 date_created: 2026-06-12
 title: Geometric Admin Debug & Monitoring Proposal

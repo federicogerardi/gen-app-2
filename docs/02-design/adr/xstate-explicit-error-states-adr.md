@@ -6,6 +6,7 @@ last-reviewed: 2026-06-26
 next-review-date: 2026-07-26
 owner: Frontend Platform Team
 type: adr
+tags: [adr, xstate, error-states, frontend, determinism]
 ---
 
 # ADR-003: XState Explicit Error States Pattern
@@ -135,9 +136,9 @@ Per future modifiche alle macchine XState:
 5. **Error messages nel contesto, condizioni nello stato** — `errorMessage` per il testo, child state per la condizione
 
 ## References
+- [XState Explicit Error States Refactoring Plan](../../99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md)
 
-- [XState Explicit Error States Refactoring Plan](../../../99-lifecycle/99-archive/plans/refactor-xstate-explicit-error-states-a1.md)
-- [Frontend UX Determinism Code Review](../frontend-ux-determinism-code-review.md) — Finding A1, A3
+- [Frontend UX Determinism Code Review](../../07-governance/frontend-ux-determinism-code-review.md) — Finding A1, A3
 - `auth-session.machine.ts` — Sprint 1 reference implementation
 - `briefing-upload.machine.ts` — Sprint 2 reference implementation
 - `tool-page.machine.ts` — Sprint 3–4 reference implementation

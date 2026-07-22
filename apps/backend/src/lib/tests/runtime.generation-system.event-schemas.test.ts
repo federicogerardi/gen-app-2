@@ -14,15 +14,8 @@ import {
 } from '../machines/generation-system.event-schemas';
 import {
   getStreamDoneOutput,
-  getGenerateDoneOutput,
-  getIdempotencyDoneOutput,
   getUsageDoneOutput,
-  getOwnershipDoneOutput,
-  getExtractionDoneOutput,
   getToolDoneOutput,
-  getAcquisitionDoneOutput,
-  getCrawlingDoneOutput,
-  getScoringDoneOutput,
 } from '../machines/generation-system.events';
 
 test('StreamDoneOutputSchema accepts valid success output', () => {

@@ -25,6 +25,7 @@ export const LogComponent = {
   IDEMPOTENCY_COORDINATOR: 'idempotency-coordinator',
   JOB_EVENT_BRIDGE: 'job-event-bridge',
   JOB_PROGRESS_SERIALIZER: 'job-progress-serializer',
+  ACTOR_INSPECTOR: 'actor-inspector',
 } as const;
 
 /** Create a Pino child logger pre-tagged with a component name. */

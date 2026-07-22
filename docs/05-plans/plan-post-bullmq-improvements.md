@@ -1,9 +1,10 @@
 ---
-status: draft
-version: 1.0
+status: implemented
+version: 1.1
 date_created: 2026-07-22
+implementation_date: 2026-07-22
 last-reviewed: 2026-07-22
-next-review-date: 2026-10-22
+next-review-date: 2027-01-22
 owner: Backend Runtime + Frontend Tools
 type: plan
 tags: [xstate, ddd, developer-guide, domain-rules, zod, validation, actor-inspector, technical-debt]
@@ -914,10 +915,10 @@ Fase 4: RISK-6 — Actor Inspector (1-2 giorni)
 
 ### RISK-6 (Actor Inspector)
 
-- [ ] SC-6.1: `inspectActor(actor)` restituisce una stringa formattata con tree ASCII
-- [ ] SC-6.2: L'output include machine name, current state, child actors (con profondità configurabile), e step progress (se `stepStates` presente)
-- [ ] SC-6.3: `logActorState` scrive un log JSON strutturato con campo `actorTree`
-- [ ] SC-6.4: `npm --workspace apps/backend run test` include test per l'inspector
+- [x] SC-6.1: `inspectActor(actor)` restituisce una stringa formattata con tree ASCII
+- [x] SC-6.2: L'output include machine name, current state, child actors (con profondità configurabile), e step progress (se `stepStates` presente)
+- [x] SC-6.3: `logActorState` scrive un log JSON strutturato con campo `actorTree`
+- [x] SC-6.4: `npm --workspace apps/backend run test` include test per l'inspector
 
 ---
 

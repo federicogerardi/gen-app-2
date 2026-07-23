@@ -24,6 +24,7 @@ If a section cannot be constructed from available data, write "Non specificato n
 3. **Psychological depth**: Go beyond demographics. What does this person fear? What keeps them up at night? What have they tried and failed at? The emotional layer is what makes messaging resonate.
 4. **Objection-first thinking**: The best persona tells you why this person says NO. Surface every objection explicitly — downstream tools need them to build counter-messaging.
 5. **Missing data is explicit**: Never fill gaps with stereotypes. "Non specificato nel documento di input" preserves the integrity of the asset.
+6. **Varied persona names**: Never reuse the same name across multiple personas. The "Nome Rappresentativo" must be age-appropriate, gender-aligned, and drawn from common Italian names. "Marco Rossi" is never an acceptable default — use the Persona Naming Convention.
 
 ## What Is Safe to Infer (and What Is Not)
 
@@ -110,10 +111,46 @@ This document is a `persona` asset consumed by 6 downstream tools. The persona i
 - Costo Emotivo: Si sente inadeguato. Vede competitor più piccoli crescere con funnel che funzionano. La domenica sera pensa "se solo avessi il funnel giusto, tutto il resto andrebbe a posto"
 ```
 
+## Persona Naming Convention
+
+The "Nome Rappresentativo" is a label for internal reference. It must be a realistic Italian name — culturally appropriate, not invented, not foreign. Follow these rules:
+
+### Name construction rules
+1. **First name**: Choose from common Italian given names appropriate to the persona's generation and gender implied by the demographic data.
+2. **Last name**: Choose from common Italian surnames.
+3. **Variety mandate**: NEVER reuse the same first name or last name across different persona generations. If you generated "Marco Rossi" for one persona, the next must use different names.
+4. **Age-appropriate names**:
+   - Persona 55+: names popular in the 1960s-70s (e.g., Giuseppe, Antonio, Maria, Patrizia, Roberto, Franca)
+   - Persona 40-54: names popular in the 1970s-80s (e.g., Alessandro, Stefano, Barbara, Sabrina, Marco, Laura)
+   - Persona 30-39: names popular in the 1980s-90s (e.g., Andrea, Francesco, Valentina, Chiara, Matteo, Federica)
+   - Persona under 30: names popular in the 1990s-2000s (e.g., Lorenzo, Sofia, Tommaso, Giulia, Nicolò, Alice)
+5. **Gender alignment**: If the extraction data implies a predominantly male audience, use a masculine name. If female, use feminine. If mixed or unspecified, alternate between personas.
+6. **Regional variation**: Vary the implied region — not all personas should sound like they're from Milan. A surname like "Esposito" suggests Naples, "Brambilla" suggests Lombardy, "Mura" suggests Sardinia.
+7. **No celebrity names**: Avoid names that are uniquely associated with famous people (e.g., "Francesco Totti", "Chiara Ferragni").
+
+### Example name variants per generation
+- 55+, male: Giuseppe Conti, Antonio Ferrari, Roberto Marini, Franco Rinaldi
+- 55+, female: Maria Esposito, Patrizia Moretti, Franca Lombardi, Anna Vitale
+- 40-54, male: Alessandro Bianchi, Stefano Romano, Marco Gallo, Paolo Costa
+- 40-54, female: Barbara Ricci, Sabrina Marino, Laura Serra, Elena Bruno
+- 30-39, male: Andrea De Luca, Francesco Rizzo, Matteo Greco, Davide Pellegrini
+- 30-39, female: Valentina Colombo, Chiara Mancini, Federica Ferri, Giulia Barbieri
+- Under 30, male: Lorenzo Fontana, Tommaso Rossetti, Nicolò Riva, Gabriele Sartori
+- Under 30, female: Sofia Caputo, Alice Martini, Greta Bernardi, Beatrice Gallo
+
+### Deterministic selection rule
+Given the persona's demographic profile (age, gender, location), select a first name + last name that:
+1. Matches the age generation range
+2. Matches the gender
+3. Has NOT appeared in any previous persona you generated
+4. Is not a celebrity name
+
+If the demographic data is insufficient to determine age or gender, default to 35-45 range and alternate gender between personas.
+
 ## Required output structure
 
 ## Nome Persona
-- Nome Rappresentativo:
+- Nome Rappresentativo: (apply Persona Naming Convention — age-appropriate, gender-aligned, culturally Italian, not previously used)
 - Età:
 - Occupazione/Ruolo:
 
@@ -171,6 +208,7 @@ This document is a `persona` asset consumed by 6 downstream tools. The persona i
 Before outputting, verify:
 - [ ] All 10 sections are present with actionable content
 - [ ] Persona name is a label, not presented as a real person
+- [ ] Nome Rappresentativo follows the Persona Naming Convention (age-appropriate, gender-aligned, culturally Italian, not "Marco Rossi" default)
 - [ ] Every claim traces back to the extraction payload
 - [ ] "Non specificato nel documento di input" used for genuinely missing data
 - [ ] Inferred content marked with "(inferito dal contesto)"

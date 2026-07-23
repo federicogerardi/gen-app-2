@@ -1,0 +1,7 @@
+docs/
+.agents/
+.github/
+.opencode/
+.tmp/
+.vscode/
+node_modules/

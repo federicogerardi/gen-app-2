@@ -1,6 +1,6 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.4
+version: 1.5
 date_created: 2026-07-20
 last-reviewed: 2026-07-23
 next-review-date: 2026-08-23
@@ -46,7 +46,6 @@ Il loop di auto-chain e' gestito dal bridge React in `useToolPageRunController.t
 |---|---|
 | **BullMQ v5.78.0** | Gia' in `apps/backend/package.json` |
 | **Redis (ioredis)** | Gia' configurato in `server.ts`, usato per lock, rate-limit, cache |
-| **Coda BullMQ esistente** | `crawling-queue.ts` per crawling geometrico (pattern riutilizzabile) |
 | **SSE streaming** | `http-sse.ts` + `backend-session.ts` — gia' implementato |
 | **XState generationSystemMachine** | Macchina a stati completa per generazione |
 | **runMode (new/resume/regenerate)** | Gia' a livello dominio (DDD-037) |
@@ -233,6 +232,11 @@ export async function processToolWorkflowJob(
   job: Job<ToolWorkflowJobPayload>,
   adapters: { pg: Pool; redis: Redis }
 ): Promise<ToolWorkflowJobResult> {
+  // Invariante MED-02: il worker NON re-esegue ownership check.
+  // L'autorizzazione e' garantita esclusivamente al submit-time (middleware auth
+  // + project ownership su POST /api/tools/jobs). job.data e' immutabile e
+  // trusted dopo l'accodamento BullMQ. Qualsiasi path futuro che modifichi
+  // job.data post-submit DEVE reintrodurre il re-check esplicito.
   const { toolKey, projectId, extractionPayload, model, intent, userId, idempotencyKey } = job.data;
 
   // 1. Idempotency check (Redis lock + Postgres upsert) — questo claim usa
@@ -524,7 +528,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 |---|---|---|
 | **Contracts** | Nuovo tipo `SubmitJobRequest`, `JobStatusResponse`, `JobProgressEvent` (payload/wire types per il nuovo `ToolWorkflowJob` Aggregate Root) | Bassa — nuovi tipi, nessuna modifica a tipi esistenti |
 | **BE server.ts** | Nuove route `POST /api/tools/jobs`, `GET /api/tools/jobs/:id`, `GET /api/tools/jobs/:id/stream`, `POST /api/tools/jobs/:id/cancel` | Media — nuove route, handler dedicati |
-| **BE worker.ts** | Nuovo file, entry point per il worker. Connessione BullMQ + Redis + Postgres | Media — codice nuovo ma pattern simile a `crawling-queue.ts` |
+| **BE worker.ts** | Nuovo file, entry point per il worker. Connessione BullMQ + Redis + Postgres | Media — codice nuovo, pattern da `job-event-bridge.ts` e `job-progress-serializer.ts` (prerequisiti) |
 | **BE tool-workflow-job-processor.ts** | Nuovo file, loop step con routing per `WorkflowStepType` e chiamate a generation system / crawling / scoring | Alta — e' il cuore del nuovo sistema |
 | **BE generation-system** | **Fase 1**: nessuna modifica, invocato 1 volta per step dal processore. **Fase 2 (opzionale)**: supporto multi-step nativo | Fase 1: Nessuna. Fase 2: Media |
 | **BE tool-prompts** | Nessuna modifica — i prompt restano invariati | Nessuna |
@@ -549,6 +553,8 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 5. **Endpoint stream** — `GET /api/tools/jobs/:id/stream`, SSE con `EventEmitter` in-process
 6. **Endpoint cancel** — `POST /api/tools/jobs/:jobId/cancel` (Sezione 10, CRIT-02)
 7. **FE semplificazione** — nuovo hook `useToolPageSubmitController` che sostituisce `useToolPageRunController`. La `toolPageMachine` riceve un evento `SUBMIT_JOB` e transita in `running` passivo consumando SSE. Nessuna modifica ai componenti UI (continuano a ricevere `completedSteps` e `artifacts` dal context, la fonte cambia ma l'interfaccia a valle no)
+8. **Feature flag via `BackendCapabilities`** (MED-04) — nuovo campo `toolsJobSystem: boolean` in `BackendCapabilities`. Il FE usa `readFlag` per instradare tra `submitJob()` (nuovo) e `handlePrimaryAction()` (vecchio). Il flag env `TOOL_WORKFLOW_USE_JOB_SYSTEM` resta dettaglio BE.
+9. **Resume dopo reload** (HIGH-02 workaround Fase 1) — `useJobStream` persiste `jobId` in `sessionStorage` con chiave `tool-job:{projectId}:{toolKey}`. Al mount, se esiste un `jobId` per lo scope corrente, chiama `GET /api/tools/jobs/:jobId` e si riconnette allo stream.
 
 **File nuovi:**
 - `apps/backend/src/lib/runtime/tool-workflow-job-processor.ts`
@@ -581,6 +587,9 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 2. **Redis pub/sub per multi-processo** — sostituzione `EventEmitter` con Redis pub/sub per SSE cross-processo
 3. **Group concurrency per utente** — confermare la disponibilita' nativa in BullMQ OSS (vedi Sezione 3, HIGH-01) oppure consolidare il fallback Redis lock introdotto in Fase 1 come soluzione definitiva
 4. **Integration test end-to-end** — test che simulano submit `ToolWorkflowJob` → stream → completamento
+5. **Endpoint discovery `ToolWorkflowJob`** (HIGH-02) — `GET /api/tools/jobs?projectId=&toolKey=` per recuperare job attivi/recenti, sostituendo il workaround `sessionStorage` della Fase 1 con vera discovery multi-job
+6. **Aggregazione costo/token** (HIGH-03) — campo `usage` in `GET /api/tools/jobs/:id` con somma `LlmUsageMetrics` di tutti gli artifact della `GenerationSession` (query `SUM()` su Postgres)
+7. **Deployment worker separato** (MED-03) — secondo servizio Railway con `worker-entry.ts` come entry point, `TOOL_WORKFLOW_WORKER_IN_PROCESS=false` sul server HTTP
 
 ### Fase 3 — Multi-step nativo in XState (1 settimana, opzionale)
 
@@ -607,6 +616,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 3. **Code multiple per tipologia** (generation, export, email) — fase 1 usa una singola coda `tool-workflow`. Si partizionera' quando servira'
 4. **Dashboard BullMQ / Bull Board** — utile per debug ma non bloccante. Si puo' aggiungere dopo
 5. **Modifica dei prompt** — i prompt file restano identici. Il processore li risolve con lo stesso meccanismo `resolveToolPrompt` di oggi
+6. **Human-in-the-loop gate a meta' workflow** (LOW-02) — il modello BE-driven fully-automatic elimina i checkpoint naturali che il modello FE-driven offriva implicitamente (ogni step era un punto in cui il FE poteva pausare per raccogliere input umano). Questo trade-off e' accettato consapevolmente: il guadagno in semplicita'/affidabilita' (niente auto-chain FE, niente N+1 round-trip, niente dipendenza dal tab aperto) supera il costo futuro. Se il requisito human-in-the-loop emergera', il `ToolWorkflowJob` model lo supporta tramite un nuovo stato `paused-awaiting-feedback` nell'enum `status`, con `POST /submit` per riprendere — un'estensione naturale, non un redesign
 
 ## Acceptance Criteria
 
@@ -628,7 +638,6 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 
 ## References
 
-- `apps/backend/src/lib/runtime/integrations/crawling-queue.ts` — pattern BullMQ esistente
 - `apps/backend/src/lib/machines/tool-workflow.machine.ts` — XState machine multi-step gia' capace
 - `apps/backend/src/lib/machines/generation-system.execution.states.ts` — invocation corrente single-step
 - `apps/backend/src/lib/machines/generation-routing.ts` — `resolveToolWorkflowPlan`, `resolveWorkflowRunMode`
@@ -644,7 +653,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 
 ## Review Findings — Gaps and Risks Identified
 
-Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-language-glossary.md`, `domain-bounded-context-map.md`, e `domain-naming-decision-log.md` (ordine di lettura obbligatorio per AGENTS.md), oltre a verifica diretta del codice sorgente citato. I 14 punti seguenti sono validi findings della review precedente (il punto relativo al modello crediti e' stato riscritto come nota positiva in "Infrastruttura Gia' Disponibile" — non e' un gap). **Aggiornamento 2026-07-20**: i gap Critical (CRIT-01, CRIT-02, CRIT-03) e i gap High piu' bloccanti (HIGH-01, HIGH-04, HIGH-05) sono stati chiusi con design tecnico concreto nel Detailed Design (vedi marcatori "RISOLTO" sotto). HIGH-02 e HIGH-03 restano gap tracciati, non bloccanti per Fase 1.
+Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-language-glossary.md`, `domain-bounded-context-map.md`, e `domain-naming-decision-log.md` (ordine di lettura obbligatorio per AGENTS.md), oltre a verifica diretta del codice sorgente citato. I 14 punti seguenti sono validi findings della review precedente (il punto relativo al modello crediti e' stato riscritto come nota positiva in "Infrastruttura Gia' Disponibile" — non e' un gap). **Aggiornamento 2026-07-23**: TUTTI i gap sono stati chiusi con decisioni esplicite in questa revisione (v1.5). I 3 gap Critical (CRIT-01/02/03) hanno soluzioni di design nel Detailed Design. I 5 gap High sono tutti risolti: HIGH-01 (fallback Redis lock), HIGH-02 (workaround sessionStorage Fase 1 + endpoint discovery Fase 2), HIGH-03 (aggregazione costo/token Fase 2), HIGH-04 (tabella di decisione retry vs regenerate), HIGH-05 (Backend No-Regression Gates). I 4 gap Medium e i 2 Low sono tutti risolti con decisioni documentate. Nessun gap bloccante residuo per l'inizio della Fase 1.
 
 ### Critical
 
@@ -680,17 +689,17 @@ Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-lan
 - **Soluzione adottata**: Sezione "Detailed Design" #3 (`worker.ts`) mostra `group: { id: (job) => ... }` come opzione BullMQ, con nota esplicita che questa sintassi e' nota per **BullMQ Pro** e che questa proposal **non ha potuto verificare con certezza** se BullMQ OSS v5.78.0 (in uso nel repo) la supporti nativamente. Come fallback sicuro per Fase 1, viene proposto un Redis lock applicativo `SET NX EX <ttl>` su `tool-job-active:{userId}:{projectId}:{toolKey}`, acquisito al submit e rilasciato quando il `ToolWorkflowJob` raggiunge `completed`/`failed`/`cancelled` — nuovo AC-015 aggiunto per verificarne il comportamento (`409 Conflict` su submit concorrente).
 - **Nota di incertezza non risolta**: la disponibilita' nativa di group-concurrency in BullMQ OSS 5.78 non e' stata confermata con certezza in questa revisione (richiederebbe verifica diretta della documentazione/changelog della libreria). Il fallback Redis lock e' quindi la soluzione da adottare in Fase 1 indipendentemente dall'esito di tale verifica.
 
-#### HIGH-02 — Nessun endpoint per riscoprire un `ToolWorkflowJob` in corso dopo reload pagina
+#### HIGH-02 — Nessun endpoint per riscoprire un `ToolWorkflowJob` in corso dopo reload pagina — **RISOLTO (deferito a Fase 2)**
 - **Descrizione**: Non e' definito un endpoint per il FE per recuperare `ToolWorkflowJob` attivi dopo un reload di pagina o riapertura del browser (es. `GET /api/tools/jobs?projectId=&toolKey=`).
 - **Impatto**: L'utente perde visibilita' sullo stato di un `ToolWorkflowJob` in corso se ricarica la pagina prima del completamento, anche se il worker BE continua a processarlo.
-- **Azione correttiva raccomandata**: aggiungere `GET /api/tools/jobs?projectId=&toolKey=` come endpoint di discovery, restituendo i `ToolWorkflowJob` attivi/recenti per lo scope richiesto.
-- **Stato**: non chiuso in questa revisione — resta un gap High tracciato, non bloccante per Fase 1 (il FE puo' comunque interrogare `GET /:jobId` se il `jobId` e' persistito lato client, es. in `localStorage`; la vera discovery multi-`ToolWorkflowJob` resta da implementare).
+- **Soluzione adottata**: **Fase 1 — workaround FE**: il FE persiste `jobId` in `sessionStorage` con chiave `tool-job:{projectId}:{toolKey}`. Al mount, se esiste un `jobId` per lo scope corrente, chiama `GET /api/tools/jobs/:jobId` per recuperare lo stato e riconnettersi allo stream. Questo copre il caso piu' comune (reload accidentale nella stessa sessione browser). **Fase 2 — endpoint di discovery**: l'endpoint `GET /api/tools/jobs?projectId=&toolKey=` verra' aggiunto insieme alla tabella Postgres `tool_jobs` (Fase 2), consentendo la vera discovery multi-job anche attraverso sessioni browser diverse.
+- **AC di verifica**: l'hook `useJobStream` deve supportare il resume da `jobId` persistito in `sessionStorage` (da includere in FE-GATE-D01).
 
-#### HIGH-03 — Nessuna aggregazione di costo/token a livello `ToolWorkflowJob`
+#### HIGH-03 — Nessuna aggregazione di costo/token a livello `ToolWorkflowJob` — **RISOLTO (deferito a Fase 2)**
 - **Descrizione**: Costo e token sono oggi salvati per singolo artifact (`LlmUsageMetrics` per artifact) senza aggregazione per sessione/workflow.
 - **Impatto**: `GET /api/tools/jobs/:id` non espone un costo totale del `ToolWorkflowJob`, impedendo trasparenza sul costo complessivo di un workflow multi-step (anche se il credito addebitato e' singolo — vedi nota positiva sul modello crediti — token/cost LLM aggregati restano utili per audit e diagnostica).
-- **Azione correttiva raccomandata**: aggiungere un campo di costo/token aggregato calcolato come somma degli `LlmUsageMetrics` di tutti gli artifact del `ToolWorkflowJob`, esposto in `GET /api/tools/jobs/:id`.
-- **Stato**: non chiuso in questa revisione — resta un gap High tracciato per Fase 2 (nessun impatto sul path critico del sistema, solo trasparenza/audit).
+- **Soluzione adottata**: **Fase 1**: `GET /api/tools/jobs/:id` restituisce solo `status` e `progress` — nessuna metrica di costo/token aggregata. **Fase 2**: con l'introduzione della tabella Postgres `tool_jobs`, l'aggregazione sara' una query `SUM()` sugli `LlmUsageMetrics` di tutti gli artifact appartenenti alla `GenerationSession` del `ToolWorkflowJob`, esposta nel campo `usage` della risposta. Nessun impatto sul path critico del sistema in Fase 1 — solo trasparenza/audit rimandata.
+- **Stato**: non bloccante per Fase 1.
 
 #### HIGH-04 — Conflitto non risolto tra "regenerate step N" e "retry-skip-completati" — **RISOLTO**
 - **Descrizione**: La proposal introduce un meccanismo di retry-skip-completati per `ToolWorkflowJob` falliti (Sezione "Idempotency e Retry", punto 8), ma non discute esplicitamente la relazione con l'intent utente `regenerate` esistente (`WorkflowRunMode = 'regenerate'`, DDD-037, che risolve `primaryTargetStep = sourceStep` e inietta `WorkflowStepBootstrap`).
@@ -706,38 +715,37 @@ Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-lan
 
 ### Medium
 
-#### MED-01 — Pattern `crawling-queue.ts` citato come "riutilizzabile" ma con difetti noti non segnalati
-- **Descrizione**: La proposal cita `crawling-queue.ts` come "pattern BullMQ esistente" riutilizzabile (Sezione "Infrastruttura Gia' Disponibile", Sezione "References"). Verifica del codice (`apps/backend/src/lib/runtime/integrations/crawling-queue.ts`) confirma difetti noti: usa `REDIS_HOST`/`REDIS_PORT` invece di `REDIS_URL` (inconsistente con il resto del sistema), singleton module-level (`let queue: Queue | null = null`) senza lifecycle management, nessun graceful shutdown esplicito, e il crawling adapter oggi non usa nemmeno questa coda (chiama SerpApi sincronamente tramite `ApiService`, come documentato in `domain-bounded-context-map.md` righe 138-141).
-- **Impatto**: Se il nuovo `worker.ts`/`tool-workflow-job-queue.ts` copia acriticamente questo pattern, eredita gli stessi difetti (connessione non uniforme, nessun shutdown pulito).
-- **Azione correttiva raccomandata**: segnalare esplicitamente nella proposal "non riusare i difetti" — il nuovo worker deve usare `REDIS_URL` (consistente con `server.ts` e resto del sistema) e implementare un lifecycle/graceful-shutdown esplicito come gia' pianificato nello pseudocodice `worker.ts` (Sezione "Detailed Design" #3, blocco `SIGTERM`).
+#### MED-01 — Pattern `crawling-queue.ts` — **RISOLTO (file rimosso)**
+- **Descrizione**: La proposal originale citava `crawling-queue.ts` come "pattern BullMQ esistente" riutilizzabile. Verifica del codice ha confermato che il file era dead code (0 import in tutto il codebase, 0 consumer — il crawling adapter chiama SerpApi sincronamente tramite `ApiService`), usava `REDIS_HOST`/`REDIS_PORT` invece di `REDIS_URL` (inconsistente col sistema), e aveva singleton module-level senza lifecycle management.
+- **Soluzione adottata**: file rimosso (2026-07-23). Il nuovo `tool-workflow-job-queue.ts` e' scritto da zero con `REDIS_URL`, graceful shutdown esplicito, e nessuno stato module-level. Il pattern di riferimento e' l'infrastruttura BullMQ gia' presente nei prerequisiti (`job-event-bridge.ts`, `job-progress-serializer.ts`).
 
-#### MED-02 — Autorizzazione nel worker non discussa esplicitamente
+#### MED-02 — Autorizzazione nel worker non discussa esplicitamente — **RISOLTO**
 - **Descrizione**: Il worker esegue con `userId`/`projectId` letti da `job.data` senza rieseguire un ownership check esplicito (l'ownership viene verificata solo all'atto del submit HTTP).
 - **Impatto**: Probabilmente accettabile per design (il `ToolWorkflowJob` e' immutabile una volta accodato e i dati provengono da una richiesta gia' autenticata/autorizzata), ma l'assunzione non e' dichiarata come invariante esplicito, rendendola vulnerabile a regressioni silenziose se in futuro si introduce un path per modificare `job.data` post-submit.
-- **Azione correttiva raccomandata**: dichiarare esplicitamente nella proposal l'invariante di design: "il worker non re-esegue ownership check; l'autorizzazione e' garantita esclusivamente al submit-time e `job.data` e' considerato immutabile e trusted dopo l'accodamento."
+- **Soluzione adottata**: dichiarata esplicitamente l'invariante di design nella sezione "Detailed Design" #4 (pseudocodice del processore): _"Il worker non re-esegue ownership check. L'autorizzazione e' garantita esclusivamente al submit-time (middleware auth + project ownership su `POST /api/tools/jobs`). `job.data` e' immutabile e trusted dopo l'accodamento BullMQ. Qualsiasi path futuro che modifichi `job.data` post-submit deve reintrodurre il re-check esplicito."_
 
-#### MED-03 — Deployment del worker su Railway non affrontato
+#### MED-03 — Deployment del worker su Railway non affrontato — **RISOLTO**
 - **Descrizione**: `AGENTS.md` descrive il deployment come Dockerfile + `npm run start` (singolo processo, singolo container). La proposal non specifica come `worker.ts`/`worker-entry.ts` verrebbe deployato: secondo servizio Railway separato, oppure stesso container con avvio in-process (`TOOL_WORKFLOW_WORKER_IN_PROCESS=true`, menzionato nella Sezione "File modificati" della Fase 1)?
 - **Impatto**: Ambiguita' operativa che puo' portare a un deployment che gira solo in-process (nessuna scalabilita' orizzontale reale) mentre la proposal descrive un'architettura Queue/Worker pensata per lo scaling.
-- **Azione correttiva raccomandata**: chiarire esplicitamente la strategia di deployment per la Fase 1 (in-process, stesso container Railway) vs. Fase 2/3 (eventuale secondo servizio Railway dedicato al worker), aggiornando la sezione Impact Assessment o Implementation Strategy.
+- **Soluzione adottata**: **Fase 1 — worker in-process**: il worker si avvia dentro `server.ts` quando `TOOL_WORKFLOW_WORKER_IN_PROCESS=true` (default). Stesso container Railway, stesso processo Node.js, nessun cambiamento al Dockerfile. L'architettura Queue/Worker funziona interamente in-process (code in-memory o Redis, worker stesso evento loop). **Fase 2 — worker separato (opzionale, se serve scaling orizzontale)**: secondo servizio Railway con `worker-entry.ts` come entry point (`CMD ["node", "--import", "tsx", "src/worker-entry.ts"]`), stessa Docker image, Redis condiviso. Il flag `TOOL_WORKFLOW_WORKER_IN_PROCESS=false` sul server HTTP disabilita il worker in-process e demanda tutto al servizio worker dedicato. Aggiornata la sezione "Implementation Strategy" per riflettere questa decisione.
 
-#### MED-04 — Feature flag: meccanismo di propagazione non specificato
+#### MED-04 — Feature flag: meccanismo di propagazione non specificato — **RISOLTO**
 - **Descrizione**: La proposal menziona il feature flag `TOOL_WORKFLOW_USE_JOB_SYSTEM` per tool key (Sezione "Risks and Controls") ma non lo lega esplicitamente al pattern esistente `BackendCapabilities` (`apps/frontend/src/app/runtime/backend-capabilities.ts`), che e' il meccanismo canonico gia' presente per esporre capacita' backend al frontend (vedi es. `toolsApiServicesResolve`, `adminApiServicesCrud`).
 - **Impatto**: Rischio di introdurre un secondo meccanismo di feature-flagging parallelo e non coerente con `BackendCapabilities`, generando drift tra i due sistemi di esposizione capability.
-- **Azione correttiva raccomandata**: aggiungere una entry `BackendCapabilities` (es. `toolsJobSystem: boolean`, eventualmente granulare per tool) e usare il pattern `readFlag(import.meta.env.VITE_CAP_TOOLS_JOB_SYSTEM, ...)` esistente invece di introdurre un flag env ad-hoc non collegato al sistema di capability.
+- **Soluzione adottata**: aggiungere una entry `toolsJobSystem` nel tipo `BackendCapabilities` (es. `toolsJobSystem: boolean`). Il FE usa il pattern `readFlag(import.meta.env.VITE_CAP_TOOLS_JOB_SYSTEM, ...)` esistente per determinare se usare il nuovo path `submitJob()` o il vecchio path `handlePrimaryAction()`. Il feature flag env `TOOL_WORKFLOW_USE_JOB_SYSTEM` (o una mappa per-tool piu' granulare) resta un dettaglio implementativo BE — il FE non lo legge direttamente. Coerente con `toolsApiServicesResolve` e `adminApiServicesCrud` gia' esistenti in `BackendCapabilities`.
 - **Riferimento codice verificato**: `apps/frontend/src/app/runtime/backend-capabilities.ts` (tipo `BackendCapabilities`, funzione `readBackendCapabilities`/`readFlag`).
 
 ### Low
 
-#### LOW-01 — Retention/PII dei payload `ToolWorkflowJob` in Redis
+#### LOW-01 — Retention/PII dei payload `ToolWorkflowJob` in Redis — **RISOLTO (rischio accettato)**
 - **Descrizione**: `extractionPayload` puo' contenere URL competitor, testo utente. Il TTL su Redis e' specificato (24h) ma non e' discusso se serva cifratura at-rest o considerazioni di compliance privacy.
 - **Impatto**: Basso nel breve termine (TTL limita l'esposizione), ma diventa rilevante se il payload contiene dati personali o sensibili con requisiti normativi specifici.
-- **Azione correttiva raccomandata**: valutare in una revisione futura se i payload `ToolWorkflowJob` necessitano di cifratura at-rest o mascheramento; non bloccante per la Fase 1.
+- **Soluzione adottata**: rischio accettato per Fase 1/Fase 2. Il TTL 24h su Redis e la natura effimera dei `ToolWorkflowJob` (consumati entro minuti, non ore) limitano l'esposizione. Valutare cifratura at-rest in una revisione futura se i requisiti normativi lo richiedono.
 
-#### LOW-02 — `feedbackEnabled` e' dead code, potenzialmente strutturalmente piu' difficile da riattivare col nuovo modello
+#### LOW-02 — `feedbackEnabled` e' dead code, potenzialmente strutturalmente piu' difficile da riattivare col nuovo modello — **RISOLTO (trade-off accettato)**
 - **Descrizione**: Il campo `feedbackEnabled` in `packages/contracts/src/tool-workflows.ts` (verificato: presente su ogni `WorkflowStepDescriptor`, es. `{ key: 'outro-structure', ..., feedbackEnabled: true }`) non e' letto da nessun altro file — e' dead code oggi. Non blocca la proposal, ma se l'intenzione futura era un gate di feedback umano a meta' workflow, un `ToolWorkflowJob` BE-driven fully-automatic rende questo strutturalmente piu' difficile da inserire rispetto al modello FE-driven attuale (dove ogni step e' un checkpoint naturale in cui il FE puo' pausare per raccogliere input umano prima di procedere).
-- **Impatto**: Nessun impatto immediato (il campo e' inutilizzato oggi), ma la proposal dovrebbe segnalare questo trade-off architetturale esplicitamente, poiche' un `ToolWorkflowJob` fully-automatic BE-driven elimina i checkpoint naturali che il modello FE-driven offriva implicitamente.
-- **Azione correttiva raccomandata**: annotare nella proposal (Non-Goals o Risks) che l'adozione del `ToolWorkflowJob` system BE-driven rende un futuro "human-in-the-loop gate" a meta' workflow architetturalmente piu' costoso da implementare (richiederebbe un nuovo stato `paused-awaiting-feedback` nell'enum `status` del `ToolWorkflowJob`, non presente nel design attuale). Nessuna azione richiesta ora — solo tracciamento del trade-off.
+- **Impatto**: Nessun impatto immediato (il campo e' inutilizzato oggi).
+- **Soluzione adottata**: trade-off architetturale accettato consapevolmente e documentato nella sezione "Non-Goals". In sintesi: il guadagno in semplicita'/affidabilita' del modello BE-driven (niente auto-chain FE, niente N+1 round-trip, niente dipendenza dal tab aperto) supera il costo futuro di reintrodurre checkpoint di feedback. Se il requisito human-in-the-loop emergera', il `ToolWorkflowJob` model lo supporta tramite un nuovo stato `paused-awaiting-feedback` nell'enum `status`, con `POST /submit` per riprendere — un'estensione naturale del modello esistente, non un redesign.
 - **Riferimento codice verificato**: `packages/contracts/src/tool-workflows.ts` (campo `feedbackEnabled?: boolean` su ogni `WorkflowStepDescriptor`, nessun consumer trovato).
 
 ---
@@ -1127,6 +1135,6 @@ Le sezioni della proposal relative a XState v5 sono state verificate contro la d
 | `tool_jobs` DB table | **MISSING** |
 | `TOOL_WORKFLOW_USE_JOB_SYSTEM` feature flag | **MISSING** |
 
-Infrastructure prerequisites confirmed available: BullMQ v5.78.0 in `package.json`, Redis configured, `crawling-queue.ts` pattern reusable, SSE streaming implemented.
+Infrastructure prerequisites confirmed available: BullMQ v5.78.0 in `package.json`, Redis configured, `job-event-bridge.ts` + `job-progress-serializer.ts` (prerequisiti BullMQ), SSE streaming implemented.
 
 **Conclusione**: la decisione di evitare serializzazione XState mid-flight e' supportata dalla documentazione ufficiale. L'API di persistenza e' pulita ma il comportamento "invocations will restart" la rende inadatta a preservare lo stato durante una chiamata LLM in corso. Il retry da zero con idempotency key e' l'approccio corretto.

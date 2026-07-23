@@ -11,7 +11,6 @@ export const LogComponent = {
   ORCHESTRATE: 'orchestrate',
   HYDRATE: 'hydrate',
   FEEDBACK_CENTER: 'feedback-center',
-  CRAWLING_QUEUE: 'crawling-queue',
   GITHUB_ISSUES: 'github-issues',
   GITHUB_CONFIG: 'github-config',
   SERPAPI_RESOLVER: 'serpapi-resolver',

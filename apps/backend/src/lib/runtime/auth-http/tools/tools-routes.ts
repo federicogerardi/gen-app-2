@@ -28,6 +28,55 @@ export const buildToolsRoutes = (toolsHandlers: ToolsHandlers): RouteEntry[] => 
       pattern: '/api/tools/sessions',
       handler: toolsHandlers.handleToolsSessionsList,
     },
+
+    // ====================================================================
+    // ToolWorkflowJob routes (DDD-226)
+    // ====================================================================
+
+    // String literal routes MUST precede regex routes to avoid capture
+    {
+      method: 'POST',
+      pattern: '/api/tools/jobs',
+      handler: toolsHandlers.handleSubmitJob,
+    },
+    {
+      method: 'GET',
+      pattern: '/api/tools/jobs',
+      handler: toolsHandlers.handleListJobs,
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/tools\/jobs\/([^/]+)\/stream$/,
+      handler: async (request, response, jobId) => {
+        await toolsHandlers.handleJobStream(
+          request,
+          response,
+          decodeURIComponent(jobId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'GET',
+      pattern: /^\/api\/tools\/jobs\/([^/]+)$/,
+      handler: async (request, response, jobId) => {
+        await toolsHandlers.handleGetJobStatus(
+          request,
+          response,
+          decodeURIComponent(jobId ?? ''),
+        );
+      },
+    },
+    {
+      method: 'POST',
+      pattern: /^\/api\/tools\/jobs\/([^/]+)\/cancel$/,
+      handler: async (request, response, jobId) => {
+        await toolsHandlers.handleCancelJob(
+          request,
+          response,
+          decodeURIComponent(jobId ?? ''),
+        );
+      },
+    },
     {
       method: 'GET',
       pattern: /^\/api\/tools\/sessions\/([^/]+)\/step\/([^/]+)$/,

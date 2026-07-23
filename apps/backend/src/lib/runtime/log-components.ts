@@ -25,6 +25,10 @@ export const LogComponent = {
   JOB_EVENT_BRIDGE: 'job-event-bridge',
   JOB_PROGRESS_SERIALIZER: 'job-progress-serializer',
   ACTOR_INSPECTOR: 'actor-inspector',
+  TOOL_WORKFLOW_JOB_QUEUE: 'tool-workflow-job-queue',
+  TOOL_WORKFLOW_JOB_PROCESSOR: 'tool-workflow-job-processor',
+  TOOL_WORKFLOW_JOB_HANDLERS: 'tool-workflow-job-handlers',
+  TOOL_WORKFLOW_JOB_STREAM: 'tool-workflow-job-stream',
 } as const;
 
 /** Create a Pino child logger pre-tagged with a component name. */

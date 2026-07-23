@@ -19,6 +19,12 @@ import {
 } from './lib/runtime/step-llm-model-overrides.config';
 import { createStepLlmModelResolver } from './lib/runtime/step-llm-model-resolver';
 import { isToolKey } from '@gen-app-2/contracts';
+import {
+  createToolWorkflowQueue,
+  createToolWorkflowWorker,
+  gracefulShutdown,
+} from './lib/runtime/tool-workflow-job-queue';
+import { processToolWorkflowJob } from './lib/runtime/tool-workflow-job-processor';
 
 const log = createComponentLogger(LogComponent.SERVER);
 
@@ -146,6 +152,16 @@ const run = async (): Promise<void> => {
     redis,
   });
 
+  // ToolWorkflowJob: in-process worker setup
+  const workerInProcess = parseBooleanEnv(process.env.TOOL_WORKFLOW_WORKER_IN_PROCESS, true);
+  let toolWorkflowQueue = workerInProcess ? createToolWorkflowQueue(redis) : null;
+  let toolWorkflowWorker = workerInProcess
+    ? createToolWorkflowWorker(
+        (job) => processToolWorkflowJob(job, { adapters: generationAdapters, redis }),
+        redis,
+      )
+    : null;
+
   // Short-lived in-memory cache for enabled model keys (TTL 60s). Mitigates RISK-002.
   let modelKeyCacheTimestamp = 0;
   let modelKeyCache: Set<string> = new Set();
@@ -191,6 +207,8 @@ const run = async (): Promise<void> => {
     db: pg,
     sessionCookies,
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
+    queue: toolWorkflowQueue ?? undefined,
+    redis,
   });
 
   // Create StepLlmModelResolver for per-step model override resolution (DDD-151)
@@ -221,6 +239,12 @@ const run = async (): Promise<void> => {
   });
 
   const closeAll = async (): Promise<void> => {
+    if (toolWorkflowWorker && toolWorkflowQueue) {
+      await gracefulShutdown(toolWorkflowWorker, toolWorkflowQueue).catch((err) => {
+        log.error({ err }, 'tool workflow graceful shutdown failed');
+      });
+    }
+
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
         if (error) {

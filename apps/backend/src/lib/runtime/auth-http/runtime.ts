@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { Pool } from 'pg';
+import type Redis from 'ioredis';
+import type { Queue } from 'bullmq';
 import type {
   AuthRepositoryBundle,
   UserQueryRepositoryBundle,
@@ -12,6 +14,7 @@ import type {
 import type {
   AuthSessionPrincipal,
 } from '../../types/auth';
+import type { ToolWorkflowJobData } from '../tool-workflow-job-queue';
 import { createComponentLogger, LogComponent } from '../log-components';
 import {
   DEFAULT_SESSION_TTL_MS,
@@ -74,6 +77,8 @@ export type AuthHttpRuntimeOptions = {
   idGenerator?: AuthIdGenerator;
   now?: () => Date;
   sessionTtlMs?: number;
+  queue?: Queue<ToolWorkflowJobData> | undefined;
+  redis?: Redis | undefined;
 };
 
 export const createAuthHttpRuntime = (
@@ -229,6 +234,8 @@ export const createAuthHttpRuntime = (
     requireQueryRepositories,
     writeError,
     writeSuccess,
+    queue: options.queue,
+    redis: options.redis,
   });
 
   const adminHandlers = createAdminHandlers({

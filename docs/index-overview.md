@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 5.1
+version: 5.2
 date_created: 2026-05-07
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
@@ -35,7 +35,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 ## Snapshot Operativo
 
 - Scope: as-is state — public repository
-- Root documentale: docs/ (115 documenti, 8 sezioni)
+- Root documentale: docs/ (118 documenti, 8 sezioni)
 - Last audit: 2026-07-23
 - Next review: 2026-10-23
 
@@ -53,6 +53,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 8. [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) — **architectural vulnerabilities + monolith decomposition (completed)**
 9. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
 10. [production-observability-runbook](./04-testing/production-observability-runbook.md)
+11. [prompt-template-standards](./03-development/prompt-template-standards.md) — **canonical guide for LLM prompt templates**
 
 ## Section Map
 
@@ -84,6 +85,9 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-07-16 | 2026-08-16 |
 | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | approved | 2026-05-27 | 2026-08-16 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | accepted | 2026-04-27 | 2026-07-27 |
+| [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md) | completed | 2026-07-23 | 2027-01-23 |
+| [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) | completed | 2026-07-23 | 2027-01-23 |
+| [prompt-template-standards](./03-development/prompt-template-standards.md) | approved | 2026-07-23 | 2027-01-23 |
 
 ## Active Registry
 
@@ -96,6 +100,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 ### Templates
 
 - [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
+- [prompt-template-standards](./03-development/prompt-template-standards.md) — **canonical standards for LLM prompt templates: mandatory structure, quality gates, onboarding checklist.**
 
 ### Design Specifications
 

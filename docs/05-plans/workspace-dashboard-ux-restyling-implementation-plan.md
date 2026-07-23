@@ -1,6 +1,6 @@
 ---
 goal: Restyle workspace dashboard with categorized asset accordion, prominent foundation tools section, and inline artifact promotion
-version: 2.2
+version: 2.3
 date_created: 2026-07-18
 last-reviewed: 2026-07-23
 next-review-date: 2026-08-23
@@ -11,6 +11,25 @@ validation: momus-passed-after-remediation — 3 P0 blockers resolved, 3 P1 issu
 ---
 
 # Workspace Dashboard UX Restyling — Implementation Plan (v2 — Reuse-First)
+
+## Code Verification Status (2026-07-23)
+
+> **Status: PARTIALLY IMPLEMENTED** — 15/19 tasks completed. 1 component missing, 2 hooks pending verification.
+
+| Track | Item | Code Status |
+|---|---|---|
+| A-EXT | `AssetGroupSection` `mode='browse'` prop | ✅ Exists |
+| A | `FoundationToolsPanel` component | ⚠️ **MISSING** — `foundationTools` data exists in `useWorkspaceContext` but no dedicated component |
+| A | `AssetLibraryAccordion` component | ✅ Exists |
+| A | `RecentArtifactsPanel` component | ✅ Exists |
+| B | `useProjectArtifacts` hook | ✅ Exists |
+| C | `WorkspaceDashboard` layout rewrite | ✅ Exists |
+| C | `ContextualToolsPanel` foundation filter | ✅ Exists |
+| D | `groupedByType` in `useWorkspaceContext` | ✅ Exists |
+| D | `foundationTools` in `useWorkspaceContext` | ✅ Exists |
+| D | `sourceArtifactId` in `WorkspaceAsset` | ✅ Exists |
+| E | CSS additions to `dashboard-panels.css` | ✅ Exists |
+| F | `ASSET_TYPE_LABELS` export from `toolAssetRegistry.ts` | ✅ Exists |
 
 ## 0. Problem Statement
 

@@ -1,9 +1,9 @@
 ---
-status: draft
-version: 1.0
+status: implemented
+version: 1.1
 date_created: 2026-07-20
-last-reviewed: 2026-07-20
-next-review-date: 2026-08-03
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 owner: frontend
 type: design-review
 tags: [asset, promote, ux, deterministic-mapping]

@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-07-22
-last-reviewed: 2026-07-22
-next-review-date: 2026-10-22
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 owner: Domain Architecture
 type: code-review
 tags: [ddd, audit, bounded-context, aggregate, value-object, governance]
@@ -194,6 +194,7 @@ All shared Value Objects are defined in `packages/domain/src/index.ts` with the 
 | **Evidence** | `apps/frontend/src/features/tools/runtime/tool-form-architecture.ts:129` uses `Record<SupportedTool, ToolFormConfig>` instead of `Record<ToolFormKey, ToolFormConfig>` |
 | **Impact** | Low — `SupportedTool` is semantically equivalent. However, the non-implementation explicitly violates DDD-029. |
 | **Fix** | Add `export type ToolFormKey = keyof typeof toolFormRegistry;` in `tool-form-architecture.ts` |
+| **Verification (2026-07-23)** | Still **MISSING** — confirmed no `ToolFormKey` type in codebase |
 
 ### 🟡 GAP-2: Hardcoded Italian string in `ProjectsListPage.tsx`
 
@@ -204,6 +205,14 @@ All shared Value Objects are defined in `packages/domain/src/index.ts` with the 
 | **Description** | `apps/frontend/src/features/projects/pages/ProjectsListPage.tsx:43` contains fallback `?? 'Progetto'` |
 | **Impact** | Low — the fallback is never reached because `appCopy.ui.labels.project` is always defined |
 | **Fix** | Remove the fallback or move it to `appCopy` as an explicit key |
+| **Verification (2026-07-23)** | Still **PRESENT** — soft fallback `appCopy.ui.labels.project ?? 'Progetto'` at line 43 |
+
+### Technical Debt Status (2026-07-23)
+
+| Item | DDD Ref | Original Deadline | Verified Status |
+|---|---|---|---|
+| `StreamUsageMetrics` alias | DDD-016 | Q3 2026 | ✅ **Already removed** — no occurrences in `packages/contracts/` |
+| `PersistedArtifactStatus` alias | DDD-017 | Q3 2026 | ✅ **Already removed** — no occurrences in `packages/contracts/` |
 
 ---
 

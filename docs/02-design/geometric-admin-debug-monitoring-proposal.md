@@ -1,8 +1,8 @@
 ---
 status: draft
-version: 1.0
+version: 1.1
 last-reviewed: 2026-07-23
-next-review-date: 2026-10-23
+next-review-date: 2026-08-23
 owner: Backend Runtime + Admin Platform
 date_created: 2026-06-12
 title: Geometric Admin Debug & Monitoring Proposal
@@ -11,6 +11,18 @@ tags: [geometric, admin, monitoring, debugging, crawling, validation, ai-overvie
 ---
 
 # Geometric Admin Debug & Monitoring Proposal
+
+## Code Verification Status (2026-07-23)
+
+> **Status: NOT IMPLEMENTED** — Zero code artifacts exist for all 4 priority items.
+
+| Priority | Item | Code Status |
+|---|---|---|
+| High | Structured error tracking (`crawling.failed`, etc.) | **MISSING** |
+| High | `cacheCrawlingArtifactsForAdmin` action | **MISSING** |
+| Medium | `aiOverviewConfidence` field in crawling adapter | **MISSING** |
+| Medium | Admin verification endpoint `GET /api/admin/geometric/sessions/:id/verification` | **MISSING** |
+| — | `geometric-logger.ts` | **REMOVED** — replaced by Pino serializers (`log-serializers.ts`), but `logGeometricAdmin` function not created |
 
 ## Obiettivo
 

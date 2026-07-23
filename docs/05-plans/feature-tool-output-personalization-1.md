@@ -1,9 +1,9 @@
 ---
 status: draft
-version: 1.0
+version: 1.1
 date_created: 2026-07-11
-last-reviewed: 2026-07-11
-next-review-date: 2026-10-11
+last-reviewed: 2026-07-23
+next-review-date: 2026-08-23
 owner: Frontend Platform Team & Domain Architecture
 title: Enterprise-Grade Tool Output Personalization Implementation Plan
 type: feature-plan
@@ -18,6 +18,18 @@ goal: Implement tool output personalization, multi-variant generation, interacti
 Questo piano definisce i passaggi operativi per implementare la proposal approvata in `docs/02-design/proposal-tool-output-personalization.md`. L'obiettivo è superare il limite dell'output "1-to-1" deterministico introducendo personalizzazione guidata da registry, fan-out di varianti, passaggi interattivi (Human-In-The-Loop) e iniezione di contesto tramite RAG-lite.
 
 Tutte le 15 decisioni architetturali e i parametri per-tool sono stati approvati nel processo DDD (DDD-160, 161, 162, 163, 164, 165, 166, 170, 171, 173, 174).
+
+### Code Verification Status (2026-07-23)
+
+> **Status: NOT IMPLEMENTED** — All 23 tasks pending. Only `generation_feedback` table and `FeedbackButtons` component exist (from a separate implementation).
+
+| Phase | Tasks | Implemented | Missing |
+|---|---|---|---|
+| Phase 1 (Foundations & Registry) | TASK-1.1 → TASK-1.7 | 0/7 | All 7 |
+| Phase 2 (Brand Persona) | TASK-2.1 → TASK-2.5 | 0/5 | All 5 |
+| Phase 3 (HITL Interactive) | TASK-3.1 → TASK-3.6 | 0/6 | All 6 |
+| Phase 4 (Variant Fan-Out) | TASK-4.1 → TASK-4.5 | 0/5 | All 5 |
+| Phase 5 (Feedback & RAG) | TASK-5.1 → TASK-5.4 | 2/4 (DB table + UI component) | API endpoint + RAG injection |
 
 ---
 

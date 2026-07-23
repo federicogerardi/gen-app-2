@@ -1,8 +1,8 @@
 ---
-status: draft
-version: 1.0
-last-reviewed: 2026-07-21
-next-review-date: 2026-08-21
+status: implemented
+version: 1.1
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 owner: Frontend Platform Team
 type: design-proposal
 tags: [dashboard, workspace-centric, ui-convergence, copy]

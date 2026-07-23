@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 5.0
+version: 5.1
 date_created: 2026-05-07
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
@@ -75,7 +75,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | --- | --- | --- | --- |
 | [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | archived | 2026-07-23 | 2027-01-23 |
 | [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) | completed | 2026-07-13 | 2026-10-13 |
-| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-22 | 2026-10-22 |
+| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-23 | 2027-01-23 |
 | [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) | active | 2026-07-22 | 2026-10-22 |
 | [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md) | active | 2026-07-23 | 2026-10-23 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-07-16 | 2026-10-16 |
@@ -126,7 +126,7 @@ Validation path manifest (orphan-check canonical set):
 
 - [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **IMPLEMENTED: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
 - [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **IMPLEMENTED: Post-BullMQ Improvements (RISK-5 dev guide, RISK-4 Zod, RISK-3 domain modules, RISK-6 inspector)**
-- [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione `GenerationSystem`
+- [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — **IMPLEMENTED**: refactoring frontend reactive spaghetti (Phase 1) e decomposizione `GenerationSystem` (Phase 2) — code-verified 2026-07-23
 - [sprint-5-context-migration-validation-implementation-plan](./99-lifecycle/99-archive/plans/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e validazione contesto backend
 - [sprint-6-error-actors-wiring-implementation-plan](./99-lifecycle/99-archive/plans/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori gestione errori route-specific
 - [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](./99-lifecycle/99-archive/plans/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione streaming/non-streaming
@@ -145,15 +145,26 @@ Validation path manifest (orphan-check canonical set):
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) — **DDD implementation audit (2026-07-22)**
 - [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) — **XState-as-Aggregate risk review (2026-07-22)**
-- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06)
+- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06, verified 2026-07-23)
+
+### Active Plans — Workspace UX Transformation
+
+- [workspace-centric-ux-transformation-implementation-plan](./05-plans/workspace-centric-ux-transformation-implementation-plan.md) — **IMPLEMENTED**: workspace-centric UX (8 phases, all completed 2026-07-17, code-verified 2026-07-23). 2 minor gaps: `ToolReadinessBadge` missing, `calculateToolReadiness` renamed to `buildReadinessSnapshot`.
+- [workspace-centric-ux-transformation-ai-executable-plan](./05-plans/workspace-centric-ux-transformation-ai-executable-plan.md) — **IMPLEMENTED**: AI-executable task decomposition (47 tasks, all completed 2026-07-17).
+- [workspace-dashboard-ux-restyling-implementation-plan](./05-plans/workspace-dashboard-ux-restyling-implementation-plan.md) — **PARTIALLY IMPLEMENTED**: 15/19 tasks done. `FoundationToolsPanel` component missing (verified 2026-07-23).
+- [feature-tool-output-personalization-1](./05-plans/feature-tool-output-personalization-1.md) — **NOT IMPLEMENTED**: 0/23 tasks done (verified 2026-07-23).
 
 ### Active Proposals
 
-- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅.**
-- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
-- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅. Code status: **0/10 componenti implementati** (verified 2026-07-23).**
+- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools. Code status: **0/5 pilastri implementati** (solo `generation_feedback` table + `FeedbackButtons` esistono). Verified 2026-07-23.**
+- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification. Code status: **0/4 item implementati** (verified 2026-07-23).**
 
 ### Implemented Proposals
+
+- [dashboard-workspace-centric-restyling-proposal](./02-design/specifications/dashboard-workspace-centric-restyling-proposal.md) — **Implemented 2026-07-23: Dashboard restyling with workspace-centric panels (code-verified)**
+- [workspace-hub-restyling-proposal](./02-design/specifications/workspace-hub-restyling-proposal.md) — **Implemented 2026-07-23: Workspace Hub card-variant layout (code-verified)**
+- [promote-to-asset-deterministic-mapping-review](./02-design/promote-to-asset-deterministic-mapping-review.md) — **Implemented 2026-07-23: Deterministic toolKey→assetType mapping (code-verified)**
 
 - [llm-model-step-override-proposal](./02-design/llm-model-step-override-proposal.md) — **Implemented 2026-07-16: per-step LLM model override system (DDD-150/151/152)**
 - [serp-api-integration-proposal](./02-design/serp-api-integration-proposal.md) — **Implemented 2026-07-16: SerpAPI replaces Puppeteer for Geometric crawling**
@@ -164,15 +175,18 @@ Validation path manifest (orphan-check canonical set):
 
 ### Open Findings — UX Determinism Review (for future implementation)
 
-> Source: [frontend-ux-determinism-code-review.md](./07-governance/frontend-ux-determinism-code-review.md) — Intervention Priority table, updated 2026-06-22.
-> Finding #5 (B1), #13 (D2) e #14 (E2) closed 2026-06-22.
+> Source: [frontend-ux-determinism-code-review.md](./07-governance/frontend-ux-determinism-code-review.md) — Intervention Priority table, updated 2026-07-23.
 
 | # | Finding | Area | Effort | Status |
 |---|---|------|--------|--------|
 | 5 | B1 — Hardcoded copy residuals | Admin forms/tables/dashboard/navigation, Tool buttons, YT form | Incremental, per area | **resolved** — all strings centralized |
 | 8 | A1 — Explicit error states in machines | `tool-page`, `briefing-upload`, `auth-session` machines | Sprint dedicato | **resolved** — Sprints 1–4, see [ADR-003](./02-design/adr/xstate-explicit-error-states-adr.md) |
 | 10 | C1 — Two button systems | MUI vs native button convergence | Requires ADR | **partial** — CTA variant classes applied; full convergence deferred |
-| 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — inline editing, row selection, bindings panel not supported |
+| 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — `ListingTableSection` exists but admin pages not yet migrated |
+| 15 | A2 — Inline guards duplicating named guards | `tool-flow.machine.ts`, `generation-lifecycle.machine.ts` | Low effort | open — 3+3 inline + 3+1 named guards (mixed, verified 2026-07-23) |
+| 16 | A6 — Briefing upload coupling | `briefing-upload.machine.ts` | Medium | open — push+pull coexist (verified 2026-07-23) |
+| 17 | A7 — Missing `onError` handler | `tool-page.machine.ts` invoke | Low | **resolved** — handler exists at lines 391-396 (verified 2026-07-23) |
+| 18 | B1b — `"Apri sessione"` hardcoded | `ArtifactDetailPage.tsx` | Low | **resolved** — string removed (verified 2026-07-23) |
 
 ### Governance Tables
 

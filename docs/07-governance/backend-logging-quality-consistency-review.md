@@ -1,9 +1,9 @@
 ---
 status: active
-version: 2.0
+version: 2.1
 date_created: 2026-07-15
-last-reviewed: 2026-07-15
-next-review-date: 2026-10-15
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Backend Runtime
 type: code-review
 tags: [logging, quality, consistency, pino, geometric-logger, console, observability]
@@ -18,6 +18,16 @@ Assessment of backend logging system quality. Identifies every file that uses lo
 **v2.0 (2026-07-15)**: Unification completed. All operational files use Pino via `createComponentLogger()`. `geometric-logger.ts` removed. 1 known exception remains (pipeline logger in `tools-orchestrate-handlers.ts`).
 
 Result: the logging system is unified under Pino. **22 files** migrated, **2 new modules** created, **2 files** eliminated.
+
+### Verification (2026-07-23)
+
+The 1 known exception (`tools-orchestrate-handlers.ts`) is confirmed still using `console.*`:
+
+- `tools-orchestrate-handlers.ts:292` — `console.info(message, withOrchestrateMeta(meta))`
+- `tools-orchestrate-handlers.ts:295` — `console.warn(...)`
+- `tools-orchestrate-handlers.ts:298` — `console.error(...)`
+
+No Pino logger import in this file. Migration blocked by test infrastructure (`captureOrchestrateStartMeta` monkey-patches `console.info`).
 
 ---
 

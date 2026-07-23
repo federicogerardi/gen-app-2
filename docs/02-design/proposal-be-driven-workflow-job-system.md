@@ -1,9 +1,9 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.3
+version: 1.4
 date_created: 2026-07-20
-last-reviewed: 2026-07-20
-next-review-date: 2026-10-20
+last-reviewed: 2026-07-23
+next-review-date: 2026-08-23
 owner: Backend Runtime
 status: draft
 type: proposal
@@ -1107,5 +1107,26 @@ Le sezioni della proposal relative a XState v5 sono state verificate contro la d
 | "Invocations will restart" dopo un restore | **Confermato** — azioni non rieseguite, ma `invoke` ripartono. Questo e' il motivo primario per cui la serializzazione mid-flight non e' adatta: causerebbe chiamate LLM duplicate | [Stately docs — Restoring state](https://stately.ai/docs/persistence) |
 | Assenza di schema migration built-in per machine snapshot | **Confermato** — solo `xstate-store` ha `migrate`. Machine snapshot richiederebbero transform manuale | [Stately docs — Schema Migrations](https://stately.ai/docs/xstate-store/persist) |
 | `createActor(machine, { input })` per inizializzazione con dati | **Confermato** — pattern standard XState v5 | [Inject Context into Actor Initialization](https://github.com/statelyai/xstate/blob/main/examples/workflow-media-scanner/README.md) |
+
+---
+
+## Code Verification Status (2026-07-23)
+
+> **Status: NOT IMPLEMENTED** — Zero code artifacts exist. All 10 core components are missing.
+
+| Component | Code Status |
+|---|---|
+| `tool-workflow-job-processor.ts` | **MISSING** |
+| `tool-workflow-job-queue.ts` | **MISSING** |
+| `tools-job-handlers.ts` | **MISSING** |
+| `tools-job-stream-handler.ts` | **MISSING** |
+| `worker-entry.ts` | **MISSING** |
+| `useToolPageSubmitController` (FE) | **MISSING** |
+| `useJobStream` (FE) | **MISSING** |
+| `SUBMIT_JOB` event in tool-page machine | **MISSING** |
+| `tool_jobs` DB table | **MISSING** |
+| `TOOL_WORKFLOW_USE_JOB_SYSTEM` feature flag | **MISSING** |
+
+Infrastructure prerequisites confirmed available: BullMQ v5.78.0 in `package.json`, Redis configured, `crawling-queue.ts` pattern reusable, SSE streaming implemented.
 
 **Conclusione**: la decisione di evitare serializzazione XState mid-flight e' supportata dalla documentazione ufficiale. L'API di persistenza e' pulita ma il comportamento "invocations will restart" la rende inadatta a preservare lo stato durante una chiamata LLM in corso. Il retry da zero con idempotency key e' l'approccio corretto.

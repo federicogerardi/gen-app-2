@@ -1,6 +1,6 @@
 ---
 status: completed
-version: 1.1
+version: 1.2
 date_created: 2026-07-23
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
@@ -239,3 +239,46 @@ For reference, here are the elements that make the VSL prompt the best in the sy
 | Tools with persona asset rules | 1/7 |
 
 **Conclusion**: 44% of prompts (15/34) are under 50 lines and lack fundamental quality elements. The benchmark exists (funnel-pages). The priority is bringing the rest of the catalog to that level.
+
+---
+
+## 6. Post-Remediation Findings (2026-07-23)
+
+After completing the 4-phase remediation, three additional issues emerged from production artifact analysis:
+
+### 6.1 🔴 Code fence wrapping breaks markdown rendering
+
+**Finding**: `brief-generator` output for artifact `artifact-12z9k6ml` was wrapped in ` ```markdown ... ``` ` code fences. ReactMarkdown rendered the entire content as a code block instead of formatted markdown. The brief-generator prompt lacked a "No code fences" rule in its output rules section.
+
+**Root cause**: The `## Output rules` section had "Markdown only" and "No JSON" but did not explicitly prohibit code fences. Other tools (funnel-pages, angle-generator) had the rule; brief-generator, tov-generator, personas-generator did not.
+
+**Fix applied** (commit `3aaed43`):
+- Prompt layer: added "No code fences. Output raw markdown — never wrap content in ``` blocks." to brief-generator, tov-generator, and personas-generator `## Output rules`
+- Renderer layer: `ArtifactContentPreview.tsx` now strips leading/trailing code fences before passing content to `ReactMarkdown`. Raw view preserves original content.
+
+### 6.2 🟡 Personas-generator always defaults to "Marco Rossi"
+
+**Finding**: Without naming guidance, the LLM defaults to "Marco Rossi" for every generated persona. This is problematic for workspace users running multiple persona generations — identical names create confusion and reduce perceived quality.
+
+**Fix applied** (commit `58d506b`):
+- Added `## Persona Naming Convention` section to `prompt_personas_generation.md`
+- Age-appropriate Italian name pools (4 generation brackets × 2 genders)
+- Variety mandate: never reuse names across personas
+- Deterministic selection based on demographic profile
+- Strategic guardrail #6: "Varied persona names"
+- Internal checklist item verifying name follows convention
+
+### 6.3 🟡 LLM chat behavior leaks into artifact output
+
+**Finding**: The `context-and-angle-matrix` step produced a preamble: "Certamente. Ecco l'analisi strategica completa...". This is LLM politeness/chat behavior leaking into the artifact. Only 2 of 22 generation prompts had explicit "no preamble" rules.
+
+**Fix applied** (commit `fbb16d6`):
+- Added Output Determinism block to all 22 generation prompts that were missing it
+- Standard rule: "Output ONLY the requested artifact. Nothing else. No preamble, greetings, or introductions. No closing remarks, sign-offs, or meta-commentary."
+- Updated `docs/03-development/prompt-template-standards.md` with Output Determinism section
+
+### 6.4 Documentation output
+
+- Created `docs/03-development/prompt-template-standards.md` — canonical 12-section guide for future prompt creation
+- Updated `AGENTS.md` with mandatory read reference for prompt template changes
+- 439 backend + 453 frontend tests pass throughout all fixes

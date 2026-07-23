@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 5.2
+version: 5.3
 date_created: 2026-05-07
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23

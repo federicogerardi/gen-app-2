@@ -1,12 +1,13 @@
 ---
-status: active
-version: 1.1
+status: completed
+version: 1.2
 date_created: 2026-07-23
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
 owner: Backend Runtime
 type: implementation-plan
 tags: [prompt-engineering, tool-generation, remediation, prompt-templates]
+implementation_date: 2026-07-23
 ---
 
 # Prompt Layer Remediation Plan
@@ -261,8 +262,8 @@ Add an HTML comment header to every prompt file documenting which placeholders i
 | 1. Bug fix + policy | 30 | 0 lines | None | 1 | ✅ Completed 2026-07-23 |
 | 2. Foundation tools | 6 | 0 lines | Low | 2-3 | ✅ Completed 2026-07-23 |
 | 3. Cross-tool mechanisms | ~55 | ~20 lines | Medium | 3-4 | ✅ Completed 2026-07-23 |
-| 4. Polish + remaining | ~30 | 0 lines | Low | 3-4 | ⬜ Pending |
-| **Total** | **34 (all)** | **~20 lines** | | **9-12** | **75% complete** |
+| 4. Polish + remaining | 34 | 0 lines | Low | 3-4 | ✅ Completed 2026-07-23 |
+| **Total** | **34 (all)** | **~20 lines** | | | **100% complete** |
 
 ### Execution order
 
@@ -276,3 +277,12 @@ Add an HTML comment header to every prompt file documenting which placeholders i
 - Action now executes for all tools (no tool-specific guard), but only modifies the prompt when placeholders are actually present (`didReplace` gate)
 - Custom user prompts (without `resolvedPromptTemplate`) are left untouched
 - Added `{{copy_length_format}}` replacement support alongside existing `{{titolo}}` and `{{output_step_*}}`
+
+### Key implementation notes (Phase 4)
+
+- Added role definitions and strategic guardrails to 6 youtube-lf-script prompts
+- Upgraded geometric strategic-reporting: role, guardrails, checklist
+- Added internal checklist to nextland thank_you generator
+- Added `## Feedback Incorporation` block to all 8 `feedbackEnabled: true` steps (vsl, creative-activation, ads-generation, thank_you, outro-structure, unified-report, blog_article, youtube-description-generation)
+- Documented `{{placeholder}}` variables in all 34 template files via `<!-- PLACEHOLDERS: ... -->` header comments
+- 439 tests pass, 0 fail

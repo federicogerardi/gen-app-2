@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: none -->
 # PROMPT OPTIN GENERATOR
 
 Versione 4.3 - Rigor Markdown + Profondita Strategica

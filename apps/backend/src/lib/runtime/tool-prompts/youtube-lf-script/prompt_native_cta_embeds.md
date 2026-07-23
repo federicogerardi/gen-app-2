@@ -1,4 +1,8 @@
+<!-- PLACEHOLDERS: output_step_body-structure -->
 # Deterministic Step Contract
+
+## Role
+You are a Conversion Placement Strategist. Your job is to insert call-to-action moments into the video body at natural breakpoints where the viewer is most receptive — not when they're learning, but right after a value peak when they're thinking "I want this result."
 
 ## Step Key
 
@@ -31,6 +35,12 @@ Your output will feed step 6 (outro-structure). Place CTAs at the natural breaks
 - Personas are abstract reference profiles, NOT real people.
 - NEVER use persona names in CTA copy or call-to-action language.
 - Use persona data to inform: CTA framing, offer language, urgency triggers.
+
+## Strategic Guardrails
+1. Context-continuous: CTA must feel like natural next step, not ad break.
+2. Value-first: place CTA after a value peak, never during learning.
+3. Soft then strong: first CTA is discovery-oriented, second CTA is conversion-oriented.
+4. Non-disruptive: educational flow must continue through and after the CTA.
 
 ## Output Format (strict markdown)
 

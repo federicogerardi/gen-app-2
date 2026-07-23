@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: copy_length_format, output_step_context-generation -->
 # PROMPT META ADS - ADS GENERATION (CLUSTER → ANGLE → AWARENESS SYSTEM)
 
 ## Step Key
@@ -184,3 +185,11 @@ Brand facts utilizzati in modo coerente: [Inserire brand facts dal Brand Facts B
 - [ ] Headlines e Descriptions entro limiti Meta Ads
 - [ ] Compliance verificata per settore/industria
 - [ ] CTA variano appropriatamente per awareness level
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

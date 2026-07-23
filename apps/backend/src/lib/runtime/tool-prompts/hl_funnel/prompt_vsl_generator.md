@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_optin, output_step_quiz -->
 # PROMPT VSL GENERATOR
 
 Versione 4.3 - Rigor Markdown + Profondita Strategica
@@ -437,3 +438,11 @@ Genera ora la VSL completa, lunga 17-20 minuti (~2.800-3.200 parole), rispettand
 5. Output markdown SOLO – zero JSON, meta, o strutture tecniche
 
 Restituisci solo lo script recitabile, pronto per la telecamera.
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

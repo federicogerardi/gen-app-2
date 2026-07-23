@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: none -->
 # PROMPT YOUTUBE DESCRIPTION - GENERATION
 
 ## Step Key
@@ -86,3 +87,11 @@ In 30 minuti analizziamo il tuo funnel e ti diciamo esattamente dove perdi lead.
 - keyword_density_contract:
 
 ## Validation Errors
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_optin -->
 # PROMPT QUIZ GENERATOR
 
 Versione 4.2 - Rigor Markdown + Profondita Strategica

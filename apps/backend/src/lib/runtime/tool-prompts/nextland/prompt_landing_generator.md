@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: none -->
 # PROMPT NEXTLAND LANDING GENERATOR
 
 Versione 1.0 - Landing page a conversione alta per acquisizione lead qualificati

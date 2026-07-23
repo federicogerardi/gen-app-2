@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_landing -->
 # PROMPT NEXTLAND THANK-YOU GENERATOR
 
 Versione 1.0 - Thank-you page coerente con landing e step successivo
@@ -87,3 +88,20 @@ La thank-you deve includere:
 ### Optional Secondary CTA
 ### FAQ
 ### Rationale
+
+## Internal Checklist
+- [ ] Confirmation headline removes ambiguity — visitor knows exactly what happened
+- [ ] Lexical continuity with landing page is maintained (same terms, same promise)
+- [ ] No new promises introduced that weren't on the landing page
+- [ ] Next step is clear, specific, and has a concrete timeframe if applicable
+- [ ] Trust reinforcement references specific proof from the landing page, not generic "we're great"
+- [ ] Italian language, no English filler
+- [ ] All 8 sections present
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: titolo -->
 [Research Topic]: {{titolo}}
 
 [Role]: Act as a Senior SEO and Content Strategist Expert.

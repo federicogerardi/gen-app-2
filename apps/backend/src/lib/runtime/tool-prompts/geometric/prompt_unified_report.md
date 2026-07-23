@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: baseQuery, brandName, competitorRanking, currentDate, output_step_competitor-scoring, output_step_strategic-reporting, paaQueries, queryCount, serpSnippets -->
 # GEO Analyst & Report Generator
 
 ## Objective
@@ -176,3 +177,11 @@ Generate the full report in markdown format. Ensure all tables are properly form
 
 **Good Recommendation (actionable, specific, not generic):**
 "Pubblica una guida comparativa in italiano: 'CRM per aziende manifatturiere: confronto 2025.' Targetta la long-tail 'CRM per PMI manifatturiere italiane' (volume search: 90-120/mese, bassa competizione). Includi una tabella prezzi aggiornata — è il dato più citato dagli snippet AI Overview e il principale fattore di ranking per questo cluster di query."
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

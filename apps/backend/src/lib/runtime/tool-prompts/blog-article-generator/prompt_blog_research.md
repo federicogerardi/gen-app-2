@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_blog_seo_structure, titolo -->
 Conduct in-depth research on this topic. Respond with the maximum useful information to cover search intent.
 
 Schematic and detailed output.

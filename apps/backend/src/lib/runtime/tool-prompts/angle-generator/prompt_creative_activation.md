@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_angle-prioritization -->
 # PROMPT ANGLE GENERATOR - CREATIVE ACTIVATION
 
 ## Step Key
@@ -98,3 +99,11 @@ This is the final artifact. Produce activation-ready creative foundations that c
 
 ## Final launch note
 - Which angle to test first and why: ...
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

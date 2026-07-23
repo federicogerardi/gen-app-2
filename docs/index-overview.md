@@ -133,7 +133,7 @@ Validation path manifest (orphan-check canonical set):
 - [migrate-to-nonstreaming-generation](./99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md) — completato: migrazione a non-streaming default
 - [asset-domain-model-implementation-plan](./05-plans/asset-domain-model-implementation-plan.md) — completato: Asset domain model DDD-188→207
 - [italian-docs-language-remediation-plan](./05-plans/italian-docs-language-remediation-plan.md) — **ACTIVE: Italian docs language remediation per governance language policy (8/15 translated)**
-- [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) — **PARTIALLY IMPLEMENTED: Phases 1-3 complete (75%). 30/34 prompts upgraded with anti-hallucination, chain awareness, persona rules, gold-standard examples. Phase 4 pending. Source: [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md).**
+- [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) — **IMPLEMENTED 2026-07-23: All 4 phases complete. 34 prompt templates upgraded (anti-hallucination, chain awareness, persona rules, role/guardrails/checklists, feedback instructions, placeholder docs). Source: [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md).**
 
 ### Active Runbooks
 
@@ -147,7 +147,7 @@ Validation path manifest (orphan-check canonical set):
 - [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) — **DDD implementation audit (2026-07-22)**
 - [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) — **XState-as-Aggregate risk review (2026-07-22)**
 - [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06, verified 2026-07-23)
-- [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md) — **ACTIVE: quality review of 34 prompt templates across 12 tools. 15/34 prompts under 50 lines. Remediation plan: [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md).**
+- [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md) — **COMPLETED: quality review of 34 prompt templates across 12 tools. Remediation plan fully implemented 2026-07-23. See [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md).**
 
 ### Active Plans — Workspace UX Transformation
 

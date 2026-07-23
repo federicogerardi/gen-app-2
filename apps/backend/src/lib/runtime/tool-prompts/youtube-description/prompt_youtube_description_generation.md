@@ -4,10 +4,6 @@
 
 - youtube-description-generation
 
-## Root prompt
-
-Apply all constraints and methodology from prompt_root.md.
-
 ## Objective
 
 Generate one final YouTube description artifact from validated normalized context.
@@ -20,6 +16,13 @@ Generate one final YouTube description artifact from validated normalized contex
 
 - Validation Status must be ok.
 - Chapters must include valid timestamps.
+
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
 
 ## Output rules
 

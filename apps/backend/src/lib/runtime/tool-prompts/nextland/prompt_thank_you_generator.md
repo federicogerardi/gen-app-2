@@ -23,6 +23,13 @@ Usa sempre:
 - eventuale extraction context disponibile
 - landing page gia generata come contesto upstream
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Guardrail strategici
 
 1. Mantieni continuita lessicale con la landing page.

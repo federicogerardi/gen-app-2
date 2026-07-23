@@ -16,6 +16,13 @@ For each of the top 3 prioritized angles, produce activation-ready creative foun
 
 - Ranked top 3 angles from angle-prioritization.
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Output rules
 
 - Markdown only.

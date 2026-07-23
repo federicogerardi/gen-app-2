@@ -6,6 +6,13 @@ Generate a qualitative strategic analysis from SERP extraction data and competit
 ## Input Source
 SerpAIOverviewSnippet texts from crawling artifacts + CompetitorRanking JSON from scoring artifact.
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Rules
 - Screenshot data must NEVER be included in the prompt context. Only text and structured data.
 - Output in Italian (it-IT).

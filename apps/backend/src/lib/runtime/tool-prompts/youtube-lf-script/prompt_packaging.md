@@ -13,6 +13,13 @@
 
 - Generate title strategy and visual hook options aligned with positioning.
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Output Format (strict markdown)
 
 Use exactly these sections:

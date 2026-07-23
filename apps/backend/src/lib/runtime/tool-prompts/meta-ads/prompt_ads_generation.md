@@ -17,6 +17,13 @@ Generate production-ready Meta Ads assets using the new cluster → angle → aw
 - Context-generation artifact
 - User-selected copy length format: {{copy_length_format}}
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Output rules
 
 - Markdown only.

@@ -32,9 +32,6 @@ Il briefing deve evidenziare in modo analitico: contesto business, offerta, crit
 - Nel blocco `## Required Fields Checklist` usa esattamente una riga bullet:
   - `- Checklist campi prioritari (required): ...`
 
-## Contesto
-{{context}}
-
 ## Output richiesto (struttura obbligatoria)
 ## Business Context
 - ...

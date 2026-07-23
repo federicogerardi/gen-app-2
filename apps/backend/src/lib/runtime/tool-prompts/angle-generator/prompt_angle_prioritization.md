@@ -16,6 +16,13 @@ Evaluate the angle matrix and select the top 3 launch angles with deterministic 
 
 - Angle matrix produced by context-and-angle-matrix.
 
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 ## Scoring model (required)
 
 Score each angle from 1 to 5 on:

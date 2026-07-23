@@ -2,6 +2,12 @@ Conduct in-depth research on this topic. Respond with the maximum useful informa
 
 Schematic and detailed output.
 
+[ANTI-HALLUCINATION GUARDRAILS]
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly: "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
 Topic: {{titolo}}
 
 [SEO Structure Reference]:

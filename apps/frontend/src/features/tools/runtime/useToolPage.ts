@@ -363,5 +363,8 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     handleAngleDetectorFileSelected,
     handleExtractionStart,
     handleBriefingReset,
+    // ToolWorkflowJob state
+    pendingJobId: toolPageSnapshot.context.pendingJobId,
+    useJobSystem,
   };
 };

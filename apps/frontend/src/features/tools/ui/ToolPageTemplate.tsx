@@ -24,6 +24,7 @@ import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-stat
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
 import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
+import { ToolWorkflowJobPanel } from './ToolWorkflowJobPanel';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
@@ -169,6 +170,8 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     handleExtractionStart,
     handleBriefingReset,
     angleDetectorFileName,
+    pendingJobId,
+    useJobSystem,
   } = useToolPage({ ...props, selectedAssetIds, hasAssetBasedExtractionContext });
 
   // ── Auto-set projectId from workspace context (useLayoutEffect: sync before paint,
@@ -1124,12 +1127,26 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           </section>
 
           <section className="ui-tool-column ui-tool-column-status">
-            <ToolGenerationFlowVertical
-              canonicalState={effectiveCanonicalState}
-              errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-              generationProgress={generationProgress}
-              primaryActionCta={unifiedPrimaryActionCta}
-            />
+            {useJobSystem && pendingJobId ? (
+              <ToolWorkflowJobPanel
+                jobId={pendingJobId}
+                toolKey={props.toolKey}
+                stepStatuses={Object.fromEntries(stepItems.map((s) => [s.key, s.status])) as Record<string, 'idle' | 'running' | 'done' | 'error'>}
+                stepLabels={Object.fromEntries(stepItems.map((s) => [s.key, s.label]))}
+                currentRunningStep={currentRunningStep}
+                completedSteps={[...completedStepsForFlow]}
+                errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
+                isStreamActive={isStreamActive}
+                onCancel={handleCancelGeneration}
+              />
+            ) : (
+              <ToolGenerationFlowVertical
+                canonicalState={effectiveCanonicalState}
+                errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
+                generationProgress={generationProgress}
+                primaryActionCta={unifiedPrimaryActionCta}
+              />
+            )}
           </section>
         </div>
       </div>

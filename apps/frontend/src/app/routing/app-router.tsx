@@ -34,6 +34,7 @@ const AdminChangelogPage = lazy(() => import('../../features/admin/pages/AdminCh
 const AdminUserReportsPage = lazy(() => import('../../features/admin/pages/AdminUserReportsPage').then(m => ({ default: m.AdminUserReportsPage })));
 const AdminSessionsPage = lazy(() => import('../../features/admin/pages/AdminSessionsPage').then(m => ({ default: m.AdminSessionsPage })));
 const AdminSessionDetailPage = lazy(() => import('../../features/admin/pages/AdminSessionDetailPage').then(m => ({ default: m.AdminSessionDetailPage })));
+const AdminToolWorkflowJobsPage = lazy(() => import('../../features/admin/pages/AdminToolWorkflowJobsPage').then(m => ({ default: m.AdminToolWorkflowJobsPage })));
 const WorkspacesListPage = lazy(() => import('../../features/workspace/pages/WorkspacesListPage').then(m => ({ default: m.WorkspacesListPage })));
 const WorkspaceDashboard = lazy(() => import('../../features/workspace/pages/WorkspaceDashboard').then(m => ({ default: m.WorkspaceDashboard })));
 const ProjectAssetsPage = lazy(() => import('../../features/workspace/pages/ProjectAssetsPage').then(m => ({ default: m.ProjectAssetsPage })));
@@ -254,6 +255,10 @@ export const createAppRouter = () => createBrowserRouter([
               { index: true, element: <Suspense fallback={<PageLoader />}><AdminSessionsPage /></Suspense> },
               { path: ':sessionId', element: <Suspense fallback={<PageLoader />}><AdminSessionDetailPage /></Suspense> },
             ],
+          },
+          {
+            path: 'tool-jobs',
+            element: <Suspense fallback={<PageLoader />}><AdminToolWorkflowJobsPage /></Suspense>,
           },
         ],
       },

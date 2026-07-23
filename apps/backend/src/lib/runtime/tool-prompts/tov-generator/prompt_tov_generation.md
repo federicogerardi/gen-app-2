@@ -52,6 +52,7 @@ Extraction Payload with 5 core fields: `brand_or_company`, `target_audience`, `t
 - Markdown only.
 - Italian only (`it-IT`).
 - No JSON. No invented claims.
+- No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present.
 - Mark inferred content with "(inferito dal contesto)".
 

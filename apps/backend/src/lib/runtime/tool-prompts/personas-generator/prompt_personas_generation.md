@@ -57,6 +57,7 @@ This document is a `persona` asset consumed by 6 downstream tools. The persona i
 - Markdown only.
 - Italian only (`it-IT`).
 - No JSON. No invented claims.
+- No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present.
 - Output ONLY the buyer persona document. Nothing else.
 - No preamble, greetings, introductions, or phrases like "Ecco il persona", "Di seguito", "Ho generato".

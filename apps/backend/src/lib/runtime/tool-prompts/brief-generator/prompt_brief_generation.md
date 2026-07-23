@@ -46,6 +46,7 @@ Extraction Payload with 5 core fields: `product_or_service`, `target_audience`, 
 - Markdown only.
 - Italian only (`it-IT`).
 - No JSON. No invented claims.
+- No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present — do not skip sections marked as mandatory.
 - Keep each section concise: 2-5 bullet points per section.
 

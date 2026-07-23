@@ -1,9 +1,9 @@
 ---
 status: active
-version: 2.0
+version: 2.1
 date_created: 2026-07-15
-last-reviewed: 2026-07-15
-next-review-date: 2026-10-15
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Frontend Platform + Backend Runtime
 type: code-review
 tags: [logging, debugging, orchestration, auto-chain, blog-article-generator, observability]
@@ -20,6 +20,15 @@ Copre: bridge `useToolPageRunController`, `PROGRESS_SYNCED`, `inFlightStepsRef`,
 Contesto: [Production Observability Runbook](../04-testing/production-observability-runbook.md).
 
 **v2.0 (2026-07-15)**: Raccomandazioni C1-C6 implementate. Flag `isDebugOrchestration` unifica DEV gate + `?debug_tool_orchestration=1` per debug remoto.
+
+### Verification (2026-07-23)
+
+| Item | Status | Evidence |
+|---|---|---|
+| D1: `inFlightStepsRef` leak assertion | **MISSING** | No dev assertion in `useToolPageRunController.ts` |
+| D2: `progressStatesEqual` dedup logging | ✅ **EXISTS** | `tool-page-machine-assignments.ts:56` — DEV-only log + 3-way branching |
+| D3: 5s idle timeout for stuck auto-chain | **MISSING** | No fallback timer in auto-chain logic |
+| Root cause: 33% session incompleteness | **UNRESOLVED** | Hypotheses documented but not confirmed |
 
 ---
 

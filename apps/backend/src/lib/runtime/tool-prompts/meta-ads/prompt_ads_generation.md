@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: copy_length_format, output_step_context-generation -->
 # PROMPT META ADS - ADS GENERATION (CLUSTER → ANGLE → AWARENESS SYSTEM)
 
 ## Step Key
@@ -16,6 +17,20 @@ Generate production-ready Meta Ads assets using the new cluster → angle → aw
 
 - Context-generation artifact
 - User-selected copy length format: {{copy_length_format}}
+
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
+## Pipeline Context
+You are step 2 of 2 in the meta-ads workflow — the final step.
+Previous step output:
+{{output_step_context-generation}}
+
+This is the final artifact. Generate production-ready Meta Ads assets from the validated strategic context.
 
 ## Output rules
 
@@ -170,3 +185,11 @@ Brand facts utilizzati in modo coerente: [Inserire brand facts dal Brand Facts B
 - [ ] Headlines e Descriptions entro limiti Meta Ads
 - [ ] Compliance verificata per settore/industria
 - [ ] CTA variano appropriatamente per awareness level
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

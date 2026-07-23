@@ -17,21 +17,74 @@ import type {
   ToolDoneOutput,
   UsageDoneOutput,
 } from './generation-system.types';
+import {
+  AcquisitionDoneOutputSchema,
+  CrawlingDoneOutputSchema,
+  ExtractionDoneOutputSchema,
+  GenerateDoneOutputSchema,
+  IdempotencyDoneOutputSchema,
+  OwnershipDoneOutputSchema,
+  ScoringDoneOutputSchema,
+  StreamDoneOutputSchema,
+  ToolDoneOutputSchema,
+  UsageDoneOutputSchema,
+} from './generation-system.event-schemas';
+import { createComponentLogger } from '../runtime/log-components';
 
-export const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput =>
-  (event as { output: IdempotencyDoneOutput }).output;
+const eventLog = createComponentLogger('generation-system.events');
 
-export const getUsageDoneOutput = (event: unknown): UsageDoneOutput | undefined =>
-  (event as { output?: UsageDoneOutput }).output;
+const validateOutput = <T>(
+  output: unknown,
+  schema: { safeParse: (data: unknown) => { success: boolean; data?: unknown; error?: { issues: unknown[] } } },
+  label: string,
+): T | undefined => {
+  if (output === undefined || output === null) {
+    return undefined;
+  }
+  const result = schema.safeParse(output);
+  if (!result.success) {
+    eventLog.warn(
+      { label, zodErrors: result.error?.issues },
+      'output validation failed — type drift detected',
+    );
+    return undefined;
+  }
+  return result.data as T;
+};
 
-export const getOwnershipDoneOutput = (event: unknown): OwnershipDoneOutput | undefined =>
-  (event as { output?: OwnershipDoneOutput }).output;
+/**
+ * Domain Event output accessors.
+ *
+ * Helper che estraggono l'output dagli eventi XState onDone.
+ * Validati runtime con Zod safeParse per rilevare type drift.
+ *
+ * @ddd DomainEventAccessors GenerationEvents
+ * @ddd Related DDD-009 DDD-035 DDD-036
+ */
+export const getIdempotencyDoneOutput = (event: unknown): IdempotencyDoneOutput => {
+  const output = (event as { output: IdempotencyDoneOutput }).output;
+  return validateOutput(output, IdempotencyDoneOutputSchema, 'IdempotencyDoneOutput') ?? output;
+};
 
-export const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined =>
-  (event as { output?: StreamDoneOutput }).output;
+export const getUsageDoneOutput = (event: unknown): UsageDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, UsageDoneOutputSchema, 'UsageDoneOutput');
+};
 
-export const getGenerateDoneOutput = (event: unknown): GenerateDoneOutput | undefined =>
-  (event as { output?: GenerateDoneOutput }).output;
+export const getOwnershipDoneOutput = (event: unknown): OwnershipDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, OwnershipDoneOutputSchema, 'OwnershipDoneOutput');
+};
+
+export const getStreamDoneOutput = (event: unknown): StreamDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, StreamDoneOutputSchema, 'StreamDoneOutput');
+};
+
+export const getGenerateDoneOutput = (event: unknown): GenerateDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, GenerateDoneOutputSchema, 'GenerateDoneOutput');
+};
 
 export const getGenerateResultParams = (event: unknown): CacheGenerateResultParams => {
   const output = getGenerateDoneOutput(event);
@@ -66,8 +119,10 @@ export const isEmptyStreamSuccess = (event: unknown): boolean => {
   return content.trim().length === 0 && outputTokens === 0;
 };
 
-export const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined =>
-  (event as { output?: ExtractionDoneOutput }).output;
+export const getExtractionDoneOutput = (event: unknown): ExtractionDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, ExtractionDoneOutputSchema, 'ExtractionDoneOutput');
+};
 
 export const getExtractionResultParams = (event: unknown): CacheExtractionResultParams => {
   const output = getExtractionDoneOutput(event);
@@ -84,11 +139,15 @@ export const getExtractionResultParams = (event: unknown): CacheExtractionResult
   };
 };
 
-export const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined =>
-  (event as { output?: ToolDoneOutput }).output;
+export const getToolDoneOutput = (event: unknown): ToolDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, ToolDoneOutputSchema, 'ToolDoneOutput');
+};
 
-export const getAcquisitionDoneOutput = (event: unknown): AcquisitionDoneOutput | undefined =>
-  (event as { output?: AcquisitionDoneOutput }).output;
+export const getAcquisitionDoneOutput = (event: unknown): AcquisitionDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, AcquisitionDoneOutputSchema, 'AcquisitionDoneOutput');
+};
 
 export const getAcquisitionResultParams = (event: unknown): CacheAcquisitionResultParams => {
   const output = getAcquisitionDoneOutput(event);
@@ -103,8 +162,10 @@ export const getAcquisitionResultParams = (event: unknown): CacheAcquisitionResu
   };
 };
 
-export const getCrawlingDoneOutput = (event: unknown): CrawlingDoneOutput | undefined =>
-  (event as { output?: CrawlingDoneOutput }).output;
+export const getCrawlingDoneOutput = (event: unknown): CrawlingDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, CrawlingDoneOutputSchema, 'CrawlingDoneOutput');
+};
 
 export const getCrawlingResultParams = (event: unknown): CacheCrawlingResultParams => {
   const output = getCrawlingDoneOutput(event);
@@ -121,8 +182,10 @@ export const getCrawlingResultParams = (event: unknown): CacheCrawlingResultPara
   };
 };
 
-export const getScoringDoneOutput = (event: unknown): ScoringDoneOutput | undefined =>
-  (event as { output?: ScoringDoneOutput }).output;
+export const getScoringDoneOutput = (event: unknown): ScoringDoneOutput | undefined => {
+  const output = (event as { output?: unknown }).output;
+  return validateOutput(output, ScoringDoneOutputSchema, 'ScoringDoneOutput');
+};
 
 export const getScoringResultParams = (event: unknown): CacheScoringResultParams => {
   const output = getScoringDoneOutput(event);

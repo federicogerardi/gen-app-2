@@ -1,6 +1,6 @@
 ---
 status: approved
-version: 5.0
+version: 5.2
 date_created: 2026-05-07
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
@@ -35,7 +35,7 @@ Indice operativo as-is: stato canonico della documentazione pubblica del reposit
 ## Snapshot Operativo
 
 - Scope: as-is state — public repository
-- Root documentale: docs/ (115 documenti, 8 sezioni)
+- Root documentale: docs/ (118 documenti, 8 sezioni)
 - Last audit: 2026-07-23
 - Next review: 2026-10-23
 
@@ -53,6 +53,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 8. [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) — **architectural vulnerabilities + monolith decomposition (completed)**
 9. [streaming-generator-debug-runbook](./04-testing/streaming-generator-debug-runbook.md)
 10. [production-observability-runbook](./04-testing/production-observability-runbook.md)
+11. [prompt-template-standards](./03-development/prompt-template-standards.md) — **canonical guide for LLM prompt templates**
 
 ## Section Map
 
@@ -62,6 +63,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | 01-requirements | [01-requirements](./01-requirements/) | Product + Frontend Platform | |
 | 02-design | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | Frontend Platform Team | |
 | 03-development | [llm-model-override-configuration-guide](./03-development/llm-model-override-configuration-guide.md) | Backend Runtime | Development guides, configuration how-tos |
+| 03-development | [prompt-template-standards](./03-development/prompt-template-standards.md) | Backend Runtime | **Canonical standards for LLM prompt templates — mandatory structure, language policy, quality gates** |
 | 04-testing | [04-testing](./04-testing/) | QA + Engineering Team | |
 | 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist | |
 | 99-reference | [99-reference](./99-reference/) | Documentation Archivist | |
@@ -75,7 +77,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | --- | --- | --- | --- |
 | [critical-vulnerabilities-progressive-review](./07-governance/critical-vulnerabilities-progressive-review.md) | archived | 2026-07-23 | 2027-01-23 |
 | [unified-architectural-vulnerabilities-review](./07-governance/unified-architectural-vulnerabilities-review.md) | completed | 2026-07-13 | 2026-10-13 |
-| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-22 | 2026-10-22 |
+| [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) | active | 2026-07-23 | 2027-01-23 |
 | [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) | active | 2026-07-22 | 2026-10-22 |
 | [documentation-ddd-ul-governance](./07-governance/documentation-ddd-ul-governance.md) | active | 2026-07-23 | 2026-10-23 |
 | [domain-ubiquitous-language-glossary](./01-requirements/domain-ubiquitous-language-glossary.md) | active | 2026-07-16 | 2026-10-16 |
@@ -83,6 +85,9 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | active | 2026-07-16 | 2026-08-16 |
 | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | approved | 2026-05-27 | 2026-08-16 |
 | [frontend-data-access-layer-adr](./02-design/adr/frontend-data-access-layer-adr.md) | accepted | 2026-04-27 | 2026-07-27 |
+| [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md) | completed | 2026-07-23 | 2027-01-23 |
+| [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) | completed | 2026-07-23 | 2027-01-23 |
+| [prompt-template-standards](./03-development/prompt-template-standards.md) | approved | 2026-07-23 | 2027-01-23 |
 
 ## Active Registry
 
@@ -95,6 +100,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 ### Templates
 
 - [tool-development-plan-template](./99-reference/templates/tool-development-plan-template.md) — canonical template for new Tool generation plans.
+- [prompt-template-standards](./03-development/prompt-template-standards.md) — **canonical standards for LLM prompt templates: mandatory structure, quality gates, onboarding checklist.**
 
 ### Design Specifications
 
@@ -124,14 +130,16 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Plans And Runbooks
 
-- [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **DRAFT: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
-- [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **DRAFT: Post-BullMQ Improvements (RISK-5,3,4,6)**
-- [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — completato: refactoring frontend reactive spaghetti e decomposizione `GenerationSystem`
+- [plan-bullmq-prerequisites](./05-plans/plan-bullmq-prerequisites.md) — **IMPLEMENTED: BullMQ Prerequisites (RISK-2 event bridge + RISK-1 serialization)**
+- [plan-post-bullmq-improvements](./05-plans/plan-post-bullmq-improvements.md) — **IMPLEMENTED: Post-BullMQ Improvements (RISK-5 dev guide, RISK-4 Zod, RISK-3 domain modules, RISK-6 inspector)**
+- [sprint-4-core-architecture-resolution-implementation-plan](./05-plans/sprint-4-core-architecture-resolution-implementation-plan.md) — **IMPLEMENTED**: refactoring frontend reactive spaghetti (Phase 1) e decomposizione `GenerationSystem` (Phase 2) — code-verified 2026-07-23
 - [sprint-5-context-migration-validation-implementation-plan](./99-lifecycle/99-archive/plans/sprint-5-context-migration-validation-implementation-plan.md) — completato: migrazione azioni e validazione contesto backend
 - [sprint-6-error-actors-wiring-implementation-plan](./99-lifecycle/99-archive/plans/sprint-6-error-actors-wiring-implementation-plan.md) — completato: integrazione attori gestione errori route-specific
 - [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](./99-lifecycle/99-archive/plans/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione streaming/non-streaming
 - [migrate-to-nonstreaming-generation](./99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md) — completato: migrazione a non-streaming default
 - [asset-domain-model-implementation-plan](./05-plans/asset-domain-model-implementation-plan.md) — completato: Asset domain model DDD-188→207
+- [italian-docs-language-remediation-plan](./05-plans/italian-docs-language-remediation-plan.md) — **ACTIVE: Italian docs language remediation per governance language policy (8/15 translated)**
+- [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) — **IMPLEMENTED 2026-07-23: All 4 phases complete. 34 prompt templates upgraded (anti-hallucination, chain awareness, persona rules, role/guardrails/checklists, feedback instructions, placeholder docs). Source: [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md).**
 
 ### Active Runbooks
 
@@ -144,15 +152,27 @@ Validation path manifest (orphan-check canonical set):
 - [architecture-weaknesses-code-review](./07-governance/architecture-weaknesses-code-review.md)
 - [ddd-implementation-audit](./07-governance/ddd-implementation-audit.md) — **DDD implementation audit (2026-07-22)**
 - [xstate-as-aggregate-architectural-review](./07-governance/xstate-as-aggregate-architectural-review.md) — **XState-as-Aggregate risk review (2026-07-22)**
-- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06)
+- [frontend-ux-determinism-code-review](./07-governance/frontend-ux-determinism-code-review.md) — frontend UX unification review (2026-06-06, verified 2026-07-23)
+- [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md) — **COMPLETED: quality review of 34 prompt templates across 12 tools. Remediation plan fully implemented 2026-07-23. See [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md).**
+
+### Active Plans — Workspace UX Transformation
+
+- [workspace-centric-ux-transformation-implementation-plan](./05-plans/workspace-centric-ux-transformation-implementation-plan.md) — **IMPLEMENTED**: workspace-centric UX (8 phases, all completed 2026-07-17, code-verified 2026-07-23). 2 minor gaps: `ToolReadinessBadge` missing, `calculateToolReadiness` renamed to `buildReadinessSnapshot`.
+- [workspace-centric-ux-transformation-ai-executable-plan](./05-plans/workspace-centric-ux-transformation-ai-executable-plan.md) — **IMPLEMENTED**: AI-executable task decomposition (47 tasks, all completed 2026-07-17).
+- [workspace-dashboard-ux-restyling-implementation-plan](./05-plans/workspace-dashboard-ux-restyling-implementation-plan.md) — **PARTIALLY IMPLEMENTED**: 15/19 tasks done. `FoundationToolsPanel` component missing (verified 2026-07-23).
+- [feature-tool-output-personalization-1](./05-plans/feature-tool-output-personalization-1.md) — **NOT IMPLEMENTED**: 0/23 tasks done (verified 2026-07-23).
 
 ### Active Proposals
 
-- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Piani collegati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md), [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md).**
-- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools**
-- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification, AI Overview validation, error tracking, and admin dashboard metrics**
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅. Code status: **0/10 componenti implementati** (verified 2026-07-23).**
+- [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools. Code status: **0/5 pilastri implementati** (solo `generation_feedback` table + `FeedbackButtons` esistono). Verified 2026-07-23.**
+- [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification. Code status: **0/4 item implementati** (verified 2026-07-23).**
 
 ### Implemented Proposals
+
+- [dashboard-workspace-centric-restyling-proposal](./02-design/specifications/dashboard-workspace-centric-restyling-proposal.md) — **Implemented 2026-07-23: Dashboard restyling with workspace-centric panels (code-verified)**
+- [workspace-hub-restyling-proposal](./02-design/specifications/workspace-hub-restyling-proposal.md) — **Implemented 2026-07-23: Workspace Hub card-variant layout (code-verified)**
+- [promote-to-asset-deterministic-mapping-review](./02-design/promote-to-asset-deterministic-mapping-review.md) — **Implemented 2026-07-23: Deterministic toolKey→assetType mapping (code-verified)**
 
 - [llm-model-step-override-proposal](./02-design/llm-model-step-override-proposal.md) — **Implemented 2026-07-16: per-step LLM model override system (DDD-150/151/152)**
 - [serp-api-integration-proposal](./02-design/serp-api-integration-proposal.md) — **Implemented 2026-07-16: SerpAPI replaces Puppeteer for Geometric crawling**
@@ -163,15 +183,18 @@ Validation path manifest (orphan-check canonical set):
 
 ### Open Findings — UX Determinism Review (for future implementation)
 
-> Source: [frontend-ux-determinism-code-review.md](./07-governance/frontend-ux-determinism-code-review.md) — Intervention Priority table, updated 2026-06-22.
-> Finding #5 (B1), #13 (D2) e #14 (E2) closed 2026-06-22.
+> Source: [frontend-ux-determinism-code-review.md](./07-governance/frontend-ux-determinism-code-review.md) — Intervention Priority table, updated 2026-07-23.
 
 | # | Finding | Area | Effort | Status |
 |---|---|------|--------|--------|
 | 5 | B1 — Hardcoded copy residuals | Admin forms/tables/dashboard/navigation, Tool buttons, YT form | Incremental, per area | **resolved** — all strings centralized |
 | 8 | A1 — Explicit error states in machines | `tool-page`, `briefing-upload`, `auth-session` machines | Sprint dedicato | **resolved** — Sprints 1–4, see [ADR-003](./02-design/adr/xstate-explicit-error-states-adr.md) |
 | 10 | C1 — Two button systems | MUI vs native button convergence | Requires ADR | **partial** — CTA variant classes applied; full convergence deferred |
-| 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — inline editing, row selection, bindings panel not supported |
+| 12 | E1 — Admin pages → `ListingTableSection` | `AdminUsersPage`, `AdminModelsPage`, `AdminApiServicesPage` | Component extension or abandonment | open — `ListingTableSection` exists but admin pages not yet migrated |
+| 15 | A2 — Inline guards duplicating named guards | `tool-flow.machine.ts`, `generation-lifecycle.machine.ts` | Low effort | open — 3+3 inline + 3+1 named guards (mixed, verified 2026-07-23) |
+| 16 | A6 — Briefing upload coupling | `briefing-upload.machine.ts` | Medium | open — push+pull coexist (verified 2026-07-23) |
+| 17 | A7 — Missing `onError` handler | `tool-page.machine.ts` invoke | Low | **resolved** — handler exists at lines 391-396 (verified 2026-07-23) |
+| 18 | B1b — `"Apri sessione"` hardcoded | `ArtifactDetailPage.tsx` | Low | **resolved** — string removed (verified 2026-07-23) |
 
 ### Governance Tables
 

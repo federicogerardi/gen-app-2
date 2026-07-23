@@ -1,9 +1,9 @@
 ---
 status: active
-version: 1.5
+version: 1.6
 date_created: 2026-06-06
-last-reviewed: 2026-06-26
-next-review-date: 2026-07-26
+last-reviewed: 2026-07-23
+next-review-date: 2026-10-23
 owner: Frontend Platform Team
 type: code-review
 tags: [frontend, ux, determinism, code-review, unification]
@@ -37,6 +37,8 @@ Tutte e 3 le macchine ora usano child states espliciti per le condizioni di erro
 
 **Recommendation**: Use `and(['isCurrentStepDone', 'hasNextStep'])` to compose existing guards. Eliminates drift risk when logic changes. Low effort, no blocker.
 
+**Verification (2026-07-23)**: Still **MIXED**. `tool-flow.machine.ts` has 3 named + 3 inline guards. `generation-lifecycle.machine.ts` has 3 named + 1 inline guard. Full determinism not achieved.
+
 ### A3. Dual-write viewModel in `tool-page.machine.ts` actions — RESOLVED
 
 La `viewModel` è ora derivata reattivamente tramite `buildReactiveViewModel(context, configuringSubstate)` — una funzione pura che legge stato + contesto. Zero `assign({ viewModel: ... })` nelle actions. Vedi [ADR-003](../02-design/adr/xstate-explicit-error-states-adr.md).
@@ -62,9 +64,11 @@ La `viewModel` è ora derivata reattivamente tramite `buildReactiveViewModel(con
 
 `briefing-upload.machine.ts:33-53` exports `hasReadyBriefingExtractionContext` which reads directly into the child actor's snapshot. If the child context shape changes, this function breaks silently. A push-based pattern (child sends event to parent on readiness change) would be more robust. Tied to finding A1 — resolving error states in `briefing-upload.machine.ts` would naturally address this coupling.
 
-### A7. Missing `onError` on invoked actor — OPEN
+### A7. Missing `onError` on invoked actor — RESOLVED
 
-`tool-page.machine.ts:360-372`: the `generationLifecycleMachine` invoke has `onDone` but no `onError`. An unexpected child crash would not be caught. Low effort fix — add `onError` handler that transitions to `configuring` with error message.
+~~`tool-page.machine.ts:360-372`: the `generationLifecycleMachine` invoke has `onDone` but no `onError`. An unexpected child crash would not be caught. Low effort fix — add `onError` handler that transitions to `configuring` with error message.~~
+
+**RESOLVED** (verified 2026-07-23) — `onError` handler exists at `tool-page.machine.ts:391-396`: `onError: { target: 'configuring.generationFailed', actions: assign(...) }`.
 
 ---
 
@@ -82,7 +86,7 @@ Most significant violations:
 | Admin tables | `ReportsTable.tsx`, `ChangelogTable.tsx`, `LLMTable.tsx`, `ActivityLogTable.tsx` | Column headers hardcoded | **resolved** |
 | Admin dashboard | `AdminDashboardPage.tsx:28-48` | 4 KPI widgets with hardcoded text | **resolved** |
 | Admin navigation | `admin-navigation.ts:13-51` | 7 labels + 7 descriptions outside `copy/system.ts` | **resolved** |
-| Artifact detail | `ArtifactDetailPage.tsx:231` | `"Apri sessione"` duplicates `appCopy.ui.toolPage.openSessionLabel` | open |
+| Artifact detail | `ArtifactDetailPage.tsx:231` | `"Apri sessione"` duplicates `appCopy.ui.toolPage.openSessionLabel` | **resolved** (verified 2026-07-23 — string removed) |
 | Feedback center | `UserReportSubmissionPage.tsx:84` | `"Report submitted successfully."` vs `appCopy.ui.feedback.userReportSubmitted` | **resolved** |
 | ToolFormComponents | `ToolFormComponents.tsx:34,101,151` | `"Select a project"`, `"No models available"`, `"waiting for dependencies"` | **resolved** |
 | NewProjectPage | `NewProjectPage.tsx:13` | `'Project name is required'` | **resolved** |

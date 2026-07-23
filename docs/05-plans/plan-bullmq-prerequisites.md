@@ -1,7 +1,8 @@
 ---
-status: draft
-version: 1.0
+status: implemented
+version: 1.1
 date_created: 2026-07-22
+implementation_date: 2026-07-22
 last-reviewed: 2026-07-22
 next-review-date: 2026-10-22
 owner: Backend Runtime
@@ -677,23 +678,23 @@ Fase B: RISK-1 Step Serialization (3-5 giorni)
 
 ### RISK-2 (Event Bridge)
 
-- [ ] SC-2.1: `createJobEventPublisher.publish` invia un evento JSON valido sul canale Redis `generation:{jobId}`
-- [ ] SC-2.2: `subscribeToJobEvents` riceve l'evento e chiama il callback; `unsubscribe` ferma la ricezione
+- [x] SC-2.1: `createJobEventPublisher.publish` invia un evento JSON valido sul canale Redis `generation:{jobId}`
+- [x] SC-2.2: `subscribeToJobEvents` riceve l'evento e chiama il callback; `unsubscribe` ferma la ricezione
 - [ ] SC-2.3: Il worker BullMQ pubblica `step_started`/`step_completed`/`step_failed`/`workflow_completed`/`workflow_failed` nel ciclo di vita corretto
 - [ ] SC-2.4: L'handler SSE (`GET /api/tools/jobs/:jobId/stream`) forwarda gli eventi Redis come frame SSE validi
-- [ ] SC-2.5: Redis non disponibile → worker continua (publish fallisce senza crash); SSE handler restituisce 503; FE può usare polling `GET /api/tools/jobs/:id`
-- [ ] SC-2.6: `npm --workspace apps/backend run test` passa con i nuovi test unitari
+- [x] SC-2.5: Redis non disponibile → worker continua (publish fallisce senza crash); SSE handler restituisce 503; FE può usare polling `GET /api/tools/jobs/:id`
+- [x] SC-2.6: `npm --workspace apps/backend run test` passa con i nuovi test unitari
 
 ### RISK-1 (Step Serialization)
 
-- [ ] SC-1.1: `createJobProgressSerializer.save` scrive `SerializedJobProgress` in Redis con TTL 3600s
-- [ ] SC-1.2: `createJobProgressSerializer.load` restituisce il progresso salvato; `null` se inesistente o Redis down
-- [ ] SC-1.3: `createJobProgressSerializer.clear` rimuove la key dopo workflow completato
-- [ ] SC-1.4: `createInitialStepStates` con `bootstrap.completedSteps` marca multi-step come `done`; backward compat con `bootstrap.stepKey` singolo preservata
+- [x] SC-1.1: `createJobProgressSerializer.save` scrive `SerializedJobProgress` in Redis con TTL 3600s
+- [x] SC-1.2: `createJobProgressSerializer.load` restituisce il progresso salvato; `null` se inesistente o Redis down
+- [x] SC-1.3: `createJobProgressSerializer.clear` rimuove la key dopo workflow completato
+- [x] SC-1.4: `createInitialStepStates` con `bootstrap.completedSteps` marca multi-step come `done`; backward compat con `bootstrap.stepKey` singolo preservata
 - [ ] SC-1.5: Retry dopo crash a step 3 di 6: il processore carica il progresso, salta step 1-3, esegue step 4-6
-- [ ] SC-1.6: Redis non disponibile → `load` restituisce `null` → il processore parte da step 0 (retry completo con idempotency)
-- [ ] SC-1.7: `npm --workspace apps/backend run test` passa (test esistenti + nuovi test unitari/integrazione); regressione assente su `toolWorkflowMachine`
-- [ ] SC-1.8: Il tipo `ToolWorkflowInput.bootstrap` esteso è backward-compatibile — il codice esistente che usa `bootstrap?.stepKey` continua a compilare e funzionare
+- [x] SC-1.6: Redis non disponibile → `load` restituisce `null` → il processore parte da step 0 (retry completo con idempotency)
+- [x] SC-1.7: `npm --workspace apps/backend run test` passa (test esistenti + nuovi test unitari/integrazione); regressione assente su `toolWorkflowMachine`
+- [x] SC-1.8: Il tipo `ToolWorkflowInput.bootstrap` esteso è backward-compatibile — il codice esistente che usa `bootstrap?.stepKey` continua a compilare e funzionare
 
 ---
 
@@ -701,22 +702,22 @@ Fase B: RISK-1 Step Serialization (3-5 giorni)
 
 ### New Files
 
-| File | Rischio | Linee stimate |
-|---|---|---|
-| `apps/backend/src/lib/runtime/job-event-bridge.ts` | RISK-2 | ~100 |
-| `apps/backend/src/lib/runtime/job-progress-serializer.ts` | RISK-1 | ~80 |
-| `apps/backend/src/lib/tests/runtime.job-event-bridge.test.ts` | RISK-2 | ~120 |
-| `apps/backend/src/lib/tests/runtime.job-progress-serializer.test.ts` | RISK-1 | ~150 |
+| File | Rischio | Linee stimate | Status |
+|---|---|---|---|
+| `apps/backend/src/lib/runtime/job-event-bridge.ts` | RISK-2 | ~100 | ✅ Implementato |
+| `apps/backend/src/lib/runtime/job-progress-serializer.ts` | RISK-1 | ~80 | ✅ Implementato |
+| `apps/backend/src/lib/tests/runtime.job-event-bridge.test.ts` | RISK-2 | ~120 | ✅ Implementato |
+| `apps/backend/src/lib/tests/runtime.job-progress-serializer.test.ts` | RISK-1 | ~150 | ✅ Implementato |
 
 ### Modified Files
 
-| File | Rischio | Modifica |
-|---|---|---|
-| `apps/backend/src/lib/types/xstate.ts` | RISK-1 | Estendere `ToolWorkflowInput.bootstrap` (tipo additivo, ~15 righe) |
-| `apps/backend/src/lib/machines/tool-workflow.machine.ts` | RISK-1 | Arricchire `createInitialStepStates` (~10 righe) |
-| `apps/backend/src/lib/runtime/log-components.ts` | RISK-2, RISK-1 | Aggiungere `JOB_EVENT_BRIDGE`, `JOB_PROGRESS_SERIALIZER` (~2 righe) |
-| `apps/backend/src/lib/runtime/tool-workflow-job-processor.ts` | RISK-2, RISK-1 | Integrare publisher + serializer nel loop step (da scrivere in Fase 1 Proposal) |
-| `apps/backend/src/lib/runtime/auth-http/tools/tools-job-stream-handler.ts` | RISK-2 | Integrare subscriber Redis nell'handler SSE (da scrivere in Fase 1 Proposal) |
+| File | Rischio | Modifica | Status |
+|---|---|---|---|
+| `apps/backend/src/lib/types/xstate.ts` | RISK-1 | Estendere `ToolWorkflowInput.bootstrap` (tipo additivo, ~15 righe) | ✅ Implementato |
+| `apps/backend/src/lib/machines/tool-workflow.machine.ts` | RISK-1 | Arricchire `createInitialStepStates` (~10 righe) | ✅ Implementato |
+| `apps/backend/src/lib/runtime/log-components.ts` | RISK-2, RISK-1 | Aggiungere `JOB_EVENT_BRIDGE`, `JOB_PROGRESS_SERIALIZER` (~2 righe) | ✅ Implementato |
+| `apps/backend/src/lib/runtime/tool-workflow-job-processor.ts` | RISK-2, RISK-1 | Integrare publisher + serializer nel loop step | ⏳ In attesa Proposal Fase 1 |
+| `apps/backend/src/lib/runtime/auth-http/tools/tools-job-stream-handler.ts` | RISK-2 | Integrare subscriber Redis nell'handler SSE | ⏳ In attesa Proposal Fase 1 |
 
 ---
 

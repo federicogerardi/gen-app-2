@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Check, Copy } from 'lucide-react';
@@ -20,6 +20,16 @@ type ArtifactContentPreviewProps = {
   downloadOptions?: DownloadOptions;
 };
 
+const stripCodeFences = (text: string): string => {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('```')) return text;
+  const firstNewline = trimmed.indexOf('\n');
+  if (firstNewline === -1) return text;
+  if (!trimmed.endsWith('```')) return text;
+  const inner = trimmed.slice(firstNewline + 1, trimmed.length - 3);
+  return inner.endsWith('\n') ? inner.slice(0, -1) : inner;
+};
+
 export const ArtifactContentPreview = ({
   content,
   toolbarLabel = appCopy.ui.artifactPreview.toolbarLabel,
@@ -32,6 +42,7 @@ export const ArtifactContentPreview = ({
   const markdownRef = useRef<HTMLDivElement>(null);
 
   const resolvedContent = content ?? '';
+  const sanitizedContent = useMemo(() => stripCodeFences(resolvedContent), [resolvedContent]);
   const setCopiedState = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), UI_CONFIG.delays.clipboardFeedbackMs);
@@ -124,7 +135,7 @@ export const ArtifactContentPreview = ({
       {viewMode === 'markdown' ? (
         <div className="ui-artifact-markdown" ref={markdownRef} role="tabpanel" id="panel-markdown" aria-labelledby="tab-markdown" aria-label={panelLabel}>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {resolvedContent}
+            {sanitizedContent}
           </ReactMarkdown>
         </div>
       ) : (

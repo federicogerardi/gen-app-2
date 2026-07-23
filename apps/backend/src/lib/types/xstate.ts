@@ -2,6 +2,16 @@ import type { ArtifactType, OutputFormat, ToolWorkflow } from './artifact';
 import type { EffectiveModelResolution } from './step-llm-model-override';
 import type { WorkflowRunMode } from '@gen-app-2/domain';
 
+/**
+ * Domain Event type definitions per Generation bounded context.
+ *
+ * Definisce le shape di tutti i Domain Event e Value Object
+ * usati nelle macchine XState del Generation context.
+ *
+ * @ddd DomainEventDefinitions GenerationTypes
+ * @ddd BoundedContext Generation
+ * @ddd Related DDD-003 DDD-027 DDD-035 DDD-036 DDD-037
+ */
 export type IsoTimestamp = string;
 
 export type RegistryBackedArtifactType = ArtifactType | (string & {});
@@ -173,9 +183,16 @@ export type ToolWorkflowInput = RequestRegistrySelector & {
   dependencyGraph: Record<string, string[]>;
   requestInput?: Record<string, unknown>;
   bootstrap?: {
-    stepKey: string;
-    output: string;
-    artifactId: string;
+    /** Single step to resume from (backward compat). */
+    stepKey?: string;
+    output?: string;
+    artifactId?: string;
+    /** Multi-step resume: array of already-completed steps to skip. */
+    completedSteps?: Array<{
+      stepKey: string;
+      artifactId: string;
+      status?: WorkflowStepStatus;
+    }>;
   };
 };
 

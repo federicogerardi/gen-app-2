@@ -4,7 +4,8 @@ import { generationLifecycleMachine } from './generation-lifecycle.machine';
 import { hydrationMachine } from './hydration.machine';
 import { generateSessionId } from '../../../app/runtime/shared-utils';
 import { buildReadinessSnapshot, deriveHasPrimaryTargetStep } from './tool-page-readiness';
-import { buildReactiveViewModel, canStartFromPolicy } from './tool-page-view-model';
+import { buildReactiveViewModel } from './tool-page-view-model';
+import { canStartGeneration as canStartGenerationRule } from '../runtime/domain-rules/can-start-generation.rule';
 import { normalizeHydrateRequest, normalizePendingHydration, readHydrationMachineOutput } from './tool-page-hydration';
 import { buildEmptyProgressState, buildResetConfigState, buildSetProjectState, buildSyncProgressState } from './tool-page-machine-assignments';
 import type { ToolPageContext, ToolPageEvent, ToolPageInput } from './tool-page.types';
@@ -17,6 +18,16 @@ export type { ToolPageProgressState } from './tool-page-progress';
 export type { ToolPageViewModel } from './tool-page-view-model';
 export { resolveFlowProgressState, resolveRestoredCheckpointState } from './tool-page-progress';
 
+/**
+ * Aggregate Root: ToolPage (Frontend bounded context)
+ *
+ * Macchina a stati che gestisce il ciclo di vita della pagina tool nel FE.
+ * Coordina readiness, hydration, generation lifecycle, e briefing upload.
+ *
+ * @ddd AggregateRoot ToolPage
+ * @ddd BoundedContext Frontend
+ * @ddd Related DDD-020 DDD-006 DDD-010
+ */
 export const toolPageMachine = setup({
   types: {
     context: {} as ToolPageContext,
@@ -31,16 +42,10 @@ export const toolPageMachine = setup({
   guards: {
     canStartGeneration: ({ context }) => {
       const policy = buildReactiveViewModel(context).primaryActionPolicy;
-      // Asset-based context override: when the only blocking reason is missing
-      // extraction context, allow generation to proceed. The React layer
-      // (useToolPage) has already verified that workspace assets provide
-      // sufficient context, and the generation request will include
-      // assetReferences instead of extraction data.
-      const extractionOnlyMissing = !context.readiness.canStartFlow
-        && context.readiness.reasonCodes.length === 1
-        && context.readiness.reasonCodes[0] === 'missing_extraction_context';
-      return (context.readiness.canStartFlow || extractionOnlyMissing)
-        && (canStartFromPolicy(policy) || extractionOnlyMissing);
+      return canStartGenerationRule({
+        readiness: context.readiness,
+        primaryActionPolicy: policy,
+      });
     },
     // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop the redundant second
     // CANCEL_GENERATION issued when the bridge branch (b) failure path and the

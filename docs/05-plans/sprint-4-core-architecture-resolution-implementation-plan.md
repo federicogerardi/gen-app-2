@@ -1,8 +1,8 @@
 ---
-status: draft
-version: 1.8
-last-reviewed: 2026-07-12
-next-review-date: 2026-07-19
+status: implemented
+version: 1.9
+last-reviewed: 2026-07-23
+next-review-date: 2027-01-23
 owner: Domain Architecture Team
 date_created: 2026-07-08
 title: Sprint 4 Implementation Plan - Core Architecture Resolution
@@ -897,7 +897,7 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 |-------|------------------|--------|-------------------|
 | **DDD Gates** | DDD-165→172 entries created | ✅ Complete | `grep -c "DDD-16[5-9]\|DDD-17[0-2]" docs/07-governance/domain-naming-decision-log.md` |
 | **Phase 1 (V2)** | ≤2 useEffect, 0 race conditions, XState authority | ✅ Complete (Steps 1-6 done; Session 2 local browser validated) | `npm --workspace apps/frontend run test && [ $(grep -c "useEffect" apps/frontend/src/features/tools/runtime/useToolPageRunController.ts) -le 2 ]` |
-| **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | 🟡 Partial (Steps 1,2,4,5 done) | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
+| **Phase 2 (V1)** | ≤15 fields/context, route-specific errors, domain separation | ✅ Complete (all steps verified in code 2026-07-23) | `npm --workspace apps/backend run go && [ $(grep -c "extractionErrorActor\|toolWorkflowErrorActor\|genericErrorActor" apps/backend/src/lib/machines/generation-system.actors.ts) -eq 3 ]` |
 | **Integration** | 448 frontend + 335 backend tests pass, performance maintained | ✅ Complete | `npm run typecheck && npm run test && npm run build` |
 
 ### 💡 Session 2 Learned Lessons & Strategic Pivot (2026-07-12)
@@ -972,8 +972,26 @@ grep -c "readonly\|:" apps/backend/src/lib/machines/generation-system.context-ty
 
 ---
 
-**Last Updated**: 2026-07-12 (Sprint 4 Session 2 — Phase 1 COMPLETE via reducer-bridge consolidation + DDD-158 consumer + Race A/D guards; Phase 2 deferred)  
-**Next Review**: 2026-07-19  
-**Review Owner**: Domain Architecture Team  
-**DDD Compliance Status**: ✅ **PASSED** - All DDD-165 through DDD-172 entries created and approved  
-**AI Execution Ready**: ✅ **PHASE 1 COMPLETE** - Session 1 merged to `dev` via PR #43; Session 2 on `feature/sprint-4-session-2-reducer-bridge` completed Phase 1 Steps 1-6 (FE-only). Phase 2 (V1 backend context decomposition) deferred to next session.
+**Last Updated**: 2026-07-23 (Code verification audit — Phase 2 confirmed complete)
+**Next Review**: 2027-01-23
+**Review Owner**: Domain Architecture Team
+**DDD Compliance Status**: ✅ **PASSED** - All DDD-165 through DDD-172 entries created and approved
+**AI Execution Ready**: ✅ **BOTH PHASES COMPLETE** — Phase 1 (Session 1+2, FE reducer-bridge) and Phase 2 (backend context decomposition) fully implemented and verified in code.
+
+### Code Verification Audit (2026-07-23)
+
+Independent codebase verification confirmed all Sprint 4 deliverables are implemented:
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| `generation-system.context-types.ts` (5 sub-contexts) | ✅ Exists | `apps/backend/src/lib/machines/generation-system.context-types.ts` |
+| `generation-system.context-accessors.ts` (typed accessors) | ✅ Exists | `apps/backend/src/lib/machines/generation-system.context-accessors.ts` |
+| `cacheDomainMeta` / `cacheRuntimeMeta` (split actions) | ✅ Exists | `apps/backend/src/lib/machines/generation-system.actions.ts:148,160` |
+| `extractionErrorActor`, `toolWorkflowErrorActor`, `genericErrorActor` | ✅ Exists | `apps/backend/src/lib/machines/generation-system.error-actors.ts:19,42,65` |
+| Error actors wired in state machine | ✅ Wired | `generation-system.persistence.states.ts:43-44,70-71,97-98` |
+| Context decomposition test | ✅ Exists | `apps/backend/src/lib/tests/generation-system.context-decomposition.test.ts` |
+| Error recovery routing test | ✅ Exists | `apps/backend/src/lib/tests/generation-system.error-recovery-routing.test.ts` |
+| `useToolPageStateConsumer` (DDD-158) | ✅ Exists | `apps/frontend/src/features/tools/runtime/useToolPageStateConsumer.ts` |
+| Effect count ≤ 2 in run controller | ✅ Verified | `useToolPageRunController.ts` — 1 `useEffect` + 1 `useLayoutEffect` |
+| `progressStatesEqual` dedup (Race A) | ✅ Exists | `tool-page-machine-assignments.ts:56` |
+| `canCancelGeneration` guard (Race D) | ✅ Exists | Guard on `configuring.CANCEL_GENERATION` handler |

@@ -268,7 +268,7 @@ export const generationSystemExecutionStates = {
     ],
   },
   generating: {
-    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
+    entry: ['ensureArtifactId', 'assembleChainAwarePrompt'],
     invoke: {
       id: 'generationActor',
       src: 'invokeGeneration',
@@ -309,7 +309,7 @@ export const generationSystemExecutionStates = {
     },
   },
   streaming: {
-    entry: ['ensureArtifactId', 'assembleBlogArticlePrompt'],
+    entry: ['ensureArtifactId', 'assembleChainAwarePrompt'],
     invoke: {
       id: 'streamActor',
       src: 'invokeStream',

@@ -1,9 +1,9 @@
 ---
 status: draft
-version: 3.1
+version: 3.2
 date_created: 2026-07-11
-last-reviewed: 2026-07-18
-next-review-date: 2026-08-18
+last-reviewed: 2026-07-23
+next-review-date: 2026-08-23
 owner: Frontend Platform Team & Domain Architecture
 type: proposal
 tags: [personalization, tools, ux, generation, variants, feedback, hitl, enterprise]
@@ -557,3 +557,27 @@ This section lists the concepts introduced by this proposal that have been regis
 | DDD-185 | nextland Personalization | Policy | Frontend | ❌ Rejected | Registration of `sitePersonality`, `navigationStyle`, `componentLibrary` via `PersonalizationFieldDef`. See §11.2. |
 | DDD-186 | youtube-lf-script Personalization | Policy | Frontend | ❌ Rejected | Registration of `videoFormat`, `hookApproach`, `ctaDensity`, `retentionPattern`, plus `interactive` Hook step. See §11.3. |
 | DDD-187 | youtube-description Personalization | Policy | Frontend | ❌ Rejected | Registration of `descriptionStyle`, `seoDepth`, `descriptionLength`, `featuredSnippet`. See §11.4. |
+
+---
+
+## 14. Code Verification Status (2026-07-23)
+
+> **Status: NOT IMPLEMENTED** — Zero code artifacts exist for any of the 5 pillars. All items remain at proposal stage.
+
+| Pillar | Item | Code Status |
+|---|---|---|
+| **§2.1 Brand Persona** | `project_brand_personas` table | **MISSING** — no migration |
+| | `getBrandPersonaByProject` / `upsertBrandPersona` | **MISSING** — no adapter |
+| | Auto-injection `<brand_persona_context>` | **MISSING** |
+| **§2.2 Personalization Registry** | `PersonalizationFieldDef` type | **MISSING** — not in `packages/contracts/` |
+| | `personalizationOverrides` in `GenerationRequestInput` | **MISSING** |
+| | `DynamicPersonalizationForm` component | **MISSING** |
+| **§2.3 Variant Fan-Out** | `variantCount` / `variantSeed` in contracts | **MISSING** |
+| | `VariantComparisonView` component | **MISSING** |
+| | Idempotency key extension with `variantIndex` | **MISSING** |
+| **§2.4 HITL Interactive Steps** | `WorkflowStepType = 'interactive'` | **MISSING** — current type: `'extraction'\|'generation'\|'acquisition'\|'crawling'\|'scoring'` |
+| | `InteractiveStepEditor` component | **MISSING** |
+| | `POST /api/tools/sessions/{id}/step/{key}/submit` | **MISSING** |
+| **§2.5 Feedback & RAG** | `generation_feedback` table | ✅ **EXISTS** — migration `20260716_000026_asset_derivation_and_feedback.sql` |
+| | `FeedbackButtons` component | ✅ **EXISTS** — `apps/frontend/src/features/sessionsummary/ui/FeedbackButtons.tsx` |
+| | `DynamicFewShotInjection` (RAG query) | **MISSING** |

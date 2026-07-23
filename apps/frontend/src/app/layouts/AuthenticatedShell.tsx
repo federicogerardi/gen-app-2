@@ -37,7 +37,7 @@ export const AuthenticatedShell = () => {
           <ThemeToggleButton />
           <button
             type="button"
-            className={cx(uiPrimitives.menuToggle, 'is-priority', isMobileNavOpen && 'is-hidden')}
+            className={cx(uiPrimitives.menuToggle, isMobileNavOpen && 'is-hidden')}
             onClick={() => setIsMobileNavOpen(true)}
             aria-label={appCopy.ui.actions.openNavigationMenu}
             aria-expanded={isMobileNavOpen}
@@ -57,7 +57,7 @@ export const AuthenticatedShell = () => {
         tabIndex={isMobileNavOpen ? 0 : -1}
       />
 
-      <section className={cx(uiPrimitives.workbench, isNavCollapsed && 'is-nav-collapsed')} {...(isMobileNavOpen ? { inert: true } : {})}>
+      <section className={cx(uiPrimitives.workbench, isNavCollapsed && 'is-nav-collapsed')}>
         <MainNavigation
           isCollapsed={isNavCollapsed}
           isMobileOpen={isMobileNavOpen}
@@ -67,7 +67,7 @@ export const AuthenticatedShell = () => {
           onLogout={() => void logout()}
         />
 
-        <section className={uiPrimitives.mainCanvas}>
+        <section className={uiPrimitives.mainCanvas} {...(isMobileNavOpen ? { inert: true } : {})}>
           <Outlet />
         </section>
       </section>

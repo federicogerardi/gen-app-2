@@ -20,18 +20,18 @@ type: specification
 
 ## Executive Summary
 
-Questo documento specifica l'architettura **unificata e scalabile** per le pagine dei tool di generazione (FunnelPages, NextLand, e futuri tool). L'obiettivo è **eliminare ~95% duplicazione di codice** tra tool page e rendere l'aggiunta di nuovi tool possibile con sola configurazione + wrapper minimalista (~30 min di lavoro).
+This document specifies the **unified and scalable** architecture for generation tool pages (FunnelPages, NextLand, and future tools). The goal is to **eliminate ~95% code duplication** across tool pages and make adding new tools possible with only configuration + minimalist wrapper (~30 min of work).
 
-### Cambio architetturale
+### Architectural change
 
-| Aspetto | Prima (as-is) | Dopo (target) |
+| Aspect | Before (as-is) | After (target) |
 |---------|---------------|----------------|
 | FunnelPages LOC | ~350 | ~50 |
 | NextLand LOC | ~350 (100% dup) | ~50 |
-| Logica duplicata | 95% | 0% |
-| Aggiungere tool | 5-10 ore | ~30 min |
-| State management | 12 useState per tool | 1 hook centralized |
-| UI componenti | Locali duplicate | Registry-driven generici |
+| Duplicated logic | 95% | 0% |
+| Adding tool | 5-10 hours | ~30 min |
+| State management | 12 useState per tool | 1 centralized hook |
+| UI components | Local duplicates | Registry-driven generics |
 
 ---
 
@@ -52,7 +52,7 @@ Implementation notes:
 - Project detail navigation is session-first and must not regress to non-aggregated artifact list semantics.
 - Transitional implementations may keep session-summary derivation from artifacts while backend list rollout is in progress.
 
-### 1.1 Componenti Chiave
+### 1.1 Key Components
 
 ```
 frontend/src/features/tools/
@@ -113,7 +113,7 @@ frontend/src/features/tools/
 
 ### 2.1 ToolFormRegistry
 
-Mappa dichiarativa di configurazione per ogni tool disponibile.
+Declarative configuration map for each available tool.
 
 **File**: `runtime/tool-form-architecture.ts`
 
@@ -278,7 +278,7 @@ Implementation note:
 
 ### 3.1 CanonicalToolUiState
 
-Mappa unificata dei 8 stati UI possibili per qualsiasi tool, indipendente dal workflow specifico.
+Unified map of the 8 possible UI states for any tool, independent of the specific workflow.
 
 **File**: `runtime/tool-ux-state.ts`
 
@@ -336,7 +336,7 @@ export function derivePrimaryActionPolicy(
 
 ### 3.2 Secondary Action Flags
 
-Determina quali CTA secondari sono disponibili:
+Determines which secondary CTAs are available:
 
 ```typescript
 export interface SecondaryActionFlags {
@@ -346,12 +346,12 @@ export interface SecondaryActionFlags {
 }
 ```
 
-### 3.3 Guardrail operativo cancel/resume (delta 2026-04-28)
+### 3.3 Operational cancel/resume guardrail (delta 2026-04-28)
 
-- Quando l'utente cancella durante `running`, la UI deve preservare lo step interrotto come checkpoint locale (`pausedCheckpointStep`).
-- Finche il checkpoint interrotto non viene ripreso/completato, la policy primaria resta `resume-checkpoint`.
-- L'azione `resume-checkpoint` deve rilanciare lo stesso step interrotto, non degradare automaticamente a `start-generation`.
-- Prima del resume, il run prefix/request id deve essere rigenerato per evitare riuso del requestId del run cancellato.
+- When the user cancels during `running`, the UI must preserve the interrupted step as a local checkpoint (`pausedCheckpointStep`).
+- Until the interrupted checkpoint is resumed/completed, the primary policy remains `resume-checkpoint`.
+- The `resume-checkpoint` action must relaunch the same interrupted step, not automatically degrade to `start-generation`.
+- Before resume, the run prefix/request id must be regenerated to avoid reuse of the cancelled run's requestId.
 
 ---
 
@@ -426,11 +426,11 @@ export function useToolForm(toolKey: ToolKey): UseToolFormResult {
 
 ### 4.2 Sub-Hooks
 
-**useProjectsLoader**: Carica lista progetti dell'utente corrente.
+**useProjectsLoader**: Loads the current user's project list.
 
-Nota as-is (delta 2026-05-02): `ToolPageTemplate` non usa piu `useBriefingUpload` come sorgente primaria.
-Lo stato briefing e comandato dal child actor `briefing-upload.machine` spawnato da `tool-page.machine`.
-Il template invia eventi (`BRIEFING_FILE_SELECTED`, `BRIEFING_RESET`) e legge snapshot actor via selector.
+As-is note (delta 2026-05-02): `ToolPageTemplate` no longer uses `useBriefingUpload` as primary source.
+The briefing state is commanded by the child actor `briefing-upload.machine` spawned by `tool-page.machine`.
+The template sends events (`BRIEFING_FILE_SELECTED`, `BRIEFING_RESET`) and reads actor snapshot via selector.
 
 **useToolUiState**: Invoker per deriveCanonicalToolUiState + derivePrimaryActionPolicy.
 
@@ -438,12 +438,12 @@ Il template invia eventi (`BRIEFING_FILE_SELECTED`, `BRIEFING_RESET`) e legge sn
 
 ## 5. Generic UI Components
 
-Nota as-is (delta 2026-05-02): la colonna destra runtime e unificata in `ToolGenerationFlowVertical`.
-Le sezioni 5.1 e 5.2 restano come riferimento storico/riuso, non come composizione primaria corrente di `ToolPageTemplate`.
+As-is note (delta 2026-05-02): the runtime right column is unified in `ToolGenerationFlowVertical`.
+Sections 5.1 and 5.2 remain as historical/reuse reference, not as current primary composition of `ToolPageTemplate`.
 
 ### 5.1 ToolStatusCard
 
-**Scopo**: Card univoca di feedback globale con checklist (4 item).
+**Purpose**: Unique global feedback card with checklist (4 items).
 
 **Props**:
 ```typescript
@@ -473,7 +473,7 @@ interface ToolStatusCardProps {
 
 ### 5.2 ToolStepCard
 
-**Scopo**: Card per singolo step con preview area e stato.
+**Purpose**: Card for individual step with preview area and status.
 
 **Props**:
 ```typescript
@@ -505,7 +505,7 @@ interface ToolStepCardProps {
 
 ### 5.3 ToolActionButtons
 
-**Scopo**: CTA dinamici basati su state e eligibility.
+**Purpose**: Dynamic CTAs based on state and eligibility.
 
 **Props**:
 ```typescript
@@ -546,7 +546,7 @@ State: completed
 
 ### 5.4 ToolPageTemplate
 
-**Scopo**: Orchestrazione main component che compone tutti gli elementi.
+**Purpose**: Main orchestration component that composes all elements.
 
 **Props**:
 ```typescript
@@ -556,11 +556,11 @@ interface ToolPageTemplateProps {
   intent?: 'resume' | 'regenerate';
 }
 
-Comportamento as-is rilevante:
+Relevant as-is behavior:
 
-- CTA primaria gestita per tutte le policy canoniche (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`, `disabled`).
-- Nei restore flow, `regenerate-current-step` usa lo step sorgente del checkout ripristinato anche quando `nextAvailableStep` e nullo.
-- Le richieste di avvio step passano da `tool-page.machine` con comando `REQUEST_STEP_START`; il side effect di dispatch e agganciato al comando pending nel context macchina.
+- Primary CTA managed for all canonical policies (`start-generation`, `resume-checkpoint`, `regenerate-current-step`, `open-last-artifact`, `disabled`).
+- In restore flows, `regenerate-current-step` uses the source step of the restored checkout even when `nextAvailableStep` is null.
+- Step start requests pass through `tool-page.machine` with command `REQUEST_STEP_START`; the dispatch side effect is hooked to the pending command in machine context.
 ```
 
 ---

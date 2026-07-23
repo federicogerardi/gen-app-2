@@ -9,164 +9,164 @@ type: design-system-guide
 tags: [frontend, design-system, ui-kit, visual-language, tokens]
 ---
 
-# Frontend Design System e UI Kit Guide
+# Frontend Design System and UI Kit Guide
 
 > ⓘ **Design Document** — This guide covers visual language, design tokens, layout system, and UI components. It is orthogonal to the DDD domain model (no UL linkage required per governance policy). For domain-facing architecture, see [Frontend Tool Pages Architecture Spec](./frontend-tool-pages-architecture-spec.md).
 
-Data: 2026-04-28  
+Date: 2026-04-28  
 Status: Active  
-Versione: 1.3
+Version: 1.3
 
-## 1. Ruolo del documento
+## 1. Document Role
 
-Questo documento e la fonte di verita per tutte le decisioni grafiche e visuali della GUI frontend.
+This document is the source of truth for all graphical and visual decisions of the frontend GUI.
 
-Ambito coperto:
+Scope covered:
 
-- visual language e direzione estetica
-- design tokens (colori, tipografia, spacing, raggi, bordi, ombre)
-- layout system e regole di composizione
-- UI kit (componenti, varianti, stati e comportamento)
-- micro-interazioni e feedback visivi
-- regole di consistenza per nuove feature o refactor
+- visual language and aesthetic direction
+- design tokens (colors, typography, spacing, radii, borders, shadows)
+- layout system and composition rules
+- UI kit (components, variants, states and behavior)
+- micro-interactions and visual feedback
+- consistency rules for new features or refactoring
 
-Ambito non coperto:
+Scope not covered:
 
-- logica runtime/machine/backend
-- contratti API e persistence
+- runtime/machine/backend logic
+- API contracts and persistence
 
-Governance complementare obbligatoria:
+Mandatory complementary governance:
 
-- Per vocabolario UI e archetipi pagina canonici, usare anche `frontend-ui-ubiquitous-language-spec.md`.
-- Questa guida resta la fonte di verita visuale (token, componenti, look and feel); lo UI UL spec governa naming e composizione cross-page.
+- For UI vocabulary and canonical page archetypes, also use `frontend-ui-ubiquitous-language-spec.md`.
+- This guide remains the visual source of truth (tokens, components, look and feel); the UI UL spec governs naming and cross-page composition.
 
-## 2. Visione visiva (Precision-Creative)
+## 2. Visual Vision (Precision-Creative)
 
-La GUI deve comunicare velocita, affidabilita tecnica e supporto creativo.
+The GUI must communicate speed, technical reliability and creative support.
 
-Direzione visiva:
+Visual direction:
 
-- stile Professional Workspace su base chiara e neutra
-- superfici stratificate leggere, bordi definiti e gerarchia leggibile
-- accenti cromatici funzionali e sobri per stati e CTA
+- Professional Workspace style on a light, neutral base
+- light layered surfaces, defined edges and readable hierarchy
+- functional and sober chromatic accents for states and CTAs
 
-Keyword di riferimento:
+Reference keywords:
 
-- Affidabilita
-- Chiarezza
-- Controllo operativo
+- Reliability
+- Clarity
+- Operational control
 - Focus
 
-## 3. Design tokens canonici
+## 3. Canonical design tokens
 
-Nota aggiornamento 2026-04-28:
+Update note 2026-04-28:
 
-- il sistema token supporta esplicitamente tema light + dark tramite override su `:root[data-theme='dark']` in `apps/frontend/src/styles.css`.
-- il cambio tema avviene senza transizioni CSS globali per coerenza UX.
+- the token system explicitly supports light + dark theme via override on `:root[data-theme='dark']` in `apps/frontend/src/styles.css`.
+- theme switching occurs without global CSS transitions for UX consistency.
 
-Nota aggiornamento 2026-05-11 — MUI Theming Engine (v9):
+Update note 2026-05-11 — MUI Theming Engine (v9):
 
-- il sistema di theming è ora unificato e gestito interamente da MUI v9 tramite `cssVariables: true` + `colorSchemes: { light, dark }` in `apps/frontend/src/theme/theme.ts`.
-- MUI scrive automaticamente le CSS custom properties sul selettore `[data-theme="%s"]`, allineandosi al selettore già presente in `styles.css`.
-- il custom `ThemeProvider` applicativo è stato rimosso; l'unico provider attivo è `ThemeProvider` di `@mui/material` con `defaultMode="system"` in `App.tsx`.
-- il toggle tema usa `useColorScheme` da `@mui/material` (hook nativo MUI v9); non espone più `useTheme` custom.
-- la preferenza utente è persistita da MUI in `localStorage`; non è necessaria logica custom di storage.
-- i CSS custom properties legacy in `styles.css` rimangono invariati: MUI li sincronizza tramite il `colorSchemeSelector`.
+- the theming system is now unified and managed entirely by MUI v9 via `cssVariables: true` + `colorSchemes: { light, dark }` in `apps/frontend/src/theme/theme.ts`.
+- MUI automatically writes CSS custom properties on the `[data-theme="%s"]` selector, aligning with the existing selector in `styles.css`.
+- the custom application `ThemeProvider` has been removed; the only active provider is `ThemeProvider` from `@mui/material` with `defaultMode="system"` in `App.tsx`.
+- the theme toggle uses `useColorScheme` from `@mui/material` (native MUI v9 hook); it no longer exposes custom `useTheme`.
+- user preference is persisted by MUI in `localStorage`; no custom storage logic is required.
+- legacy CSS custom properties in `styles.css` remain unchanged: MUI syncs them via the `colorSchemeSelector`.
 
-## 3.1 Colori
+## 3.1 Colors
 
-Palette primaria:
+Primary palette:
 
-- Workspace Blue: #2563EB (azioni primarie, stati attivi)
-- Canvas Light: #F6F8FB (fondi principali)
-- Surface Steel: #E6EBF2 (card e superfici secondarie)
-- Text Ink: #0F172A (testo primario e titolazioni)
+- Workspace Blue: #2563EB (primary actions, active states)
+- Canvas Light: #F6F8FB (main backgrounds)
+- Surface Steel: #E6EBF2 (cards and secondary surfaces)
+- Text Ink: #0F172A (primary text and headings)
 
-Palette funzionale:
+Functional palette:
 
-- Success Pine: #15803D (stati healthy/success)
-- Alert Brick: #B42318 (errori, alert critici)
-- Warning Amber: #B7791F (warning, draft, suggerimenti)
+- Success Pine: #15803D (healthy/success states)
+- Alert Brick: #B42318 (errors, critical alerts)
+- Warning Amber: #B7791F (warnings, drafts, suggestions)
 
-Regole:
+Rules:
 
-- nessun colore hardcoded nei componenti quando esiste gia un token globale
-- usare naming semantico (primary, surface, success, error, warning)
-- mantenere contrasto AA minimo su testo e controlli interattivi
-- evitare glow, gradienti aggressivi e contrasti eccessivi non funzionali al task
+- no hardcoded colors in components when a global token already exists
+- use semantic naming (primary, surface, success, error, warning)
+- maintain minimum AA contrast on text and interactive controls
+- avoid glow, aggressive gradients and excessive contrasts not functional to the task
 
-## 3.2 Tipografia
+## 3.2 Typography
 
-Font stack target:
+Target font stack:
 
-- Headings e UI: IBM Plex Sans
+- Headings and UI: IBM Plex Sans
 - Body: Source Sans 3
 - Mono: JetBrains Mono
 
-Gerarchia tipografica di riferimento:
+Reference typographic hierarchy:
 
 - H1: 32px, bold, letter-spacing -0.02em
 - Body: 14px, regular, line-height 1.6
 - Labels/meta: 12px, uppercase, bold
 
-Regole:
+Rules:
 
-- evitare font ad hoc per singola feature
-- label e metadati devono restare compatti e consistenti
-- stringhe tecniche, id e prompt devono usare font mono
+- avoid ad-hoc fonts for single features
+- labels and metadata must remain compact and consistent
+- technical strings, IDs and prompts must use mono font
 
 ## 3.3 Spacing, radius, border, shadow
 
 Base system:
 
 - 8-point grid system
-- ogni spacing/padding/margin e multiplo di 8 o sottomultipli consistenti
+- every spacing/padding/margin is a multiple of 8 or consistent submultiples
 
-Token geometrici:
+Geometric tokens:
 
 - card radius: 12px
 - button/input radius: 8px
-- border: 1px con opacita bassa
-- shadow: soft shadow, non invasiva
+- border: 1px with low opacity
+- shadow: soft, non-invasive shadow
 
-## 4. Layout system canonico
+## 4. Canonical layout system
 
-## 4.1 Layout pagina autenticata
+## 4.1 Authenticated page layout
 
-Layout standard desktop:
+Standard desktop layout:
 
-- colonna 1: navigation
-- colonna 2: main canvas
+- column 1: navigation
+- column 2: main canvas
 
-Layout mobile:
+Mobile layout:
 
-- stack verticale, navigation collassabile
+- vertical stack, collapsible navigation
 
-## 4.2 Layout tool pages
+## 4.2 Tool pages layout
 
-Per le pagine tool il layout canonico e a doppia colonna interna:
+For tool pages the canonical layout is a dual internal column:
 
-- colonna sinistra: setup form (project, model, registry snapshot, briefing file, CTA)
-- colonna destra: card di stato + step cards
+- left column: setup form (project, model, registry snapshot, briefing file, CTA)
+- right column: status card + step cards
 
-Regole:
+Rules:
 
-- colonne visivamente autonome
-- nessuna card genitore ridondante che avvolga l'intera colonna destra
-- CTA primaria posizionata sotto il blocco upload nella colonna sinistra
+- visually autonomous columns
+- no redundant parent card wrapping the entire right column
+- primary CTA positioned below the upload block in the left column
 
-## 5. UI kit: componenti base
+## 5. UI kit: base components
 
-Il UI kit deve usare le primitive condivise e i token di classe centralizzati.
+The UI kit must use shared primitives and centralized class tokens.
 
-Riferimenti implementativi:
+Implementation references:
 
-- `apps/frontend/src/app/ui/primitives.tsx` — token classi CSS condivisi
-- `apps/frontend/src/styles.css` — CSS custom properties e override dark mode
-- `apps/frontend/src/theme/theme.ts` — definizione tema MUI (CSS vars + colorSchemes)
-- `apps/frontend/src/app/copy/system.ts` — copy centralizzato
+- `apps/frontend/src/app/ui/primitives.tsx` — shared CSS class tokens
+- `apps/frontend/src/styles.css` — CSS custom properties and dark mode overrides
+- `apps/frontend/src/theme/theme.ts` — MUI theme definition (CSS vars + colorSchemes)
+- `apps/frontend/src/app/copy/system.ts` — centralized copy
 
-Componenti core:
+Core components:
 
 - Shell
 - Surface
@@ -175,39 +175,39 @@ Componenti core:
 - Button (primary/secondary/disabled)
 - Input/select/textarea/file input
 - Status line/meta line/error
-- Card stato e card step tool
-- Theme toggle icon-only (header utility action) — usa `useColorScheme` da `@mui/material`
-- Artifact content toolbar (tabs `Markdown`/`Raw` + azione copy)
+- Status card and tool step card
+- Theme toggle icon-only (header utility action) — uses `useColorScheme` from `@mui/material`
+- Artifact content toolbar (tabs `Markdown`/`Raw` + copy action)
 
-Regole di composizione:
+Composition rules:
 
-- prima si riusa un componente/token esistente
-- se manca, si introduce token condiviso prima dell'uso locale
-- vietato introdurre naming CSS locale non generalizzabile
+- first reuse an existing component/token
+- if missing, introduce shared token before local use
+- prohibited to introduce non-generalizable local CSS naming
 
-## 5.1 Standard contrasto button (light/dark)
+## 5.1 Button contrast standard (light/dark)
 
-Questo standard e vincolante per tutte le CTA (`Button` MUI e `.ui-button`) in tema chiaro e scuro.
+This standard is binding for all CTAs (`Button` MUI and `.ui-button`) in light and dark themes.
 
-Token canonici:
+Canonical tokens:
 
 - primary background (light): `#2563EB` (`Workspace Blue`)
 - primary text (light): `#F8FAFC`
 - primary background (dark): `#3B82F6`
 - primary text (dark): `#EFF6FF`
-- outlined/text foreground (light): `#2563EB` o `#0F172A` in base al contesto
-- outlined/text foreground (dark): `#93C5FD` o `#E5EDF8` in base al contesto
-- destructive foreground/border: `#B42318` solo per stati di errore/alert critici
+- outlined/text foreground (light): `#2563EB` or `#0F172A` depending on context
+- outlined/text foreground (dark): `#93C5FD` or `#E5EDF8` depending on context
+- destructive foreground/border: `#B42318` only for error/critical alert states
 
-Regole operative:
+Operational rules:
 
-- nessun selettore CSS globale su `button` puo sovrascrivere i componenti MUI (`.MuiButton-root`)
-- i bottoni MUI devono mantenere il contrasto nativo del tema per varianti `contained`, `outlined`, `text`
-- ogni CTA deve garantire contrasto minimo WCAG AA (4.5:1) tra testo e sfondo nel tema attivo
-- `variant="text"` e obbligatoria per azioni secondarie non implementate o non distruttive nella sidebar (evita bordi fuorvianti)
-- `color="error"` non va usato per CTA operative standard (retry/cancel/relaunch): e riservato a error state e alert critici
+- no global CSS selector on `button` can override MUI components (`.MuiButton-root`)
+- MUI buttons must maintain native theme contrast for `contained`, `outlined`, `text` variants
+- every CTA must guarantee minimum WCAG AA contrast (4.5:1) between text and background in the active theme
+- `variant="text"` is mandatory for non-implemented or non-destructive secondary actions in the sidebar (avoids misleading borders)
+- `color="error"` should not be used for standard operational CTAs (retry/cancel/relaunch): it is reserved for error state and critical alerts
 
-Matrice canonica per variante:
+Canonical matrix per variant:
 
 | Variante | Tema chiaro | Tema scuro | Uso canonico |
 | --- | --- | --- | --- |
@@ -215,9 +215,9 @@ Matrice canonica per variante:
 | `outlined` | bordo+testo primario con contrasto AA su superficie chiara | bordo+testo primario con contrasto AA su superficie scura | CTA secondaria operativa |
 | `text` | testo primario/link senza bordo | testo primario/link senza bordo | azione secondaria leggera, fallback non distruttivo |
 
-## 6. Stati visuali e feedback
+## 6. Visual states and feedback
 
-Stati minimi obbligatori:
+Minimum mandatory states:
 
 - idle
 - running/streaming
@@ -225,61 +225,61 @@ Stati minimi obbligatori:
 - failed
 - disabled
 
-Pattern feedback:
+Feedback patterns:
 
-- progress highlight sobrio su pannello attivo durante streaming
-- conferme immediate su azioni rapide (copy, start, retry)
-- dropzone evidenziata durante drag and drop file
+- sober progress highlight on active panel during streaming
+- immediate confirmations on quick actions (copy, start, retry)
+- highlighted dropzone during file drag and drop
 
-Regola di consistenza toolbar contenuti artifact:
+Artifact content toolbar consistency rule:
 
-- i controlli `Markdown`, `Raw` e `Copia contenuto` condividono lo stesso sistema visivo di bottone (`size`, `border`, `radius`, `hover`, `active`, `disabled`).
-- evitare pulsanti floating assoluti sopra i container contenuto quando e disponibile una toolbar strutturata in flusso layout.
+- `Markdown`, `Raw` and `Copy content` controls share the same button visual system (`size`, `border`, `radius`, `hover`, `active`, `disabled`).
+- avoid absolute floating buttons above content containers when a structured toolbar in layout flow is available.
 
-## 7. Iconografia
+## 7. Iconography
 
 Standard:
 
-- librerie: Lucide o Phosphor
-- stile: outline
+- libraries: Lucide or Phosphor
+- style: outline
 - stroke: 1.5-2
-- colore di default: eredita il testo
+- default color: inherits text
 - hover/active: accent primary (Workspace Blue)
 
-## 8. Accessibilita e quality gates visuali
+## 8. Accessibility and visual quality gates
 
-Ogni intervento GUI deve verificare:
+Every GUI intervention must verify:
 
-- contrasto testo/sfondo adeguato (WCAG AA)
-- focus visibile per componenti interattivi
-- leggibilita mobile e desktop
-- coerenza con token e componenti del design system
+- adequate text/background contrast (WCAG AA)
+- visible focus for interactive components
+- mobile and desktop readability
+- consistency with design system tokens and components
 
-Gate minimo tecnico:
+Minimum technical gate:
 
 - npm --prefix frontend run typecheck
 - npm --prefix frontend run test
 
-## 9. Regole di governance per modifiche GUI
+## 9. Governance rules for GUI changes
 
-Prima di modificare UI:
+Before modifying UI:
 
-1. consultare questo documento
-2. verificare se esiste gia un token/componente equivalente
-3. aggiornare docs e index se cambia una regola canonica
+1. consult this document
+2. verify if an equivalent token/component already exists
+3. update docs and index if a canonical rule changes
 
-In caso di conflitto tra documenti:
+In case of conflict between documents:
 
-- per regole visuali prevale questo documento
-- per dettagli architetturali tool pages prevale frontend-tool-pages-architecture-spec.md
-- per contratti runtime/copy centralizzato si integra con tool-page-frontend-runtime-spec.md
+- for visual rules this document prevails
+- for tool page architectural details frontend-tool-pages-architecture-spec.md prevails
+- for runtime contracts/centralized copy it integrates with tool-page-frontend-runtime-spec.md
 
-## 10. Checklist rapida per PR frontend GUI
+## 10. Quick checklist for frontend GUI PRs
 
-- usa token esistenti (CSS custom properties da `styles.css` o palette MUI da `theme.ts`)
-- non introduce classi locali ridondanti
-- rispetta layout canonico a 2 colonne
-- mantiene coerenza stato/feedback
-- non introduce provider tema custom; usa esclusivamente `useColorScheme` per leggere/modificare il tema
-- passa typecheck e test
-- aggiorna documentazione se modifica regole canoniche
+- uses existing tokens (CSS custom properties from `styles.css` or MUI palette from `theme.ts`)
+- does not introduce redundant local classes
+- respects canonical 2-column layout
+- maintains state/feedback consistency
+- does not introduce custom theme provider; uses exclusively `useColorScheme` to read/modify theme
+- passes typecheck and test
+- updates documentation if modifying canonical rules

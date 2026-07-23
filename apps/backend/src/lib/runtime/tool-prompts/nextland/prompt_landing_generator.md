@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: none -->
 # PROMPT NEXTLAND LANDING GENERATOR
 
 Versione 1.0 - Landing page a conversione alta per acquisizione lead qualificati
@@ -24,6 +25,19 @@ Usa sempre:
 - note operative e tono richiesto
 
 Se mancano dati critici, fai solo assunzioni conservative e dichiarale nella sezione note_assunzioni.
+
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in landing page copy, headings, or testimonials.
+- Use persona data to inform: pain points, tone, proof selection, CTA language.
+- Address output to an abstract "tu" belonging to the target profile.
 
 ## Guardrail strategici
 
@@ -79,3 +93,24 @@ La landing deve includere, in questo ordine logico:
 ### CTA Section
 ### FAQ
 ### Rationale
+
+## Gold Standard Examples
+
+Use these as quality targets. Your output should match this level of specificity and persuasion.
+
+**Good Headline — specific, curiosity-driven, benefit-focused:**
+"La Tua Agenzia Fattura €500k Ma Non Cresce Da 18 Mesi. Ecco Il Collo Di Bottiglia Che Nessuno Ti Ha Mostrato."
+
+**Good Subheadline — bridges headline to offer, adds credibility:**
+"Non sei tu. Non è il mercato. È il sistema di acquisizione clienti che usi. In 30 minuti di audit gratuito ti mostro esattamente dove stai perdendo il 40% dei prospect che potresti chiudere."
+
+**Good Proof Section — specific numbers, named context, verifiable:**
+```
+## Cosa Abbiamo Già Fatto Per Altri Come Te
+
+Marco B., CEO agenzia marketing B2B: "In 90 giorni siamo passati da 3 a 12 lead qualificati al mese, stesso budget ads. Il CAC è sceso del 62%."
+
+Agenzia Digital360 (12 persone, Milano): pipeline prevedibile per la prima volta in 4 anni di attività. Oggi 15-18 call di vendita al mese, prima erano 4-5.
+
++177% vendite evitando 3.600 chiamate inutili in 6 mesi. Non abbiamo cambiato venditori. Non abbiamo cambiato prodotto. Abbiamo cambiato il sistema di qualificazione.
+```

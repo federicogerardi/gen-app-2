@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-07-22
 last-reviewed: 2026-07-22
 next-review-date: 2026-10-22
@@ -11,24 +11,24 @@ tags: [xstate, aggregate, ddd, architectural-risk, bullmq, serialization, event-
 
 # XState-as-Aggregate Architectural Risk Review
 
-> Analisi dei rischi architetturali derivanti dall'uso di macchine a stati XState v5 come Aggregate Root in sostituzione del modello OOP classico DDD.
+> Analysis of architectural risks arising from the use of XState v5 state machines as Aggregate Roots in place of the classic DDD OOP model.
 >
-> **Collegamenti**: questa review è un approfondimento del [DDD Implementation Audit](ddd-implementation-audit.md) (Sezione 7.1) ed è direttamente rilevante per la [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (BullMQ, DDD-226/DDD-227).
+> **References**: this review is a deep dive from the [DDD Implementation Audit](ddd-implementation-audit.md) (Section 7.1) and is directly relevant to the [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (BullMQ, DDD-226/DDD-227).
 
 ---
 
 ## Executive Summary
 
-Il progetto `gen-app-2` utilizza macchine a stati XState v5 come Aggregate Root invece del pattern OOP classico (`class AggregateRoot`). Questa scelta architetturale è **valida e funzionante** nel contesto corrente (single-process, request/response), ma introduce **debito architetturale** che si manifesterà con l'introduzione di scenari multi-processo come il `ToolWorkflowJob` BullMQ.
+The `gen-app-2` project uses XState v5 state machines as Aggregate Roots instead of the classic OOP pattern (`class AggregateRoot`). This architectural choice is **valid and functional** in the current context (single-process, request/response), but introduces **architectural debt** that will manifest with the introduction of multi-process scenarios like the `ToolWorkflowJob` BullMQ.
 
-**6 problemi identificati, 2 critici per la Proposal BullMQ.**
+**6 problems identified, 2 critical for the BullMQ Proposal.**
 
 ---
 
-## 1. Mappatura: DDD Classico vs XState-as-Aggregate
+## 1. Mapping: Classic DDD vs XState-as-Aggregate
 
 ```
-┌─── DDD CONVENZIONALE (OOP) ───────┐    ┌─── QUESTO PROGETTO (XState v5) ──┐
+┌─── CONVENTIONAL DDD (OOP) ───────┐    ┌─── THIS PROJECT (XState v5) ──┐
 │                                     │    │                                  │
 │  class GenerationSession {          │    │  type GenerationDomainContext =  │
 │    private _status: SessionStatus   │    │    { readonly requestId,         │
@@ -43,40 +43,40 @@ Il progetto `gen-app-2` utilizza macchine a stati XState v5 come Aggregate Root 
 │    private validateInvariants() {}  │    │        → persistenceRecording    │
 │  }                                  │    │    }                             │
 │                                     │    │                                  │
-│  Stato + Comportamento              │    │  Stato ∥ Comportamento           │
-│  nella stessa classe                │    │  in file separati                │
+│  State + Behavior                   │    │  State ∥ Behavior                │
+│  in the same class                  │    │  in separate files               │
 │                                     │    │                                  │
-│  Transizioni implicite              │    │  Transizioni esplicite           │
-│  (nascoste nei metodi)              │    │  (dichiarate nel grafo)          │
+│  Implicit transitions               │    │  Explicit transitions            │
+│  (hidden in methods)                │    │  (declared in the graph)         │
 │                                     │    │                                  │
-│  Invarianti: metodi privati         │    │  Invarianti: guard dichiarate    │
+│  Invariants: private methods        │    │  Invariants: declared guards     │
 │                                     │    │                                  │
-│  Test: mock della classe            │    │  Test: macchina + eventi puri    │
+│  Testing: mock the class            │    │  Testing: machine + pure events  │
 │                                     │    │                                  │
-│  Serializzazione: JSON nativo       │    │  Serializzazione: snapshot       │
-│  Event bus: pattern standard        │    │  parziale, child actors persi    │
+│  Serialization: native JSON         │    │  Serialization: partial snapshot │
+│  Event bus: standard pattern        │    │  child actors lost               │
 └─────────────────────────────────────┘    └──────────────────────────────────┘
 ```
 
 ---
 
-## 2. Problemi Identificati
+## 2. Identified Problems
 
-### 🔴 RISK-1: Serializzazione mid-flight impossibile
+### 🔴 RISK-1: Mid-flight serialization impossible
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Critico |
-| **Si manifesta con** | BullMQ `ToolWorkflowJob` |
-| **Descrizione** | XState v5 non supporta la serializzazione completa di un actor tree con child machines invocate via `invoke`. `getPersistedSnapshot()` salva lo stato della macchina padre, ma gli attori figli ripartono da zero al ripristino. |
+| **Severity** | Critical |
+| **Manifests with** | BullMQ `ToolWorkflowJob` |
+| **Description** | XState v5 does not support full serialization of an actor tree with child machines invoked via `invoke`. `getPersistedSnapshot()` saves the parent machine state, but child actors restart from zero upon restoration. |
 
-**Evidenza dalla Proposal BullMQ** (`proposal-be-driven-workflow-job-system.md:78`):
+**Evidence from the BullMQ Proposal** (`proposal-be-driven-workflow-job-system.md:78`):
 
-> *"ToolWorkflowJob falliti vengono riprovati da zero con idempotency key (nessuna serializzazione XState, nessun resume intermedio)."*
+> *"Failed ToolWorkflowJobs are retried from scratch with idempotency key (no XState serialization, no intermediate resume)."*
 
-**Cosa significa in pratica**: se un worker BullMQ sta eseguendo lo step 3 di 6 (es. `blog-article-generator`: `blog_seo_structure` → `blog_outline` → `blog_article`) e il worker crasha dopo aver completato `blog_seo_structure`, il retry **butta via il lavoro fatto** e ricomincia da `blog_seo_structure`. Non può riprendere da `blog_outline`.
+**What this means in practice**: if a BullMQ worker is executing step 3 of 6 (e.g., `blog-article-generator`: `blog_seo_structure` → `blog_outline` → `blog_article`) and the worker crashes after completing `blog_seo_structure`, the retry **throws away the completed work** and restarts from `blog_seo_structure`. It cannot resume from `blog_outline`.
 
-**Perché succede tecnicamente**:
+**Why this happens technically**:
 
 ```typescript
 // Questo salva lo stato della macchina PADRE
@@ -93,7 +93,7 @@ const restoredActor = createActor(generationSystemMachine, { snapshot });
 //    but invocations will restart."
 ```
 
-Il DDD classico non avrebbe questo problema — l'aggregate `GenerationSession` avrebbe uno stato serializzabile nativamente:
+Classic DDD would not have this problem — the `GenerationSession` aggregate would have natively serializable state:
 
 ```typescript
 // DDD classico: serializzazione banale
@@ -108,28 +108,28 @@ const state = {
 // Serializzi su Redis, il worker successivo riprende da currentStep
 ```
 
-**Mitigazione attuale**: retry da zero + idempotency key (Redis `SET NX EX`). **Accettabile solo se**:
-- Gli step sono veloci (< 10 secondi l'uno)
-- Il costo LLM per step ricominciati è trascurabile
-- La probabilità di crash del worker BullMQ è bassa
+**Current mitigation**: retry from scratch + idempotency key (Redis `SET NX EX`). **Acceptable only if**:
+- Steps are fast (< 10 seconds each)
+- LLM cost for restarted steps is negligible
+- BullMQ worker crash probability is low
 
-**Se queste condizioni non sono vere**, il retry da zero diventa uno spreco di compute/crediti che cresce linearmente con la lunghezza del workflow.
+**If these conditions are not true**, retry from scratch becomes a linearly growing waste of compute/credits proportional to workflow length.
 
 ---
 
-### 🟠 RISK-2: Nessun Domain Event Bus inter-processo
+### 🟠 RISK-2: No inter-process Domain Event Bus
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Alto |
-| **Si manifesta con** | BullMQ `ToolWorkflowJob` |
-| **Descrizione** | Gli eventi di dominio (`WorkflowStepUnlocked`, `WorkflowStepCompleted`) sono transizioni interne all'actor tree XState. Non esiste un meccanismo per propagarli tra processi separati (worker BullMQ → HTTP server → SSE → FE). |
+| **Severity** | High |
+| **Manifests with** | BullMQ `ToolWorkflowJob` |
+| **Description** | Domain events (`WorkflowStepUnlocked`, `WorkflowStepCompleted`) are internal transitions within the XState actor tree. There is no mechanism to propagate them across separate processes (BullMQ worker → HTTP server → SSE → FE). |
 
-**Evidenza dal codice**:
+**Code evidence**:
 
 ```typescript
 // File: xstate.ts:42-50
-// Eventi di dominio... ma SOLO dentro XState
+// Domain events... but ONLY inside XState
 export interface GenerationActorEventEnvelope<
   TType extends string,
   TSource extends GenerationActorSource,
@@ -139,29 +139,29 @@ export interface GenerationActorEventEnvelope<
   sourceActor: TSource;  // 'generationSystemMachine', 'toolWorkflowMachine', ...
   timestamp: IsoTimestamp;
 }
-// sourceActor è una stringa che identifica l'attore nell'albero XState
-// Non c'è serializzazione, non c'è pub/sub, non c'è coda
+// sourceActor is a string that identifies the actor in the XState tree
+// No serialization, no pub/sub, no queue
 ```
 
-**Cosa manca**: con BullMQ, il worker e il server HTTP sono **due processi Node.js separati**. Il worker esegue gli step e produce artifact, ma deve comunicare il progresso al server HTTP (che ha la connessione SSE aperta con il FE).
+**What's missing**: with BullMQ, the worker and the HTTP server are **two separate Node.js processes**. The worker executes steps and produces artifacts, but must communicate progress to the HTTP server (which has the SSE connection open with the FE).
 
 ```
-┌── Processo HTTP (Node) ──────┐     ┌── Processo Worker (BullMQ) ──┐
+┌── HTTP Process (Node) ──────┐     ┌── Worker Process (BullMQ) ──┐
 │                                │     │                              │
-│  Riceve POST /api/jobs/submit  │     │  Riceve job dalla coda       │
-│  Apre connessione SSE col FE   │     │  Esegue step 1 → 2 → ... → N│
-│                                │     │  Persiste artifact nel DB    │
-│  DEVE INOLTRARE progresso ◄─── │ ??? │── DEVE COMUNICARE progresso  │
-│  al FE via SSE                 │     │  al processo HTTP            │
+│  Receives POST /api/jobs/submit  │     │  Receives job from queue       │
+│  Opens SSE connection with FE   │     │  Executes step 1 → 2 → ... → N│
+│                                │     │  Persists artifact in DB    │
+│  MUST FORWARD progress ◄─── │ ??? │── MUST COMMUNICATE progress  │
+│  to FE via SSE                 │     │  to HTTP process            │
 │                                │     │                              │
 └────────────────────────────────┘     └──────────────────────────────┘
 ```
 
-Il DDD classico risolverebbe con un Domain Event Bus nativo:
+Classic DDD would solve this with a native Domain Event Bus:
 
 ```typescript
-// Pattern DDD classico — NON presente nel codice
-// 1. Worker BullMQ pubblica evento
+// Classic DDD pattern — NOT present in code
+// 1. BullMQ worker publishes event
 eventBus.publish('generation:step:completed', {
   jobId: 'job-abc',
   stepKey: 'blog_outline',
@@ -169,55 +169,55 @@ eventBus.publish('generation:step:completed', {
   status: 'done',
 });
 
-// 2. Processo HTTP si sottoscrive e inoltra via SSE
+// 2. HTTP process subscribes and forwards via SSE
 eventBus.subscribe('generation:step:*', (event) => {
   const sseConnection = activeConnections.get(event.jobId);
   sseConnection?.send({ type: 'step_completed', ...event });
 });
 ```
 
-**Mitigazione necessaria per BullMQ**: costruire infrastruttura ex-novo. Opzioni:
-- **Redis pub/sub**: già disponibile (ioredis). Il worker pubblica su un canale Redis, il server HTTP si sottoscrive.
-- **BullMQ events**: BullMQ emette eventi nativi (`completed`, `failed`, `progress`). Il server HTTP può ascoltarli.
-- **Polling via DB**: il FE interroga periodicamente `GET /api/jobs/{jobId}/status`. Semplice ma latenza alta.
+**Necessary mitigation for BullMQ**: build infrastructure from scratch. Options:
+- **Redis pub/sub**: already available (ioredis). Worker publishes on a Redis channel, HTTP server subscribes.
+- **BullMQ events**: BullMQ emits native events (`completed`, `failed`, `progress`). HTTP server can listen to them.
+- **DB polling**: FE periodically queries `GET /api/jobs/{jobId}/status`. Simple but high latency.
 
 ---
 
-### 🟡 RISK-3: Logica di dominio distribuita su 6+ file
+### 🟡 RISK-3: Domain logic distributed across 6+ files
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Medio |
-| **Si manifesta con** | Onboarding, debug, refactoring |
-| **Descrizione** | In DDD classico, tutta la business logic di un aggregate vive nella sua classe. Qui è sparpagliata tra macchine, guard, action, selector, normalizer. |
+| **Severity** | Medium |
+| **Manifests with** | Onboarding, debugging, refactoring |
+| **Description** | In classic DDD, all business logic of an aggregate lives in its class. Here it is scattered across machines, guards, actions, selectors, and normalizers. |
 
-**Esempio concreto**: rispondere alla domanda *"Perché la generazione non parte?"*
+**Concrete example**: answering the question *"Why doesn't generation start?"*
 
 ```
-File da ispezionare (in ordine):
+Files to inspect (in order):
 ├── tool-page.machine.ts:32        → guard canStartGeneration
-│   └── Verifica: readiness.canStartFlow || extractionOnlyMissing
+│   └── Verifies: readiness.canStartFlow || extractionOnlyMissing
 │
 ├── tool-page-readiness.ts         → buildReadinessSnapshot()
-│   └── Verifica: hasExtractionContext, hasPrimaryTargetStep, hasRequiredAssets
+│   └── Verifies: hasExtractionContext, hasPrimaryTargetStep, hasRequiredAssets
 │
 ├── tool-page-selectors.ts:537     → deriveToolInputRequirementMatrix()
-│   └── Verifica: always-required, required-by-tool-setting, optional
+│   └── Verifies: always-required, required-by-tool-setting, optional
 │
 ├── extraction-fields.ts           → ReadinessRequiredExtractionFieldKeysByTool
-│   └── Per youtube-lf-script: knowledge_content, avatar, pain_point, offer, proof
+│   └── For youtube-lf-script: knowledge_content, avatar, pain_point, offer, proof
 │
 ├── generation-system.guards.ts:85 → isNotFinalArtifact
-│   └── Determina se addebitare crediti o solo incrementare gate
+│   └── Determines whether to charge credits or only increment gate
 │
 └── tool-form-architecture.ts      → ToolFormConfig
-    └── Configura requiredness per ogni tool
+    └── Configures requiredness for each tool
 ```
 
-**6 file diversi** per una singola decisione di business. In DDD classico:
+**6 different files** for a single business decision. In classic DDD:
 
 ```typescript
-// DDD classico — tutta la logica in un posto
+// Classic DDD — all logic in one place
 class ToolPage {
   canStartGeneration(): boolean {
     return this.hasCompleteExtractionContext()
@@ -232,30 +232,30 @@ class ToolPage {
 }
 ```
 
-**Costo reale**: l'onboarding di un nuovo sviluppatore richiede di tracciare mentalmente il flusso attraverso 6 file. Il progetto compensa con documentazione eccellente (230+ DDD-NNN, UI Spec da 619 righe), ma il cognitive load rimane.
+**Real cost**: onboarding a new developer requires mentally tracing the flow across 6 files. The project compensates with excellent documentation (230+ DDD-NNN, 619-line UI Spec), but cognitive load remains.
 
 ---
 
-### 🟡 RISK-4: TypeScript ai limiti dell'inferenza
+### 🟡 RISK-4: TypeScript at inference limits
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Medio |
-| **Si manifesta con** | Refactoring tipi evento, macchine annidate |
-| **Descrizione** | L'inferenza di TypeScript fatica con eventi che attraversano `invoke` tra macchine annidate. Il progetto ha casting espliciti e workaround documentati. |
+| **Severity** | Medium |
+| **Manifests with** | Event type refactoring, nested machines |
+| **Description** | TypeScript inference struggles with events crossing `invoke` between nested machines. The project has explicit casts and documented workarounds. |
 
-**Evidenza da `AGENTS.md`**:
+**Evidence from `AGENTS.md`**:
 
 > *"In `assign(...)` with shared params typing, ensure fields share a compatible params shape to avoid TS inference breakage."*
 >
 > *"In callback `onDone` branches with custom event typing, explicit event output narrowing/casting may be required when done event is not in local unions."*
 
-**Esempio dal codice**:
+**Code example**:
 
 ```typescript
 // File: generation-system.events.ts
-// Casting forzato perché TS non inferisce il tipo dell'evento
-// attraverso GenerationActorEventEnvelope → child actor → output
+// Forced cast because TS doesn't infer the event type
+// through GenerationActorEventEnvelope → child actor → output
 export const getStreamDoneOutput = (event: GenerationSystemEvent) => {
   return (event as { output?: { type?: string } }).output ?? {};
 };
@@ -265,19 +265,19 @@ export const getToolDoneOutput = (event: GenerationSystemEvent) => {
 };
 ```
 
-**Rischio**: se rinomini un tipo evento, il casting `as { output?: { type?: string } }` non fallisce a compile-time — fallisce **a runtime** con comportamento silenziosamente errato. In DDD classico questo non succede perché i tipi sono banalmente le classi stesse.
+**Risk**: if you rename an event type, the `as { output?: { type?: string } }` cast doesn't fail at compile-time — it fails **at runtime** with silently incorrect behavior. In classic DDD this doesn't happen because types are trivially the classes themselves.
 
 ---
 
-### 🟢 RISK-5: Curva di apprendimento ripida
+### 🟢 RISK-5: Steep learning curve
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Basso |
-| **Si manifesta con** | Onboarding nuovi sviluppatori |
-| **Descrizione** | Un nuovo sviluppatore deve imparare DDD, XState v5, e la mappatura tra i due simultaneamente. |
+| **Severity** | Low |
+| **Manifests with** | New developer onboarding |
+| **Description** | A new developer must learn DDD, XState v5, and the mapping between the two simultaneously. |
 
-Triplo cognitive load all'onboarding:
+Triple cognitive load at onboarding:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -289,35 +289,35 @@ Triplo cognitive load all'onboarding:
 │    setup(), assign(), guard(), invoke(), spawn(),      │
 │    actor tree, snapshot, createActor()                 │
 │                                                       │
-│ 3. La mappatura tra i due                              │
-│    Perché GenerationSystem è un Aggregate Root         │
-│    ma non è una classe?                                │
-│    Perché WorkflowStepUnlocked è un Domain Event       │
-│    ma non attraversa processi?                         │
+│ 3. The mapping between the two                         │
+│    Why is GenerationSystem an Aggregate Root           │
+│    but not a class?                                    │
+│    Why is WorkflowStepUnlocked a Domain Event          │
+│    but doesn't cross processes?                        │
 └─────────────────────────────────────────────────────┘
 ```
 
-Il progetto mitiga con documentazione eccezionale, ma il tempo di onboarding è oggettivamente superiore a un progetto DDD classico.
+The project mitigates with exceptional documentation, but onboarding time is objectively higher than a classic DDD project.
 
 ---
 
-### 🟢 RISK-6: Nessun debugging visuale a runtime
+### 🟢 RISK-6: No runtime visual debugging
 
-| Campo | Dettaglio |
+| Field | Detail |
 |---|---|
-| **Gravità** | Basso |
-| **Si manifesta con** | Debug in produzione |
-| **Descrizione** | XState ha un visualizer statico (basato sulla definizione), non runtime. Per un `generationSystemMachine` con 7 child machines, ispezionare lo stato corrente richiede `actor.getSnapshot()` e interpretazione manuale. |
+| **Severity** | Low |
+| **Manifests with** | Production debugging |
+| **Description** | XState has a static visualizer (based on the definition), not runtime. For a `generationSystemMachine` with 7 child machines, inspecting the current state requires `actor.getSnapshot()` and manual interpretation. |
 
-**Cosa puoi fare oggi**:
+**What you can do today**:
 ```typescript
-// Unico modo per ispezionare lo stato runtime
+// Only way to inspect runtime state
 const snapshot = generationActor.getSnapshot();
 console.log(JSON.stringify(snapshot, null, 2));
-// Output: JSON annidato di 200+ righe da interpretare manualmente
+// Output: 200+ lines of nested JSON to interpret manually
 ```
 
-**Cosa vorresti fare** (ma non puoi):
+**What you'd want to do** (but can't):
 ```
 $ xstate inspect --actor=generationSystemMachine
   States:
@@ -332,95 +332,94 @@ $ xstate inspect --actor=generationSystemMachine
     ⬜ persistenceRecording (pending)
 ```
 
-In DDD classico fai `console.log(session.currentState())` e leggi l'output in 3 secondi.
+In classic DDD you do `console.log(session.currentState())` and read the output in 3 seconds.
 
 ---
 
-## 3. Matrice di Rischio per la Proposal BullMQ
+## 3. Risk Matrix for the BullMQ Proposal
 
-La Proposal BE-Driven Workflow Job System è il **primo punto di stress test** per questa architettura.
+The BE-Driven Workflow Job System Proposal is the **first stress test point** for this architecture.
 
-| Risk | Impatto su BullMQ | Mitigazione richiesta | Urgenza |
+| Risk | Impact on BullMQ | Required mitigation | Urgency |
 |---|---|---|---|
-| RISK-1: Serializzazione | I job devono retry da zero. Costo O(n) dove n = numero step. | Accettare retry da zero SE step veloci + idempotenti. Altrimenti: serializzare manualmente lo stato degli step completati (Redis JSON). | **Prima del go-live** |
-| RISK-2: Event bus | Il worker non può notificare il FE via SSE. | Implementare Redis pub/sub o usare BullMQ events nativi. | **Prima del go-live** |
-| RISK-3: Logica distribuita | Il debugging cross-process amplifica il problema: devi tracciare lo stato tra worker, HTTP server, e FE. | Centralizzare le business rule di orchestrazione in un modulo dedicato. | Durante lo sviluppo |
-| RISK-4: TS inference | Non aggravato da BullMQ (i tipi sono già al limite). | Nessuna azione aggiuntiva richiesta. | — |
-| RISK-5: Curva apprendimento | Aggravato: BullMQ introduce un terzo paradigma da imparare. | Documentare il flusso end-to-end con diagramma di sequenza. | Durante lo sviluppo |
-| RISK-6: Debug runtime | Aggravato: due processi da debuggare, non uno. | Structured logging con `requestId`/`jobId` come chiave di correlazione. | Durante lo sviluppo |
+| RISK-1: Serialization | Jobs must retry from scratch. O(n) cost where n = number of steps. | Accept retry from scratch IF steps are fast + idempotent. Otherwise: manually serialize completed step state (Redis JSON). | **Before go-live** |
+| RISK-2: Event bus | Worker cannot notify FE via SSE. | Implement Redis pub/sub or use native BullMQ events. | **Before go-live** |
+| RISK-3: Distributed logic | Cross-process debugging amplifies the problem: you must trace state across worker, HTTP server, and FE. | Centralize orchestration business rules in a dedicated module. | During development |
+| RISK-4: TS inference | Not aggravated by BullMQ (types are already at limits). | No additional action required. | — |
+| RISK-5: Learning curve | Aggravated: BullMQ introduces a third paradigm to learn. | Document the end-to-end flow with sequence diagram. | During development |
+| RISK-6: Runtime debug | Aggravated: two processes to debug, not one. | Structured logging with `requestId`/`jobId` as correlation key. | During development |
 
 ---
 
-## 4. Raccomandazioni per la Proposal BullMQ
+## 4. Recommendations for the BullMQ Proposal
 
-### 4.1 Affrontare RISK-1 (serializzazione)
+### 4.1 Address RISK-1 (serialization)
 
-**Opzione A — Retry da zero (semplice, già deciso nella Proposal)**:
-- Pro: nessuna infrastruttura aggiuntiva
-- Contro: costo O(n) per workflow lunghi
-- Accettabile per: tool con ≤3 step, step veloci (<15s)
+**✅ IMPLEMENTED** — `job-progress-serializer.ts` (2026-07-22)
 
-**Opzione B — Serializzazione manuale dello stato step (robusta)**:
+**Option A — Retry from scratch (simple, already decided in the Proposal)**:
+- Pro: no additional infrastructure
+- Con: O(n) cost for long workflows
+- Acceptable for: tools with ≤3 steps, fast steps (<15s)
+
+**Option B — Manual step state serialization (robust)** — **Implemented**:
 ```typescript
-// Serializzare SOLO lo stato degli step completati, non l'intera macchina
-const completedSteps = [
-  { stepKey: 'blog_seo_structure', artifactId: 'art-1', status: 'done' },
-  { stepKey: 'blog_outline', artifactId: 'art-2', status: 'done' },
-];
-await redis.set(`job:${jobId}:progress`, JSON.stringify(completedSteps));
+// apps/backend/src/lib/runtime/job-progress-serializer.ts
+// Serializes ONLY completed step state in Redis with 1h TTL
+const serializer = createJobProgressSerializer(redis);
+await serializer.save(jobId, { completedSteps, currentStepIndex });
 
-// Al retry, il worker ricostruisce solo gli step mancanti
-const completed = JSON.parse(await redis.get(`job:${jobId}:progress`));
-const remainingSteps = allSteps.filter(s => !completed.find(c => c.stepKey === s.key));
-// Inietta completed come bootstrap in ToolWorkflowInput
+// On retry, worker reconstructs only missing steps
+const saved = await serializer.load(jobId);
+// Injects completed as bootstrap in ToolWorkflowInput
 ```
 
-**Raccomandazione**: iniziare con Opzione A, predisporre l'architettura per migrare a Opzione B se i costi di retry diventano significativi.
+**Original recommendation**: start with Option A, architect for migration to Option B.
+**Status**: Option B implemented directly. Dual defense mechanism: Redis resume (happy path) → retry from scratch with idempotency (fallback).
 
-### 4.2 Affrontare RISK-2 (event bus)
+### 4.2 Address RISK-2 (event bus)
 
-**Raccomandazione**: **Redis pub/sub** — già disponibile, minimo overhead:
+**✅ IMPLEMENTED** — `job-event-bridge.ts` (2026-07-22)
 
+**Original recommendation**: **Redis pub/sub** — already available, minimal overhead.
+
+**Implementation**:
 ```typescript
-// Worker BullMQ pubblica
-await redis.publish(`generation:${jobId}`, JSON.stringify({
-  type: 'step_completed',
-  stepKey: 'blog_outline',
-  artifactId: 'art-xyz',
-}));
+// apps/backend/src/lib/runtime/job-event-bridge.ts
+// Publisher (worker side)
+const publisher = createJobEventPublisher(redis);
+await publisher.publish({ type: 'step_completed', jobId, stepKey, artifactId });
 
-// Server HTTP si sottoscrive (già ha una connessione Redis)
-await redis.subscribe(`generation:${jobId}`);
-redis.on('message', (channel, message) => {
-  const sseConn = activeSSEConnections.get(jobId);
-  sseConn?.write(`data: ${message}\n\n`);
+// Subscriber (HTTP server side)
+const unsubscribe = await subscribeToJobEvents(subscriber, jobId, (event) => {
+  response.write(serializeSseEvent({ event: 'progress', data: event }));
 });
 ```
 
-### 4.3 Affrontare RISK-6 (debug)
+### 4.3 Address RISK-6 (debugging)
 
-Aggiungere structured logging con `jobId` come chiave di correlazione tra worker e HTTP server. Il progetto ha già `createComponentLogger` in `apps/backend/src/lib/runtime/log-components.ts` — estenderlo per includere `jobId`.
-
----
-
-## 5. Giudizio Complessivo
-
-L'architettura XState-as-Aggregate è **una scelta valida e ben eseguita** per il contesto attuale (single-process, request/response). I benefici (stati espliciti, testabilità, prevenzione di transizioni illegali) superano i costi.
-
-La Proposal BullMQ è il **primo vero stress test**. I rischi #1 e #2 sono reali ma **risolvibili con infrastruttura aggiuntiva già disponibile** (Redis pub/sub). Non sono showstopper, ma richiedono attenzione esplicita nel design della Proposal.
-
-**Raccomandazione finale**: procedere con BullMQ, ma trattare RISK-1 e RISK-2 come **gate di go-live**, non come miglioramenti post-lancio.
+Add structured logging with `jobId` as correlation key across worker and HTTP server. The project already has `createComponentLogger` in `apps/backend/src/lib/runtime/log-components.ts` — extend it to include `jobId`.
 
 ---
 
-## 6. Collegamenti
+## 5. Overall Assessment
 
-| Documento | Relazione |
+The XState-as-Aggregate architecture is **a valid and well-executed choice** for the current context (single-process, request/response). The benefits (explicit states, testability, prevention of illegal transitions) outweigh the costs.
+
+The BullMQ Proposal is the **first real stress test**. Risks #1 and #2 are real but **solvable with already available additional infrastructure** (Redis pub/sub). They are not showstopper, but require explicit attention in the Proposal design.
+
+**Final recommendation**: proceed with BullMQ, but treat RISK-1 and RISK-2 as **go-live gates**, not as post-launch improvements.
+
+---
+
+## 6. References
+
+| Document | Relationship |
 |---|---|
-| [DDD Implementation Audit](ddd-implementation-audit.md) | Audit completo DDD — questa review ne approfondisce la Sezione 7.1 |
-| [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) | Proposta che introduce `ToolWorkflowJob` BullMQ — stress test per questa architettura |
-| [Plan: BullMQ Prerequisites](../05-plans/plan-bullmq-prerequisites.md) | **📝 Piano Fase 1** — implementazione RISK-2 (event bridge) + RISK-1 (serializzazione) |
-| [Plan: Post-BullMQ Improvements](../05-plans/plan-post-bullmq-improvements.md) | **📝 Piano Fase 2** — implementazione RISK-5 (dev guide), RISK-3 (domain modules), RISK-4 (Zod), RISK-6 (inspector) |
-| [Architecture Weaknesses Code Review](architecture-weaknesses-code-review.md) | Il finding MEDIUM "Generation flow completion remains partially dependent on Frontend/UI liveness signals" è direttamente affrontato da BullMQ |
-| [Critical Vulnerabilities Progressive Review](critical-vulnerabilities-progressive-review.md) | Review correlata — vulnerabilità architetturali sistemiche |
-| [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md) | Definisce `ToolWorkflowJob` come Satellite Aggregate Root provisional |
+| [DDD Implementation Audit](ddd-implementation-audit.md) | Complete DDD audit — this review deepens its Section 7.1 |
+| [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) | Proposal introducing `ToolWorkflowJob` BullMQ — stress test for this architecture |
+| [Plan: BullMQ Prerequisites](../05-plans/plan-bullmq-prerequisites.md) | **✅ Implemented** — RISK-2 (event bridge) + RISK-1 (serialization) completed (2026-07-22) |
+| [Plan: Post-BullMQ Improvements](../05-plans/plan-post-bullmq-improvements.md) | **✅ Implemented** — RISK-5 (dev guide), RISK-4 (Zod), RISK-3 (domain modules), RISK-6 (inspector) completed (2026-07-22) |
+| [Architecture Weaknesses Code Review](architecture-weaknesses-code-review.md) | The MEDIUM finding "Generation flow completion remains partially dependent on Frontend/UI liveness signals" is directly addressed by BullMQ |
+| [Critical Vulnerabilities Progressive Review](critical-vulnerabilities-progressive-review.md) | Related review — systemic architectural vulnerabilities |
+| [Domain Bounded Context Map](../02-design/domain-bounded-context-map.md) | Defines `ToolWorkflowJob` as provisional Satellite Aggregate Root |

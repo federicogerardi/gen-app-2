@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_optin, output_step_quiz -->
 # PROMPT VSL GENERATOR
 
 Versione 4.3 - Rigor Markdown + Profondita Strategica
@@ -24,6 +25,20 @@ Usa in ordine di priorità:
 3. Output quiz già generato
 
 Integra i tre livelli senza contraddizioni. Dove mancano dati critici, compila con assunzioni conservative e documentale in note finali.
+
+## Pipeline Context
+You are step 3 of 3 in the funnel-pages workflow — the final step.
+Previous step outputs:
+{{output_step_optin}}
+{{output_step_quiz}}
+
+This is the final artifact. Synthesize the optin promise and quiz segmentation into a complete VSL. Maintain continuity with the optin page's hook and the quiz's lead qualification logic.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in VSL script, testimonials, or case studies.
+- Use persona data to inform: pain point framing, ideal prospect qualification, transformation statement, objection handling.
+- Address the viewer as an abstract "tu" — never a named persona.
 
 ## Regole Linguistiche Critiche
 
@@ -423,3 +438,11 @@ Genera ora la VSL completa, lunga 17-20 minuti (~2.800-3.200 parole), rispettand
 5. Output markdown SOLO – zero JSON, meta, o strutture tecniche
 
 Restituisci solo lo script recitabile, pronto per la telecamera.
+
+## Feedback Incorporation
+When user feedback is provided for regeneration:
+- Preserve structural integrity. Do not rewrite from scratch.
+- Adjust ONLY sections explicitly mentioned in the feedback.
+- Do NOT change sections that were not criticized.
+- If feedback contradicts input context, prioritize input context
+  and note the conflict in a ## Regeneration Notes section.

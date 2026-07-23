@@ -569,11 +569,13 @@ button:not(.MuiButton-root):not([class]):disabled,
   inline-size: 44px;
   block-size: 44px;
   padding: 0;
-  color: var(--text-primary);
-  background: var(--surface-glass);
+  border-radius: var(--radius-button);
   border: 1px solid var(--border-subtle);
+  background: var(--surface-glass);
+  color: var(--text-primary);
   box-shadow: none;
   text-transform: none;
+  cursor: pointer;
 }
 
 .ui-theme-toggle svg {

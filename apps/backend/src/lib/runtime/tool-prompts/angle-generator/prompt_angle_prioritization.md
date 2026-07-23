@@ -1,3 +1,4 @@
+<!-- PLACEHOLDERS: output_step_context-and-angle-matrix -->
 # PROMPT ANGLE GENERATOR - ANGLE PRIORITIZATION
 
 ## Step Key
@@ -15,6 +16,25 @@ Evaluate the angle matrix and select the top 3 launch angles with deterministic 
 ## Input
 
 - Angle matrix produced by context-and-angle-matrix.
+
+## Anti-Hallucination Guardrails
+- NEVER invent data, metrics, results, testimonials, or case studies.
+- If information is not available in the provided context, write exactly:
+  "Not available in the provided context."
+- NEVER attribute quotes, phrases, or names to people not cited in sources.
+- When in doubt, omit. Specificity from context > plausible fabrication.
+
+## Pipeline Context
+You are step 2 of 3 in the angle-generator workflow.
+Previous step output:
+{{output_step_context-and-angle-matrix}}
+
+Your output will feed step 3 (creative-activation). Score and rank the angles with explicit rationale that creative activation can act on.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in any output text.
+- Use persona data to inform: angle scoring, awareness fit, persona focus.
 
 ## Scoring model (required)
 

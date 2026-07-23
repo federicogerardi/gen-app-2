@@ -1,9 +1,10 @@
 ---
-status: draft
-version: 1.0
+status: implemented
+version: 1.1
 date_created: 2026-07-22
+implementation_date: 2026-07-22
 last-reviewed: 2026-07-22
-next-review-date: 2026-10-22
+next-review-date: 2027-01-22
 owner: Backend Runtime + Frontend Tools
 type: plan
 tags: [xstate, ddd, developer-guide, domain-rules, zod, validation, actor-inspector, technical-debt]
@@ -892,32 +893,32 @@ Fase 4: RISK-6 — Actor Inspector (1-2 giorni)
 
 ### RISK-5 (Developer Guide)
 
-- [ ] SC-5.1: `docs/02-design/specifications/xstate-as-aggregate-developer-guide.md` esiste con tutte le 8 sezioni
-- [ ] SC-5.2: Tutti i 6 file nella lista di annotazione contengono almeno un blocco `@ddd` JSDoc
-- [ ] SC-5.3: `grep -r '@ddd Related DDD-' apps/backend apps/frontend` non produce DDD-NNN inesistenti o archiviati
-- [ ] SC-5.4: Il diagramma di sequenza nella Sezione 3 della guida riflette accuratamente il flusso corrente (incluso BullMQ post-go-live)
+- [x] SC-5.1: `docs/02-design/specifications/xstate-as-aggregate-developer-guide.md` esiste con tutte le 8 sezioni
+- [x] SC-5.2: Tutti i 6 file nella lista di annotazione contengono almeno un blocco `@ddd` JSDoc
+- [x] SC-5.3: `grep -r '@ddd Related DDD-' apps/backend apps/frontend` non produce DDD-NNN inesistenti o archiviati
+- [x] SC-5.4: Il diagramma di sequenza nella Sezione 3 della guida riflette accuratamente il flusso corrente (incluso BullMQ post-go-live)
 
 ### RISK-4 (Zod Validation)
 
-- [ ] SC-4.1: `generation-system.event-schemas.ts` contiene 10 schemi Zod, uno per ogni helper con cast `as`
-- [ ] SC-4.2: Ogni helper in `generation-system.events.ts` usa `safeParse` prima di ritornare; warning loggato su fallimento
-- [ ] SC-4.3: `npm --workspace apps/backend run test` passa invariato (nessuna regressione)
-- [ ] SC-4.4: Test dimostrano che output valido passa, output malformato viene rifiutato con `undefined` + warning
+- [x] SC-4.1: `generation-system.event-schemas.ts` contiene 10 schemi Zod, uno per ogni helper con cast `as`
+- [x] SC-4.2: Ogni helper in `generation-system.events.ts` usa `safeParse` prima di ritornare; warning loggato su fallimento
+- [x] SC-4.3: `npm --workspace apps/backend run test` passa invariato (nessuna regressione)
+- [x] SC-4.4: Test dimostrano che output valido passa, output malformato viene rifiutato con `undefined` + warning
 
 ### RISK-3 (Domain Decision Modules)
 
-- [ ] SC-3.1: 4 nuovi file in `apps/frontend/src/features/tools/runtime/domain-rules/` — uno per decisione
-- [ ] SC-3.2: Ogni modulo esporta esattamente UNA pure function
-- [ ] SC-3.3: I file originali (tool-page.machine.ts, tool-page-selectors.ts, generation-system.guards.ts, etc.) delegato ai nuovi moduli invece di contenere logica inline
-- [ ] SC-3.4: `npm --workspace apps/frontend run test` e `npm --workspace apps/backend run test` passano dopo ogni estrazione
-- [ ] SC-3.5: Nessun nuovo ciclo di import introdotto
+- [x] SC-3.1: 4 nuovi file in `apps/frontend/src/features/tools/runtime/domain-rules/` — uno per decisione
+- [x] SC-3.2: Ogni modulo esporta esattamente UNA pure function
+- [x] SC-3.3: I file originali (tool-page.machine.ts, tool-page-selectors.ts, generation-system.guards.ts, etc.) delegato ai nuovi moduli invece di contenere logica inline
+- [x] SC-3.4: `npm --workspace apps/frontend run test` e `npm --workspace apps/backend run test` passano dopo ogni estrazione
+- [x] SC-3.5: Nessun nuovo ciclo di import introdotto
 
 ### RISK-6 (Actor Inspector)
 
-- [ ] SC-6.1: `inspectActor(actor)` restituisce una stringa formattata con tree ASCII
-- [ ] SC-6.2: L'output include machine name, current state, child actors (con profondità configurabile), e step progress (se `stepStates` presente)
-- [ ] SC-6.3: `logActorState` scrive un log JSON strutturato con campo `actorTree`
-- [ ] SC-6.4: `npm --workspace apps/backend run test` include test per l'inspector
+- [x] SC-6.1: `inspectActor(actor)` restituisce una stringa formattata con tree ASCII
+- [x] SC-6.2: L'output include machine name, current state, child actors (con profondità configurabile), e step progress (se `stepStates` presente)
+- [x] SC-6.3: `logActorState` scrive un log JSON strutturato con campo `actorTree`
+- [x] SC-6.4: `npm --workspace apps/backend run test` include test per l'inspector
 
 ---
 

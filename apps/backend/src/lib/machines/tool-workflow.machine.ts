@@ -33,16 +33,32 @@ type ToolWorkflowMachineEvent =
 
 const nowIso = (): string => new Date().toISOString();
 
-const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] =>
-  input.steps.map((step) => ({
+/**
+ * Entity: ToolWorkflow (sub-entity di GenerationSystem)
+ *
+ * Orchestratore multi-step per i Tool workflow. Gestisce il ciclo di vita
+ * di ogni WorkflowStep: idle → running → done/error/skipped.
+ *
+ * @ddd Entity ToolWorkflow
+ * @ddd BoundedContext Generation
+ * @ddd Related DDD-037 DDD-035 DDD-036 DDD-034
+ */
+const createInitialStepStates = (input: ToolWorkflowInput): WorkflowStepState[] => {
+  const completedSet = new Set(
+    input.bootstrap?.completedSteps?.map((s) => s.stepKey) ?? [],
+  );
+
+  if (input.bootstrap?.stepKey) {
+    completedSet.add(input.bootstrap.stepKey);
+  }
+
+  return input.steps.map((step) => ({
     key: step.key,
-    status:
-      input.bootstrap?.stepKey === step.key
-        ? 'done'
-        : 'idle',
+    status: completedSet.has(step.key) ? 'done' : 'idle',
     retryCount: 0,
     errorMessage: null,
   }));
+};
 
 const findFirstNonTerminalStepIndex = (stepStates: WorkflowStepState[]): number =>
   stepStates.findIndex((step) => step.status === 'idle' || step.status === 'running' || step.status === 'error');

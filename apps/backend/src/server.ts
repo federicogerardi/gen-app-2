@@ -153,12 +153,16 @@ const run = async (): Promise<void> => {
   });
 
   // ToolWorkflowJob: in-process worker setup
+  // BullMQ requires maxRetriesPerRequest: null on its Redis connection.
   const workerInProcess = parseBooleanEnv(process.env.TOOL_WORKFLOW_WORKER_IN_PROCESS, true);
-  let toolWorkflowQueue = workerInProcess ? createToolWorkflowQueue(redis) : null;
-  let toolWorkflowWorker = workerInProcess
+  const bullRedis = workerInProcess
+    ? new Redis(redisUrl, { maxRetriesPerRequest: null })
+    : null;
+  let toolWorkflowQueue = bullRedis ? createToolWorkflowQueue(bullRedis) : null;
+  let toolWorkflowWorker = bullRedis
     ? createToolWorkflowWorker(
         (job) => processToolWorkflowJob(job, { adapters: generationAdapters, redis }),
-        redis,
+        bullRedis,
       )
     : null;
 
@@ -258,6 +262,7 @@ const run = async (): Promise<void> => {
     await Promise.all([
       pg.end(),
       redis.quit(),
+      bullRedis ? bullRedis.quit() : Promise.resolve(),
     ]);
   };
 

@@ -62,6 +62,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 | 01-requirements | [01-requirements](./01-requirements/) | Product + Frontend Platform | |
 | 02-design | [frontend-tool-pages-architecture-spec](./02-design/specifications/frontend-tool-pages-architecture-spec.md) | Frontend Platform Team | |
 | 03-development | [llm-model-override-configuration-guide](./03-development/llm-model-override-configuration-guide.md) | Backend Runtime | Development guides, configuration how-tos |
+| 03-development | [prompt-template-standards](./03-development/prompt-template-standards.md) | Backend Runtime | **Canonical standards for LLM prompt templates — mandatory structure, language policy, quality gates** |
 | 04-testing | [04-testing](./04-testing/) | QA + Engineering Team | |
 | 07-governance | [domain-naming-decision-log](./07-governance/domain-naming-decision-log.md) | Documentation Archivist | |
 | 99-reference | [99-reference](./99-reference/) | Documentation Archivist | |

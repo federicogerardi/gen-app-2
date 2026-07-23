@@ -10,6 +10,8 @@ Fast-start instructions for AI coding agents. Every line answers: "Would an agen
 
 If touching UI code: [Frontend UI Ubiquitous Language Spec](docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md)
 
+**If creating or editing LLM prompt templates** (any `.md` file under `apps/backend/src/lib/runtime/tool-prompts/`): [Prompt Template Standards](docs/03-development/prompt-template-standards.md) — mandatory structure, language policy, anti-hallucination blocks, chain awareness, persona rules, feedback instructions, placeholder documentation.
+
 Do not introduce non-canonical domain terms anywhere (code, tests, docs, PR notes, comments). New terms require a `DDD-NNN` entry in the decision log first.
 
 ## Documentation Governance

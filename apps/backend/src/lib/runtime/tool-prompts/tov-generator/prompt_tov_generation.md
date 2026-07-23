@@ -42,6 +42,11 @@ Extraction Payload with 5 core fields: `brand_or_company`, `target_audience`, `t
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Persona Asset Usage
+- If persona assets are provided as input context, use them ONLY to calibrate the voice to the target audience.
+- NEVER reference persona names or demographic details in the TOV document.
+- Personas inform "who we speak to" — the TOV defines "how we speak." Keep these layers separate.
+
 ## Output rules
 - Markdown only.
 - Italian only (`it-IT`).

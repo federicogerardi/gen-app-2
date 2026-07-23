@@ -20,6 +20,11 @@
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in analysis, positioning, or strategy output.
+- Use persona data to inform: avatar profile, pain point analysis, content positioning.
+
 ## Output Format (strict markdown)
 
 Use exactly these sections:

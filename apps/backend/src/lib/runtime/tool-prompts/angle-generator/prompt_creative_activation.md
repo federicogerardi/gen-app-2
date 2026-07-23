@@ -23,6 +23,19 @@ For each of the top 3 prioritized angles, produce activation-ready creative foun
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 3 of 3 in the angle-generator workflow — the final step.
+Previous step output:
+{{output_step_angle-prioritization}}
+
+This is the final artifact. Produce activation-ready creative foundations that can be directly used by meta-ads and funnel-pages.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in headlines, hooks, or creative copy.
+- Use persona data to inform: messaging tone, hook angles, proof selection.
+- Address output to the target profile with abstract "tu" language.
+
 ## Output rules
 
 - Markdown only.

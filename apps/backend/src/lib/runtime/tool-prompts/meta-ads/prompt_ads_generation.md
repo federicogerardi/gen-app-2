@@ -24,6 +24,13 @@ Generate production-ready Meta Ads assets using the new cluster → angle → aw
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 2 of 2 in the meta-ads workflow — the final step.
+Previous step output:
+{{output_step_context-generation}}
+
+This is the final artifact. Generate production-ready Meta Ads assets from the validated strategic context.
+
 ## Output rules
 
 - Markdown only.

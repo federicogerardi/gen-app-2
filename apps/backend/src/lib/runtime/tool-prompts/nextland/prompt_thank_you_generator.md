@@ -30,6 +30,18 @@ Usa sempre:
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 2 of 2 in the nextland workflow — the final step.
+Previous step output:
+{{output_step_landing}}
+
+This is the final artifact. Maintain lexical continuity with the landing page. Do not introduce new promises not present upstream.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in thank-you page copy.
+- Use persona data to inform: next-step language, reassurance tone, value reinforcement.
+
 ## Guardrail strategici
 
 1. Mantieni continuita lessicale con la landing page.

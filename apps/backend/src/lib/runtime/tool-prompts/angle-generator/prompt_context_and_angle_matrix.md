@@ -23,6 +23,12 @@ Produce a full context map and an actionable angle matrix from extraction contex
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in any output text.
+- Use persona data to inform: persona clusters, desire profiles, awareness distribution.
+- Address output to abstract archetypes, never named individuals.
+
 ## Output rules
 
 - Markdown only.

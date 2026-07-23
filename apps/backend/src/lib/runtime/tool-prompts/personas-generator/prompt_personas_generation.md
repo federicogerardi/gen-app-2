@@ -49,6 +49,9 @@ Extraction Payload with 5 core fields: `demographics`, `goals`, `pain_point`, `b
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Persona Asset Usage (for downstream consumers)
+This document is a `persona` asset consumed by 6 downstream tools. The persona is an **abstract reference profile**, NOT a real person. The "Nome Rappresentativo" is a label for internal reference only. Downstream tools are explicitly instructed to NEVER use persona names in their output — they address an abstract "tu" belonging to the target profile.
+
 ## Output rules
 - Markdown only.
 - Italian only (`it-IT`).

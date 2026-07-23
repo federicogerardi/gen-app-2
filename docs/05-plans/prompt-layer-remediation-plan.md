@@ -1,6 +1,6 @@
 ---
 status: active
-version: 1.0
+version: 1.1
 date_created: 2026-07-23
 last-reviewed: 2026-07-23
 next-review-date: 2026-10-23
@@ -12,7 +12,7 @@ tags: [prompt-engineering, tool-generation, remediation, prompt-templates]
 # Prompt Layer Remediation Plan
 
 > **Source**: `docs/02-design/prompt-layer-quality-review.md` v1.1
-> **Scope**: 34 prompt templates across 12 tools. Markdown-only changes except Phase 3.1 (~50 lines of TypeScript).
+> **Scope**: 34 prompt templates across 12 tools. Markdown-only changes except Phase 3.1 (~20 lines of TypeScript).
 > **Governor**: DDD documentation governance (AGENTS.md). All prompt files live under `apps/backend/src/lib/runtime/tool-prompts/`.
 
 ## Decisions (from review session)
@@ -256,16 +256,23 @@ Add an HTML comment header to every prompt file documenting which placeholders i
 
 ## Summary
 
-| Phase | Prompts touched | New code | Risk | Sessions |
-|---|---|---|---|---|
-| 1. Bug fix + policy | ~27 | 0 lines | None | 1 |
-| 2. Foundation tools | 6 | 0 lines | Low | 2-3 |
-| 3. Cross-tool mechanisms | ~41 | ~50 lines | Medium | 3-4 |
-| 4. Polish + remaining | ~30 | 0 lines | Low | 3-4 |
-| **Total** | **34 (all)** | **~50 lines** | | **9-12** |
+| Phase | Prompts touched | New code | Risk | Sessions | Status |
+|---|---|---|---|---|---|
+| 1. Bug fix + policy | 30 | 0 lines | None | 1 | ✅ Completed 2026-07-23 |
+| 2. Foundation tools | 6 | 0 lines | Low | 2-3 | ✅ Completed 2026-07-23 |
+| 3. Cross-tool mechanisms | ~55 | ~20 lines | Medium | 3-4 | ✅ Completed 2026-07-23 |
+| 4. Polish + remaining | ~30 | 0 lines | Low | 3-4 | ⬜ Pending |
+| **Total** | **34 (all)** | **~20 lines** | | **9-12** | **75% complete** |
 
 ### Execution order
 
-1. **Phase 1** immediately — bug fixes, zero risk, unblocks everything
-2. **Phase 2 + Phase 3** can run in parallel — they touch different files (Phase 2: foundation tool prompts; Phase 3: multi-step prompts + actions.ts)
-3. **Phase 4** after Phase 2 and 3 are validated — builds on upgraded foundation and chain awareness
+1. **Phase 1** — completed: removed broken `prompt_root.md` refs (7 files), removed orphan `{{context}}`, added anti-hallucination block (22 prompts). 0 risk, 439 tests pass.
+2. **Phase 2 + Phase 3** — completed: upgraded 6 foundation prompts (role, examples, checklist), generalized `assembleChainAwarePrompt` (removed tool-specific guard, added `didReplace` gate), added `{{output_step_*}}` placeholders (16 prompts), persona asset rules (19 prompts), gold-standard examples (5 tools). 439 tests pass.
+3. **Phase 4** — pending: upgrade remaining ~15 thin prompts, add feedback instructions (8 steps), document all `{{placeholder}}` variables.
+
+### Key implementation notes (Phase 3)
+
+- `assembleBlogArticlePrompt` renamed to `assembleChainAwarePrompt` in `generation-system.actions.ts` and `generation-system.execution.states.ts`
+- Action now executes for all tools (no tool-specific guard), but only modifies the prompt when placeholders are actually present (`didReplace` gate)
+- Custom user prompts (without `resolvedPromptTemplate`) are left untouched
+- Added `{{copy_length_format}}` replacement support alongside existing `{{titolo}}` and `{{output_step_*}}`

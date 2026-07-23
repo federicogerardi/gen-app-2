@@ -21,6 +21,14 @@ Generate a comprehensive strategic report and competitor GEO classification base
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 4 of 4 in the geometric workflow — the final step.
+Previous step outputs:
+{{output_step_strategic-reporting}}
+{{output_step_competitor-scoring}}
+
+This is the final unified report. Combine strategic analysis from step 3 with quantitative scoring from step 2. Do not repeat raw analysis — synthesize.
+
 ## Rules
 - Screenshot data must NEVER be included.
 - Use only text snippets and structured JSON data.
@@ -157,3 +165,14 @@ Use the following variables provided by the system:
 - `{{serpSnippets}}`: Array of AI Overview text snippets
 
 Generate the full report in markdown format. Ensure all tables are properly formatted with | delimiters and header separators.
+
+## Gold Standard Examples
+
+**Good Executive Summary:**
+"Il panorama SERP per 'migliori CRM per PMI' è dominato da 3 portali comparativi (SoftwareAdvice, Capterra, GetApp) che occupano il 60% degli snippet AI Overview. HubSpot appare in 4/5 query come fonte primaria, ma nessun player italiano è presente nel Tier 1. C'è una finestra non presidiata: contenuti in italiano che confrontano CRM per settore specifico (manifatturiero, servizi professionali)."
+
+**Good Competitor Table Row:**
+| 1 | HubSpot | 4/5 | ✅ (YouTube) | Piattaforma Enterprise | ★★★★★ |
+
+**Good Recommendation (actionable, specific, not generic):**
+"Pubblica una guida comparativa in italiano: 'CRM per aziende manifatturiere: confronto 2025.' Targetta la long-tail 'CRM per PMI manifatturiere italiane' (volume search: 90-120/mese, bassa competizione). Includi una tabella prezzi aggiornata — è il dato più citato dagli snippet AI Overview e il principale fattore di ranking per questo cluster di query."

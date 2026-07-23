@@ -53,6 +53,25 @@ Generate one final YouTube description artifact from validated normalized contex
 - opening_lines_contract: pass
 - keyword_density_contract: pass
 
+## Gold Standard Examples
+
+**Good CTA (first 2 lines):**
+"🔗 Prenota la tua consulenza gratuita: https://example.com/consulenza
+In 30 minuti analizziamo il tuo funnel e ti diciamo esattamente dove perdi lead."
+
+**Good Chapter Block:**
+```
+📌 CAPITOLI:
+0:00 - Il problema che nessuno ti dice
+1:35 - Perché il tuo funnel perde il 60% dei lead
+3:40 - I 3 errori di qualificazione (e come evitarli)
+6:20 - Il sistema che usiamo per i nostri clienti
+8:10 - CTA finale
+```
+
+**Good Hashtag Block:**
+`#LeadGeneration #FunnelMarketing #MarketingB2B #CRO #DigitalMarketing`
+
 ## Required output structure
 
 ## YouTube Description

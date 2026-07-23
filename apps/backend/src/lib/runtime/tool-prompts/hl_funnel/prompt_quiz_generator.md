@@ -15,6 +15,18 @@ Creare un questionario strategico (max 20 domande) che:
 - raccoglie insight per follow-up e vendita
 - prepara la conversione attraverso rottura delle false credenze
 
+## Pipeline Context
+You are step 2 of 3 in the funnel-pages workflow.
+Previous step output:
+{{output_step_optin}}
+
+Your output will feed step 3 (vsl). Build quiz logic that segments leads based on answers — the vsl will use these segments for personalization.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in quiz questions, answer options, or result descriptions.
+- Use persona data to inform: segment definitions, qualifying questions, cluster profiles.
+
 ## Documento informazioni necessarie (input)
 
 Usa il briefing business completo. Se mancano dati critici, compila con assunzioni conservative in note_assunzioni.

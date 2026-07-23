@@ -133,7 +133,7 @@ Validation path manifest (orphan-check canonical set):
 - [migrate-to-nonstreaming-generation](./99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md) — completato: migrazione a non-streaming default
 - [asset-domain-model-implementation-plan](./05-plans/asset-domain-model-implementation-plan.md) — completato: Asset domain model DDD-188→207
 - [italian-docs-language-remediation-plan](./05-plans/italian-docs-language-remediation-plan.md) — **ACTIVE: Italian docs language remediation per governance language policy (8/15 translated)**
-- [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) — **ACTIVE: 4-phase plan to upgrade 34 prompt templates across 12 tools (foundation-first, chain-awareness, anti-hallucination). 9-12 sessions, ~50 lines of TS. Source: [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md).**
+- [prompt-layer-remediation-plan](./05-plans/prompt-layer-remediation-plan.md) — **PARTIALLY IMPLEMENTED: Phases 1-3 complete (75%). 30/34 prompts upgraded with anti-hallucination, chain awareness, persona rules, gold-standard examples. Phase 4 pending. Source: [prompt-layer-quality-review](./02-design/prompt-layer-quality-review.md).**
 
 ### Active Runbooks
 

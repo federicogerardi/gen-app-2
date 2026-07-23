@@ -20,6 +20,18 @@
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 3 of 6 in the youtube-lf-script workflow.
+Previous step output:
+{{output_step_packaging}}
+
+Your output will feed step 4 (body-structure). Build on the title strategy and hook from packaging.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in intro copy or script drafts.
+- Use persona data to inform: trust-building checkpoints, contrarian take framing, likability boost.
+
 ## Output Format (strict markdown)
 
 Use exactly these sections:

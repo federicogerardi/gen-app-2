@@ -25,6 +25,20 @@ Usa in ordine di priorità:
 
 Integra i tre livelli senza contraddizioni. Dove mancano dati critici, compila con assunzioni conservative e documentale in note finali.
 
+## Pipeline Context
+You are step 3 of 3 in the funnel-pages workflow — the final step.
+Previous step outputs:
+{{output_step_optin}}
+{{output_step_quiz}}
+
+This is the final artifact. Synthesize the optin promise and quiz segmentation into a complete VSL. Maintain continuity with the optin page's hook and the quiz's lead qualification logic.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names (e.g., "Marco", "Giulia") in VSL script, testimonials, or case studies.
+- Use persona data to inform: pain point framing, ideal prospect qualification, transformation statement, objection handling.
+- Address the viewer as an abstract "tu" — never a named persona.
+
 ## Regole Linguistiche Critiche
 
 ### Terminologia: Italiano Prima di Tutto

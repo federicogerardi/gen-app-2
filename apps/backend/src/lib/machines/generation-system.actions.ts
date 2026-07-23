@@ -68,7 +68,7 @@ type GenerationSystemActionObject =
   | { type: 'cacheToolArtifactFromOutput'; params: { artifactId: string | null } }
   | { type: 'appendStreamChunk'; params: { chunk: string } }
   | { type: 'assembleGeometricPrompt'; params: undefined }
-  | { type: 'assembleBlogArticlePrompt'; params: undefined }
+  | { type: 'assembleChainAwarePrompt'; params: undefined }
   | { type: 'resetVolatileContext'; params: undefined };
 
 type GenerationSystemGuardObject =
@@ -417,23 +417,19 @@ export const generationSystemActions = {
       };
     },
   }),
-  assembleBlogArticlePrompt: assignGeneration<undefined>({
+  assembleChainAwarePrompt: assignGeneration<undefined>({
     requestInput: ({ context }: GenerationActionArgs) => {
-      const toolKey = context.toolKey ?? '';
-      const workflowType = context.workflowType ?? '';
-      if (toolKey !== 'blog-article-generator' && workflowType !== 'blog_article_generator') {
-        return context.requestInput;
-      }
-
-      const promptTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
+      const resolvedTemplate = typeof context.requestInput.resolvedPromptTemplate === 'string'
         ? context.requestInput.resolvedPromptTemplate
-        : (typeof context.requestInput.prompt === 'string' ? context.requestInput.prompt : '');
+        : null;
 
-      if (!promptTemplate) {
+      // Only act when a resolved template (from the prompt registry) is present.
+      // Custom user prompts (requestInput.prompt without resolvedPromptTemplate) are left untouched.
+      if (!resolvedTemplate) {
         return context.requestInput;
       }
 
-      let filledPrompt = promptTemplate;
+      let filledPrompt = resolvedTemplate;
 
       const dependencyOutputsByStepRaw = context.requestInput.stepDependencyArtifactContentsByStep;
       const dependencyOutputsByStep =
@@ -441,21 +437,42 @@ export const generationSystemActions = {
           ? dependencyOutputsByStepRaw as Record<string, string>
           : {};
 
+      let didReplace = false;
       for (const [stepKey, content] of Object.entries(dependencyOutputsByStep)) {
         if (typeof content === 'string' && content.trim().length > 0) {
           const placeholder = `{{output_step_${stepKey}}}`;
-          filledPrompt = filledPrompt.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), content);
+          const regex = new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+          if (regex.test(filledPrompt)) {
+            filledPrompt = filledPrompt.replace(regex, content);
+            didReplace = true;
+          }
         }
       }
 
-      // Replace {{titolo}} from request input or extraction payload
+      // Replace {{titolo}} from request input or extraction payload (used by blog-article-generator)
       const titolo = typeof context.requestInput.titolo === 'string'
         ? context.requestInput.titolo
         : (typeof context.requestInput.extractionPayload === 'object' && context.requestInput.extractionPayload !== null
           ? (context.requestInput.extractionPayload as Record<string, unknown>).titolo
           : undefined);
-      if (typeof titolo === 'string' && titolo.trim().length > 0) {
+      if (typeof titolo === 'string' && titolo.trim().length > 0 && filledPrompt.includes('{{titolo}}')) {
         filledPrompt = filledPrompt.replace(/\{\{titolo\}\}/g, titolo);
+        didReplace = true;
+      }
+
+      // Replace {{copy_length_format}} from request input (used by meta-ads)
+      const copyLengthFormat = typeof context.requestInput.copyLengthFormat === 'string'
+        ? context.requestInput.copyLengthFormat
+        : undefined;
+      if (typeof copyLengthFormat === 'string' && copyLengthFormat.trim().length > 0 && filledPrompt.includes('{{copy_length_format}}')) {
+        filledPrompt = filledPrompt.replace(/\{\{copy_length_format\}\}/g, copyLengthFormat);
+        didReplace = true;
+      }
+
+      // Only overwrite prompt if placeholders were actually resolved.
+      // If no replacements were made, keep the existing prompt as-is.
+      if (!didReplace) {
+        return context.requestInput;
       }
 
       return {

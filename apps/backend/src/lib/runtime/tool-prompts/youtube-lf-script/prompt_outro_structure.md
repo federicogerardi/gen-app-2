@@ -20,6 +20,18 @@
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 6 of 6 in the youtube-lf-script workflow — the final step.
+Previous step output:
+{{output_step_native-cta-embeds}}
+
+This is the final artifact. Close all loops opened in previous steps. Do not introduce new theory.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in outro copy, CTA, or recap.
+- Use persona data to inform: pain-solution gap closure, final CTA framing, next-video tease.
+
 ## Output Format (strict markdown)
 
 Use exactly these sections:
@@ -35,6 +47,17 @@ Use exactly these sections:
 - Recap must summarize previously delivered value, not introduce new theory.
 - Final CTA must align with offer and purchase-process complexity.
 - Keep urgency credible and non-hype.
+
+## Gold Standard Examples
+
+**Good Recap:**
+"Ok, ricapitoliamo. Ti ho mostrato come il 60% dei tuoi lead non sono qualificati. Ti ho spiegato perché non è colpa dei tuoi venditori — è il sistema di qualificazione che non funziona. Ti ho dato i 3 step per costruire un funnel che filtra i prospect prima che arrivino alla call."
+
+**Good CTA Finale:**
+"Se vuoi implementare questo sistema nella tua azienda, ho preparato una call strategica gratuita di 30 minuti dove analizzo il TUO funnel e ti dico esattamente dove stai perdendo lead. Nessuna vendita. Nessun impegno. Solo una diagnosi. Il link per prenotare è qui sotto in descrizione."
+
+**Good Pain-Solution Gap Closure:**
+"A questo punto hai tutto quello che ti serve per iniziare. Il 5% di voi prenderà questi 4 framework e li implementerà da solo — e otterrà risultati. Per il 95% che vuole accelerare, ho aperto 5 slot questo mese per fare l'implementazione insieme. Non è per tutti: devi avere almeno un flusso di lead esistente e un budget ads attivo. Se è il tuo caso, il link è in descrizione."
 
 ### **FASE 5: STRUTTURA OUTRO**
 

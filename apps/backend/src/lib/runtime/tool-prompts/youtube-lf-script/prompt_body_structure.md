@@ -20,6 +20,18 @@
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Pipeline Context
+You are step 4 of 6 in the youtube-lf-script workflow.
+Previous step output:
+{{output_step_intro-structure}}
+
+Your output will feed step 5 (native-cta-embeds). Structure the body flow to create natural CTA insertion points.
+
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in body copy or script content.
+- Use persona data to inform: value loop design, rehook cadence, point ordering strategy.
+
 ## Output Format (strict markdown)
 
 Use exactly these sections:

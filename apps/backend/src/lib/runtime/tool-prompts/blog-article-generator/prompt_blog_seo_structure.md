@@ -8,6 +8,11 @@
 - NEVER attribute quotes, phrases, or names to people not cited in sources.
 - When in doubt, omit. Specificity from context > plausible fabrication.
 
+## Persona Asset Usage
+- Personas are abstract reference profiles, NOT real people.
+- NEVER use persona names in SEO structure, headings, or source citations.
+- Use persona data to inform: reading level, information depth, subheading relevance.
+
 [Mandatory Instruction]: You MUST perform real-time online research on the topic indicated in the [Research Topic] field. Do not proceed from memory and do not invent information; active web search tool usage is a blocking and fundamental requirement for this task.
 
 [Research Guidelines]:

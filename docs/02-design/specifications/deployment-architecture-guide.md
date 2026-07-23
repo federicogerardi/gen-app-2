@@ -15,69 +15,69 @@ tags: [deployment, railway, networking, proxy, operations]
 > - [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) — `GenerationRequest`, `Artifact`, `BackendStreamEvent`
 > - [Domain Bounded Context Map](../domain-bounded-context-map.md) — context boundaries and integration points
 
-**Data**: 2026-05-01  
-**Revisione**: 2.2  
-**Scope**: Stato deploy Railway corrente, migrazione same-origin private-network e regole operative per evitare regressioni
+**Date**: 2026-05-01  
+**Revision**: 2.2  
+**Scope**: Current Railway deployment state, same-origin private-network migration and operational rules to avoid regressions
 
 ---
 
-## Stato As-Is (Confermato)
+## As-Is State (Confirmed)
 
-Topologia attiva:
+Active topology:
 
 ```text
 Frontend (Railway service) -> Backend (Railway service) -> PostgreSQL + Redis
 ```
 
-Domini pubblici (esempio attuale):
+Public domains (current example):
 
 - Frontend: `https://<frontend-service>.up.railway.app`
 - Backend: `https://<backend-service>.up.railway.app`
 
-Note chiave:
+Key notes:
 
-- Il frontend e una SPA React/Vite buildata in `frontend/dist` e servita da runtime Node (`frontend/server.mjs`).
-- Il backend usa Node runtime con endpoint auth/api/stream e healthcheck su `/health`.
-- Il deployment e cross-origin (frontend e backend su domini diversi), quindi cookie/CORS/CSRF devono essere configurati in modo esplicito.
+- The frontend is a React/Vite SPA built in `frontend/dist` and served by Node runtime (`frontend/server.mjs`).
+- The backend uses Node runtime with auth/api/stream endpoints and healthcheck at `/health`.
+- The deployment is cross-origin (frontend and backend on different domains), so cookie/CORS/CSRF must be configured explicitly.
 
 ---
 
-## Regole Operative Railway (Nuove)
+## Railway Operational Rules (New)
 
-### 1) Service frontend
+### 1) Frontend service
 
-- Root directory service: `frontend`
+- Service root directory: `frontend`
 - Builder: Dockerfile (`frontend/Dockerfile`)
 - Start command: `node server.mjs`
 - Healthcheck path: `/health`
 
-### 2) Networking frontend
+### 2) Frontend networking
 
-- Public networking va configurato sulla porta effettiva del processo frontend.
-- Nel setup corrente la porta da impostare e `8080`.
-- L'utente finale usa comunque URL HTTPS senza specificare porta.
+- Public networking must be configured on the actual frontend process port.
+- In the current setup the port to set is `8080`.
+- The end user still uses HTTPS URL without specifying port.
 
-### 3) Runtime frontend
+### 3) Frontend runtime
 
-- Script runtime canonico:
+- Canonical runtime script:
 
 ```bash
 node server.mjs
 ```
 
-- Il build frontend avviene nel Dockerfile (`RUN npm run build`), non al bootstrap del container.
-- `server.mjs` espone:
+- Frontend build occurs in the Dockerfile (`RUN npm run build`), not at container bootstrap.
+- `server.mjs` exposes:
   - `GET /health` -> 200 JSON
-  - file statici da `dist/`
-  - SPA fallback su `dist/index.html`
+  - static files from `dist/`
+  - SPA fallback on `dist/index.html`
 
-Razionale: evitare double-build ad ogni restart Railway e mantenere il runtime deterministico.
+Rationale: avoid double-build on every Railway restart and keep runtime deterministic.
 
 ---
 
-## Variabili Backend Production (Cross-Origin Baseline Storica)
+## Backend Production Variables (Historical Cross-Origin Baseline)
 
-Impostare su backend Railway:
+Set on Railway backend:
 
 ```bash
 FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
@@ -87,7 +87,7 @@ AUTH_COOKIE_SECURE=true
 AUTH_COOKIE_SAMESITE=none
 ```
 
-Per mantenere anche test locale frontend:
+To also maintain local frontend testing:
 
 ```bash
 CORS_ALLOWED_ORIGINS=https://<frontend-service>.up.railway.app,http://localhost:5173

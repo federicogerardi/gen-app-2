@@ -1,5 +1,5 @@
 ---
-goal: Source of truth machine-friendly per il flow tool generation frontend
+goal: Machine-friendly source of truth for the frontend tool generation flow
 version: 1.3
 date_created: 2026-05-02
 last-reviewed: 2026-06-04
@@ -18,32 +18,32 @@ type: specification
 
 ## 1. Scope
 
-Questo documento definisce il contratto astratto e canonico del flow tool generation lato frontend.
+This document defines the abstract and canonical contract of the frontend tool generation flow.
 
-Obiettivo:
-- avere una base stabile per implementazione, review e refactor futuri
-- evitare divergenza tra UI, orchestrazione e stato macchina
-- preservare la visione XState-first
+Objective:
+- have a stable base for implementation, review and future refactoring
+- avoid divergence between UI, orchestration and machine state
+- preserve the XState-first vision
 
 Out of scope:
-- dettagli visual design
-- contratti backend non necessari alla logica frontend
+- visual design details
+- backend contracts not necessary for frontend logic
 
-> **Nota architetturale (v1.3)**: A partire da giugno 2026, il percorso di generazione per i tool e stato migrato al modello **non-streaming** (`POST /generation/run`, risposta JSON). Il percorso streaming (`POST /generation/stream`, SSE) resta intatto ma dormiente per futuri usi (es. chat con effetto typing). Il frontend utilizza `frontendGenerationMachine` come default per i tool, mentre `frontendStreamMachine` rimane disponibile. Per i dettagli tecnici completi della migrazione, vedere [Non-Streaming Generation Migration Plan](../../99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md).
+> **Architectural note (v1.3)**: Starting from June 2026, the generation path for tools has been migrated to the **non-streaming** model (`POST /generation/run`, JSON response). The streaming path (`POST /generation/stream`, SSE) remains intact but dormant for future uses (e.g., chat with typing effect). The frontend uses `frontendGenerationMachine` as default for tools, while `frontendStreamMachine` remains available. For complete technical details of the migration, see [Non-Streaming Generation Migration Plan](../../99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md).
 
 ## 2. Bounded Context
 
-Contesto dominio: `tool generation page`.
+Domain context: `tool generation page`.
 
-Responsabilita del bounded context:
+Bounded context responsibilities:
 1. setup input (project + briefing context)
-2. resume/regenerate da checkpoint e artifact history
-3. orchestrazione start/cancel/retry step flow
-4. esposizione stato deterministico alla UI tramite selector macchina
+2. resume/regenerate from checkpoint and artifact history
+3. orchestration start/cancel/retry step flow
+4. deterministic state exposure to UI via machine selector
 
 ## 3. Canonical Actors
 
-Actor tree frontend (astratto):
+Frontend actor tree (abstract):
 
 ```text
 toolPageMachine
@@ -53,10 +53,10 @@ toolPageMachine
 
 Ownership:
 1. `toolPageMachine`
-- source of truth del page state
+- source of truth for page state
 - progress state per step
-- readiness snapshot con reason codes
-- decisioni di abilitazione start generation
+- readiness snapshot with reason codes
+- start generation enablement decisions
 - on terminal stream failure without a recoverable `failedStep`, the terminal bridge must still force the page out of `generating` by driving `STEP_FAILED` when possible and `CANCEL_GENERATION` as the unblock path
 
 2. `briefingUploadMachine`
@@ -64,13 +64,13 @@ Ownership:
 - recovery extraction event-driven
 
 3. `toolFlowMachine`
-- stato step runtime (`idle|running|error|done|failed`)
+- step runtime state (`idle|running|error|done|failed`)
 
 ## 4. Canonical Data Model
 
 ### 4.1 Readiness Snapshot
 
-Schema canonico:
+Canonical schema:
 
 ```ts
 type ReadinessReasonCode =
@@ -87,7 +87,7 @@ type ReadinessSnapshot = {
 };
 ```
 
-Regola canonica:
+Canonical rule:
 
 ```text
 canStartFlow = hasProject AND hasExtractionContext AND hasPrimaryTargetStep
@@ -133,13 +133,13 @@ type ToolPageViewModel = {
 ```
 
 Ownership rule:
-1. `toolPageMachine.context.viewModel` e l'unica sorgente canonica per decisioni UI.
-2. `ToolPageTemplate` non puo derivare localmente policy primaria o canonical state.
-3. `ToolGenerationFlowVertical` riceve dati pronti dal viewModel e non calcola policy.
+1. `toolPageMachine.context.viewModel` is the only canonical source for UI decisions.
+2. `ToolPageTemplate` cannot locally derive primary policy or canonical state.
+3. `ToolGenerationFlowVertical` receives ready data from viewModel and does not calculate policy.
 
 ## 5. Event Contract (Frontend Internal)
 
-Eventi canonici del flow page:
+Canonical page flow events:
 1. `PROJECT_SELECTED`
 2. `BRIEFING_FILE_SELECTED`
 3. `BRIEFING_RESET`
@@ -152,7 +152,7 @@ Eventi canonici del flow page:
 10. `CANCEL_GENERATION`
 11. `RESET`
 
-Payload minimo `PROGRESS_SYNCED`:
+Minimum `PROGRESS_SYNCED` payload:
 
 ```ts
 {
@@ -164,21 +164,21 @@ Payload minimo `PROGRESS_SYNCED`:
 }
 ```
 
-Nota: la macchina deve derivare internamente `readiness` dal payload e dal proprio context (`projectId`).
+Note: the machine must internally derive `readiness` from the payload and its own context (`projectId`).
 
 ## 6. Canonical State Semantics
 
-Stati page machine:
+Page machine states:
 1. `configuring`
 2. `generating`
 3. `completed`
 
-Invarianti:
-1. in `configuring`, `briefingUploadMachine` deve essere disponibile
-2. transizione `configuring -> generating` ammessa solo con `readiness.canStartFlow = true`
-3. `CANCEL_GENERATION` deve riportare a `configuring` senza side effects residui attivi
-4. `RESET` deve azzerare progress/readiness e ricreare subtree child actor
-5. `STEP_FAILED` può essere emesso anche come derivazione del terminal stream bridge quando il backend termina in `failed` ma non espone un `failedStep` recuperabile
+Invariants:
+1. in `configuring`, `briefingUploadMachine` must be available
+2. `configuring -> generating` transition allowed only with `readiness.canStartFlow = true`
+3. `CANCEL_GENERATION` must return to `configuring` without active residual side effects
+4. `RESET` must zero out progress/readiness and recreate child actor subtree
+5. `STEP_FAILED` can also be emitted as derivation of the terminal stream bridge when the backend terminates in `failed` but does not expose a recoverable `failedStep`
 
 ## 7. Decision Table (Readiness)
 
@@ -191,20 +191,20 @@ Invarianti:
 
 ## 8. UI Contract (Machine-Driven)
 
-Regola XState-first:
-1. la UI legge lo stato da selector macchina
-2. la UI non deve duplicare logica decisionale di readiness
-3. il blocco `Pronto per la generazione` deve essere guidato da `readiness.reasonCodes`
-4. le CTA principali devono usare `viewModel.primaryActionPolicy`
-5. il rendering step deve usare `viewModel.stepStatuses`
+XState-first rule:
+1. the UI reads state from machine selector
+2. the UI must not duplicate readiness decision logic
+3. the `Ready for generation` block must be driven by `readiness.reasonCodes`
+4. primary CTAs must use `viewModel.primaryActionPolicy`
+5. step rendering must use `viewModel.stepStatuses`
 
-Mapping reason code -> feedback:
+Reason code -> feedback mapping:
 
-| Reason code | Feedback UI canonico |
+| Reason code | Canonical UI feedback |
 |---|---|
-| `missing_project` | Seleziona un progetto |
-| `missing_extraction_context` | Carica o recupera un brief |
-| `missing_primary_target_step` | In attesa dello step disponibile |
+| `missing_project` | Select a project |
+| `missing_extraction_context` | Upload or retrieve a brief |
+| `missing_primary_target_step` | Waiting for available step |
 
 Contract verticale minimo (`ToolGenerationFlowVertical`) — DDD-084:
 1. `canonicalState`
@@ -232,51 +232,51 @@ Flow invariant:
 - Optional-file absence never blocks generation start.
 - Required-file absence always blocks generation start.
 
-Campi esplicitamente non necessari nel contract verticale corrente:
+Fields explicitly not necessary in the current vertical contract:
 1. `readinessReasonCodes`
 2. `steps`
 3. `completedStepsCount` + `totalStepsCount`
 
 ## 8c. Status Naming Convergence Guard (DDD-085)
 
-Regola anti-drift tra livelli:
+Anti-drift rule across levels:
 1. `ToolStepStatus` conserva `done` come stato terminale step-level.
 2. `CanonicalToolUiState` conserva `completed` come stato terminale panel-level.
 3. `ToolGenerationFlowVertical` deve proiettare il terminale del preload bar solo come `completed` (`BarVariant = 'completed'`, CSS `.workflow-preload-bar.is-completed`).
 4. `is-done` e `BarVariant = 'done'` sono vietati nella superficie preload bar.
 
-Gates di enforcement:
+Enforcement gates:
 1. test comportamentale: `ToolGenerationFlowVertical.test.tsx`
 2. static guard cross-file: `ToolGenerationFlowVertical.status-naming.guard.test.ts`
 
 ## 9. Recovery & Compatibility Rules
 
-Regole resume/checkpoint:
-1. recovery checkpoint deve supportare artifact legacy privi di `sourceRequest.input.toolKey`
-2. fallback extraction recovery deve restare deterministico per progetto/tool/briefing quando disponibile
-3. in caso di cancel durante run, lo step interrotto deve diventare checkpoint locale riprendibile
+Resume/checkpoint rules:
+1. recovery checkpoint must support legacy artifacts lacking `sourceRequest.input.toolKey`
+2. fallback extraction recovery must remain deterministic for project/tool/briefing when available
+3. in case of cancel during run, the interrupted step must become a resumable local checkpoint
 
 ## 10. Acceptance Gates
 
-Checklist minima per modifiche future al flow:
-1. `toolPageMachine.test` verde (guardie + readiness snapshot + transizioni)
-2. `ToolPageTemplate.test` verde (CTA coerente con guard macchina)
-3. `ToolGenerationFlowVertical.test` verde (single-bar state mapping deterministico)
-4. `ToolGenerationFlowVertical.status-naming.guard.test` verde (convergenza naming component/CSS/test)
-5. smoke test manuale checkpoint resume: esito OK
+Minimum checklist for future flow changes:
+1. `toolPageMachine.test` green (guards + readiness snapshot + transitions)
+2. `ToolPageTemplate.test` green (CTA consistent with machine guard)
+3. `ToolGenerationFlowVertical.test` green (single-bar state mapping deterministic)
+4. `ToolGenerationFlowVertical.status-naming.guard.test` green (naming convergence component/CSS/test)
+5. manual checkpoint resume smoke test: OK outcome
 
 ## 11. Versioning Policy
 
-Regole aggiornamento documento:
-1. bump minor (`x.y -> x.(y+1)`) per cambi semantici compatibili
-2. bump major (`x -> x+1`) per breaking change di contract eventi/state
-3. ogni update deve includere delta esplicito nei docs attivi (index overview + changelog development)
+Document update rules:
+1. minor bump (`x.y -> x.(y+1)`) for compatible semantic changes
+2. major bump (`x -> x+1`) for breaking changes in event/state contract
+3. every update must include explicit delta in active docs (index overview + development changelog)
 
 ## 12. Sprint 5 Delta (2026-05-02)
 
-1. formalizzata ownership completa del `viewModel` macchina come source of truth UI.
-2. esplicitato limite architetturale del template: presenter-thin senza derivazioni policy/stato.
-3. allineato contract minimale del verticale ai campi realmente consumati.
+1. formalized complete machine `viewModel` ownership as UI source of truth.
+2. explicit template architectural limit: presenter-thin without policy/state derivations.
+3. aligned minimal vertical contract to actually consumed fields.
 
 ---
 
@@ -306,14 +306,14 @@ Progress contract:
 
 ### 9.1 Input Fields
 
-**Obbligatori**:
-- Progetto (`projectId`) — Selezione tramite dialog. Richiesto per abilitare upload briefing.
-- Briefing file (`uploadedFileName` + contenuto estratto) — Formati: `.docx`, `.txt`, `.md`. Attiva pipeline upload → extraction → review.
+**Mandatory**:
+- Project (`projectId`) — Selection via dialog. Required to enable briefing upload.
+- Briefing file (`uploadedFileName` + extracted content) — Formats: `.docx`, `.txt`, `.md`. Activates upload → extraction → review pipeline.
 
-**Facoltativi**:
-- Modello (`model`) — Select LLM con default da lista disponibili.
-- Tono (`tone`) — Select con hint contestuale.
-- Note (`notes`) — Textarea opzionale (visibile dopo extraction ready); usata come istruzione additiva pre-generazione.
+**Optional**:
+- Model (`model`) — LLM select with default from available list.
+- Tone (`tone`) — Select with contextual hint.
+- Notes (`notes`) — Optional textarea (visible after extraction ready); used as pre-generation additive instruction.
 
 ### 9.1b Unified Input Requirement Matrix (three source families)
 
@@ -350,20 +350,20 @@ Readiness outcome matrix:
 
 ### 9.2 Upload/Extraction Lifecycle
 
-**Abilitazione**:
-- Input file disabilitato quando: nessun progetto selezionato, fase in `uploading/extracting`, generazione in corso.
+**Enabling**:
+- Input file disabled when: no project selected, phase in `uploading/extracting`, generation in progress.
 
-**Stati**:
-- `idle`: nessun briefing caricato
-- `uploading`: caricamento file in corso
-- `extracting`: estrazione briefing in corso
-- `ready`: contesto pronto; `ExtractionContext` popolato (termine canonico UL)
-- `error`: messaggio esposto; possibilità di nuovo upload/reset
+**States**:
+- `idle`: no briefing loaded
+- `uploading`: file upload in progress
+- `extracting`: briefing extraction in progress
+- `ready`: context ready; `ExtractionContext` populated (canonical UL term)
+- `error`: message exposed; possibility of new upload/reset
 
 **Output**:
-- `extractionPayload` (ExtractionContext canonico)
-- Eventuale `uploadError` o `extractionError`
-- Abilitazione CTA primaria se precondizioni soddisfatte
+- `extractionPayload` (canonical ExtractionContext)
+- Any `uploadError` or `extractionError`
+- Primary CTA enabled if preconditions met
 
 Mixed-source extension:
 1. File upload/extraction lifecycle remains valid for file-enabled tools.
@@ -379,45 +379,45 @@ Component convergence rule:
 ### 9.3 User Action Sequences
 
 **Happy path**:
-1. Utente apre tool (`/tools/funnel-pages` o `/tools/nextland`)
-2. Seleziona progetto
-3. Fornisce gli input richiesti dal tool (direct input, file upload, API acquisition settings)
-4. Clicca la CTA primaria visibile `Avvia la generazione`
-5. FE esegue `Start Context Generation Action` quando il contesto non è ancora pronto
-6. Attende completamento `Context Generation Phase` (extraction + fetch + merge, per configurazione tool)
-7. FE avvia automaticamente la generazione step-1 con payload composito già pronto, senza secondo click
-8. Osserva avanzamento globale e per-step
-9. Apre artefatti o rilancia generazione
+1. User opens tool (`/tools/funnel-pages` or `/tools/nextland`)
+2. Selects project
+3. Provides the inputs required by the tool (direct input, file upload, API acquisition settings)
+4. Clicks the visible primary CTA `Start generation`
+5. FE executes `Start Context Generation Action` when context is not yet ready
+6. Waits for `Context Generation Phase` completion (extraction + fetch + merge, per tool configuration)
+7. FE automatically starts step-1 generation with composite payload already ready, without second click
+8. Observes global and per-step progress
+9. Opens artifacts or relaunches generation
 
 **Resume/Regenerate path**:
-1. Utente arriva con `sourceArtifactId` + `intent` (`resume` o `regenerate`)
-2. Tool precompila contesto da artifact/checkpoint
-3. CTA primaria diventa contestuale: `Riprendi dal checkpoint` o `Rigenera`
-4. Azioni secondarie disponibili: `Rigenera da zero`, `Resetta setup`, `Nuova generazione`
+1. User arrives with `sourceArtifactId` + `intent` (`resume` or `regenerate`)
+2. Tool pre-fills context from artifact/checkpoint
+3. Primary CTA becomes contextual: `Resume from checkpoint` or `Regenerate`
+4. Secondary actions available: `Regenerate from scratch`, `Reset setup`, `New generation`
 
 ### 9.4 State-to-Action Routing
 
-Mappa canonica stato → CTA:
+Canonical state → CTA map:
 
-| Stato UI | CTA primaria | CTA secondarie tipiche |
+| UI State | Primary CTA | Typical secondary CTAs |
 |---|---|---|
-| `draft-empty` | Completa dati obbligatori | Riprendi da checkpoint |
-| `processing-briefing` | Caricamento/Estrazione in corso | nessuna |
-| `draft-ready` | Avvia generazione | Riprova estrazione, Resetta setup |
-| `prefilled-regenerate` | Rigenera | Resetta setup |
-| `running` | Generazione in corso (disabilitato) | nessuna |
-| `paused-with-checkpoint` | Riprendi dal checkpoint | Rigenera da zero, Resetta setup |
-| `completed` | Apri ultimo artefatto | Rigenera, Nuova generazione |
+| `draft-empty` | Complete mandatory data | Resume from checkpoint |
+| `processing-briefing` | Upload/Extraction in progress | none |
+| `draft-ready` | Start generation | Retry extraction, Reset setup |
+| `prefilled-regenerate` | Regenerate | Reset setup |
+| `running` | Generation in progress (disabled) | none |
+| `paused-with-checkpoint` | Resume from checkpoint | Regenerate from scratch, Reset setup |
+| `completed` | Open last artifact | Regenerate, New generation |
 
-**Principi reattivita**:
-- In `processing-briefing`: bottone disabilitato con label caricamento/estrazione
-- In `running`: bottone disabilitato; cancel interrompe e crea checkpoint locale dello step interrotto
-- Post-cancel: CTA primaria diventa `Riprendi dal checkpoint` (non torna a start finche checkpoint non è completato)
-- Resume deve usare nuovo `requestId` run-level (evita collisioni idempotency del run cancellato)
+**Reactivity principles**:
+- In `processing-briefing`: disabled button with upload/extraction label
+- In `running`: disabled button; cancel interrupts and creates local checkpoint of interrupted step
+- Post-cancel: primary CTA becomes `Resume from checkpoint` (does not return to start until checkpoint is completed)
+- Resume must use new run-level `requestId` (avoids idempotency collisions of cancelled run)
 
 ### 9.5 Workflow Panel `ui-fv-dashboard` Contract (Deterministic Spec)
 
-**Ruolo**: `ToolGenerationFlowVertical` rappresenta il monitor runtime del Tool Workspace con composizione a due card (`Progress`, `Informazioni di contesto`) secondo DDD-084.
+**Role**: `ToolGenerationFlowVertical` represents the Tool Workspace runtime monitor with two-card composition (`Progress`, `Context Information`) per DDD-084.
 
 #### 9.5.1 Canonical DOM Composition
 
@@ -450,14 +450,14 @@ Mappa canonica stato → CTA:
 
 | CanonicalToolUiState | Phase | Bar variant | Aria label |
 |---|---|---|---|
-| `draft-empty` | context-generation | `idle` | `Context generation in attesa` |
-| `resume-needs-briefing` | context-generation | `idle` | `Context generation in attesa` |
-| `processing-briefing` | context-generation | `active` | `Context generation in corso` |
-| `draft-ready` | context-generation | `idle` | `Context generation completata` |
-| `running` | generation | `active` | `Generazione in corso` |
-| `paused-with-checkpoint` | generation | `idle` | `Generazione in pausa` |
-| `completed` | generation | `completed` | `Generazione completata` |
-| `prefilled-regenerate` | generation | `idle` | `In attesa di avvio` |
+| `draft-empty` | context-generation | `idle` | `Context generation waiting` |
+| `resume-needs-briefing` | context-generation | `idle` | `Context generation waiting` |
+| `processing-briefing` | context-generation | `active` | `Context generation in progress` |
+| `draft-ready` | context-generation | `idle` | `Context generation completed` |
+| `running` | generation | `active` | `Generation in progress` |
+| `paused-with-checkpoint` | generation | `idle` | `Generation paused` |
+| `completed` | generation | `completed` | `Generation completed` |
+| `prefilled-regenerate` | generation | `idle` | `Waiting to start` |
 
 Deterministic rule:
 1. `processing-briefing` must always animate preload (`is-active`).
@@ -487,11 +487,11 @@ type GenerationProgressSnapshot = {
 
 Metric rules:
 1. Context generation phase (`phase = context-generation`):
-   - Metric 1: `Step corrente: ${extractionProgress.currentStepLabel}`
+   - Metric 1: `Current step: ${extractionProgress.currentStepLabel}`
    - Metric 2: `extractionProgress.statusLabel`
 2. Generation phase (`phase = generation`):
-   - Metric 1: `Step corrente: ${generationProgress.currentStepLabel}`
-   - Metric 2: `${completedCount} / ${totalCount} step completati`
+   - Metric 1: `Current step: ${generationProgress.currentStepLabel}`
+   - Metric 2: `${completedCount} / ${totalCount} steps completed`
 
 Progress value rules:
 1. Context generation phase value derives from `extractionProgress.completedCount / extractionProgress.totalCount`.
@@ -517,23 +517,23 @@ Before changing `ui-fv-dashboard` behavior:
 
 ### 9.6 Regeneration & Checkpoint Behavior
 
-**Resume da checkpoint** (artifact detail page):
-- Bottone disponibile se checkpoint riusabile esiste nel progetto
+**Resume from checkpoint** (artifact detail page):
+- Button available if reusable checkpoint exists in project
 - Query params: `sourceArtifactId`, `projectId`, `intent=resume`, optional `tone`, `notes`
-- Stato UI → `paused-with-checkpoint`
-- CTA primaria → `Riprendi dal checkpoint` (riavvia dallo step interrotto, non dal primo)
+- UI state → `paused-with-checkpoint`
+- Primary CTA → `Resume from checkpoint` (restarts from interrupted step, not from first)
 
-**Regenerate variante** (artifact detail page):
-- Bottone sempre disponibile per workflow supportati
+**Regenerate variant** (artifact detail page):
+- Button always available for supported workflows
 - Query params: `sourceArtifactId`, `projectId`, `intent=regenerate`, optional `tone`, `notes`
-- Stato UI → `prefilled-regenerate`
-- CTA primaria → `Rigenera` (avvia run completa nuova variante)
+- UI state → `prefilled-regenerate`
+- Primary CTA → `Regenerate` (starts complete new variant run)
 
-**Post-cancel durante run**:
-- Click cancel → interrompe stream → pausa con checkpoint dello step interrotto
-- CTA primaria: **non** torna a `Avvia generazione` subito; diventa `Riprendi dal checkpoint`
-- CTA secondarie: `Rigenera da zero`, `Resetta setup`
-- Effetto UX: utente vede sempre next action valida, senza dead-end
+**Post-cancel during run**:
+- Click cancel → interrupts stream → pauses with checkpoint of interrupted step
+- Primary CTA: does **not** return to `Start generation` immediately; becomes `Resume from checkpoint`
+- Secondary CTAs: `Regenerate from scratch`, `Reset setup`
+- UX effect: user always sees valid next action, no dead-end
 
 ---
 

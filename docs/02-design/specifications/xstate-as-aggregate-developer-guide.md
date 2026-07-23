@@ -11,44 +11,44 @@ tags: [xstate, ddd, aggregate, developer-guide, architecture, onboarding]
 
 # XState-as-Aggregate Developer Guide
 
-> Guida per lo sviluppatore che mappa i concetti DDD classici alle implementazioni XState v5 usate in `gen-app-2`.
+> Developer guide mapping classic DDD concepts to XState v5 implementations used in `gen-app-2`.
 >
-> **Collegamenti**: [XState-as-Aggregate Architectural Review](../07-governance/xstate-as-aggregate-architectural-review.md) · [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) · [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) · [Domain Naming Decision Log](../domain-naming-decision-log.md)
+> **References**: [XState-as-Aggregate Architectural Review](../07-governance/xstate-as-aggregate-architectural-review.md) · [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) · [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) · [Domain Naming Decision Log](../domain-naming-decision-log.md)
 
 ---
 
-## 1. Perché XState come Aggregate Root?
+## 1. Why XState as Aggregate Root?
 
-### 1.1 Confronto: DDD OOP classico vs XState v5
+### 1.1 Comparison: Classic DDD OOP vs XState v5
 
-| Aspetto | DDD OOP classico | XState v5 |
+| Aspect | Classic DDD OOP | XState v5 |
 |---|---|---|
-| Stato | Campi mutabili su un oggetto | `context` immutabile, modificato via `assign()` |
-| Transizioni | Metodi che mutano lo stato | Eventi → transizioni dichiarative nel `states` |
-| Invarianti | Guard inline nei metodi | `guards` dichiarativi, testabili in isolamento |
-| Side effect | Chiamate dirette a servizi | `actions` e `invoke` (attori figli) |
-| Test | Mock del repository + assertion sullo stato | `createActor()` → `send()` → `assert` snapshot |
+| State | Mutable fields on an object | Immutable `context`, modified via `assign()` |
+| Transitions | Methods that mutate state | Events → declarative transitions in `states` |
+| Invariants | Inline guards in methods | Declarative `guards`, testable in isolation |
+| Side effects | Direct service calls | `actions` and `invoke` (child actors) |
+| Testing | Mock repository + assert state | `createActor()` → `send()` → assert snapshot |
 
-### 1.2 Benefici
+### 1.2 Benefits
 
-- **Stati espliciti**: ogni stato della macchina è un nodo nel grafo — niente stati impliciti derivati da combinazioni di campi.
-- **Transizioni dichiarate**: il codice `on: { EVENT: { target, actions, guard } }` è auto-documentante.
-- **Testabilità**: i guard sono funzioni pure `({ context, event }) → boolean` — testabili senza mock.
-- **Visualizzazione**: XState Inspector mostra l'albero degli attori runtime.
+- **Explicit states**: every machine state is a node in the graph — no implicit states derived from field combinations.
+- **Declared transitions**: the code `on: { EVENT: { target, actions, guard } }` is self-documenting.
+- **Testability**: guards are pure functions `({ context, event }) => boolean` — testable without mocks.
+- **Visualization**: XState Inspector shows the runtime actor tree.
 
-### 1.3 Trade-off
+### 1.3 Trade-offs
 
-- **Serializzazione mid-flight**: gli `invoke` ripartono da zero dopo un crash (vedi [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) per la soluzione RISK-1).
-- **Child actor state**: gli attori figli sono isolati — il padre non può leggere il loro contesto senza eventi espliciti.
-- **Debugging cross-process**: con BullMQ, il worker e l'HTTP server sono processi separati (vedi RISK-2 nel piano BullMQ per il bridge Redis pub/sub).
+- **Mid-flight serialization**: `invoke` restarts from scratch after a crash (see [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) for the RISK-1 solution).
+- **Child actor state**: child actors are isolated — the parent cannot read their context without explicit events.
+- **Cross-process debugging**: with BullMQ, the worker and HTTP server are separate processes (see RISK-2 in the BullMQ plan for the Redis pub/sub bridge).
 
 ---
 
-## 2. Mappatura DDD → XState
+## 2. DDD → XState Mapping
 
 ### 2.1 Aggregate Root → XState Machine
 
-Ogni macchina XState definita con `setup({ ... }).createMachine({ ... })` è un Aggregate Root.
+Every XState machine defined with `setup({ ... }).createMachine({ ... })` is an Aggregate Root.
 
 ```typescript
 // apps/backend/src/lib/machines/generation-system.definition.ts
@@ -63,11 +63,11 @@ export const generationSystemMachine = setup({
 });
 ```
 
-**Esempio concreto**: `generationSystemMachine` è l'Aggregate Root del Generation bounded context.
+**Concrete example**: `generationSystemMachine` is the Aggregate Root of the Generation bounded context.
 
 ### 2.2 Domain Event → XState Event
 
-I Domain Event sono le union type definite in `xstate.ts`:
+Domain Events are the union types defined in `xstate.ts`:
 
 ```typescript
 // apps/backend/src/lib/types/xstate.ts
@@ -76,11 +76,11 @@ export type ToolWorkflowEvent =
   | WorkflowStepCompletedEvent;  // DDD-036
 ```
 
-Ogni evento ha un `type` stringa che corrisponde alle chiavi nelle transizioni `on: { ... }`.
+Every event has a string `type` that corresponds to keys in `on: { ... }` transitions.
 
 ### 2.3 Command/Invocation → XState invoke
 
-I comandi che richiedono side effect asincroni (chiamate LLM, API esterne) sono implementati come `invoke`:
+Commands requiring async side effects (LLM calls, external APIs) are implemented as `invoke`:
 
 ```typescript
 // apps/backend/src/lib/machines/generation-system.execution.states.ts
@@ -95,7 +95,7 @@ invoke: {
 
 ### 2.4 Business Invariant → XState Guard
 
-I guard sono funzioni pure che determinano se una transizione è permessa:
+Guards are pure functions that determine whether a transition is permitted:
 
 ```typescript
 // apps/backend/src/lib/machines/generation-system.guards.ts
@@ -107,7 +107,7 @@ isNotFinalArtifact: ({ context }) => {
 
 ### 2.5 Side Effect → XState Action
 
-Le azioni sono effetti collaterali dichiarativi — tipicamente `assign()` per mutare il contesto:
+Actions are declarative side effects — typically `assign()` to mutate context:
 
 ```typescript
 assign({
@@ -122,7 +122,7 @@ assign({
 
 ### 2.6 Repository Pattern → XState Input Adapters
 
-I repository sono iniettati tramite `input.adapters`:
+Repositories are injected via `input.adapters`:
 
 ```typescript
 // input shape
@@ -137,7 +137,7 @@ type GenerationSystemInput = {
 
 ### 2.7 Value Object → TypeScript branded types
 
-I Value Object sono tipi TypeScript (interfacce o type alias) definiti in `xstate.ts`:
+Value Objects are TypeScript types (interfaces or type aliases) defined in `xstate.ts`:
 
 ```typescript
 export type WorkflowStepStatus = 'idle' | 'running' | 'done' | 'error' | 'skipped';
@@ -146,19 +146,19 @@ export type WorkflowStepType = 'extraction' | 'generation' | 'acquisition' | 'cr
 
 ### 2.8 Aggregate State → XState Context
 
-Il contesto della macchina è lo stato dell'aggregate. Per macchine complesse, il contesto è decomposto in sub-contesti (DDD-167/DDD-168):
+The machine context is the aggregate state. For complex machines, the context is decomposed into sub-contexts (DDD-167/DDD-168):
 
 ```typescript
-// Context decomposti in generation-system.context-accessors.ts
+// Decomposed contexts in generation-system.context-accessors.ts
 selectDomainContext(context)   // toolKey, workflowType, artifactType
 selectRuntimeContext(context)  // routeType, mode, model
 ```
 
 ---
 
-## 3. Diagramma di Sequenza Completo
+## 3. Complete Sequence Diagram
 
-### 3.1 Submit FE → POST /api/tools/jobs
+### 3.1 FE Submit → POST /api/tools/jobs
 
 ```
 FE (ToolPage)
@@ -170,33 +170,33 @@ FE (ToolPage)
 BE (HTTP Handler)
   │
   ├─ Auth → Validation → Usage → Idempotency
-  ├─ Crea attore generationSystemMachine
+  ├─ Creates generationSystemMachine actor
   │
   ▼
 generationSystemMachine: idle → requestGateway → toolGenerationFlow
 ```
 
-### 3.2 BullMQ accoda ToolWorkflowJob → Worker processa
+### 3.2 BullMQ enqueues ToolWorkflowJob → Worker processes
 
 ```
 toolGenerationFlow
   │
-  ├─ invoke: toolWorkflowMachine (1 step alla volta)
+  ├─ invoke: toolWorkflowMachine (1 step at a time)
   │   ├─ STEP_START → step: running
   │   ├─ invoke: LLM actor (stream/generate)
   │   ├─ STEP_SUCCESS → step: done
-  │   ├─ Salva progresso Redis (RISK-1)
-  │   └─ Pubblica evento Redis (RISK-2)
+  │   ├─ Saves progress Redis (RISK-1)
+  │   └─ Publishes event Redis (RISK-2)
   │
   ▼
 Worker BullMQ
   │
-  ├─ Per ogni step nel piano:
-  │   ├─ Esegui step
-  │   ├─ Salva progresso → Redis
-  │   └─ Pubblica evento → Redis pub/sub
+  ├─ For each step in plan:
+  │   ├─ Execute step
+  │   ├─ Save progress → Redis
+  │   └─ Publish event → Redis pub/sub
   │
-  └─ Workflow completato → pulisci Redis
+  └─ Workflow completed → clean Redis
 ```
 
 ### 3.3 Actor tree
@@ -209,7 +209,7 @@ generationSystemMachine
   │   └── ownershipMachine
   ├── toolGenerationFlow
   │   ├── toolWorkflowMachine
-  │   │   └── (invoke per step corrente)
+  │   │   └── (invoke for current step)
   │   │       ├── streamTransportMachine
   │   │       └── persistenceBatchMachine
   │   └── extractionChainMachine
@@ -232,10 +232,10 @@ HTTP Server (pub/sub subscriber)
   ▼
 FE (EventSource)
   │
-  ├─ onmessage → aggiorna UI (step progress, completion)
+  ├─ onmessage → updates UI (step progress, completion)
 ```
 
-### 3.5 Completamento
+### 3.5 Completion
 
 ```
 toolWorkflowMachine: done
@@ -245,20 +245,20 @@ toolWorkflowMachine: done
   ▼
 generationSystemMachine
   │
-  ├─ persistenceRecording → salva artifact
+  ├─ persistenceRecording → saves artifact
   ├─ finalize → cleanup
-  └─ idle (stato finale)
+  └─ idle (final state)
 ```
 
 ---
 
-## 4. Anatomia di una Macchina
+## 4. Machine Anatomy
 
 ### 4.1 generation-system.definition.ts
 
 File: `apps/backend/src/lib/machines/generation-system.definition.ts`
 
-Top-level machine definition. Registra actions, guards, actors da moduli separati:
+Top-level machine definition. Registers actions, guards, actors from separate modules:
 
 ```typescript
 setup({
@@ -278,10 +278,10 @@ setup({
 
 File: `apps/backend/src/lib/machines/tool-workflow.machine.ts`
 
-Multi-step orchestrator. Gestisce il ciclo di vita di ogni step:
+Multi-step orchestrator. Manages the lifecycle of each step:
 
-- `createInitialStepStates(input)` — inizializza gli step da idle/done (bootstrap support)
-- `findFirstNonTerminalStepIndex(stepStates)` — trova il prossimo step da eseguire
+- `createInitialStepStates(input)` — initializes steps from idle/done (bootstrap support)
+- `findFirstNonTerminalStepIndex(stepStates)` — finds the next step to execute
 - Actions: `markStepRunning`, `markStepDone`, `markStepError`, `markStepSkipped`
 - Merge actions: `mergeAcquisitionOutput`, `mergeCrawlingOutput`, `mergeScoringOutput`
 
@@ -289,17 +289,17 @@ Multi-step orchestrator. Gestisce il ciclo di vita di ogni step:
 
 File: `apps/backend/src/lib/machines/generation-system.guards.ts`
 
-Business rule guards. Ogni guard è una funzione pura:
+Business rule guards. Each guard is a pure function:
 
 - `routeIsTool`, `routeIsExtraction`, `routeIsGeneric` — routing discriminator
-- `isNotFinalArtifact` — credit gate (step intermedio vs finale)
+- `isNotFinalArtifact` — credit gate (intermediate vs final step)
 - `streamOutputIsFailure`, `extractionOutputIsAccepted` — output type discriminators
 
 ### 4.4 generation-system.events.ts
 
 File: `apps/backend/src/lib/machines/generation-system.events.ts`
 
-Event output accessors. Helper che estraggono l'output dagli eventi XState:
+Event output accessors. Helpers that extract output from XState events:
 
 - `getStreamDoneOutput(event)` → `StreamDoneOutput | undefined`
 - `getToolDoneOutput(event)` → `ToolDoneOutput | undefined`
@@ -309,13 +309,13 @@ Event output accessors. Helper che estraggono l'output dagli eventi XState:
 
 File: `apps/backend/src/lib/machines/generation-system.types.ts`
 
-Context types, output types, action types. Definisce la shape del contesto e degli output degli attori.
+Context types, output types, action types. Defines the shape of context and actor outputs.
 
 ---
 
-## 5. Test Pattern
+## 5. Test Patterns
 
-### 5.1 Unit test di una macchina
+### 5.1 Unit test of a machine
 
 ```typescript
 import { createActor } from 'xstate';
@@ -341,7 +341,7 @@ test('toolWorkflowMachine merges crawling output', async () => {
 });
 ```
 
-### 5.2 Test di una guard
+### 5.2 Testing a guard
 
 ```typescript
 test('isNotFinalArtifact returns false for last step', () => {
@@ -353,7 +353,7 @@ test('isNotFinalArtifact returns false for last step', () => {
 });
 ```
 
-### 5.3 Test di un'azione assign
+### 5.3 Testing an assign action
 
 ```typescript
 test('markStepDone updates step status', () => {
@@ -368,13 +368,13 @@ test('markStepDone updates step status', () => {
 });
 ```
 
-### 5.4 Snapshot testing per regressione
+### 5.4 Snapshot testing for regression
 
-Pattern esistente in `runtime.geometric-e2e.test.ts`: creare un attore, inviare una sequenza di eventi, e confrontare lo snapshot finale con un expected shape.
+Existing pattern in `runtime.geometric-e2e.test.ts`: create an actor, send a sequence of events, and compare the final snapshot with an expected shape.
 
 ---
 
-## 6. Estensione: Aggiungere un Nuovo Step Type
+## 6. Extension: Adding a New Step Type
 
 ### 6.1 WorkflowStepType union in xstate.ts
 
@@ -385,7 +385,7 @@ export type WorkflowStepType = 'extraction' | 'generation' | 'acquisition' | 'cr
 
 ### 6.2 WorkflowStepDescriptor.type
 
-Assegnare il type nel descriptor dello step:
+Assign the type in the step descriptor:
 
 ```typescript
 { key: 'my-step', dependencies: [], type: 'newType' }
@@ -393,7 +393,7 @@ Assegnare il type nel descriptor dello step:
 
 ### 6.3 Routing in generation-system.execution.states.ts
 
-Aggiungere uno stato per il nuovo flow:
+Add a state for the new flow:
 
 ```typescript
 newTypeFlow: {
@@ -409,7 +409,7 @@ newTypeFlow: {
 
 ### 6.4 Merge action in tool-workflow.machine.ts
 
-Se il nuovo step produce output che deve essere merge nel contesto:
+If the new step produces output that must be merged into context:
 
 ```typescript
 mergeNewTypeOutput: assign({
@@ -426,21 +426,21 @@ mergeNewTypeOutput: assign({
 
 ## 7. Troubleshooting Common Issues
 
-### 7.1 "Perché la guard non scatta?"
+### 7.1 "Why doesn't the guard trigger?"
 
-- Verifica che l'evento abbia il `type` corretto nella transizione `on: { ... }`.
-- Verifica che il contesto abbia la shape attesa dal guard.
-- Usa XState Inspector per vedere lo stato corrente e gli eventi emessi.
+- Verify that the event has the correct `type` in the `on: { ... }` transition.
+- Verify that the context has the shape expected by the guard.
+- Use XState Inspector to see the current state and emitted events.
 
-### 7.2 "Perché invoke riparte da zero?"
+### 7.2 "Why does invoke restart from scratch?"
 
-Comportamento documentato di XState: gli `invoke` sono effimeri. Dopo un crash o un retry, l'attore invocato riparte dall'inizio. Per il resume dopo crash, vedi il meccanismo di serializzazione step nel [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) (RISK-1).
+Documented XState behavior: `invoke` is ephemeral. After a crash or retry, the invoked actor restarts from the beginning. For post-crash resume, see the step serialization mechanism in [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) (RISK-1).
 
-### 7.3 "Perché TS non inferisce il tipo?"
+### 7.3 "Why doesn't TS infer the type?"
 
-Gli helper in `generation-system.events.ts` usano cast `as` per accedere all'output degli eventi. Se il tipo non corrisponde, il cast fallisce silenziosamente a runtime. Per runtime validation con Zod, vedi `generation-system.event-schemas.ts` (RISK-4 implementato).
+The helpers in `generation-system.events.ts` use `as` casts to access event output. If the type doesn't match, the cast fails silently at runtime. For runtime validation with Zod, see `generation-system.event-schemas.ts` (RISK-4 implemented).
 
-### 7.4 "Come debuggare uno stato runtime?"
+### 7.4 "How to debug runtime state?"
 
 ```typescript
 const snapshot = actor.getSnapshot();
@@ -449,36 +449,36 @@ console.log('Context:', JSON.stringify(snapshot.context, null, 2));
 console.log('Children:', Object.keys(snapshot.children ?? {}));
 ```
 
-Per una rappresentazione formattata, vedi `actor-inspector.ts` (RISK-6 implementato):
+For a formatted representation, see `actor-inspector.ts` (RISK-6 implemented):
 
 ---
 
-## 8. Appendice: Riferimenti Incrociati
+## 8. Appendix: Cross-References
 
-### 8.1 DDD-NNN pertinenti
+### 8.1 Relevant DDD-NNN
 
-| DDD-NNN | Concetto | Rilevanza |
+| DDD-NNN | Concept | Relevance |
 |---|---|---|
-| DDD-167 | Context decomposition | Decomposizione del contesto in sub-contesti (domain, runtime, metrics) |
+| DDD-167 | Context decomposition | Decomposition of context into sub-contexts (domain, runtime, metrics) |
 | DDD-168 | Decomposed context accessors | `selectDomainContext`, `selectRuntimeContext` |
-| DDD-037 | WorkflowStepBootstrap | Bootstrap per resume/regenerate |
-| DDD-035 | WorkflowStepUnlocked | Evento di unlock step |
-| DDD-036 | WorkflowStepCompleted | Evento di completamento step |
-| DDD-034 | ToolWorkflowPersistenceMetadata | Metadati persistenza workflow |
-| DDD-226 | ToolWorkflowJob BullMQ | Proposal per il sistema BullMQ |
-| DDD-227 | BullMQ prerequisites | Piano per RISK-1 e RISK-2 |
+| DDD-037 | WorkflowStepBootstrap | Bootstrap for resume/regenerate |
+| DDD-035 | WorkflowStepUnlocked | Step unlock event |
+| DDD-036 | WorkflowStepCompleted | Step completion event |
+| DDD-034 | ToolWorkflowPersistenceMetadata | Workflow persistence metadata |
+| DDD-226 | ToolWorkflowJob BullMQ | Proposal for BullMQ system |
+| DDD-227 | BullMQ prerequisites | Plan for RISK-1 and RISK-2 |
 
-### 8.2 Entry AGENTS.md rilevanti
+### 8.2 Relevant AGENTS.md entries
 
-- **XState Pitfalls**: `useMachine(..., { input })` inizializza l'input una volta sola; se le props cambiano, sincronizza via evento o ricrea l'attore.
-- **React Pitfalls**: dichiara le costanti prima di `useEffect` se referenziate nel corpo dell'effetto.
+- **XState Pitfalls**: `useMachine(..., { input })` initializes input once; if props change, sync via event or recreate actor.
+- **React Pitfalls**: declare constants before `useEffect` if referenced in the effect body.
 
-### 8.3 Documenti collegati
+### 8.3 Related Documents
 
-| Documento | Relazione |
+| Document | Relationship |
 |---|---|
-| [XState-as-Aggregate Architectural Review](../07-governance/xstate-as-aggregate-architectural-review.md) | Analisi dei rischi architetturali — questa guida ne è la controparte pratica |
-| [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) | ✅ Implementato — RISK-1 (serializzazione) e RISK-2 (event bridge) |
-| [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md) | ✅ Implementato — RISK-3 (domain modules), RISK-4 (Zod), RISK-5 (questa guida), RISK-6 (inspector) |
-| [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) | Terminologia canonica DDD |
-| [Domain Naming Decision Log](../domain-naming-decision-log.md) | DDD-NNN per annotazioni e riferimenti |
+| [XState-as-Aggregate Architectural Review](../07-governance/xstate-as-aggregate-architectural-review.md) | Architectural risk analysis — this guide is its practical counterpart |
+| [BullMQ Prerequisites Plan](../../05-plans/plan-bullmq-prerequisites.md) | ✅ Implemented — RISK-1 (serialization) and RISK-2 (event bridge) |
+| [Post-BullMQ Improvements Plan](../../05-plans/plan-post-bullmq-improvements.md) | ✅ Implemented — RISK-3 (domain modules), RISK-4 (Zod), RISK-5 (this guide), RISK-6 (inspector) |
+| [Domain Ubiquitous Language Glossary](../../01-requirements/domain-ubiquitous-language-glossary.md) | Canonical DDD terminology |
+| [Domain Naming Decision Log](../domain-naming-decision-log.md) | DDD-NNN for annotations and references |

@@ -132,6 +132,7 @@ Validation path manifest (orphan-check canonical set):
 - [sprint-7-v7-nonstreaming-v6-progress-implementation-plan](./99-lifecycle/99-archive/plans/sprint-7-v7-nonstreaming-v6-progress-implementation-plan.md) — completato: unificazione streaming/non-streaming
 - [migrate-to-nonstreaming-generation](./99-lifecycle/99-archive/plans/migrate-to-nonstreaming-generation.md) — completato: migrazione a non-streaming default
 - [asset-domain-model-implementation-plan](./05-plans/asset-domain-model-implementation-plan.md) — completato: Asset domain model DDD-188→207
+- [italian-docs-language-remediation-plan](./05-plans/italian-docs-language-remediation-plan.md) — **ACTIVE: Italian docs language remediation per governance language policy (8/15 translated)**
 
 ### Active Runbooks
 

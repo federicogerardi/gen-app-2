@@ -13,31 +13,31 @@ tags: [logging, quality, consistency, pino, geometric-logger, console, observabi
 
 ## Scope
 
-Valutazione della qualità del sistema di logging backend. Identifica ogni file che usa logging e ne classifica la coerenza con l'architettura dichiarata: **Pino** come logger strutturato principale.
+Assessment of backend logging system quality. Identifies every file that uses logging and classifies its consistency with the declared architecture: **Pino** as the primary structured logger.
 
-**v2.0 (2026-07-15)**: Unificazione completata. Tutti i file operazionali usano Pino tramite `createComponentLogger()`. `geometric-logger.ts` rimosso. Rimane 1 eccezione nota (pipeline logger in `tools-orchestrate-handlers.ts`).
+**v2.0 (2026-07-15)**: Unification completed. All operational files use Pino via `createComponentLogger()`. `geometric-logger.ts` removed. 1 known exception remains (pipeline logger in `tools-orchestrate-handlers.ts`).
 
-Risultato: il sistema di logging è unificato sotto Pino. **22 file** migrati, **2 nuovi moduli** creati, **2 file** eliminati.
+Result: the logging system is unified under Pino. **22 files** migrated, **2 new modules** created, **2 files** eliminated.
 
 ---
 
-## A. Architettura Dichiarata vs Realtà (Post-Unification)
+## A. Declared Architecture vs Reality (Post-Unification)
 
-| | Dichiarato | Effettivo |
+| | Declared | Actual |
 |---|---|---|
-| **Logger primario** | Pino (`lib/runtime/logger.ts`) | Pino — usato da **22+ file** via `createComponentLogger()` |
-| **Component registry** | `log-components.ts` | ✅ Creato — 21 componenti canonici |
-| **Serializers** | `log-serializers.ts` | ✅ Creato — `baseQuery`/`paaQuery` truncation, `htmlContent`/`rawBuffer` removal |
-| **geometric-logger** | Eliminato | ✅ Rimosso — foldato nei serializer Pino |
-| **Copertura Pino** | Tutti i file operazionali | 22/22 file migrati (1 eccezione nota) |
+| **Primary logger** | Pino (`lib/runtime/logger.ts`) | Pino — used by **22+ files** via `createComponentLogger()` |
+| **Component registry** | `log-components.ts` | ✅ Created — 21 canonical components |
+| **Serializers** | `log-serializers.ts` | ✅ Created — `baseQuery`/`paaQuery` truncation, `htmlContent`/`rawBuffer` removal |
+| **geometric-logger** | Eliminated | ✅ Removed — folded into Pino serializers |
+| **Pino coverage** | All operational files | 22/22 files migrated (1 known exception) |
 
 ---
 
-## B. Classificazione Completa (Post-Unification)
+## B. Complete Classification (Post-Unification)
 
-### B1. Pino — `createComponentLogger()` (22 file)
+### B1. Pino — `createComponentLogger()` (22 files)
 
-| Fase | File | Componente |
+| Phase | File | Component |
 |---|---|---|
 | 0 | `generation-route-pipeline.ts` | `generation-route-pipeline` (defaultLogger) |
 | 1 | `backend-session.ts` | `backend-session` |
@@ -63,68 +63,68 @@ Risultato: il sistema di logging è unificato sotto Pino. **22 file** migrati, *
 | 5 | `admin-feedback-center-handlers.ts` | `feedback-center` |
 | 6 | `smoke-cleanup.ts` | `smoke-cleanup` |
 
-### B2. Eccezione Nota — Pipeline Logger (1 file)
+### B2. Known Exception — Pipeline Logger (1 file)
 
-| File | Pattern | Motivo |
+| File | Pattern | Reason |
 |---|---|---|
-| `tools-orchestrate-handlers.ts` | `console.info/warn/error` nei callback del pipeline logger | Test `captureOrchestrateStartMeta` monkey-patches `console.info` per catturare l'output del pipeline. Migrazione richiede aggiornamento infrastruttura test. |
+| `tools-orchestrate-handlers.ts` | `console.info/warn/error` in pipeline logger callbacks | Test `captureOrchestrateStartMeta` monkey-patches `console.info` to capture pipeline output. Migration requires test infrastructure update. |
 
-### B3. File Eliminati (2)
+### B3. Eliminated Files (2)
 
-| File | Motivo |
+| File | Reason |
 |---|---|
-| `geometric-logger.ts` | Foldato nei serializer Pino (`log-serializers.ts`) |
-| `runtime.geometric-logger.test.ts` | Test del sanitization ora coperto dai serializer Pino |
+| `geometric-logger.ts` | Folded into Pino serializers (`log-serializers.ts`) |
+| `runtime.geometric-logger.test.ts` | Sanitization test now covered by Pino serializers |
 
 ---
 
-## C. Problemi Risolti
+## C. Resolved Issues
 
-### C1. ~~`context-generation-assembly.ts` — Bypass del Geometric Logger~~ ✅ RISOLTO
+### C1. ~~`context-generation-assembly.ts` — Geometric Logger Bypass~~ ✅ RESOLVED
 
-Le 3 chiamate `console.info('[geometric] ...')` sono state migrate a `glog.info({...}, 'assembly.*')` tramite `createComponentLogger(LogComponent.GEOMETRIC)`. Sanitizzazione ora gestita dai serializer Pino globali.
+The 3 `console.info('[geometric] ...')` calls have been migrated to `glog.info({...}, 'assembly.*')` via `createComponentLogger(LogComponent.GEOMETRIC)`. Sanitization now handled by global Pino serializers.
 
-### C2. ~~Pino Logger Inutilizzato~~ ✅ RISOLTO
+### C2. ~~Unused Pino Logger~~ ✅ RESOLVED
 
-22 file ora usano Pino tramite `createComponentLogger()`. Il `geometric-logger.ts` è stato eliminato.
+22 files now use Pino via `createComponentLogger()`. The `geometric-logger.ts` has been eliminated.
 
-### C3. ~~`console.error` Non Protetti in Produzione~~ ✅ RISOLTO
+### C3. ~~Unprotected `console.error` in Production~~ ✅ RESOLVED
 
-Tutte le 7 chiamate `console.error` non gatate sono state migrate a `log.error()` con struttura Pino. L'unica eccezione è il pipeline logger in `tools-orchestrate-handlers.ts`.
+All 7 ungated `console.error` calls have been migrated to `log.error()` with Pino structure. The only exception is the pipeline logger in `tools-orchestrate-handlers.ts`.
 
-### C4. ~~Prefissi Testuali Non Standardizzati~~ ✅ RISOLTO
+### C4. ~~Non-Standardized Textual Prefixes~~ ✅ RESOLVED
 
-I prefissi ad-hoc sono stati sostituiti dal `LogComponent` registry centralizzato in `log-components.ts`. Ogni file usa `createComponentLogger(LogComponent.XXX)` con componente canonico.
+Ad-hoc prefixes have been replaced by the centralized `LogComponent` registry in `log-components.ts`. Each file uses `createComponentLogger(LogComponent.XXX)` with canonical component.
 
-### C5. ~~`GenerationRoutePipelineLogger` — Default Console~~ ✅ RISOLTO
+### C5. ~~`GenerationRoutePipelineLogger` — Default Console~~ ✅ RESOLVED
 
-Il `defaultLogger` in `generation-route-pipeline.ts` ora usa Pino (`logger.info(meta, message)`). I serializers Pino sono wiringati globalmente.
+The `defaultLogger` in `generation-route-pipeline.ts` now uses Pino (`logger.info(meta, message)`). Pino serializers are wired globally.
 
 ---
 
-## D. Metriche Post-Unification
+## D. Post-Unification Metrics
 
-| Metrica | Prima | Dopo |
+| Metric | Before | After |
 |---|---|---|
-| File che usano Pino | 1 (3.6%) | **22+ (100% operazionale)** |
-| File che usano geometric-logger | 3 (10.7%) | **0 (eliminato)** |
-| File che usano solo `console.*` | 22 (78.6%) | **1 (pipeline logger — eccezione nota)** |
-| File con `console.error` non gated | 7 | **0** |
-| Componenti registry | 0 | **21** |
-| Serializer Pino | 0 | **4** (`baseQuery`, `paaQuery`, `htmlContent`, `rawBuffer`) |
-| Interfacce logger iniettabili con impl Pino | 0 | **1** (`GenerationRoutePipelineLogger`) |
+| Files using Pino | 1 (3.6%) | **22+ (100% operational)** |
+| Files using geometric-logger | 3 (10.7%) | **0 (eliminated)** |
+| Files using only `console.*` | 22 (78.6%) | **1 (pipeline logger — known exception)** |
+| Files with ungated `console.error` | 7 | **0** |
+| Registry components | 0 | **21** |
+| Pino serializers | 0 | **4** (`baseQuery`, `paaQuery`, `htmlContent`, `rawBuffer`) |
+| Injectable logger interfaces with Pino impl | 0 | **1** (`GenerationRoutePipelineLogger`) |
 
 ---
 
 ## E. Rollback
 
-Ogni fase è autocontenuta. `git revert <phase-commit>` annulla quella fase senza affectare le precedenti.
+Each phase is self-contained. `git revert <phase-commit>` reverts that phase without affecting previous ones.
 
 ---
 
 ## F. Review History
 
-| Versione | Data | Cambiamento |
+| Version | Date | Change |
 |---|---|---|
-| 1.0 | 2026-07-15 | Review iniziale — logging frammentato, 22 file su console.* |
-| 2.0 | 2026-07-15 | Unificazione completata — 22 file migrati a Pino, geometric-logger eliminato |
+| 1.0 | 2026-07-15 | Initial review — fragmented logging, 22 files on console.* |
+| 2.0 | 2026-07-15 | Unification completed — 22 files migrated to Pino, geometric-logger eliminated |

@@ -10,6 +10,7 @@ import { normalizeHydrateRequest, normalizePendingHydration, readHydrationMachin
 import { buildEmptyProgressState, buildResetConfigState, buildSetProjectState, buildSyncProgressState } from './tool-page-machine-assignments';
 import type { ToolPageContext, ToolPageEvent, ToolPageInput } from './tool-page.types';
 import type { BriefingActorInputEvent, GenerationLifecycleInputEvent } from './tool-page-actor-contracts';
+import type { ToolStep } from './tool-flow.machine';
 import { STREAM_CONFIG } from '../../../app/config/stream-config';
 
 export type { HydrationResult } from './hydration.machine';
@@ -185,6 +186,39 @@ export const toolPageMachine = setup({
         return { type: 'CANCEL' };
       },
     ),
+    syncJobProgress: assign({
+      progress: ({ context, event }) => {
+        if (event.type !== 'JOB_PROGRESS') return context.progress;
+        const stepKey = event.step as ToolStep;
+        if (event.status === 'done') {
+          const newCompleted = new Set(context.progress.completedSteps);
+          newCompleted.add(stepKey);
+          return {
+            ...context.progress,
+            completedSteps: newCompleted,
+          };
+        }
+        return context.progress;
+      },
+      stepArtifactIds: ({ context, event }) => {
+        if (event.type !== 'JOB_PROGRESS' || event.status !== 'done' || !event.artifactId) {
+          return context.stepArtifactIds;
+        }
+        return {
+          ...context.stepArtifactIds,
+          [event.step]: event.artifactId,
+        };
+      },
+    }),
+    setPendingJobId: assign({
+      pendingJobId: ({ event }) => {
+        if (event.type !== 'SUBMIT_JOB') return null;
+        return event.jobId;
+      },
+    }),
+    clearPendingJobId: assign({
+      pendingJobId: () => null,
+    }),
   },
 }).createMachine({
   id: 'toolPageMachine',
@@ -208,6 +242,7 @@ export const toolPageMachine = setup({
     pendingStepStart: null,
     hydrationResult: null,
     pendingHydration: null,
+    pendingJobId: null,
   }),
   on: {
     PROGRESS_SYNCED: {
@@ -287,6 +322,13 @@ export const toolPageMachine = setup({
             guard: 'canStartGeneration',
             target: 'generating',
             actions: 'clearError',
+          },
+        ],
+        SUBMIT_JOB: [
+          {
+            guard: 'canStartGeneration',
+            target: 'submitting',
+            actions: ['setPendingJobId', 'clearError'],
           },
         ],
         CANCEL_GENERATION: {
@@ -434,6 +476,49 @@ export const toolPageMachine = setup({
         RESET: {
           target: 'configuring.clean',
           reenter: true,
+          actions: ['resetConfig', stopChild('briefingActor')],
+        },
+      },
+    },
+    submitting: {
+      on: {
+        JOB_PROGRESS: {
+          target: 'running',
+          actions: 'syncJobProgress',
+        },
+        JOB_COMPLETED: {
+          target: 'completed',
+          actions: ['clearError', 'clearPendingJobId'],
+        },
+        JOB_FAILED: {
+          target: 'configuring.generationFailed',
+          actions: [assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }), 'clearPendingJobId'],
+        },
+        CANCEL_GENERATION: {
+          target: 'configuring.clean',
+          actions: ['resetConfig', stopChild('briefingActor')],
+        },
+      },
+    },
+    running: {
+      on: {
+        JOB_PROGRESS: {
+          actions: 'syncJobProgress',
+        },
+        JOB_COMPLETED: {
+          target: 'completed',
+          actions: ['clearError', 'clearPendingJobId'],
+        },
+        JOB_FAILED: {
+          target: 'configuring.generationFailed',
+          actions: [assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }), 'clearPendingJobId'],
+        },
+        JOB_CANCELLED: {
+          target: 'configuring.clean',
+          actions: ['resetConfig', stopChild('briefingActor'), 'clearPendingJobId'],
+        },
+        CANCEL_GENERATION: {
+          target: 'configuring.clean',
           actions: ['resetConfig', stopChild('briefingActor')],
         },
       },

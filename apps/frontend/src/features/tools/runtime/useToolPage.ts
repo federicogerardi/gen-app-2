@@ -6,11 +6,14 @@ import { useProjectsQuery } from '../../../app/runtime/queries/useProjectsQuery'
 import { useGenerationArtifactsWorkspace, useGenerationGenerationWorkspace, useGenerationProjectWorkspace, useGenerationStreamWorkspace } from '../../generation/runtime/GenerationWorkspaceProvider';
 import type { GenerationArtifact } from '../../generation/ui/artifact-history';
 import type { SupportedTool, ToolStep } from '../machines/tool-flow.machine';
+import { isToolKey } from '@gen-app-2/contracts';
 import { getToolFormConfig } from '../runtime/tool-form-architecture';
 import { useToolFormInit, useAvailableSteps } from '../runtime/useToolForm';
 import { buildReactiveViewModel } from '../machines/tool-page-view-model';
 import { useToolPageContext } from './tool-page-context';
 import { useToolPageRunController } from './useToolPageRunController';
+import { useToolPageSubmitController } from './useToolPageSubmitController';
+import { useToolWorkflowJobStream } from './useToolWorkflowJobStream';
 import { useBackendStreamEventConsumer } from './useBackendStreamEventConsumer';
 import { useAuthSessionStateConsumer } from './useAuthSessionStateConsumer';
 // DDD-158: UI state downstream consumer (BCM Line 25) — Sprint 4 Session 2 Phase 1 Step 5.
@@ -133,7 +136,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       configuringSubstate,
     );
   }, [effectiveReadinessSnapshot, readinessSnapshot, machineViewModel, toolPageSnapshot.context, configuringSubstate, isMachineCompleted]);
-  const isGenerating = toolPageSnapshot.matches('generating');
+  const isGenerating = toolPageSnapshot.matches('generating') || toolPageSnapshot.matches('submitting') || toolPageSnapshot.matches('running');
   const completedStepsForFlow = progressState.completedSteps;
   const latestArtifactByStep = progressState.latestArtifactByStep;
 
@@ -184,9 +187,46 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     selectedAssetIds: selectedAssetIds ?? [],
     hasAssetBasedExtractionContext,
   });
+
+  // ── ToolWorkflowJob: feature-flagged submit controller + SSE stream ──
+  const useJobSystem = auth.capabilities.toolsJobSystem === true && isToolKey(toolKey);
+
+  const submitController = useToolPageSubmitController({
+    apiBaseUrl: auth.apiBaseUrl,
+    toolKey,
+    projectId: formState.projectId,
+    model: formState.model,
+    intent,
+    toolPageSend,
+    extractionPayload: workspaceExtractionContext?.extractionPayload ?? null,
+    formState: formState as Record<string, unknown>,
+  });
+
+  useToolWorkflowJobStream({
+    jobId: toolPageSnapshot.context.pendingJobId,
+    apiBaseUrl: auth.apiBaseUrl,
+    onProgress: (step, status, artifactId) => {
+      if (artifactId !== undefined) {
+        toolPageSend({ type: 'JOB_PROGRESS', step, status, artifactId });
+      } else {
+        toolPageSend({ type: 'JOB_PROGRESS', step, status });
+      }
+    },
+    onCompleted: (streamSessionId, artifactIds) => {
+      toolPageSend({ type: 'JOB_COMPLETED', sessionId: streamSessionId, artifactIds });
+    },
+    onFailed: (reason) => {
+      toolPageSend({ type: 'JOB_FAILED', reason });
+    },
+    onCancelled: () => {
+      toolPageSend({ type: 'JOB_CANCELLED' });
+    },
+    enabled: useJobSystem && toolPageSnapshot.context.pendingJobId !== null,
+  });
+
   const getCurrentRunRequestPrefix = runController.getCurrentRunRequestPrefix;
   const handleRunControllerPrimaryAction = runController.handlePrimaryAction;
-  const handleCancelGeneration = runController.handleCancelGeneration;
+  const handleLegacyCancelGeneration = runController.handleCancelGeneration;
   const currentRunningStep = runController.currentRunningStep;
   const streamingStep = runController.streamingStep;
   const pausedCheckpointStep = runController.pausedCheckpointStep;
@@ -203,8 +243,20 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       void navigate(projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : `/workspaces`);
       return;
     }
-    handleRunControllerPrimaryAction();
-  }, [handleRunControllerPrimaryAction, effectiveMachineViewModel.primaryActionPolicy, navigate, sessionId]);
+    if (useJobSystem) {
+      void submitController.submitJob();
+    } else {
+      handleRunControllerPrimaryAction();
+    }
+  }, [handleRunControllerPrimaryAction, submitController.submitJob, useJobSystem, effectiveMachineViewModel.primaryActionPolicy, navigate, sessionId, formState.projectId]);
+
+  const handleCancelGeneration = useCallback(() => {
+    if (useJobSystem) {
+      void submitController.handleCancelGeneration();
+    } else {
+      handleLegacyCancelGeneration();
+    }
+  }, [submitController.handleCancelGeneration, handleLegacyCancelGeneration, useJobSystem]);
   const handleBriefingFileSelected = useCallback((file: File) => toolPageSend({ type: 'BRIEFING_FILE_SELECTED', file }), [toolPageSend]);
   const handleAngleDetectorFileSelected = useCallback((file: File) => toolPageSend({
     type: 'BRIEFING_FILE_SELECTED',

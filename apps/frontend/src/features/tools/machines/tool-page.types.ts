@@ -27,6 +27,7 @@ export type ToolPageContext = {
   pendingStepStart: { step: ToolStep; runRequestPrefix: string } | null;
   hydrationResult: HydrationResult | null;
   pendingHydration: PendingHydration | null;
+  pendingJobId: string | null;
 };
 
 export type ToolPageInput = {
@@ -57,6 +58,11 @@ export type ToolPageEvent =
   | { type: 'STEP_FAILED'; step: ToolStep; message: string }
   | { type: 'RETRY_STEP' }
   | { type: 'RESET' }
+  | { type: 'SUBMIT_JOB'; jobId: string }
+  | { type: 'JOB_PROGRESS'; step: string; status: 'running' | 'done' | 'error'; artifactId?: string }
+  | { type: 'JOB_COMPLETED'; sessionId: string; artifactIds: string[] }
+  | { type: 'JOB_FAILED'; reason: string }
+  | { type: 'JOB_CANCELLED' }
   | {
       type: 'PROGRESS_SYNCED';
       artifacts: GenerationArtifact[];

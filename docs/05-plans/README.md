@@ -25,6 +25,7 @@ Superseded plans are in [`docs/99-lifecycle/99-archive/superseded/`](../docs/99-
 
 | Plan | Status | Description |
 |------|--------|-------------|
+| [feature-tool-workflow-job-system-fase-1](./feature-tool-workflow-job-system-fase-1.md) | 📝 **DRAFT** | ToolWorkflowJob system Fase 1 (MVP): 22 file, 10 giorni, 15 AC, worker in-process, feature flag BackendCapabilities |
 | [workspace-dashboard-ux-restyling](./workspace-dashboard-ux-restyling-implementation-plan.md) | 🚧 **IN-PROGRESS** | Asset accordion (built, not wired) + foundation tools (done) + inline promotion (built, not wired) |
 | [workspace-centric-ux-transformation](./workspace-centric-ux-transformation-implementation-plan.md) | 🚀 **ACTIVE** | Core routing/layout done; old `/tools/:key` routes still active; `/sessionsummary` redirect to fix |
 | [workspace-centric-ux-transformation-ai-executable](./workspace-centric-ux-transformation-ai-executable-plan.md) | 🚀 **ACTIVE** | AI task decomposition — 47 tasks, partially executed |

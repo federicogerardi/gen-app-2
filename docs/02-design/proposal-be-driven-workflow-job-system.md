@@ -1,11 +1,11 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.5
+version: 1.10
 date_created: 2026-07-20
-last-reviewed: 2026-07-23
-next-review-date: 2026-08-23
+last-reviewed: 2026-07-24
+next-review-date: 2026-08-24
 owner: Backend Runtime
-status: draft
+status: approved
 type: proposal
 tags: [tool-workflow, tool-workflow-job, bullmq, backend-driven, xstate, sse, architecture]
 ---
@@ -197,12 +197,12 @@ const worker = new Worker('tool-workflow',
     limiter: { max: 10, duration: 60_000 },  // 10 ToolWorkflowJob/min per worker
     attempts: 3,
     backoff: { type: 'exponential', delay: 2000 },
-    // HIGH-01: single-flight guard su (userId, projectId, toolKey).
-    // BullMQ Pro supporta `group: { id: (job) => ... }` con group-concurrency nativa;
-    // l'incertezza su se BullMQ OSS v5.78 (in uso in questo repo, non BullMQ Pro)
-    // supporti group concurrency nativamente NON e' stata verificata con certezza
-    // in questa revisione — vedi nota sotto. Se disponibile:
-    group: { id: (job) => `${job.data.userId}:${job.data.projectId}:${job.data.toolKey}` },
+    // HIGH-01 (Context7 2026-07-24): group-concurrency e' BullMQ PRO only
+    // (WorkerPro da @taskforcesh/bullmq-pro). Non disponibile in OSS v5.78.0.
+    // Single-flight guard implementato via Redis lock SET NX EX al submit-time
+    // (vedi Sezione "Detailed Design" #3, nota HIGH-01 e AC-015).
+    // La riga `group: { id: ... }` NON deve apparire nell'implementazione reale.
+    // group: { id: (job) => `${job.data.userId}:${job.data.projectId}:${job.data.toolKey}` },
   }
 );
 
@@ -313,14 +313,15 @@ export async function processToolWorkflowJob(
         break;
       }
       case 'crawling': {
-        // Wrapper attorno a crawlingChainMachine (Crawling & Extraction context).
-        // Firma abbozzata — implementazione completa fuori scope di questa proposal,
-        // deve riusare la stessa logica del crawlingFlow in
-        // generation-system.execution.states.ts.
+        // Delega a crawlingChainMachine (Crawling & Extraction context),
+        // stesso path di generation-system.execution.states.ts crawlingFlow.
+        // Implementazione completa in Fase 1 (pattern per futuri tool API-driven).
         result = await runCrawlingStep({
           toolKey,
           step: stepDescriptor.key,
           dependencyArtifactIds,
+          extractionResult,
+          model,
           userId,
           projectId,
           idempotencyKey: stepIdempotencyKey,
@@ -329,10 +330,9 @@ export async function processToolWorkflowJob(
         break;
       }
       case 'scoring': {
-        // Wrapper attorno a scoringChainMachine (Competitor Analysis context).
-        // Firma abbozzata — implementazione completa fuori scope di questa proposal,
-        // deve riusare la stessa logica dello scoringFlow in
-        // generation-system.execution.states.ts.
+        // Delega a scoringChainMachine (Competitor Analysis context),
+        // stesso path di generation-system.execution.states.ts scoringFlow.
+        // Implementazione completa in Fase 1 (pattern per futuri tool API-driven).
         result = await runScoringStep({
           toolKey,
           step: stepDescriptor.key,
@@ -367,24 +367,33 @@ export async function processToolWorkflowJob(
   };
 }
 
-// Firme wrapper (Critical Gap #3 — CRIT-03). Implementazione completa fuori
-// scope di questa proposal; qui solo la firma e il punto di delega al bounded
-// context corretto, per instradare correttamente per WorkflowStepType.
+// Firme wrapper (CRIT-03). I wrapper delegano ai chain actor esistenti
+// (crawlingChainMachine, scoringChainMachine) invocati oggi da
+// generation-system.execution.states.ts (crawlingFlow, scoringFlow).
+// L'implementazione e' inclusa nella Fase 1: ogni wrapper crea una
+// sessione generationSystemMachine, instrada al chain actor corretto
+// (non al path LLM-generativo), e restituisce { artifactId, content }.
+// Pattern riutilizzabile per ogni futuro tool API-driven — il loop
+// centrale del processore (switch su WorkflowStepType) non richiedera'
+// modifiche per nuovi tipi di step non-generativi.
 
 /** Delega al bounded context Crawling & Extraction (crawlingChainMachine). */
 async function runCrawlingStep(params: {
   toolKey: string;
   step: string;
   dependencyArtifactIds: string[];
+  extractionResult: ExtractionResult;
+  model: LlmModelId;
   userId: string;
   projectId: string;
   idempotencyKey: string;
   adapters: { pg: Pool; redis: Redis };
 }): Promise<{ artifactId: string; content: string }> {
-  // TODO: invoca crawlingChainMachine con lo stesso path di
-  // generation-system.execution.states.ts (crawlingFlow), producendo un
-  // CrawlArtifact (ArtifactType = 'crawl', DDD-122).
-  throw new Error('not implemented — see generation-system.execution.states.ts crawlingFlow');
+  // Crea una sessione generationSystemMachine con routeType che punta al
+  // crawlingChainMachine (stesso path di generation-system.execution.states.ts
+  // crawlingFlow). Il chain actor produce un CrawlArtifact (ArtifactType =
+  // 'crawl', DDD-122) e lo persiste. Restituisce artifactId e contenuto
+  // testuale dell'artifact prodotto.
 }
 
 /** Delega al bounded context Competitor Analysis (scoringChainMachine). */
@@ -392,15 +401,18 @@ async function runScoringStep(params: {
   toolKey: string;
   step: string;
   dependencyArtifactIds: string[];
+  extractionResult: ExtractionResult;
+  model: LlmModelId;
   userId: string;
   projectId: string;
   idempotencyKey: string;
   adapters: { pg: Pool; redis: Redis };
 }): Promise<{ artifactId: string; content: string }> {
-  // TODO: invoca scoringChainMachine con lo stesso path di
-  // generation-system.execution.states.ts (scoringFlow), producendo uno
-  // ScoringArtifact (ArtifactType = 'analysis', DDD-121/DDD-124).
-  throw new Error('not implemented — see generation-system.execution.states.ts scoringFlow');
+  // Crea una sessione generationSystemMachine con routeType che punta allo
+  // scoringChainMachine (stesso path di generation-system.execution.states.ts
+  // scoringFlow). Il chain actor produce uno ScoringArtifact (ArtifactType =
+  // 'analysis', DDD-121/DDD-124) e lo persiste. Restituisce artifactId e
+  // contenuto testuale dell'artifact prodotto.
 }
 ```
 
@@ -546,7 +558,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 
 **Obiettivo**: `ToolWorkflowJob` system funzionante con worker in-process, senza modifiche a `generation-system`.
 
-1. **`tool-workflow-job-processor.ts`** — loop che esegue step uno alla volta, instradando per `WorkflowStepType` (Sezione 4), chiamando `runSingleStepGeneration`/`runCrawlingStep`/`runScoringStep` a seconda del tipo (wrapper che riusa `handleGenerationRequest` esistente per il path generativo)
+1. **`tool-workflow-job-processor.ts`** — loop che esegue step uno alla volta, instradando per `WorkflowStepType` (Sezione 4). Include implementazione completa di `runCrawlingStep` e `runScoringStep` (wrapper che delegano a `crawlingChainMachine`/`scoringChainMachine` esistenti in `generation-system.execution.states.ts`), non piu' sketched come TODO. Il pattern `WorkflowStepType` e' il meccanismo di estensione per futuri tool API-driven: nuovi tipi di step non-generativi richiederanno solo un wrapper di delega, nessuna modifica al loop centrale. Con questa implementazione, **tutti i tool esistenti funzionano end-to-end in Fase 1**, incluso `geometric` (4 step: crawling + scoring + 2 generation).
 2. **`worker.ts`** — worker BullMQ in-process, avviato da `server.ts` in sviluppo
 3. **Endpoint submit** — `POST /api/tools/jobs`, validazione, accodamento
 4. **Endpoint status** — `GET /api/tools/jobs/:id`, lettura da Redis hash
@@ -563,7 +575,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 - `apps/backend/src/lib/runtime/auth-http/tools/tools-job-stream-handler.ts`
 - `apps/backend/src/worker-entry.ts` (entry point per worker standalone)
 - `apps/frontend/src/features/tools/runtime/useToolPageSubmitController.ts`
-- `apps/frontend/src/features/tools/runtime/useJobStream.ts`
+- `apps/frontend/src/features/tools/runtime/useJobStream.ts` — hook consumatore SSE via `fetch()` + `ReadableStream` (non `EventSource` — GAP-FE-04: `fetch()` supporta header auth nativi, pattern gia' usato in produzione per generation stream)
 
 **File modificati:**
 - `apps/backend/src/server.ts` — nuove route, avvio worker in-process (opzionale, via env `TOOL_WORKFLOW_WORKER_IN_PROCESS=true`)
@@ -580,6 +592,130 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 - Tutti i prompt file — invariati
 - `tools-orchestrate-handlers.ts` — mantenuto per backward compat e debug
 - `useToolPageRunController.ts` — mantenuto (coesiste), feature-flagged
+
+### Frontend Implementation Details
+
+Le seguenti decisioni chiudono i 6 gap FE identificati nella review zero-regression (2026-07-24).
+
+#### GAP-FE-01 — Destino di `generationLifecycleMachine`
+
+Il nuovo stato `running` **non invoca** `generationLifecycleMachine`. Gli eventi `STEP_DONE`, `STEP_FAILED`, `RETRY_STEP` vengono **rimossi** dal tipo `ToolPageEvent` e dalle transizioni della macchina. Le azioni `forwardStepOutcomeToLifecycle` e `controlGenerationLifecycle` vengono rimosse. La `generationLifecycleMachine` resta nel codebase (usata dal path legacy `useToolPageRunController`) ma non e' referenziata dal nuovo path `submitting` → `running`.
+
+#### GAP-FE-02 — `latestArtifactByStep` con artifact parziale
+
+SSE `JOB_PROGRESS` porta solo `{ step, status, artifactId? }` — non artifact completi. La nuova action `syncJobProgress` crea oggetti `GenerationArtifact` **parziali** con solo `artifactId` popolato (campi `content`, `format`, `type` rimangono `undefined`). I consumer di `latestArtifactByStep` (`ToolPageTemplate`, `ToolGenerationFlowVertical`) accedono solo a `artifactId` per routing e download — nessun consumer legge `content`/`format`/`type` da `latestArtifactByStep`. Verificato: `completedArtifactsByStep` in `useToolPage.ts:140` estrae solo `artifactId`.
+
+#### GAP-FE-03 — `runRequestPrefix` sostituito da `jobId`
+
+Nel nuovo sistema, `ToolPageContext.runRequestPrefix` viene **sostituito** da `ToolPageContext.pendingJobId` (popolato dall'azione su `SUBMIT_JOB`). Il view model `buildToolPageViewModel` usa `runRequestPrefix !== null` per determinare `isCurrentRunComplete` (riga 89) — il check equivalente diventa `pendingJobId !== null`. Nessuna modifica alla firma del view model: il campo si chiama ancora `runRequestPrefix` nel `ToolPageContext` ma viene popolato con `jobId` nel nuovo path. Il comportamento e' equivalente: oggi `runRequestPrefix` e' FE-generated per gruppo di step; domani `jobId` e' BE-assigned per l'intero workflow.
+
+#### GAP-FE-04 — Auth su SSE `useJobStream`
+
+Il browser `EventSource` API non supporta header custom. La proposta adotta **`fetch()` + `ReadableStream`** per il parsing SSE manuale (piu' solido di `EventSource` con token in query param). L'hook `useJobStream`:
+
+```typescript
+const response = await fetch(`/api/tools/jobs/${jobId}/stream`, {
+  headers: { 'Authorization': `Bearer ${auth.token}` },
+  signal: abortController.signal,
+});
+const reader = response.body!.getReader();
+// Parsing SSE manuale: split su '\n\n', parse 'event:'/'data:' lines
+```
+
+Pattern gia' usato in produzione per lo streaming generazione (`generationStream` in `useToolPageRunController.ts` usa `fetch()` con `ReadableStream`, non `EventSource`). Auth header funziona nativamente con `fetch()`.
+
+#### GAP-FE-05 — Nome env var per `BackendCapabilities.toolsJobSystem`
+
+```typescript
+// In backend-capabilities.ts:
+toolsJobSystem: readFlag(import.meta.env.VITE_CAP_TOOLS_JOB_SYSTEM, false),
+
+// In .env / .env.local:
+VITE_CAP_TOOLS_JOB_SYSTEM=true   // per sviluppo con nuovo sistema
+```
+
+Il flag env lato BE (`TOOL_WORKFLOW_USE_JOB_SYSTEM`) controlla quali tool key usano il nuovo processore. Il flag `VITE_CAP_TOOLS_JOB_SYSTEM` controlla se il FE mostra il path `submitJob()` o il path legacy. Sono indipendenti: il BE puo' abilitare il nuovo sistema per `geometric` anche se il FE non ha il flag acceso (il FE usa il path legacy, compatibile).
+
+#### GAP-FE-06 — `PROGRESS_SYNCED` mantenuto per hydration/resume
+
+L'evento `PROGRESS_SYNCED` viene **mantenuto** nel tipo `ToolPageEvent` per i path di hydration e resume (che sono invariati — Category A). Nel nuovo path `submitting` → `running`, il progress arriva via `JOB_PROGRESS` (SSE-driven). `PROGRESS_SYNCED` non viene dispatchato durante `running` ma resta attivo per `HYDRATE_REQUESTED` → `hydrating` → `configuring` e per i poll di aggiornamento progress da artifact esistenti.
+
+#### Schema macchina a stati aggiornato
+
+```
+configuring ──(SUBMIT_JOB)──→ submitting ──(http 200)──→ running ──(JOB_COMPLETED)──→ completed
+     │                              │                        │
+     │                              └──(http error)──→ configuring.generationFailed
+     │                                                       │
+     │                              running ──(JOB_FAILED)──→ configuring.generationFailed
+     │                              running ──(CANCEL_GENERATION)──→ configuring.clean
+     │
+     └──(resto invariato: HYDRATE_REQUESTED, PROGRESS_SYNCED, extraction, briefing, ecc.)
+```
+
+### Frontend UI Design
+
+Le seguenti indicazioni di design (2026-07-24) guidano l'implementazione dei componenti UI per la visualizzazione dei `ToolWorkflowJob`. Due viste distinte: Member (workspace) e Admin (system-wide).
+
+#### Componenti nuovi
+
+| Componente | File | Scopo |
+|---|---|---|
+| `ToolWorkflowJobPanel` | `apps/frontend/src/features/tools/ui/ToolWorkflowJobPanel.tsx` | Vista Member: mostra stato, progresso per-step, chunk stream, azioni cancel |
+| `ToolWorkflowJobStepTracker` | `apps/frontend/src/features/tools/ui/ToolWorkflowJobStepTracker.tsx` | Sub-component: lista verticale step con iconografia per stato (`idle`/`running`/`done`/`error`) |
+| `AdminToolWorkflowJobsPage` | `apps/frontend/src/features/admin/pages/AdminToolWorkflowJobsPage.tsx` | Vista Admin: Data Table View system-wide con filtri e azioni |
+| `AdminToolWorkflowJobsToolbar` | `apps/frontend/src/features/admin/ui/AdminToolWorkflowJobsToolbar.tsx` | Toolbar filtri admin (status, tool, user) |
+| `useToolWorkflowJobStream` | `apps/frontend/src/features/tools/runtime/useToolWorkflowJobStream.ts` | Hook SSE: `fetch()` + `ReadableStream`, dispatch `JOB_PROGRESS`/`JOB_COMPLETED`/`JOB_FAILED` |
+| `useAdminToolWorkflowJobsQuery` | `apps/frontend/src/features/admin/runtime/useAdminToolWorkflowJobsQuery.ts` | SWR query per `GET /api/tools/jobs` (Fase 2; Fase 1: stub) |
+
+#### Posizionamento nell'interfaccia
+
+**Member**: `ToolWorkflowJobPanel` sostituisce `ToolGenerationFlowVertical` nella colonna destra di `ToolPageTemplate` quando `pendingJobId !== null`. Nessuna modifica al layout grid a due colonne. Quando `pendingJobId === null`, `ToolGenerationFlowVertical` resta invariato (path legacy).
+
+**Admin**: nuova voce "Tool Jobs" nella nav admin, route `/admin/tool-jobs`, posizionata dopo "Sessions". Layout standard `AdminPageContainer` + `ListingTableSection` con azioni bordered-chip.
+
+#### Stati visuali `StatusBadge`
+
+| Stato | Variant | Label |
+|---|---|---|
+| `queued` | `neutral` (gray) | Queued |
+| `running` | `info` (blue) | Running |
+| `completed` | `success` (green) | Completed |
+| `failed` | `error` (red) | Failed |
+| `cancelled` | `warning` (amber) | Cancelled |
+
+Tutti i token CSS mappano a variabili esistenti del design system — nessun nuovo token richiesto.
+
+#### Step tracker per-step
+
+| Stato step | Icona | ARIA |
+|---|---|---|
+| `idle` | Cerchio vuoto (gray) | `aria-label="Step {label}: waiting"` |
+| `running` | Cerchio pulsante (blue) | `aria-current="step"` |
+| `done` | Checkmark (green) | `aria-label="Step {label}: completed"` |
+| `error` | X (red) | `aria-label="Step {label}: failed"` |
+
+Lo step tracker riusa la stessa computazione `stepItems` di `ToolPageTemplate` (righe 221-231), alimentata da `JOB_PROGRESS` SSE invece che da `PROGRESS_SYNCED`.
+
+#### Admin Data Table
+
+Colonne: `jobId`, `status` (StatusBadge), `toolKey`, `projectId`, `userId`, `progress` (N/M), `createdAt`, `actions` (Inspect/Cancel/Retry via bordered-chip).
+
+Filtri: Status (select), Tool (select), User (autocomplete — Fase 2).
+
+#### Accessibilità
+
+- Live regions: `aria-live="polite"` su messaggi di stato e chunk stream
+- `role="alert"` su messaggi di errore
+- `aria-current="step"` sullo step in esecuzione
+- Focus management: dopo submit → focus su `ToolWorkflowJobPanel` heading; dopo cancel → focus su CTA primario
+- Tutti gli `aria-label` usano chiavi `appCopy`, mai stringhe hardcoded
+
+#### Responsive
+
+- Desktop (>980px): step tracker verticale completo
+- Tablet (760-980px): stesso layout, padding ridotto, label con ellipsis se necessario
+- Mobile (<760px): step tracker collassa a stepper orizzontale a punti numerati; `ToolWorkflowJobPanel` appare sotto il Setup Panel (grid stacking nativo)
 
 ### Fase 2 — Ottimizzazione (1 settimana, opzionale)
 
@@ -601,7 +737,7 @@ Chiude il gap critico "nessuna cancellazione server-side": oggi `CANCEL_GENERATI
 
 | Risk | Control |
 |---|---|
-| **Regressione tool esistenti** | Feature flag `TOOL_WORKFLOW_USE_JOB_SYSTEM` per tool key. Attivazione graduale: prima `geometric` (il piu' complesso), poi `blog-article-generator`, poi tutti |
+| **Regressione tool esistenti** | Feature flag `BackendCapabilities.toolsJobSystem` (MED-04) per tool key. Attivazione graduale: prima `geometric` (il piu' complesso, 4 step con crawling + scoring — verifica completa del routing `WorkflowStepType`), poi `blog-article-generator` (3 step generativi — verifica loop multi-step), poi tutti. Backward compat garantita: i tool non migrati continuano col vecchio path `useToolPageRunController` |
 | **Worker crash durante un `ToolWorkflowJob`** | BullMQ retry automatico (3 tentativi). Idempotency key per-step previene side-effects duplicati (CRIT-01, Sezione 4/8). Skip step gia' completati (lettura da DB) |
 | **Redis pieno / memoria** | BullMQ `removeOnComplete` + TTL su hash di progress (24h). Eventuali artifact sono gia' in Postgres |
 | **Deadlock idempotency su retry multipli** | Redis lock TTL 900s. Dopo scadenza, il lock si libera automaticamente. Il processore controlla Postgres prima di rieseguire |
@@ -677,17 +813,15 @@ Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-lan
 - **Impatto**: Il tool `geometric` (il tool esplicitamente citato come primo target di rollout nella tabella Risks/feature flag) non funzionerebbe correttamente con il nuovo sistema: gli step di crawling e scoring verrebbero erroneamente trattati come step generativi LLM.
 - **Azione correttiva raccomandata**: il processore deve instradare per `stepDescriptor.type` (`WorkflowStepType`), richiamando il chain actor appropriato (`crawlingChainMachine`, `scoringChainMachine` quando implementati, o l'equivalente wrapper non-XState) invece di assumere sempre `runSingleStepGeneration`.
 - **Riferimento codice verificato**: `apps/backend/src/lib/machines/generation-system.execution.states.ts` (flussi distinti per tipo), `domain-bounded-context-map.md` righe 234, 236 (traduzione `WorkflowStepType = 'crawling'`/`'scoring'` verso i bounded context dedicati).
-- **Soluzione adottata**: il pseudocodice del processore in Sezione "Detailed Design" #4 instrada ora esplicitamente su `stepDescriptor.type` con un blocco `switch`: `'generation' | 'extraction' | 'acquisition'` → `runSingleStepGeneration`; `'crawling'` → `runCrawlingStep` (wrapper verso `crawlingChainMachine`); `'scoring'` → `runScoringStep` (wrapper verso `scoringChainMachine`). Entrambi i wrapper sono abbozzati con firma + commento nel medesimo blocco di codice.
+- **Soluzione adottata**: il pseudocodice del processore in Sezione "Detailed Design" #4 instrada ora esplicitamente su `stepDescriptor.type` con un blocco `switch`: `'generation' | 'extraction' | 'acquisition'` → `runSingleStepGeneration`; `'crawling'` → `runCrawlingStep` (wrapper verso `crawlingChainMachine`); `'scoring'` → `runScoringStep` (wrapper verso `scoringChainMachine`). Entrambi i wrapper sono implementati completamente in Fase 1, delegando ai chain actor esistenti in `generation-system.execution.states.ts`. Il pattern `WorkflowStepType` e' il meccanismo di estensione per futuri tool API-driven.
 - **AC di verifica**: AC-014.
 
 ### High
 
-#### HIGH-01 — Nessun single-flight guard su (userId, projectId, toolKey) — **RISOLTO (con incertezza dichiarata)**
+#### HIGH-01 — Nessun single-flight guard su (userId, projectId, toolKey) — **RISOLTO (conferma: solo BullMQ Pro)**
 - **Descrizione**: `sessionId` (`WorkflowSessionIdentifier`, DDD-047) e' generato FE-side senza controllo unicita' server-side. L'idempotency key e' opzionale nel payload del submit — se il FE non lo passa o lo rigenera, nulla impedisce submit duplicati concorrenti per lo stesso `(userId, projectId, toolKey)`.
 - **Impatto**: Doppia esecuzione dello stesso workflow, doppio consumo di crediti/artifact-gate, doppie chiamate LLM.
-- **Azione correttiva raccomandata**: BullMQ supporta `group: { concurrency: 1 }` su un hash derivato da `userId:projectId:toolKey`. Introdurre questo group-concurrency come guard esplicito, non solo come idempotency key opzionale.
-- **Soluzione adottata**: Sezione "Detailed Design" #3 (`worker.ts`) mostra `group: { id: (job) => ... }` come opzione BullMQ, con nota esplicita che questa sintassi e' nota per **BullMQ Pro** e che questa proposal **non ha potuto verificare con certezza** se BullMQ OSS v5.78.0 (in uso nel repo) la supporti nativamente. Come fallback sicuro per Fase 1, viene proposto un Redis lock applicativo `SET NX EX <ttl>` su `tool-job-active:{userId}:{projectId}:{toolKey}`, acquisito al submit e rilasciato quando il `ToolWorkflowJob` raggiunge `completed`/`failed`/`cancelled` — nuovo AC-015 aggiunto per verificarne il comportamento (`409 Conflict` su submit concorrente).
-- **Nota di incertezza non risolta**: la disponibilita' nativa di group-concurrency in BullMQ OSS 5.78 non e' stata confermata con certezza in questa revisione (richiederebbe verifica diretta della documentazione/changelog della libreria). Il fallback Redis lock e' quindi la soluzione da adottare in Fase 1 indipendentemente dall'esito di tale verifica.
+- **Soluzione adottata**: **Confermato da Context7 (2026-07-24): `group: { id: ... }` con group-concurrency e' esclusivo di BullMQ Pro (`WorkerPro` da `@taskforcesh/bullmq-pro`), NON disponibile in BullMQ OSS v5.78.0.** Il fallback Redis lock applicativo `SET NX EX <ttl>` su `tool-job-active:{userId}:{projectId}:{toolKey}`, acquisito al submit e rilasciato a `completed`/`failed`/`cancelled`, e' l'unica strada percorribile in Fase 1. Nuovo AC-015 verifica il comportamento (`409 Conflict` su submit concorrente). La sintassi `group: { id }` nello pseudocodice `worker.ts` (Sezione 3) e' da rimuovere/commentare nell'implementazione effettiva.
 
 #### HIGH-02 — Nessun endpoint per riscoprire un `ToolWorkflowJob` in corso dopo reload pagina — **RISOLTO (deferito a Fase 2)**
 - **Descrizione**: Non e' definito un endpoint per il FE per recuperare `ToolWorkflowJob` attivi dopo un reload di pagina o riapertura del browser (es. `GET /api/tools/jobs?projectId=&toolKey=`).
@@ -754,7 +888,9 @@ Cross-check eseguito dal DDD Governance Gatekeeper contro `domain-ubiquitous-lan
 
 Cross-check terminologico eseguito secondo l'ordine di lettura obbligatorio (`AGENTS.md`): Glossario → Bounded Context Map → Decision Log.
 
-**Aggiornamento 2026-07-20 — Ratifica completata**: il TODO precedentemente aperto in questa sezione ("TODO — DDD-NNN da assegnare") e' stato **risolto**. L'utente ha approvato esplicitamente `ToolWorkflowJob` come naming canonico definitivo il 2026-07-20. Le entry `DDD-226` (Aggregate Root `ToolWorkflowJob`, relazione con `GenerationSession`), `DDD-227` (Value Object `ToolWorkflowJobId` vs `WorkflowSessionIdentifier`) e `DDD-C-019` (Naming Conflicts Register — risoluzione del conflitto `Job` generico vs `CrawlingJob`) sono state registrate in `docs/07-governance/domain-naming-decision-log.md`. Il glossario (`docs/01-requirements/domain-ubiquitous-language-glossary.md`) e la bounded context map (`docs/02-design/domain-bounded-context-map.md`) sono stati aggiornati di conseguenza. Tutti i termini `Job`/`jobId` standalone in questo documento sono stati sostituiti con `ToolWorkflowJob`/`ToolWorkflowJobId` (o qualificati esplicitamente) dove riferiti al concetto di dominio.
+**Aggiornamento 2026-07-20 — Naming ratificato**: il TODO precedentemente aperto in questa sezione ("TODO — DDD-NNN da assegnare") e' stato **risolto**. L'utente ha approvato esplicitamente `ToolWorkflowJob` come **naming** canonico definitivo il 2026-07-20 — la **promozione** da `provisional` a `canonical` nel glossario/BCM avverra' solo dopo l'implementazione e il superamento degli Acceptance Criteria. Le entry `DDD-226` (Aggregate Root `ToolWorkflowJob`, relazione con `GenerationSession`), `DDD-227` (Value Object `ToolWorkflowJobId` vs `WorkflowSessionIdentifier`) e `DDD-C-019` (Naming Conflicts Register — risoluzione del conflitto `Job` generico vs `CrawlingJob`) sono state registrate in `docs/07-governance/domain-naming-decision-log.md`. Il glossario (`docs/01-requirements/domain-ubiquitous-language-glossary.md`) e la bounded context map (`docs/02-design/domain-bounded-context-map.md`) sono stati aggiornati con voci **provisional** di conseguenza. Tutti i termini `Job`/`jobId` standalone in questo documento sono stati sostituiti con `ToolWorkflowJob`/`ToolWorkflowJobId` (o qualificati esplicitamente) dove riferiti al concetto di dominio.
+
+**DDD review 2026-07-24 — 0 blocker**: la proposal ha superato la revisione DDD Governance. Vedi sezione "DDD Review Approvals & New Registrations" per i nuovi riferimenti registrati a corollario della proposal.
 
 | Termine verificato | Esito | Note |
 |---|---|---|
@@ -763,6 +899,20 @@ Cross-check terminologico eseguito secondo l'ordine di lettura obbligatorio (`AG
 | `Queue` | **Termine tecnico infrastrutturale, non un concetto di dominio (confermato)** | Analogamente a `Worker`: `Queue` (BullMQ) e' un dettaglio implementativo. Il bounded context map menziona "GEOMETRIC crawling job queue" solo come dettaglio tecnico all'interno della responsabilita' del bounded context Crawling & Extraction, non come concetto UL promosso. Confermato esplicitamente in DDD-226. |
 | **Relazione `ToolWorkflowJob` ↔ `GenerationSession`/`ToolWorkflow`/`WorkflowSessionIdentifier`** | **Risolto — ratificato come DDD-226 / DDD-227** | Il bounded context map ora documenta esplicitamente la relazione `ToolWorkflowJob -> GenerationSession` (Sezione "Shared Concepts And Translation Rules"): un `ToolWorkflowJob` **produce e possiede** una `GenerationSession` — il job e' l'unita' di esecuzione asincrona (stati BullMQ), la session resta l'aggregato di raggruppamento degli `Artifact`. Cardinalita' 1:1 per `WorkflowRunMode = 'new'`, potenzialmente 1:N per `'regenerate'` (**provvisorio**, da confermare in implementazione — vedi Sezione 8 per la tabella di decisione HIGH-04 che distingue retry da regenerate). `ToolWorkflowJobId` e `sessionId` sono identificatori distinti, non alias. |
 | `DDD-C-019` (Naming Conflicts Register) | **Resolved by naming** | Il conflitto `Job` (generico, proposto) vs `CrawlingJob` (Aggregate Root, Crawling & Extraction, DDD-114) e' risolto scegliendo `ToolWorkflowJob` come termine canonico, con lo stesso pattern di disambiguazione gia' usato per `ExtractionJob` → `CrawlingJob` (DDD-C-015). Vedi `domain-naming-decision-log.md` sezione "Naming Conflicts Register", entry DDD-C-019. |
+
+### DDD Review Approvals & New Registrations (2026-07-24)
+
+A corollario della DDD review (0 blocker, 5 warning), vengono registrate le seguenti nuove entry:
+
+#### DDD-228 — `ToolWorkflowJobStatus` (Value Object, Generation context)
+
+**Canonical Value Object** per lo stato del ciclo di vita di un `ToolWorkflowJob`. Valori: `queued` (accodato, in attesa di worker), `running` (in esecuzione), `completed` (tutti gli step completati con successo), `failed` (almeno uno step fallito dopo tutti i retry), `cancelled` (interrotto dall'utente via `POST /api/tools/jobs/:jobId/cancel`). Segue lo stesso pattern di `ArtifactStatus` (DDD-017: `generating | completed | failed`). I valori `queued` e `cancelled` sono specifici del modello asincrono `ToolWorkflowJob` e non hanno equivalente in `ArtifactStatus`.
+
+| DDD-228 | 2026-07-24 | ToolWorkflowJobStatus | `ToolWorkflowJobStatus` is the canonical Value Object for the lifecycle state of a `ToolWorkflowJob` (DDD-226). Values: `queued`, `running`, `completed`, `failed`, `cancelled`. Transition rules: `queued → running` (worker claims job), `running → completed` (all steps succeed), `running → failed` (step failure after all retries), `running → cancelled` (user cancel request detected at step boundary). Follows the `ArtifactStatus` pattern (DDD-017). The `queued` and `cancelled` values are specific to the asynchronous `ToolWorkflowJob` model and have no equivalent in `ArtifactStatus`. | Lifecycle state management for asynchronous job execution. Consistent with `ArtifactStatus` (DDD-017) and extends the pattern with queue-specific states (`queued`, `cancelled`). Essential for `StatusBadge` mapping in Frontend/UI and for admin monitoring dashboards. | Generation, Frontend/UI |
+
+#### DDD-C-020 — `jobId` (REST field) vs `ToolWorkflowJobId` (domain Value Object)
+
+| DDD-C-020 | `jobId` (REST field name in API responses/URL paths) vs `ToolWorkflowJobId` (canonical Value Object, DDD-227) | Generation, Frontend/UI | **Resolved by convention**: `jobId` is the REST field name in JSON responses (`{ "jobId": "..." }`) and URL path parameters (`/api/tools/jobs/:jobId`). `ToolWorkflowJobId` is the canonical domain Value Object (DDD-227) identifying a `ToolWorkflowJob`. The field name `jobId` follows REST naming conventions (camelCase, no domain prefix in API surface); the domain concept `ToolWorkflowJobId` carries the `ToolWorkflow` prefix for disambiguation from `CrawlingJob` (DDD-114) and `AnalysisJob` (DDD-113). This follows the same pattern as DDD-C-003 (`extractionPayload` REST field vs `ExtractionContext` domain Value Object). | resolved-documented |
 
 **Governance chiusa**: non esistono piu' TODO di naming aperti per questa proposal. Ogni futura estensione del concetto `ToolWorkflowJob` (es. nuovi stati, nuovi campi payload) deve comunque passare per una nuova entry nel decision log prima della propagazione in codice/documentazione, secondo la regola generale AGENTS.md.
 
@@ -1022,16 +1172,16 @@ These concrete, verifiable gates ensure that behaviors independent of the step o
 ### Category D: New Test Specifications
 
 #### D01 — `FE-GATE-D01` — `useJobStream` hook
-- **Test description**: Hook connects to `GET /api/tools/jobs/:jobId/stream`, receives SSE events (`progress`, `chunk`, `terminal`), and exposes parsed state.
+- **Test description**: Hook connects to `GET /api/tools/jobs/:jobId/stream` via `fetch()` + `ReadableStream` (non `EventSource` — GAP-FE-04: `fetch()` supporta header auth), riceve eventi SSE (`progress`, `chunk`, `terminal`), ed espone lo stato parsato.
 - **Conditions**:
-  - On mount with `jobId`, establishes EventSource connection
+  - On mount with `jobId`, establishes `fetch()` connection with `Authorization` header
   - `progress` event with `{ step, status: 'running' }` → sets `currentRunningStep`
   - `progress` event with `{ step, status: 'done', artifactId }` → adds step to `completedSteps`, maps `artifactId` to `completedArtifactsByStep`
   - `chunk` event with `{ step, text }` → appends to streaming content buffer
   - `terminal` event with `{ status: completed, artifacts, sessionId }` → sets `isComplete: true`
   - `terminal` event with `{ status: 'failed', reason }` → sets `error`
-  - On unmount, closes EventSource connection
-  - On reconnect (connection lost), resumes from last known state
+  - On unmount, calls `AbortController.abort()` e chiude il reader `ReadableStream`
+  - On reconnect (connection lost), resumes from last known state via `sessionStorage` jobId
 - **Suggested file location**: `apps/frontend/src/features/tools/runtime/useJobStream.test.ts`
 
 #### D02 — `FE-GATE-D02` — `useToolPageSubmitController` hook
@@ -1106,15 +1256,30 @@ npm --workspace apps/frontend run test
 
 ## Context7 Verification Notes
 
-Le sezioni della proposal relative a XState v5 sono state verificate contro la documentazione ufficiale il 2026-07-20:
+Le sezioni della proposal relative a XState v5 e BullMQ sono state verificate contro la documentazione ufficiale (Context7 + Stately docs live). Ultima verifica: 2026-07-24.
+
+### XState v5
 
 | Claim | Esito | Fonte |
 |---|---|---|
 | `toolWorkflowMachine` puo' ricevere input multi-step via `invoke.input` | **Confermato** — XState v5 supporta `invoke` con `input` dinamico derivato da `context` | [Invoke Service and Capture Results](https://github.com/statelyai/xstate/blob/main/examples/workflow-media-scanner/README.md) |
-| `getPersistedSnapshot()` + `createActor(machine, { snapshot })` per serializzazione | **Confermato** — API pulita, deep child actor preservation | [Stately docs — Persistence](https://stately.ai/docs/persistence) |
-| "Invocations will restart" dopo un restore | **Confermato** — azioni non rieseguite, ma `invoke` ripartono. Questo e' il motivo primario per cui la serializzazione mid-flight non e' adatta: causerebbe chiamate LLM duplicate | [Stately docs — Restoring state](https://stately.ai/docs/persistence) |
-| Assenza di schema migration built-in per machine snapshot | **Confermato** — solo `xstate-store` ha `migrate`. Machine snapshot richiederebbero transform manuale | [Stately docs — Schema Migrations](https://stately.ai/docs/xstate-store/persist) |
+| `getPersistedSnapshot()` + `createActor(machine, { snapshot })` per serializzazione | **Confermato** — API pulita, deep child actor preservation. Verificato con test `rehydration.test.ts` nel repo XState: actor tree ripristinato con nested child context intatto | [Stately docs — Persistence](https://stately.ai/docs/persistence), [XState rehydration test](https://github.com/statelyai/xstate/blob/main/packages/core/test/rehydration.test.ts) |
+| **"Invocations will restart"** dopo un restore | **CONFERMATO** — _"Actions from machine actors will not be re-executed, because they are assumed to have been already executed. However, invocations will be restarted, and spawned actors will be restored recursively."_ — Questo e' il motivo primario per cui la serializzazione mid-flight non e' adatta: causerebbe chiamate LLM duplicate | [Stately docs — Restoring state](https://stately.ai/docs/persistence#restoring-state) |
+| Deep child actor preservation durante restore | **Confermato** — _"Persisting & restoring state from machine actors is deep; all invoked & spawned actors will be persisted and restored recursively."_ | [Stately docs — Deep persistence](https://stately.ai/docs/persistence#deep-persistence) |
+| Assenza di schema migration built-in per machine snapshot | **Confermato** — solo `xstate-store` ha `migrate`. Machine snapshot richiederebbero transform manuale. Le caveat docs elencano "incompatible state" come rischio | [Stately docs — Caveats](https://stately.ai/docs/persistence#caveats), [XState Store Schema Migrations](https://stately.ai/docs/xstate-store/persist) |
 | `createActor(machine, { input })` per inizializzazione con dati | **Confermato** — pattern standard XState v5 | [Inject Context into Actor Initialization](https://github.com/statelyai/xstate/blob/main/examples/workflow-media-scanner/README.md) |
+
+### BullMQ v5.78.0
+
+| Claim | Esito | Fonte |
+|---|---|---|
+| `group: { id: (job) => ... }` con group-concurrency | **NON DISPONIBILE in OSS** — richiede `WorkerPro` da `@taskforcesh/bullmq-pro`. Il fallback Redis lock (`SET NX EX`) descritto in HIGH-01 e' l'unica strada percorribile in Fase 1 con BullMQ OSS. La sintassi `group: { id }` nella sezione `worker.ts` e' stata marcata come "incertezza dichiarata — da rimuovere/commentare nell'implementazione effettiva" | [BullMQ Pro Groups — Concurrency](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/bullmq-pro/groups/concurrency.md) |
+| `limiter: { max: 10, duration: 60_000 }` | **Confermato** — disponibile in OSS. Limita il numero di job processati per worker in una finestra temporale | [BullMQ Guide — Rate Limiting](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/guide/workers/rate-limiting.md) |
+| `removeOnComplete: { age: 3600 * 24 }` | **Confermato** — `age` in secondi. 86400 = 24 ore. Corretto | [BullMQ Guide — Auto-removal of jobs](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/guide/workers/auto-removal-of-jobs.md) |
+| `removeOnFail: { age: 3600 * 24 * 7 }` | **Confermato** — `age` in secondi. 604800 = 7 giorni. Corretto | [BullMQ Guide — Auto-removal of jobs](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/guide/workers/auto-removal-of-jobs.md) |
+| `concurrency: 3` | **Confermato** — disponibile in OSS. Max job concorrenti per worker | [BullMQ Guide — Workers](https://github.com/taskforcesh/bullmq/blob/master/docs/gitbook/guide/workers/concurrency.md) |
+| `attempts: 3` con `backoff: { type: 'exponential', delay: 2000 }` | **Confermato** — formula: `delay * 2^(attemptsMade-1)`. Con delay=2000: tentativo 1 = 2000ms, tentativo 2 = 4000ms, tentativo 3 = 8000ms | [BullMQ — Backoffs](https://github.com/taskforcesh/bullmq/blob/master/src/classes/backoffs.ts) |
+| `Queue.add()` tipo di ritorno | **Confermato** — `job.id` e' disponibile dopo `add()`. Usato in `crawling-queue.ts` e nella proposal per restituire `jobId` | BullMQ Queue API (verificato in `crawling-queue.ts:66-75`) |
 
 ---
 

@@ -164,7 +164,7 @@ Validation path manifest (orphan-check canonical set):
 
 ### Active Proposals
 
-- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅. Code status: **0/10 componenti implementati** (verified 2026-07-23).**
+- [proposal-be-driven-workflow-job-system](./02-design/proposal-be-driven-workflow-job-system.md) — **Proposal: BE-Driven Workflow Job System (BullMQ, DDD-226/DDD-227). Nuovo Aggregate Root `ToolWorkflowJob`. Prerequisiti implementati: [BullMQ Prerequisites](05-plans/plan-bullmq-prerequisites.md) ✅, [Post-BullMQ](05-plans/plan-post-bullmq-improvements.md) ✅. Fase 1 implementation plan: [feature-tool-workflow-job-system-fase-1](./05-plans/feature-tool-workflow-job-system-fase-1.md) 📝 — 22 file, 10 giorni, 15 AC. Code status: **0/22 file implementati** (verified 2026-07-24).**
 - [proposal-tool-output-personalization](./02-design/proposal-tool-output-personalization.md) — **Proposal: output personalization, multi-variant generation, user taste profile, and feedback loop across all 8 tools. Code status: **0/5 pilastri implementati** (solo `generation_feedback` table + `FeedbackButtons` esistono). Verified 2026-07-23.**
 - [geometric-admin-debug-monitoring-proposal](./02-design/geometric-admin-debug-monitoring-proposal.md) — **Proposal: admin debug & monitoring for Geometric crawling verification. Code status: **0/4 item implementati** (verified 2026-07-23).**
 

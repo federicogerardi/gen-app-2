@@ -199,40 +199,40 @@ GOOGLE_REDIRECT_URI=https://<backend-service>.up.railway.app/auth/google/callbac
 ```text
 Browser
   └─► https://<frontend-service>.up.railway.app/*
-        └─► frontend/server.mjs  (Railway service — unico host pubblico)
-              ├── GET /health          → risposta locale
+        └─► frontend/server.mjs  (Railway service — single public host)
+              ├── GET /health          → local response
               ├── /auth/*              → proxy → http://<backend-service>.railway.internal:<port>
               ├── /generation/*        → proxy → http://<backend-service>.railway.internal:<port>
               ├── /api/*               → proxy → http://<backend-service>.railway.internal:<port>
               ├── /admin/users/*       → proxy → http://<backend-service>.railway.internal:<port>
-              ├── asset statici        → dist/
+              ├── static assets        → dist/
               └── SPA fallback         → dist/index.html
 ```
 
-### Prerequisiti bloccanti
+### Blocking prerequisites
 
-- `BACKEND_INTERNAL_URL` deve essere impostata nel servizio frontend Railway (es. `http://<backend-service>.railway.internal:<port>`).
-- Il backend Railway deve avere private networking abilitato e rispondere su porta `8080` via hostname interno nel deploy corrente.
-- Verificare raggiungibilità con `/debug/connectivity` (endpoint temporaneo da rimuovere prima del go-live — vedi TASK-003).
+- `BACKEND_INTERNAL_URL` must be set in the frontend Railway service (e.g., `http://<backend-service>.railway.internal:<port>`).
+- The Railway backend must have private networking enabled and respond on port `8080` via internal hostname in the current deploy.
+- Verify reachability with `/debug/connectivity` (temporary endpoint to remove before go-live — see TASK-003).
 
-### Ordine di valutazione route in `frontend/server.mjs`
+### Route evaluation order in `frontend/server.mjs`
 
-1. `GET /health` → risposta locale `{ ok: true }`
-2. path che inizia con `/auth`, `/generation`, `/api`, `/admin/users` → proxy al backend, **qualunque metodo HTTP** (GET, POST, PUT, DELETE, PATCH)
-3. asset statico esistente in `dist/` → `sendFile`
+1. `GET /health` → local response `{ ok: true }`
+2. paths starting with `/auth`, `/generation`, `/api`, `/admin/users` → proxy to backend, **any HTTP method** (GET, POST, PUT, DELETE, PATCH)
+3. existing static asset in `dist/` → `sendFile`
 4. SPA fallback → `dist/index.html`
 
-Matching: `url.startsWith(prefix)` su prefissi esatti. Normalizzare trailing slash: `/api` e `/api/` entrambi matchano.
+Matching: `url.startsWith(prefix)` on exact prefixes. Normalize trailing slash: `/api` and `/api/` both match.
 
-### Env frontend (server-side, non bundle)
+### Frontend env (server-side, not bundle)
 
-| Variabile | Default locale | Produzione Railway |
+| Variable | Local default | Railway Production |
 |---|---|---|
 | `BACKEND_INTERNAL_URL` | `http://localhost:3000` | `http://<backend-service>.railway.internal:<port>` |
 | `NODE_ENV` | `development` | `production` |
-| `PORT` | `3000` | impostato da Railway |
+| `PORT` | `3000` | set by Railway |
 
-Fail-fast: se `NODE_ENV=production` e `BACKEND_INTERNAL_URL` non è impostata, `server.mjs` termina con `process.exit(1)` al bootstrap.
+Fail-fast: if `NODE_ENV=production` and `BACKEND_INTERNAL_URL` is not set, `server.mjs` terminates with `process.exit(1)` at bootstrap.
 
 ### Env backend (same-origin target)
 
@@ -248,7 +248,7 @@ GOOGLE_REDIRECT_URI=https://<frontend-service>.up.railway.app/auth/google/callba
 DOCX_DEFAULT_THEME=none
 ```
 
-**ATTENZIONE**: `GOOGLE_REDIRECT_URI` si sposta dall'host backend pubblico all'host frontend. Aggiornare anche negli **Authorized Redirect URIs** del client OAuth su Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Senza questo step Google restituisce `redirect_uri_mismatch` (HTTP 400).
+**WARNING**: `GOOGLE_REDIRECT_URI` moves from the public backend host to the frontend host. Also update in the **Authorized Redirect URIs** of the OAuth client on Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`). Without this step Google returns `redirect_uri_mismatch` (HTTP 400).
 
 ### DOCX visual preset governance (download endpoints)
 
@@ -263,33 +263,33 @@ Source evidence:
 - `apps/backend/src/lib/runtime/downloads/download-serializers.ts`
 - `apps/frontend/src/styles.css` (`.ui-artifact-markdown`)
 
-### Header proxy — contratto forward
+### Header proxy — forward contract
 
 **Request browser → backend:**
-- Forwarded: `method`, `url+querystring`, `body`, `cookie`, `content-type`, `authorization`, `x-forwarded-for`, `x-real-ip`, header CSRF
-- `x-forwarded-for` necessario per IP client in audit log (ref: `apps/backend/src/lib/runtime/auth-http/support.ts:219-225`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:128`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:200`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:300`)
+- Forwarded: `method`, `url+querystring`, `body`, `cookie`, `content-type`, `authorization`, `x-forwarded-for`, `x-real-ip`, CSRF header
+- `x-forwarded-for` required for client IP in audit log (ref: `apps/backend/src/lib/runtime/auth-http/support.ts:219-225`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:128`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:200`, `apps/backend/src/lib/runtime/auth-http/auth-handlers.ts:300`)
 
 **Response backend → browser:**
-- Forwarded: tutti gli header, in particolare `set-cookie`, `location`, `content-type`, `cache-control`, `www-authenticate`
-- **Esclusi** (hop-by-hop, causano `Error: Invalid header value` in Node): `transfer-encoding`, `connection`, `keep-alive`, `proxy-authenticate`, `proxy-authorization`, `te`, `trailers`, `upgrade`
+- Forwarded: all headers, in particular `set-cookie`, `location`, `content-type`, `cache-control`, `www-authenticate`
+- **Excluded** (hop-by-hop, cause `Error: Invalid header value` in Node): `transfer-encoding`, `connection`, `keep-alive`, `proxy-authenticate`, `proxy-authorization`, `te`, `trailers`, `upgrade`
 
-### SSE — contratto streaming
+### SSE — streaming contract
 
-1. Rilevare `content-type: text/event-stream` dalla risposta backend
-2. `response.flushHeaders()` immediato dopo aver impostato gli header SSE
-3. `response.socket?.setNoDelay(true)` per disabilitare Nagle
-4. Pipe del body backend → response browser senza buffering intermedio
-5. Evento `close` sulla request browser → `upstreamReq.destroy()` per prevenire connessioni zombie
+1. Detect `content-type: text/event-stream` from backend response
+2. `response.flushHeaders()` immediately after setting SSE headers
+3. `response.socket?.setNoDelay(true)` to disable Nagle
+4. Pipe backend body → browser response without intermediate buffering
+5. `close` event on browser request → `upstreamReq.destroy()` to prevent zombie connections
 
 ### Fix double-build (TASK-010b)
 
-L'attuale `CMD ["npm", "run", "start"]` in `frontend/Dockerfile` e `startCommand = "npm run start"` in `frontend/railway.toml` eseguono `npm run build && npm run start:server`, causando una build ad ogni restart.
+The current `CMD ["npm", "run", "start"]` in `frontend/Dockerfile` and `startCommand = "npm run start"` in `frontend/railway.toml` execute `npm run build && npm run start:server`, causing a build on every restart.
 
-Correzione:
+Fix:
 - `frontend/Dockerfile`: `CMD ["node", "server.mjs"]`
 - `frontend/railway.toml`: `startCommand = "node server.mjs"`
 
-### Smoke checklist runtime (da eseguire post-deploy sul solo host frontend pubblico)
+### Smoke runtime checklist (run post-deploy on frontend public host only)
 
 ```bash
 # Healthcheck
@@ -334,17 +334,17 @@ curl -i https://<frontend-service>.up.railway.app/auth/google/start
 curl -i https://<frontend-service>.up.railway.app/some/spa/route
 ```
 
-Esiti attesi:
+Expected results:
 - `/health` -> `200`
-- `/auth/session` -> risposta backend coerente via proxy (`200` con sessione o `401` senza sessione, ma non `502` e non errore CORS)
-- `/auth/login` -> risposta backend coerente con header `Set-Cookie`; cookie `HttpOnly`, `Secure`, `SameSite=Lax`
-- `/auth/logout` -> `204` oppure risposta coerente del backend, senza `502`
-- `/api/projects` -> risposta backend coerente con sessione valida
-- `/api/tools/sessions*` -> risposta coerente per listing/detail session aggregates (session-scoped data)
-- `/api/artifacts*` -> risposta coerente per non-aggregated artifact history/detail (artifact-scoped data)
-- `/generation/stream` -> stream SSE aperto senza buffering anomalo
-- `/auth/google/start` -> redirect OAuth senza `redirect_uri_mismatch`
-- route SPA -> `200`, non `404`
+- `/auth/session` -> coherent backend response via proxy (`200` with session or `401` without session, but not `502` and not CORS error)
+- `/auth/login` -> coherent backend response with `Set-Cookie` header; cookie `HttpOnly`, `Secure`, `SameSite=Lax`
+- `/auth/logout` -> `204` or coherent backend response, without `502`
+- `/api/projects` -> coherent backend response with valid session
+- `/api/tools/sessions*` -> coherent response for session aggregate listing/detail (session-scoped data)
+- `/api/artifacts*` -> coherent response for non-aggregated artifact history/detail (artifact-scoped data)
+- `/generation/stream` -> SSE stream open without abnormal buffering
+- `/auth/google/start` -> OAuth redirect without `redirect_uri_mismatch`
+- SPA route -> `200`, not `404`
 
 ### API namespace determinism gate (DDD-052)
 
@@ -357,104 +357,104 @@ Proxy same-origin must preserve backend API semantics without namespace overlap:
 Operational rule:
 - Deployment/proxy changes must not reintroduce endpoint or route ambiguity where artifact endpoints are used as session aggregate endpoints.
 
-### Rischi operativi
+### Operational risks
 
-| Rischio | Impatto | Mitigazione |
+| Risk | Impact | Mitigation |
 |---|---|---|
-| DNS interno Railway non risolvibile | Proxy → 502 su tutte le route applicative | Verificare con `/debug/connectivity` prima del go-live; mantenere host backend pubblico come rollback |
-| Restart frontend interrompe connessioni SSE attive | Generazioni in corso troncate | Accettabile; client deve gestire riconnessione |
-| `VITE_API_BASE_URL` non vuota in Railway build vars | Bundle hardcoda host backend, bypassa proxy | Verificare Railway build vars: `VITE_API_BASE_URL` deve essere vuota o assente |
-| Hop-by-hop header inoltrati | `Error: Invalid header value` a runtime Node | Filtrare lista esplicita in `server.mjs` |
-| `GOOGLE_REDIRECT_URI` non aggiornato su Google Console | OAuth → 400 `redirect_uri_mismatch` | Gate bloccante prima del cutover OAuth |
+| Internal Railway DNS unresolvable | Proxy → 502 on all application routes | Verify with `/debug/connectivity` before go-live; keep public backend host as rollback |
+| Frontend restart interrupts active SSE connections | Truncated in-progress generations | Acceptable; client must handle reconnection |
+| `VITE_API_BASE_URL` non-empty in Railway build vars | Bundle hardcodes backend host, bypasses proxy | Verify Railway build vars: `VITE_API_BASE_URL` must be empty or absent |
+| Hop-by-hop headers forwarded | `Error: Invalid header value` at Node runtime | Filter explicit list in `server.mjs` |
+| `GOOGLE_REDIRECT_URI` not updated on Google Console | OAuth → 400 `redirect_uri_mismatch` | Blocking gate before OAuth cutover |
 
 ---
 
 ## Logging Proxy (TASK-020)
 
-`frontend/server.mjs` emette log sintetici per ogni richiesta. I log **non contengono** header, cookie, token o body.
+`frontend/server.mjs` emits synthetic logs for each request. Logs **do not contain** headers, cookies, tokens, or body.
 
-### Formato log
+### Log format
 
-| Prefisso | Evento | Esempio |
+| Prefix | Event | Example |
 |---|---|---|
-| `[req] health` | Healthcheck locale | `[req] health GET /health` |
-| `[req] proxy` | Dispatch al backend, pre-risposta | `[req] proxy POST /auth/login` |
-| `[proxy] METHOD path → status (ms)` | Risposta backend ricevuta | `[proxy] POST /auth/login → 200 (42ms)` |
-| `[proxy] error (ms): CODE msg` | Backend non raggiungibile o errore upstream | `[proxy] error (5001ms): ECONNREFUSED ... → http://...` |
-| `[req] static` | Asset statico servito da `dist/` | `[req] static GET /assets/index-abc.js` |
-| `[req] spa` | SPA fallback su `dist/index.html` | `[req] spa GET /tools/my-tool` |
-| `[req] 405` | Metodo non consentito su static/SPA | `[req] 405 DELETE /assets/foo.js` |
-| `[req] debug` | Debug connectivity (solo pre-go-live) | `[req] debug GET /debug/connectivity` |
+| `[req] health` | Local healthcheck | `[req] health GET /health` |
+| `[req] proxy` | Dispatch to backend, pre-response | `[req] proxy POST /auth/login` |
+| `[proxy] METHOD path → status (ms)` | Backend response received | `[proxy] POST /auth/login → 200 (42ms)` |
+| `[proxy] error (ms): CODE msg` | Backend unreachable or upstream error | `[proxy] error (5001ms): ECONNREFUSED ... → http://...` |
+| `[req] static` | Static asset served from `dist/` | `[req] static GET /assets/index-abc.js` |
+| `[req] spa` | SPA fallback on `dist/index.html` | `[req] spa GET /tools/my-tool` |
+| `[req] 405` | Method not allowed on static/SPA | `[req] 405 DELETE /assets/foo.js` |
+| `[req] debug` | Debug connectivity (pre-go-live only) | `[req] debug GET /debug/connectivity` |
 
-### Come leggere i log su Railway
+### How to read logs on Railway
 
 ```bash
 railway logs --follow
 ```
 
-Segnali di allarme:
+Warning signals:
 
-- Frequenza di `[proxy] error` > 0 → backend non raggiungibile; controllare stato servizio backend e DNS interno Railway.
-- Log `[req] proxy` senza corrispondente `[proxy] ... → STATUS` → timeout upstream silenzioso; verificare `BACKEND_INTERNAL_URL`.
-- `[req] spa` su path che dovrebbero essere asset → build non completata correttamente; `dist/` incompleto.
-- `[server] Missing dist/index.html` al bootstrap → build mancante nel Dockerfile.
+- Frequency of `[proxy] error` > 0 → backend unreachable; check backend service status and Railway internal DNS.
+- Log `[req] proxy` without corresponding `[proxy] ... → STATUS` → silent upstream timeout; verify `BACKEND_INTERNAL_URL`.
+- `[req] spa` on paths that should be assets → build not completed correctly; `dist/` incomplete.
+- `[server] Missing dist/index.html` at bootstrap → build missing in Dockerfile.
 
 ---
 
-## Timeout e Limiti Proxy (TASK-021)
+## Timeout and Proxy Limits (TASK-021)
 
-### Stato attuale
+### Current state
 
-`server.mjs` **non imposta timeout espliciti** su `node:http.request`. Le connessioni verso il backend interno non hanno un hard limit lato proxy; il timeout operativo è determinato dal comportamento Railway e dal client.
+`server.mjs` **does not set explicit timeouts** on `node:http.request`. Connections to the internal backend have no hard proxy-side limit; the operational timeout is determined by Railway behavior and the client.
 
-### Soglie operative Railway
+### Railway operational thresholds
 
-| Scenario | Timeout attivo | Sorgente |
+| Scenario | Active timeout | Source |
 |---|---|---|
-| Richieste HTTP normali | ~5 minuti | Railway idle connection timeout |
-| SSE (stream aperto) | Fino a chiusura client o backend | Nessun timeout lato proxy; Railway non tronca stream SSE attivi |
-| Upload body grande | ~5 minuti senza progress | Railway TCP keepalive |
+| Normal HTTP requests | ~5 minutes | Railway idle connection timeout |
+| SSE (open stream) | Until client or backend close | No proxy-side timeout; Railway does not truncate active SSE streams |
+| Large body upload | ~5 minutes without progress | Railway TCP keepalive |
 
-### Implicazioni per SSE
+### Implications for SSE
 
-- Il proxy fa `pipe` diretto senza buffering → nessun timeout aggiunto dal proxy.
-- `response.flushHeaders()` + `setNoDelay(true)` garantiscono che i chunk SSE arrivino al browser senza ritardo.
-- Se il backend non emette eventi per molto tempo, il browser può chiudere la connessione (`EventSource` reconnect automatico); il proxy risponde distruggendo il socket upstream (`response.on('close')`).
-- **Segnale di allarme**: `[proxy] POST /generation/stream → STATUS` con tempo elevato e nessun chunk visibile lato client → backend bloccato nel processing.
+- The proxy does direct `pipe` without buffering → no timeout added by the proxy.
+- `response.flushHeaders()` + `setNoDelay(true)` ensure SSE chunks reach the browser without delay.
+- If the backend does not emit events for a long time, the browser may close the connection (`EventSource` auto reconnect); the proxy responds by destroying the upstream socket (`response.on('close')`).
+- **Warning signal**: `[proxy] POST /generation/stream → STATUS` with high time and no chunk visible on client side → backend stuck in processing.
 
-### Configurazione timeout futura (se necessaria)
+### Future timeout configuration (if needed)
 
 ```js
-// Timeout socket upstream per richieste normali (non SSE)
-// Da valutare se il backend introduce endpoint lenti
+// Upstream socket timeout for normal requests (non-SSE)
+// Evaluate if backend introduces slow endpoints
 upstreamReq.setTimeout(30_000, () => {
   upstreamReq.destroy(new Error('upstream timeout'));
 });
 ```
 
-Non aggiunto ora per evitare falsi positivi su SSE di generazione lunga.
+Not added now to avoid false positives on long-generation SSE.
 
 ---
 
-## Screenshot Storage — Geometric Tool (DEPRECATA — da rimuovere)
+## Screenshot Storage — Geometric Tool (DEPRECATED — to be removed)
 
-> **Decisione 2026-06-28**: Il tool Geometric utilizza esclusivamente SerpApi per dati strutturati. Il percorso Puppeteer con screenshot è stato rimosso. `aiOverviewConfidence` e `selectorUsed` erano concetti legati al CSS-selector scraping — anch'essi rimossi, poiché SerpApi non produce selettori e il confidence è implicito nella struttura dati.
+> **Decision 2026-06-28**: The Geometric tool uses exclusively SerpApi for structured data. The Puppeteer path with screenshot has been removed. `aiOverviewConfidence` and `selectorUsed` were concepts tied to CSS-selector scraping — also removed, since SerpApi does not produce selectors and confidence is implicit in the data structure.
 >
-> Questa sezione è mantenuta solo come riferimento storico fino al completamento della rimozione del codice (vedi `../../99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md`).
+> This section is kept only as historical reference until completion of code removal (see `../../99-lifecycle/99-archive/plans/remove-geometric-screenshot-archival.md`).
 >
-> **Variabili d'ambiente da rimuovere**: `SCREENSHOT_STORAGE_PATH`, `SCREENSHOT_RETENTION_DAYS`.
-> **Tabella Postgres da droppare**: `geometric_screenshot_metadata`.
-> **Railway Persistent Disk**: non più necessaria per screenshot.
+> **Environment variables to remove**: `SCREENSHOT_STORAGE_PATH`, `SCREENSHOT_RETENTION_DAYS`.
+> **Postgres table to drop**: `geometric_screenshot_metadata`.
+> **Railway Persistent Disk**: no longer needed for screenshots.
 
 ---
 
-## Rollback a Cross-Origin (TASK-022)
+## Rollback to Cross-Origin (TASK-022)
 
-Eseguire in ordine. Il rollback riporta la topologia alla baseline cross-origin. Tempo stimato: ~10 minuti.
+Execute in order. The rollback restores the topology to the cross-origin baseline. Estimated time: ~10 minutes.
 
-### Step 1 — Ripristino env backend Railway
+### Step 1 — Restore backend Railway env
 
-Impostare sul servizio backend in Railway (`Variables`):
+Set on the backend service in Railway (`Variables`):
 
 ```bash
 FRONTEND_ORIGIN=https://<frontend-service>.up.railway.app
@@ -465,54 +465,56 @@ AUTH_COOKIE_SAMESITE=none
 GOOGLE_REDIRECT_URI=https://<backend-service>.up.railway.app/auth/google/callback
 ```
 
-### Step 2 — Ripristino Google OAuth Redirect URI
+### Step 2 — Restore Google OAuth Redirect URI
 
 In Google Cloud Console (`APIs & Services > Credentials > OAuth 2.0 Client IDs`):
 
-- Aggiungere (o ripristinare): `https://<backend-service>.up.railway.app/auth/google/callback`
-- Rimuovere (o disabilitare): `https://<frontend-service>.up.railway.app/auth/google/callback`
+- Add (or restore): `https://<backend-service>.up.railway.app/auth/google/callback`
+- Remove (or disable): `https://<frontend-service>.up.railway.app/auth/google/callback`
 
-### Step 3 — Ripristino build frontend (se il proxy causa problemi)
+### Step 3 — Restore frontend build (if proxy causes issues)
 
-Il frontend in topologia cross-origin deve avere `VITE_API_BASE_URL` impostata come build variable Railway per indirizzare le richieste al backend pubblico:
+The frontend in cross-origin topology must have `VITE_API_BASE_URL` set as Railway build variable to point requests at the public backend:
 
 ```bash
 VITE_API_BASE_URL=https://<backend-service>.up.railway.app
 ```
 
-Rimuovere `BACKEND_INTERNAL_URL` dalle env del servizio frontend Railway dopo il deploy.
+Remove `BACKEND_INTERNAL_URL` from the frontend service Railway env after deploy.
 
-### Step 4 — Verifica rollback
+### Step 4 — Verify rollback
 
 ```bash
-# Backend risponde sul proprio host pubblico
+# Backend responds on its own public host
 curl -i https://<backend-service>.up.railway.app/health
 
-# Cookie di sessione con SameSite=None
+# Session cookie with SameSite=None
 curl -i -X POST https://<backend-service>.up.railway.app/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"<test>","password":"<test>"}'
 # → Set-Cookie: ... SameSite=None; Secure
 
-# SPA carica
+# SPA loads
 curl -i https://<frontend-service>.up.railway.app/
-### Gate di accettazione rollback
+```
+
+### Rollback acceptance gate
 
 - `GET https://<backend-service>.up.railway.app/health` → `200`
-- Login produce `Set-Cookie` con `SameSite=None; Secure`
-- No `redirect_uri_mismatch` OAuth su callback backend
-- Log backend mostrano richieste dal browser direttamente (IP pubblici, non IP internal Railway)
+- Login produces `Set-Cookie` with `SameSite=None; Secure`
+- No `redirect_uri_mismatch` OAuth on backend callback
+- Backend logs show requests from browser directly (public IPs, not Railway internal IPs)
 
 ---
 
-## Rischi Residui — Variante Private-Network (TASK-023)
+## Residual Risks — Private-Network Variant (TASK-023)
 
-| Rischio | Probabilità | Impatto | Mitigazione |
+| Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
-| **DNS interno Railway non risolvibile** dopo restart o re-deploy | Bassa | Alto — tutte le route applicative → 502 | `/debug/connectivity` pre-deploy; rollback cross-origin in < 10 min (vedi sezione sopra) |
-| **Restart frontend interrompe connessioni proxy attive** (SSE in corso) | Media (ogni deploy) | Medio — generazioni troncate | Accettabile; client `EventSource` riconnette automaticamente; le generazioni devono gestire interruzione lato client |
-| **Debugging multi-hop** (browser → frontend → backend) | Alta (ogni bug di rete) | Medio — più complesso rispetto a cross-origin diretto | Log sintetici `[req]`/`[proxy]` in `server.mjs`; correlazione con `railway logs` del backend; `x-forwarded-for` tracciabile nei log backend |
-| **Build-time vs runtime Vite env** (`VITE_CAP_*`) | Bassa (documentato) | Medio — capability disabilitate silenziosamente | `VITE_CAP_*` devono essere build variables su Railway; documentato in `frontend/README.md` |
-| **`BACKEND_INTERNAL_URL` non impostata in produzione** | Bassa (fail-fast) | Alto — container si ferma al bootstrap | `process.exit(1)` su `NODE_ENV=production` senza env; Railway mostra il crash nel deploy log |
-| **`/debug/connectivity` esposto in produzione** | Media (da rimuovere) | Basso — rivela topologia interna | Rimuovere prima del go-live definitivo (TASK-003 pendente) |
-| **Rename servizio backend Railway** | Bassa | Alto — hostname interno cambia | Aggiornare `BACKEND_INTERNAL_URL` env su Railway frontend dopo ogni rename del servizio backend |
+| **Internal Railway DNS unresolvable** after restart or re-deploy | Low | High — all application routes → 502 | `/debug/connectivity` pre-deploy; cross-origin rollback in < 10 min (see section above) |
+| **Frontend restart interrupts active proxy connections** (SSE in progress) | Medium (every deploy) | Medium — truncated generations | Acceptable; client `EventSource` auto-reconnects; generations must handle client-side interruption |
+| **Multi-hop debugging** (browser → frontend → backend) | High (any network bug) | Medium — more complex than direct cross-origin | Synthetic `[req]`/`[proxy]` logs in `server.mjs`; correlation with `railway logs` from backend; `x-forwarded-for` traceable in backend logs |
+| **Build-time vs runtime Vite env** (`VITE_CAP_*`) | Low (documented) | Medium — silently disabled capabilities | `VITE_CAP_*` must be build variables on Railway; documented in `frontend/README.md` |
+| **`BACKEND_INTERNAL_URL` not set in production** | Low (fail-fast) | High — container stops at bootstrap | `process.exit(1)` on `NODE_ENV=production` without env; Railway shows crash in deploy log |
+| **`/debug/connectivity` exposed in production** | Medium (to be removed) | Low — reveals internal topology | Remove before final go-live (TASK-003 pending) |
+| **Railway backend service rename** | Low | High — internal hostname changes | Update `BACKEND_INTERNAL_URL` env on Railway frontend after every backend service rename |

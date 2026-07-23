@@ -56,6 +56,10 @@ Use exactly these sections:
 - Each title must contain either pain point or dream outcome.
 - Ensure curiosity gap without clickbait mismatch.
 - Keep coherence with avatar, offer, and contrarian angle from previous step.
+- Output ONLY the requested packaging. Nothing else.
+- No preamble, greetings, or introductions.
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ### **FASE 1: PACKAGING**
 

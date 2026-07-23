@@ -77,6 +77,10 @@ La landing deve includere, in questo ordine logico:
 - Non includere code fences.
 - Non includere JSON.
 - Usa heading chiari e contenuto pronto da revisionare in pagina.
+- Output ONLY the requested landing page. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco la landing", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ## Output Markdown obbligatorio
 

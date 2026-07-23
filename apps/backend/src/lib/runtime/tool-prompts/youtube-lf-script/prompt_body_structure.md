@@ -57,6 +57,10 @@ Use exactly these sections:
 - Keep logical escalation of value across points.
 - Include Context -> Application -> Dilemma -> Framing structure for each core point.
 - Define at least one rehook pattern every 20-25 seconds of perceived flow.
+- Output ONLY the requested body structure. Nothing else.
+- No preamble, greetings, or introductions.
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ### **FASE 3: STRUTTURA BODY**
 

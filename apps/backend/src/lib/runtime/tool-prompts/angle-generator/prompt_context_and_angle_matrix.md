@@ -42,6 +42,10 @@ Produce a full context map and an actionable angle matrix from extraction contex
 - When summarizing awareness distribution, classify by product/brand familiarity and buying intent, not by mere ad exposure, reviews, or generic comparison behavior.
 - Do not place profiles in `Product Aware` unless they already know the product or a named competitor; do not place profiles in `Most Aware` unless direct buying intent is explicit.
 - Do not place profiles in `Solution Aware` just because they mention one possible solution category; the key signal is that they still reason from desired outcome to solution, not from a chosen solution to product selection.
+- Output ONLY the requested artifact. Nothing else.
+- No preamble, greetings, or introductions. No phrases like "Ecco il report", "Di seguito", "Ho generato", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary after the last section.
+- Any text outside the mandatory output structure is a violation.
 
 ## Required output structure
 

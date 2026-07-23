@@ -34,6 +34,10 @@ Your output will feed step 4 (unified-report). Synthesize crawling data and comp
 ## Rules
 - Screenshot data must NEVER be included in the prompt context. Only text and structured data.
 - Output in Italian (it-IT).
+- Output ONLY the requested strategic report. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il report", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Mandatory Output Structure
 

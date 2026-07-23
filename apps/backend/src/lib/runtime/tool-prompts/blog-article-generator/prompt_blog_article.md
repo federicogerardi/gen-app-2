@@ -59,6 +59,7 @@ To avoid both "shopping list" effect (bullet lists) and "fake titles" effect (mo
 - **Maximum 4 H2 sections** — do not exceed this limit
 - ABSOLUTE CONSTRAINT: Never insert horizontal separator lines (like three dashes)
 - **LANGUAGE**: Write the article content in Italian
+- **OUTPUT DETERMINISM**: Output ONLY the article. No preamble, no "Ecco l'articolo", no "Certamente", no greetings, no sign-offs, no meta-commentary. The first character must be the H1 title.
 
 [CONTENT TO USE - FOLLOW THIS STRUCTURE EXACTLY]
 

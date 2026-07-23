@@ -46,6 +46,10 @@ This is the final artifact. Produce activation-ready creative foundations that c
 - Concrete, direct-response style.
 - Headline language must be user-centric and spoken-language friendly.
 - For each angle, copy mechanics must be coherent with its canonical awareness level (prompt_root.md).
+- Output ONLY the requested artifact. Nothing else.
+- No preamble, greetings, or introductions. No phrases like "Ecco", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary after the last section.
+- Any text outside the mandatory output structure is a violation.
 
 ## Required output structure
 

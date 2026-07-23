@@ -55,6 +55,10 @@ Extraction Payload with 5 core fields: `brand_or_company`, `target_audience`, `t
 - No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present.
 - Mark inferred content with "(inferito dal contesto)".
+- Output ONLY the requested TOV document. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il TOV", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Good vs. Bad Examples
 

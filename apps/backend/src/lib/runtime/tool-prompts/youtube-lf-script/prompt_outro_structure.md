@@ -57,6 +57,10 @@ Use exactly these sections:
 - Recap must summarize previously delivered value, not introduce new theory.
 - Final CTA must align with offer and purchase-process complexity.
 - Keep urgency credible and non-hype.
+- Output ONLY the requested outro structure. Nothing else.
+- No preamble, greetings, or introductions.
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections or Gold Standard Examples is a violation.
 
 ## Gold Standard Examples
 

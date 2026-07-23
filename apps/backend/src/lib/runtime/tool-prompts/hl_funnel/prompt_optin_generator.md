@@ -257,6 +257,10 @@ Prima di chiudere, verifica internamente:
 
 Restituisci SOLO markdown, senza JSON e senza testo extra fuori struttura.
 - Non includere code fences.
+- Output ONLY the requested optin variants. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco le varianti", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary after the winner section.
+- Any text outside the mandatory output structure is a violation.
 
 Struttura markdown richiesta:
 

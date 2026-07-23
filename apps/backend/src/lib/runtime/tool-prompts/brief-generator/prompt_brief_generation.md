@@ -49,6 +49,10 @@ Extraction Payload with 5 core fields: `product_or_service`, `target_audience`, 
 - No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present — do not skip sections marked as mandatory.
 - Keep each section concise: 2-5 bullet points per section.
+- Output ONLY the requested brief. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il brief", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Good vs. Bad Examples
 

@@ -31,6 +31,10 @@ Transform the extracted Meta Ads context into an activation-ready strategy canva
 - No JSON.
 - No invented claims.
 - Keep each recommendation tied to the extracted context.
+- Output ONLY the requested strategy canvas. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco l'analisi", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Persona Assets — Critical Usage Rule
 

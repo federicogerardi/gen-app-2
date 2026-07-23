@@ -59,6 +59,10 @@ Deterministic tie-break sequence (mandatory):
 - Awareness level labels must remain in English.
 - No JSON.
 - No ties in final top 3 ranking; resolve ties with explicit rationale.
+- Output ONLY the requested scoring and ranking. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco l'analisi", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Required output structure
 

@@ -423,7 +423,11 @@ Vincoli output rigidi:
 - Niente JSON
 - Niente code fences
 - Usa heading markdown per i 10 elementi
-- Niente commenti meta o spiegazioni fuori script, ad eccezione di una sezione finale ## Note Assunzioni per documentare i dati mancanti compilati con assunzioni conservative
+- Niente commenti meta o spiegazioni fuori script
+- Output ONLY the requested VSL script. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco lo script", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary after the script.
+- Any text outside the script structure is a violation., ad eccezione di una sezione finale ## Note Assunzioni per documentare i dati mancanti compilati con assunzioni conservative
 - Usa emoji leggere nei titoli se utili
 - Zero metafrasi tipo "[PAUSA]" – incorpora pause nel ritmo naturale
 - Mantieni testo pronto per telecamera, senza blocchi tecnici

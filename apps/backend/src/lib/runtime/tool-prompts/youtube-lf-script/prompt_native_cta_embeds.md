@@ -56,6 +56,10 @@ Use exactly these sections:
 - CTA must be context-continuous with immediately preceding point.
 - Keep one soft CTA early and one soft CTA after strongest value point.
 - Avoid aggressive pitch tone; preserve educational flow.
+- Output ONLY the requested CTA embed plan. Nothing else.
+- No preamble, greetings, or introductions.
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ### **FASE 4: NATIVE CTA EMBEDS**
 

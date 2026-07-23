@@ -32,6 +32,10 @@ Generate one final YouTube description artifact from validated normalized contex
 - No JSON.
 - No code fences.
 - Human-first readability with natural keyword placement.
+- Output ONLY the requested description. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco la descrizione", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory structure is a violation.
 
 ## Mandatory structure
 

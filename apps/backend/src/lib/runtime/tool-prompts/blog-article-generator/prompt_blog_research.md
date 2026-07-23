@@ -41,3 +41,9 @@ Organize content following the provided H2 structure. For each section:
 - Related keywords
 
 Do not include titles or headers - only structured content per section.
+
+## Output Determinism
+- Output ONLY the research data. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco la ricerca", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- The first line must contain research data.

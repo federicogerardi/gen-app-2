@@ -50,6 +50,10 @@ Use exactly these sections:
 - Be specific and market-aware, no generic filler.
 - Keep all decisions reusable by downstream steps.
 - If data is missing, declare explicit assumption under `Strategic Risks`.
+- Output ONLY the requested analysis. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco l'analisi", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ### **FASE 0: ANALISI PRE-SCRIPT**
 

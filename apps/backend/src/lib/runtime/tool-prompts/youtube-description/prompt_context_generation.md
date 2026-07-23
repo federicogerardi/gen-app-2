@@ -46,6 +46,10 @@ Normalize direct user inputs into a deterministic context for one-step YouTube d
 - No JSON.
 - No code fences.
 - Context output language: Italian (`it-IT`).
+- Output ONLY the requested context. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il contesto", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory context sections is a violation.
 
 ## Required output structure
 

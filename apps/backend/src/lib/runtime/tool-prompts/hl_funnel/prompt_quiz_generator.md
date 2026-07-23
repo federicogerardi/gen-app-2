@@ -180,6 +180,10 @@ Esempi lessicali:
 
 Restituisci SOLO markdown, senza JSON e senza testo extra fuori struttura.
 - Non includere code fences.
+- Output ONLY the requested quiz. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il quiz", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 Struttura markdown richiesta:
 

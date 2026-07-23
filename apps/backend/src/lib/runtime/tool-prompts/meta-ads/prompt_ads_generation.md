@@ -40,6 +40,10 @@ This is the final artifact. Generate production-ready Meta Ads assets from the v
 - No code fences.
 - Use direct-response clarity with narrative storytelling.
 - Incorporate spazi bianchi strategici for mobile readability in longer formats.
+- Output ONLY the requested ad library. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco gli ads", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory output structure is a violation.
 
 ## Persona Assets — Critical Usage Rule
 

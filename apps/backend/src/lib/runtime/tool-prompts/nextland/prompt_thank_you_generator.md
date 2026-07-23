@@ -76,6 +76,10 @@ La thank-you deve includere:
 - Non includere code fences.
 - Non includere JSON.
 - Mantieni una struttura pronta per rendering editoriale.
+- Output ONLY the requested thank-you page. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco la thank-you", "Di seguito", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary.
+- Any text outside the mandatory sections is a violation.
 
 ## Output Markdown obbligatorio
 

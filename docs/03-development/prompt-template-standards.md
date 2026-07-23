@@ -107,6 +107,17 @@ Add to every prompt. Adjust language-specific rules per tool.
 - No JSON. No invented claims.
 - No code fences. Output raw markdown — never wrap content in ``` blocks.
 - Every section must be present.
+
+**Additional rule for all generation prompts — Output Determinism:**
+
+```
+- Output ONLY the requested artifact. Nothing else.
+- No preamble, greetings, or introductions. No "Ecco il report", "Di seguito", "Ho generato", "Certamente".
+- No closing remarks, sign-offs, or meta-commentary after the last section.
+- Any text outside the mandatory output structure is a violation and will cause the output to be rejected.
+```
+
+This rule prevents LLM chat behavior from leaking into artifacts (politeness phrases, contextual acknowledgments, meta-commentary about the generation process). Applied to all generation prompts in the 2026-07-23 remediation pass.
 ```
 
 **Additional rule for final-step prompts with strict output determinism:**

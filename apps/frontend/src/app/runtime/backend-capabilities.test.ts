@@ -47,6 +47,7 @@ describe('backend-capabilities', () => {
       adminUserReportsPublishIssue: true,
       adminApiServicesCrud: true,
       toolsApiServicesResolve: true,
+      toolsJobSystem: true,
     };
     const result = resolveBackendCapabilities(all);
     expect(result).toEqual(all);

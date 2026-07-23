@@ -414,3 +414,49 @@ export type PublishUserReportIssueCommand = {
   title?: string;
   body?: string;
 };
+
+// =====================================================================
+// ToolWorkflowJob Contracts (DDD-226, DDD-227, DDD-228)
+// =====================================================================
+
+export type SubmitJobRequest = {
+  toolKey: string;
+  projectId: string;
+  extractionPayload: Record<string, unknown>;
+  model: string;
+  intent: 'new' | 'resume' | 'regenerate';
+  idempotencyKey: string;
+};
+
+export type JobStatusResponse = {
+  jobId: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  toolKey: string;
+  progress: {
+    currentStep: string | null;
+    completedSteps: string[];
+    stepStatuses: Record<string, 'idle' | 'running' | 'done' | 'error'>;
+  };
+  result: null | {
+    sessionId: string;
+    artifactIds: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type JobProgressEvent = {
+  type: 'step_started' | 'step_completed' | 'step_failed' | 'workflow_completed' | 'workflow_failed';
+  jobId: string;
+  timestamp: string;
+  stepKey?: string;
+  artifactId?: string;
+  stepIndex?: number;
+  totalSteps?: number;
+  status?: 'running' | 'done' | 'error';
+  errorMessage?: string;
+  result?: {
+    sessionId?: string;
+    artifactIds?: string[];
+  };
+};

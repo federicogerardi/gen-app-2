@@ -16,6 +16,7 @@ export type BackendCapabilities = {
   adminUserReportsPublishIssue: boolean;
   adminApiServicesCrud: boolean;
   toolsApiServicesResolve: boolean;
+  toolsJobSystem: boolean;
 };
 
 const readFlag = (value: string | undefined, fallback = false): boolean => {
@@ -48,6 +49,7 @@ export const readBackendCapabilities = (): BackendCapabilities => {
     adminUserReportsPublishIssue: readFlag(import.meta.env.VITE_CAP_ADMIN_USER_REPORTS_PUBLISH_ISSUE as string | undefined, true),
     adminApiServicesCrud: readFlag(import.meta.env.VITE_CAP_ADMIN_API_SERVICES_CRUD as string | undefined, true),
     toolsApiServicesResolve: readFlag(import.meta.env.VITE_CAP_TOOLS_API_SERVICES_RESOLVE as string | undefined, true),
+    toolsJobSystem: readFlag(import.meta.env.VITE_CAP_TOOLS_JOB_SYSTEM as string | undefined),
   };
 };
 
@@ -69,6 +71,7 @@ export const defaultBackendCapabilities: BackendCapabilities = {
   adminUserReportsPublishIssue: false,
     adminApiServicesCrud: false,
     toolsApiServicesResolve: false,
+    toolsJobSystem: false,
 };
 
 /**
@@ -102,6 +105,7 @@ export type AdminCapabilities = Pick<BackendCapabilities,
 export type ToolsCapabilities = Pick<BackendCapabilities,
   | 'toolsUpload'
   | 'toolsApiServicesResolve'
+  | 'toolsJobSystem'
 >;
 
 export type ArtifactCapabilities = Pick<BackendCapabilities,
@@ -140,6 +144,7 @@ export const resolveToolsCapabilities = (
   return {
     toolsUpload: full.toolsUpload,
     toolsApiServicesResolve: full.toolsApiServicesResolve,
+    toolsJobSystem: full.toolsJobSystem,
   };
 };
 

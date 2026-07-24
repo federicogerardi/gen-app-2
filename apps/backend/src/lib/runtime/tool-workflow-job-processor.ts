@@ -66,6 +66,22 @@ const buildBackendGenerationRequest = (
     input.stepDependencyArtifactContentsByStep = stepDependencyArtifactContentsByStep;
   }
 
+  // Promote brandName and baseQuery from extractionPayload to top-level
+  // so assembly functions (assembleStrategicReportingInput etc.) can find them.
+  const ep = jobData.extractionPayload;
+  if (typeof ep?.brandName === 'string' && (ep.brandName as string).trim().length > 0) {
+    (input as Record<string, unknown>).brandName = ep.brandName;
+  }
+  if (typeof ep?.baseQuery === 'string' && (ep.baseQuery as string).trim().length > 0) {
+    (input as Record<string, unknown>).baseQuery = ep.baseQuery;
+  }
+  if (typeof ep?.language === 'string' && (ep.language as string).trim().length > 0) {
+    (input as Record<string, unknown>).language = ep.language;
+  }
+  if (typeof ep?.country === 'string' && (ep.country as string).trim().length > 0) {
+    (input as Record<string, unknown>).country = ep.country;
+  }
+
   return {
     requestId: `${jobData.jobId}:${stepKey}`,
     userId: jobData.userId,
@@ -150,6 +166,26 @@ const runCrawlingStep = async (
   sessionId: string,
   workflowType: ToolWorkflowType,
 ): Promise<StepResult> => {
+  const baseInput: Record<string, unknown> = {
+    step: stepKey as ToolStep,
+    intent: jobData.intent,
+    extractionPayload: jobData.extractionPayload,
+    toolWorkflow: {
+      toolKey: jobData.toolKey as ToolKey,
+      workflowType,
+      stepKey: stepKey as ToolStep,
+      artifactRole: 'step' as const,
+      runMode: jobData.intent,
+      sessionId,
+    },
+  };
+  // Promote extraction payload fields so assembly functions can read them
+  const ep = jobData.extractionPayload;
+  if (typeof ep?.brandName === 'string') baseInput.brandName = ep.brandName;
+  if (typeof ep?.baseQuery === 'string') baseInput.baseQuery = ep.baseQuery;
+  if (typeof ep?.language === 'string') baseInput.language = ep.language;
+  if (typeof ep?.country === 'string') baseInput.country = ep.country;
+
   const request: BackendGenerationRequest = {
     requestId: `${jobData.jobId}:${stepKey}`,
     userId: jobData.userId,
@@ -159,19 +195,7 @@ const runCrawlingStep = async (
     model: jobData.model as BackendGenerationRequest['model'],
     toolKey: jobData.toolKey as ToolKey,
     workflowType,
-    input: {
-      step: stepKey as ToolStep,
-      intent: jobData.intent,
-      extractionPayload: jobData.extractionPayload,
-      toolWorkflow: {
-        toolKey: jobData.toolKey as ToolKey,
-        workflowType,
-        stepKey: stepKey as ToolStep,
-        artifactRole: 'step' as const,
-        runMode: jobData.intent,
-        sessionId,
-      },
-    },
+    input: baseInput as BackendGenerationRequest['input'],
   };
 
   return runSingleStepGeneration(request, adapters);
@@ -184,6 +208,26 @@ const runScoringStep = async (
   sessionId: string,
   workflowType: ToolWorkflowType,
 ): Promise<StepResult> => {
+  const baseInput: Record<string, unknown> = {
+    step: stepKey as ToolStep,
+    intent: jobData.intent,
+    extractionPayload: jobData.extractionPayload,
+    toolWorkflow: {
+      toolKey: jobData.toolKey as ToolKey,
+      workflowType,
+      stepKey: stepKey as ToolStep,
+      artifactRole: 'step' as const,
+      runMode: jobData.intent,
+      sessionId,
+    },
+  };
+  // Promote extraction payload fields so assembly functions can read them
+  const ep = jobData.extractionPayload;
+  if (typeof ep?.brandName === 'string') baseInput.brandName = ep.brandName;
+  if (typeof ep?.baseQuery === 'string') baseInput.baseQuery = ep.baseQuery;
+  if (typeof ep?.language === 'string') baseInput.language = ep.language;
+  if (typeof ep?.country === 'string') baseInput.country = ep.country;
+
   const request: BackendGenerationRequest = {
     requestId: `${jobData.jobId}:${stepKey}`,
     userId: jobData.userId,
@@ -193,19 +237,7 @@ const runScoringStep = async (
     model: jobData.model as BackendGenerationRequest['model'],
     toolKey: jobData.toolKey as ToolKey,
     workflowType,
-    input: {
-      step: stepKey as ToolStep,
-      intent: jobData.intent,
-      extractionPayload: jobData.extractionPayload,
-      toolWorkflow: {
-        toolKey: jobData.toolKey as ToolKey,
-        workflowType,
-        stepKey: stepKey as ToolStep,
-        artifactRole: 'step' as const,
-        runMode: jobData.intent,
-        sessionId,
-      },
-    },
+    input: baseInput as BackendGenerationRequest['input'],
   };
 
   return runSingleStepGeneration(request, adapters);

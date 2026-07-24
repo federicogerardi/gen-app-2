@@ -1,6 +1,6 @@
 ---
 status: draft
-version: 1.1
+version: 1.2
 date_created: 2026-07-24
 last-reviewed: 2026-07-24
 next-review-date: 2027-01-24
@@ -306,6 +306,53 @@ Risolve B4, B5.
 
 ---
 
+### Pillar D — UX/UI Acceptance Criteria (aggiuntivi, da Task D.1–D.5)
+
+Requisiti UX derivati dalla review del design system e Fase 1.
+
+#### D.UX.1 — Discovery endpoint tie-breaking (Task D.1)
+- `GET /api/tools/jobs?projectId=&toolKey=` restituisce al massimo 1 job: il più recente con `status IN ('queued','running')`, ordinato per `created_at DESC LIMIT 1`.
+- **Why**: Evita ambiguità su quale job mostrare se l'utente ha re-submittato prima del completamento.
+
+#### D.UX.2 — Mount transition state (Task D.5)
+- Durante la chiamata API discovery, il Workflow Panel mostra un indicatore di caricamento sottile (`pendingJobId: 'discovering'`) invece di flashare il `ToolGenerationFlowVertical` legacy.
+- Se la discovery fallisce, mostra un messaggio non-bloccante "Unable to check for active jobs" e defaulta alla view legacy (non uno stato broken).
+
+#### D.UX.3 — Admin Data Table convergence (Task D.2/D.3)
+- Sostituire `<table>` raw con `ListingTableSection` + `AdminPageContainer` (pattern canonico Data Table View).
+- Usare `StatusBadge` per la colonna status con mapping `ToolWorkflowJobStatus → variant` (queued=neutral, running=info, completed=success, failed=error, cancelled=warning).
+- Colonna `progress`: `—` per job in stato `queued`; `{completed}/{total}` per running/completed/failed.
+- Azioni row via `bordered-chip` pattern (`inlineLink` + `artifactTableActionLink`).
+- Cancel/Retry: `MUI Dialog` di conferma con testo esplicito.
+- Mutation outcomes via `GlobalFeedbackMessage` channel (canonico per mutazioni cross-page).
+- `Inspect` action: naviga a `/artifacts?sessionId={sessionId}`.
+
+#### D.UX.4 — Pagination (Task D.2)
+- Server-side pagination: 25 righe per pagina, `offset`/`limit` nei query params.
+- `PaginationBlockControls` passato come `paginationNode` a `ListingTableSection`.
+
+#### D.UX.5 — Cost/token columns (Task D.4)
+- Nascoste dietro toggle "Show costs" nella toolbar (non visibili di default).
+- Formattazione: `costUsd` → `$0.023` (3 decimali); `null` → `—`.
+- Token counts con separatore migliaia: `15,234`.
+- Allineamento colonne numeriche a destra.
+
+#### D.UX.6 — Adaptive polling (Task D.2)
+- `useSWR` con `refreshInterval` adattivo: 3s quando almeno una riga ha `status=running`, 10s altrimenti.
+- `revalidateOnFocus: true` per la pagina admin (il default globale `false` è per tool pages dove il focus-triggered refetch può interrompere lo stream SSE).
+
+#### D.UX.7 — Admin sub-navigation (Task D.2)
+- Aggiungere voce "Tool Jobs" nella sub-navigation admin, tra "Sessions" e gli eventuali item successivi.
+
+#### D.UX.8 — Accessibility (Task D.2/D.3)
+- **A11Y-1**: Usare primitive `PageStateMessage` canoniche (`LoadingStateMessage`, `ErrorStateMessage`, `EmptyStateMessage`) — niente `<div role="alert">` raw.
+- **A11Y-2**: I cambi filtro annunciano il conteggio risultati via `aria-live="polite"`.
+- **A11Y-3**: Tutti gli `aria-label` referenziano chiavi `appCopy`.
+- **A11Y-4**: `ListingTableSection` garantisce `aria-label` unici per ogni landmark.
+- **A11Y-5**: `EmptyStateMessage` con contesto: "No tool workflow jobs found. Jobs will appear here when users run tool workflows."
+
+---
+
 ## 4. Pillar E — Long-Lived Actor (Opzionale, 5+ giorni)
 
 > ⚠ **Deferito a Fase 3.** Modifica `generationSystemMachine` per eseguire multi-step in un singolo attore invece di attori indipendenti per step. Risolve B1 in modo architetturale invece che con content injection (Pillar A). Alto rischio di regressione (tocca la macchina XState core, 9 test Category A). Da valutare solo se il costo SerpApi della soluzione Pillar A è ancora inaccettabile dopo l'ottimizzazione.
@@ -368,6 +415,12 @@ D.5 (rimozione sessionStorage) richiede D.1
 | AC-022 | Geometric 4-step: 1 sola chiamata SerpApi (step 0) + step 1-3 riusano dati | A.4 |
 | AC-023 | `npm run typecheck && npm run test` passa in tutti i workspace (regression gate invariato) | CI |
 | AC-024 | Feature flag `toolsJobSystem: false` → path legacy invariato (come Fase 1) | Regression test Category A |
+| AC-025 | Admin Data Table usa `ListingTableSection` + `AdminPageContainer` + `StatusBadge` (no raw table/html) | D.UX.3 |
+| AC-026 | Cost/token columns hidden behind toggle, formattati correttamente | D.UX.5 |
+| AC-027 | Paginazione server-side funzionante (25/page) | D.UX.4 |
+| AC-028 | Adaptive polling: 3s running, 10s idle | D.UX.6 |
+| AC-029 | Admin Data Table: `PageStateMessage` primitives per loading/error/empty, `aria-live` per filtri | D.UX.8 |
+| AC-030 | Discovery endpoint: mount transition non-bloccante (no flash legacy view) | D.UX.2 |
 
 ### Backend Gate
 

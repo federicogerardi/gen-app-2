@@ -3,6 +3,7 @@ import type { SubmitJobRequest } from '@gen-app-2/contracts';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import type { ToolPageEvent } from '../machines/tool-page.types';
 import { buildBlogArticleGeneratorDirectInputExtractionInfo, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo } from './tool-page-selectors';
+import { getRequiredToolInputFiles } from './tool-form-architecture';
 
 type UseToolPageSubmitControllerArgs = {
   apiBaseUrl: string;
@@ -53,6 +54,14 @@ export const useToolPageSubmitController = ({
       if (hasAssetBasedExtractionContext) {
         payload = { _assetBased: true, toolKey, projectId };
       }
+    }
+
+    // Generic fallback: direct-input tools without a dedicated selector
+    // (angle-generator, meta-ads, personas-generator) should use the form state
+    // as the extraction payload. The readiness check already passed, so the tool
+    // is ready to generate — we must not fail here.
+    if (!payload && getRequiredToolInputFiles(toolKey).length === 0) {
+      payload = { ...formState, toolKey, projectId };
     }
 
     if (!payload) {

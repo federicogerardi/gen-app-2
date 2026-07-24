@@ -254,6 +254,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       return;
     }
     if (useJobSystem) {
+      console.debug('[tool-job] submitJob', { hasExtractionPayload: extractionPayloadRef.current !== null, hasAssetBased: hasAssetBasedExtractionContext });
       void submitController.submitJob();
     } else {
       handleRunControllerPrimaryAction();

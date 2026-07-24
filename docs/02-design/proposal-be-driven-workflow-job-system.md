@@ -1,6 +1,6 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.11
+version: 1.12
 date_created: 2026-07-20
 last-reviewed: 2026-07-24
 next-review-date: 2026-08-24

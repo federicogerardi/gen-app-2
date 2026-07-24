@@ -1,6 +1,6 @@
 ---
 status: implemented
-version: 2.0
+version: 2.1
 date_created: 2026-07-24
 last-reviewed: 2026-07-24
 next-review-date: 2027-01-24
@@ -973,9 +973,27 @@ npm --workspace apps/frontend run test
 
 ---
 
+## 9. Post-Implementation Fixes (v2.1)
+
+Bug corretti durante lo smoke test su `feat/tool-workflow-job-system`:
+
+| # | Commit | Problema | Fix |
+|---|--------|----------|-----|
+| 1 | `ce902cf` | Bridge legacy attivo anche con `useJobSystem=true` | Guardia `if (useJobSystem) return` nel `useLayoutEffect` |
+| 2 | `257c040` | `extractionPayload` catturato al mount, null per tool senza briefing | Ref `extractionPayloadRef` letto al submit + catena fallback (briefing → workspace → hydration) |
+| 3 | `dc87f63` | `hasAssetBasedExtractionContext` non passato al submit controller | Aggiunto flag + payload minimo `{ _assetBased: true }` per tool asset-based |
+| 4 | `45825cc` | 5 tool con readiness/submit mismatch (angle-generator, meta-ads, personas-generator, brief-generator, tov-generator) | Fallback generico: `formState` per direct-input tool senza selettore dedicato |
+| 5 | `752380e` | Stale closure: `hasAssetBasedExtractionContext` fuori dalle deps di `useCallback` | Aggiunto alla dependency array di `buildSubmitRequest` |
+| 6 | `fa41b2b` | CTA "Open session" post-completamento naviga a sessione inesistente | `assign({ sessionId })` su `JOB_COMPLETED` per usare il jobId come sessionId |
+| 7 | `a65db13` | Diagnostica smoke test: timing step, error catch | Log strutturati BE + DEV-only console FE |
+
+**Cross-tool coherence**: tutti gli 11 tool verificati con zero regressioni rispetto al path legacy.
+
+---
+
 ## 10. References
 
-- [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (v1.11, `implemented`)
+- [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (v1.12, `implemented`)
 - [Plan: BullMQ Prerequisites](./plan-bullmq-prerequisites.md) (`implemented`)
 - [Plan: Post-BullMQ Improvements](./plan-post-bullmq-improvements.md) (`implemented`)
 - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) — DDD-226 (`ToolWorkflowJob`), DDD-227 (`ToolWorkflowJobId`), DDD-228 (`ToolWorkflowJobStatus`)

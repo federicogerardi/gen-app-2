@@ -66,6 +66,10 @@ export const useToolPageContext = ({
   const previousProjectIdRef = useRef((generationProject.focusedProjectId ?? initialProjectId ?? '').trim());
   const previousCampaignObjectiveRef = useRef(formState.campaignObjective.trim());
   const sessionIdRef = useRef(toolPageSnapshot.context.sessionId);
+  // Keep ref in sync so downstream consumers (e.g. navigation CTA) read the
+  // latest sessionId — the toolPageSnapshot context is updated by assign(…)
+  // on JOB_COMPLETED (job system) and by the legacy orchestrate flow.
+  sessionIdRef.current = toolPageSnapshot.context.sessionId;
   const briefingSnapshot = useSelector(
     toolPageSnapshot.context.briefingActorRef as ActorRefFrom<typeof briefingUploadMachine>,
     (state) => state,

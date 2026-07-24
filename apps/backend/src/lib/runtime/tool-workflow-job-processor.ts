@@ -1,8 +1,10 @@
 import { createActor, waitFor } from 'xstate';
 import type { Job } from 'bullmq';
 import type Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 
 import type { ArtifactType, ToolKey, ToolStep, ToolWorkflowType } from '@gen-app-2/contracts';
+import { TOOL_WORKFLOW_BY_TOOL_KEY } from '@gen-app-2/contracts';
 import type { GenerationAdapters } from '../adapters';
 import { generationSystemMachine } from '../machines';
 import type { WorkflowStepType } from '../types/xstate';
@@ -36,16 +38,18 @@ const buildBackendGenerationRequest = (
   stepKey: string,
   stepDependencyArtifactIds: string[],
   dependencyArtifactIdsByStep: Record<string, string>,
+  sessionId: string,
+  workflowType: ToolWorkflowType,
 ): BackendGenerationRequest => ({
   requestId: `${jobData.jobId}:${stepKey}`,
   userId: jobData.userId,
   projectId: jobData.projectId,
-  sessionId: jobData.jobId,
+  sessionId,
   artifactType: 'content' as ArtifactType,
   model: jobData.model as BackendGenerationRequest['model'],
   idempotencyKey: `${jobData.idempotencyKey}:${stepKey}`,
   toolKey: jobData.toolKey as ToolKey,
-  workflowType: 'funnel_pages' as ToolWorkflowType,
+  workflowType,
   input: {
     step: stepKey as ToolStep,
     intent: jobData.intent,
@@ -54,11 +58,11 @@ const buildBackendGenerationRequest = (
     stepDependencyArtifactIdsByStep: dependencyArtifactIdsByStep as Record<string, string>,
     toolWorkflow: {
         toolKey: jobData.toolKey as ToolKey,
-        workflowType: 'funnel_pages' as ToolWorkflowType,
+        workflowType,
         stepKey: stepKey as ToolStep,
         artifactRole: 'step' as const,
         runMode: jobData.intent,
-        sessionId: jobData.jobId,
+        sessionId,
         dependsOnSteps: Object.keys(dependencyArtifactIdsByStep),
         dependencyArtifactIds: stepDependencyArtifactIds,
         dependencyArtifactIdsByStep: dependencyArtifactIdsByStep as Record<string, string>,
@@ -101,27 +105,29 @@ const runCrawlingStep = async (
   jobData: ToolWorkflowJobData,
   stepKey: string,
   adapters: GenerationAdapters,
+  sessionId: string,
+  workflowType: ToolWorkflowType,
 ): Promise<StepResult> => {
   const request: BackendGenerationRequest = {
     requestId: `${jobData.jobId}:${stepKey}`,
     userId: jobData.userId,
     projectId: jobData.projectId,
-    sessionId: jobData.jobId,
+    sessionId,
     artifactType: 'crawl' as ArtifactType,
     model: jobData.model as BackendGenerationRequest['model'],
     toolKey: jobData.toolKey as ToolKey,
-    workflowType: 'funnel_pages' as ToolWorkflowType,
+    workflowType,
     input: {
       step: stepKey as ToolStep,
       intent: jobData.intent,
       extractionPayload: jobData.extractionPayload,
       toolWorkflow: {
         toolKey: jobData.toolKey as ToolKey,
-        workflowType: 'funnel_pages' as ToolWorkflowType,
+        workflowType,
         stepKey: stepKey as ToolStep,
         artifactRole: 'step' as const,
         runMode: jobData.intent,
-        sessionId: jobData.jobId,
+        sessionId,
       },
     },
   };
@@ -133,27 +139,29 @@ const runScoringStep = async (
   jobData: ToolWorkflowJobData,
   stepKey: string,
   adapters: GenerationAdapters,
+  sessionId: string,
+  workflowType: ToolWorkflowType,
 ): Promise<StepResult> => {
   const request: BackendGenerationRequest = {
     requestId: `${jobData.jobId}:${stepKey}`,
     userId: jobData.userId,
     projectId: jobData.projectId,
-    sessionId: jobData.jobId,
+    sessionId,
     artifactType: 'analysis' as ArtifactType,
     model: jobData.model as BackendGenerationRequest['model'],
     toolKey: jobData.toolKey as ToolKey,
-    workflowType: 'funnel_pages' as ToolWorkflowType,
+    workflowType,
     input: {
       step: stepKey as ToolStep,
       intent: jobData.intent,
       extractionPayload: jobData.extractionPayload,
       toolWorkflow: {
         toolKey: jobData.toolKey as ToolKey,
-        workflowType: 'funnel_pages' as ToolWorkflowType,
+        workflowType,
         stepKey: stepKey as ToolStep,
         artifactRole: 'step' as const,
         runMode: jobData.intent,
-        sessionId: jobData.jobId,
+        sessionId,
       },
     },
   };
@@ -168,18 +176,21 @@ const runStepByType = async (
   stepDependencyArtifactIds: string[],
   dependencyArtifactIdsByStep: Record<string, string>,
   adapters: GenerationAdapters,
+  sessionId: string,
+  workflowType: ToolWorkflowType,
 ): Promise<StepResult> => {
   switch (stepType) {
     case 'crawling':
-      return runCrawlingStep(jobData, stepKey, adapters);
+      return runCrawlingStep(jobData, stepKey, adapters, sessionId, workflowType);
     case 'scoring':
-      return runScoringStep(jobData, stepKey, adapters);
+      return runScoringStep(jobData, stepKey, adapters, sessionId, workflowType);
     case 'generation':
     case 'extraction':
     case 'acquisition':
     default: {
       const request = buildBackendGenerationRequest(
         jobData, stepKey, stepDependencyArtifactIds, dependencyArtifactIdsByStep,
+        sessionId, workflowType,
       );
       return runSingleStepGeneration(request, adapters);
     }
@@ -207,12 +218,14 @@ export const processToolWorkflowJob = async (
     throw new Error(`unsupported tool key: ${toolKey}`);
   }
 
+  const sessionId = randomUUID();
+  const workflowType = TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType;
   const plan: ToolWorkflowPlan = TOOL_WORKFLOW_REGISTRY[toolKey];
   const stepOrder = toolWorkflowStepOrder[toolKey];
   const totalSteps = plan.steps.length;
 
   const startTime = Date.now();
-  jobLog.info({ totalSteps, steps: stepOrder, startTime: new Date(startTime).toISOString() }, 'tool workflow job starting');
+  jobLog.info({ totalSteps, steps: stepOrder, sessionId, workflowType, startTime: new Date(startTime).toISOString() }, 'tool workflow job starting');
 
   const completedStepArtifacts: Record<string, string> = {};
   const completedSteps: string[] = [];
@@ -266,6 +279,7 @@ export const processToolWorkflowJob = async (
     try {
       const result = await runStepByType(
         stepType, data, stepKey, stepDependencyArtifactIds, dependencyArtifactIdsByStep, adapters,
+        sessionId, workflowType,
       );
 
       completedStepArtifacts[stepKey] = result.artifactId;
@@ -324,7 +338,7 @@ export const processToolWorkflowJob = async (
     timestamp: new Date().toISOString(),
     totalSteps,
     result: {
-      sessionId: jobId,
+      sessionId,
       artifactIds,
     },
   });

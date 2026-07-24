@@ -294,14 +294,18 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       }
 
       autoStartGenerationAfterExtractionRef.current = false;
-      handleRunControllerPrimaryAction();
+      if (useJobSystem) {
+        void submitController.submitJob();
+      } else {
+        handleRunControllerPrimaryAction();
+      }
       return;
     }
 
     if (effectiveBriefingStatus !== 'uploading' && effectiveBriefingStatus !== 'extracting') {
       autoStartGenerationAfterExtractionRef.current = false;
     }
-  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, effectiveMachineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
+  }, [effectiveBriefingStatus, handleRunControllerPrimaryAction, submitController.submitJob, useJobSystem, effectiveMachineViewModel.primaryActionPolicy, readinessSnapshot.canStartFlow]);
 
   // DDD-158: ToolPageStateConsumer — UI-only state via downstream consumer pattern.
   // The consumer returns a memoized { pageState, formState, navigationState } view

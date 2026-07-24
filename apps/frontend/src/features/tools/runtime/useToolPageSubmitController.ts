@@ -13,6 +13,7 @@ type UseToolPageSubmitControllerArgs = {
   toolPageSend: (event: ToolPageEvent) => void;
   extractionPayloadRef: React.RefObject<Record<string, unknown> | null>;
   formState: Record<string, unknown>;
+  hasAssetBasedExtractionContext?: boolean;
 };
 
 export const useToolPageSubmitController = ({
@@ -24,6 +25,7 @@ export const useToolPageSubmitController = ({
   toolPageSend,
   extractionPayloadRef,
   formState,
+  hasAssetBasedExtractionContext = false,
 }: UseToolPageSubmitControllerArgs) => {
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
@@ -43,6 +45,14 @@ export const useToolPageSubmitController = ({
     if (!payload) {
       const blogInfo = buildBlogArticleGeneratorDirectInputExtractionInfo(formState as Parameters<typeof buildBlogArticleGeneratorDirectInputExtractionInfo>[0]);
       payload = blogInfo?.extractionPayload ?? null;
+    }
+
+    if (!payload) {
+      // Asset-based tools (e.g. funnel-pages) don't require briefing extraction.
+      // The workspace assets provide the extraction context. Use a minimal payload.
+      if (hasAssetBasedExtractionContext) {
+        payload = { _assetBased: true, toolKey, projectId };
+      }
     }
 
     if (!payload) {

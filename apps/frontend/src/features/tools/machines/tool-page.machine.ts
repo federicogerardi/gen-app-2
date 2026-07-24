@@ -331,6 +331,10 @@ export const toolPageMachine = setup({
             actions: ['setPendingJobId', 'clearError'],
           },
         ],
+        JOB_FAILED: {
+          target: '.generationFailed',
+          actions: assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }),
+        },
         CANCEL_GENERATION: {
           // Sprint 4 Session 2 (Phase 1 Step 6, Race D): drop redundant cancels.
           guard: 'canCancelGeneration',

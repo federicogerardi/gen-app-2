@@ -209,6 +209,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     toolPageSend,
     extractionPayloadRef,
     formState: formState as Record<string, unknown>,
+    hasAssetBasedExtractionContext,
   });
 
   useToolWorkflowJobStream({

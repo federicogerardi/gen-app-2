@@ -364,6 +364,9 @@ export const processToolWorkflowJob = async (
           depContentSizes: Object.fromEntries(
             Object.entries(contentsByStep).map(([k, v]) => [k, v.length]),
           ),
+          depContentPreviews: Object.fromEntries(
+            Object.entries(contentsByStep).map(([k, v]) => [k, v.substring(0, 200)]),
+          ),
         }, 'stepDependencyArtifactContentsByStep populated for generation step');
       }
     }

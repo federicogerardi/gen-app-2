@@ -466,6 +466,7 @@ export const generationSystemActions = {
               stepKey,
               placeholder,
               replacedLen: content.length,
+              contentPreview: content.substring(0, 200),
             }, 'chain-aware prompt assembly — placeholder replaced');
           } else {
             glog.warn({

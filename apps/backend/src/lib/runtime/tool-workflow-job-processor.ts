@@ -105,9 +105,41 @@ const runSingleStepGeneration = async (
     throw new Error(doneSnapshot.context.failureReason ?? 'generation step failed');
   }
 
+  // Extract structured crawling/scoring content from the actor's requestInput.
+  // contentBuffer is empty for crawl/scoring steps because those steps don't
+  // stream text — the real data lives in requestInput after the machine's
+  // mergeCrawlingIntoGenerationInput / cacheScoringResult actions.
+  let effectiveContent: string = doneSnapshot.context.contentBuffer ?? '';
+  if (effectiveContent.trim().length === 0) {
+    const ri = doneSnapshot.context.requestInput as Record<string, unknown> | undefined;
+    if (ri) {
+      const crawling = ri.crawling as Record<string, unknown> | undefined;
+      const scoring = ri.scoring as Record<string, unknown> | undefined;
+      const parts: string[] = [];
+      if (typeof crawling?.snippets === 'string' && (crawling.snippets as string).trim().length > 0) {
+        parts.push(`## SERP Crawling Snippets\n\n${crawling.snippets}`);
+      }
+      if (Array.isArray(crawling?.sources) && (crawling.sources as unknown[]).length > 0) {
+        parts.push(`## Sources (${(crawling.sources as unknown[]).length} total)\n\n` +
+          (crawling.sources as Array<Record<string, unknown>>)
+            .map((s) => `- ${s.title ?? s.url ?? ''} ${s.url ? `<${s.url}>` : ''}`)
+            .join('\n'));
+      }
+      if (Array.isArray(crawling?.paaQueries) && (crawling.paaQueries as unknown[]).length > 0) {
+        parts.push(`## PAA Queries\n\n${(crawling.paaQueries as string[]).join('\n')}`);
+      }
+      if (scoring && typeof scoring === 'object' && !Array.isArray(scoring) && Object.keys(scoring).length > 0) {
+        parts.push(`## Competitor Ranking\n\n${JSON.stringify(scoring, null, 2)}`);
+      }
+      if (parts.length > 0) {
+        effectiveContent = parts.join('\n\n');
+      }
+    }
+  }
+
   return {
     artifactId: doneSnapshot.context.artifactId ?? '',
-    content: doneSnapshot.context.contentBuffer ?? '',
+    content: effectiveContent,
   };
 };
 

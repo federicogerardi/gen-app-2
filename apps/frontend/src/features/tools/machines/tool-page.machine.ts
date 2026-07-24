@@ -492,11 +492,18 @@ export const toolPageMachine = setup({
         },
         JOB_COMPLETED: {
           target: 'completed',
-          actions: ['clearError', 'clearPendingJobId'],
+          actions: [
+            'clearError',
+            'clearPendingJobId',
+            assign({ sessionId: ({ event }) => event.type === 'JOB_COMPLETED' ? event.sessionId : '' }),
+          ],
         },
         JOB_FAILED: {
           target: 'configuring.generationFailed',
-          actions: [assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }), 'clearPendingJobId'],
+          actions: [
+            assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }),
+            'clearPendingJobId',
+          ],
         },
         CANCEL_GENERATION: {
           target: 'configuring.clean',
@@ -511,11 +518,18 @@ export const toolPageMachine = setup({
         },
         JOB_COMPLETED: {
           target: 'completed',
-          actions: ['clearError', 'clearPendingJobId'],
+          actions: [
+            'clearError',
+            'clearPendingJobId',
+            assign({ sessionId: ({ event }) => event.type === 'JOB_COMPLETED' ? event.sessionId : '' }),
+          ],
         },
         JOB_FAILED: {
           target: 'configuring.generationFailed',
-          actions: [assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }), 'clearPendingJobId'],
+          actions: [
+            assign({ errorMessage: ({ event }) => event.type === 'JOB_FAILED' ? event.reason : 'Job failed' }),
+            'clearPendingJobId',
+          ],
         },
         JOB_CANCELLED: {
           target: 'configuring.clean',

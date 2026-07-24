@@ -62,12 +62,9 @@ export const useToolPageSubmitController = ({
   const submitJob = useCallback(async () => {
     const request = buildSubmitRequest();
     if (!request) {
-      console.warn('[tool-job] submitJob: buildSubmitRequest returned null — missing extractionPayload');
       toolPageSend({ type: 'JOB_FAILED', reason: 'Missing extraction context' });
       return;
     }
-
-    console.info('[tool-job] submitJob: dispatching', { toolKey: request.toolKey, projectId: request.projectId });
 
     try {
       const url = `${apiBaseUrl}/api/tools/jobs`;

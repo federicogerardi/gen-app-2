@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Activity,
   LayoutDashboard,
+  ListChecks,
   Megaphone,
   MessageSquareWarning,
   type LucideIcon,
@@ -22,6 +23,7 @@ const adminNavIcons: Record<(typeof adminNavigationItems)[number]['key'], Lucide
   changelog: Megaphone,
   'user-reports': MessageSquareWarning,
   activity: Activity,
+  'tool-jobs': ListChecks,
 };
 
 export const AdminPersistentNavigation = () => {

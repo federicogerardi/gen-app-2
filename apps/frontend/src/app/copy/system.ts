@@ -747,6 +747,8 @@ export const appCopy = {
       userReportsDescription: 'UserReport inbox and escalation policy.',
       activityLabel: 'Recent activity',
       activityDescription: 'Tabular view of recent workspace checkpoints.',
+      toolJobsLabel: 'Tool Jobs',
+      toolJobsDescription: 'Monitor and manage ToolWorkflowJobs across all users.',
       openAdminLink: 'Open admin',
     },
     feedbackCenter: {

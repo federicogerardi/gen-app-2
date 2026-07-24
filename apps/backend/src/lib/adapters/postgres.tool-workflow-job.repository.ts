@@ -10,6 +10,7 @@ import type {
   ToolWorkflowJobDetail,
   ToolWorkflowJobListFilters,
   ToolWorkflowJobListResult,
+  SessionCostAndTokens,
 } from './postgres-redis.interfaces';
 import { createKyselyDb } from './postgres-kysely.dialect';
 import type { DB } from './postgres-kysely.types';
@@ -202,6 +203,24 @@ export class PostgresToolWorkflowJobRepository implements ToolWorkflowJobReposit
     return {
       jobs,
       total: Number(countRow?.total ?? 0),
+    };
+  }
+
+  async aggregateSessionCostAndTokens(sessionId: string): Promise<SessionCostAndTokens> {
+    const row = await this.db
+      .selectFrom('artifacts')
+      .select((eb) => [
+        eb.fn.coalesce(eb.fn.sum('cost_usd'), sql<number>`0`).as('total_cost'),
+        eb.fn.coalesce(eb.fn.sum('input_tokens'), sql<number>`0`).as('total_input'),
+        eb.fn.coalesce(eb.fn.sum('output_tokens'), sql<number>`0`).as('total_output'),
+      ])
+      .where('session_id', '=', sessionId)
+      .executeTakeFirst();
+
+    return {
+      costUsd: Number(row?.total_cost ?? 0),
+      inputTokens: Number(row?.total_input ?? 0),
+      outputTokens: Number(row?.total_output ?? 0),
     };
   }
 }

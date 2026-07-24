@@ -79,6 +79,7 @@ export type AuthHttpRuntimeOptions = {
   sessionTtlMs?: number;
   queue?: Queue<ToolWorkflowJobData> | undefined;
   redis?: Redis | undefined;
+  toolWorkflowJob?: import('../../adapters/postgres-redis.interfaces').ToolWorkflowJobRepository | null | undefined;
 };
 
 export const createAuthHttpRuntime = (
@@ -236,6 +237,7 @@ export const createAuthHttpRuntime = (
     writeSuccess,
     queue: options.queue,
     redis: options.redis,
+    toolWorkflowJob: options.toolWorkflowJob,
   });
 
   const adminHandlers = createAdminHandlers({

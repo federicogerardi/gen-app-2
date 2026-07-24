@@ -187,6 +187,7 @@ test('processor dual-writes to toolWorkflowJob repository (B.2)', async () => {
     markCancelled: async () => { repoCalls.push('markCancelled'); },
     findById: async () => null,
     listByFilter: async () => ({ jobs: [], total: 0 }),
+    aggregateSessionCostAndTokens: async () => ({ costUsd: 0, inputTokens: 0, outputTokens: 0 }),
   };
 
   await processToolWorkflowJob(job, { adapters, redis, toolWorkflowJob: mockRepo as any });

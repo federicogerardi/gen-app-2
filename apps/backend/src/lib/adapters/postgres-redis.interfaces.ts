@@ -218,6 +218,12 @@ export type ToolWorkflowJobListResult = {
   total: number;
 };
 
+export type SessionCostAndTokens = {
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
 export interface ToolWorkflowJobRepository {
   create(input: ToolWorkflowJobCreateInput): Promise<void>;
   updateStatus(jobId: string, status: string): Promise<void>;
@@ -227,6 +233,7 @@ export interface ToolWorkflowJobRepository {
   markCancelled(jobId: string): Promise<void>;
   findById(jobId: string): Promise<ToolWorkflowJobDetail | null>;
   listByFilter(filters: ToolWorkflowJobListFilters): Promise<ToolWorkflowJobListResult>;
+  aggregateSessionCostAndTokens(sessionId: string): Promise<SessionCostAndTokens>;
 }
 
 export interface PostgresRedisAdapterDependencies {

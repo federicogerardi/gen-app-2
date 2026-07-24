@@ -4,6 +4,7 @@ import type { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 
 import type { AuthRepositoryBundle, UserQueryRepositoryBundle } from '../../../adapters';
+import type { ToolWorkflowJobRepository } from '../../../adapters/postgres-redis.interfaces';
 import type { AuthSessionPrincipal } from '../../../types/auth';
 import type { ToolWorkflowJobData } from '../../tool-workflow-job-queue';
 import { isSupportedToolWorkflow } from '../../tool-workflow-registry';
@@ -30,6 +31,7 @@ export type CreateToolsJobHandlersDependencies = {
   queue: Queue<ToolWorkflowJobData>;
   redis: Redis;
   repositories: Pick<AuthRepositoryBundle, 'sessions'>;
+  toolWorkflowJob?: ToolWorkflowJobRepository | null | undefined;
   now: () => Date;
   parseJsonBody: <T>(request: IncomingMessage) => Promise<T>;
   requireSessionPrincipal: (
@@ -55,6 +57,7 @@ export const createToolsJobHandlers = (
     queue,
     redis,
     repositories,
+    toolWorkflowJob: jobRepo,
     now,
     parseJsonBody,
     requireSessionPrincipal,
@@ -197,6 +200,42 @@ export const createToolsJobHandlers = (
       return;
     }
 
+    // Try Postgres first (Phase 2 B.4)
+    if (jobRepo) {
+      try {
+        const job = await jobRepo.findById(jobId);
+        if (job) {
+          if (job.userId !== principal.user.id) {
+            writeError(response, 403, 'forbidden', 'Access denied');
+            return;
+          }
+          repositories.sessions.touchSession(principal.session.id, now());
+          writeSuccess(response, 200, {
+            jobId: job.jobId,
+            status: job.status,
+            toolKey: job.toolKey,
+            userId: job.userId,
+            projectId: job.projectId,
+            createdAt: job.createdAt.toISOString(),
+            updatedAt: job.updatedAt.toISOString(),
+            completedAt: job.completedAt?.toISOString() ?? null,
+            totalSteps: job.totalSteps,
+            completedSteps: job.completedSteps,
+            progress: job.progress,
+            result: job.result,
+            model: job.model,
+            costUsd: job.costUsd,
+            inputTokens: job.inputTokens,
+            outputTokens: job.outputTokens,
+          });
+          return;
+        }
+      } catch (err) {
+        log.warn({ err, jobId }, 'Postgres findById failed, falling back to Redis');
+      }
+    }
+
+    // Fallback: Redis (jobs created before Phase 2 deploy)
     const raw = await redis.get(`${JOB_STATUS_PREFIX}${jobId}`);
     if (!raw) {
       writeError(response, 404, 'not_found', 'Job not found or expired');
@@ -283,7 +322,52 @@ export const createToolsJobHandlers = (
     const filterUserId = url.searchParams.get('userId') ?? principal.user.id;
     const filterToolKey = url.searchParams.get('toolKey');
     const filterStatus = url.searchParams.get('status');
+    const filterProjectId = url.searchParams.get('projectId');
+    const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 25, 1), 100);
+    const offset = Math.max(Number(url.searchParams.get('offset')) || 0, 0);
 
+    // Use Postgres when available (Phase 2 B.4)
+    if (jobRepo) {
+      try {
+        const result = await jobRepo.listByFilter({
+          ...(filterUserId ? { userId: filterUserId } : {}),
+          ...(filterProjectId ? { projectId: filterProjectId } : {}),
+          ...(filterToolKey ? { toolKey: filterToolKey } : {}),
+          ...(filterStatus ? { status: filterStatus } : {}),
+          limit,
+          offset,
+        });
+
+        repositories.sessions.touchSession(principal.session.id, now());
+
+        writeSuccess(response, 200, {
+          jobs: result.jobs.map((job) => ({
+            jobId: job.jobId,
+            status: job.status,
+            toolKey: job.toolKey,
+            userId: job.userId,
+            projectId: job.projectId,
+            totalSteps: job.totalSteps,
+            completedSteps: job.completedSteps,
+            model: job.model,
+            costUsd: job.costUsd,
+            inputTokens: job.inputTokens,
+            outputTokens: job.outputTokens,
+            createdAt: job.createdAt.toISOString(),
+            updatedAt: job.updatedAt.toISOString(),
+            completedAt: job.completedAt?.toISOString() ?? null,
+          })),
+          total: result.total,
+          limit,
+          offset,
+        });
+        return;
+      } catch (err) {
+        log.warn({ err }, 'Postgres listByFilter failed, falling back to Redis');
+      }
+    }
+
+    // Fallback: Redis SCAN (jobs created before Phase 2 deploy)
     const keys: string[] = [];
     let cursor = '0';
     do {

@@ -450,12 +450,16 @@ export const processToolWorkflowJob = async (
 
   const artifactIds = stepOrder.map((k) => completedStepArtifacts[k]).filter((id): id is string => typeof id === 'string');
 
-  // Phase 2 B.2: Dual-write completion to Postgres with cost/token aggregation.
+  // Phase 2 B.2 + B.3: Dual-write completion to Postgres with cost/token aggregation.
   if (jobRepo) {
     try {
+      const { costUsd, inputTokens, outputTokens } = await jobRepo.aggregateSessionCostAndTokens(sessionId);
       await jobRepo.markCompleted(jobId, {
         sessionId,
         artifactIds,
+        costUsd,
+        inputTokens,
+        outputTokens,
       });
     } catch (err) {
       jobLog.warn({ err }, 'tool_jobs.markCompleted failed (non-fatal)');

@@ -7,6 +7,7 @@ import {
   PostgresProjectQueryRepository,
   createPostgresRedisProductionGenerationAdapters,
 } from './lib/adapters';
+import { PostgresToolWorkflowJobRepository } from './lib/adapters/postgres.tool-workflow-job.repository';
 import { listEnabledModels } from './lib/adapters/llm-model.adapter';
 import {
   createAuthHttpRuntime,
@@ -152,6 +153,9 @@ const run = async (): Promise<void> => {
     redis,
   });
 
+  // Phase 2: ToolWorkflowJob repository for Postgres persistence
+  const toolWorkflowJobRepo = new PostgresToolWorkflowJobRepository(pg);
+
   // ToolWorkflowJob: in-process worker setup
   // BullMQ requires maxRetriesPerRequest: null on its Redis connection.
   const workerInProcess = parseBooleanEnv(process.env.TOOL_WORKFLOW_WORKER_IN_PROCESS, true);
@@ -161,7 +165,7 @@ const run = async (): Promise<void> => {
   let toolWorkflowQueue = bullRedis ? createToolWorkflowQueue(bullRedis) : null;
   let toolWorkflowWorker = bullRedis
     ? createToolWorkflowWorker(
-        (job) => processToolWorkflowJob(job, { adapters: generationAdapters, redis }),
+        (job) => processToolWorkflowJob(job, { adapters: generationAdapters, redis, toolWorkflowJob: toolWorkflowJobRepo }),
         bullRedis,
       )
     : null;
@@ -213,6 +217,7 @@ const run = async (): Promise<void> => {
     googleOAuthSuccessRedirectPath: process.env.GOOGLE_OAUTH_SUCCESS_REDIRECT_PATH ?? '/',
     queue: toolWorkflowQueue ?? undefined,
     redis,
+    toolWorkflowJob: toolWorkflowJobRepo,
   });
 
   // Create StepLlmModelResolver for per-step model override resolution (DDD-151)

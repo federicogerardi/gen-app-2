@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { Pool } from 'pg';
 import { createPostgresRedisProductionGenerationAdapters } from './lib/adapters';
+import { PostgresToolWorkflowJobRepository } from './lib/adapters/postgres.tool-workflow-job.repository';
 import {
   createToolWorkflowQueue,
   createToolWorkflowWorker,
@@ -22,10 +23,11 @@ const run = async (): Promise<void> => {
   const redis = new Redis(redisUrl);
   const pg = new Pool({ connectionString: databaseUrl });
   const adapters = createPostgresRedisProductionGenerationAdapters({ pg, redis });
+  const toolWorkflowJobRepo = new PostgresToolWorkflowJobRepository(pg);
 
   const queue = createToolWorkflowQueue(redis);
   const worker = createToolWorkflowWorker(
-    (job) => processToolWorkflowJob(job, { adapters, redis }),
+    (job) => processToolWorkflowJob(job, { adapters, redis, toolWorkflowJob: toolWorkflowJobRepo }),
     redis,
   );
 

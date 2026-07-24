@@ -9,6 +9,7 @@ import type {
   OrchestrateArtifactCache,
   UserQueryRepositoryBundle,
 } from '../../../adapters';
+import type { ToolWorkflowJobRepository } from '../../../adapters/postgres-redis.interfaces';
 import type { AuthSessionPrincipal } from '../../../types/auth';
 import type { ToolWorkflowJobData } from '../../tool-workflow-job-queue';
 import type {
@@ -52,6 +53,7 @@ export type CreateToolsHandlersDependencies = {
   repositories: AuthRepositoryBundle;
   idempotency: IdempotencyAdapter | null;
   orchestrateCache: OrchestrateArtifactCache | null;
+  toolWorkflowJob?: ToolWorkflowJobRepository | null | undefined;
   now: () => Date;
   toolsOrchestrateTimeoutMs: number;
   toolsOrchestrateArtifactScanLimit: number;
@@ -93,6 +95,7 @@ export const createToolsHandlers = (deps: CreateToolsHandlersDependencies): Tool
         queue: deps.queue,
         redis: deps.redis,
         repositories: deps.repositories,
+        toolWorkflowJob: deps.toolWorkflowJob,
         now: deps.now,
         parseJsonBody: deps.parseJsonBody,
         requireSessionPrincipal: deps.requireSessionPrincipal,

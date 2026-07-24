@@ -92,6 +92,7 @@ export const createPostgresRedisProductionDependencies = (
     generate: generate ?? createSyntheticLlmGenerateAdapter(),
     persistence: new PostgresArtifactRepository(clients.pg, options.persistence),
     orchestrateCache: new RedisOrchestrateArtifactCache(clients.redis, options.orchestrateCache),
+    toolWorkflowJob: null,
   };
 };
 

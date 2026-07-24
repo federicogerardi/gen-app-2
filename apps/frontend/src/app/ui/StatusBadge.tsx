@@ -9,6 +9,10 @@ const STATUS_VARIANT_MAP: Record<string, StatusBadgeVariant> = {
   completed: 'success',
   failed: 'error',
   generating: 'info',
+  // ToolWorkflowJobStatus (DDD-NEW)
+  queued: 'neutral',
+  running: 'info',
+  cancelled: 'warning',
   // AuthUserStatus
   active: 'success',
   disabled: 'error',

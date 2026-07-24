@@ -137,6 +137,98 @@ export interface OrchestrateArtifactCache {
   ): Promise<Record<string, string>>;
 }
 
+export type ToolWorkflowJobCreateInput = {
+  jobId: string;
+  userId: string;
+  projectId: string;
+  toolKey: string;
+  workflowType: string;
+  totalSteps: number;
+  model?: string;
+};
+
+export type ToolWorkflowJobProgressInput = {
+  completedSteps: number;
+  progress: Record<string, unknown>;
+};
+
+export type ToolWorkflowJobCompleteInput = {
+  sessionId: string;
+  artifactIds: string[];
+  costUsd?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+};
+
+export type ToolWorkflowJobFailedInput = {
+  errorMessage: string;
+};
+
+export type ToolWorkflowJobDetail = {
+  jobId: string;
+  userId: string;
+  projectId: string;
+  toolKey: string;
+  workflowType: string;
+  sessionId: string | null;
+  status: string;
+  totalSteps: number;
+  completedSteps: number;
+  progress: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  model: string | null;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+};
+
+export type ToolWorkflowJobListFilters = {
+  userId?: string;
+  projectId?: string;
+  toolKey?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type ToolWorkflowJobSummary = {
+  jobId: string;
+  userId: string;
+  projectId: string;
+  toolKey: string;
+  workflowType: string;
+  sessionId: string | null;
+  status: string;
+  totalSteps: number;
+  completedSteps: number;
+  model: string | null;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+};
+
+export type ToolWorkflowJobListResult = {
+  jobs: ToolWorkflowJobSummary[];
+  total: number;
+};
+
+export interface ToolWorkflowJobRepository {
+  create(input: ToolWorkflowJobCreateInput): Promise<void>;
+  updateStatus(jobId: string, status: string): Promise<void>;
+  updateProgress(jobId: string, input: ToolWorkflowJobProgressInput): Promise<void>;
+  markCompleted(jobId: string, input: ToolWorkflowJobCompleteInput): Promise<void>;
+  markFailed(jobId: string, input: ToolWorkflowJobFailedInput): Promise<void>;
+  markCancelled(jobId: string): Promise<void>;
+  findById(jobId: string): Promise<ToolWorkflowJobDetail | null>;
+  listByFilter(filters: ToolWorkflowJobListFilters): Promise<ToolWorkflowJobListResult>;
+}
+
 export interface PostgresRedisAdapterDependencies {
   pg?: Pool;
   ownership: ProjectOwnershipRepository;
@@ -147,4 +239,5 @@ export interface PostgresRedisAdapterDependencies {
   generate: LlmGenerateAdapter;
   persistence: PostgresArtifactRepository;
   orchestrateCache: OrchestrateArtifactCache | null;
+  toolWorkflowJob: ToolWorkflowJobRepository | null;
 }

@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import type { ArtifactType, ToolKey, ToolStep, ToolWorkflowType } from '@gen-app-2/contracts';
 import { TOOL_WORKFLOW_BY_TOOL_KEY } from '@gen-app-2/contracts';
 import type { GenerationAdapters } from '../adapters';
+import type { ToolWorkflowJobRepository } from '../adapters/postgres-redis.interfaces';
 import { generationSystemMachine } from '../machines';
 import type { WorkflowStepType } from '../types/xstate';
 import {
@@ -40,17 +41,9 @@ const buildBackendGenerationRequest = (
   dependencyArtifactIdsByStep: Record<string, string>,
   sessionId: string,
   workflowType: ToolWorkflowType,
-): BackendGenerationRequest => ({
-  requestId: `${jobData.jobId}:${stepKey}`,
-  userId: jobData.userId,
-  projectId: jobData.projectId,
-  sessionId,
-  artifactType: 'content' as ArtifactType,
-  model: jobData.model as BackendGenerationRequest['model'],
-  idempotencyKey: `${jobData.idempotencyKey}:${stepKey}`,
-  toolKey: jobData.toolKey as ToolKey,
-  workflowType,
-  input: {
+  stepDependencyArtifactContentsByStep?: Record<string, string>,
+): BackendGenerationRequest => {
+  const input: BackendGenerationRequest['input'] = {
     step: stepKey as ToolStep,
     intent: jobData.intent,
     extractionPayload: jobData.extractionPayload,
@@ -67,8 +60,25 @@ const buildBackendGenerationRequest = (
         dependencyArtifactIds: stepDependencyArtifactIds,
         dependencyArtifactIdsByStep: dependencyArtifactIdsByStep as Record<string, string>,
       },
-  },
-});
+  };
+
+  if (stepDependencyArtifactContentsByStep) {
+    input.stepDependencyArtifactContentsByStep = stepDependencyArtifactContentsByStep;
+  }
+
+  return {
+    requestId: `${jobData.jobId}:${stepKey}`,
+    userId: jobData.userId,
+    projectId: jobData.projectId,
+    sessionId,
+    artifactType: 'content' as ArtifactType,
+    model: jobData.model as BackendGenerationRequest['model'],
+    idempotencyKey: `${jobData.idempotencyKey}:${stepKey}`,
+    toolKey: jobData.toolKey as ToolKey,
+    workflowType,
+    input,
+  };
+};
 
 const runSingleStepGeneration = async (
   request: BackendGenerationRequest,
@@ -178,6 +188,7 @@ const runStepByType = async (
   adapters: GenerationAdapters,
   sessionId: string,
   workflowType: ToolWorkflowType,
+  stepDependencyArtifactContentsByStep?: Record<string, string>,
 ): Promise<StepResult> => {
   switch (stepType) {
     case 'crawling':
@@ -190,7 +201,7 @@ const runStepByType = async (
     default: {
       const request = buildBackendGenerationRequest(
         jobData, stepKey, stepDependencyArtifactIds, dependencyArtifactIdsByStep,
-        sessionId, workflowType,
+        sessionId, workflowType, stepDependencyArtifactContentsByStep,
       );
       return runSingleStepGeneration(request, adapters);
     }
@@ -200,13 +211,14 @@ const runStepByType = async (
 export type ProcessToolWorkflowJobContext = {
   adapters: GenerationAdapters;
   redis: Redis;
+  toolWorkflowJob?: ToolWorkflowJobRepository | null;
 };
 
 export const processToolWorkflowJob = async (
   job: Job<ToolWorkflowJobData>,
   ctx: ProcessToolWorkflowJobContext,
 ): Promise<void> => {
-  const { adapters, redis } = ctx;
+  const { adapters, redis, toolWorkflowJob: jobRepo } = ctx;
   const data = job.data;
   const { jobId, toolKey, userId, projectId } = data;
 
@@ -231,8 +243,37 @@ export const processToolWorkflowJob = async (
   const completedSteps: string[] = [];
   const stepStatuses: Record<string, 'idle' | 'running' | 'done' | 'error'> = {};
 
+  // Phase 2: Track artifact content per step for cross-step context propagation.
+  // completedStepContents maps stepKey → StepResult (artifactId + content).
+  // completedStepContentsByType maps stepType → first StepResult of that type,
+  // used to skip redundant crawling/scoring steps when prior data exists.
+  const completedStepContents = new Map<string, StepResult>();
+  const completedStepContentsByType = new Map<string, StepResult>();
+
+  // Phase 2: Dual-write to Postgres tool_jobs table (B.2)
+  if (jobRepo) {
+    try {
+      await jobRepo.create({
+        jobId,
+        userId,
+        projectId,
+        toolKey,
+        workflowType,
+        totalSteps,
+        model: data.model,
+      });
+    } catch (err) {
+      jobLog.warn({ err }, 'tool_jobs.create failed (non-fatal, BullMQ state is primary)');
+    }
+  }
+
   for (const stepKey of stepOrder) {
     stepStatuses[stepKey] = 'idle';
+  }
+
+  // Transition job status: queued → running
+  if (jobRepo) {
+    try { await jobRepo.updateStatus(jobId, 'running'); } catch { /* best-effort */ }
   }
 
   for (let i = 0; i < plan.steps.length; i++) {
@@ -242,6 +283,9 @@ export const processToolWorkflowJob = async (
     const cancelFlag = await redis.get(`${CANCEL_KEY_PREFIX}${jobId}`);
     if (cancelFlag) {
       jobLog.info({ stepKey, completedSteps: completedSteps.length }, 'job cancelled by user');
+      if (jobRepo) {
+        try { await jobRepo.markCancelled(jobId); } catch { /* best-effort */ }
+      }
       await publisher.publish({
         type: 'workflow_failed',
         jobId,
@@ -268,24 +312,79 @@ export const processToolWorkflowJob = async (
 
     const stepType: WorkflowStepType = stepDescriptor.type ?? 'generation';
 
+    // Phase 2 A.3: Build stepDependencyArtifactContentsByStep for generation steps.
+    // This populates {{output_step_xxx}} placeholders in prompt templates.
+    let stepDependencyArtifactContentsByStep: Record<string, string> | undefined;
+    if (stepType === 'generation' || stepType === 'extraction' || stepType === 'acquisition') {
+      const contentsByStep: Record<string, string> = {};
+      for (const [depStepKey, content] of completedStepContents) {
+        if (content.content && content.content.trim().length > 0) {
+          contentsByStep[depStepKey] = content.content;
+        }
+      }
+      if (Object.keys(contentsByStep).length > 0) {
+        stepDependencyArtifactContentsByStep = contentsByStep;
+      }
+    }
+
+    // Phase 2 A.2: Skip redundant crawling/scoring steps.
+    // If a prior step of the same type already completed, reuse its result
+    // instead of re-executing (e.g., avoiding duplicate SerpApi calls).
+    const priorOfSameType = (stepType === 'crawling' || stepType === 'scoring')
+      ? completedStepContentsByType.get(stepType)
+      : undefined;
+
     const stepStartTime = Date.now();
     jobLog.info({
       stepKey,
       stepIndex: i,
       stepType,
       dependencyCount: stepDependencyArtifactIds.length,
+      skippedByPriorData: !!priorOfSameType,
       extractionPayloadKeys: Object.keys(data.extractionPayload ?? {}),
     }, 'step starting');
 
     try {
-      const result = await runStepByType(
-        stepType, data, stepKey, stepDependencyArtifactIds, dependencyArtifactIdsByStep, adapters,
-        sessionId, workflowType,
-      );
+      let result: StepResult;
+
+      if (priorOfSameType) {
+        // A.2: Reuse prior step result of the same type (skip API call).
+        result = priorOfSameType;
+        jobLog.info({
+          stepKey,
+          stepType,
+          reusedArtifactId: result.artifactId,
+        }, 'step skipped — reusing prior step result of same type');
+      } else {
+        result = await runStepByType(
+          stepType, data, stepKey, stepDependencyArtifactIds, dependencyArtifactIdsByStep, adapters,
+          sessionId, workflowType, stepDependencyArtifactContentsByStep,
+        );
+      }
 
       completedStepArtifacts[stepKey] = result.artifactId;
       completedSteps.push(stepKey);
       stepStatuses[stepKey] = 'done';
+
+      // A.1: Preserve content for cross-step propagation.
+      completedStepContents.set(stepKey, result);
+      if (stepType === 'crawling' || stepType === 'scoring') {
+        if (!completedStepContentsByType.has(stepType)) {
+          completedStepContentsByType.set(stepType, result);
+        }
+      }
+
+      // Phase 2 B.2: Dual-write progress to Postgres.
+      if (jobRepo) {
+        try {
+          await jobRepo.updateProgress(jobId, {
+            completedSteps: completedSteps.length,
+            progress: { lastStep: stepKey, lastArtifactId: result.artifactId },
+          });
+        } catch (err) {
+          jobLog.warn({ err, stepKey }, 'tool_jobs.updateProgress failed (non-fatal)');
+        }
+      }
 
       await publisher.publish({
         type: 'step_completed',
@@ -309,7 +408,7 @@ export const processToolWorkflowJob = async (
       });
 
       const stepDurationMs = Date.now() - stepStartTime;
-      jobLog.info({ stepKey, artifactId: result.artifactId, stepDurationMs }, 'step completed');
+      jobLog.info({ stepKey, artifactId: result.artifactId, stepDurationMs, reused: !!priorOfSameType }, 'step completed');
     } catch (error) {
       stepStatuses[stepKey] = 'error';
       const errorMessage = error instanceof Error ? error.message : 'unknown error';
@@ -329,6 +428,11 @@ export const processToolWorkflowJob = async (
         });
       } catch { /* best-effort */ }
 
+      // Phase 2 B.2: Dual-write failure to Postgres.
+      if (jobRepo) {
+        try { await jobRepo.markFailed(jobId, { errorMessage }); } catch { /* best-effort */ }
+      }
+
       await publisher.publish({
         type: 'step_failed',
         jobId,
@@ -345,6 +449,18 @@ export const processToolWorkflowJob = async (
   }
 
   const artifactIds = stepOrder.map((k) => completedStepArtifacts[k]).filter((id): id is string => typeof id === 'string');
+
+  // Phase 2 B.2: Dual-write completion to Postgres with cost/token aggregation.
+  if (jobRepo) {
+    try {
+      await jobRepo.markCompleted(jobId, {
+        sessionId,
+        artifactIds,
+      });
+    } catch (err) {
+      jobLog.warn({ err }, 'tool_jobs.markCompleted failed (non-fatal)');
+    }
+  }
 
   await publisher.publish({
     type: 'workflow_completed',

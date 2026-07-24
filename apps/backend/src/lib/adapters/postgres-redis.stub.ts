@@ -887,6 +887,7 @@ export const createPostgresRedisStubDependencies = (
     generate,
     persistence: new PostgresArtifactRepositoryStub(runtime),
     orchestrateCache: null,
+    toolWorkflowJob: null,
   };
   return deps;
 };

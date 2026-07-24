@@ -279,6 +279,27 @@ export interface GenerationFeedbackTable {
   created_at: Generated<Date>;
 }
 
+export interface ToolJobsTable {
+  job_id: string;
+  user_id: string;
+  project_id: string;
+  tool_key: string;
+  workflow_type: string;
+  session_id: string | null;
+  status: string;
+  total_steps: number;
+  completed_steps: number;
+  progress: Record<string, unknown>;
+  result: Record<string, unknown> | null;
+  model: string | null;
+  cost_usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  completed_at: Date | null;
+}
+
 export interface DB {
   artifacts: ArtifactsTable;
   users: UsersTable;
@@ -300,4 +321,5 @@ export interface DB {
   asset_versions: AssetVersionsTable;
   asset_derivation_chains: AssetDerivationChainsTable;
   generation_feedback: GenerationFeedbackTable;
+  tool_jobs: ToolJobsTable;
 }

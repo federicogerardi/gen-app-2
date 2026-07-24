@@ -26,9 +26,12 @@ export const appCopy = {
       completed: 'Completed',
       failed: 'Failed',
       generating: 'In progress',
+      // ToolWorkflowJobStatus (DDD-NEW)
+      queued: 'Queued',
+      running: 'Running',
+      cancelled: 'Cancelled',
       // ToolStepStatus
       idle: 'Waiting',
-      running: 'Generating...',
       done: 'Completed',
       error: 'Error',
       // AuthUserStatus

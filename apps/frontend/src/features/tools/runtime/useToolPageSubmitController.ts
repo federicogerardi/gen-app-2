@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import type { SubmitJobRequest } from '@gen-app-2/contracts';
 import type { SupportedTool } from '../machines/tool-flow.machine';
 import type { ToolPageEvent } from '../machines/tool-page.types';
-import { buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo } from './tool-page-selectors';
+import { buildBlogArticleGeneratorDirectInputExtractionInfo, buildGeometricDirectInputExtractionInfo, buildYoutubeDescriptionDirectInputExtractionInfo } from './tool-page-selectors';
 
 type UseToolPageSubmitControllerArgs = {
   apiBaseUrl: string;
@@ -11,7 +11,7 @@ type UseToolPageSubmitControllerArgs = {
   model: string;
   intent: 'new' | 'resume' | 'regenerate';
   toolPageSend: (event: ToolPageEvent) => void;
-  extractionPayload: Record<string, unknown> | null;
+  extractionPayloadRef: React.RefObject<Record<string, unknown> | null>;
   formState: Record<string, unknown>;
 };
 
@@ -22,13 +22,15 @@ export const useToolPageSubmitController = ({
   model,
   intent,
   toolPageSend,
-  extractionPayload,
+  extractionPayloadRef,
   formState,
 }: UseToolPageSubmitControllerArgs) => {
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
   const buildSubmitRequest = useCallback((): SubmitJobRequest | null => {
-    let payload = extractionPayload;
+    // Read extraction payload at submit time (not mount time) via ref.
+    // The ref is updated by useToolPage whenever briefing/workspace context changes.
+    let payload = extractionPayloadRef.current;
 
     if (!payload) {
       const geometricInfo = buildGeometricDirectInputExtractionInfo(formState as Parameters<typeof buildGeometricDirectInputExtractionInfo>[0]);
@@ -37,6 +39,10 @@ export const useToolPageSubmitController = ({
     if (!payload) {
       const youtubeInfo = buildYoutubeDescriptionDirectInputExtractionInfo(formState as Parameters<typeof buildYoutubeDescriptionDirectInputExtractionInfo>[0]);
       payload = youtubeInfo?.extractionPayload ?? null;
+    }
+    if (!payload) {
+      const blogInfo = buildBlogArticleGeneratorDirectInputExtractionInfo(formState as Parameters<typeof buildBlogArticleGeneratorDirectInputExtractionInfo>[0]);
+      payload = blogInfo?.extractionPayload ?? null;
     }
 
     if (!payload) {
@@ -51,7 +57,7 @@ export const useToolPageSubmitController = ({
       intent,
       idempotencyKey: idempotencyKeyRef.current,
     };
-  }, [toolKey, projectId, model, intent, extractionPayload, formState]);
+  }, [toolKey, projectId, model, intent, extractionPayloadRef, formState]);
 
   const submitJob = useCallback(async () => {
     const request = buildSubmitRequest();

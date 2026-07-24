@@ -158,6 +158,14 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact as GenerationArtifact | null, 'notes') ?? '';
   const resolvedRelaunchSource = relaunchFromArtifactId ?? sourceArtifactId ?? sourceArtifact?.artifactId ?? null;
 
+  // ── Extraction payload ref (updated on every render so submit reads latest) ──
+  const extractionPayloadRef = useRef<Record<string, unknown> | null>(null);
+  extractionPayloadRef.current =
+    workspaceExtractionContext?.extractionPayload
+    ?? (briefingSnapshot.context.extractionPayload as Record<string, unknown> | null)
+    ?? (machineHydrationResult?.extractionPayload as Record<string, unknown> | null)
+    ?? null;
+
   // ── ToolWorkflowJob: feature-flagged submit controller + SSE stream ──
   const useJobSystem = auth.capabilities.toolsJobSystem === true && isToolKey(toolKey);
 
@@ -199,11 +207,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     model: formState.model,
     intent,
     toolPageSend,
-    extractionPayload:
-      workspaceExtractionContext?.extractionPayload
-      ?? (briefingSnapshot.context.extractionPayload as Record<string, unknown> | null)
-      ?? (machineHydrationResult?.extractionPayload as Record<string, unknown> | null)
-      ?? null,
+    extractionPayloadRef,
     formState: formState as Record<string, unknown>,
   });
 

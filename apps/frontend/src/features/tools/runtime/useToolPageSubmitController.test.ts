@@ -15,7 +15,7 @@ describe('useToolPageSubmitController', () => {
     model: 'openrouter/auto',
     intent: 'new' as const,
     toolPageSend: vi.fn(),
-    extractionPayload: { schemaVersion: 'extraction.v1' },
+    extractionPayloadRef: { current: { schemaVersion: 'extraction.v1' } },
     formState: {},
   };
 
@@ -96,7 +96,7 @@ describe('useToolPageSubmitController', () => {
       useToolPageSubmitController({
         ...baseArgs,
         toolPageSend,
-        extractionPayload: null,
+        extractionPayloadRef: { current: null },
         formState: {
           baseQuery: '', language: '', country: '', brandName: '',
           videoTitle: '', topic: '', keywords: '', titolo: '',

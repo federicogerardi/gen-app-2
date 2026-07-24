@@ -19,8 +19,23 @@ RUN npm ci --workspaces --include-workspace-root
 # Copy remaining source code
 COPY . .
 
+# Build frontend for production
+RUN npm --workspace apps/frontend run build
+
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
+
+# SERVICE_ROLE determines which process to run:
+#   server (default) — HTTP server on port 3000
+#   worker — BullMQ worker (no port exposed)
+ARG SERVICE_ROLE=server
+ENV SERVICE_ROLE=${SERVICE_ROLE}
+
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+# Conditional entry point based on SERVICE_ROLE
+CMD if [ "$SERVICE_ROLE" = "worker" ]; then \
+      npm --workspace apps/backend run start:worker; \
+    else \
+      npm run start; \
+    fi

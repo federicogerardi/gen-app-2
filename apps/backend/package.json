@@ -13,6 +13,7 @@
     "test:e2e": "node --import tsx --test src/lib/tests/generation-session.e2e.test.ts",
     "bench:orchestrate": "tsx src/lib/tests/runtime.tools-orchestrate.benchmark.ts",
     "start:server": "tsx src/server.ts",
+    "start:worker": "tsx src/worker-entry.ts",
     "db:migrate:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/migrations --track --table=schema_migrations",
     "db:seed:minimal": "tsx ../../packages/infra-db/scripts/run-sql-dir.ts ../../packages/infra-db/seeds",
     "db:seed:redis:minimal": "tsx ../../packages/infra-db/seeds/20260424_000002_minimal_redis_idempotency_example.ts",

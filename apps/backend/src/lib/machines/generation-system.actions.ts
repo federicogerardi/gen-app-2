@@ -2,6 +2,9 @@ import { assign, enqueueActions } from 'xstate';
 import type { ParameterizedObject } from 'xstate';
 import type { Assigner, PropertyAssigner } from 'xstate';
 import { mergeAcquisitionIntoGenerationInput, mergeCrawlingIntoGenerationInput, selectGeometricAssembly } from './generation/context-generation-assembly';
+import { createComponentLogger, LogComponent } from '../runtime/log-components';
+
+const glog = createComponentLogger(LogComponent.GENERATION_HANDLER);
 
 import type { GenerationSystemEvent } from '../types/xstate';
 import { toOptionalString } from './generation/request-normalizers';
@@ -437,6 +440,18 @@ export const generationSystemActions = {
           ? dependencyOutputsByStepRaw as Record<string, string>
           : {};
 
+      // Diagnostic: log whether we have cross-step content to inject
+      const depKeys = Object.keys(dependencyOutputsByStep);
+      if (depKeys.length > 0) {
+        glog.info({
+          requestId: context.requestId,
+          operation: 'assembleChainAwarePrompt',
+          depKeys,
+          depContentSizes: Object.fromEntries(depKeys.map((k) => [k, dependencyOutputsByStep[k]!.length])),
+          templateLen: resolvedTemplate.length,
+        }, 'chain-aware prompt assembly — cross-step content available');
+      }
+
       let didReplace = false;
       for (const [stepKey, content] of Object.entries(dependencyOutputsByStep)) {
         if (typeof content === 'string' && content.trim().length > 0) {
@@ -445,6 +460,20 @@ export const generationSystemActions = {
           if (regex.test(filledPrompt)) {
             filledPrompt = filledPrompt.replace(regex, content);
             didReplace = true;
+            glog.info({
+              requestId: context.requestId,
+              operation: 'assembleChainAwarePrompt',
+              stepKey,
+              placeholder,
+              replacedLen: content.length,
+            }, 'chain-aware prompt assembly — placeholder replaced');
+          } else {
+            glog.warn({
+              requestId: context.requestId,
+              operation: 'assembleChainAwarePrompt',
+              stepKey,
+              placeholder,
+            }, 'chain-aware prompt assembly — placeholder NOT found in template');
           }
         }
       }

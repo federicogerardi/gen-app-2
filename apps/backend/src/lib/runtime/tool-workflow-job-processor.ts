@@ -326,6 +326,13 @@ export const processToolWorkflowJob = async (
       }
       if (Object.keys(contentsByStep).length > 0) {
         stepDependencyArtifactContentsByStep = contentsByStep;
+        jobLog.info({
+          stepKey,
+          depContentKeys: Object.keys(contentsByStep),
+          depContentSizes: Object.fromEntries(
+            Object.entries(contentsByStep).map(([k, v]) => [k, v.length]),
+          ),
+        }, 'stepDependencyArtifactContentsByStep populated for generation step');
       }
     }
 

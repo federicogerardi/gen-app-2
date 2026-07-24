@@ -1,6 +1,6 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.12
+version: 1.13
 date_created: 2026-07-20
 last-reviewed: 2026-07-24
 next-review-date: 2026-08-24
@@ -1302,7 +1302,7 @@ Le sezioni della proposal relative a XState v5 e BullMQ sono state verificate co
 | `toolsJobSystem` feature flag | **IMPLEMENTED** | `apps/frontend/src/app/runtime/backend-capabilities.ts` + `VITE_CAP_TOOLS_JOB_SYSTEM` |
 | BullMQ dedicated Redis | **IMPLEMENTED** | `apps/backend/src/server.ts` — `maxRetriesPerRequest: null` |
 
-**Commits**: `2faa2b2` (contracts) → `b0ad4d8` (backend) → `8293a0c` (frontend core) → `a36712d` (frontend UI) → `d294dd7` (tests) → `4e9139f` (BullMQ Redis fix)
+**Commits**: `2faa2b2` (contracts) → `b0ad4d8` (backend) → `8293a0c` (frontend core) → `a36712d` (frontend UI) → `d294dd7` (tests) → `4e9139f` (BullMQ Redis fix) → `3819893` (sessionId/workflowType/auto-start fixes)
 
 **Test coverage**: 483 tests pass (+30 new), 73 test files. Typecheck green across all workspaces.
 

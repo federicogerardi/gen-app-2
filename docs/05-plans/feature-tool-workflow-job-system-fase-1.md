@@ -1,6 +1,6 @@
 ---
 status: implemented
-version: 2.1
+version: 2.2
 date_created: 2026-07-24
 last-reviewed: 2026-07-24
 next-review-date: 2027-01-24
@@ -973,7 +973,7 @@ npm --workspace apps/frontend run test
 
 ---
 
-## 9. Post-Implementation Fixes (v2.1)
+## 9. Post-Implementation Fixes (v2.2)
 
 Bug corretti durante lo smoke test su `feat/tool-workflow-job-system`:
 
@@ -984,8 +984,10 @@ Bug corretti durante lo smoke test su `feat/tool-workflow-job-system`:
 | 3 | `dc87f63` | `hasAssetBasedExtractionContext` non passato al submit controller | Aggiunto flag + payload minimo `{ _assetBased: true }` per tool asset-based |
 | 4 | `45825cc` | 5 tool con readiness/submit mismatch (angle-generator, meta-ads, personas-generator, brief-generator, tov-generator) | Fallback generico: `formState` per direct-input tool senza selettore dedicato |
 | 5 | `752380e` | Stale closure: `hasAssetBasedExtractionContext` fuori dalle deps di `useCallback` | Aggiunto alla dependency array di `buildSubmitRequest` |
-| 6 | `fa41b2b` | CTA "Open session" post-completamento naviga a sessione inesistente | `assign({ sessionId })` su `JOB_COMPLETED` per usare il jobId come sessionId |
+| 6 | `fa41b2b` + `3819893` | CTA "Open session" post-completamento naviga a sessione inesistente | (v2.1) `assign({ sessionId })` su `JOB_COMPLETED` con jobId; (v2.2) processor genera `randomUUID()` come sessionId reale + sync `sessionIdRef` on render in `tool-page-context.ts` |
 | 7 | `a65db13` | Diagnostica smoke test: timing step, error catch | Log strutturati BE + DEV-only console FE |
+| 8 | `3819893` | Tool name errato ('Hotlead Funnel' invece di 'Brief Generator') | `workflowType` hardcoded `'funnel_pages'` → `TOOL_WORKFLOW_BY_TOOL_KEY[toolKey].workflowType` nel processor |
+| 9 | `3819893` | Auto-start post-extraction chiama sempre legacy controller → FE stuck | Branching `useJobSystem` nell'effetto auto-start: `submitController.submitJob()` quando job system attivo |
 
 **Cross-tool coherence**: tutti gli 11 tool verificati con zero regressioni rispetto al path legacy.
 

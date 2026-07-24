@@ -76,7 +76,7 @@ export const useToolPageSubmitController = ({
       intent,
       idempotencyKey: idempotencyKeyRef.current,
     };
-  }, [toolKey, projectId, model, intent, extractionPayloadRef, formState]);
+  }, [toolKey, projectId, model, intent, extractionPayloadRef, formState, hasAssetBasedExtractionContext]);
 
   const submitJob = useCallback(async () => {
     const request = buildSubmitRequest();

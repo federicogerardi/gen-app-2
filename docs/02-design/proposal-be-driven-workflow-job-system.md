@@ -1,11 +1,12 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.10
+version: 1.11
 date_created: 2026-07-20
 last-reviewed: 2026-07-24
 next-review-date: 2026-08-24
 owner: Backend Runtime
-status: approved
+status: implemented
+implementation_date: 2026-07-24
 type: proposal
 tags: [tool-workflow, tool-workflow-job, bullmq, backend-driven, xstate, sse, architecture]
 ---
@@ -1283,23 +1284,26 @@ Le sezioni della proposal relative a XState v5 e BullMQ sono state verificate co
 
 ---
 
-## Code Verification Status (2026-07-23)
+## Code Verification Status (2026-07-24)
 
-> **Status: NOT IMPLEMENTED** — Zero code artifacts exist. All 10 core components are missing.
+> **Status: IMPLEMENTED** — Fase 1 MVP completata e verificata. Branch `feat/tool-workflow-job-system`.
 
-| Component | Code Status |
-|---|---|
-| `tool-workflow-job-processor.ts` | **MISSING** |
-| `tool-workflow-job-queue.ts` | **MISSING** |
-| `tools-job-handlers.ts` | **MISSING** |
-| `tools-job-stream-handler.ts` | **MISSING** |
-| `worker-entry.ts` | **MISSING** |
-| `useToolPageSubmitController` (FE) | **MISSING** |
-| `useJobStream` (FE) | **MISSING** |
-| `SUBMIT_JOB` event in tool-page machine | **MISSING** |
-| `tool_jobs` DB table | **MISSING** |
-| `TOOL_WORKFLOW_USE_JOB_SYSTEM` feature flag | **MISSING** |
+| Component | Code Status | File |
+|---|---|---|
+| `tool-workflow-job-processor.ts` | **IMPLEMENTED** | `apps/backend/src/lib/runtime/tool-workflow-job-processor.ts` |
+| `tool-workflow-job-queue.ts` | **IMPLEMENTED** | `apps/backend/src/lib/runtime/tool-workflow-job-queue.ts` |
+| `tools-job-handlers.ts` | **IMPLEMENTED** | `apps/backend/src/lib/runtime/auth-http/tools/tools-job-handlers.ts` |
+| `tools-job-stream-handler.ts` | **IMPLEMENTED** | `apps/backend/src/lib/runtime/auth-http/tools/tools-job-stream-handler.ts` |
+| `worker-entry.ts` | **IMPLEMENTED** | `apps/backend/src/worker-entry.ts` |
+| `useToolPageSubmitController` (FE) | **IMPLEMENTED** | `apps/frontend/src/features/tools/runtime/useToolPageSubmitController.ts` |
+| `useToolWorkflowJobStream` (FE) | **IMPLEMENTED** | `apps/frontend/src/features/tools/runtime/useToolWorkflowJobStream.ts` |
+| `SUBMIT_JOB` + `submitting`/`running` states | **IMPLEMENTED** | `apps/frontend/src/features/tools/machines/tool-page.machine.ts` |
+| `tool_jobs` DB table | **N/A** — Fase 2 | Redis-only in Fase 1, zero Postgres changes |
+| `toolsJobSystem` feature flag | **IMPLEMENTED** | `apps/frontend/src/app/runtime/backend-capabilities.ts` + `VITE_CAP_TOOLS_JOB_SYSTEM` |
+| BullMQ dedicated Redis | **IMPLEMENTED** | `apps/backend/src/server.ts` — `maxRetriesPerRequest: null` |
 
-Infrastructure prerequisites confirmed available: BullMQ v5.78.0 in `package.json`, Redis configured, `job-event-bridge.ts` + `job-progress-serializer.ts` (prerequisiti BullMQ), SSE streaming implemented.
+**Commits**: `2faa2b2` (contracts) → `b0ad4d8` (backend) → `8293a0c` (frontend core) → `a36712d` (frontend UI) → `d294dd7` (tests) → `4e9139f` (BullMQ Redis fix)
 
-**Conclusione**: la decisione di evitare serializzazione XState mid-flight e' supportata dalla documentazione ufficiale. L'API di persistenza e' pulita ma il comportamento "invocations will restart" la rende inadatta a preservare lo stato durante una chiamata LLM in corso. Il retry da zero con idempotency key e' l'approccio corretto.
+**Test coverage**: 483 tests pass (+30 new), 73 test files. Typecheck green across all workspaces.
+
+**Conclusione**: la decisione di evitare serializzazione XState mid-flight è supportata dalla documentazione ufficiale. L'API di persistenza è pulita ma il comportamento "invocations will restart" la rende inadatta a preservare lo stato durante una chiamata LLM in corso. Il retry da zero con idempotency key è l'approccio corretto.

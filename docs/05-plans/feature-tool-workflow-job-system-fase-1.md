@@ -1,6 +1,6 @@
 ---
-status: draft
-version: 1.1
+status: implemented
+version: 2.0
 date_created: 2026-07-24
 last-reviewed: 2026-07-24
 next-review-date: 2027-01-24
@@ -8,6 +8,7 @@ owner: Backend Runtime + Frontend Tools
 type: implementation-plan
 tags: [tool-workflow-job, bullmq, sse, backend-driven, phase-1, mvp]
 goal: Implementare la Fase 1 (MVP) del sistema ToolWorkflowJob BE-driven con worker in-process, feature flag BackendCapabilities, e SSE stream — zero modifiche a generation-system.
+implementation_date: 2026-07-24
 ---
 
 # Implementation Plan: ToolWorkflowJob System — Fase 1 (MVP)
@@ -974,7 +975,7 @@ npm --workspace apps/frontend run test
 
 ## 10. References
 
-- [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (v1.10, `approved`)
+- [Proposal: BE-Driven Workflow Job System](../02-design/proposal-be-driven-workflow-job-system.md) (v1.11, `implemented`)
 - [Plan: BullMQ Prerequisites](./plan-bullmq-prerequisites.md) (`implemented`)
 - [Plan: Post-BullMQ Improvements](./plan-post-bullmq-improvements.md) (`implemented`)
 - [Domain Naming Decision Log](../07-governance/domain-naming-decision-log.md) — DDD-226 (`ToolWorkflowJob`), DDD-227 (`ToolWorkflowJobId`), DDD-228 (`ToolWorkflowJobStatus`)

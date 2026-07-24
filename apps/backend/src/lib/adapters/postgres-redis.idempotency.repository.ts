@@ -65,10 +65,24 @@ export class PostgresRedisIdempotencyRepository implements RedisIdempotencyRepos
         };
       }
 
-      return {
-        status: 'conflict',
-        reason: 'idempotency_conflict',
-      };
+      // A 'failed' record means the previous attempt failed and is safe to retry.
+      // Delete it so the INSERT below can create a fresh 'in_progress' row.
+      if (existing.status === 'failed') {
+        await this.getDb()
+          .deleteFrom('request_idempotency')
+          .where('user_id', '=', input.userId)
+          .where('project_id', '=', input.projectId)
+          .where('endpoint', '=', endpoint)
+          .where('idempotency_key', '=', input.idempotencyKey)
+          .execute();
+        // Fall through to lock acquisition + INSERT below.
+      } else {
+        // 'in_progress' or unrecognized status → conflict
+        return {
+          status: 'conflict',
+          reason: 'idempotency_conflict',
+        };
+      }
     }
 
     const lockKey = this.getLockKey(input, endpoint);

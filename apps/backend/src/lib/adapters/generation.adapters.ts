@@ -256,7 +256,11 @@ export const createInMemoryGenerationAdapters = (
   const idempotency: IdempotencyAdapter = {
     async checkAndClaim(input) {
       const existing = idempotencyStore.get(input.idempotencyKey);
-      if (!existing) {
+      if (existing?.status === 'failed') {
+        // Clear the failed record so BullMQ retries can re-claim
+        idempotencyStore.delete(input.idempotencyKey);
+      }
+      if (!existing || existing.status === 'failed') {
         idempotencyStore.set(input.idempotencyKey, {
           status: 'in_progress',
           artifactId: null,

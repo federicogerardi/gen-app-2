@@ -1,8 +1,9 @@
 ---
 goal: Replace FE-driven step-by-step tool workflow orchestration with a BE-driven ToolWorkflowJob system that accepts a single job submission, chains steps internally, supports parallel jobs via BullMQ, and eliminates FE dependency for step progression
-version: 1.13
+version: 1.14
 date_created: 2026-07-20
 last-reviewed: 2026-07-24
+implementation_date: 2026-07-24
 next-review-date: 2026-08-24
 owner: Backend Runtime
 status: implemented
@@ -1305,5 +1306,25 @@ Le sezioni della proposal relative a XState v5 e BullMQ sono state verificate co
 **Commits**: `2faa2b2` (contracts) → `b0ad4d8` (backend) → `8293a0c` (frontend core) → `a36712d` (frontend UI) → `d294dd7` (tests) → `4e9139f` (BullMQ Redis fix) → `3819893` (sessionId/workflowType/auto-start fixes)
 
 **Test coverage**: 483 tests pass (+30 new), 73 test files. Typecheck green across all workspaces.
+
+### Phase 2 Implementation (2026-07-24)
+
+**Status**: `implemented`. 9 commits, ~900 LOC.
+
+| Pillar | Tasks | Result |
+|--------|-------|--------|
+| A — Payload Propagation | A.0–A.5 | `stepDependencyArtifactContentsByStep` injected with structured crawl/score data from `requestInput`. Content pipelines correctly: crawling snippets (1100+ bytes), PAA queries, sources, competitor ranking. Fields promoted: `brandName`, `baseQuery` from `extractionPayload` to top-level `requestInput` for assembly functions. |
+| B — Postgres `tool_jobs` | B.0–B.4 | Migration `20260724_000028_tool_jobs.sql`. `PostgresToolWorkflowJobRepository` via Kysely. Dual-write from processor. Cost/token aggregation via `SUM()` from artifacts. Read path migrated with Redis fallback. |
+| C — Worker Deployment | C.1–C.3 | `worker-entry.ts` verified standalone. Dockerfile with `SERVICE_ROLE` conditional. `start:worker` script. |
+| D — Admin & Discovery | D.1–D.5 | `GET /api/tools/jobs?projectId=&toolKey=` discovery endpoint. Real SWR hook with filters + pagination. `ListingTableSection` + `StatusBadge` canonical admin page. "Tool Jobs" navigation link. |
+| E — Long-Lived Actor | — | Deferred to Phase 3. |
+
+**Bug fixes during smoke testing**:
+1. Idempotency deadlock: `checkAndClaim` now clears `'failed'` records on retry
+2. Single-flight lock leak: released on cancel, worker `failed` event, and stale-lock guard in submit handler
+3. Empty `contentBuffer` for crawl/score steps: extract structured data from `requestInput`
+4. `brandName`/`baseQuery` not found by assembly: promote from `extractionPayload` to top-level
+
+**Smoke test result**: Geometric 4-step completed successfully. LLM output generated from payload data (no "dati non disponibili"). `brandName:"Oroetic"` and `baseQuery:"Come aprire un franchising"` correctly propagated. SerpApi calls still duplicated for generation steps (Pillar E deferred).
 
 **Conclusione**: la decisione di evitare serializzazione XState mid-flight è supportata dalla documentazione ufficiale. L'API di persistenza è pulita ma il comportamento "invocations will restart" la rende inadatta a preservare lo stato durante una chiamata LLM in corso. Il retry da zero con idempotency key è l'approccio corretto.

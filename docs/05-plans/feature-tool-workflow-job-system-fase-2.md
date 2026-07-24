@@ -1,12 +1,13 @@
 ---
 status: implemented
-version: 2.0
+version: 2.1
 date_created: 2026-07-24
 last-reviewed: 2026-07-24
 next-review-date: 2027-01-24
+implementation_date: 2026-07-24
 owner: Backend Runtime + Frontend Tools
 type: implementation-plan
-tags: [tool-workflow-job, bullmq, sse, backend-driven, phase-2, optimization, postgres, deployment]
+tags: [tool-workflow-job, bullmq, sse, backend-driven, phase-2, optimization, postgres, payload-propagation]
 goal: Ottimizzare il sistema ToolWorkflowJob con payload propagation, persistenza Postgres, deployment worker separato, e dashboard admin funzionante.
 ---
 > ⚑ DDD Reference: [Glossary](../01-requirements/domain-ubiquitous-language-glossary.md) · [BCM](../02-design/domain-bounded-context-map.md) · [Decision Log](../07-governance/domain-naming-decision-log.md) · DDD-226/DDD-227 · DDD-NEW `ToolWorkflowJobStatus`, `ToolWorkflowJobRepository`
@@ -497,3 +498,54 @@ set -a && . .env.local && set +a && npm run test:smoke
 - `apps/backend/src/lib/runtime/job-progress-serializer.ts` — Redis progress
 - `apps/backend/src/worker-entry.ts` — entry point worker standalone
 - `packages/contracts/src/index.ts` — tipi condivisi
+
+---
+
+## 11. Post-Implementation: Bug Fixes (Smoke Test Findings)
+
+Durante lo smoke test del sistema Phase 2 sono emersi 4 bug critici, tutti risolti:
+
+### Bug #1 — Idempotency deadlock su BullMQ retry
+
+**Sintomo**: Dopo un `base_query_missing` su geometric step 0, BullMQ riprovava 3 volte ma ogni retry incontrava `idempotency_conflict`.
+
+**Root cause**: `markFailed` impostava lo stato a `'failed'`, ma `checkAndClaim` permetteva solo il replay per `'completed'`. Ogni retry trovava il record `'failed'` e restituiva conflitto.
+
+**Fix**: In entrambi gli adapter (in-memory e Postgres/Redis), `checkAndClaim` ora cancella il record `'failed'` prima di permettere il re-claim. File: `generation.adapters.ts`, `postgres-redis.idempotency.repository.ts`.
+
+### Bug #2 — Single-flight lock leak
+
+**Sintomo**: Dopo un job fallito, il lock Redis `tool-job-active:{user}:{project}:{tool}` persisteva per 900s, bloccando ogni submit successivo con 409.
+
+**Root cause**: Il lock veniva rilasciato solo su completamento positivo. I job cancellati o falliti non lo rilasciavano.
+
+**Fix triplo**:
+1. Processor cancel path: `redis.del(activeLockKey)` dopo `workflow_failed` publish
+2. Worker `failed` event: liberazione lock su fallimento definitivo (retry esauriti)
+3. Submit handler stale-lock guard: verifica se il job BullMQ esiste ancora prima di rifiutare con 409
+
+### Bug #3 — `contentBuffer` vuoto per step crawling/scoring
+
+**Sintomo**: `stepDependencyArtifactContentsByStep` iniettava solo 264 byte per lo step `serp-crawling` (con 13 fonti SerpApi), rendendo i placeholder `{{output_step_xxx}}` quasi vuoti.
+
+**Root cause**: `contentBuffer` cattura solo il testo streammato, ma gli step crawling/scoring non fanno streaming — i dati reali (snippets, sources, PAA queries, ranking) vivono in `context.requestInput` dopo le azioni `mergeCrawlingIntoGenerationInput` / `cacheScoringResult`.
+
+**Fix**: `runSingleStepGeneration` ora estrae dati strutturati da `doneSnapshot.context.requestInput.crawling` e `requestInput.scoring` quando `contentBuffer` è vuoto, producendo content formattato con snippets, sources, PAA queries e competitor ranking.
+
+### Bug #4 — `brandName`/`baseQuery` non propagati all'assembly
+
+**Sintomo**: `assembleStrategicReportingInput` loggava `brandName:"none"`, `baseQuery:"none"`.
+
+**Root cause**: Le assembly functions leggono `requestInput.brandName` (top-level), ma questi campi esistevano solo in `requestInput.extractionPayload.brandName`.
+
+**Fix**: In `runCrawlingStep`, `runScoringStep`, e `buildBackendGenerationRequest`, i campi `brandName`, `baseQuery`, `language`, `country` vengono promossi da `extractionPayload` al top-level di `requestInput`.
+
+### Risultato finale
+
+Verificato con DB query: gli artifact di crawling contengono 1140+ byte di dati SerpApi reali. I placeholder `{{output_step_serp-crawling}}` e `{{output_step_competitor-scoring}}` vengono sostituiti con content reale. L'assembly ora riporta `brandName:"Oroetic"` e `baseQuery:"Come aprire un franchising"`. Output LLM generato su dati forniti dal payload (non su dati di memoria).
+
+### Bug #5 — SerpApi ri-eseguita per ogni step (B1 dal piano originale)
+
+**Stato**: NON risolto. Ogni step di tipo `generation` (strategic-reporting, unified-report) crea un attore `generationSystemMachine` indipendente che esegue crawling+scoring da zero. I dati vengono iniettati nei prompt via `{{output_step_xxx}}`, ma le chiamate SerpApi sono duplicate (step 2 e 3 ri-crawlando con ~200-400ms ciascuno, dati cachati).
+
+La soluzione architetturale richiede Pillar E (long-lived actor) o injection di crawling data pre-popolato nel machine context — rimandato a Fase 3.

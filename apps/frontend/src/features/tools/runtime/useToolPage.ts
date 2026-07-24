@@ -158,6 +158,9 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
   const resolvedNotes = relaunchNotes ?? readInputField(sourceArtifact as GenerationArtifact | null, 'notes') ?? '';
   const resolvedRelaunchSource = relaunchFromArtifactId ?? sourceArtifactId ?? sourceArtifact?.artifactId ?? null;
 
+  // ── ToolWorkflowJob: feature-flagged submit controller + SSE stream ──
+  const useJobSystem = auth.capabilities.toolsJobSystem === true && isToolKey(toolKey);
+
   const runController = useToolPageRunController({
     auth,
     toolKey,
@@ -186,10 +189,8 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     sessionId,
     selectedAssetIds: selectedAssetIds ?? [],
     hasAssetBasedExtractionContext,
+    useJobSystem,
   });
-
-  // ── ToolWorkflowJob: feature-flagged submit controller + SSE stream ──
-  const useJobSystem = auth.capabilities.toolsJobSystem === true && isToolKey(toolKey);
 
   const submitController = useToolPageSubmitController({
     apiBaseUrl: auth.apiBaseUrl,

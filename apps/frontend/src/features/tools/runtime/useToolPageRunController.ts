@@ -44,9 +44,10 @@ type UseToolPageRunControllerArgs = {
   sessionId: string;
   selectedAssetIds: string[];
   hasAssetBasedExtractionContext: boolean;
+  useJobSystem?: boolean;
 };
 
-export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId, selectedAssetIds, hasAssetBasedExtractionContext }: UseToolPageRunControllerArgs) => {
+export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState, intent, generationStream, generationRun, generationArtifacts, sourceArtifact, sourceArtifactId, machineHydrationResult, workspaceExtractionContext, briefingSnapshot, effectiveBriefingFileName, resolvedBriefingId, resolvedNotes, resolvedRelaunchSource, nextAvailableStep, sourceStep, machineViewModel, readinessSnapshot, completedStepsForFlow, pendingStepStart, toolPageSend, sessionId, selectedAssetIds, hasAssetBasedExtractionContext, useJobSystem = false }: UseToolPageRunControllerArgs) => {
   const isDebugOrchestration = import.meta.env.DEV
     || (typeof window !== 'undefined'
       && new URLSearchParams(window.location.search).get('debug_tool_orchestration') === '1');
@@ -308,6 +309,10 @@ export const useToolPageRunController = ({ auth, toolKey, toolConfig, formState,
   //       STEP_FAILED + CANCEL_GENERATION in the same bridge run.
   useLayoutEffect(() => {
     logBridgeState('enter');
+    // When the BE-driven job system is active, skip the legacy bridge entirely.
+    // The new submitController + SSE hook handle orchestration.
+    if (useJobSystem) return;
+
     // (a) Pending step dispatch — bridge machine pendingStepStart into the async
     //     run. STEP_REQUEST_DISPATCHED clears the machine field immediately so
     //     this branch logically fires once per REQUEST_STEP_START. The

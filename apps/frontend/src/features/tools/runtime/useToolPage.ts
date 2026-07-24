@@ -199,7 +199,11 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
     model: formState.model,
     intent,
     toolPageSend,
-    extractionPayload: workspaceExtractionContext?.extractionPayload ?? null,
+    extractionPayload:
+      workspaceExtractionContext?.extractionPayload
+      ?? (briefingSnapshot.context.extractionPayload as Record<string, unknown> | null)
+      ?? (machineHydrationResult?.extractionPayload as Record<string, unknown> | null)
+      ?? null,
     formState: formState as Record<string, unknown>,
   });
 

@@ -274,6 +274,7 @@ export const processToolWorkflowJob = async (
       stepIndex: i,
       stepType,
       dependencyCount: stepDependencyArtifactIds.length,
+      extractionPayloadKeys: Object.keys(data.extractionPayload ?? {}),
     }, 'step starting');
 
     try {
@@ -314,6 +315,19 @@ export const processToolWorkflowJob = async (
       const errorMessage = error instanceof Error ? error.message : 'unknown error';
 
       jobLog.error({ stepKey, err: error }, 'step failed');
+
+      // Release idempotency lock on failure so BullMQ retries can re-attempt
+      // the same step without hitting idempotency_conflict.
+      try {
+        await adapters.idempotency.markFailed({
+          requestId: `${jobId}:${stepKey}`,
+          userId,
+          projectId,
+          workflowType,
+          idempotencyKey: `${data.idempotencyKey}:${stepKey}`,
+          registrySnapshotRef: 'snapshot:default',
+        });
+      } catch { /* best-effort */ }
 
       await publisher.publish({
         type: 'step_failed',

@@ -108,10 +108,44 @@ export const generationActor = fromPromise(
       });
     }
 
-    const result = await context.adapters.generate.generateText({
+    // Diagnostic: log the model and prompt summary before calling generateText
+    const promptStr = typeof (effectiveRequestInput as Record<string, unknown>).prompt === 'string'
+      ? ((effectiveRequestInput as Record<string, unknown>).prompt as string)
+      : '';
+    console.info('[generation-actor] calling generateText', {
       requestId: context.requestId,
       model: context.model,
-      requestInput: effectiveRequestInput,
+      promptLen: promptStr.length,
+      promptPreview: promptStr.substring(0, 200),
+      inputKeys: Object.keys(effectiveRequestInput as Record<string, unknown>),
+    });
+
+    let result: Awaited<ReturnType<typeof context.adapters.generate.generateText>>;
+    try {
+      result = await context.adapters.generate.generateText({
+        requestId: context.requestId,
+        model: context.model,
+        requestInput: effectiveRequestInput,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[generation-actor] generateText threw error', {
+        requestId: context.requestId,
+        model: context.model,
+        error: errorMessage,
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorStack: error instanceof Error ? error.stack : undefined,
+      });
+      return {
+        type: 'GENERATE_TERMINATED_FAILURE',
+        reason: `generate_throw:${errorMessage}`,
+      };
+    }
+
+    console.info('[generation-actor] generateText result', {
+      requestId: context.requestId,
+      contentLen: result.content?.length ?? 0,
+      hasUsage: !!result.usage,
     });
 
     if (!result.content || result.content.length === 0) {

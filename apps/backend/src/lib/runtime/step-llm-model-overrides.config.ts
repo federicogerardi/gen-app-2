@@ -36,8 +36,8 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
   [createOverrideKey('blog-article-generator', 'blog_seo_structure')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_seo_structure',
-    overrideModelId: 'openai/gpt-4o-mini-search-preview',
-    reason: 'Search-enabled, cost-optimized for SEO structure generation'
+    overrideModelId: 'openai/gpt-4o-search-preview',
+    reason: 'Search-enabled for SEO structure generation (gpt-4o-mini variant deprecated by OpenAI)'
   },
   [createOverrideKey('blog-article-generator', 'blog_research')]: {
     toolKey: 'blog-article-generator',

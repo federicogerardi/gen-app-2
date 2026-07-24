@@ -269,6 +269,24 @@ export const createOpenRouterLlmGenerateAdapter = (
   options: OpenRouterAdapterOptions,
 ): LlmGenerateAdapter => ({
   async generateText(input: LlmGenerateInput): Promise<LlmGenerateResult> {
+    const normalizedModel = normalizeOpenRouterModelId(input.model);
+    const messages = buildMessages(input.requestInput);
+    const requestBody = {
+      model: normalizedModel,
+      stream: false,
+      messages,
+    };
+
+    const log = createComponentLogger(LogComponent.OPENROUTER);
+    log.info({
+      model: normalizedModel,
+      messageCount: messages.length,
+      firstRole: messages[0]?.role,
+      promptPreview: typeof messages[0]?.content === 'string'
+        ? (messages[0].content as string).substring(0, 150)
+        : typeof messages[0]?.content,
+    }, 'openrouter generateText request');
+
     const requestInit: RequestInit = {
       method: 'POST',
       headers: {
@@ -277,11 +295,7 @@ export const createOpenRouterLlmGenerateAdapter = (
         ...(options.httpReferer ? { 'HTTP-Referer': options.httpReferer } : {}),
         ...(options.appName ? { 'X-Title': options.appName } : {}),
       },
-      body: JSON.stringify({
-        model: normalizeOpenRouterModelId(input.model),
-        stream: false,
-        messages: buildMessages(input.requestInput),
-      }),
+      body: JSON.stringify(requestBody),
       ...(input.signal ? { signal: input.signal } : {}),
     };
 
@@ -291,6 +305,7 @@ export const createOpenRouterLlmGenerateAdapter = (
 
     if (!response.ok) {
       const body = await response.text();
+      log.error({ statusCode: response.status, bodyPreview: body.substring(0, 500), model: normalizedModel }, 'openrouter generateText non-OK response');
       throw new Error(`openrouter_generate_failed:${response.status}:${body}`);
     }
 
@@ -299,11 +314,19 @@ export const createOpenRouterLlmGenerateAdapter = (
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_cost?: number };
     };
 
-    const content = typeof data.choices?.[0]?.message?.content === 'string'
-      ? data.choices[0].message.content
-      : '';
+    const rawContent = data.choices?.[0]?.message?.content;
+    const content = typeof rawContent === 'string' ? rawContent : '';
 
     if (content.length === 0) {
+      log.warn({
+        model: input.model,
+        choicesLength: data.choices?.length ?? 0,
+        rawContentType: typeof rawContent,
+        rawContentValue: String(rawContent).substring(0, 200),
+        hasUsage: !!data.usage,
+        responseKeys: Object.keys(data),
+        firstChoiceKeys: data.choices?.[0] ? Object.keys(data.choices[0]) : [],
+      }, 'openrouter generateText returned empty content');
       throw new Error('openrouter_generate_empty_response');
     }
 

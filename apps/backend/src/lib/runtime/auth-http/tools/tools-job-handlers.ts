@@ -158,7 +158,14 @@ export const createToolsJobHandlers = (
       JOB_STATUS_TTL_SECONDS,
     );
 
-    await queue.add('tool-workflow', jobData, { jobId });
+    try {
+      await queue.add('tool-workflow', jobData, { jobId });
+    } catch (queueError) {
+      log.error({ jobId, toolKey, userId: principal.user.id, err: queueError }, 'queue add failed — job submitted but not enqueued');
+      await redis.del(activeLockKey);
+      writeError(response, 503, 'service_unavailable', 'Job queue unavailable');
+      return;
+    }
 
     repositories.sessions.touchSession(principal.session.id, now());
 

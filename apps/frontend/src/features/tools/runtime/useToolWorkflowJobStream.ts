@@ -122,13 +122,19 @@ export const useToolWorkflowJobStream = ({
                 cleanup();
                 return;
               }
-            } catch {
-              // skip unparseable frames
+            } catch (parseErr) {
+              // skip unparseable frames silently
+              if (import.meta.env.DEV) {
+                console.debug('[tool-workflow] SSE parse error', parseErr);
+              }
             }
           }
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
+        if (import.meta.env.DEV) {
+          console.error('[tool-workflow] stream error', err);
+        }
         callbacksRef.current.onFailed(String(err));
       }
     };

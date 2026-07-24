@@ -211,7 +211,8 @@ export const processToolWorkflowJob = async (
   const stepOrder = toolWorkflowStepOrder[toolKey];
   const totalSteps = plan.steps.length;
 
-  jobLog.info({ totalSteps, steps: stepOrder }, 'tool workflow job starting');
+  const startTime = Date.now();
+  jobLog.info({ totalSteps, steps: stepOrder, startTime: new Date(startTime).toISOString() }, 'tool workflow job starting');
 
   const completedStepArtifacts: Record<string, string> = {};
   const completedSteps: string[] = [];
@@ -254,6 +255,7 @@ export const processToolWorkflowJob = async (
 
     const stepType: WorkflowStepType = stepDescriptor.type ?? 'generation';
 
+    const stepStartTime = Date.now();
     jobLog.info({
       stepKey,
       stepIndex: i,
@@ -291,7 +293,8 @@ export const processToolWorkflowJob = async (
         currentStepIndex: i + 1,
       });
 
-      jobLog.info({ stepKey, artifactId: result.artifactId }, 'step completed');
+      const stepDurationMs = Date.now() - stepStartTime;
+      jobLog.info({ stepKey, artifactId: result.artifactId, stepDurationMs }, 'step completed');
     } catch (error) {
       stepStatuses[stepKey] = 'error';
       const errorMessage = error instanceof Error ? error.message : 'unknown error';
@@ -331,5 +334,12 @@ export const processToolWorkflowJob = async (
   const activeLockKey = `${ACTIVE_LOCK_PREFIX}${userId}:${projectId}:${toolKey}`;
   await redis.del(activeLockKey);
 
-  jobLog.info({ completedSteps: completedSteps.length, artifactIds: artifactIds.length }, 'tool workflow job completed');
+  const durationMs = Date.now() - startTime;
+  jobLog.info({
+    completedSteps: completedSteps.length,
+    totalSteps,
+    artifactIds: artifactIds.length,
+    durationMs,
+    artifacts: artifactIds,
+  }, 'tool workflow job completed');
 };

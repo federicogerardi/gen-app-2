@@ -292,6 +292,8 @@ export const processToolWorkflowJob = async (
         timestamp: new Date().toISOString(),
         errorMessage: 'cancelled',
       });
+      const activeLockKey = `${ACTIVE_LOCK_PREFIX}${userId}:${projectId}:${toolKey}`;
+      await redis.del(activeLockKey);
       return;
     }
 

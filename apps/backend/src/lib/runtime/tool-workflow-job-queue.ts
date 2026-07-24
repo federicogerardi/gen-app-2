@@ -34,6 +34,8 @@ export const createToolWorkflowQueue = (redis: Redis): Queue<ToolWorkflowJobData
   return queue;
 };
 
+const ACTIVE_LOCK_PREFIX = 'tool-job-active:';
+
 export const createToolWorkflowWorker = (
   processor: (job: Job<ToolWorkflowJobData>) => Promise<void>,
   redis: Redis,
@@ -48,8 +50,18 @@ export const createToolWorkflowWorker = (
     log.info({ jobId: job.id, toolKey: job.data.toolKey }, 'tool workflow job completed');
   });
 
-  worker.on('failed', (job, error) => {
+  worker.on('failed', async (job, error) => {
     log.error({ jobId: job?.id, toolKey: job?.data.toolKey, err: error }, 'tool workflow job failed');
+
+    // Release the single-flight lock on permanent failure so the user can retry.
+    // The lock is set in handleSubmitJob with TTL 900s; if we don't release it here,
+    // the next submit gets 409 "already active" until the TTL expires.
+    if (job?.data) {
+      const lockKey = `${ACTIVE_LOCK_PREFIX}${job.data.userId}:${job.data.projectId}:${job.data.toolKey}`;
+      try {
+        await redis.del(lockKey);
+      } catch { /* best-effort */ }
+    }
   });
 
   worker.on('error', (error) => {

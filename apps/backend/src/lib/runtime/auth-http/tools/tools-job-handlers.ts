@@ -124,8 +124,22 @@ export const createToolsJobHandlers = (
     const activeLockKey = `${ACTIVE_LOCK_PREFIX}${principal.user.id}:${projectId.trim()}:${toolKey}`;
     const existingLock = await redis.get(activeLockKey);
     if (existingLock) {
-      writeError(response, 409, 'conflict', `A ToolWorkflowJob is already active for this scope: ${existingLock}`);
-      return;
+      // Stale lock guard: if the job that holds the lock no longer exists
+      // (completed, failed, or expired), allow the new submission.
+      try {
+        const lockHolderJob = await queue.getJob(existingLock);
+        if (!lockHolderJob || (await lockHolderJob.isCompleted()) || (await lockHolderJob.isFailed())) {
+          await redis.del(activeLockKey);
+          // Fall through to submit
+        } else {
+          writeError(response, 409, 'conflict', `A ToolWorkflowJob is already active for this scope: ${existingLock}`);
+          return;
+        }
+      } catch {
+        // If BullMQ check fails, fall back to blocking the submission
+        writeError(response, 409, 'conflict', `A ToolWorkflowJob is already active for this scope: ${existingLock}`);
+        return;
+      }
     }
 
     const jobId = randomUUID();
@@ -298,6 +312,13 @@ export const createToolsJobHandlers = (
     }
 
     await redis.set(`tool-job-cancel:${jobId}`, 'true', 'EX', 86400);
+
+    // Immediately release the single-flight lock so the user can retry
+    // without waiting for the processor to detect the cancel flag.
+    try {
+      const lockKey = `${ACTIVE_LOCK_PREFIX}${statusData.userId}:${statusData.projectId}:${statusData.toolKey}`;
+      await redis.del(lockKey);
+    } catch { /* best-effort */ }
 
     repositories.sessions.touchSession(principal.session.id, now());
 

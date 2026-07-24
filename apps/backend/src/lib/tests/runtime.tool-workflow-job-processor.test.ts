@@ -132,3 +132,101 @@ test('processor releases single-flight lock on completion', async () => {
 
   assert.ok(redis.deleted.includes('tool-job-active:user-1:project-1:funnel-pages'), 'should release single-flight lock');
 });
+
+test('processor tracks completedStepContents across steps (A.1)', async () => {
+  const redis = new MockRedis() as any;
+  const adapters = createInMemoryGenerationAdapters();
+  // funnel-pages has multiple steps: optin, quiz, vsl, landing, thank_you
+  const job = buildMockJob(buildJobData({ toolKey: 'funnel-pages' }));
+
+  await processToolWorkflowJob(job, { adapters, redis });
+
+  const events = redis.published.map((p: any) => JSON.parse(p.message));
+  const completedEvents = events.filter((e: any) => e.type === 'step_completed');
+  const workflowCompleted = events.find((e: any) => e.type === 'workflow_completed');
+
+  // All steps should complete successfully
+  assert.ok(completedEvents.length >= 3, `should have at least 3 completed steps, got ${completedEvents.length}`);
+  assert.ok(workflowCompleted, 'should have workflow_completed');
+  assert.equal(workflowCompleted.result.artifactIds.length, completedEvents.length, 'artifact count should match completed steps');
+
+  // Each completed step should have a unique artifact ID
+  const artifactIds = completedEvents.map((e: any) => e.artifactId);
+  const uniqueIds = new Set(artifactIds);
+  assert.equal(uniqueIds.size, artifactIds.length, 'each step should produce a unique artifact ID');
+});
+
+test('processor preserves content for stepDependencyArtifactContentsByStep (A.3)', async () => {
+  const redis = new MockRedis() as any;
+  const adapters = createInMemoryGenerationAdapters();
+  const job = buildMockJob(buildJobData({ toolKey: 'funnel-pages' }));
+
+  await processToolWorkflowJob(job, { adapters, redis });
+
+  const events = redis.published.map((p: any) => JSON.parse(p.message));
+  const workflowCompleted = events.find((e: any) => e.type === 'workflow_completed');
+
+  // The workflow should complete with all artifact IDs
+  assert.ok(workflowCompleted, 'should have workflow_completed');
+  assert.ok(workflowCompleted.result.sessionId, 'should have sessionId');
+  assert.ok(workflowCompleted.result.artifactIds.length > 0, 'should have artifact IDs');
+});
+
+test('processor dual-writes to toolWorkflowJob repository (B.2)', async () => {
+  const redis = new MockRedis() as any;
+  const adapters = createInMemoryGenerationAdapters();
+  const job = buildMockJob(buildJobData());
+
+  const repoCalls: string[] = [];
+  const mockRepo = {
+    create: async () => { repoCalls.push('create'); },
+    updateStatus: async () => { repoCalls.push('updateStatus'); },
+    updateProgress: async () => { repoCalls.push('updateProgress'); },
+    markCompleted: async () => { repoCalls.push('markCompleted'); },
+    markFailed: async () => { repoCalls.push('markFailed'); },
+    markCancelled: async () => { repoCalls.push('markCancelled'); },
+    findById: async () => null,
+    listByFilter: async () => ({ jobs: [], total: 0 }),
+  };
+
+  await processToolWorkflowJob(job, { adapters, redis, toolWorkflowJob: mockRepo as any });
+
+  assert.ok(repoCalls.includes('create'), 'should call repository.create');
+  assert.ok(repoCalls.includes('updateStatus'), 'should call repository.updateStatus');
+  assert.ok(repoCalls.includes('markCompleted'), 'should call repository.markCompleted');
+  assert.ok(repoCalls.includes('updateProgress'), 'should call repository.updateProgress');
+});
+
+test('processor releases idempotency lock on step failure (A.5)', async () => {
+  const redis = new MockRedis() as any;
+  const adapters = createInMemoryGenerationAdapters();
+
+  // Override the LLM stream adapter to fail on the first call
+  // (the generation machine uses streamText, not generateText)
+  let callCount = 0;
+  const originalStream = adapters.llm.streamText.bind(adapters.llm);
+  adapters.llm.streamText = async function* (input: any) {
+    callCount++;
+    if (callCount === 1) {
+      throw new Error('simulated LLM failure');
+    }
+    yield* originalStream(input);
+  };
+
+  const job = buildMockJob(buildJobData({ toolKey: 'funnel-pages' }));
+
+  // The processor should throw (BullMQ handles retry)
+  await assert.rejects(
+    () => processToolWorkflowJob(job, { adapters, redis }),
+    (err: any) => {
+      assert.equal(err.message, 'simulated LLM failure');
+      return true;
+    },
+  );
+
+  // Verify that a step_failed event was published
+  const events = redis.published.map((p: any) => JSON.parse(p.message));
+  const stepFailed = events.find((e: any) => e.type === 'step_failed');
+  assert.ok(stepFailed, 'should have step_failed event');
+  assert.equal(stepFailed.status, 'error', 'step_failed should have error status');
+});

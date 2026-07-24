@@ -244,6 +244,7 @@ export const useToolPage = ({ toolKey, sourceArtifactId, intent = 'new', initial
       void navigate(projectId ? `/workspaces/${projectId}/sessions/${sessionId}` : `/workspaces`);
       return;
     }
+    console.info('[tool-job] handlePrimaryAction', { useJobSystem, primaryActionPolicy: effectiveMachineViewModel.primaryActionPolicy });
     if (useJobSystem) {
       void submitController.submitJob();
     } else {

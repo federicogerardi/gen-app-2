@@ -36,14 +36,14 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
   [createOverrideKey('blog-article-generator', 'blog_seo_structure')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_seo_structure',
-    overrideModelId: 'openai/gpt-4o-search-preview',
-    reason: 'Search-enabled for SEO structure generation (gpt-4o-mini variant deprecated by OpenAI)'
+    overrideModelId: 'perplexity/sonar-pro-search',
+    reason: 'Search-enabled for SEO structure generation (perplexity/sonar-pro-search per DDD-157 revision)'
   },
   [createOverrideKey('blog-article-generator', 'blog_research')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_research',
-    overrideModelId: 'openai/gpt-4o-search-preview',
-    reason: 'Advanced search capabilities for comprehensive research'
+    overrideModelId: 'perplexity/sonar-pro-search',
+    reason: 'Advanced search capabilities for comprehensive research (perplexity/sonar-pro-search per DDD-157 revision)'
   },
   [createOverrideKey('blog-article-generator', 'blog_article')]: {
     toolKey: 'blog-article-generator',

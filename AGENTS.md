@@ -197,3 +197,150 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## LLM Wiki
+
+This vault uses the [llm-wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — an LLM incrementally builds and maintains a persistent, interlinked wiki from raw sources rather than re-deriving knowledge on every query.
+
+### Architecture
+
+Three layers:
+
+1. **Raw sources** (`docs/`) — immutable markdown files with frontmatter. LLM reads, never modifies.
+2. **The wiki** (`Wiki/`) — LLM-generated, interlinked markdown. Summaries, entity pages, concept pages, synthesis.
+3. **This schema** (`AGENTS.md`) — instructions telling the LLM how to maintain the wiki.
+
+### Wiki Directory Structure
+
+```
+Wiki/
+├── index.md          # content catalog — read this first for any operation
+├── log.md            # append-only operation log (grep-parseable: `## [YYYY-MM-DD]`)
+├── overview.md       # high-level synthesis of everything
+├── sources/          # one summary per ingested doc
+├── entities/         # people, tools, packages, workspaces, roles
+├── concepts/         # ideas, patterns, techniques, DDD concepts
+└── synthesis/        # query answers filed back into wiki
+```
+
+### Page Conventions
+
+Every wiki page has:
+- `type:` in YAML frontmatter — one of: `source-summary`, `entity`, `concept`, `synthesis`, `index`, `log`, `overview`
+- `tags:` with `wiki/` namespace — e.g. `wiki/source`, `wiki/entity`, `wiki/concept`
+- `date_created:`, `last-reviewed:`, `next-review-date:` (ISO dates, review within 6 months)
+- `owner:` — role or team
+
+Additional frontmatter by page type:
+- Source summaries: `source_file:`, `date_ingested:`
+- Entity pages: `source_count:`, `entity_type:` (person/tool/package/workspace/role)
+- Concept pages: `source_count:`, `confidence:` (high/medium/low)
+- Synthesis pages: `query:`, `date_created:`
+
+Content conventions:
+- Heavy `[[wikilinks]]` everywhere for Obsidian graph view
+- `[key::value]` inline metadata for Dataview queries
+- Keep source summaries factual — no interpretation
+- Interpretation and analysis go in concept/synthesis pages
+- When sources contradict each other, note it explicitly — never silently overwrite
+- Never modify raw source files under any circumstances
+- Wiki pages use English (technical domain), matching the language policy
+
+### Operations
+
+#### Ingest
+
+Process a raw source from `docs/` into the wiki:
+
+1. Read the raw source completely
+2. Create a source summary in `Wiki/sources/` with `type: source-summary`
+3. Create/update entity pages in `Wiki/entities/` for every distinct entity mentioned
+4. Create/update concept pages in `Wiki/concepts/` for every domain concept, pattern, or technique
+5. Update `Wiki/index.md` — add to Sources/Entities/Concepts tables, remove from Unprocessed
+6. Update `Wiki/overview.md` if the big picture changed
+7. Append to `Wiki/log.md` with format: `## [YYYY-MM-DD] ingest | Source Title`
+
+A single ingest typically touches 5-15 wiki pages.
+
+#### Query
+
+Answer questions against the wiki:
+
+1. Read `Wiki/index.md` to find relevant pages
+2. Read relevant wiki pages (not raw sources — the wiki should have what you need)
+3. Synthesize an answer with wikilinks
+4. If the answer is substantial, file it as a new page in `Wiki/synthesis/` with `type: synthesis`
+5. Update `Wiki/index.md` and `Wiki/log.md`
+
+#### Lint
+
+Health-check the wiki. Report:
+- Orphan pages (no inbound wikilinks)
+- Broken wikilinks
+- Stale pages (date_updated older than newest relevant source)
+- Contradictions between pages
+- Concepts mentioned in prose but lacking their own page
+- Missing cross-references
+
+### Rules
+
+- Never modify raw source files in `docs/`. They are immutable.
+- Always update `Wiki/index.md` and `Wiki/log.md` on every wiki change.
+- Keep source summaries factual. Interpretation goes in concept/synthesis pages.
+- When sources contradict each other, note it explicitly — never silently overwrite.
+- This schema evolves. Update AGENTS.md as we discover what works.
+
+## Obsidian in Development
+
+This project is an Obsidian vault. Use Obsidian as a first-class development tool alongside the codebase.
+
+### When to Use Obsidian vs Code Tools
+
+| Scenario | Tool | Why |
+|----------|------|-----|
+| Domain concept lookup | `Wiki/` pages or raw `docs/` | Wiki has distilled knowledge; raw docs are authoritative |
+| Code-level search (symbols, imports) | grep / graphify | Code navigation, not document navigation |
+| Architecture / design questions | `Wiki/index.md` → relevant page | Wiki is a persistent knowledge cache |
+| Creating a new doc under `docs/` | Write directly | LLM writes factual docs; Obsidian renders them |
+| Navigating document relationships | Graph View / backlinks / [[wikilinks]] | Obsidian native features |
+| Checking a doc's frontmatter | `obsidian property:get` or direct read | Fast metadata access without opening the file |
+| Searching across all docs | `obsidian search` or grep | Obsidian search understands wikilinks and aliases |
+
+### Obsidian CLI Quick Reference
+
+```
+obsidian read file="Note Name"              # read a note by title
+obsidian create name="New" content="# Hello" silent
+obsidian append file="Note" content="line"
+obsidian search query="term" limit=10        # vault-aware search
+obsidian property:get name="status" file="Note"
+obsidian property:set name="status" value="done" file="Note"
+obsidian daily:read                          # today's daily note
+```
+
+Use `obsidian` CLI when you need vault-aware operations (aliases, wikilinks, property queries). Use direct file reads for raw content.
+
+### Development Flow with Obsidian
+
+1. **Before coding**: If unsure about domain terms, query the wiki (`Wiki/index.md` → relevant entity/concept page). Fall back to raw `docs/` only if the wiki lacks coverage.
+
+2. **During implementation**: Reference `docs/` source files directly for specs, ADRs, and plans. These are immutable — don't edit them while coding against them.
+
+3. **After design decisions**: If a new domain concept or naming decision emerges, log it in `docs/07-governance/domain-naming-decision-log.md` following existing `DDD-NNN` format before using the term in code.
+
+4. **Wiki maintenance**: After significant doc changes (new ADR, updated spec, new decision), run `ingest` to update the wiki. The wiki is a cache — it must stay current with `docs/`.
+
+### Property Navigation
+
+Documents under `docs/` use frontmatter with canonical fields (`status`, `type`, `version`, `owner`). Use these patterns:
+- Find all active proposals: grep `status: active` + `type: proposal`
+- Find docs needing review: search for `next-review-date` values in the past
+- Identify provisional concepts: look for `status: provisional` in glossary entries
+
+### Graph Integration
+
+The project has two complementary knowledge graphs:
+- **Obsidian Graph View** — document-level relationships via [[wikilinks]] and tags. Shows domain concept clusters.
+- **graphify** — code-level relationships (symbols, imports, functions). Use for codebase questions.
+
+Use Obsidian graph for architecture/domain questions; use graphify for implementation/code questions.

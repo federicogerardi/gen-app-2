@@ -1,4 +1,4 @@
-import type { GenerationSystemEvent } from '../types/xstate';
+import type { GenerationSystemEvent, WorkflowStepType } from '../types/xstate';
 import {
   getAcquisitionDoneOutput,
   getCrawlingDoneOutput,
@@ -18,6 +18,7 @@ import {
   resolveRequestScopedStepDescriptor,
   resolveToolWorkflowPlan,
 } from './generation-routing';
+import { STEP_TYPE_BY_TOOL_AND_STEP } from '../runtime/tool-workflow-registry';
 
 type GenerationGuardArgs = {
   context: GenerationMachineContext;
@@ -80,16 +81,23 @@ export const generationSystemGuards = {
   toolOutputIsCompleted: ({ event }: GenerationGuardArgs) =>
     getToolDoneOutput(event)?.type === 'WORKFLOW_STEP_COMPLETED',
   modeIsGenerate: ({ context }: GenerationGuardArgs) => context.mode === 'generate',
-  isNotGeometric: ({ context }: GenerationGuardArgs) => {
+  routeIsCrawlingStep: ({ context }: GenerationGuardArgs) => {
     const domain = selectDomainContext(context);
     const toolKey = domain.toolKey ?? '';
-    return toolKey !== 'geometric';
+    const step = (context.requestInput as Record<string, unknown>).step;
+    if (!toolKey || !step || typeof step !== 'string') return false;
+    const stepTypeMap = (STEP_TYPE_BY_TOOL_AND_STEP as Record<string, Record<string, WorkflowStepType> | undefined>)[toolKey as string];
+    if (!stepTypeMap) return false;
+    return stepTypeMap[step] === 'crawling';
   },
-  routeIsGeometric: ({ context }: GenerationGuardArgs) => {
+  routeIsScoringStep: ({ context }: GenerationGuardArgs) => {
     const domain = selectDomainContext(context);
     const toolKey = domain.toolKey ?? '';
-    const workflowType = domain.workflowType ?? '';
-    return toolKey === 'geometric' || workflowType === 'geometric';
+    const step = (context.requestInput as Record<string, unknown>).step;
+    if (!toolKey || !step || typeof step !== 'string') return false;
+    const stepTypeMap = (STEP_TYPE_BY_TOOL_AND_STEP as Record<string, Record<string, WorkflowStepType> | undefined>)[toolKey as string];
+    if (!stepTypeMap) return false;
+    return stepTypeMap[step] === 'scoring';
   },
   isNotFinalArtifact: ({ context }: GenerationGuardArgs) => {
     if (context.routeType !== 'tool') {

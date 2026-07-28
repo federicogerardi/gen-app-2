@@ -270,8 +270,12 @@ export const generationSystemRequestStates = {
         target: 'extractionFlow',
       },
       {
-        guard: 'routeIsGeometric',
+        guard: 'routeIsCrawlingStep',
         target: 'crawlingFlow',
+      },
+      {
+        guard: 'routeIsScoringStep',
+        target: 'scoringFlow',
       },
       {
         guard: 'routeIsTool',

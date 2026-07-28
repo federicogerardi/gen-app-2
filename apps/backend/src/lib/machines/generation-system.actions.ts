@@ -80,7 +80,6 @@ type GenerationSystemGuardObject =
   | { type: 'routeIsExtraction'; params: unknown }
   | { type: 'routeIsTool'; params: unknown }
   | { type: 'routeIsGeneric'; params: unknown }
-  | { type: 'routeIsGeometric'; params: unknown }
   | { type: 'hasApiAcquisition'; params: unknown }
   | { type: 'idempotencyOutputIsReplay'; params: unknown }
   | { type: 'idempotencyOutputIsConflict'; params: unknown }

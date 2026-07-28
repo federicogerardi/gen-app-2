@@ -53,7 +53,7 @@ const buildWorkflowPlan = (
  * Only entries for steps with type !== 'generation' need to be listed.
  * Used by buildWorkflowPlan to attach type metadata to WorkflowStepDescriptor.
  */
-const STEP_TYPE_BY_TOOL_AND_STEP: Partial<Record<SupportedToolWorkflow, Record<string, WorkflowStepType>>> = {
+export const STEP_TYPE_BY_TOOL_AND_STEP: Partial<Record<SupportedToolWorkflow, Record<string, WorkflowStepType>>> = {
   'geometric': {
     'serp-crawling': 'crawling',
     'competitor-scoring': 'scoring',

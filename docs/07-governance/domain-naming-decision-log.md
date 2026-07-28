@@ -1,12 +1,12 @@
 ---
-status: approved
-version: 2.9
-date_created: 2026-05-04
+status: active
+version: 4.16
+date_created: 2026-05-03
 last-reviewed: 2026-07-28
 next-review-date: 2027-01-28
-owner: Domain Governance
+owner: Domain Architecture
 type: decision-log
-tags: [domain-naming, decision-log, ddd, governance]
+tags: [ddd, naming, decision-log, governance, canonical]
 ---
 
 # Domain Naming Decision Log
@@ -431,4 +431,5 @@ Artifact (DDD-001)                     Asset (DDD-188)
 | DDD-230 | 2026-07-20 | funnel-pages: rimozione produzione landing-page | **`funnel-pages` non produce più `landing-page`.** Il contratto `TOOL_ASSET_CONTRACTS['funnel-pages'].produces` passa da `['landing-page']` a `[]`. Unico producer di `landing-page` rimane `nextland`. `funnel-pages` resta consumatore di `persona`, `brand-voice`, `brief`, `angle`. | `funnel-pages` produce pagine HTML (optin, quiz, VSL) che non sono semanticamente `landing-page` nel dominio Asset — gli artifact di funnel-pages sono output di generazione consumati solo nel flusso del tool, non candidati riutilizzabili come Asset workspace. | all contexts |
 | DDD-231 | 2026-07-20 | meta-ads: rimozione produzione hook | **`meta-ads` produce solo `ad-copy`, non più `hook`.** Il contratto `TOOL_ASSET_CONTRACTS['meta-ads'].produces` passa da `['ad-copy', 'hook']` a `['ad-copy']`. `hook` diventa un AssetType senza producer — resta consumato da `meta-ads` (required) ma nessun tool lo produce. | `hook` come tipo prodotto da `meta-ads` non è mai stato effettivamente usato: gli hook sono incorporati nell'ad-copy, non estratti o archiviati separatamente. Rimuovere la produzione allinea il contratto alla realtà del dominio. L'AssetType `hook` rimane dichiarato per uso futuro (es. un tool dedicato "Hook Generator"). | all contexts |
 | DDD-232 | 2026-07-28 | crawling → acquisition (domain reclassification) + routing unification | **Reclassify `WorkflowStepType.crawling` as a specialized form of `acquisition` at the domain level.** Geometric's `serp-crawling` step retrieves data from SerpApi via the persisted `ApiService` system (DDD-102) — identical mechanism to all other `acquisition` steps. The code-level value `crawling` is retained for actor dispatch (`invokeCrawling` has SerpApi-specific logic: PAA discovery, AI Overview extraction). `scoring` is NOT reclassified — it is deterministic weighted-point computation. **Routing unification**: `routeIsGeometric` and `isNotGeometric` guards eliminated. Routing discriminates exclusively by `WorkflowStepType` read from `STEP_TYPE_BY_TOOL_AND_STEP`. New guards `routeIsCrawlingStep` and `routeIsScoringStep` are step-type-based — zero tool-specific hardcoding. Status: **adopted** — fully implemented. Frontend redesign unified: `ToolFeedbackPanel` replaces 4 fragmented components with card-based progress UI (governance-compliant: CTA §4b, Feedback §7, Token §12). | `crawling` is functionally identical to `acquisition`: same `apiService` adapter, same `api_service_tool_step_bindings` table. Reclassifying eliminates the misleading separation. Eliminating tool-specific guards enforces registry-driven routing: any future tool adding step types to `STEP_TYPE_BY_TOOL_AND_STEP` gets correct routing automatically. | all contexts |
+| DDD-233 | 2026-07-28 | blog-article-generator LLM override migration to perplexity/sonar-pro-search | **Migrate blog-article-generator steps 1 (`blog_seo_structure`) and 2 (`blog_research`) from `openai/gpt-4o-search-preview` to `perplexity/sonar-pro-search`.** `openai/gpt-4o-search-preview` (and the original `gpt-4o-mini-search-preview` from DDD-157) have been deprecated by OpenAI. `perplexity/sonar-pro-search` provides equivalent search-enabled generation capabilities with real-time web search. Step 3 (`blog_article`) remains on `openai/gpt-5.2` (not deprecated, no equivalent search-capable alternative needed for composition step). **Seed**: new model `perplexity/sonar-pro-search` added to `llm_models` catalog via `20260727_000001_perplexity_sonar_blog_model.sql`. **Config**: `step-llm-model-overrides.config.ts` updated for both steps. **DDD-157** is partially superseded: the specific model IDs from the original decision are obsolete, but the `StepLlmModelOverrideConfig` pattern (DDD-150) and override rationale remain valid. | OpenAI deprecated `gpt-4o-mini-search-preview` and `gpt-4o-search-preview`. The actual running config had already diverged from DDD-157 (using `gpt-4o-search-preview` for both steps, while DDD-157 specified `gpt-4o-mini-search-preview` for step 1 and `gpt-5-search-api` for step 2 — the latter never even seeded). `perplexity/sonar-pro-search` is the best current search-enabled model for SEO structure and research tasks. | all contexts |
 ```

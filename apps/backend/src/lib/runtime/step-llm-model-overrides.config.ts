@@ -36,36 +36,20 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
   [createOverrideKey('blog-article-generator', 'blog_seo_structure')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_seo_structure',
-    overrideModelId: 'openai/gpt-4o-search-preview',
-    reason: 'Search-enabled for SEO structure generation (gpt-4o-mini variant deprecated by OpenAI)'
+    overrideModelId: 'perplexity/sonar-pro-search',
+    reason: 'Search-enabled for SEO structure generation (perplexity/sonar-pro-search per DDD-157 revision)'
   },
   [createOverrideKey('blog-article-generator', 'blog_research')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_research',
-    overrideModelId: 'openai/gpt-4o-search-preview',
-    reason: 'Advanced search capabilities for comprehensive research'
+    overrideModelId: 'perplexity/sonar-pro-search',
+    reason: 'Advanced search capabilities for comprehensive research (perplexity/sonar-pro-search per DDD-157 revision)'
   },
   [createOverrideKey('blog-article-generator', 'blog_article')]: {
     toolKey: 'blog-article-generator',
     stepKey: 'blog_article',
     overrideModelId: 'openai/gpt-5.2',
     reason: 'Large context, advanced reasoning for article composition'
-  },
-
-  // Geometric — full reports with competitor tables and CSV dataset
-  [createOverrideKey('geometric', 'strategic-reporting')]: {
-    toolKey: 'geometric',
-    stepKey: 'strategic-reporting',
-    overrideModelId: 'openrouter/auto',
-    reason: 'SERP intelligence analysis with competitor ranking context',
-    maxTokens: 4096,
-  },
-  [createOverrideKey('geometric', 'unified-report')]: {
-    toolKey: 'geometric',
-    stepKey: 'unified-report',
-    overrideModelId: 'openai/gpt-5.2',
-    reason: 'Full unified report with all competitor tiers, markdown tables, and CSV dataset',
-    maxTokens: 8192,
   },
 } as const;
 

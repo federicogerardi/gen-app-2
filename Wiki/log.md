@@ -8,6 +8,12 @@ Every ingest, lint run, and maintenance operation is recorded here automatically
 ---
 Append-only record of every wiki modification. Each entry starts with `## [YYYY-MM-DD] operation | Title` so it's grep-parseable.
 
+## [2026-07-28] ingest | Global Deterministic LLM Model Step Matrix
+
+Created source summary: [[Wiki/sources/global-deterministic-model-matrix-proposal]]. Added DDD-234 to [[Wiki/sources/domain-naming-decision-log|decision log]]. Proposal assigns a deterministic LLM model to all 25 LLM steps across 11 tools using a 4-tier palette: `anthropic/claude-sonnet-4.6` (17 steps, copy/strategy), `openai/gpt-5.2` (3 steps, large context), `openai/gpt-4.1-mini` (5 steps, structured/simple), `perplexity/sonar-pro-search` (2 steps, search). Eliminates non-deterministic `openrouter/auto` from active use.
+
+Updated [[Wiki/index|index.md]].
+
 ## [2026-07-28] implement | Tool Page Feedback Panel Redesign — phases 1-4 completed
 
 Created source summary: [[Wiki/sources/tool-page-feedback-panel-redesign-spec]] (v1.1, governance compliant). Created entity pages: [[Wiki/entities/tool-feedback-panel|ToolFeedbackPanel]], [[Wiki/entities/pre-flight-readiness|PreFlightReadiness]], [[Wiki/entities/job-progress-dashboard|JobProgressDashboard]]. Created concept pages: [[Wiki/concepts/unified-feedback-panel|Unified Feedback Panel]], [[Wiki/concepts/card-based-progress-ui|Card-Based Progress UI]]. Updated [[Wiki/entities/generation-system|GenerationSystem]] with frontend feedback panel integration. All four phases implemented in `feat/tool-workflow-job-system`: Phase 1 (PreFlightReadiness), Phase 2 (CurrentActivity + ActionBar), Phase 3 (ToolFeedbackPanel wrapper), Phase 4 (dead code removal). Plan status updated to implemented.

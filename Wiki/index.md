@@ -49,6 +49,7 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 | [[Wiki/sources/tool-governance-tool-matrix\|tool-governance-tool-matrix]] | Tool Governance Matrix | 2026-07-28 | active |
 | [[Wiki/sources/fix-geometric-duplicate-crawling-plan\|fix-geometric-duplicate-crawling-plan]] | Unify Geometric Routing — Zero Tool-Specific Exceptions | 2026-07-28 | implemented |
 | [[Wiki/sources/tool-page-feedback-panel-redesign-spec\|tool-page-feedback-panel-redesign-spec]] | Tool Page Feedback Panel Redesign Specification | 2026-07-28 | implemented |
+| [[Wiki/sources/global-deterministic-model-matrix-proposal\|global-deterministic-model-matrix-proposal]] | Global Deterministic LLM Model Step Matrix | 2026-07-28 | draft |
 
 ## Entities
 
@@ -115,7 +116,8 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 - ~~`geometric-admin-debug-monitoring-proposal`~~ ✔ ingested
 - ~~`prompt-layer-quality-review`~~ ✔ ingested
 - ~~`session-aggregation-implementation-guide`~~ ✔ ingested
-- Remaining: ~8 archived specs and proposals in subdirectories
+- ~~`global-deterministic-model-matrix-proposal`~~ ✔ ingested
+- Remaining: ~7 archived specs and proposals in subdirectories
 
 ### 03-development
 - ~~`prompt-template-standards`~~ ✔ ingested

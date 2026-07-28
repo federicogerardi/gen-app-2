@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
 import { PreFlightReadiness } from './PreFlightReadiness';
@@ -19,16 +20,20 @@ type ToolWorkflowJobPanelProps = {
   completedSteps: string[];
   errorMessage: string | null;
   isStreamActive: boolean;
-  /* Pre-flight readiness (Phase 1) */
+  /* Phase 1: pre-flight readiness */
   workspaceName: string | null;
   briefingFileName: string | null;
   isBriefingReady: boolean;
+  /* Phase 2: action bar */
+  sessionId: string | null;
   onCancel?: () => void;
+  onRetry?: () => void;
 };
 
 const statusCopy = appCopy.ui.toolWorkflowJob.status;
 const cancelCopy = appCopy.ui.toolWorkflowJob.cancel;
 const streamCopy = appCopy.ui.toolWorkflowJob.stream;
+const fpCopy = appCopy.ui.toolPage.feedbackPanel;
 
 const resolvePanelStatus = (
   isStreamActive: boolean,
@@ -51,6 +56,25 @@ const barVariantByStatus: Record<string, BarVariant> = {
   failed: 'idle',
 };
 
+/**
+ * Derive a human-readable activity description for the current step.
+ * Falls back to the step status label if no per-step copy exists.
+ */
+const deriveActivityText = (
+  panelStatus: 'queued' | 'running' | 'completed' | 'failed',
+  currentStepLabel: string | null,
+): string | null => {
+  if (panelStatus === 'running' && currentStepLabel) {
+    return `${currentStepLabel}…`;
+  }
+  if (panelStatus === 'completed') {
+    return fpCopy.completedSummary
+      ? fpCopy.completedSummary(0) /* count injected by parent */
+      : statusCopy.completed;
+  }
+  return null;
+};
+
 export const ToolWorkflowJobPanel = ({
   jobId,
   stepItems,
@@ -62,7 +86,9 @@ export const ToolWorkflowJobPanel = ({
   workspaceName,
   briefingFileName,
   isBriefingReady,
+  sessionId,
   onCancel,
+  onRetry,
 }: ToolWorkflowJobPanelProps) => {
   const totalSteps = stepItems.length;
   const panelStatus = resolvePanelStatus(isStreamActive, currentRunningStep, completedSteps, totalSteps, errorMessage);
@@ -73,10 +99,11 @@ export const ToolWorkflowJobPanel = ({
     : null;
 
   const completedCount = completedSteps.length;
+  const activityText = deriveActivityText(panelStatus, currentStepLabel);
 
   return (
     <div className="ui-fv-dashboard" role="region" aria-label={`Tool workflow job ${jobId}`}>
-      {/* ── Pre-flight readiness (Phase 1): shows workspace + briefing confirmed ── */}
+      {/* ── Pre-flight readiness (Phase 1): workspace + briefing confirmed ── */}
       {panelStatus === 'queued' && (
         <PreFlightReadiness
           workspaceName={workspaceName}
@@ -104,7 +131,7 @@ export const ToolWorkflowJobPanel = ({
           <span className={`ui-twjob-status-text ui-twjob-status-text--${panelStatus}`}>
             {statusCopy[panelStatus]}
           </span>
-          {currentStepLabel && (
+          {currentStepLabel && panelStatus === 'running' && (
             <>
               {' — '}
               <span className="ui-twjob-current-step">{currentStepLabel}</span>
@@ -112,6 +139,17 @@ export const ToolWorkflowJobPanel = ({
           )}
         </p>
       </div>
+
+      {/* ── Current activity (Phase 2): human-readable "what's happening NOW" ── */}
+      {activityText && (
+        <p
+          className="ui-twjob-activity"
+          role="status"
+          aria-live="polite"
+        >
+          {activityText}
+        </p>
+      )}
 
       {/* ── Step counter ── */}
       <p className="ui-fv-progress-metric">
@@ -143,10 +181,19 @@ export const ToolWorkflowJobPanel = ({
         </ul>
       </div>
 
-      {/* ── Error ── */}
-      {errorMessage && (
+      {/* ── Error + Retry (Phase 2) ── */}
+      {errorMessage && panelStatus === 'failed' && (
         <div className="ui-fv-card" role="alert">
           <p className={cx(uiPrimitives.error)}>{errorMessage}</p>
+          {onRetry && (
+            <button
+              type="button"
+              className={cx(uiPrimitives.button, 'ui-twjob-retry-btn')}
+              onClick={onRetry}
+            >
+              {fpCopy.actionRetry ?? 'Retry'}
+            </button>
+          )}
         </div>
       )}
 
@@ -157,7 +204,7 @@ export const ToolWorkflowJobPanel = ({
         </div>
       )}
 
-      {/* ── Cancel ── */}
+      {/* ── Action bar (Phase 2): contextual CTA per state ── */}
       {panelStatus === 'running' && onCancel && (
         <button
           type="button"
@@ -166,6 +213,15 @@ export const ToolWorkflowJobPanel = ({
         >
           {cancelCopy.label}
         </button>
+      )}
+
+      {panelStatus === 'completed' && sessionId && (
+        <Link
+          to={`/sessions/${sessionId}`}
+          className={cx(uiPrimitives.button, 'ui-twjob-view-results-btn')}
+        >
+          {fpCopy.actionViewResults ?? 'View Results'}
+        </Link>
       )}
     </div>
   );

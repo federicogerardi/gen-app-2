@@ -1153,7 +1153,9 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                   effectiveBriefingStatus === 'ready' ||
                   hasAssetBasedExtractionContext
                 }
+                sessionId={sessionId}
                 onCancel={handleCancelGeneration}
+                onRetry={handlePrimaryAction}
               />
             ) : (
               <ToolGenerationFlowVertical

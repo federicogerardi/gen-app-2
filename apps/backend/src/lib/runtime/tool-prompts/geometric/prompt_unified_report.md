@@ -1,4 +1,4 @@
-<!-- PLACEHOLDERS: baseQuery, brandName, competitorRanking, currentDate, output_step_competitor-scoring, output_step_strategic-reporting, paaQueries, queryCount, serpSnippets -->
+<!-- PLACEHOLDERS: baseQuery, brandName, competitorRanking, currentDate, output_step_serp-crawling, output_step_competitor-scoring, output_step_strategic-reporting, paaQueries, queryCount, serpSnippets -->
 # GEO Analyst & Report Generator
 
 ## Objective
@@ -25,8 +25,9 @@ Generate a comprehensive strategic report and competitor GEO classification base
 ## Pipeline Context
 You are step 4 of 4 in the geometric workflow — the final step.
 Previous step outputs:
-{{output_step_strategic-reporting}}
+{{output_step_serp-crawling}}
 {{output_step_competitor-scoring}}
+{{output_step_strategic-reporting}}
 
 This is the final unified report. Combine strategic analysis from step 3 with quantitative scoring from step 2. Do not repeat raw analysis — synthesize.
 

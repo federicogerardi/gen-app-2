@@ -26,6 +26,7 @@ import {
   type ToolWorkflowPlan,
   STEP_TYPE_BY_TOOL_AND_STEP,
 } from './tool-workflow-registry';
+import { getStepOverride } from './step-llm-model-overrides.config';
 import type { ToolWorkflowJobData } from './tool-workflow-job-queue';
 
 const log = createComponentLogger(LogComponent.TOOL_WORKFLOW_JOB_PROCESSOR);
@@ -89,6 +90,16 @@ const buildBackendGenerationRequest = (
   }
   if (typeof ep?.country === 'string' && (ep.country as string).trim().length > 0) {
     (input as Record<string, unknown>).country = ep.country;
+  }
+
+  // Propagate maxTokens from StepLlmModelOverride config for this tool/step.
+  // The processor runs in the BullMQ worker without access to the modelResolver,
+  // so we read the override config directly.
+  if (!(input as Record<string, unknown>).maxTokens) {
+    const override = getStepOverride(jobData.toolKey as ToolKey, stepKey);
+    if (override?.maxTokens != null) {
+      (input as Record<string, unknown>).maxTokens = override.maxTokens;
+    }
   }
 
   return {

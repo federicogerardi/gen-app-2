@@ -1,5 +1,6 @@
 import { appCopy } from '../../../app/copy/system';
 import { cx, uiPrimitives } from '../../../app/ui/primitives';
+import { PreFlightReadiness } from './PreFlightReadiness';
 
 type StepStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -18,6 +19,10 @@ type ToolWorkflowJobPanelProps = {
   completedSteps: string[];
   errorMessage: string | null;
   isStreamActive: boolean;
+  /* Pre-flight readiness (Phase 1) */
+  workspaceName: string | null;
+  briefingFileName: string | null;
+  isBriefingReady: boolean;
   onCancel?: () => void;
 };
 
@@ -54,6 +59,9 @@ export const ToolWorkflowJobPanel = ({
   completedSteps,
   errorMessage,
   isStreamActive,
+  workspaceName,
+  briefingFileName,
+  isBriefingReady,
   onCancel,
 }: ToolWorkflowJobPanelProps) => {
   const totalSteps = stepItems.length;
@@ -68,6 +76,15 @@ export const ToolWorkflowJobPanel = ({
 
   return (
     <div className="ui-fv-dashboard" role="region" aria-label={`Tool workflow job ${jobId}`}>
+      {/* ── Pre-flight readiness (Phase 1): shows workspace + briefing confirmed ── */}
+      {panelStatus === 'queued' && (
+        <PreFlightReadiness
+          workspaceName={workspaceName}
+          briefingFileName={briefingFileName}
+          isBriefingReady={isBriefingReady}
+        />
+      )}
+
       {/* ── Phase label ── */}
       <p className="ui-fv-progress-metric">
         {appCopy.ui.toolPage.flow.phaseGenerationLabel}

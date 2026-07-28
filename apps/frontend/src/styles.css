@@ -3073,3 +3073,78 @@ ul {
   width: 100%;
   margin-top: var(--space-micro);
 }
+
+/* ── PreFlightReadiness card (Phase 1: pre-job readiness checklist) ── */
+.ui-pfr-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1-5) var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--surface-glass);
+  min-width: 0;
+}
+
+:root[data-theme='dark'] .ui-pfr-card {
+  background: var(--surface-glass);
+}
+
+.ui-pfr-title {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ui-pfr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-micro);
+}
+
+.ui-pfr-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-micro) var(--space-1);
+  border-radius: var(--radius-button);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.ui-pfr-item--done {
+  background: var(--interactive-soft);
+  color: var(--text-soft);
+}
+
+.ui-pfr-item--missing {
+  color: var(--text-muted);
+}
+
+.ui-pfr-item-icon {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--border-subtle);
+}
+
+.ui-pfr-item--done .ui-pfr-item-icon {
+  background-color: var(--success-pine);
+}
+
+.ui-pfr-item-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.ui-pfr-error-slot {
+  display: none;
+}

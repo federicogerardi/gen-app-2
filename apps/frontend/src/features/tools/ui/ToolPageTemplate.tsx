@@ -29,6 +29,7 @@ import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
 import { useWorkspace } from '../../workspace/runtime/WorkspaceProvider';
+import { useWorkspaceProject } from '../../workspace/runtime/WorkspaceProjectContext';
 import { getToolAssetInputs } from '../../workspace/runtime/toolAssetRegistry';
 
 const campaignObjectiveOptions = appCopy.ui.toolPage.form.campaignObjectiveOptions;
@@ -91,6 +92,15 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
     }
   })();
   const workspaceProjectId = workspaceContext?.workspace.id ?? '';
+  const workspaceProjectName = (() => {
+    try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const { projectName } = useWorkspaceProject();
+      return projectName;
+    } catch {
+      return null;
+    }
+  })();
 
   // ── Per-type asset satisfaction: map selected asset IDs to their types ──
   const selectedAssetTypes = useMemo(() => {
@@ -1137,6 +1147,12 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
                 completedSteps={[...completedStepsForFlow]}
                 errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
                 isStreamActive={isStreamActive}
+                workspaceName={workspaceProjectName}
+                briefingFileName={effectiveBriefingFileName}
+                isBriefingReady={
+                  effectiveBriefingStatus === 'ready' ||
+                  hasAssetBasedExtractionContext
+                }
                 onCancel={handleCancelGeneration}
               />
             ) : (

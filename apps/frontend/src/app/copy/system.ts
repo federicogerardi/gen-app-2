@@ -289,6 +289,13 @@ export const appCopy = {
         defaultExtractionStepLabel: 'Preparing context',
         loadingActionLabel: 'Processing...',
       },
+      feedbackPanel: {
+        preFlightTitle: 'Before you start, make sure:',
+        workspaceLabel: 'Workspace',
+        workspaceMissing: 'Select a workspace',
+        briefingLabel: 'Brief',
+        briefingMissing: 'Upload a briefing document',
+      },
       openSessionLabel: 'Open session',
     },
     toolWorkspaceStatus: {

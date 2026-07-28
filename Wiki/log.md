@@ -8,7 +8,9 @@ Every ingest, lint run, and maintenance operation is recorded here automatically
 ---
 Append-only record of every wiki modification. Each entry starts with `## [YYYY-MM-DD] operation | Title` so it's grep-parseable.
 
-## [2026-07-28] ingest | Fix Geometric Duplicate Crawling Plan (v2.1) — routing unification + 2 new concepts
+## [2026-07-28] implement | Fix Geometric Duplicate Crawling Plan — completed, end-to-end verified
+
+Plan implemented (v2.1). All 8 tasks completed across 5 BE files + 2 templates + 1 glossary + 1 DDD log. Pipeline verified on Railway dev DB. Updated [[Wiki/sources/fix-geometric-duplicate-crawling-plan|source summary]] with implementation status, [[Wiki/entities/generation-system|GenerationSystem]] with routing governance, [[Wiki/concepts/registry-driven-routing|registry-driven-routing]] and [[Wiki/concepts/step-type-registry|step-type-registry]] concepts created. [[Wiki/index|index]], [[Wiki/log|log]], [[Wiki/overview|overview]] updated.
 
 Created source summary: [[Wiki/sources/fix-geometric-duplicate-crawling-plan]]. Created concept pages: [[Wiki/concepts/registry-driven-routing|Registry-Driven Routing]], [[Wiki/concepts/step-type-registry|STEP_TYPE_BY_TOOL_AND_STEP Registry]]. Updated [[Wiki/entities/generation-system|GenerationSystem]] entity with routing governance notes.
 

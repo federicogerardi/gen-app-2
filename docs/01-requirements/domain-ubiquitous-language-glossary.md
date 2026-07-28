@@ -1,9 +1,9 @@
 ---
 status: active
-version: 2.23
+version: 2.24
 date_created: 2026-05-03
-last-reviewed: 2026-07-20
-next-review-date: 2026-10-20
+last-reviewed: 2026-07-28
+next-review-date: 2027-01-28
 owner: Domain Architecture
 type: glossary
 tags: [ddd, ubiquitous-language, glossary, canonical, domain]

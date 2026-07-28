@@ -15,7 +15,17 @@ date_ingested: 2026-07-28
 
 # Fix Geometric Duplicate Crawling — Source Summary
 
-Implementation plan (v2.1, draft) to eliminate all geometric-specific exceptions from the [[Wiki/entities/generation-system|GenerationSystem]] routing layer.
+Implementation plan (v2.1, **implemented** 2026-07-28) to eliminate all geometric-specific exceptions from the [[Wiki/entities/generation-system|GenerationSystem]] routing layer.
+
+## Status: ✅ Implemented
+
+Pipeline end-to-end verified on dev DB (Railway):
+- 1 SerpApi call + 1 scoring LLM + 2 generation LLM (was 4+4+4)
+- All `{{output_step_xxx}}` placeholders replaced correctly
+- PAA queries, baseQuery, brandName injected via enriched step dependency content
+- `competitor-scoring` step skipped via Phase 2 optimization
+- `maxTokens` override (8192) via `StepLlmModelOverride` config
+- 452 tests passing, zero regressions on 10 non-geometric tools
 
 ## Core Problem
 

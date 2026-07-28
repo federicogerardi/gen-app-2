@@ -47,7 +47,7 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 | [[Wiki/sources/session-aggregation-implementation-guide\|session-aggregation-implementation-guide]] | Session Aggregation Guide | 2026-07-28 | draft |
 | [[Wiki/sources/llm-model-override-configuration-guide\|llm-model-override-configuration-guide]] | LLM Model Override Config Guide | 2026-07-28 | active |
 | [[Wiki/sources/tool-governance-tool-matrix\|tool-governance-tool-matrix]] | Tool Governance Matrix | 2026-07-28 | active |
-| [[Wiki/sources/fix-geometric-duplicate-crawling-plan\|fix-geometric-duplicate-crawling-plan]] | Unify Geometric Routing — Zero Tool-Specific Exceptions | 2026-07-28 | draft |
+| [[Wiki/sources/fix-geometric-duplicate-crawling-plan\|fix-geometric-duplicate-crawling-plan]] | Unify Geometric Routing — Zero Tool-Specific Exceptions | 2026-07-28 | implemented |
 
 ## Entities
 

@@ -1,9 +1,10 @@
 ---
-status: draft
+status: implemented
 version: 2.1
 date_created: 2026-07-28
 last-reviewed: 2026-07-28
 next-review-date: 2027-01-28
+implementation_date: 2026-07-28
 owner: Backend Runtime
 type: implementation-plan
 tags: [geometric, bugfix, routing, crawling, scoring, deduplication, serpapi, generation-system, unification, be-driven]

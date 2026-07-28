@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Wiki/index.md",
+                "file": "AGENTS.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "index"
+              "title": "AGENTS"
             }
           }
         ]
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Wiki/index.md",
+                "file": "AGENTS.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from index"
+              "title": "Outgoing links from AGENTS"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Wiki/index.md",
+                "file": "AGENTS.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of index"
+              "title": "Outline of AGENTS"
             }
           },
           {
@@ -180,7 +180,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 587.5
+    "width": 587.5,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -197,6 +198,7 @@
   },
   "active": "9fe96df5e2dbde33",
   "lastOpenFiles": [
+    "Wiki/index.md",
     "Wiki/concepts/step-type-registry.md",
     "Wiki/concepts/registry-driven-routing.md",
     "Wiki/sources/fix-geometric-duplicate-crawling-plan.md",
@@ -222,7 +224,6 @@
     "Wiki/sources/tool-page-frontend-runtime-spec.md",
     "Wiki/concepts/canonical-ui-state-derivation.md",
     "Wiki/concepts/registry-driven-architecture.md",
-    "Wiki/concepts/explicit-error-states-pattern.md",
     "Tasks",
     "Untitled.canvas",
     "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",

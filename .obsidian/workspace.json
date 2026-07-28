@@ -198,6 +198,7 @@
   },
   "active": "7fecf5c700fd955e",
   "lastOpenFiles": [
+    "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",
     "Wiki/entities/job-progress-dashboard.md",
     "Wiki/entities/pre-flight-readiness.md",
     "Wiki/concepts/card-based-progress-ui.md",
@@ -225,10 +226,8 @@
     "Wiki/sources/tone-removal-brand-voice-delegation-plan.md",
     "Wiki/sources/architecture-weaknesses-code-review.md",
     "Wiki/sources/promote-to-asset-deterministic-mapping-review.md",
-    "Wiki/sources/llm-model-step-override-proposal.md",
     "Tasks",
     "Untitled.canvas",
-    "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",
     "flow",
     "wiki/entities",
     "wiki/concepts",

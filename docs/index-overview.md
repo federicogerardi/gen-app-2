@@ -161,6 +161,7 @@ Validation path manifest (orphan-check canonical set):
 - [workspace-centric-ux-transformation-ai-executable-plan](./05-plans/workspace-centric-ux-transformation-ai-executable-plan.md) — **IMPLEMENTED**: AI-executable task decomposition (47 tasks, all completed 2026-07-17).
 - [workspace-dashboard-ux-restyling-implementation-plan](./05-plans/workspace-dashboard-ux-restyling-implementation-plan.md) — **PARTIALLY IMPLEMENTED**: 15/19 tasks done. `FoundationToolsPanel` component missing (verified 2026-07-23).
 - [feature-tool-output-personalization-1](./05-plans/feature-tool-output-personalization-1.md) — **NOT IMPLEMENTED**: 0/23 tasks done (verified 2026-07-23).
+- [fix-geometric-duplicate-crawling-plan](./05-plans/fix-geometric-duplicate-crawling-plan.md) — **DRAFT v2.1: Unify Geometric routing — zero tool-specific exceptions. Elimina `routeIsGeometric`/`isNotGeometric` guard, routing step-type-based. Auto-chain preservata. DDD entry crawling→acquisition.**
 
 ### Active Proposals
 

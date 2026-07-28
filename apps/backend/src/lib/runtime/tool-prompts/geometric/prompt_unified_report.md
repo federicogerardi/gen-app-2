@@ -156,15 +156,7 @@ Al termine della generazione del report testuale Markdown, crea un blocco di cod
 
 ## Context Assembly Instructions
 
-Use the following variables provided by the system:
-
-- `{{baseQuery}}`: Primary search query
-- `{{paaQueries}}`: Array of discovered PAA questions
-- `{{queryCount}}`: Total number of queries (1 + length of paaQueries)
-- `{{currentDate}}`: Today's date in Italian format
-- `{{brandName}}`: Optional client brand name (may be empty)
-- `{{competitorRanking}}`: Object mapping domain → { geoScore, tier }
-- `{{serpSnippets}}`: Array of AI Overview text snippets
+This template receives prior step outputs via `{{output_step_xxx}}` placeholders (see Pipeline Context section above). The crawling data, PAA queries, competitor ranking, base query, brand name, and query count are available within those outputs. Use `{{currentDate}}` for the report date, `{{baseQuery}}` for the primary query, `{{brandName}}` for the client brand (may be empty), and `{{queryCount}}` for the total query count. These system variables are injected automatically.
 
 Generate the full report in markdown format. Ensure all tables are properly formatted with | delimiters and header separators.
 

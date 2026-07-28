@@ -510,6 +510,34 @@ export const generationSystemActions = {
         didReplace = true;
       }
 
+      // Replace {{baseQuery}} and {{brandName}} from requestInput or extractionPayload
+      // (used by geometric templates that still reference legacy variable names)
+      const ep = context.requestInput.extractionPayload as Record<string, unknown> | undefined;
+      if (filledPrompt.includes('{{baseQuery}}')) {
+        const baseQuery = typeof context.requestInput.baseQuery === 'string'
+          ? context.requestInput.baseQuery
+          : (typeof ep?.baseQuery === 'string' ? ep.baseQuery : '');
+        if (baseQuery.trim().length > 0) {
+          filledPrompt = filledPrompt.replace(/\{\{baseQuery\}\}/g, baseQuery);
+          didReplace = true;
+        }
+      }
+      if (filledPrompt.includes('{{brandName}}')) {
+        const brandName = typeof context.requestInput.brandName === 'string'
+          ? context.requestInput.brandName
+          : (typeof ep?.brandName === 'string' ? ep.brandName : '');
+        if (brandName.trim().length > 0) {
+          filledPrompt = filledPrompt.replace(/\{\{brandName\}\}/g, brandName);
+          didReplace = true;
+        }
+      }
+      if (filledPrompt.includes('{{queryCount}}')) {
+        const paaQueries = context.requestInput.paaQueries;
+        const queryCount = Array.isArray(paaQueries) ? 1 + paaQueries.length : 1;
+        filledPrompt = filledPrompt.replace(/\{\{queryCount\}\}/g, String(queryCount));
+        didReplace = true;
+      }
+
       // Only overwrite prompt if placeholders were actually resolved.
       // If no replacements were made, keep the existing prompt as-is.
       if (!didReplace) {

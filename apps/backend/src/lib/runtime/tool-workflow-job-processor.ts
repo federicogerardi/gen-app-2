@@ -24,6 +24,7 @@ import {
   resolveStepDependencyIds,
   isSupportedToolWorkflow,
   type ToolWorkflowPlan,
+  STEP_TYPE_BY_TOOL_AND_STEP,
 } from './tool-workflow-registry';
 import type { ToolWorkflowJobData } from './tool-workflow-job-queue';
 
@@ -32,7 +33,15 @@ const log = createComponentLogger(LogComponent.TOOL_WORKFLOW_JOB_PROCESSOR);
 const CANCEL_KEY_PREFIX = 'tool-job-cancel:';
 const ACTIVE_LOCK_PREFIX = 'tool-job-active:';
 
-type StepResult = { artifactId: string; content: string };
+type StepResult = { artifactId: string; content: string; requestInput?: Record<string, unknown> | undefined };
+
+const extractStructuredStepContent = (result: StepResult): string | null => {
+  const scoring = result.requestInput?.scoring;
+  if (scoring && typeof scoring === 'object' && !Array.isArray(scoring) && Object.keys(scoring).length > 0) {
+    return JSON.stringify(scoring, null, 2);
+  }
+  return null;
+};
 
 const buildBackendGenerationRequest = (
   jobData: ToolWorkflowJobData,
@@ -156,6 +165,7 @@ const runSingleStepGeneration = async (
   return {
     artifactId: doneSnapshot.context.artifactId ?? '',
     content: effectiveContent,
+    requestInput: doneSnapshot.context.requestInput as Record<string, unknown> | undefined,
   };
 };
 
@@ -447,6 +457,36 @@ export const processToolWorkflowJob = async (
       if (stepType === 'crawling' || stepType === 'scoring') {
         if (!completedStepContentsByType.has(stepType)) {
           completedStepContentsByType.set(stepType, result);
+        }
+      }
+
+      // Data-driven scoring extraction: after a crawling step, extract scoring
+      // content for upcoming scoring steps so the Phase 2 skip mechanism can
+      // reuse it. Works for ANY tool with crawling→scoring steps in the registry.
+      if (stepType === 'crawling') {
+        const upcomingScoringSteps = plan.steps.filter(s => {
+          const stm = (STEP_TYPE_BY_TOOL_AND_STEP as Record<string, Record<string, string> | undefined>)[toolKey as string];
+          return stm && stm[s.key] === 'scoring' && !completedStepContents.has(s.key);
+        });
+
+        if (upcomingScoringSteps.length > 0) {
+          const scoringContent = extractStructuredStepContent(result);
+          if (scoringContent) {
+            for (const scoringStep of upcomingScoringSteps) {
+              const scoringResult: StepResult = {
+                artifactId: `${result.artifactId}:${scoringStep.key}`,
+                content: scoringContent,
+              };
+              completedStepContents.set(scoringStep.key, scoringResult);
+              if (!completedStepContentsByType.has('scoring')) {
+                completedStepContentsByType.set('scoring', scoringResult);
+              }
+              jobLog.info({
+                stepKey,
+                scoringStepKey: scoringStep.key,
+              }, 'extracted scoring artifact from crawling step for scoring step skip');
+            }
+          }
         }
       }
 

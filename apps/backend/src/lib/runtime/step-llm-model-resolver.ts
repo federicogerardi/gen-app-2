@@ -48,6 +48,7 @@ export class StepLlmModelResolverImpl implements StepLlmModelResolver {
           source: 'step-override',
           overrideReason: override.reason,
           originalUserModel: userSelectedModel,
+          maxTokens: override.maxTokens,
         };
       }
     }

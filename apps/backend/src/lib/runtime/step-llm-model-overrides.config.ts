@@ -51,6 +51,22 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
     overrideModelId: 'openai/gpt-5.2',
     reason: 'Large context, advanced reasoning for article composition'
   },
+
+  // Geometric — full reports with competitor tables and CSV dataset
+  [createOverrideKey('geometric', 'strategic-reporting')]: {
+    toolKey: 'geometric',
+    stepKey: 'strategic-reporting',
+    overrideModelId: 'openrouter/auto',
+    reason: 'SERP intelligence analysis with competitor ranking context',
+    maxTokens: 4096,
+  },
+  [createOverrideKey('geometric', 'unified-report')]: {
+    toolKey: 'geometric',
+    stepKey: 'unified-report',
+    overrideModelId: 'openrouter/auto',
+    reason: 'Full unified report with all competitor tiers, markdown tables, and CSV dataset',
+    maxTokens: 8192,
+  },
 } as const;
 
 /**

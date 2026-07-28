@@ -13,6 +13,8 @@ export type StepLlmModelOverrideConfig = {
   stepKey: string;
   overrideModelId: LlmModelId;
   reason?: string;
+  /** Maximum output tokens for this step. Provider default if omitted. */
+  maxTokens?: number;
 };
 
 /**
@@ -32,6 +34,8 @@ export type EffectiveModelResolution = {
   source: 'user-selection' | 'step-override';
   overrideReason?: string | undefined;
   originalUserModel?: LlmModelId | undefined;
+  /** Maximum output tokens from step override config. Provider default if undefined. */
+  maxTokens?: number | undefined;
 };
 
 /**

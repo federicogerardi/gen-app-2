@@ -234,6 +234,17 @@ export const createOpenRouterLlmStreamAdapter = (
   options: OpenRouterAdapterOptions,
 ): LlmStreamAdapter => ({
   async *streamText(input: LlmStreamInput) {
+    const streamMaxTokens = typeof (input.requestInput as Record<string, unknown>)?.maxTokens === 'number'
+      ? (input.requestInput as Record<string, unknown>).maxTokens as number
+      : undefined;
+    const streamBody: Record<string, unknown> = {
+      model: normalizeOpenRouterModelId(input.model),
+      stream: true,
+      messages: buildMessages(input.requestInput),
+    };
+    if (streamMaxTokens != null) {
+      streamBody.max_tokens = streamMaxTokens;
+    }
     const requestInit: RequestInit = {
       method: 'POST',
       headers: {
@@ -242,12 +253,7 @@ export const createOpenRouterLlmStreamAdapter = (
         ...(options.httpReferer ? { 'HTTP-Referer': options.httpReferer } : {}),
         ...(options.appName ? { 'X-Title': options.appName } : {}),
       },
-      body: JSON.stringify({
-        model: normalizeOpenRouterModelId(input.model),
-        stream: true,
-        messages: buildMessages(input.requestInput),
-        max_tokens: 4096,
-      }),
+      body: JSON.stringify(streamBody),
       ...(input.signal ? { signal: input.signal } : {}),
     };
 
@@ -272,12 +278,17 @@ export const createOpenRouterLlmGenerateAdapter = (
   async generateText(input: LlmGenerateInput): Promise<LlmGenerateResult> {
     const normalizedModel = normalizeOpenRouterModelId(input.model);
     const messages = buildMessages(input.requestInput);
-    const requestBody = {
+    const maxTokens = typeof input.requestInput.maxTokens === 'number'
+      ? input.requestInput.maxTokens
+      : undefined;
+    const requestBody: Record<string, unknown> = {
       model: normalizedModel,
       stream: false,
       messages,
-      max_tokens: 4096,
     };
+    if (maxTokens != null) {
+      requestBody.max_tokens = maxTokens;
+    }
 
     const log = createComponentLogger(LogComponent.OPENROUTER);
     log.info({

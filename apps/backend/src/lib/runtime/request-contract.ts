@@ -202,6 +202,10 @@ export const buildRequestReceivedEvent = (
           originalUserModel: effectiveModelResolution.originalUserModel,
           overrideReason: effectiveModelResolution.overrideReason,
         },
+        // Propagate maxTokens override to adapter via requestInput
+        ...(effectiveModelResolution.maxTokens != null
+          ? { maxTokens: effectiveModelResolution.maxTokens }
+          : {}),
       }
       : {}),
   };

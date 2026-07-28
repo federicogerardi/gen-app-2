@@ -63,7 +63,7 @@ export const STEP_LLM_MODEL_OVERRIDES: Record<string, StepLlmModelOverrideConfig
   [createOverrideKey('geometric', 'unified-report')]: {
     toolKey: 'geometric',
     stepKey: 'unified-report',
-    overrideModelId: 'openrouter/auto',
+    overrideModelId: 'openai/gpt-5.2',
     reason: 'Full unified report with all competitor tiers, markdown tables, and CSV dataset',
     maxTokens: 8192,
   },

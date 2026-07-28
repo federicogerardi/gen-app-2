@@ -498,6 +498,18 @@ export const generationSystemActions = {
         didReplace = true;
       }
 
+      // Replace {{currentDate}} with today's date (used by geometric unified-report)
+      if (filledPrompt.includes('{{currentDate}}')) {
+        const d = new Date();
+        const currentDate = d.toLocaleDateString('it-IT', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        filledPrompt = filledPrompt.replace(/\{\{currentDate\}\}/g, currentDate);
+        didReplace = true;
+      }
+
       // Only overwrite prompt if placeholders were actually resolved.
       // If no replacements were made, keep the existing prompt as-is.
       if (!didReplace) {

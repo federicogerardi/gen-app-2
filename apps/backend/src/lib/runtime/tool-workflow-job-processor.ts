@@ -397,6 +397,24 @@ export const processToolWorkflowJob = async (
         if (content.content && content.content.trim().length > 0) {
           contentsByStep[depStepKey] = content.content;
         }
+        // Enrich crawling step content with structured data from requestInput
+        // (PAA queries, source list, baseQuery) so downstream templates get
+        // complete context beyond just the LLM-generated snippet.
+        const ri = content.requestInput?.crawling as Record<string, unknown> | undefined;
+        if (ri) {
+          const enrichedParts: string[] = [contentsByStep[depStepKey] ?? ''];
+          if (typeof ri.baseQuery === 'string' && ri.baseQuery.trim().length > 0) {
+            enrichedParts.push(`\n\nBase query: ${ri.baseQuery}`);
+          }
+          if (Array.isArray(ri.paaQueries) && (ri.paaQueries as string[]).length > 0) {
+            enrichedParts.push(`\n\nPAA queries (${(ri.paaQueries as string[]).length} total):\n${(ri.paaQueries as string[]).join('\n')}`);
+          }
+          if (typeof ri.brandName === 'string' && ri.brandName.trim().length > 0) {
+            enrichedParts.push(`\n\nBrand name: ${ri.brandName}`);
+          }
+          enrichedParts.push(`\n\nQuery count: ${1 + (Array.isArray(ri.paaQueries) ? (ri.paaQueries as string[]).length : 0)}`);
+          contentsByStep[depStepKey] = enrichedParts.join('');
+        }
       }
       if (Object.keys(contentsByStep).length > 0) {
         stepDependencyArtifactContentsByStep = contentsByStep;

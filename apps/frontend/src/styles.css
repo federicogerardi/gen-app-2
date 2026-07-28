@@ -2911,3 +2911,165 @@ ul {
     opacity: 0.4;
   }
 }
+
+/* ── ToolWorkflowJobPanel (BE-driven job feedback) ── */
+/* Reuses .ui-fv-dashboard, .ui-fv-card, .workflow-preload-bar from legacy flow.
+   Legacy classes will remain after legacy flow deprecation — they are the
+   canonical card/progress patterns for the Workflow Panel. */
+
+/* ── status badge text (queued / running / completed / failed) ── */
+.ui-twjob-status-text {
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+}
+
+.ui-twjob-status-text--queued {
+  color: var(--text-muted);
+}
+
+.ui-twjob-status-text--running {
+  color: var(--workspace-blue);
+}
+
+.ui-twjob-status-text--completed {
+  color: var(--success-pine);
+}
+
+.ui-twjob-status-text--failed {
+  color: var(--error-fg);
+}
+
+/* ── current step label ── */
+.ui-twjob-current-step {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── step card (the step tracker list) ── */
+.ui-twjob-step-card {
+  padding: var(--space-1) var(--space-2);
+}
+
+/* ── step list ── */
+.ui-twjob-step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-micro);
+}
+
+/* ── individual step row ── */
+.ui-twjob-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-micro) 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  border-left: 2px solid transparent;
+  padding-left: var(--space-1);
+  transition: border-color 300ms ease, background-color 300ms ease;
+}
+
+.ui-twjob-step--running {
+  color: var(--text-primary);
+  border-left-color: var(--workspace-blue);
+  background: var(--interactive-soft);
+  border-radius: 0 var(--radius-button) var(--radius-button) 0;
+  padding-left: var(--space-1-5);
+}
+
+.ui-twjob-step--done {
+  color: var(--text-soft);
+  border-left-color: var(--success-pine);
+}
+
+.ui-twjob-step--error {
+  color: var(--error-fg);
+  border-left-color: var(--error-fg);
+  background: var(--error-bg);
+  border-radius: 0 var(--radius-button) var(--radius-button) 0;
+  padding-left: var(--space-1-5);
+}
+
+/* ── step icon (colored dot using background-color) ── */
+.ui-twjob-step-icon {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--border-subtle);
+}
+
+.ui-twjob-step--running .ui-twjob-step-icon {
+  background-color: var(--workspace-blue);
+  animation: twjob-step-pulse 1.2s ease-in-out infinite;
+}
+
+.ui-twjob-step--done .ui-twjob-step-icon {
+  background-color: var(--success-pine);
+}
+
+.ui-twjob-step--error .ui-twjob-step-icon {
+  background-color: var(--error-fg);
+}
+
+@keyframes twjob-step-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-twjob-step--running .ui-twjob-step-icon {
+    animation: none;
+  }
+}
+
+/* ── step label ── */
+.ui-twjob-step-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-twjob-step--running .ui-twjob-step-label {
+  font-weight: 600;
+}
+
+/* ── step count (N/N for running step only) ── */
+.ui-twjob-step-count {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* ── reconnecting notice ── */
+.ui-twjob-reconnecting {
+  color: var(--warning-amber);
+  font-size: var(--font-size-xs);
+  margin: 0;
+  animation: twjob-reconnect-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes twjob-reconnect-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-twjob-reconnecting {
+    animation: none;
+  }
+}
+
+/* ── cancel button ── */
+.ui-twjob-cancel-btn {
+  width: 100%;
+  margin-top: var(--space-micro);
+}

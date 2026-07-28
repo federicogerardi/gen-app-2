@@ -1131,7 +1131,7 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
               <ToolWorkflowJobPanel
                 jobId={pendingJobId}
                 toolKey={props.toolKey}
-                stepStatuses={Object.fromEntries(stepItems.map((s) => [s.key, s.status])) as Record<string, 'idle' | 'running' | 'done' | 'error'>}
+                stepItems={stepItems as Array<{ key: string; label: string; status: 'idle' | 'running' | 'done' | 'error' }>}
                 stepLabels={Object.fromEntries(stepItems.map((s) => [s.key, s.label]))}
                 currentRunningStep={currentRunningStep}
                 completedSteps={[...completedStepsForFlow]}

@@ -1,12 +1,18 @@
 import { appCopy } from '../../../app/copy/system';
-import { ToolWorkflowJobStepTracker } from './ToolWorkflowJobStepTracker';
+import { cx, uiPrimitives } from '../../../app/ui/primitives';
 
 type StepStatus = 'idle' | 'running' | 'done' | 'error';
+
+type StepItem = {
+  key: string;
+  label: string;
+  status: StepStatus;
+};
 
 type ToolWorkflowJobPanelProps = {
   jobId: string;
   toolKey: string;
-  stepStatuses: Record<string, StepStatus>;
+  stepItems: StepItem[];
   stepLabels: Record<string, string>;
   currentRunningStep: string | null;
   completedSteps: string[];
@@ -32,9 +38,17 @@ const resolvePanelStatus = (
   return 'queued';
 };
 
+type BarVariant = 'hidden' | 'idle' | 'active' | 'completed';
+const barVariantByStatus: Record<string, BarVariant> = {
+  queued: 'active',
+  running: 'active',
+  completed: 'completed',
+  failed: 'idle',
+};
+
 export const ToolWorkflowJobPanel = ({
   jobId,
-  stepStatuses,
+  stepItems,
   stepLabels,
   currentRunningStep,
   completedSteps,
@@ -42,54 +56,99 @@ export const ToolWorkflowJobPanel = ({
   isStreamActive,
   onCancel,
 }: ToolWorkflowJobPanelProps) => {
-  const totalSteps = Object.keys(stepStatuses).length;
+  const totalSteps = stepItems.length;
   const panelStatus = resolvePanelStatus(isStreamActive, currentRunningStep, completedSteps, totalSteps, errorMessage);
+  const barVariant = barVariantByStatus[panelStatus] ?? 'idle';
 
-  const stepItems = Object.entries(stepStatuses).map(([key, status]) => ({
-    key,
-    label: stepLabels[key] ?? key,
-    status,
-  }));
+  const currentStepLabel = currentRunningStep
+    ? (stepLabels[currentRunningStep] ?? currentRunningStep)
+    : null;
+
+  const completedCount = completedSteps.length;
 
   return (
-    <div className="ui-twjob-panel" role="region" aria-label={`Tool workflow job ${jobId}`}>
-      <header className="ui-twjob-panel-header">
-        <span className={`ui-twjob-status-badge ui-twjob-status-badge--${panelStatus}`}>
-          {statusCopy[panelStatus]}
-        </span>
-        {currentRunningStep && (
-          <span className="ui-twjob-current-step">
-            {stepLabels[currentRunningStep] ?? currentRunningStep}
-          </span>
-        )}
-      </header>
+    <div className="ui-fv-dashboard" role="region" aria-label={`Tool workflow job ${jobId}`}>
+      {/* ── Phase label ── */}
+      <p className="ui-fv-progress-metric">
+        {appCopy.ui.toolPage.flow.phaseGenerationLabel}
+      </p>
 
-      <div className="ui-twjob-panel-body">
-        <ToolWorkflowJobStepTracker steps={stepItems} />
+      {/* ── Card: progress bar + status ── */}
+      <div className={cx('ui-fv-card', 'ui-fv-card--progress')}>
+        <div className="ui-fv-card-header">
+          <p className={`workflow-preload-bar is-${barVariant}`}>
+            <span className="sr-only">
+              {completedCount} {appCopy.ui.toolPage.flow.stepsCompletedSuffix}
+            </span>
+          </p>
+        </div>
+
+        <p className="ui-fv-progress-metric">
+          <span className={`ui-twjob-status-text ui-twjob-status-text--${panelStatus}`}>
+            {statusCopy[panelStatus]}
+          </span>
+          {currentStepLabel && (
+            <>
+              {' — '}
+              <span className="ui-twjob-current-step">{currentStepLabel}</span>
+            </>
+          )}
+        </p>
       </div>
 
+      {/* ── Step counter ── */}
+      <p className="ui-fv-progress-metric">
+        {appCopy.ui.toolPage.flow.currentStepPrefix}
+        <strong>{completedCount}</strong> / {totalSteps}{' '}
+        {appCopy.ui.toolPage.flow.stepsCompletedSuffix}
+      </p>
+
+      {/* ── Step tracker ── */}
+      <div className={cx('ui-fv-card', 'ui-twjob-step-card')}>
+        <ul className="ui-twjob-step-list" role="list" aria-live="polite">
+          {stepItems.map((step, index) => (
+            <li
+              key={step.key}
+              className={cx(
+                'ui-twjob-step',
+                `ui-twjob-step--${step.status}`,
+              )}
+              aria-label={`${step.label}: ${appCopy.ui.toolWorkflowJob.stepTracker[step.status]}`}
+              {...(step.status === 'running' ? { 'aria-current': 'step' as const } : {})}
+            >
+              <span className="ui-twjob-step-icon" aria-hidden="true" />
+              <span className="ui-twjob-step-label">{step.label}</span>
+              <span className="ui-twjob-step-count">
+                {step.status === 'done' ? '✓' : step.status === 'running' ? `${index + 1}/${totalSteps}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* ── Error ── */}
       {errorMessage && (
-        <div className="ui-twjob-panel-error" role="alert">
-          {errorMessage}
+        <div className="ui-fv-card" role="alert">
+          <p className={cx(uiPrimitives.error)}>{errorMessage}</p>
         </div>
       )}
 
+      {/* ── Reconnecting ── */}
       {!isStreamActive && panelStatus === 'running' && (
-        <div className="ui-twjob-panel-reconnecting" aria-live="polite">
-          {streamCopy.connectionLost}
+        <div className="ui-fv-card" aria-live="polite">
+          <p className="ui-twjob-reconnecting">{streamCopy.connectionLost}</p>
         </div>
       )}
 
+      {/* ── Cancel ── */}
       {panelStatus === 'running' && onCancel && (
-        <footer className="ui-twjob-panel-footer">
-          <button
-            type="button"
-            className="ui-twjob-cancel-btn"
-            onClick={onCancel}
-          >
-            {cancelCopy.label}
-          </button>
-        </footer>
+        <button
+          type="button"
+          className={cx(uiPrimitives.button, 'ui-twjob-cancel-btn')}
+          onClick={onCancel}
+        >
+          {cancelCopy.label}
+        </button>
       )}
     </div>
   );

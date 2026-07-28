@@ -12,6 +12,7 @@ next-review-date: 2027-01-28
 owner: LLM
 source_file: docs/07-governance/xstate-as-aggregate-architectural-review.md
 date_ingested: 2026-07-28
+source_version: "1.1"
 ---
 
 # XState-as-Aggregate Architectural Risk Review
@@ -37,6 +38,10 @@ Deep-dive analysis of architectural risks from using XState v5 state machines as
 ## Overall Assessment
 
 The XState-as-Aggregate architecture is **valid and well-executed** for the current single-process context. Benefits (explicit states, testability, illegal transition prevention) outweigh costs. The BullMQ Proposal is the first real stress test — RISK-1 and RISK-2 are go-live gates, not post-launch improvements.
+
+## Contradictions
+
+None.
 
 ## Source
 

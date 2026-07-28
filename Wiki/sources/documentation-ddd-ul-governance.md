@@ -11,6 +11,7 @@ next-review-date: 2027-01-28
 owner: LLM
 source_file: docs/07-governance/documentation-ddd-ul-governance.md
 date_ingested: 2026-07-28
+source_version: "2.0"
 ---
 
 # Documentation Governance DDD and Ubiquitous Language
@@ -47,6 +48,10 @@ No intra-document mixing. Frontmatter keys always English.
 ## Compliance Checklist (Section 8)
 
 11-item checklist: verify DDD terms, check no duplicate docs, assign correct section, fill frontmatter, set `date_created`, assign `type`, populate `tags`, respect language policy, verify links, add DDD reference block if needed, update `docs/index-overview.md`.
+
+## Contradictions
+
+None.
 
 ## Source
 

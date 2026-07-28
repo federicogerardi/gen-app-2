@@ -12,6 +12,7 @@ next-review-date: 2027-01-28
 owner: LLM
 source_file: docs/02-design/proposal-be-driven-workflow-job-system.md
 date_ingested: 2026-07-28
+source_version: "1.14"
 ---
 
 # Proposal: BE-Driven Workflow Job System
@@ -61,6 +62,10 @@ Introduce [[ToolWorkflowJob]] (Aggregate Root, DDD-226) and [[ToolWorkflowJobId]
 ## Credit Model Compatibility
 
 Confirmed: the existing two-level credit model (artifact gate per step + credit consumption only on final step via `isNotFinalArtifact` guard) works correctly with BE-driven loop — no modifications needed.
+
+## Contradictions
+
+None.
 
 ## Source
 

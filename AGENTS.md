@@ -232,7 +232,7 @@ Every wiki page has:
 - `owner:` — role or team
 
 Additional frontmatter by page type:
-- Source summaries: `source_file:`, `date_ingested:`
+- Source summaries: `source_file:`, `date_ingested:`, `source_version:` (version of source at ingest time; used for stale detection)
 - Entity pages: `source_count:`, `entity_type:` (person/tool/package/workspace/role)
 - Concept pages: `source_count:`, `confidence:` (high/medium/low)
 - Synthesis pages: `query:`, `date_created:`
@@ -242,7 +242,8 @@ Content conventions:
 - `[key::value]` inline metadata for Dataview queries
 - Keep source summaries factual — no interpretation
 - Interpretation and analysis go in concept/synthesis pages
-- When sources contradict each other, note it explicitly — never silently overwrite
+- When sources contradict each other, note it in the `## Contradictions` section — never silently overwrite
+- The `## Contradictions` section is present on every source summary, defaulting to `None.` when no contradictions exist
 - Never modify raw source files under any circumstances
 - Wiki pages use English (technical domain), matching the language policy
 

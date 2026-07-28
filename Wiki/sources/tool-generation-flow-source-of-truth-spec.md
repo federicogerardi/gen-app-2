@@ -12,6 +12,7 @@ next-review-date: 2027-01-28
 owner: LLM
 source_file: docs/02-design/specifications/tool-generation-flow-source-of-truth-spec.md
 date_ingested: 2026-07-28
+source_version: "1.3"
 ---
 
 # Tool Generation Flow Source of Truth (Frontend)
@@ -50,6 +51,10 @@ Three source families (`direct-input`, `tool-input-file`, `api-acquisition`) wit
 ## Resilience
 
 Supports resume from checkpoint, regenerate from artifact, post-cancel checkpoint creation. Resume uses new `requestId` to avoid idempotency collisions.
+
+## Contradictions
+
+None.
 
 ## Source
 

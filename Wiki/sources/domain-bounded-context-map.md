@@ -11,6 +11,7 @@ next-review-date: 2027-01-27
 owner: LLM
 source_file: docs/02-design/domain-bounded-context-map.md
 date_ingested: 2026-07-27
+source_version: "3.14"
 ---
 
 # Domain Bounded Context Map
@@ -52,6 +53,10 @@ The BCM defines ~35 translation rules governing how concepts cross context bound
 ## Status
 
 Three contexts are **provisional** (Crawling & Extraction, Competitor Analysis, and portions of Generation for GEOMETRIC). Their runtime implementation is pending.
+
+## Contradictions
+
+None.
 
 ## Source
 

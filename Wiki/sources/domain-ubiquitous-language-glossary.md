@@ -11,6 +11,7 @@ next-review-date: 2027-01-27
 owner: LLM
 source_file: docs/01-requirements/domain-ubiquitous-language-glossary.md
 date_ingested: 2026-07-27
+source_version: "2.23"
 ---
 
 # Domain Ubiquitous Language Glossary
@@ -66,6 +67,10 @@ The glossary defines 60+ terms in the Generation context, including:
 ## Status Distribution
 
 Many concepts introduced for the GEOMETRIC tool remain **provisional** (pending implementation). The glossary uses strict status labeling: `canonical`, `provisional`, `deprecated`.
+
+## Contradictions
+
+None.
 
 ## Source
 

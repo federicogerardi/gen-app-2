@@ -6,7 +6,7 @@
   "openAICodexModels": [],
   "openAICodexModelsFetchedAt": 0,
   "baseUrl": "https://openrouter.ai/api/v1",
-  "model": "openrouter/auto",
+  "model": "xiaomi/mimo-v2.5",
   "wikiFolder": "Wiki",
   "language": "en",
   "wikiLanguage": "en",

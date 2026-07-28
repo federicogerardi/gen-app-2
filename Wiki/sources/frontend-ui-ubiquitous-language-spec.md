@@ -11,6 +11,7 @@ next-review-date: 2027-01-28
 owner: LLM
 source_file: docs/02-design/specifications/frontend-ui-ubiquitous-language-spec.md
 date_ingested: 2026-07-28
+source_version: "1.8"
 ---
 
 # Frontend UI Ubiquitous Language Specification
@@ -64,6 +65,10 @@ Mandatory: WAI-ARIA tab pattern, focus traps for overlays, `aria-live` for dynam
 ## Responsive Breakpoints
 
 Three canonical: `980px` (desktop↔tablet), `760px` (tablet↔mobile), `1080px` (wide admin). `768px` deprecated.
+
+## Contradictions
+
+None.
 
 ## Source
 

@@ -5,10 +5,10 @@ tags:
   - frontend
   - aggregate-root
 date_created: 2026-07-27
-last-reviewed: 2026-07-27
-next-review-date: 2027-01-27
+last-reviewed: 2026-07-28
+next-review-date: 2027-01-28
 owner: Frontend/UI
-source_count: 2
+source_count: 3
 entity_type: aggregate-root
 ---
 
@@ -44,3 +44,4 @@ Frontend owns interaction and display only. Step ordering authority is BE. Step 
 
 - [[domain-bounded-context-map]]
 - [[domain-ubiquitous-language-glossary]]
+- [[frontend-tool-pages-architecture-spec]]

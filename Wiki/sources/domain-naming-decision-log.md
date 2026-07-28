@@ -11,6 +11,7 @@ next-review-date: 2027-01-27
 owner: LLM
 source_file: docs/07-governance/domain-naming-decision-log.md
 date_ingested: 2026-07-27
+source_version: "4.15"
 ---
 
 # Domain Naming Decision Log
@@ -68,6 +69,10 @@ Append-only governance log for domain naming decisions. Every canonical term mus
 - **DDD-216**: [[RequestTone]] and [[ToneProfile]] deprecated; tone now derived from `'brand-voice'` Assets
 - **DDD-030/094**: `meta_ads` deprecated; reactivated as `meta_ads_generator`
 - **DDD-145**: [[SerpScreenshot]] deprecated; SerpApi provides structured data without visual capture
+
+## Contradictions
+
+None.
 
 ## Source
 

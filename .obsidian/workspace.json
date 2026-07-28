@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "7d221b8954d09ccf",
+        "id": "140fdc33373e6180",
         "type": "tabs",
         "children": [
           {
-            "id": "0277f15243b8f1bf",
+            "id": "9fe96df5e2dbde33",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Wiki/concepts/artifact.md",
+                "file": "Wiki/index.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "artifact"
+              "title": "index"
             }
           }
         ]
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Wiki/concepts/bounded-context.md",
+                "file": "Wiki/index.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from bounded-context"
+              "title": "Outgoing links from index"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Wiki/concepts/bounded-context.md",
+                "file": "Wiki/index.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of bounded-context"
+              "title": "Outline of index"
             }
           },
           {
@@ -176,7 +176,7 @@
             }
           }
         ],
-        "currentTab": 5
+        "currentTab": 1
       }
     ],
     "direction": "horizontal",
@@ -195,43 +195,44 @@
       "bases:Create new base": false
     }
   },
-  "active": "0277f15243b8f1bf",
+  "active": "9fe96df5e2dbde33",
   "lastOpenFiles": [
-    "Wiki/concepts/be-driven-workflow-execution.md",
-    "Wiki/concepts/ui-governance.md",
-    "Wiki/concepts/xstate-as-aggregate.md",
-    "Wiki/concepts/ddd-governance.md",
-    "Wiki/entities/readiness-snapshot.md",
-    "Wiki/entities/tool-workflow-job.md",
-    "Wiki/sources/proposal-be-driven-workflow-job-system.md",
-    "Wiki/sources/tool-generation-flow-source-of-truth-spec.md",
-    "Wiki/sources/xstate-as-aggregate-architectural-review.md",
-    "Wiki/sources/documentation-ddd-ul-governance.md",
-    "Wiki/sources/frontend-ui-ubiquitous-language-spec.md",
-    "Wiki/concepts/tool.md",
-    "Wiki/index.md",
-    "Wiki/concepts/toolworkflow.md",
-    "wiki/concepts/toolworkflow.md",
-    "Wiki/concepts/asset.md",
-    "wiki/concepts/asset.md",
-    "Wiki/concepts/artifact.md",
-    "wiki/concepts/artifact.md",
-    "Wiki/concepts/toolkey.md",
-    "wiki/concepts/toolkey.md",
-    "Wiki/concepts/toolinputsource.md",
-    "wiki/concepts/toolinputsource.md",
-    "Wiki/entities/brief-generator.md",
-    "wiki/entities/brief-generator.md",
-    "Wiki/concepts/workflowstep.md",
+    "Wiki/concepts/step-type-registry.md",
+    "Wiki/concepts/registry-driven-routing.md",
+    "Wiki/sources/fix-geometric-duplicate-crawling-plan.md",
+    "Wiki/entities/llm-model.md",
+    "Tasks.md",
+    "Wiki/sources/tool-governance-tool-matrix.md",
+    "Wiki/sources/llm-model-override-configuration-guide.md",
+    "Wiki/sources/session-aggregation-implementation-guide.md",
+    "Wiki/sources/prompt-layer-quality-review.md",
+    "Wiki/sources/geometric-admin-debug-monitoring-proposal.md",
+    "Wiki/sources/proposal-tool-output-personalization.md",
+    "Wiki/sources/tone-removal-brand-voice-delegation-plan.md",
+    "Wiki/sources/architecture-weaknesses-code-review.md",
+    "Wiki/sources/promote-to-asset-deterministic-mapping-review.md",
+    "Wiki/sources/llm-model-step-override-proposal.md",
+    "Wiki/sources/streaming-generator-debug-runbook.md",
+    "Wiki/sources/prompt-template-standards.md",
+    "Wiki/sources/serp-api-integration-proposal.md",
+    "Wiki/sources/proposal-error-logging-and-ux-feedback.md",
+    "Wiki/sources/production-observability-runbook.md",
+    "Wiki/sources/csrf-fail-closed-startup-invariant-adr.md",
+    "Wiki/sources/frontend-data-access-layer-adr.md",
+    "Wiki/sources/tool-page-frontend-runtime-spec.md",
+    "Wiki/concepts/canonical-ui-state-derivation.md",
+    "Wiki/concepts/registry-driven-architecture.md",
+    "Wiki/concepts/explicit-error-states-pattern.md",
+    "Tasks",
+    "Untitled.canvas",
+    "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",
+    "flow",
     "wiki/entities",
     "wiki/concepts",
     "wiki/sources",
     "Wiki/schema",
     "wiki/schema",
     "Wiki/synthesis",
-    "Wiki/sources",
-    "Wiki/entities",
-    "Wiki/concepts",
-    "Wiki"
+    "Wiki/sources"
   ]
 }

@@ -246,6 +246,7 @@ export const createOpenRouterLlmStreamAdapter = (
         model: normalizeOpenRouterModelId(input.model),
         stream: true,
         messages: buildMessages(input.requestInput),
+        max_tokens: 4096,
       }),
       ...(input.signal ? { signal: input.signal } : {}),
     };
@@ -275,6 +276,7 @@ export const createOpenRouterLlmGenerateAdapter = (
       model: normalizedModel,
       stream: false,
       messages,
+      max_tokens: 4096,
     };
 
     const log = createComponentLogger(LogComponent.OPENROUTER);

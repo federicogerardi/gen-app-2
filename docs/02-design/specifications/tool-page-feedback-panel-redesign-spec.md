@@ -1,8 +1,9 @@
 ---
-status: draft
+status: implemented
 version: 1.1
 last-reviewed: 2026-07-28
 next-review-date: 2026-12-28
+implementation_date: 2026-07-28
 owner: UI Designer
 date_created: 2026-07-28
 type: design-proposal

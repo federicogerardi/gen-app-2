@@ -7,8 +7,8 @@ next-review-date: 2027-01-28
 implementation_date: 2026-07-28
 owner: Backend Runtime
 type: implementation-plan
-tags: [geometric, bugfix, routing, crawling, scoring, deduplication, serpapi, generation-system, unification, be-driven]
-goal: Eliminare ogni eccezione geometric-specifica dal routing della generation system. Zero riferimenti a 'geometric' nei guard e nel routing state. Il modello FE-driven è abbandonato — architettura target full BE-driven.
+tags: [geometric, bugfix, routing, crawling, scoring, deduplication, serpapi, generation-system, unification, be-driven, frontend-feedback-panel]
+goal: Eliminare ogni eccezione geometric-specifica dal routing della generation system. Zero riferimenti a 'geometric' nei guard e nel routing state. Il modello FE-driven è abbandonato — architettura target full BE-driven. Frontend feedback panel unificato con redesign card-based.
 ---
 
 > ⚑ DDD Reference: [Glossary](../01-requirements/domain-ubiquitous-language-glossary.md) · [BCM](../02-design/domain-bounded-context-map.md) · [Decision Log](../07-governance/domain-naming-decision-log.md) · DDD-117 (geometric) · DDD-123 (step sequence) · DDD-116 (crawling/scoring) · DDD-NEW (crawling → acquisition reclassification)

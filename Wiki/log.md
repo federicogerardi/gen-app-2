@@ -8,6 +8,10 @@ Every ingest, lint run, and maintenance operation is recorded here automatically
 ---
 Append-only record of every wiki modification. Each entry starts with `## [YYYY-MM-DD] operation | Title` so it's grep-parseable.
 
+## [2026-07-28] implement | Tool Page Feedback Panel Redesign — phases 1-4 completed
+
+Created source summary: [[Wiki/sources/tool-page-feedback-panel-redesign-spec]] (v1.1, governance compliant). Created entity pages: [[Wiki/entities/tool-feedback-panel|ToolFeedbackPanel]], [[Wiki/entities/pre-flight-readiness|PreFlightReadiness]], [[Wiki/entities/job-progress-dashboard|JobProgressDashboard]]. Created concept pages: [[Wiki/concepts/unified-feedback-panel|Unified Feedback Panel]], [[Wiki/concepts/card-based-progress-ui|Card-Based Progress UI]]. Updated [[Wiki/entities/generation-system|GenerationSystem]] with frontend feedback panel integration. All four phases implemented in `feat/tool-workflow-job-system`: Phase 1 (PreFlightReadiness), Phase 2 (CurrentActivity + ActionBar), Phase 3 (ToolFeedbackPanel wrapper), Phase 4 (dead code removal). Plan status updated to implemented.
+
 ## [2026-07-28] implement | Fix Geometric Duplicate Crawling Plan — completed, end-to-end verified
 
 Plan implemented (v2.1). All 8 tasks completed across 5 BE files + 2 templates + 1 glossary + 1 DDD log. Pipeline verified on Railway dev DB. Updated [[Wiki/sources/fix-geometric-duplicate-crawling-plan|source summary]] with implementation status, [[Wiki/entities/generation-system|GenerationSystem]] with routing governance, [[Wiki/concepts/registry-driven-routing|registry-driven-routing]] and [[Wiki/concepts/step-type-registry|step-type-registry]] concepts created. [[Wiki/index|index]], [[Wiki/log|log]], [[Wiki/overview|overview]] updated.

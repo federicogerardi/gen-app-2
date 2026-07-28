@@ -48,6 +48,7 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 | [[Wiki/sources/llm-model-override-configuration-guide\|llm-model-override-configuration-guide]] | LLM Model Override Config Guide | 2026-07-28 | active |
 | [[Wiki/sources/tool-governance-tool-matrix\|tool-governance-tool-matrix]] | Tool Governance Matrix | 2026-07-28 | active |
 | [[Wiki/sources/fix-geometric-duplicate-crawling-plan\|fix-geometric-duplicate-crawling-plan]] | Unify Geometric Routing — Zero Tool-Specific Exceptions | 2026-07-28 | implemented |
+| [[Wiki/sources/tool-page-feedback-panel-redesign-spec\|tool-page-feedback-panel-redesign-spec]] | Tool Page Feedback Panel Redesign Specification | 2026-07-28 | implemented |
 
 ## Entities
 
@@ -61,6 +62,9 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 | [[Wiki/entities/api-service\|ApiService]] | entity | 3 | 2026-07-27 |
 | [[Wiki/entities/tool-workflow-job\|ToolWorkflowJob]] | aggregate-root | 2 | 2026-07-28 |
 | [[Wiki/entities/readiness-snapshot\|ReadinessSnapshot]] | value-object | 2 | 2026-07-28 |
+| [[Wiki/entities/tool-feedback-panel\|ToolFeedbackPanel]] | component-wrapper | 1 | 2026-07-28 |
+| [[Wiki/entities/pre-flight-readiness\|PreFlightReadiness]] | component | 1 | 2026-07-28 |
+| [[Wiki/entities/job-progress-dashboard\|JobProgressDashboard (ToolWorkflowJobPanel)]] | component | 1 | 2026-07-28 |
 
 ## Concepts
 
@@ -78,6 +82,8 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 | [[Wiki/concepts/canonical-ui-state-derivation\|Canonical UI State Derivation]] | high | 1 | 2026-07-28 |
 | [[Wiki/concepts/registry-driven-routing\|Registry-Driven Routing]] | high | 2 | 2026-07-28 |
 | [[Wiki/concepts/step-type-registry\|STEP_TYPE_BY_TOOL_AND_STEP Registry]] | high | 1 | 2026-07-28 |
+| [[Wiki/concepts/unified-feedback-panel\|Unified Feedback Panel]] | high | 2 | 2026-07-28 |
+| [[Wiki/concepts/card-based-progress-ui\|Card-Based Progress UI]] | high | 1 | 2026-07-28 |
 
 ## Synthesis
 
@@ -131,7 +137,8 @@ Content catalog for the [[Wiki/overview|LLM Wiki]]. Start here for any query or 
 - ~~`ddd-implementation-audit`~~ ✔ ingested
 - ~~`architecture-weaknesses-code-review`~~ ✔ ingested
 - ~~`tool-governance-tool-matrix`~~ ✔ ingested
-- `fix-geometric-duplicate-crawling-plan` — NEW: geometric routing unification plan
+- ~~`fix-geometric-duplicate-crawling-plan`~~ ✔ ingested
+- ~~`tool-page-feedback-panel-redesign-spec`~~ ✔ ingested
 
 ### 99-reference / 99-lifecycle
 - Remaining: ~8 archived reviews, audits, and proposals

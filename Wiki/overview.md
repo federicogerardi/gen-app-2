@@ -14,7 +14,7 @@ High-level synthesis of the entire wiki. This page captures the big picture — 
 
 ## Current State
 
-**31 sources ingested**, 8 entity pages, 12 concept pages. The wiki covers DDD governance, frontend UI governance, generation flow, the BE-driven workflow job system, frontend architecture patterns ([[registry-driven-architecture|registry-driven]], [[explicit-error-states-pattern|explicit error states]], [[canonical-ui-state-derivation|canonical UI state derivation]]), a complete [[tool-catalog|Tool Catalog]] of all 11 tools, and the plan to eliminate routing exceptions via [[registry-driven-routing|registry-driven routing]].
+**32 sources ingested**, 11 entity pages, 14 concept pages. The wiki covers DDD governance, frontend UI governance, generation flow, the BE-driven workflow job system, frontend architecture patterns ([[registry-driven-architecture|registry-driven]], [[explicit-error-states-pattern|explicit error states]], [[canonical-ui-state-derivation|canonical UI state derivation]]), a complete [[tool-catalog|Tool Catalog]] of all 11 tools, and the recently completed plan to unify both backend routing and frontend feedback via [[registry-driven-routing|registry-driven routing]] and [[unified-feedback-panel|unified feedback panel]].
 
 ## Domain Architecture Summary
 
@@ -55,3 +55,16 @@ The architecture follows a **layered actor model**: XState v5 state machines are
 - [[Wiki/concepts/canonical-ui-state-derivation|Canonical UI State Derivation]] — deterministic UI states
 - [[Wiki/concepts/registry-driven-routing|Registry-Driven Routing]] — eliminating tool exceptions in the routing layer
 - [[Wiki/concepts/step-type-registry|STEP_TYPE_BY_TOOL_AND_STEP]] — canonical step type registry
+- [[Wiki/concepts/unified-feedback-panel|Unified Feedback Panel]] — consolidating fragmented UI components
+- [[Wiki/concepts/card-based-progress-ui|Card-Based Progress UI]] — visual pattern for workflow advancement
+
+## Unification Principle (2026-07-28)
+
+The sprint demonstrated a recurring principle: **one component, one pattern, zero exceptions**. This was applied in two layers:
+
+| Layer | Before | After |
+|---|---|---|
+| Backend routing | `routeIsGeometric` / `isNotGeometric` (tool-specific guards) | `routeIsCrawlingStep` / `routeIsScoringStep` (data-driven, step-type-based) |
+| Frontend feedback | 4 fragmented components + ternary branching | `ToolFeedbackPanel` wrapper + card-based progress UI |
+
+Both layers achieved: zero tool-specific exceptions, zero hardcoded decision logic, full governance compliance ([[ui-governance|CTA §4b]], [[ui-governance|Feedback §7]], [[ui-governance|Token §12]]).

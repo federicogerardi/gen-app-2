@@ -198,6 +198,12 @@
   },
   "active": "7fecf5c700fd955e",
   "lastOpenFiles": [
+    "Wiki/entities/job-progress-dashboard.md",
+    "Wiki/entities/pre-flight-readiness.md",
+    "Wiki/concepts/card-based-progress-ui.md",
+    "Wiki/concepts/unified-feedback-panel.md",
+    "Wiki/entities/tool-feedback-panel.md",
+    "Wiki/sources/tool-page-feedback-panel-redesign-spec.md",
     "apps/frontend/src/features/tools/ui/ToolFeedbackPanel.tsx",
     "apps/frontend/src/features/tools/ui/PreFlightReadiness.tsx",
     "docs/02-design/specifications/tool-page-feedback-panel-redesign-spec.md",
@@ -220,11 +226,6 @@
     "Wiki/sources/architecture-weaknesses-code-review.md",
     "Wiki/sources/promote-to-asset-deterministic-mapping-review.md",
     "Wiki/sources/llm-model-step-override-proposal.md",
-    "Wiki/sources/streaming-generator-debug-runbook.md",
-    "Wiki/sources/prompt-template-standards.md",
-    "Wiki/sources/serp-api-integration-proposal.md",
-    "Wiki/sources/proposal-error-logging-and-ux-feedback.md",
-    "Wiki/sources/production-observability-runbook.md",
     "Tasks",
     "Untitled.canvas",
     "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",
@@ -233,7 +234,6 @@
     "wiki/concepts",
     "wiki/sources",
     "Wiki/schema",
-    "wiki/schema",
-    "Wiki/synthesis"
+    "wiki/schema"
   ]
 }

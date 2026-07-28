@@ -1,9 +1,9 @@
 ---
 status: approved
-version: 5.3
+version: 5.4
 date_created: 2026-05-07
-last-reviewed: 2026-07-23
-next-review-date: 2026-10-23
+last-reviewed: 2026-07-28
+next-review-date: 2026-10-28
 owner: Documentation Archivist
 type: reference
 tags: [index, documentation, overview]
@@ -113,6 +113,7 @@ Usa questo set minimo come percorso primario. Tutto il resto è storico o approf
 - [dependency-unification-proposal](./02-design/specifications/dependency-unification-proposal.md) — **Ranked proposal for dependency-slot allocation focused on code unification (Zod + Kysely implemented; Ky pending)**
 - [tool-generation-flow-source-of-truth-spec](./02-design/specifications/tool-generation-flow-source-of-truth-spec.md) — **Source of truth for ToolPage state (DDD-aligned, including DDD-081 readiness branches)**
 - [session-aggregation-implementation-guide](./02-design/session-aggregation-implementation-guide.md)
+- [tool-page-feedback-panel-redesign-spec](./02-design/specifications/tool-page-feedback-panel-redesign-spec.md) — **IMPLEMENTED v1.1: ToolFeedbackPanel redesign (4 phases, card-based progress, UI governance §4b/§7/§12 compliant)**
 
 Validation path manifest (orphan-check canonical set):
 
@@ -161,7 +162,7 @@ Validation path manifest (orphan-check canonical set):
 - [workspace-centric-ux-transformation-ai-executable-plan](./05-plans/workspace-centric-ux-transformation-ai-executable-plan.md) — **IMPLEMENTED**: AI-executable task decomposition (47 tasks, all completed 2026-07-17).
 - [workspace-dashboard-ux-restyling-implementation-plan](./05-plans/workspace-dashboard-ux-restyling-implementation-plan.md) — **PARTIALLY IMPLEMENTED**: 15/19 tasks done. `FoundationToolsPanel` component missing (verified 2026-07-23).
 - [feature-tool-output-personalization-1](./05-plans/feature-tool-output-personalization-1.md) — **NOT IMPLEMENTED**: 0/23 tasks done (verified 2026-07-23).
-- [fix-geometric-duplicate-crawling-plan](./05-plans/fix-geometric-duplicate-crawling-plan.md) — **IMPLEMENTED v2.1: Unify Geometric routing — zero tool-specific exceptions. Guards (routeIsGeometric, isNotGeometric) eliminated, routing step-type-based via STEP_TYPE_BY_TOOL_AND_STEP. Processor scoring extraction data-driven. Glossary updated: crawling → acquisition. DDD-232. Pipeline end-to-end verified: 1 SerpApi + 1 scoring + 2 LLM generation (was 4+4+4).**
+- [fix-geometric-duplicate-crawling-plan](./05-plans/fix-geometric-duplicate-crawling-plan.md) — **IMPLEMENTED v2.1: Unify Geometric routing — zero tool-specific exceptions. Guards (routeIsGeometric, isNotGeometric) eliminated, routing step-type-based via STEP_TYPE_BY_TOOL_AND_STEP. Processor scoring extraction data-driven. Glossary updated: crawling → acquisition. DDD-232. Pipeline end-to-end verified: 1 SerpApi + 1 scoring + 2 LLM generation (was 4+4+4). Frontend redesign completato: ToolFeedbackPanel unificato (4 fasi, card-based progress, PreFlightReadiness, CurrentActivity, ActionBar).**
 
 ### Active Proposals
 

@@ -92,13 +92,17 @@ const buildBackendGenerationRequest = (
     (input as Record<string, unknown>).country = ep.country;
   }
 
-  // Propagate maxTokens from StepLlmModelOverride config for this tool/step.
+  // Propagate maxTokens and model override from StepLlmModelOverride config.
   // The processor runs in the BullMQ worker without access to the modelResolver,
   // so we read the override config directly.
+  let overriddenModel: string | undefined;
   if (!(input as Record<string, unknown>).maxTokens) {
     const override = getStepOverride(jobData.toolKey as ToolKey, stepKey);
     if (override?.maxTokens != null) {
       (input as Record<string, unknown>).maxTokens = override.maxTokens;
+    }
+    if (override?.overrideModelId) {
+      overriddenModel = override.overrideModelId;
     }
   }
 
@@ -108,7 +112,7 @@ const buildBackendGenerationRequest = (
     projectId: jobData.projectId,
     sessionId,
     artifactType: 'content' as ArtifactType,
-    model: jobData.model as BackendGenerationRequest['model'],
+    model: (overriddenModel ?? jobData.model) as BackendGenerationRequest['model'],
     idempotencyKey: `${jobData.idempotencyKey}:${stepKey}`,
     toolKey: jobData.toolKey as ToolKey,
     workflowType,

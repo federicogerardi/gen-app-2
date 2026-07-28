@@ -9,7 +9,7 @@ date_created: 2026-07-27
 last-reviewed: 2026-07-27
 next-review-date: 2027-01-27
 owner: Domain Architecture
-source_count: 3
+source_count: 4
 entity_type: aggregate-root
 ---
 
@@ -31,6 +31,8 @@ The `generationSystemMachine` composes 9 child actors:
 | `persistenceBatchMachine` | Incremental chunk flushing + artifact finalization |
 | `extractionChainMachine` | Structured extraction with text fallback |
 | `acquisitionChainMachine` | API-backed context retrieval via [[ApiService]] |
+| `crawlingChainMachine` | SerpApi-based SERP data retrieval (specialized acquisition) |
+| `scoringChainMachine` | Deterministic competitor ranking computation (invoked via auto-chain from crawling) |
 
 ## Guard Sequence
 
@@ -46,8 +48,24 @@ Runtime entrypoints execute: `idempotency → ownershipCheck → usage`. Authent
 
 [[ToolWorkflowJob]] (provisional, DDD-226) — a BullMQ-backed async execution unit that produces and owns a [[GenerationSession]]. Distinct from `GenerationSystem` which handles synchronous streaming.
 
+## Routing Governance
+
+The `routing` state ([[Wiki/concepts/registry-driven-routing|registry-driven]]) must never reference a specific [[ToolKey]]. Discrimination uses `WorkflowStepType` read from [[Wiki/concepts/step-type-registry|STEP_TYPE_BY_TOOL_AND_STEP]]:
+
+```
+routing:
+  routeIsExtraction    → extractionFlow
+  routeIsCrawlingStep  → crawlingFlow    (step-type-based)
+  routeIsScoringStep   → scoringFlow     (step-type-based)
+  routeIsTool          → toolGenerationFlow
+  routeIsGeneric       → genericGenerationFlow
+```
+
+Tool-specific guards (`routeIsGeometric`, `isNotGeometric`) are eliminated per [[Wiki/sources/fix-geometric-duplicate-crawling-plan|Fix Geometric Plan]].
+
 ## Sources
 
 - [[domain-ubiquitous-language-glossary]]
 - [[domain-bounded-context-map]]
 - [[domain-naming-decision-log]] (DDD-034, DDD-047, DDD-048, DDD-226)
+- [[fix-geometric-duplicate-crawling-plan]]

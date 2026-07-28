@@ -14,7 +14,7 @@ High-level synthesis of the entire wiki. This page captures the big picture — 
 
 ## Current State
 
-**8 sources ingested**, 8 entity pages, 6 concept pages. The wiki now covers the foundational DDD governance, frontend UI governance, generation flow, and the BE-driven workflow job system.
+**31 sources ingested**, 8 entity pages, 12 concept pages. The wiki covers DDD governance, frontend UI governance, generation flow, the BE-driven workflow job system, frontend architecture patterns ([[registry-driven-architecture|registry-driven]], [[explicit-error-states-pattern|explicit error states]], [[canonical-ui-state-derivation|canonical UI state derivation]]), a complete [[tool-catalog|Tool Catalog]] of all 11 tools, and the plan to eliminate routing exceptions via [[registry-driven-routing|registry-driven routing]].
 
 ## Domain Architecture Summary
 
@@ -38,6 +38,8 @@ The architecture follows a **layered actor model**: XState v5 state machines are
 
 6. **Tone handling deprecated**: [[ToneProfile]] and [[RequestTone]] are deprecated (DDD-216). Tone derives from `'brand-voice'` [[Asset]] entities via [[AssetFieldMapping]].
 
+7. **Registry-driven routing eliminates tool exceptions**: The [[Wiki/concepts/registry-driven-routing|plan]] eliminates all tool-specific guards (`routeIsGeometric`, `isNotGeometric`) from the [[GenerationSystem]] routing layer. Routing discriminates exclusively by `WorkflowStepType` read from [[Wiki/concepts/step-type-registry|STEP_TYPE_BY_TOOL_AND_STEP]].
+
 ## Navigation
 
 - [[Wiki/index|Content Catalog]] — all sources, entities, concepts, and unprocessed inventory
@@ -47,3 +49,9 @@ The architecture follows a **layered actor model**: XState v5 state machines are
 - [[Wiki/concepts/xstate-as-aggregate|XState-as-Aggregate]] — architecture pattern risks
 - [[Wiki/concepts/ui-governance|UI Governance]] — frontend standards
 - [[Wiki/concepts/be-driven-workflow-execution|BE-Driven Workflow]] — BullMQ job system
+- [[Wiki/concepts/tool-catalog|Tool Catalog]] — all 11 tools with steps, types, and refactoring data
+- [[Wiki/concepts/explicit-error-states-pattern|Explicit Error States]] — ADR-003 XState pattern
+- [[Wiki/concepts/registry-driven-architecture|Registry-Driven Architecture]] — tool page unification
+- [[Wiki/concepts/canonical-ui-state-derivation|Canonical UI State Derivation]] — deterministic UI states
+- [[Wiki/concepts/registry-driven-routing|Registry-Driven Routing]] — eliminating tool exceptions in the routing layer
+- [[Wiki/concepts/step-type-registry|STEP_TYPE_BY_TOOL_AND_STEP]] — canonical step type registry

@@ -151,7 +151,13 @@ export const normalizeSerpApiAiOverview = (response: SerpApiAiOverviewResponse):
   }
   
   const aiOverviewSnippet = extractAiOverviewSnippet(response.ai_overview.text_blocks);
-  const sources = response.ai_overview.references.map((ref) => ({
+  // Filter out non-URL references (e.g., base64 Google cache tokens like
+  // "CAEScwHuR6pN...") that SerpApi occasionally includes alongside real URLs.
+  // These tokens produce noise in competitor scoring and unified reports.
+  const validReferences = response.ai_overview.references.filter(
+    (ref) => ref.link.startsWith('http://') || ref.link.startsWith('https://'),
+  );
+  const sources = validReferences.map((ref) => ({
     title: ref.title,
     url: ref.link,
     snippet: ref.snippet || null,

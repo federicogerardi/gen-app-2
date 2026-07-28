@@ -22,9 +22,8 @@ import {
 } from '../runtime/tool-page-selectors';
 import { useToolApiBindingStatusAdapter } from '../runtime/tool-api-binding-status-adapter';
 import { useModelsQuery } from '../../../app/runtime/queries/useModelsQuery';
-import { ToolGenerationFlowVertical } from './ToolGenerationFlowVertical';
+import { ToolFeedbackPanel } from './ToolFeedbackPanel';
 import type { ToolGenerationFlowVerticalProps } from './ToolGenerationFlowVertical';
-import { ToolWorkflowJobPanel } from './ToolWorkflowJobPanel';
 import { derivePrimaryActionLabel } from '../../generation/ui/tool-ux-state';
 import { ToolFileInstructionsSection } from './ToolFileInstructionsSection';
 import { AssetKnowledgePanel } from '../../workspace/ui/AssetKnowledgePanel';
@@ -1137,34 +1136,30 @@ export const ToolPageTemplate = (props: ToolPageTemplateProps) => {
           </section>
 
           <section className="ui-tool-column ui-tool-column-status">
-            {useJobSystem && pendingJobId ? (
-              <ToolWorkflowJobPanel
-                jobId={pendingJobId}
-                toolKey={props.toolKey}
-                stepItems={stepItems as Array<{ key: string; label: string; status: 'idle' | 'running' | 'done' | 'error' }>}
-                stepLabels={Object.fromEntries(stepItems.map((s) => [s.key, s.label]))}
-                currentRunningStep={currentRunningStep}
-                completedSteps={[...completedStepsForFlow]}
-                errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-                isStreamActive={isStreamActive}
-                workspaceName={workspaceProjectName}
-                briefingFileName={effectiveBriefingFileName}
-                isBriefingReady={
-                  effectiveBriefingStatus === 'ready' ||
-                  hasAssetBasedExtractionContext
-                }
-                sessionId={sessionId}
-                onCancel={handleCancelGeneration}
-                onRetry={handlePrimaryAction}
-              />
-            ) : (
-              <ToolGenerationFlowVertical
-                canonicalState={effectiveCanonicalState}
-                errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
-                generationProgress={generationProgress}
-                primaryActionCta={unifiedPrimaryActionCta}
-              />
-            )}
+            {/* ── Workflow Panel: unified feedback (Phase 3-4) ── */}
+            <ToolFeedbackPanel
+              useJobSystem={useJobSystem}
+              pendingJobId={pendingJobId}
+              toolKey={props.toolKey}
+              stepItems={stepItems as Array<{ key: string; label: string; status: 'idle' | 'running' | 'done' | 'error' }>}
+              stepLabels={Object.fromEntries(stepItems.map((s) => [s.key, s.label]))}
+              currentRunningStep={currentRunningStep}
+              completedSteps={[...completedStepsForFlow]}
+              errorMessage={machineViewModel.messages.error ?? briefingError ?? artifactsReloadError ?? null}
+              isStreamActive={isStreamActive}
+              workspaceName={workspaceProjectName}
+              briefingFileName={effectiveBriefingFileName}
+              isBriefingReady={
+                effectiveBriefingStatus === 'ready' ||
+                hasAssetBasedExtractionContext
+              }
+              sessionId={sessionId}
+              onCancel={handleCancelGeneration}
+              onRetry={handlePrimaryAction}
+              canonicalState={effectiveCanonicalState}
+              generationProgress={generationProgress}
+              primaryActionCta={unifiedPrimaryActionCta}
+            />
           </section>
         </div>
       </div>

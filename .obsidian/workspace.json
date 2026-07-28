@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Wiki/concepts/asset.md",
+                "file": "Wiki/sources/fix-geometric-duplicate-crawling-plan.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "asset"
+              "title": "fix-geometric-duplicate-crawling-plan"
             }
           }
         ]
@@ -196,8 +196,12 @@
       "bases:Create new base": false
     }
   },
-  "active": "9fe96df5e2dbde33",
+  "active": "7fecf5c700fd955e",
   "lastOpenFiles": [
+    "apps/frontend/src/features/tools/ui/ToolFeedbackPanel.tsx",
+    "apps/frontend/src/features/tools/ui/PreFlightReadiness.tsx",
+    "docs/02-design/specifications/tool-page-feedback-panel-redesign-spec.md",
+    "Wiki/concepts/asset.md",
     "Wiki/index.md",
     "packages/domain/README.md",
     "AGENTS.md",
@@ -221,9 +225,6 @@
     "Wiki/sources/serp-api-integration-proposal.md",
     "Wiki/sources/proposal-error-logging-and-ux-feedback.md",
     "Wiki/sources/production-observability-runbook.md",
-    "Wiki/sources/csrf-fail-closed-startup-invariant-adr.md",
-    "Wiki/sources/frontend-data-access-layer-adr.md",
-    "Wiki/sources/tool-page-frontend-runtime-spec.md",
     "Tasks",
     "Untitled.canvas",
     "packages/infra-db/seeds/20260727_000001_perplexity_sonar_blog_model.sql",
@@ -233,7 +234,6 @@
     "wiki/sources",
     "Wiki/schema",
     "wiki/schema",
-    "Wiki/synthesis",
-    "Wiki/sources"
+    "Wiki/synthesis"
   ]
 }

@@ -442,12 +442,10 @@ export const generationSystemActions = {
       // Diagnostic: log whether we have cross-step content to inject
       const depKeys = Object.keys(dependencyOutputsByStep);
       if (depKeys.length > 0) {
-        glog.info({
+        glog.debug({
           requestId: context.requestId,
           operation: 'assembleChainAwarePrompt',
           depKeys,
-          depContentSizes: Object.fromEntries(depKeys.map((k) => [k, dependencyOutputsByStep[k]!.length])),
-          templateLen: resolvedTemplate.length,
         }, 'chain-aware prompt assembly — cross-step content available');
       }
 
@@ -459,14 +457,6 @@ export const generationSystemActions = {
           if (regex.test(filledPrompt)) {
             filledPrompt = filledPrompt.replace(regex, content);
             didReplace = true;
-            glog.info({
-              requestId: context.requestId,
-              operation: 'assembleChainAwarePrompt',
-              stepKey,
-              placeholder,
-              replacedLen: content.length,
-              contentPreview: content.substring(0, 200),
-            }, 'chain-aware prompt assembly — placeholder replaced');
           } else {
             glog.warn({
               requestId: context.requestId,

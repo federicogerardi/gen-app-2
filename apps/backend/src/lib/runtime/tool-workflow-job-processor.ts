@@ -433,16 +433,10 @@ export const processToolWorkflowJob = async (
       }
       if (Object.keys(contentsByStep).length > 0) {
         stepDependencyArtifactContentsByStep = contentsByStep;
-        jobLog.info({
+        jobLog.debug({
           stepKey,
           depContentKeys: Object.keys(contentsByStep),
-          depContentSizes: Object.fromEntries(
-            Object.entries(contentsByStep).map(([k, v]) => [k, v.length]),
-          ),
-          depContentPreviews: Object.fromEntries(
-            Object.entries(contentsByStep).map(([k, v]) => [k, v.substring(0, 200)]),
-          ),
-        }, 'stepDependencyArtifactContentsByStep populated for generation step');
+        }, 'step dependency contents populated');
       }
     }
 
@@ -459,8 +453,6 @@ export const processToolWorkflowJob = async (
       stepIndex: i,
       stepType,
       dependencyCount: stepDependencyArtifactIds.length,
-      skippedByPriorData: !!priorOfSameType,
-      extractionPayloadKeys: Object.keys(data.extractionPayload ?? {}),
     }, 'step starting');
 
     try {
